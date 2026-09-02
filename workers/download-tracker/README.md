@@ -1,9 +1,13 @@
-# aziel-corpus-download-tracker
+# Aziel Digital Library public MASTER Worker
 
-Isolated counted download Worker for Aziel Corpus Library.
+Worker name: aziel-corpus-download-tracker
 
-KV `DOWNLOADS` = `8f512faee6964e4b8a2bdf8e90deec0e` (AZIELCORPUS_DOWNLOADS).
-Canonical https://www.azielcorpuslibrary.net. Fallback workers.dev.
+Custom domains: www.azielcorpuslibrary.net and azielcorpuslibrary.net
 
-`/download` is HTTP 200 (no 302). `/v1` does not increment.
-Author: Aziel Eliab.
+- Anonymous GET: search, records, map, gazetteer, originals, health, counted zip
+- POST / ingest / comments / events / historical-import: login required
+- Counted zip: GET /download HTTP 200, not a 302
+- /v1 never increments KV
+- Hidden operator account is not listed in HTML or user directories
+
+Author: Aziel Eliab

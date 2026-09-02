@@ -1,0 +1,19 @@
+AZIEL DIGITAL LIBRARY v2.6.2 — MASTER / PUBLIC MIRROR RELEASE
+PRIVATE MASTER
+Windows: double-click START_AZIEL_WINDOWS.bat
+
+macOS/Linux: run ./START_AZIEL_MAC_LINUX.sh
+OCR FIRST-RUN
+
+The private master verifies image + scanned-PDF OCR on startup. If Intelligence shows OCR not verified, click Install / repair selected processors, then Reprocess pending scans.
+GEOSPATIAL FIRST-RUN
+
+The private master also verifies a local world gazetteer. If none is ready it automatically attempts the Lite baseline and then re-indexes existing documents. Use Gazetteer > Full when you want all GeoNames feature classes, not only the city baseline.
+MASS INGEST
+Open "Mass Ingest" in the master UI for thousands of files/folders.For very large local directories use:
+python -m aziel_library.cli --vault YOUR_VAULT bulk-ingest YOUR_FOLDER
+PUBLIC READ-ONLY MIRROR
+1. In the master UI open "Publish Mirror" and publish a snapshot.2. Run START_PUBLIC_MIRROR_WINDOWS.bat <mirror-folder>or ./START_PUBLIC_MIRROR_MAC_LINUX.sh <mirror-folder>
+
+3. Point your domain/reverse proxy at the mirror server.
+Never expose the writable master process to the public domain.See MIRROR_DEPLOYMENT.md for deployment details.

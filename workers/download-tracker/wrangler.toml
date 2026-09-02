@@ -1,17 +1,23 @@
 name = "aziel-corpus-download-tracker"
 main = "src/index.js"
 compatibility_date = "2026-07-01"
+compatibility_flags = ["nodejs_compat"]
 workers_dev = true
 account_id = "ac575a9b822bea2bed97d0ab73aed238"
 
 [[kv_namespaces]]
 binding = "DOWNLOADS"
-id = "8f512faee6964e4b8a2bdf8e90deec0e"
+id = "183e17050e204a96a1d8c7e6f54cdf98"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "aziel-digital-library"
+database_id = "23f33238-f1ca-4066-b56e-af66a1e72031"
 
 [assets]
 directory = "./public"
 binding = "ASSETS"
-run_worker_first = ["/", "/download", "/download/*", "/stats", "/event", "/go", "/count", "/install.sh", "/v1", "/v1/*", "/openapi.json", "/ai", "/ai/*", "/mcp", "/mcp/", "/robots.txt", "/sitemap.xml", "/cite.json", "/llms.txt"]
+run_worker_first = ["/", "/download", "/download/*", "/stats", "/event", "/go", "/count", "/install.sh", "/v1", "/v1/*", "/openapi.json", "/login", "/logout", "/signup", "/ingest", "/search", "/health", "/verify", "/map", "/gazetteer", "/historical", "/historical-import", "/comments", "/comments/*", "/robots.txt", "/sitemap.xml", "/cite.json", "/llms.txt", "/api", "/api/*"]
 
 [[routes]]
 pattern = "www.azielcorpuslibrary.net"

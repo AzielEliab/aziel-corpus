@@ -1,6 +1,6 @@
 {
   "private": true,
-  "description": "Aziel Corpus Library isolated download tracker + hosted /v1",
+  "description": "Aziel Digital Library v2.6.2 public MASTER + counted zip + hosted /v1",
   "license": "Apache-2.0",
   "dependencies": {
     "wrangler": "^4.127.1"

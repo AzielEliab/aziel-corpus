@@ -1,0 +1,4 @@
+# Aziel Digital Library v2.2.0
+
+Adds a corpus-native Temporal–Geospatial layer.
+- Stable AZEVT event records with date precision, coordinates, confidence, provenance and source locator.- Conservative automatic date/place event extraction.- REVIEW state for weaker document-level associations.- Manual event creation with coordinate validation and append-only ledger entry.- Navigable offline Temporal Map with pan/zoom, year filters, confidence filters and source-document links.- Bundled low-resolution Natural Earth world geometry; no tile server is required.- Unresolved geographic mentions remain unpinned for review.- Event data is included in XLSX and PDF exports and corpus-health metrics.- Existing v2.1 preservation, OCR/speech adapters, search, hierarchy, evidence and package verification remain intact.

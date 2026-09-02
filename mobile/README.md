@@ -1,17 +1,14 @@
-# Aziel Corpus Library — iPhone & Android
+# Aziel Digital Library — iPhone & Android
 
-On-device public library cards for Aziel Eliab software.
+On-device stub for Aziel Digital Library v2.6.2. Author Aziel Eliab.
 
-Offline. No analytics. Dark matte / gold.
+Offline-capable UI shell. No analytics. Dark matte / gold.
 
 Application id: `com.azieeliab.azielcorpus`
 
-Not a store listing. Not a separate repo.
+Not a store listing. Not a 26-card software index.
 
 ## Open in Android Studio / Xcode
-
-The `android/` and `ios/` folders here are skeleton READMEs because
-this tree was written without the Flutter SDK on PATH.
 
 ```bash
 cd mobile
@@ -20,14 +17,7 @@ flutter pub get
 flutter run
 ```
 
-## Honest scope
-
-THIS IS: a public library index of Aziel Eliab software.
-THIS IS NOT: a private-file search engine, Zenodo, or a new Lock engine.
-
-Counted desktop download:
-
-# → https://www.azielcorpuslibrary.net ←
+Counted desktop download: https://www.azielcorpuslibrary.net/download
 
 GitHub: https://github.com/AzielEliab/aziel-corpus
 

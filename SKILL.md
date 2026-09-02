@@ -1,17 +1,17 @@
 ---
-name: Aziel Corpus Library
-description: Use when an assistant should look up Aziel Eliab software in the public library index, list works, search works, or fetch the counted corpus PDF / package via hosted /v1 or aziel-runtime.
+name: Aziel Digital Library
+description: Use when an assistant should search the Aziel Digital Library master corpus, check health, or fetch the counted v2.6.2 software zip via hosted /v1 or aziel-runtime.
 ---
 
-# Aziel Corpus Library
+# Aziel Digital Library v2.6.2
 
-Public library of Aziel Eliab software. Counted views and downloads. Author: **Aziel Eliab**.
+Self-contained immutable local digital library and intelligence runtime. Public site is MASTER. Anonymous GET is read-only. Signed-in accounts may ingest. Author: **Aziel Eliab**.
 
-**THIS IS:** a public library index of Aziel Eliab software plus a counted download of the printed 468-page corpus PDF and the library package.
+**THIS IS:** Aziel Digital Library v2.6.2 (search, records, map, gazetteer, counted zip).
 
-**THIS IS NOT:** a search engine of private files. Not Zenodo. Not a new Lock engine. GodLock is a product name in the corpus, not identity.
+**THIS IS NOT:** a 26-card software index. Not Zenodo. Not Horton.
 
-Always send `User-Agent: Mozilla/5.0`. Cloudflare Workers may 403 an empty agent.
+Always send `User-Agent: Mozilla/5.0`.
 
 ## Call these URLs
 
@@ -20,38 +20,32 @@ Always send `User-Agent: Mozilla/5.0`. Cloudflare Workers may 403 an empty agent
 - Worker OpenAPI: https://www.azielcorpuslibrary.net/openapi.json
 - Catalog OpenAPI: https://aziel-runtime.vibelock.workers.dev/openapi.json
 - MCP: `POST https://aziel-runtime.vibelock.workers.dev/mcp`
-- Live skill (this markdown): `GET https://www.azielcorpuslibrary.net/v1/skill`
+- Live skill: `GET https://www.azielcorpuslibrary.net/v1/skill`
 
-Ops (do **not** increment downloads or views):
+Ops (do **not** increment downloads):
 
 - `GET /v1/health`
-- `GET /v1/works` — JSON list of indexed works
-- `GET /v1/search?q=` — search works
-- `GET /v1/example` — sample search payload
-- `GET /v1/skill` — this file
+- `GET /v1/search?q=`
+- `GET /v1/example`
+- `GET /v1/skill`
 
-Catalog aliases: `GET /p/aziel-corpus/health`, `GET /p/aziel-corpus/works`, `GET /p/aziel-corpus/search`, `GET /p/aziel-corpus/skill`.
+Catalog aliases: `GET /p/aziel-corpus/health`, `GET /p/aziel-corpus/search`, `GET /p/aziel-corpus/skill`.
 
-MCP tools: `aziel-corpus_health`, `aziel-corpus_works`, `aziel-corpus_search`, `aziel-corpus_skill`.
-
-Grok: import OpenAPI as a custom tool. ChatGPT: GPT Actions. Venice: HTTP tools.
+MCP tools: `aziel-corpus_health`, `aziel-corpus_search`, `aziel-corpus_skill`.
 
 ## Example
 
 ```bash
 curl -s -A 'Mozilla/5.0' https://www.azielcorpuslibrary.net/v1/health
-curl -s -A 'Mozilla/5.0' https://www.azielcorpuslibrary.net/v1/works
-curl -s -A 'Mozilla/5.0' 'https://www.azielcorpuslibrary.net/v1/search?q=lock'
-curl -s -A 'Mozilla/5.0' https://aziel-runtime.vibelock.workers.dev/p/aziel-corpus/skill
+curl -s -A 'Mozilla/5.0' 'https://www.azielcorpuslibrary.net/v1/search?q=Florence'
+curl -s -A 'Mozilla/5.0' https://www.azielcorpuslibrary.net/v1/skill
 ```
 
-## Local (after one-click install)
+## Local
 
 ```bash
 curl -fsSL https://www.azielcorpuslibrary.net/install.sh | bash
-aziel-corpus ui
-aziel-corpus doctor
-aziel-corpus search lock
+python3 aziel_launcher.py
 ```
 
-Local UI: Import JSON file and Export JSON of the works list. Loopback http://127.0.0.1:8890. Apache-2.0. Forks welcome.
+Local MASTER is writable on http://127.0.0.1:8765. Apache-2.0. Forks welcome.

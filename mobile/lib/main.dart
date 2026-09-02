@@ -3,69 +3,70 @@ import 'package:flutter/material.dart';
 import 'theme.dart';
 
 const limitation =
-    'THIS IS a public library index of Aziel Eliab software plus a counted '
-    'download of the printed 468-page corpus PDF and the library package. '
-    'THIS IS NOT a search engine of private files, Zenodo, or a new Lock engine. '
-    'GodLock is a product name. Author Aziel Eliab only.';
+    'THIS IS Aziel Digital Library v2.6.2 — a self-contained immutable local '
+    'digital library and intelligence runtime. Public site is MASTER. '
+    'Anonymous GET is read-only. Signed-in accounts may ingest. '
+    'THIS IS NOT a 26-card software index. Not Zenodo. Not Horton. '
+    'Author Aziel Eliab only.';
 
-const works = <Map<String, String>>[
-  {'slug': 'aziel-corpus-pdf', 'name': 'AZIEL Corpus Library — software (printed)', 'one': '468-page printed corpus. Counted PDF download.'},
-  {'slug': 'aziel-corpus', 'name': 'Aziel Corpus Library', 'one': 'Public library of Aziel Eliab software.'},
-  {'slug': 'vibelock', 'name': 'VibeLock', 'one': 'Physical-consistency evaluation of speech audio.'},
-  {'slug': 'godlock', 'name': 'GodLock', 'one': 'Offline ABAD / hardening score. Not a VPN.'},
-  {'slug': 'employeelock', 'name': 'EmployeeLock', 'one': 'Hash-chained accountability workbook.'},
-  {'slug': 'foldlock', 'name': 'FoldLock', 'one': 'Tether-word suppression on UTF-8 text. Not zip.'},
+const endpoints = <Map<String, String>>[
+  {'slug': 'home', 'name': 'Public MASTER', 'one': 'https://www.azielcorpuslibrary.net/'},
+  {'slug': 'download', 'name': 'Counted zip v2.6.2', 'one': 'HTTP 200 /download — not a 302.'},
+  {'slug': 'search', 'name': 'Search', 'one': 'GET /search and GET /v1/search?q='},
+  {'slug': 'health', 'name': 'Health', 'one': 'GET /v1/health — does not increment downloads.'},
+  {'slug': 'map', 'name': 'Temporal map', 'one': 'Published corpus map view.'},
+  {'slug': 'gazetteer', 'name': 'Gazetteer', 'one': 'Published place index.'},
 ];
 
 void main() {
-  runApp(const AzielCorpusApp());
+  runApp(const AzielLibraryApp());
 }
 
-class AzielCorpusApp extends StatelessWidget {
-  const AzielCorpusApp({super.key});
+class AzielLibraryApp extends StatelessWidget {
+  const AzielLibraryApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Aziel Corpus Library',
+      title: 'Aziel Digital Library',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
-      home: const ShelfPage(),
+      home: const LibraryPage(),
     );
   }
 }
 
-class ShelfPage extends StatefulWidget {
-  const ShelfPage({super.key});
+class LibraryPage extends StatefulWidget {
+  const LibraryPage({super.key});
 
   @override
-  State<ShelfPage> createState() => _ShelfPageState();
+  State<LibraryPage> createState() => _LibraryPageState();
 }
 
-class _ShelfPageState extends State<ShelfPage> {
+class _LibraryPageState extends State<LibraryPage> {
   String q = '';
 
   @override
   Widget build(BuildContext context) {
     final needle = q.trim().toLowerCase();
-    final shown = works.where((w) {
+    final shown = endpoints.where((w) {
       if (needle.isEmpty) return true;
       final hay = '${w['slug']} ${w['name']} ${w['one']}'.toLowerCase();
       return hay.contains(needle);
     }).toList();
     return Scaffold(
-      appBar: AppBar(title: const Text('Aziel Corpus Library')),
+      appBar: AppBar(title: const Text('Aziel Digital Library')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Text(limitation, style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 12),
           TextField(
-            decoration: const InputDecoration(hintText: 'Search works'),
+            decoration: const InputDecoration(hintText: 'Search library surfaces'),
             onChanged: (v) => setState(() => q = v),
           ),
           const SizedBox(height: 12),
-          Text('${shown.length} showing · author Aziel Eliab'),
+          Text('${shown.length} showing · author Aziel Eliab · v2.6.2'),
           const SizedBox(height: 8),
           for (final w in shown)
             Card(
