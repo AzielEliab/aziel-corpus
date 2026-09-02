@@ -1,7 +1,7 @@
 name: azielcorpus
-description: On-device public library cards for Aziel Eliab software. Not Zenodo. Not a new Lock engine.
+description: Aziel Digital Library v2.6.2 mobile stub. Not a 26-card index.
 publish_to: "none"
-version: 0.1.0+1
+version: 2.6.2+1
 
 environment:
   sdk: ">=3.3.0 <4.0.0"

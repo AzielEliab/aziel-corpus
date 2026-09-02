@@ -7,3 +7,6 @@ dist/
 node_modules/
 workers/download-tracker/node_modules/
 .wrangler
+
+.master-login.hash.json
+*.hash.json

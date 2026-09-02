@@ -1,21 +1,21 @@
-import { handleRuntimeApi, corsHeaders, json, LIMITATION, listWorks, searchWorks } from "./runtime.js";
+import { handleRuntimeApi, corsHeaders, json, LIMITATION } from "./runtime.js";
+import { handleAuth } from "./auth.js";
 
 /**
- * Aziel Corpus Library download tracker (Cloudflare Worker).
+ * Aziel Digital Library v2.6.2 public MASTER (Cloudflare Worker).
  *
- * GET  /          increments page-view counter, library HTML (search + cards)
- * GET  /download  increments downloads, serves PDF or tarball via env.ASSETS.fetch (no 302)
+ * GET  /          increments page-view counter, MASTER HTML (search, login, counted zip)
+ * GET  /download  increments downloads, serves zip via env.ASSETS.fetch (HTTP 200, no 302)
  * GET  /install.sh  one-click install script
  *
- * KV binding DOWNLOADS. Isolated: Worker aziel-corpus-download-tracker, KV AZIELCORPUS_DOWNLOADS.
+ * KV binding DOWNLOADS. Isolated: Worker aziel-corpus-download-tracker, KV AZIEL_DIGITAL_LIBRARY_DOWNLOADS.
  * /v1 does not increment.
  * Author: Aziel Eliab.
  */
 
 const PROJECT = "aziel-corpus";
-const DEFAULT_ASSET = "aziel-corpus-0.1.0.tar.gz";
-const PDF_ASSET = "AZIEL_Corpus_Library_software.pdf";
-const ALLOWED_ASSETS = new Set([DEFAULT_ASSET, PDF_ASSET]);
+const DEFAULT_ASSET = "aziel-digital-library-2.6.2.zip";
+const ALLOWED_ASSETS = new Set([DEFAULT_ASSET]);
 const DEFAULT_OWNER = "AzielEliab";
 const DEFAULT_REPO = "aziel-corpus";
 const DEFAULT_BRANCH = "main";
@@ -211,21 +211,21 @@ async function collectStats(env) {
 
 function installScript() {
   return `#!/usr/bin/env bash
-# Aziel Corpus Library one-click install. Counted download via this Worker.
+# Aziel Digital Library v2.6.2 counted zip install.
 set -euo pipefail
 HOST="${HOST}"
 ASSET="${DEFAULT_ASSET}"
-WORKDIR="\${AZIEL_CORPUS_HOME:-\$HOME/aziel-corpus}"
+WORKDIR="\${AZIEL_LIBRARY_HOME:-\$HOME/aziel-digital-library}"
 mkdir -p "\$WORKDIR"
 cd "\$WORKDIR"
-echo "Downloading counted tarball from \${HOST}/download (User-Agent Mozilla/5.0)…"
+echo "Downloading counted zip from \${HOST}/download (User-Agent Mozilla/5.0)…"
 if ! curl -fsSL -A 'Mozilla/5.0' "\${HOST}/download?asset=\${ASSET}" -o "\${ASSET}"; then
   echo "Canonical host failed; trying workers.dev fallback…"
   HOST="${FALLBACK_HOST}"
   curl -fsSL -A 'Mozilla/5.0' "\${HOST}/download?asset=\${ASSET}" -o "\${ASSET}"
 fi
-tar -xzf "\${ASSET}"
-DIR="\$(find . -maxdepth 1 -type d -name 'aziel_corpus-*' -o -name 'aziel-corpus-*' | head -n 1)"
+python3 -m zipfile -e "\${ASSET}" .
+DIR="\$(find . -maxdepth 1 -type d -name 'aziel-digital-library-*' -o -name 'aziel-digital-library-*' | head -n 1)"
 if [ -n "\${DIR}" ]; then
   cd "\${DIR}"
 fi
@@ -234,15 +234,16 @@ python3 -m venv .venv
 python -m pip install -U pip
 python -m pip install -e .
 echo
-echo "Installed Aziel Corpus Library."
-echo "Run:  aziel-corpus ui"
-echo "Then open http://127.0.0.1:8890  (loopback only)"
-echo "Public library of Aziel Eliab software. Not Zenodo. Not a new Lock engine."
+echo "Installed Aziel Digital Library v2.6.2."
+echo "Run:  python3 aziel_launcher.py"
+echo "Then open http://127.0.0.1:8765  (local MASTER)"
+echo "Aziel Digital Library. Author Aziel Eliab. Not a 26-card index."
 `;
 }
 
 function contentTypeFor(asset) {
   const a = String(asset || "").toLowerCase();
+  if (a.endsWith(".zip")) return "application/zip";
   if (a.endsWith(".pdf")) return "application/pdf";
   if (a.endsWith(".tar.gz") || a.endsWith(".tgz") || a.endsWith(".gz")) return "application/gzip";
   return "application/octet-stream";
@@ -288,182 +289,64 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
-function workCardsHtml() {
-  return listWorks()
-    .map((w) => {
-      const href = w.github || "#";
-      const dl = w.download || "";
-      const kind = w.kind || "work";
-      return `<article class="work" data-hay="${escapeHtml(
-        [w.slug, w.name, w.one_line, w.banner, w.kind, w.github].filter(Boolean).join(" ").toLowerCase(),
-      )}">
-  <h3><a href="${escapeHtml(href)}">${escapeHtml(w.name || w.slug)}</a> <span class="slug">${escapeHtml(w.slug || "")}</span></h3>
-  <p class="oneline">${escapeHtml(w.one_line || "")}</p>
-  <p class="kind">${escapeHtml(kind)}${w.pages ? " · " + w.pages + " pages" : ""}</p>
-  <p class="meta">${dl ? `<a href="${escapeHtml(dl)}">download</a> · ` : ""}<a href="${escapeHtml(href)}">GitHub</a></p>
-</article>`;
-    })
-    .join("\n");
-}
+function workCardsHtml() { return ""; }
 
 async function indexHtml(env) {
   const stats = await collectStats(env);
-  const views = Number(stats.views) || 0;
-  const downloads = Number(stats.downloads) || 0;
-  const v = views.toLocaleString("en-US");
-  const n = downloads.toLocaleString("en-US");
-  const gh = stats.github || {};
-  const cards = workCardsHtml();
-  const workCount = listWorks().length;
+  const views = stats.views || 0;
+  const downloads = stats.downloads || 0;
   return `<!doctype html>
 <html lang="en">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Aziel Corpus Library — Aziel Eliab</title>
-<meta name="description" content="Public library of Aziel Eliab software. Counted download of the printed 468-page corpus PDF and the library package.">
-<meta name="author" content="Aziel Eliab">
-<meta name="robots" content="index,follow">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>Aziel Digital Library v2.6.2</title>
+<meta name="description" content="Aziel Digital Library v2.6.2. Public MASTER. Anonymous GET is read-only. Signed-in accounts may ingest. Author Aziel Eliab.">
 <link rel="canonical" href="${HOST}/">
-<meta property="og:title" content="Aziel Corpus Library — Aziel Eliab">
-<meta property="og:description" content="Public library of Aziel Eliab software. Counted PDF and package download.">
-<meta property="og:url" content="${HOST}/">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="Aziel Eliab">
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  "name": "Aziel Corpus Library",
-  "author": { "@type": "Person", "name": "Aziel Eliab", "url": "https://github.com/AzielEliab" },
-  "codeRepository": "${GITHUB_REPO}",
-  "downloadUrl": "${HOST}/download",
-  "license": "https://www.apache.org/licenses/LICENSE-2.0",
-  "url": "${HOST}/",
-  "description": "Public library index of Aziel Eliab software plus a counted download of the printed 468-page corpus PDF and the library package."
-}
-</script>
-<!-- gitbaby-seo -->
 <style>
-  :root { color-scheme: dark; }
-  body { font: 16px/1.45 system-ui, sans-serif; max-width: 54rem; margin: 2.4rem auto; padding: 0 1.25rem 4rem; background: #0e1014; color: #e8eaef; }
-  h1 { font-size: 1.85rem; margin: 0 0 .35rem; }
-  h2 { font-size: 1.15rem; margin: 1.4rem 0 .6rem; }
-  .motto { color: #9aa3b2; margin: 0 0 1.2rem; }
-  .card { border: 1px solid #2a3140; border-radius: 12px; padding: 1.25rem 1.35rem; background: #151922; }
-  .nums { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; margin: 0 0 1rem; }
-  .count { font-size: 2.2rem; font-variant-numeric: tabular-nums; font-weight: 700; margin: 0; }
-  .count span { display: block; font-size: .95rem; font-weight: 500; color: #9aa3b2; }
-  .kid { font-size: 1.05rem; margin: 0 0 1rem; }
-  .btns { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; margin: 0 0 .85rem; }
-  @media (max-width: 640px) { .btns, .grid { grid-template-columns: 1fr; } }
-  a.btn, button.btn { display: block; width: 100%; box-sizing: border-box; text-align: center; font: inherit; font-size: 1.05rem; font-weight: 750; padding: .9rem 1rem; border-radius: 10px; border: 0; cursor: pointer; text-decoration: none; }
-  a.btn.primary { background: #e8eaef; color: #0e1014; }
-  a.btn.pdf { background: #c9a227; color: #14110a; }
-  button.btn.install { background: #3d5a80; color: #e8eaef; }
-  button.btn.install.copied { background: #7dcf9a; color: #0e1014; }
-  .meta { margin-top: .9rem; color: #9aa3b2; font-size: .92rem; }
-  .meta a, a { color: #c9d4ff; }
-  .iso { margin-top: .85rem; font-size: .85rem; color: #7d8696; }
-  .banner { border: 1px solid #5c4a1a; background: #241c0d; color: #f0d78c; padding: .85rem 1rem; border-radius: 8px; margin: 0 0 1.2rem; font-size: .92rem; }
-  pre { background: #0e1014; padding: .75rem .9rem; overflow: auto; border-radius: 8px; font-size: .82rem; }
-  code { font-size: .88rem; }
-  .cite { margin-top: 1.4rem; padding-top: 1rem; border-top: 1px solid #2a3140; }
-  input#q { width: 100%; box-sizing: border-box; font: inherit; padding: .7rem .85rem; border-radius: 8px; border: 1px solid #2a3140; background: #0e1014; color: #e8eaef; margin: 0 0 1rem; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
-  article.work { border: 1px solid #2a3140; border-radius: 10px; padding: .85rem .95rem; background: #12151c; }
-  article.work h3 { margin: 0 0 .3rem; font-size: 1.02rem; }
-  article.work .slug { font-weight: 500; color: #9aa3b2; font-size: .85rem; }
-  article.work .oneline { margin: 0 0 .35rem; color: #c5ccd8; font-size: .92rem; }
-  article.work .kind { margin: 0; font-size: .8rem; color: #7d8696; }
-  article.work.hidden { display: none; }
+body{font-family:system-ui,sans-serif;margin:0;background:#111;color:#eee}
+.wrap{max-width:980px;margin:auto;padding:28px}
+a{color:#e6c56a}
+.pill{display:inline-block;background:#2a2a2a;border-radius:999px;padding:4px 10px;margin-right:6px}
+.ok{color:#8fdfb0}
+.card{background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:18px;margin:16px 0}
+.button{background:#c9a227;color:#111;padding:8px 14px;border-radius:8px;text-decoration:none;font-weight:700}
+pre{background:#000;padding:12px;border-radius:8px;overflow:auto}
 </style>
+</head>
 <body>
-  <h1>Aziel Corpus Library</h1>
-  <p class="motto">Public library of Aziel Eliab software. Search the shelf. Download the book. Author Aziel Eliab.</p>
-  <p class="banner">${LIMITATION}</p>
+<div class="wrap">
+  <p><span class="pill ok">MASTER</span><span class="pill">v2.6.2</span><span class="pill">Apache-2.0</span></p>
+  <h1>Aziel Digital Library</h1>
+  <p>Self-contained immutable local digital library and intelligence runtime. This public website is the MASTER. Anonymous visitors may search published records. Signed-in accounts may ingest. Author <b>Aziel Eliab</b>.</p>
+  <p>${LIMITATION}</p>
+  <p>Views ${views} · Counted downloads ${downloads}</p>
   <div class="card">
-    <div class="nums">
-      <p class="count">${v}<span>Views</span></p>
-      <p class="count">${n}<span>Downloads</span></p>
-    </div>
-    <p class="kid"><strong>Two downloads. One install.</strong> The PDF is the printed 468-page corpus. The tarball is the library package. Each click counts. Then type <code>aziel-corpus ui</code>.</p>
-    <div class="btns">
-      <a class="btn pdf" href="/download?asset=${PDF_ASSET}">Download PDF (468 pages)</a>
-      <a class="btn primary" href="/download?asset=${DEFAULT_ASSET}">Download library package</a>
-      <button type="button" class="btn install" id="install-btn">One-click install</button>
-    </div>
-    <pre id="install-cmd">curl -fsSL ${HOST}/install.sh | bash</pre>
-    <p class="kid">Then run: <code>aziel-corpus ui</code> and open http://127.0.0.1:8890 (this computer only).</p>
-    <p class="meta">The Worker serves the file (HTTP 200). No 302 to GitHub. Forks using this same link are counted. ${n} counted downloads.</p>
-    <p class="iso">Isolated counter: Worker <code>aziel-corpus-download-tracker</code>, project <code>aziel-corpus</code>, KV <code>AZIELCORPUS_DOWNLOADS</code>. Not mixed with any other product. /v1 does not increment downloads.</p>
-    <p class="meta">GitHub: stars ${gh.stars || 0} · forks ${gh.forks || 0} · watchers ${gh.watchers || 0} · release assets ${gh.release_download_count || 0}</p>
-    <p class="meta"><a href="/stats">JSON stats</a> · <a href="/openapi.json">OpenAPI</a> · <a href="/v1/skill">Skill</a> · <a href="/v1/works">Works</a> · <a href="${CATALOG}/">Catalog</a> · <a href="${GITHUB_REPO}">GitHub</a> · <a href="${GITHUB_LATEST}">releases</a></p>
-    <script>
-      (function () {
-        var cmd = "curl -fsSL ${HOST}/install.sh | bash";
-        var btn = document.getElementById("install-btn");
-        var pre = document.getElementById("install-cmd");
-        if (!btn) return;
-        btn.addEventListener("click", function () {
-          function done(ok) {
-            btn.textContent = ok ? "Copied! Paste in Terminal, then run aziel-corpus ui" : "Select the command, copy it, then run aziel-corpus ui";
-            btn.classList.add("copied");
-          }
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(cmd).then(function () { done(true); }).catch(function () { done(false); });
-          } else {
-            done(false);
-            if (pre && window.getSelection) {
-              var r = document.createRange();
-              r.selectNodeContents(pre);
-              var sel = window.getSelection();
-              sel.removeAllRanges();
-              sel.addRange(r);
-            }
-          }
-        });
-      })();
-    </script>
+    <h2>Counted software download</h2>
+    <p><a class="button" href="/download">aziel-digital-library-2.6.2.zip</a></p>
+    <p>HTTP 200 from this Worker. Not a 302 to GitHub.</p>
+    <pre>curl -fsSL ${HOST}/install.sh | bash</pre>
+    <p>Then <code>python3 aziel_launcher.py</code> for the local writable MASTER on http://127.0.0.1:8765</p>
   </div>
-  <h2>Works (${workCount})</h2>
-  <p class="kid">Type a word. Matching cards stay. This is a public shelf, not a search of private files.</p>
-  <input id="q" type="search" placeholder="Search works (name, slug, one-line)…" aria-label="Search works">
-  <div class="grid" id="works">${cards}</div>
-  <script>
-    (function () {
-      var input = document.getElementById("q");
-      var cards = document.querySelectorAll("article.work");
-      if (!input) return;
-      input.addEventListener("input", function () {
-        var needle = (input.value || "").trim().toLowerCase();
-        for (var i = 0; i < cards.length; i++) {
-          var hay = cards[i].getAttribute("data-hay") || "";
-          cards[i].classList.toggle("hidden", needle && hay.indexOf(needle) === -1);
-        }
-      });
-    })();
-  </script>
-<section class="cite" id="cite">
-  <h2>How to cite</h2>
-  <p>Aziel Eliab. Aziel Corpus Library. ${GITHUB_REPO}. ${HOST}.</p>
-  <p><a href="${CATALOG}/">Catalog</a> · <a href="${GITHUB_REPO}">GitHub</a> · <a href="${HOST}/download">Download</a> · <a href="${HOST}/cite.json">cite.json</a></p>
-</section>
-<!-- /gitbaby-seo -->
-</body>
-</html>`;
+  <div class="card">
+    <h2>Accounts</h2>
+    <p>Anonymous GET is public. POST/ingest requires a signed-up login. Operator account is not listed in any public directory.</p>
+    <p><a class="button" href="/login">Log in</a> <a class="button" href="/signup">Sign up</a> <a class="button" href="/ingest">Ingest</a></p>
+  </div>
+  <div class="card">
+    <h2>Search published records</h2>
+    <form method="get" action="/search"><input name="q" placeholder="Search…" style="padding:8px;width:70%"><button class="button" type="submit">Search</button></form>
+  </div>
+  <p><a href="/stats">stats</a> · <a href="/openapi.json">OpenAPI</a> · <a href="/v1/skill">skill</a> · <a href="${CATALOG}/">catalog</a> · <a href="${GITHUB_REPO}">GitHub</a></p>
+  <p>Eliab, Aziel. (2026). Aziel Digital Library v2.6.2 [Software]. Apache-2.0. ${HOST}/</p>
+</div>
+</body></html>`;
 }
 
 function llmsTxt() {
-  const works = listWorks()
-    .map((w) => `- ${w.name} (${w.slug}): ${w.one_line || ""} ${w.github || ""}`)
-    .join("\n");
-  return `# Aziel Corpus Library
-
-> Public library of Aziel Eliab software. Counted download of the printed 468-page corpus PDF and the library package.
+  return `# Aziel Digital Library v2.6.2
 
 Author: Aziel Eliab
 Library: ${HOST}/
-Fallback: ${FALLBACK_HOST}/
 GitHub: ${GITHUB_REPO}
 OpenAPI: ${HOST}/openapi.json
 Catalog: ${CATALOG}/
@@ -473,24 +356,15 @@ ${LIMITATION}
 
 ## Downloads (HTTP 200, counted, no 302)
 
-- PDF: ${HOST}/download?asset=${PDF_ASSET}
 - Package: ${HOST}/download?asset=${DEFAULT_ASSET}
 - Install: curl -fsSL ${HOST}/install.sh | bash
 
 ## API (does not increment)
 
 - GET ${HOST}/v1/health
-- GET ${HOST}/v1/works
 - GET ${HOST}/v1/search?q=
 - GET ${HOST}/v1/skill
 - GET ${HOST}/v1/example
-
-## Works
-
-${works}
-
-## How to cite
-Eliab, Aziel. (2026). Aziel Corpus Library [Software]. Apache-2.0. ${HOST}/
 `;
 }
 
@@ -502,8 +376,11 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders() });
     }
 
-    const runtime = await handleRuntimeApi(request, url);
+    const runtime = await handleRuntimeApi(request, url, env);
     if (runtime) return runtime;
+
+    const authed = await handleAuth(request, url, env);
+    if (authed) return authed;
 
     if ((url.pathname === "/install.sh" || url.pathname === "/install.sh/") && request.method === "GET") {
       return new Response(installScript(), {
@@ -581,7 +458,7 @@ export default {
       });
     }
     if ((url.pathname === "/sitemap.xml" || url.pathname === "/sitemap.xml/") && request.method === "GET") {
-      const locs = [HOST + "/", HOST + "/download", HOST + "/install.sh", HOST + "/v1/skill", HOST + "/v1/works", HOST + "/openapi.json", HOST + "/llms.txt", HOST + "/cite.json", GITHUB_REPO];
+      const locs = [HOST + "/", HOST + "/download", HOST + "/install.sh", HOST + "/v1/skill", HOST + "/openapi.json", HOST + "/llms.txt", HOST + "/cite.json", GITHUB_REPO];
       const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         + locs.map((u) => "  <url><loc>" + u + "</loc></url>").join("\n")
         + "\n</urlset>\n";
@@ -593,13 +470,13 @@ export default {
     if ((url.pathname === "/cite.json" || url.pathname === "/cite.json/") && request.method === "GET") {
       return json({
         author: "Aziel Eliab",
-        title: "Aziel Corpus Library",
+        title: "Aziel Digital Library",
         github: GITHUB_REPO,
         library: HOST + "/",
         download: HOST + "/download",
         license: "Apache-2.0",
         catalog: CATALOG + "/",
-        how_to_cite: "Eliab, Aziel. (2026). Aziel Corpus Library [Software]. Apache-2.0. " + HOST + "/",
+        how_to_cite: "Eliab, Aziel. (2026). Aziel Digital Library v2.6.2 [Software]. Apache-2.0. " + HOST + "/",
       });
     }
     if ((url.pathname === "/llms.txt" || url.pathname === "/llms.txt/") && request.method === "GET") {
@@ -609,6 +486,15 @@ export default {
       });
     }
     // /gitbaby-seo-routes
+    if (url.pathname === "/health" && request.method === "GET") {
+      return json({ ok: true, product: PROJECT, name: "Aziel Digital Library", version: "2.6.2", mode: "master" });
+    }
+    if ((url.pathname === "/map" || url.pathname === "/gazetteer" || url.pathname === "/verify") && request.method === "GET") {
+      return json({ ok: true, path: url.pathname, public: true, note: "Published corpus view. Anonymous GET." });
+    }
+    if (request.method === "POST") {
+      return json({ error: "login required" }, 401);
+    }
     return json({ error: "not found" }, 404);
   },
 };
