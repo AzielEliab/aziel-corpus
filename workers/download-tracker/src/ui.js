@@ -37,6 +37,7 @@ input[type=file]{width:100%;min-height:44px;padding:10px;background:#fff}
 .doc h3{margin:8px 0 6px;font-size:20px;letter-spacing:-.02em}
 .doc .meta{color:var(--muted);font-size:14px;margin:0 0 8px}
 .doc p{margin:8px 0 12px}
+.doc .byline{margin:0 0 8px;font-weight:650}
 .lib-tag{display:inline-block;font-size:12px;font-weight:750;padding:4px 10px;border-radius:999px;letter-spacing:.02em}
 .lib-tag.aziel{background:var(--btn);color:var(--paper)}
 .lib-tag.corpus{background:#e7eeea;color:var(--btn)}
@@ -49,7 +50,20 @@ label.showpw{font-size:14px;color:var(--muted);white-space:nowrap;min-height:44p
 .bad{color:#a51d2d;font-weight:700}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
 .metric{font-size:28px;font-weight:800}
-.empty{color:var(--muted);padding:12px 0}
+.empty{color:var(--muted);padding:28px 8px;text-align:center}
+.empty strong{display:block;color:var(--ink);margin-bottom:6px}
+.tools{position:sticky;top:0;z-index:8;background:var(--paper);padding:10px 0 12px;margin:0 0 8px;border-bottom:1px solid var(--line)}
+.tools-grid{display:grid;grid-template-columns:minmax(140px,.9fr) repeat(4,minmax(110px,1fr));gap:10px;margin:8px 0 4px}
+.tools-grid label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;letter-spacing:.02em;color:var(--muted)}
+.tools select,.tools input{min-height:44px;width:100%}
+.facet{margin:10px 0}
+.facet-label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin:0 0 4px;letter-spacing:.02em}
+.facet .chips{margin:0}
+.mini-chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.mini-chip{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink);text-decoration:none;font-size:13px;font-weight:600}
+.mini-chip.on{background:var(--btn);color:#fff;border-color:var(--btn)}
+.shelf{display:block}
+.meta-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:10px 0}
 @media (max-width:720px){
   .wrap{padding:16px 14px 56px}
   .brand{width:100%;font-size:20px}
@@ -58,6 +72,11 @@ label.showpw{font-size:14px;color:var(--muted);white-space:nowrap;min-height:44p
   .hero-search button,.button,button{width:100%}
   .nav1,.nav2{width:100%}
   .doc,.card,.drop{padding:16px}
+  .tools{width:100%}
+  .tools-grid{grid-template-columns:1fr}
+  .tools select,.tools input,.tools .search{width:100%;min-height:44px}
+  .tools button{width:100%}
+  .chips,.mini-chips{width:100%}
 }
 `;
 
@@ -94,43 +113,163 @@ function libTag(library) {
   return `<span class="lib-tag ${lib}">${label}</span>`;
 }
 
-function docCards(rows) {
-  if (!rows || !rows.length) {
-    return `<p class="empty">No documents in this view.</p>`;
+function browseState(opts = {}) {
+  return {
+    q: String(opts.q || "").trim(),
+    lib: String(opts.lib || "all").trim() || "all",
+    sort: String(opts.sort || "newest").trim() || "newest",
+    domain: String(opts.domain || "").trim(),
+    subject: String(opts.subject || "").trim(),
+    keyword: String(opts.keyword || "").trim(),
+    author: String(opts.author || "").trim(),
+  };
+}
+
+function browseHref(path, state, extra = {}) {
+  const merged = { ...browseState(state), ...extra };
+  const sp = new URLSearchParams();
+  for (const key of ["q", "lib", "sort", "domain", "subject", "keyword", "author"]) {
+    let v = merged[key];
+    if (v == null) continue;
+    v = String(v).trim();
+    if (!v) continue;
+    if (key === "lib" && (v === "all" || path !== "/")) continue;
+    if (key === "sort" && v === "newest") continue;
+    sp.set(key, v);
   }
-  return rows.map((r) => {
-    const open = r.object_key
-      ? `<p><a class="button" href="/file/${esc(r.record_id)}">Open file</a></p>`
-      : "";
-    const file = r.filename ? esc(r.filename) : "text record";
-    const by = r.created_by ? esc(r.created_by) : "";
-    const when = r.created_utc ? esc(String(r.created_utc).replace("T", " ").slice(0, 16)) : "";
-    return `<article class="doc">${libTag(r.library)}<h3>${esc(r.title)}</h3><p class="meta">${file}${by ? " · " + by : ""}${when ? " · " + when : ""}</p><p>${esc(r.snippet || r.body || "")}</p>${open}</article>`;
-  }).join("");
+  const qs = sp.toString();
+  return qs ? path + "?" + qs : path;
 }
 
-function chip(label, href, on) {
-  return `<a class="chip${on ? " on" : ""}" href="${href}">${esc(label)}</a>`;
+function splitTokens(value) {
+  return String(value || "")
+    .split(/[,;]+/)
+    .map((p) => p.trim())
+    .filter(Boolean);
 }
 
-export function homeBody({ q, lib, rows, views, downloads, host }) {
-  const current = String(lib || "all").toLowerCase();
-  const qq = q ? "&q=" + encodeURIComponent(q) : "";
-  const qParam = q ? "?q=" + encodeURIComponent(q) : "";
+function chip(label, href, on, cls = "chip") {
+  return `<a class="${cls}${on ? " on" : ""}" href="${href}">${esc(label)}</a>`;
+}
+
+function miniChip(label, href, on) {
+  return chip(label, href, on, "mini-chip");
+}
+
+const SORTS = [
+  ["newest", "Newest upload"],
+  ["oldest", "Oldest upload"],
+  ["alpha", "Title A–Z"],
+  ["author", "Author A–Z"],
+  ["domain", "Domain A–Z"],
+];
+
+function browseTools({ action = "/", showLibChips = true, ...raw }) {
+  const state = browseState(raw);
+  const sortKey = state.sort === "title" ? "alpha" : state.sort;
+  const opts = SORTS.map(
+    ([v, lab]) => `<option value="${v}"${sortKey === v ? " selected" : ""}>${lab}</option>`
+  ).join("");
+  const hiddenLib = action === "/" ? `<input type="hidden" name="lib" value="${esc(state.lib)}">` : "";
+  const libChips = showLibChips
+    ? `<div class="chips">${chip("All", browseHref("/", state, { lib: "all" }), state.lib === "all" || !state.lib)}${chip("Aziel Library", browseHref("/", state, { lib: "aziel" }), state.lib === "aziel")}${chip("Corpus", browseHref("/", state, { lib: "corpus" }), state.lib === "corpus")}</div>`
+    : "";
+  return `<form class="tools" method="get" action="${esc(action)}">
+<div class="hero-search"><input class="search" name="q" value="${esc(state.q)}" placeholder="Search title, text, author, domain, subjects, keywords…">${hiddenLib}<button>Search</button></div>
+<div class="tools-grid">
+<label>Sort<select name="sort">${opts}</select></label>
+<label>Domain<input name="domain" value="${esc(state.domain)}" placeholder="Domain"></label>
+<label>Subject<input name="subject" value="${esc(state.subject)}" placeholder="Subject"></label>
+<label>Keyword<input name="keyword" value="${esc(state.keyword)}" placeholder="Keyword"></label>
+<label>Author<input name="author" value="${esc(state.author)}" placeholder="Author"></label>
+</div>
+${libChips}
+</form>`;
+}
+
+function facetRow(label, items, param, state, path) {
+  if (!items || !items.length) return "";
+  const current = String(state[param] || "").trim();
+  const chips = items
+    .map((token) => {
+      const on = current.toLowerCase() === String(token).toLowerCase();
+      return chip(token, browseHref(path, state, { [param]: on ? "" : token }), on);
+    })
+    .join("");
+  return `<div class="facet"><span class="facet-label">${esc(label)}</span><div class="chips">${chips}</div></div>`;
+}
+
+function facetBlock(facets, state, path) {
+  const f = facets || {};
+  const rows = [
+    facetRow("Domain", f.domains, "domain", state, path),
+    facetRow("Subject", f.subjects, "subject", state, path),
+    facetRow("Keyword", f.keywords, "keyword", state, path),
+    facetRow("Author", f.authors, "author", state, path),
+  ].filter(Boolean);
+  return rows.length ? `<div class="facets">${rows.join("")}</div>` : "";
+}
+
+function docCards(rows, state = {}, path = "/") {
+  if (!rows || !rows.length) {
+    return `<div class="shelf"><p class="empty"><strong>This shelf is quiet.</strong>Nothing matches these filters. Clear a chip or try another sort.</p></div>`;
+  }
+  const st = browseState(state);
+  return `<div class="shelf">${rows
+    .map((r) => {
+      const open = r.object_key
+        ? `<p><a class="button" href="/file/${esc(r.record_id)}">Open file</a></p>`
+        : "";
+      const file = r.filename ? esc(r.filename) : "text record";
+      const when = r.created_utc ? esc(String(r.created_utc).replace("T", " ").slice(0, 16)) : "";
+      const authorName = String(r.author || "").trim();
+      const byline = authorName
+        ? `<p class="byline">${miniChip(authorName, browseHref(path, st, { author: authorName }), String(st.author).toLowerCase() === authorName.toLowerCase())}</p>`
+        : "";
+      const domainChips = splitTokens(r.domain)
+        .map((t) => miniChip(t, browseHref(path, st, { domain: t }), String(st.domain).toLowerCase() === t.toLowerCase()))
+        .join("");
+      const subjectChips = splitTokens(r.subjects)
+        .map((t) => miniChip(t, browseHref(path, st, { subject: t }), String(st.subject).toLowerCase() === t.toLowerCase()))
+        .join("");
+      const keywordChips = splitTokens(r.keywords)
+        .map((t) => miniChip(t, browseHref(path, st, { keyword: t }), String(st.keyword).toLowerCase() === t.toLowerCase()))
+        .join("");
+      const extra = [domainChips, subjectChips, keywordChips].filter(Boolean).join("");
+      const extraRow = extra ? `<div class="mini-chips">${extra}</div>` : "";
+      return `<article class="doc">${libTag(r.library)}<h3>${esc(r.title)}</h3>${byline}${extraRow}<p class="meta">${file}${when ? " · " + when : ""}</p><p>${esc(r.snippet || r.body || "")}</p>${open}</article>`;
+    })
+    .join("")}</div>`;
+}
+
+function metaInputs({ authorPlaceholder = "Author" } = {}) {
+  return `<div class="meta-fields">
+<input name="author" placeholder="${esc(authorPlaceholder)}" autocomplete="off">
+<input name="domain" placeholder="Domain">
+<input name="subjects" placeholder="Subjects (comma-separated)">
+<input name="keywords" placeholder="Keywords (comma-separated)">
+</div>`;
+}
+
+export function homeBody({ q, lib, sort, domain, subject, keyword, author, rows, facets, views, downloads, host }) {
+  const state = browseState({ q, lib, sort, domain, subject, keyword, author });
   return `<section class="hero">
 <h1>Search the libraries</h1>
 <p class="muted">Public search across Aziel Library and the corpus. Sign up to post. Author Aziel Eliab. Views ${esc(views)} · Counted downloads ${esc(downloads)}.</p>
-<form class="hero-search" method="get" action="/"><input class="search" name="q" value="${esc(q)}" placeholder="Search title, full text, filename..."><input type="hidden" name="lib" value="${esc(current)}"><button>Search</button></form>
-<div class="chips">${chip("All", "/" + (qParam || "?lib=all"), current === "all" || !current)}${chip("Aziel Library", "/?lib=aziel" + qq, current === "aziel")}${chip("Corpus", "/?lib=corpus" + qq, current === "corpus")}</div>
 </section>
-${docCards(rows)}
+${browseTools({ action: "/", showLibChips: true, ...state })}
+${facetBlock(facets, state, "/")}
+${docCards(rows, state, "/")}
 <div class="card row"><a class="button" href="/download">Download v2.6.2 zip</a></div>
 <div class="muted">One-click install: <code>curl -fsSL ${esc(host)}/install.sh | bash</code></div>`;
 }
 
-export function azielLibraryBody({ rows, error } = {}) {
+export function azielLibraryBody({ rows, error, q, sort, domain, subject, keyword, author, facets } = {}) {
   const err = error ? `<p class="bad">${esc(error)}</p>` : "";
+  const state = browseState({ q, lib: "aziel", sort, domain, subject, keyword, author });
   return `<section class="hero"><h1>Aziel Library</h1><p class="muted">Aziel Eliab's work across domains.</p></section>
+${browseTools({ action: "/aziel-library", showLibChips: false, ...state })}
+${facetBlock(facets, state, "/aziel-library")}
 <div class="drop">
 <h3>Upload a file</h3>
 <p class="muted">Multipart file upload. Title and notes are optional. Files stay in Aziel Library.</p>
@@ -138,16 +277,18 @@ ${err}
 <form method="post" action="/aziel-library" enctype="multipart/form-data">
 <label class="filepick">File<input type="file" name="file" required></label>
 <input name="title" placeholder="Title (optional)">
+${metaInputs({ authorPlaceholder: "Aziel Eliab" })}
 <textarea name="notes" rows="4" placeholder="Notes (optional)"></textarea>
 <p><button>Upload to Aziel Library</button></p>
 </form>
 </div>
-${docCards(rows)}`;
+${docCards(rows, state, "/aziel-library")}`;
 }
 
-export function corpusBody({ signed, rows, error } = {}) {
+export function corpusBody({ signed, rows, error, q, sort, domain, subject, keyword, author, facets } = {}) {
   const op = isOperator(signed);
   const err = error ? `<p class="bad">${esc(error)}</p>` : "";
+  const state = browseState({ q, lib: "corpus", sort, domain, subject, keyword, author });
   let form = "";
   if (op) {
     form = `<div class="card"><p>Operator files always go to Aziel Library.</p><p><a class="button" href="/aziel-library">Open Aziel Library upload</a></p></div>`;
@@ -159,6 +300,7 @@ ${err}
 <form method="post" action="/ingest" enctype="multipart/form-data">
 <label class="filepick">File (optional if you include title and notes)<input type="file" name="file"></label>
 <input name="title" placeholder="Title">
+${metaInputs({ authorPlaceholder: "Author" })}
 <textarea name="body" rows="6" placeholder="Text or notes"></textarea>
 <p><button>Preserve + index</button></p>
 </form>
@@ -167,8 +309,10 @@ ${err}
     form = `<div class="card"><p>Anyone can view this library. An account is required to post.</p><p><a class="button" href="/login">Log in</a> <a class="button ghost" href="/signup">Sign up</a></p></div>`;
   }
   return `<section class="hero"><h1>Corpus library</h1><p class="muted">Files from every other account.</p></section>
+${browseTools({ action: "/corpus", showLibChips: false, ...state })}
+${facetBlock(facets, state, "/corpus")}
 ${form}
-${docCards(rows)}`;
+${docCards(rows, state, "/corpus")}`;
 }
 
 export function stub(title, lead) {

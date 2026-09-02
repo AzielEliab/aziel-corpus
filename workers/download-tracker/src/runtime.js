@@ -95,7 +95,7 @@ function openapi() {
     servers: [{ url: HOST }, { url: FALLBACK_HOST }],
     paths: {
       "/v1/health": { get: { summary: "Liveness. Does not increment downloads.", operationId: "health" } },
-      "/v1/search": { get: { summary: "Search published records in both libraries.", operationId: "search", parameters: [{ name: "q", in: "query", schema: { type: "string" } }, { name: "lib", in: "query", schema: { type: "string", enum: ["all", "aziel", "corpus"] } }] } },
+      "/v1/search": { get: { summary: "Search published records in both libraries.", operationId: "search", parameters: [{ name: "q", in: "query", schema: { type: "string" } }, { name: "lib", in: "query", schema: { type: "string", enum: ["all", "aziel", "corpus"] } }, { name: "sort", in: "query", schema: { type: "string", enum: ["newest", "oldest", "alpha", "title", "author", "domain"] } }, { name: "author", in: "query", schema: { type: "string" } }, { name: "domain", in: "query", schema: { type: "string" } }, { name: "subject", in: "query", schema: { type: "string" } }, { name: "keyword", in: "query", schema: { type: "string" } }] } },
       "/v1/example": { get: { summary: "Sample search payload.", operationId: "example" } },
       "/v1/skill": { get: { summary: "Skill markdown.", operationId: "skill" } },
     },
@@ -136,8 +136,13 @@ export async function handleRuntimeApi(request, url, env) {
   if (path === "/v1/search" && request.method === "GET") {
     const q = (url.searchParams.get("q") || "").trim();
     const lib = (url.searchParams.get("lib") || "all").trim() || "all";
-    const rows = await searchRecords(env, { q, library: lib, limit: 50 });
-    return json({ ok: true, q, lib, results: rows, limitation: LIMITATION });
+    const sort = (url.searchParams.get("sort") || "newest").trim() || "newest";
+    const author = (url.searchParams.get("author") || "").trim();
+    const domain = (url.searchParams.get("domain") || "").trim();
+    const subject = (url.searchParams.get("subject") || "").trim();
+    const keyword = (url.searchParams.get("keyword") || "").trim();
+    const rows = await searchRecords(env, { q, library: lib, sort, author, domain, subject, keyword, limit: 50 });
+    return json({ ok: true, q, lib, sort, author, domain, subject, keyword, results: rows, limitation: LIMITATION });
   }
   if (path.startsWith("/v1/")) return json({ error: "not found" }, 404);
   return null;

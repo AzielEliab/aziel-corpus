@@ -1,7 +1,17 @@
 import { scryptSync, randomBytes, timingSafeEqual } from "node:crypto";
 import { json, corsHeaders } from "./runtime.js";
 import { page, pwField, azielLibraryBody, corpusBody } from "./ui.js";
-import { isOperator, ingestRecord, searchRecords, asFile } from "./library.js";
+import { isOperator, ingestRecord, searchRecords, listFacets, parseBrowseParams, asFile } from "./library.js";
+
+
+function formMeta(form) {
+  return {
+    author: String(form.get("author") || "").trim(),
+    domain: String(form.get("domain") || "").trim(),
+    subjects: String(form.get("subjects") || "").trim(),
+    keywords: String(form.get("keywords") || "").trim(),
+  };
+}
 
 const SCRYPT = { N: 16384, r: 8, p: 1, dklen: 32 };
 function b64(buf) { return Buffer.from(buf).toString("base64"); }
@@ -120,8 +130,10 @@ export async function handleAuth(request, url, env) {
     if (!isOperator(signed)) {
       return html(page("Forbidden", `<div class="card"><h2>Forbidden</h2><p>Aziel Library upload is for the operator. Use <a href="/corpus">Corpus</a> to post.</p></div>`, { signed }), { status: 403, signed });
     }
-    const rows = await searchRecords(env, { library: "aziel", limit: 200 });
-    return html(page("Aziel Library", azielLibraryBody({ rows }), { signed }), { signed });
+    const browse = parseBrowseParams(url);
+    const rows = await searchRecords(env, { q: browse.q, library: "aziel", sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300 });
+    const facets = await listFacets(env, { library: "aziel" });
+    return html(page("Aziel Library", azielLibraryBody({ rows, facets, ...browse, lib: "aziel" }), { signed }), { signed });
   }
   if (path === "/aziel-library" && request.method === "POST") {
     if (!signed) return loginGate(signed, "Operator sign-in is required for Aziel Library upload.");
@@ -132,22 +144,25 @@ export async function handleAuth(request, url, env) {
     const file = asFile(form.get("file"));
     const title = String(form.get("title") || "").trim();
     const notes = String(form.get("notes") || form.get("body") || "");
+    const meta = formMeta(form);
     if (!file) {
-      const rows = await searchRecords(env, { library: "aziel", limit: 200 });
+      const rows = await searchRecords(env, { library: "aziel", limit: 300 });
       return html(page("Aziel Library", azielLibraryBody({ rows, error: "A file is required." }), { signed }), { status: 400, signed });
     }
     try {
-      await ingestRecord(env, { signed, title, body: notes, file });
+      await ingestRecord(env, { signed, title, body: notes, file, ...meta });
     } catch (err) {
-      const rows = await searchRecords(env, { library: "aziel", limit: 200 });
+      const rows = await searchRecords(env, { library: "aziel", limit: 300 });
       return html(page("Aziel Library", azielLibraryBody({ rows, error: err && err.message ? err.message : "Upload failed." }), { signed }), { status: err && err.status ? err.status : 400, signed });
     }
     return new Response(null, { status: 303, headers: { Location: "/aziel-library" } });
   }
 
   if (path === "/corpus" && request.method === "GET") {
-    const rows = await searchRecords(env, { library: "corpus", limit: 200 });
-    return html(page("Corpus library", corpusBody({ signed, rows }), { signed }), { signed });
+    const browse = parseBrowseParams(url);
+    const rows = await searchRecords(env, { q: browse.q, library: "corpus", sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300 });
+    const facets = await listFacets(env, { library: "corpus" });
+    return html(page("Corpus library", corpusBody({ signed, rows, facets, ...browse, lib: "corpus" }), { signed }), { signed });
   }
 
   if (path === "/ingest" && request.method === "GET") {
@@ -155,8 +170,10 @@ export async function handleAuth(request, url, env) {
       return new Response(null, { status: 303, headers: { Location: "/aziel-library" } });
     }
     if (!signed) return loginGate(signed, "Anyone can view. Posting needs an account.");
-    const rows = await searchRecords(env, { library: "corpus", limit: 200 });
-    return html(page("Corpus library", corpusBody({ signed, rows }), { signed }), { signed });
+    const browse = parseBrowseParams(url);
+    const rows = await searchRecords(env, { q: browse.q, library: "corpus", sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300 });
+    const facets = await listFacets(env, { library: "corpus" });
+    return html(page("Corpus library", corpusBody({ signed, rows, facets, ...browse, lib: "corpus" }), { signed }), { signed });
   }
   if (path === "/ingest" && request.method === "POST") {
     if (!signed) return json({ error: "login required" }, 401);
@@ -167,14 +184,15 @@ export async function handleAuth(request, url, env) {
     const file = asFile(form.get("file"));
     const title = String(form.get("title") || "").trim();
     const body = String(form.get("body") || form.get("notes") || "");
+    const meta = formMeta(form);
     if (!file && !(title && body)) {
-      const rows = await searchRecords(env, { library: "corpus", limit: 200 });
+      const rows = await searchRecords(env, { library: "corpus", limit: 300 });
       return html(page("Corpus library", corpusBody({ signed, rows, error: "Upload a file, or include both title and notes." }), { signed }), { status: 400, signed });
     }
     try {
-      await ingestRecord(env, { signed, title, body, file });
+      await ingestRecord(env, { signed, title, body, file, ...meta });
     } catch (err) {
-      const rows = await searchRecords(env, { library: "corpus", limit: 200 });
+      const rows = await searchRecords(env, { library: "corpus", limit: 300 });
       return html(page("Corpus library", corpusBody({ signed, rows, error: err && err.message ? err.message : "Upload failed." }), { signed }), { status: err && err.status ? err.status : 400, signed });
     }
     return new Response(null, { status: 303, headers: { Location: "/corpus" } });

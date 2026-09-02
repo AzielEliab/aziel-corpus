@@ -28,9 +28,15 @@ CREATE TABLE IF NOT EXISTS records (
   filename TEXT,
   content_type TEXT,
   object_key TEXT,
-  byte_size INTEGER
+  byte_size INTEGER,
+  author TEXT,
+  domain TEXT,
+  subjects TEXT,
+  keywords TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_records_library ON records(library);
+CREATE INDEX IF NOT EXISTS idx_records_created ON records(created_utc);
+CREATE INDEX IF NOT EXISTS idx_records_title ON records(title);
 CREATE TABLE IF NOT EXISTS events (
   event_id TEXT PRIMARY KEY,
   event_date TEXT,
@@ -49,3 +55,8 @@ CREATE TABLE IF NOT EXISTS comments (
   created_by TEXT,
   created_utc TEXT NOT NULL
 );
+
+ALTER TABLE records ADD COLUMN author TEXT;
+ALTER TABLE records ADD COLUMN domain TEXT;
+ALTER TABLE records ADD COLUMN subjects TEXT;
+ALTER TABLE records ADD COLUMN keywords TEXT;

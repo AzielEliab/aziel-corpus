@@ -1,7 +1,7 @@
 import { handleRuntimeApi, corsHeaders, json, LIMITATION } from "./runtime.js";
 import { handleAuth, getSession } from "./auth.js";
 import { page, homeBody, stub } from "./ui.js";
-import { searchRecords, serveFile } from "./library.js";
+import { searchRecords, listFacets, parseBrowseParams, serveFile } from "./library.js";
 
 /**
  * Aziel Digital Library v2.6.2 public MASTER (Cloudflare Worker).
@@ -295,12 +295,12 @@ function workCardsHtml() { return ""; }
 
 async function indexHtml(env, request) {
   const url = new URL(request.url);
-  const q = (url.searchParams.get("q") || "").trim();
-  const lib = (url.searchParams.get("lib") || "all").trim() || "all";
+  const browse = parseBrowseParams(url);
   const stats = await collectStats(env);
   const signed = await getSession(env, request);
-  const rows = await searchRecords(env, { q, library: lib, limit: 100 });
-  return page("Corpus Search", homeBody({ q, lib, rows, views: stats.views || 0, downloads: stats.downloads || 0, host: HOST }), { signed });
+  const rows = await searchRecords(env, { q: browse.q, library: browse.lib, sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300 });
+  const facets = await listFacets(env, { library: browse.lib });
+  return page("Corpus Search", homeBody({ ...browse, rows, facets, views: stats.views || 0, downloads: stats.downloads || 0, host: HOST }), { signed });
 }
 
 function llmsTxt() {
