@@ -23,8 +23,14 @@ CREATE TABLE IF NOT EXISTS records (
   title TEXT NOT NULL,
   body TEXT NOT NULL DEFAULT '',
   created_by TEXT,
-  created_utc TEXT NOT NULL
+  created_utc TEXT NOT NULL,
+  library TEXT NOT NULL DEFAULT 'corpus',
+  filename TEXT,
+  content_type TEXT,
+  object_key TEXT,
+  byte_size INTEGER
 );
+CREATE INDEX IF NOT EXISTS idx_records_library ON records(library);
 CREATE TABLE IF NOT EXISTS events (
   event_id TEXT PRIMARY KEY,
   event_date TEXT,

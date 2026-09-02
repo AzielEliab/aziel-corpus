@@ -2,6 +2,7 @@
  * Aziel Digital Library hosted runtime. /v1 never touches DOWNLOADS KV.
  * Author: Aziel Eliab.
  */
+import { searchRecords } from "./library.js";
 const PRODUCT = "aziel-corpus";
 const VERSION = "2.6.2";
 const SPEC = "aziel-digital-library-v2.6.2";
@@ -94,7 +95,7 @@ function openapi() {
     servers: [{ url: HOST }, { url: FALLBACK_HOST }],
     paths: {
       "/v1/health": { get: { summary: "Liveness. Does not increment downloads.", operationId: "health" } },
-      "/v1/search": { get: { summary: "Search published corpus records.", operationId: "search", parameters: [{ name: "q", in: "query", schema: { type: "string" } }] } },
+      "/v1/search": { get: { summary: "Search published records in both libraries.", operationId: "search", parameters: [{ name: "q", in: "query", schema: { type: "string" } }, { name: "lib", in: "query", schema: { type: "string", enum: ["all", "aziel", "corpus"] } }] } },
       "/v1/example": { get: { summary: "Sample search payload.", operationId: "example" } },
       "/v1/skill": { get: { summary: "Skill markdown.", operationId: "skill" } },
     },
@@ -134,19 +135,9 @@ export async function handleRuntimeApi(request, url, env) {
   }
   if (path === "/v1/search" && request.method === "GET") {
     const q = (url.searchParams.get("q") || "").trim();
-    let rows = [];
-    if (env && env.DB) {
-      if (q) {
-        rows = (await env.DB.prepare(
-          "SELECT record_id, title, substr(body,1,400) AS snippet, created_utc FROM records WHERE title LIKE ? OR body LIKE ? ORDER BY created_utc DESC LIMIT 50"
-        ).bind("%" + q + "%", "%" + q + "%").all()).results || [];
-      } else {
-        rows = (await env.DB.prepare(
-          "SELECT record_id, title, substr(body,1,400) AS snippet, created_utc FROM records ORDER BY created_utc DESC LIMIT 50"
-        ).all()).results || [];
-      }
-    }
-    return json({ ok: true, q, results: rows, limitation: LIMITATION });
+    const lib = (url.searchParams.get("lib") || "all").trim() || "all";
+    const rows = await searchRecords(env, { q, library: lib, limit: 50 });
+    return json({ ok: true, q, lib, results: rows, limitation: LIMITATION });
   }
   if (path.startsWith("/v1/")) return json({ error: "not found" }, 404);
   return null;

@@ -1,6 +1,7 @@
 import { handleRuntimeApi, corsHeaders, json, LIMITATION } from "./runtime.js";
 import { handleAuth, getSession } from "./auth.js";
 import { page, homeBody, stub } from "./ui.js";
+import { searchRecords, serveFile } from "./library.js";
 
 /**
  * Aziel Digital Library v2.6.2 public MASTER (Cloudflare Worker).
@@ -295,17 +296,11 @@ function workCardsHtml() { return ""; }
 async function indexHtml(env, request) {
   const url = new URL(request.url);
   const q = (url.searchParams.get("q") || "").trim();
+  const lib = (url.searchParams.get("lib") || "all").trim() || "all";
   const stats = await collectStats(env);
   const signed = await getSession(env, request);
-  let rows = [];
-  if (env.DB) {
-    if (q) {
-      rows = (await env.DB.prepare("SELECT record_id, title, substr(body,1,280) AS snippet, created_by, created_utc FROM records WHERE title LIKE ? OR body LIKE ? ORDER BY created_utc DESC LIMIT 100").bind("%"+q+"%","%"+q+"%").all()).results || [];
-    } else {
-      rows = (await env.DB.prepare("SELECT record_id, title, substr(body,1,280) AS snippet, created_by, created_utc FROM records ORDER BY created_utc DESC LIMIT 100").all()).results || [];
-    }
-  }
-  return page("Corpus Search", homeBody({ q, rows, views: stats.views || 0, downloads: stats.downloads || 0, host: HOST }), { signed });
+  const rows = await searchRecords(env, { q, library: lib, limit: 100 });
+  return page("Corpus Search", homeBody({ q, lib, rows, views: stats.views || 0, downloads: stats.downloads || 0, host: HOST }), { signed });
 }
 
 function llmsTxt() {
@@ -347,6 +342,11 @@ export default {
 
     const authed = await handleAuth(request, url, env);
     if (authed) return authed;
+
+    const fileMatch = url.pathname.match(/^\/file\/([^/]+)\/?$/);
+    if (fileMatch && request.method === "GET") {
+      return serveFile(env, decodeURIComponent(fileMatch[1]));
+    }
 
     if ((url.pathname === "/install.sh" || url.pathname === "/install.sh/") && request.method === "GET") {
       return new Response(installScript(), {

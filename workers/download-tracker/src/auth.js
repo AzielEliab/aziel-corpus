@@ -1,6 +1,7 @@
 import { scryptSync, randomBytes, timingSafeEqual } from "node:crypto";
 import { json, corsHeaders } from "./runtime.js";
-import { page, pwField } from "./ui.js";
+import { page, pwField, azielLibraryBody, corpusBody } from "./ui.js";
+import { isOperator, ingestRecord, searchRecords, asFile } from "./library.js";
 
 const SCRYPT = { N: 16384, r: 8, p: 1, dklen: 32 };
 function b64(buf) { return Buffer.from(buf).toString("base64"); }
@@ -34,6 +35,15 @@ function verifyMaster(password, rec) {
   const got = scryptSync(password, salt, rec.dklen || 32, { N: rec.n || 16384, r: rec.r || 8, p: rec.p || 1 });
   return safeEq(got, expected);
 }
+function html(pageBody, { status = 200, signed, extraHeaders } = {}) {
+  return new Response(pageBody, {
+    status,
+    headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders(), ...(extraHeaders || {}) },
+  });
+}
+function loginGate(signed, message) {
+  return html(page("Log in required", `<div class="card"><h2>Sign in</h2><p>${message}</p><p><a class="button" href="/login">Log in</a> <a class="button ghost" href="/signup">Sign up</a></p></div>`, { signed }), { status: 401, signed });
+}
 export async function getSession(env, request) {
   const token = readCookie(request);
   if (!token || !env.DB) return null;
@@ -47,14 +57,14 @@ export async function getSession(env, request) {
 }
 
 export async function handleAuth(request, url, env) {
-  const path = url.pathname;
+  const path = url.pathname.replace(/\/+$/, "") || "/";
   const signed = await getSession(env, request);
 
   if (path === "/signup" && request.method === "GET") {
-    return new Response(page("Sign up", `<div class="card"><h2>Sign up</h2><p class="muted">Anyone can view. An account is required to post or ingest.</p><form method="post" action="/signup"><input name="username" required minlength="3" placeholder="username" autocomplete="username">${pwField("password")}<button>Create account</button></form><p><a href="/login">Log in</a></p></div>`, { signed }), { headers: { "Content-Type": "text/html; charset=utf-8" } });
+    return html(page("Sign up", `<div class="card"><h2>Sign up</h2><p class="muted">Anyone can view. An account is required to post or ingest.</p><form method="post" action="/signup"><input name="username" required minlength="3" placeholder="username" autocomplete="username">${pwField("password")}<button>Create account</button></form><p><a href="/login">Log in</a></p></div>`, { signed }), { signed });
   }
   if (path === "/login" && request.method === "GET") {
-    return new Response(page("Log in", `<div class="card"><h2>Log in</h2><form method="post" action="/login"><input name="username" required placeholder="username" autocomplete="username">${pwField("password")}<button>Log in</button></form><p><a href="/signup">Sign up</a></p></div>`, { signed }), { headers: { "Content-Type": "text/html; charset=utf-8" } });
+    return html(page("Log in", `<div class="card"><h2>Log in</h2><form method="post" action="/login"><input name="username" required placeholder="username" autocomplete="username">${pwField("password")}<button>Log in</button></form><p><a href="/signup">Sign up</a></p></div>`, { signed }), { signed });
   }
   if (path === "/logout") {
     const token = readCookie(request);
@@ -97,28 +107,79 @@ export async function handleAuth(request, url, env) {
       }
     }
     if (!ok) {
-      return new Response(page("Log in", `<div class="card"><p class="bad">Login failed.</p><p><a class="button" href="/login">Try again</a></p></div>`, { signed: null }), { status: 401, headers: { "Content-Type": "text/html; charset=utf-8" } });
+      return html(page("Log in", `<div class="card"><p class="bad">Login failed.</p><p><a class="button" href="/login">Try again</a></p></div>`, { signed: null }), { status: 401, signed: null });
     }
     const token = randomBytes(24).toString("hex");
     const exp = new Date(Date.now() + 7 * 864e5).toISOString();
     await env.DB.prepare("INSERT INTO sessions(token,user_id,username,role,expires_utc) VALUES(?,?,?,?,?)").bind(token, userId, sessionName, role, exp).run();
     return new Response(null, { status: 303, headers: { Location: "/", "Set-Cookie": cookie(token) } });
   }
+
+  if (path === "/aziel-library" && request.method === "GET") {
+    if (!signed) return loginGate(signed, "Operator sign-in is required for Aziel Library upload.");
+    if (!isOperator(signed)) {
+      return html(page("Forbidden", `<div class="card"><h2>Forbidden</h2><p>Aziel Library upload is for the operator. Use <a href="/corpus">Corpus</a> to post.</p></div>`, { signed }), { status: 403, signed });
+    }
+    const rows = await searchRecords(env, { library: "aziel", limit: 200 });
+    return html(page("Aziel Library", azielLibraryBody({ rows }), { signed }), { signed });
+  }
+  if (path === "/aziel-library" && request.method === "POST") {
+    if (!signed) return loginGate(signed, "Operator sign-in is required for Aziel Library upload.");
+    if (!isOperator(signed)) {
+      return html(page("Forbidden", `<div class="card"><h2>Forbidden</h2><p>Aziel Library upload is for the operator.</p></div>`, { signed }), { status: 403, signed });
+    }
+    const form = await request.formData();
+    const file = asFile(form.get("file"));
+    const title = String(form.get("title") || "").trim();
+    const notes = String(form.get("notes") || form.get("body") || "");
+    if (!file) {
+      const rows = await searchRecords(env, { library: "aziel", limit: 200 });
+      return html(page("Aziel Library", azielLibraryBody({ rows, error: "A file is required." }), { signed }), { status: 400, signed });
+    }
+    try {
+      await ingestRecord(env, { signed, title, body: notes, file });
+    } catch (err) {
+      const rows = await searchRecords(env, { library: "aziel", limit: 200 });
+      return html(page("Aziel Library", azielLibraryBody({ rows, error: err && err.message ? err.message : "Upload failed." }), { signed }), { status: err && err.status ? err.status : 400, signed });
+    }
+    return new Response(null, { status: 303, headers: { Location: "/aziel-library" } });
+  }
+
+  if (path === "/corpus" && request.method === "GET") {
+    const rows = await searchRecords(env, { library: "corpus", limit: 200 });
+    return html(page("Corpus library", corpusBody({ signed, rows }), { signed }), { signed });
+  }
+
   if (path === "/ingest" && request.method === "GET") {
-    if (!signed) return new Response(page("Log in required", `<div class="card"><h2>Sign in to ingest</h2><p>Anyone can view. Posting needs an account.</p><p><a class="button" href="/login">Log in</a> <a class="button" href="/signup">Sign up</a></p></div>`, { signed }), { status: 401, headers: { "Content-Type": "text/html; charset=utf-8" } });
-    return new Response(page("Mass Ingest", `<div class="card"><h2>Mass Ingest</h2><p>Preserve + index a document into the master corpus. Originals are not overwritten.</p><form method="post" action="/ingest"><input name="title" required placeholder="Title"><textarea name="body" rows="10" placeholder="Text" style="width:100%"></textarea><p><button>Preserve + index</button></p></form></div>`, { signed }), { headers: { "Content-Type": "text/html; charset=utf-8" } });
+    if (isOperator(signed)) {
+      return new Response(null, { status: 303, headers: { Location: "/aziel-library" } });
+    }
+    if (!signed) return loginGate(signed, "Anyone can view. Posting needs an account.");
+    const rows = await searchRecords(env, { library: "corpus", limit: 200 });
+    return html(page("Corpus library", corpusBody({ signed, rows }), { signed }), { signed });
   }
   if (path === "/ingest" && request.method === "POST") {
     if (!signed) return json({ error: "login required" }, 401);
+    if (isOperator(signed)) {
+      return new Response(null, { status: 303, headers: { Location: "/aziel-library" } });
+    }
     const form = await request.formData();
+    const file = asFile(form.get("file"));
     const title = String(form.get("title") || "").trim();
-    const body = String(form.get("body") || "");
-    if (!title) return json({ error: "title required" }, 400);
-    const id = "AZDOC-" + randomBytes(6).toString("hex").toUpperCase();
-    const who = signed.user_id === "master" ? "operator" : signed.username;
-    await env.DB.prepare("INSERT INTO records(record_id,title,body,created_by,created_utc) VALUES(?,?,?,?,?)").bind(id, title, body, who, new Date().toISOString()).run();
-    return new Response(null, { status: 303, headers: { Location: "/?q=" + encodeURIComponent(title) } });
+    const body = String(form.get("body") || form.get("notes") || "");
+    if (!file && !(title && body)) {
+      const rows = await searchRecords(env, { library: "corpus", limit: 200 });
+      return html(page("Corpus library", corpusBody({ signed, rows, error: "Upload a file, or include both title and notes." }), { signed }), { status: 400, signed });
+    }
+    try {
+      await ingestRecord(env, { signed, title, body, file });
+    } catch (err) {
+      const rows = await searchRecords(env, { library: "corpus", limit: 200 });
+      return html(page("Corpus library", corpusBody({ signed, rows, error: err && err.message ? err.message : "Upload failed." }), { signed }), { status: err && err.status ? err.status : 400, signed });
+    }
+    return new Response(null, { status: 303, headers: { Location: "/corpus" } });
   }
+
   if (request.method === "POST" && path !== "/login" && path !== "/signup" && path !== "/event") {
     if (!signed) return json({ error: "login required" }, 401);
   }
