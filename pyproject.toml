@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aziel-corpus"
+version = "0.1.0"
+description = "Aziel Corpus Library: public library index of Aziel Eliab software. Counted PDF and package download. Not Zenodo. Not a new Lock engine."
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [{name = "Aziel Eliab"}]
+requires-python = ">=3.10"
+keywords = [
+    "aziel-eliab",
+    "library",
+    "corpus",
+    "catalog",
+    "aziel-corpus",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Documentation",
+    "Intended Audience :: Developers",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4"]
+
+[project.scripts]
+aziel-corpus = "aziel_corpus.cli:main"
+
+[project.urls]
+Homepage = "https://www.azielcorpuslibrary.net"
+Download = "https://www.azielcorpuslibrary.net/download?asset=aziel-corpus-0.1.0.tar.gz"
+Issues = "https://github.com/AzielEliab/aziel-corpus/issues"
+Counted-downloads = "https://www.azielcorpuslibrary.net/"
+GitHub = "https://github.com/AzielEliab/aziel-corpus"
+Catalog = "https://aziel-runtime.vibelock.workers.dev/"
+
+[tool.setuptools.packages.find]
+include = ["aziel_corpus*"]
+
+[tool.setuptools.package-data]
+aziel_corpus = ["web/*", "data/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"

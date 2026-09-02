@@ -1,0 +1,87 @@
+:root {
+  color-scheme: dark;
+  --bg: #0b0b0b;
+  --surface: #141414;
+  --gold: #c9a227;
+  --gold-dim: #8a7219;
+  --ivory: #e8e0d0;
+  --muted: #9aa3b2;
+  --line: #2a3140;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0 auto;
+  max-width: 54rem;
+  padding: 1.5rem 1.15rem 4rem;
+  font: 16px/1.45 system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--ivory);
+}
+h1 { margin: 0 0 .35rem; font-size: 1.8rem; color: var(--gold); }
+.tag { color: var(--gold-dim); font-size: .85rem; letter-spacing: .04em; }
+.motto, .lede { color: var(--muted); }
+.banner {
+  border: 1px solid #5c4a1a;
+  background: #241c0d;
+  color: #f0d78c;
+  padding: .85rem 1rem;
+  border-radius: 8px;
+  margin: 1rem 0 1.2rem;
+  font-size: .92rem;
+}
+.counts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .75rem;
+  margin: 0 0 1rem;
+}
+.counts div {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: .8rem 1rem;
+  background: var(--surface);
+}
+.counts span { display: block; font-size: 1.8rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.counts .ok span { color: var(--gold); }
+.counts label { color: var(--muted); font-size: .9rem; }
+.actions { display: flex; flex-wrap: wrap; gap: .55rem; margin: 0 0 1rem; }
+.actions input[type="search"] {
+  flex: 1 1 16rem;
+  font: inherit;
+  padding: .65rem .8rem;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #1a1a1a;
+  color: var(--ivory);
+}
+button {
+  font: inherit;
+  font-weight: 650;
+  padding: .65rem .9rem;
+  border: 0;
+  border-radius: 8px;
+  background: var(--gold);
+  color: var(--bg);
+  cursor: pointer;
+}
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+@media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+article.work {
+  border: 1px solid #33c9a227;
+  border-radius: 12px;
+  padding: .85rem .95rem;
+  background: var(--surface);
+}
+article.work h3 { margin: 0 0 .3rem; font-size: 1.02rem; }
+.slug { color: var(--muted); font-weight: 500; font-size: .85rem; }
+.oneline { margin: 0 0 .35rem; color: #c5ccd8; font-size: .92rem; }
+.kind { margin: 0; font-size: .8rem; color: var(--muted); }
+pre {
+  background: #0e1014;
+  padding: .75rem .9rem;
+  overflow: auto;
+  border-radius: 8px;
+  font-size: .82rem;
+}
+footer { margin-top: 2rem; color: var(--muted); font-size: .9rem; }
+a { color: #c9d4ff; }
