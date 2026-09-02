@@ -60,3 +60,79 @@ ALTER TABLE records ADD COLUMN author TEXT;
 ALTER TABLE records ADD COLUMN domain TEXT;
 ALTER TABLE records ADD COLUMN subjects TEXT;
 ALTER TABLE records ADD COLUMN keywords TEXT;
+
+CREATE TABLE IF NOT EXISTS places (
+  geonameid INTEGER PRIMARY KEY,
+  name TEXT,
+  asciiname TEXT,
+  lat REAL,
+  lon REAL,
+  feature_class TEXT,
+  feature_code TEXT,
+  country_code TEXT,
+  admin1 TEXT,
+  population INTEGER,
+  alias_norm TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_places_alias ON places(alias_norm);
+CREATE INDEX IF NOT EXISTS idx_places_name ON places(name);
+CREATE TABLE IF NOT EXISTS packages (
+  package_id TEXT PRIMARY KEY,
+  kind TEXT,
+  package_type TEXT,
+  version TEXT,
+  sha256 TEXT,
+  status TEXT,
+  object_key TEXT,
+  created_utc TEXT
+);
+CREATE TABLE IF NOT EXISTS historical_layers (
+  layer_id TEXT PRIMARY KEY,
+  name TEXT,
+  valid_from TEXT,
+  valid_to TEXT,
+  feature_count INTEGER,
+  confidence REAL,
+  source_name TEXT,
+  license TEXT,
+  attribution TEXT,
+  source_sha256 TEXT,
+  geojson TEXT,
+  created_utc TEXT
+);
+CREATE TABLE IF NOT EXISTS ocr_jobs (
+  id TEXT PRIMARY KEY,
+  record_id TEXT,
+  status TEXT,
+  result TEXT,
+  created_utc TEXT
+);
+CREATE TABLE IF NOT EXISTS metadata (
+  key TEXT PRIMARY KEY,
+  value TEXT
+);
+ALTER TABLE events ADD COLUMN confidence REAL;
+ALTER TABLE events ADD COLUMN source TEXT;
+ALTER TABLE events ADD COLUMN status TEXT;
+ALTER TABLE events ADD COLUMN historical_json TEXT;
+
+CREATE TABLE IF NOT EXISTS ledger (
+  sequence INTEGER PRIMARY KEY,
+  timestamp_utc TEXT NOT NULL,
+  action TEXT NOT NULL,
+  payload_json TEXT NOT NULL,
+  previous_hash TEXT NOT NULL,
+  entry_hash TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS derived_artifacts (
+  derived_id TEXT PRIMARY KEY,
+  record_id TEXT,
+  artifact_type TEXT,
+  processor TEXT,
+  processor_version TEXT,
+  content_sha256 TEXT,
+  created_utc TEXT,
+  status TEXT
+);
+ALTER TABLE records ADD COLUMN content_sha256 TEXT;
+CREATE INDEX IF NOT EXISTS idx_records_sha ON records(content_sha256);

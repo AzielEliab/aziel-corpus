@@ -1,6 +1,8 @@
 import { handleRuntimeApi, corsHeaders, json, LIMITATION } from "./runtime.js";
 import { handleAuth, getSession } from "./auth.js";
-import { page, homeBody, stub } from "./ui.js";
+import { page, homeBody } from "./ui.js";
+import { handleHosted } from "./hosted.js";
+import { robotsTxt, sitemapXml, citeDoc, llmsDoc } from "./crawl.js";
 import { searchRecords, listFacets, parseBrowseParams, serveFile } from "./library.js";
 
 /**
@@ -300,7 +302,7 @@ async function indexHtml(env, request) {
   const signed = await getSession(env, request);
   const rows = await searchRecords(env, { q: browse.q, library: browse.lib, sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300 });
   const facets = await listFacets(env, { library: browse.lib });
-  return page("Corpus Search", homeBody({ ...browse, rows, facets, views: stats.views || 0, downloads: stats.downloads || 0, host: HOST }), { signed });
+  return page("Corpus Search", homeBody({ ...browse, rows, facets, views: stats.views || 0, downloads: stats.downloads || 0, host: HOST }), { signed, path: "/", kind: "search" });
 }
 
 function llmsTxt() {
@@ -330,17 +332,22 @@ ${LIMITATION}
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeaders() });
     }
 
+    if (request.method === "PUT" || request.method === "PATCH" || request.method === "DELETE") {
+      return json({ error: "records are append-only; PUT/PATCH/DELETE are rejected" }, 405);
+    }
+
+
     const runtime = await handleRuntimeApi(request, url, env);
     if (runtime) return runtime;
 
-    const authed = await handleAuth(request, url, env);
+    const authed = await handleAuth(request, url, env, ctx);
     if (authed) return authed;
 
     const fileMatch = url.pathname.match(/^\/file\/([^/]+)\/?$/);
@@ -367,21 +374,12 @@ export default {
     }
 
     const signed = await getSession(env, request);
-    const masterPages = {
-      "/tree": ["Corpus Tree", "Evidence-based corpus tree. Unclassified objects stay standalone instead of receiving invented links."],
-      "/map": ["Temporal Map", "Temporal–geospatial corpus map. Event pins come from corpus evidence. Historical polygons come from preserved source layers. Drag to pan; use the year slider on the local launcher for full historical state."],
-      "/historical": ["Historical Geography", "Source-aware temporal boundary layers. Competing sources overlap instead of being silently merged. Install .azh kits on the local MASTER vault."],
-      "/gazetteer": ["World Gazetteer", "Offline place resolution (AZGDB). The local launcher can install lite/full GeoNames profiles. Hosted search uses published corpus records."],
-      "/intelligence": ["Intelligence", ".azm model packages and .azk knowledge kits. Install through a signed-in account or the local CLI."],
-      "/health": ["Health", LIMITATION],
-      "/verify": ["Verify", "Integrity verification of the hosted MASTER. Counted zip SHA is published on the GitHub v2.6.2 release."],
-    };
-    if (request.method === "GET" && masterPages[url.pathname]) {
-      const [title, lead] = masterPages[url.pathname];
-      return new Response(page(title, stub(title, lead), { signed }), {
-        headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders() },
-      });
-    }
+    let hostedStats = null;
+    const hostedPath = url.pathname.replace(/\/+$/, "") || "/";
+    if (hostedPath === "/health") hostedStats = await collectStats(env);
+    const hosted = await handleHosted(request, url, env, ctx, signed, hostedStats);
+    if (hosted) return hosted;
+
     if (url.pathname === "/search" && request.method === "GET") {
       const q = url.searchParams.get("q") || "";
       return Response.redirect(new URL("/?q=" + encodeURIComponent(q), url).toString(), 302);
@@ -438,47 +436,30 @@ export default {
 
     // gitbaby-seo-routes
     if ((url.pathname === "/robots.txt" || url.pathname === "/robots.txt/") && request.method === "GET") {
-      const body = "User-agent: *\nAllow: /\nSitemap: " + HOST + "/sitemap.xml\n";
+      const body = robotsTxt();
       return new Response(body, {
         status: 200,
         headers: { "Content-Type": "text/plain; charset=utf-8", ...corsHeaders() },
       });
     }
     if ((url.pathname === "/sitemap.xml" || url.pathname === "/sitemap.xml/") && request.method === "GET") {
-      const locs = [HOST + "/", HOST + "/download", HOST + "/install.sh", HOST + "/v1/skill", HOST + "/openapi.json", HOST + "/llms.txt", HOST + "/cite.json", GITHUB_REPO];
-      const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-        + locs.map((u) => "  <url><loc>" + u + "</loc></url>").join("\n")
-        + "\n</urlset>\n";
+      const xml = await sitemapXml(env);
+      const lastmod = new Date().toUTCString();
       return new Response(xml, {
         status: 200,
-        headers: { "Content-Type": "application/xml; charset=utf-8", ...corsHeaders() },
+        headers: { "Content-Type": "application/xml; charset=utf-8", "Last-Modified": lastmod, ...corsHeaders() },
       });
     }
     if ((url.pathname === "/cite.json" || url.pathname === "/cite.json/") && request.method === "GET") {
-      return json({
-        author: "Aziel Eliab",
-        title: "Aziel Digital Library",
-        github: GITHUB_REPO,
-        library: HOST + "/",
-        download: HOST + "/download",
-        license: "Apache-2.0",
-        catalog: CATALOG + "/",
-        how_to_cite: "Eliab, Aziel. (2026). Aziel Digital Library v2.6.2 [Software]. Apache-2.0. " + HOST + "/",
-      });
+      return json(citeDoc());
     }
     if ((url.pathname === "/llms.txt" || url.pathname === "/llms.txt/") && request.method === "GET") {
-      return new Response(llmsTxt(), {
+      return new Response(llmsDoc(LIMITATION), {
         status: 200,
         headers: { "Content-Type": "text/plain; charset=utf-8", ...corsHeaders() },
       });
     }
     // /gitbaby-seo-routes
-    if (url.pathname === "/health" && request.method === "GET") {
-      return json({ ok: true, product: PROJECT, name: "Aziel Digital Library", version: "2.6.2", mode: "master" });
-    }
-    if ((url.pathname === "/map" || url.pathname === "/gazetteer" || url.pathname === "/verify") && request.method === "GET") {
-      return json({ ok: true, path: url.pathname, public: true, note: "Published corpus view. Anonymous GET." });
-    }
     if (request.method === "POST") {
       return json({ error: "login required" }, 401);
     }

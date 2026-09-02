@@ -2,6 +2,8 @@ import { scryptSync, randomBytes, timingSafeEqual } from "node:crypto";
 import { json, corsHeaders } from "./runtime.js";
 import { page, pwField, azielLibraryBody, corpusBody } from "./ui.js";
 import { isOperator, ingestRecord, searchRecords, listFacets, parseBrowseParams, asFile } from "./library.js";
+import { extractEventsForRecord } from "./geo.js";
+import { ocrIngestHint } from "./ocr.js";
 
 
 function formMeta(form) {
@@ -66,7 +68,22 @@ export async function getSession(env, request) {
   return row;
 }
 
-export async function handleAuth(request, url, env) {
+async function afterIngest(env, rec, ctx) {
+  try {
+    if (rec && rec.ocrHint && ctx && typeof ctx.waitUntil === "function") {
+      ctx.waitUntil((async () => {
+        await ocrIngestHint(env, rec);
+        await extractEventsForRecord(env, rec.id);
+      })().catch(() => {}));
+    } else if (rec && rec.id) {
+      if (rec.ocrHint) await ocrIngestHint(env, rec);
+      await extractEventsForRecord(env, rec.id);
+    }
+  } catch {
+  }
+}
+
+export async function handleAuth(request, url, env, ctx) {
   const path = url.pathname.replace(/\/+$/, "") || "/";
   const signed = await getSession(env, request);
 
@@ -87,6 +104,7 @@ export async function handleAuth(request, url, env) {
     const password = String(form.get("password") || "");
     if (!username || username.length < 3 || !password) return json({ error: "username and password required" }, 400);
     if (isMasterUsername(env, username)) return json({ error: "username unavailable" }, 400);
+    // role is always user; client-supplied role/superadmin is ignored.
     const salt = randomBytes(16);
     const hash = scryptSync(password, salt, SCRYPT.dklen, { N: SCRYPT.N, r: SCRYPT.r, p: SCRYPT.p });
     const id = randomBytes(12).toString("hex");
@@ -133,7 +151,7 @@ export async function handleAuth(request, url, env) {
     const browse = parseBrowseParams(url);
     const rows = await searchRecords(env, { q: browse.q, library: "aziel", sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300 });
     const facets = await listFacets(env, { library: "aziel" });
-    return html(page("Aziel Library", azielLibraryBody({ rows, facets, ...browse, lib: "aziel" }), { signed }), { signed });
+    return html(page("Aziel Library", azielLibraryBody({ rows, facets, ...browse, lib: "aziel" }), { signed, path: "/aziel-library", kind: "search" }), { signed });
   }
   if (path === "/aziel-library" && request.method === "POST") {
     if (!signed) return loginGate(signed, "Operator sign-in is required for Aziel Library upload.");
@@ -150,7 +168,8 @@ export async function handleAuth(request, url, env) {
       return html(page("Aziel Library", azielLibraryBody({ rows, error: "A file is required." }), { signed }), { status: 400, signed });
     }
     try {
-      await ingestRecord(env, { signed, title, body: notes, file, ...meta });
+      const rec = await ingestRecord(env, { signed, title, body: notes, file, ...meta });
+      await afterIngest(env, rec, ctx);
     } catch (err) {
       const rows = await searchRecords(env, { library: "aziel", limit: 300 });
       return html(page("Aziel Library", azielLibraryBody({ rows, error: err && err.message ? err.message : "Upload failed." }), { signed }), { status: err && err.status ? err.status : 400, signed });
@@ -162,7 +181,7 @@ export async function handleAuth(request, url, env) {
     const browse = parseBrowseParams(url);
     const rows = await searchRecords(env, { q: browse.q, library: "corpus", sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300 });
     const facets = await listFacets(env, { library: "corpus" });
-    return html(page("Corpus library", corpusBody({ signed, rows, facets, ...browse, lib: "corpus" }), { signed }), { signed });
+    return html(page("Corpus library", corpusBody({ signed, rows, facets, ...browse, lib: "corpus" }), { signed, path: "/corpus", kind: "corpus" }), { signed });
   }
 
   if (path === "/ingest" && request.method === "GET") {
@@ -173,7 +192,7 @@ export async function handleAuth(request, url, env) {
     const browse = parseBrowseParams(url);
     const rows = await searchRecords(env, { q: browse.q, library: "corpus", sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300 });
     const facets = await listFacets(env, { library: "corpus" });
-    return html(page("Corpus library", corpusBody({ signed, rows, facets, ...browse, lib: "corpus" }), { signed }), { signed });
+    return html(page("Corpus library", corpusBody({ signed, rows, facets, ...browse, lib: "corpus" }), { signed, path: "/corpus", kind: "corpus" }), { signed });
   }
   if (path === "/ingest" && request.method === "POST") {
     if (!signed) return json({ error: "login required" }, 401);
@@ -190,7 +209,8 @@ export async function handleAuth(request, url, env) {
       return html(page("Corpus library", corpusBody({ signed, rows, error: "Upload a file, or include both title and notes." }), { signed }), { status: 400, signed });
     }
     try {
-      await ingestRecord(env, { signed, title, body, file, ...meta });
+      const rec = await ingestRecord(env, { signed, title, body, file, ...meta });
+      await afterIngest(env, rec, ctx);
     } catch (err) {
       const rows = await searchRecords(env, { library: "corpus", limit: 300 });
       return html(page("Corpus library", corpusBody({ signed, rows, error: err && err.message ? err.message : "Upload failed." }), { signed }), { status: err && err.status ? err.status : 400, signed });

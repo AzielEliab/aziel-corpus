@@ -1,4 +1,5 @@
 import { isOperator } from "./library.js";
+import { headMeta, defaultDescription } from "./seo.js";
 
 /** Master UI chrome from Aziel Digital Library v2.6.2 webapp. Author: Aziel Eliab. */
 export const CSS = `
@@ -78,6 +79,26 @@ label.showpw{font-size:14px;color:var(--muted);white-space:nowrap;min-height:44p
   .tools button{width:100%}
   .chips,.mini-chips{width:100%}
 }
+
+.tree details{margin:4px 0}
+.tree summary{cursor:pointer;min-height:44px;display:flex;align-items:center;padding:8px 4px;border-radius:10px}
+.tree summary:hover{background:#ece6dc}
+.tree ul{margin:0 0 0 14px;padding:0;list-style:none}
+.tree li{margin:2px 0}
+.map-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin:12px 0}
+.map-tools label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;letter-spacing:.02em;color:var(--muted);flex:1 1 140px}
+.map-tools input,.map-tools select{min-height:44px;width:100%}
+input[type=range]{width:100%;min-height:44px;accent-color:var(--btn)}
+#worldMap{width:100%;height:auto;background:#eef3f4;border-radius:10px;touch-action:none;display:block}
+.event-row{padding:10px 0;border-bottom:1px solid var(--line);min-height:44px}
+table.plain{width:100%;border-collapse:collapse}
+table.plain th,table.plain td{text-align:left;vertical-align:top;padding:10px 8px;border-bottom:1px solid var(--line)}
+pre.verify{white-space:pre-wrap;word-break:break-word;background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;overflow:auto}
+@media (max-width:720px){
+  .map-tools{flex-direction:column;align-items:stretch}
+  .map-tools label,.map-tools button,.map-tools input,.map-tools select{width:100%}
+  table.plain{display:block;overflow-x:auto}
+}
 `;
 
 export function pwField(name = "password") {
@@ -85,7 +106,7 @@ export function pwField(name = "password") {
   return `<div class="pw-row"><input id="${id}" name="${name}" type="password" required placeholder="password" autocomplete="current-password"><label class="showpw"><input type="checkbox" onclick="var e=document.getElementById('${id}');e.type=this.checked?'text':'password'"> Show password</label></div>`;
 }
 
-export function page(title, body, { signed } = {}) {
+export function page(title, body, { signed, scripts, path, kind, description } = {}) {
   const who = signed && signed.username ? String(signed.username) : "";
   const op = isOperator(signed);
   const account = signed
@@ -97,10 +118,10 @@ export function page(title, body, { signed } = {}) {
   const azielLink = op
     ? `<a href="/aziel-library">Aziel Library</a><span class="sep">|</span>`
     : "";
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)} — Aziel Digital Library</title><style>${CSS}</style></head><body><div class="wrap">
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)} — Aziel Digital Library</title>${headMeta({ title, path: path || "/", kind, description })}<style>${CSS}</style></head><body><div class="wrap">
 <div class="nav1"><div class="brand">Aziel Digital Library</div><span class="pill">Runtime v2.6.2</span><span class="pill ok">MASTER · WRITABLE</span>${account}</div>
-<nav class="nav2 quiet"><a href="/">Search</a><span class="sep">|</span>${azielLink}<a href="/corpus">Corpus</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/gazetteer">Gazetteer</a><span class="sep">|</span><a href="/intelligence">Intelligence</a><span class="sep">|</span><a href="/health">Health</a><span class="sep">|</span><a href="/verify">Verify</a><span class="sep">|</span>${authLinks}</nav>
-${body}</div></body></html>`;
+<nav class="nav2 quiet"><a href="/">Search</a><span class="sep">|</span>${azielLink}<a href="/corpus">Corpus</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/gazetteer">Gazetteer</a><span class="sep">|</span><a href="/intelligence">Intelligence</a><span class="sep">|</span><a href="/health">Health</a><span class="sep">|</span><a href="/verify">Verify</a><span class="sep">|</span>${authLinks}</nav>
+${body}</div>${(scripts||[]).map((src)=>"<script src=\""+esc(src)+"\" defer></script>").join("")}</body></html>`;
 }
 
 function esc(s) {
@@ -236,8 +257,10 @@ function docCards(rows, state = {}, path = "/") {
         .map((t) => miniChip(t, browseHref(path, st, { keyword: t }), String(st.keyword).toLowerCase() === t.toLowerCase()))
         .join("");
       const extra = [domainChips, subjectChips, keywordChips].filter(Boolean).join("");
-      const extraRow = extra ? `<div class="mini-chips">${extra}</div>` : "";
-      return `<article class="doc">${libTag(r.library)}<h3>${esc(r.title)}</h3>${byline}${extraRow}<p class="meta">${file}${when ? " · " + when : ""}</p><p>${esc(r.snippet || r.body || "")}</p>${open}</article>`;
+            const sha = String(r.content_sha256 || "").trim();
+      const shaRow = sha ? `<p class="meta">SHA-256 ${esc(sha.slice(0,12))}… · <a href="/receipt/${esc(r.record_id)}">receipt</a></p>` : `<p class="meta"><a href="/receipt/${esc(r.record_id)}">receipt</a></p>`;
+const extraRow = extra ? `<div class="mini-chips">${extra}</div>` : "";
+      return `<article class="doc">${libTag(r.library)}<h3>${esc(r.title)}</h3>${byline}${extraRow}<p class="meta">${file}${when ? " · " + when : ""}</p>${shaRow}<p>${esc(r.snippet || r.body || "")}</p>${open}</article>`;
     })
     .join("")}</div>`;
 }
@@ -318,3 +341,5 @@ ${docCards(rows, state, "/corpus")}`;
 export function stub(title, lead) {
   return `<div class="card"><h2>${esc(title)}</h2><p>${lead}</p><p class="muted">Hosted MASTER UI. Full local vault tools also run via <code>python3 aziel_launcher.py</code> on 127.0.0.1:8765.</p></div>`;
 }
+
+export { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody } from "./hosted-pages.js";

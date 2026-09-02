@@ -1,4 +1,5 @@
-import { randomBytes } from "node:crypto";
+import { randomBytes, createHash } from "node:crypto";
+import { appendLedger, ensureLedger } from "./ledger.js";
 
 const MAX_BYTES = 25 * 1024 * 1024;
 const TEXT_CAP = 200000;
@@ -75,12 +76,13 @@ function sortClause(sort) {
 
 export async function searchRecords(env, { q, library, sort, author, domain, subject, keyword, limit, offset } = {}) {
   if (!env || !env.DB) return [];
+  try { await ensureLedger(env); } catch { /* schema */ }
   const lim = Math.min(Math.max(Number(limit) || 300, 1), 500);
   const off = Math.max(Number(offset) || 0, 0);
   const query = String(q || "").trim();
   const lib = String(library || "all").toLowerCase();
   let sql =
-    "SELECT record_id, title, substr(body,1,280) AS snippet, created_by, created_utc, library, filename, content_type, object_key, byte_size, author, domain, subjects, keywords FROM records";
+    "SELECT record_id, title, substr(body,1,280) AS snippet, created_by, created_utc, library, filename, content_type, object_key, byte_size, author, domain, subjects, keywords, content_sha256 FROM records";
   const where = [];
   const binds = [];
   if (query) {
@@ -160,11 +162,35 @@ function isR2(store) {
   return !!(store && typeof store.head === "function");
 }
 
-async function putObject(env, key, bytes, contentType) {
+function digestBytes(bytes) {
+  return createHash("sha256").update(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes)).digest("hex");
+}
+
+export async function objectExists(env, key) {
+  const store = env && env.FILES;
+  if (!store || !key) return false;
+  try {
+    if (isR2(store)) {
+      const h = await store.head(key);
+      return !!h;
+    }
+    const res = await store.getWithMetadata(key);
+    return !!(res && res.value != null);
+  } catch {
+    return false;
+  }
+}
+
+export async function putObject(env, key, bytes, contentType) {
   const store = env && env.FILES;
   if (!store) {
     const err = new Error("file storage is not available");
     err.status = 503;
+    throw err;
+  }
+  if (await objectExists(env, key)) {
+    const err = new Error("object key already stored (immutable originals)");
+    err.status = 409;
     throw err;
   }
   if (isR2(store)) {
@@ -173,6 +199,7 @@ async function putObject(env, key, bytes, contentType) {
   }
   await store.put(key, bytes, { metadata: { contentType } });
 }
+
 
 async function getObject(env, key) {
   const store = env && env.FILES;
@@ -194,13 +221,23 @@ function looksText(filename, contentType) {
   return /\.(txt|md|markdown|json|csv|tsv|html|htm|xml|yml|yaml|log)$/i.test(name);
 }
 
-export async function ingestRecord(env, { signed, title, body, file, author, domain, subjects, keywords }) {
+export async function ingestRecord(env, args) {
+  const signed = args && args.signed;
+  const title = args && args.title;
+  const body = args && args.body;
+  const file = args && args.file;
+  const author = args && args.author;
+  const domain = args && args.domain;
+  const subjects = args && args.subjects;
+  const keywords = args && args.keywords;
   if (!signed) {
     const err = new Error("login required");
     err.status = 401;
     throw err;
   }
+  await ensureLedger(env);
   const library = libraryFor(signed);
+  let ocrHint = null;
   const id = "AZDOC-" + randomBytes(6).toString("hex").toUpperCase();
   const who = isOperator(signed) ? "operator" : signed.username;
   const notes = String(body || "").trim();
@@ -209,8 +246,9 @@ export async function ingestRecord(env, { signed, title, body, file, author, dom
   let objectKey = null;
   let byteSize = null;
   let searchBody = notes;
+  let contentSha = null;
+  let duplicateOf = null;
   const f = asFile(file);
-
   const domainIn = csvField(domain);
   const subjectsIn = csvField(subjects);
   const keywordsIn = csvField(keywords);
@@ -220,7 +258,6 @@ export async function ingestRecord(env, { signed, title, body, file, author, dom
   } else if (!biblioAuthor) {
     biblioAuthor = String(signed.username || who || "").trim();
   }
-
   if (f) {
     if (f.size > MAX_BYTES) {
       const err = new Error("file too large (25MB max)");
@@ -230,17 +267,32 @@ export async function ingestRecord(env, { signed, title, body, file, author, dom
     filename = safeFilename(f.name);
     contentType = f.type || "application/octet-stream";
     byteSize = f.size;
-    objectKey = `${library}/${id}/${filename}`;
     const bytes = await f.arrayBuffer();
-    await putObject(env, objectKey, bytes, contentType);
+    contentSha = digestBytes(bytes);
+    let existing = null;
+    try {
+      existing = await env.DB.prepare("SELECT record_id, object_key FROM records WHERE content_sha256=? AND object_key IS NOT NULL LIMIT 1").bind(contentSha).first();
+    } catch { existing = null; }
+    if (existing && existing.object_key) {
+      objectKey = existing.object_key;
+      duplicateOf = existing.record_id;
+    } else {
+      objectKey = library + "/" + id + "/" + filename;
+      await putObject(env, objectKey, bytes, contentType);
+    }
     if (looksText(filename, contentType)) {
       const text = new TextDecoder("utf-8", { fatal: false }).decode(bytes).slice(0, TEXT_CAP);
       searchBody = [notes, text].filter(Boolean).join("\n\n");
     } else {
       searchBody = [notes, filename].filter(Boolean).join("\n");
     }
+    if (String(contentType).toLowerCase().startsWith("image/")) {
+      ocrHint = { bytes, contentType };
+    }
+  } else {
+    contentSha = digestBytes(new TextEncoder().encode(notes || title || id));
+    byteSize = new TextEncoder().encode(notes || "").length;
   }
-
   let finalTitle = String(title || "").trim();
   if (!finalTitle) finalTitle = filename || id;
   if (!finalTitle) {
@@ -248,33 +300,22 @@ export async function ingestRecord(env, { signed, title, body, file, author, dom
     err.status = 400;
     throw err;
   }
-
   const metaBits = [biblioAuthor, domainIn, subjectsIn, keywordsIn].filter(Boolean);
   if (metaBits.length) {
     searchBody = [searchBody, metaBits.join("\n")].filter(Boolean).join("\n\n");
   }
-
   await env.DB.prepare(
-    "INSERT INTO records(record_id,title,body,created_by,created_utc,library,filename,content_type,object_key,byte_size,author,domain,subjects,keywords) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+    "INSERT INTO records(record_id,title,body,created_by,created_utc,library,filename,content_type,object_key,byte_size,author,domain,subjects,keywords,content_sha256) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
   ).bind(
-    id,
-    finalTitle,
-    searchBody || "",
-    who,
-    new Date().toISOString(),
-    library,
-    filename,
-    contentType,
-    objectKey,
-    byteSize,
-    biblioAuthor || null,
-    domainIn || null,
-    subjectsIn || null,
-    keywordsIn || null
+    id, finalTitle, searchBody || "", who, new Date().toISOString(), library, filename, contentType, objectKey, byteSize, biblioAuthor || null, domainIn || null, subjectsIn || null, keywordsIn || null, contentSha
   ).run();
-
-  return { id, library, title: finalTitle, object_key: objectKey, author: biblioAuthor, domain: domainIn, subjects: subjectsIn, keywords: keywordsIn };
+  if (duplicateOf) {
+    await appendLedger(env, "DUPLICATE_SEEN", { record_id: id, existing_record_id: duplicateOf, library, sha256: contentSha, filename, byte_size: byteSize, title: finalTitle, created_by: who });
+  }
+  await appendLedger(env, "INGEST", { record_id: id, library, sha256: contentSha, filename, byte_size: byteSize, title: finalTitle, created_by: who });
+  return { id, library, title: finalTitle, object_key: objectKey, author: biblioAuthor, domain: domainIn, subjects: subjectsIn, keywords: keywordsIn, ocrHint, extractText: searchBody, content_sha256: contentSha, signed };
 }
+
 
 export async function serveFile(env, recordId) {
   const id = String(recordId || "").trim();
