@@ -1,5 +1,6 @@
 import { handleRuntimeApi, corsHeaders, json, LIMITATION } from "./runtime.js";
-import { handleAuth } from "./auth.js";
+import { handleAuth, getSession } from "./auth.js";
+import { page, homeBody, stub } from "./ui.js";
 
 /**
  * Aziel Digital Library v2.6.2 public MASTER (Cloudflare Worker).
@@ -291,55 +292,20 @@ function escapeHtml(s) {
 
 function workCardsHtml() { return ""; }
 
-async function indexHtml(env) {
+async function indexHtml(env, request) {
+  const url = new URL(request.url);
+  const q = (url.searchParams.get("q") || "").trim();
   const stats = await collectStats(env);
-  const views = stats.views || 0;
-  const downloads = stats.downloads || 0;
-  return `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width">
-<title>Aziel Digital Library v2.6.2</title>
-<meta name="description" content="Aziel Digital Library v2.6.2. Public MASTER. Anonymous GET is read-only. Signed-in accounts may ingest. Author Aziel Eliab.">
-<link rel="canonical" href="${HOST}/">
-<style>
-body{font-family:system-ui,sans-serif;margin:0;background:#111;color:#eee}
-.wrap{max-width:980px;margin:auto;padding:28px}
-a{color:#e6c56a}
-.pill{display:inline-block;background:#2a2a2a;border-radius:999px;padding:4px 10px;margin-right:6px}
-.ok{color:#8fdfb0}
-.card{background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:18px;margin:16px 0}
-.button{background:#c9a227;color:#111;padding:8px 14px;border-radius:8px;text-decoration:none;font-weight:700}
-pre{background:#000;padding:12px;border-radius:8px;overflow:auto}
-</style>
-</head>
-<body>
-<div class="wrap">
-  <p><span class="pill ok">MASTER</span><span class="pill">v2.6.2</span><span class="pill">Apache-2.0</span></p>
-  <h1>Aziel Digital Library</h1>
-  <p>Self-contained immutable local digital library and intelligence runtime. This public website is the MASTER. Anonymous visitors may search published records. Signed-in accounts may ingest. Author <b>Aziel Eliab</b>.</p>
-  <p>${LIMITATION}</p>
-  <p>Views ${views} · Counted downloads ${downloads}</p>
-  <div class="card">
-    <h2>Counted software download</h2>
-    <p><a class="button" href="/download">aziel-digital-library-2.6.2.zip</a></p>
-    <p>HTTP 200 from this Worker. Not a 302 to GitHub.</p>
-    <pre>curl -fsSL ${HOST}/install.sh | bash</pre>
-    <p>Then <code>python3 aziel_launcher.py</code> for the local writable MASTER on http://127.0.0.1:8765</p>
-  </div>
-  <div class="card">
-    <h2>Accounts</h2>
-    <p>Anonymous GET is public. POST/ingest requires a signed-up login. Operator account is not listed in any public directory.</p>
-    <p><a class="button" href="/login">Log in</a> <a class="button" href="/signup">Sign up</a> <a class="button" href="/ingest">Ingest</a></p>
-  </div>
-  <div class="card">
-    <h2>Search published records</h2>
-    <form method="get" action="/search"><input name="q" placeholder="Search…" style="padding:8px;width:70%"><button class="button" type="submit">Search</button></form>
-  </div>
-  <p><a href="/stats">stats</a> · <a href="/openapi.json">OpenAPI</a> · <a href="/v1/skill">skill</a> · <a href="${CATALOG}/">catalog</a> · <a href="${GITHUB_REPO}">GitHub</a></p>
-  <p>Eliab, Aziel. (2026). Aziel Digital Library v2.6.2 [Software]. Apache-2.0. ${HOST}/</p>
-</div>
-</body></html>`;
+  const signed = await getSession(env, request);
+  let rows = [];
+  if (env.DB) {
+    if (q) {
+      rows = (await env.DB.prepare("SELECT record_id, title, substr(body,1,280) AS snippet, created_by, created_utc FROM records WHERE title LIKE ? OR body LIKE ? ORDER BY created_utc DESC LIMIT 100").bind("%"+q+"%","%"+q+"%").all()).results || [];
+    } else {
+      rows = (await env.DB.prepare("SELECT record_id, title, substr(body,1,280) AS snippet, created_by, created_utc FROM records ORDER BY created_utc DESC LIMIT 100").all()).results || [];
+    }
+  }
+  return page("Corpus Search", homeBody({ q, rows, views: stats.views || 0, downloads: stats.downloads || 0, host: HOST }), { signed });
 }
 
 function llmsTxt() {
@@ -395,9 +361,30 @@ export default {
 
     if (url.pathname === "/" && request.method === "GET") {
       await incrementViews(env);
-      return new Response(await indexHtml(env), {
+      return new Response(await indexHtml(env, request), {
         headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders() },
       });
+    }
+
+    const signed = await getSession(env, request);
+    const masterPages = {
+      "/tree": ["Corpus Tree", "Evidence-based corpus tree. Unclassified objects stay standalone instead of receiving invented links."],
+      "/map": ["Temporal Map", "Temporal–geospatial corpus map. Event pins come from corpus evidence. Historical polygons come from preserved source layers. Drag to pan; use the year slider on the local launcher for full historical state."],
+      "/historical": ["Historical Geography", "Source-aware temporal boundary layers. Competing sources overlap instead of being silently merged. Install .azh kits on the local MASTER vault."],
+      "/gazetteer": ["World Gazetteer", "Offline place resolution (AZGDB). The local launcher can install lite/full GeoNames profiles. Hosted search uses published corpus records."],
+      "/intelligence": ["Intelligence", ".azm model packages and .azk knowledge kits. Install through a signed-in account or the local CLI."],
+      "/health": ["Health", LIMITATION],
+      "/verify": ["Verify", "Integrity verification of the hosted MASTER. Counted zip SHA is published on the GitHub v2.6.2 release."],
+    };
+    if (request.method === "GET" && masterPages[url.pathname]) {
+      const [title, lead] = masterPages[url.pathname];
+      return new Response(page(title, stub(title, lead), { signed }), {
+        headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders() },
+      });
+    }
+    if (url.pathname === "/search" && request.method === "GET") {
+      const q = url.searchParams.get("q") || "";
+      return Response.redirect(new URL("/?q=" + encodeURIComponent(q), url).toString(), 302);
     }
 
     if (url.pathname === "/count" && request.method === "GET") {
