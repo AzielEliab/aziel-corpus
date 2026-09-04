@@ -14,6 +14,7 @@ export function robotsTxt() {
     "Allow: /gazetteer",
     "Allow: /tree",
     "Allow: /health",
+    "Allow: /ocr",
     "Allow: /intelligence",
     "Allow: /ocr",
     "Allow: /receipt",

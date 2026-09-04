@@ -26,7 +26,8 @@ export function defaultDescription(kind) {
   if (kind === "gazetteer") return "World gazetteer for Aziel Digital Library. GeoNames CC BY 4.0 place lookup. Author Aziel Eliab.";
   if (kind === "tree") return "Evidence-based corpus tree for Aziel Digital Library. Author Aziel Eliab.";
   if (kind === "health") return "Live health dashboard for Aziel Digital Library hosted MASTER. Author Aziel Eliab.";
-  if (kind === "intelligence") return "Hosted intelligence, OCR, and Whisper transcription for Aziel Digital Library. Author Aziel Eliab.";
+  if (kind === "intelligence") return "Hosted intelligence, OCR, SpectralLock lenses, and Whisper transcription for Aziel Digital Library. Author Aziel Eliab.";
+  if (kind === "ocr") return "Hosted OCR and advisory SpectralLock lenses for Aziel Digital Library. Author Aziel Eliab.";
   if (kind === "historical") return "Historical geography layers for Aziel Digital Library. Author Aziel Eliab.";
   if (kind === "verify") return "Integrity verification of the hosted Aziel Digital Library MASTER. Author Aziel Eliab.";
   if (kind === "corpus") return "Public corpus of Aziel Digital Library. Search published records. Author Aziel Eliab.";
