@@ -10,11 +10,21 @@ from .exporters import write_xlsx, write_pdf
 from .gazetteer import WorldGazetteer
 
 from .historical_geo import HistoricalGeography
-from .review import review_document, verify_bytes, lattice_anchor_tip
-SCHEMA_VERSION='7.3'
+from .review import review_document, verify_bytes, lattice_anchor_tip, triad_composite, collection_triad, triad_coverage_points
+from .succession import (
+    cite_from_chain, compact_record, new_link_id, propose_all_links, work_version_pairs,
+)
+from .zsolver import score_document as score_zsolver_document
+SCHEMA_VERSION='7.4'
 
 SUBJECT_RULES={'Legal':{'court','custody','divorce','motion','filing','attorney','evidence','hearing','order','respondent','petitioner'},'Research':{'research','framework','theory','analysis','manuscript','voynich','codex','translation','discovery','whitepaper'},'Technology':{'software','code','python','github','cloudflare','api','database','arduino','circuit','server','algorithm'},'Forecasting':{'forecast','prediction','verification','accuracy','weather','ledger','calibration','jeeves','aziel','zd30'},'Mechanical & HVAC':{'hvac','compressor','txv','refrigerant','pressure','capacitor','coil','goodman','r32','subcooling'},'Religion & History':{'jesus','god','hebrew','bible','isaiah','religion','resurrection','historical','papacy','vatican'},'Personal Records':{'email','message','call','transcript','calendar','receipt','invoice','account','security','breach'}}
 def utc_now(): return datetime.now(timezone.utc).isoformat(timespec='seconds')
+def normalize_content_hash(value):
+    h=str(value or '').strip().lower()
+    if h.startswith('0x'): h=h[2:]
+    h=h.replace('-','').replace(' ','')
+    if len(h)!=64 or any(c not in '0123456789abcdef' for c in h): return ''
+    return h
 def stable_id(prefix,digest): return f'{prefix}-{digest[:12].upper()}'
 def classify(mime,suffix):
     m=(mime or '').lower(); s=suffix.lower()
@@ -80,6 +90,9 @@ class AzielLibrary:
         CREATE TABLE IF NOT EXISTS document_ledger(record_id TEXT NOT NULL, sequence INTEGER NOT NULL, timestamp_utc TEXT NOT NULL, action TEXT NOT NULL, payload_json TEXT NOT NULL, previous_hash TEXT NOT NULL, entry_hash TEXT NOT NULL, PRIMARY KEY(record_id, sequence));
         CREATE TABLE IF NOT EXISTS jeeves_topics(topic TEXT PRIMARY KEY, hits INTEGER NOT NULL, last_utc TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS jeeves_faq(faq_id TEXT PRIMARY KEY, question TEXT NOT NULL, hint TEXT NOT NULL, hits INTEGER NOT NULL, created_utc TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS succession_links(link_id TEXT PRIMARY KEY, predecessor_id TEXT NOT NULL, successor_id TEXT NOT NULL, subject_key TEXT NOT NULL DEFAULT '', reason TEXT NOT NULL, created_utc TEXT NOT NULL, entry_hash TEXT, UNIQUE(predecessor_id, successor_id));
+        CREATE INDEX IF NOT EXISTS idx_succ_pred ON succession_links(predecessor_id);
+        CREATE INDEX IF NOT EXISTS idx_succ_succ ON succession_links(successor_id);
 ''')
             c.execute("INSERT OR REPLACE INTO metadata VALUES('schema_version',?)",(SCHEMA_VERSION,))
     def _last_hash(self):
@@ -172,7 +185,8 @@ class AzielLibrary:
         self._assert_writable(); out=[]
         for f in self._iter_source_files(paths): out.append(self._ingest_file(f,version_of,reason))
         if rebuild: self.rebuild_relationships()
-
+        try: self.backfill_succession()
+        except Exception: pass
         return out
     def bulk_ingest(self,paths,reason='Bulk ingest',progress=None):
         self._assert_writable(); processed=failed=0; errors=[]
@@ -206,11 +220,14 @@ class AzielLibrary:
         except OSError: pass
         text,status,extra=self.extractor.extract(stored,mc); model_results=self.models.classify_text(source.name+' '+text[:250000]); primary,secondary,why=classify_subject(source.name,text,model_results)
         common=', '.join(x for x,c in Counter(terms(source.stem+' '+text[:300000])).most_common(30)); meta={'dates':extract_dates(text[:500000]),'original_mtime':datetime.fromtimestamp(st.st_mtime,timezone.utc).isoformat(timespec='seconds'),'extractor':extra}
+        prev_version_rid=''
         with self._connect() as c:
             c.execute('INSERT INTO records VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',(rid,utc_now(),source.name,str(source),str(stored.relative_to(self.root)),digest,st.st_size,suffix,mime,mc,meta['original_mtime'],text,status,primary,secondary,why,common,json.dumps(meta)))
             if version_of:
                 work=c.execute('SELECT * FROM works WHERE work_id=?',(version_of,)).fetchone()
                 if not work: raise KeyError(version_of)
+                prev=c.execute('SELECT record_id FROM versions WHERE work_id=? ORDER BY version_number DESC, created_utc DESC LIMIT 1',(version_of,)).fetchone()
+                if prev: prev_version_rid=prev['record_id']
                 num=c.execute('SELECT COALESCE(MAX(version_number),0)+1 FROM versions WHERE work_id=?',(version_of,)).fetchone()[0]; vid=str(uuid.uuid4()); c.execute('INSERT INTO versions VALUES(?,?,?,?,?,?)',(vid,version_of,num,rid,reason,utc_now())); c.execute('UPDATE works SET current_version_id=? WHERE work_id=?',(vid,version_of)); wid=version_of
             else:
                 wid=stable_id('AZWORK',digest); vid=str(uuid.uuid4()); c.execute('INSERT INTO works VALUES(?,?,?,?,?,?,?,?)',(wid,source.stem,utc_now(),vid,'UNREVIEWED','UNRATED','','')); c.execute('INSERT INTO versions VALUES(?,?,?,?,?,?)',(vid,wid,1,rid,reason,utc_now()))
@@ -220,7 +237,8 @@ class AzielLibrary:
         ingest_payload={'record_id':rid,'work_id':wid,'sha256':digest,'stored_path':str(stored.relative_to(self.root)),'text_sha256':hashlib.sha256(text.encode()).hexdigest(),'extraction_status':status}
         self._ledger('INGEST',ingest_payload)
         self._document_ledger(rid,'INGEST',ingest_payload)
-        self._apply_ingest_review(rid, stored, source.name, text, digest, library='aziel')
+        extras={'supersedes':prev_version_rid} if prev_version_rid else {}
+        self._apply_ingest_review(rid, stored, source.name, text, digest, library='aziel', extras=extras)
         return self.get_record(rid)
     def add_ingest_origin(self,record_id,relative_path):
         self._assert_writable(); rel=str(relative_path or '').replace('\\','/').strip('/')
@@ -240,6 +258,8 @@ class AzielLibrary:
         self._assert_writable()
         with self._write_lock:
             self.rebuild_relationships()
+            try: self.backfill_succession()
+            except Exception: pass
             self._ledger('BATCH_FINALIZE',{'records':self.health().get('records',0)})
 
         return self.health()
@@ -500,6 +520,12 @@ class AzielLibrary:
             if media_class: sql+=' AND media_class=?'; args.append(media_class)
             if subject: sql+=' AND primary_subject=?'; args.append(subject)
             return [dict(x) for x in c.execute(sql+' ORDER BY ingested_utc DESC',args)]
+    def find_record_id_by_hash(self, digest):
+        h=normalize_content_hash(digest)
+        if not h: return None
+        with self._connect() as c:
+            row=c.execute('SELECT record_id FROM records WHERE lower(sha256)=? ORDER BY ingested_utc ASC LIMIT 1',(h,)).fetchone()
+            return row['record_id'] if row else None
     def get_record(self,rid):
         with self._connect() as c:
             r=c.execute('SELECT * FROM records WHERE record_id=?',(rid,)).fetchone()
@@ -508,14 +534,160 @@ class AzielLibrary:
             try: md=json.loads(d.get('metadata_json') or '{}')
             except Exception: md={}
             d['review']=md.get('aziel_review'); d['lattice_tip']=md.get('lattice_tip'); d['quarantine_status']=md.get('quarantine_status','CLEAR'); d['bayesian']= (d['review'] or {}).get('bayesian'); d['triad']=(d['review'] or {}).get('triad'); d['triad_combined']=md.get('triad_combined') if md.get('triad_combined') is not None else ((d['triad'] or {}).get('combined')); d['chain_tip']=md.get('chain_tip'); d['chain_sequence']=md.get('chain_sequence')
+            d['succession']=md.get('succession') or self._succession_cite(rid, conn=c)
+            d['zsolver']=md.get('zsolver'); d['zsolver_score']=(md.get('zsolver') or {}).get('capped_confidence'); d['zsolver_status']=(md.get('zsolver') or {}).get('status')
             try: d['peer_reviews']=[dict(x) for x in c.execute('SELECT * FROM peer_reviews WHERE record_id=? ORDER BY created_utc',(rid,))]
             except sqlite3.OperationalError: d['peer_reviews']=[]
             return d
-    def _apply_ingest_review(self, record_id, stored, filename, text, digest, library='aziel', event='verified_ingest'):
+    def _compact_records(self, extras_by_id=None):
+        extras_by_id=extras_by_id or {}
+        with self._connect() as c:
+            rows=[dict(x) for x in c.execute('SELECT record_id,original_name,primary_subject,search_terms,extracted_text,ingested_utc,sha256,metadata_json FROM records')]
+        out=[]
+        for row in rows:
+            packed=compact_record({
+                'record_id':row['record_id'],
+                'title':row['original_name'],
+                'original_name':row['original_name'],
+                'primary_subject':row['primary_subject'],
+                'subjects':row['primary_subject'],
+                'search_terms':row['search_terms'],
+                'body':row['extracted_text'] or '',
+                'ingested_utc':row['ingested_utc'],
+                'sha256':row['sha256'],
+                'metadata_json':row['metadata_json'],
+            }, extras_by_id.get(row['record_id']))
+            out.append(packed)
+        return out
+    def _work_version_extra_pairs(self):
+        try:
+            with self._connect() as c:
+                rows=[dict(x) for x in c.execute('SELECT work_id, record_id, version_number, created_utc FROM versions')]
+        except sqlite3.OperationalError:
+            return []
+        return work_version_pairs(rows)
+    def _persist_succession_link(self, pair):
+        with self._connect() as c:
+            exists=c.execute('SELECT link_id FROM succession_links WHERE predecessor_id=? AND successor_id=?',(pair['predecessor_id'],pair['successor_id'])).fetchone()
+            if exists: return None
+        link_id=new_link_id()
+        payload={'link_id':link_id,'predecessor_id':pair['predecessor_id'],'successor_id':pair['successor_id'],'subject_key':pair.get('subject_key') or '','reason':pair.get('reason') or ''}
+        pred_entry=self._ledger('SUPERSEDED_BY',{**payload,'record_id':pair['predecessor_id']})
+        self._document_ledger(pair['predecessor_id'],'SUPERSEDED_BY',{**payload,'record_id':pair['predecessor_id']})
+        self._ledger('SUPERSEDES',{**payload,'record_id':pair['successor_id']})
+        self._document_ledger(pair['successor_id'],'SUPERSEDES',{**payload,'record_id':pair['successor_id']})
+        with self._connect() as c:
+            c.execute('INSERT INTO succession_links VALUES(?,?,?,?,?,?,?)',(link_id,pair['predecessor_id'],pair['successor_id'],pair.get('subject_key') or '',pair.get('reason') or '',utc_now(),pred_entry['entry_hash']))
+        return link_id
+    def _succession_component_ids(self, record_id, conn=None):
+        seen={record_id}; queue=[record_id]
+        def walk(c):
+            while queue:
+                current=queue.pop(0)
+                try:
+                    rows=c.execute('SELECT predecessor_id, successor_id FROM succession_links WHERE predecessor_id=? OR successor_id=?',(current,current)).fetchall()
+                except sqlite3.OperationalError:
+                    return seen
+                for row in rows:
+                    for x in (row['predecessor_id'], row['successor_id']):
+                        if x not in seen:
+                            seen.add(x); queue.append(x)
+            return seen
+        if conn is not None:
+            return walk(conn)
+        with self._connect() as c:
+            return walk(c)
+    def _succession_cite(self, record_id, conn=None):
+        ids=self._succession_component_ids(record_id, conn=conn)
+        if len(ids)<2: return None
+        def load_chain(c):
+            chain=[]
+            for rid in ids:
+                row=c.execute('SELECT record_id, original_name, ingested_utc FROM records WHERE record_id=?',(rid,)).fetchone()
+                if row: chain.append({'record_id':row['record_id'],'title':row['original_name'],'created_utc':row['ingested_utc']})
+                else: chain.append({'record_id':rid,'title':rid,'created_utc':''})
+            chain.sort(key=lambda x: (x.get('created_utc') or '', x.get('record_id') or ''))
+            return cite_from_chain(record_id, chain)
+        if conn is not None:
+            return load_chain(conn)
+        with self._connect() as c:
+            return load_chain(c)
+    def _succession_coverage(self, record_id):
+        cite=self._succession_cite(record_id)
+        return triad_coverage_points(len((cite or {}).get('chain') or []))
+    def _write_succession_snapshot(self, record_id, cite):
+        if not cite: return
+        payload={'record_id':record_id,'chain':[x['record_id'] for x in cite['chain']],'supersedes':[x['record_id'] for x in cite['supersedes']],'superseded_by':[x['record_id'] for x in cite['superseded_by']]}
+        self._ledger('SUCCESSION_CITE',payload)
+        self._document_ledger(record_id,'SUCCESSION_CITE',payload)
+        with self._write_lock, self._connect() as c:
+            row=c.execute('SELECT metadata_json FROM records WHERE record_id=?',(record_id,)).fetchone()
+            try: md=json.loads(row['metadata_json'] if row else '{}')
+            except Exception: md={}
+            md['succession']=cite
+            if row: c.execute('UPDATE records SET metadata_json=? WHERE record_id=?',(json.dumps(md),record_id))
+    def apply_succession_for_record(self, record_id, extras=None):
+        extras_by_id={record_id: extras or {}}
+        catalog=self._compact_records(extras_by_id)
+        pairs=propose_all_links(catalog, self._work_version_extra_pairs())
+        linked=0
+        affected={record_id}
+        for pair in pairs:
+            if self._persist_succession_link(pair): linked+=1
+            affected.add(pair['predecessor_id']); affected.add(pair['successor_id'])
+        cite=self._succession_cite(record_id)
+        if linked:
+            for rid in affected:
+                snap=self._succession_cite(rid)
+                if snap: self._write_succession_snapshot(rid, snap)
+                if rid==record_id: cite=snap
+        return {'linked':linked,'cite':cite,'chain':(cite or {}).get('chain') or []}
+    def _apply_triad_coverage(self, record_id):
+        rec=self.get_record(record_id)
+        review=rec.get('review') or {}
+        if not (review.get('spre') and review.get('clce') and review.get('plr')): return None
+        coverage=self._succession_coverage(record_id)
+        triad=collection_triad(triad_composite(spre=review.get('spre'),clce=review.get('clce'),plr=review.get('plr')), 'aziel', coverage)
+        stored=rec.get('triad_combined') if rec.get('triad_combined') is not None else (review.get('triad') or {}).get('combined')
+        try:
+            if stored is not None and triad.get('combined') is not None and abs(float(stored)-float(triad['combined']))<0.0002:
+                return triad
+        except (TypeError,ValueError):
+            pass
+        review=dict(review); review['triad']=triad
+        payload={'record_id':record_id,'event':'succession_recalibrate','triad_combined':triad.get('combined'),'triad_ready':bool(triad.get('ready'))}
+        self._ledger('REVIEW_SCORE',payload)
+        self._document_ledger(record_id,'REVIEW_SCORE',payload)
+        with self._write_lock, self._connect() as c:
+            row=c.execute('SELECT metadata_json FROM records WHERE record_id=?',(record_id,)).fetchone()
+            try: md=json.loads(row['metadata_json'] if row else '{}')
+            except Exception: md={}
+            md['aziel_review']=review; md['triad_combined']=triad.get('combined')
+            if row: c.execute('UPDATE records SET metadata_json=? WHERE record_id=?',(json.dumps(md),record_id))
+        return triad
+    def backfill_succession(self):
         self._assert_writable()
+        catalog=self._compact_records()
+        pairs=propose_all_links(catalog, self._work_version_extra_pairs())
+        linked=0
+        affected=set()
+        for pair in pairs:
+            if self._persist_succession_link(pair): linked+=1
+            affected.add(pair['predecessor_id']); affected.add(pair['successor_id'])
+        for rid in affected:
+            snap=self._succession_cite(rid)
+            if snap: self._write_succession_snapshot(rid, snap)
+            try: self._apply_triad_coverage(rid)
+            except Exception: pass
+        return {'ok':True,'linked':linked,'records':len(affected)}
+    def _apply_ingest_review(self, record_id, stored, filename, text, digest, library='aziel', event='verified_ingest', extras=None):
+        self._assert_writable()
+        try: self.apply_succession_for_record(record_id, extras)
+        except Exception: pass
+        coverage=self._succession_coverage(record_id)
         raw=Path(stored).read_bytes() if Path(stored).is_file() else (text or '').encode()
         structure=verify_bytes(raw, filename)
-        review=review_document(title=Path(filename).stem, body=text, filename=filename, sha256=digest, author='Aziel Eliab', library=library, structure=structure)
+        review=review_document(title=Path(filename).stem, body=text, filename=filename, sha256=digest, author='Aziel Eliab', library=library, structure=structure, coverage=coverage)
         struct_payload={'record_id':record_id,'sha256':digest,'event':event,'ok':structure['ok'],'file_count':len(structure.get('files') or []),'errors':structure.get('errors') or []}
         entry=self._ledger('STRUCTURE_VERIFY',struct_payload)
         self._document_ledger(record_id,'STRUCTURE_VERIFY',struct_payload)
@@ -535,12 +707,28 @@ class AzielLibrary:
             tip['ledger_entry_hash']=tip_entry['entry_hash']
             with self._connect() as c:
                 c.execute('INSERT OR REPLACE INTO lattice_tips VALUES(?,?,?,?,?)',('AZTIP-'+digest[:12].upper(),record_id,json.dumps(tip),utc_now(),tip_entry['entry_hash']))
+        zsolver=score_zsolver_document({'title':Path(filename).stem,'body':text,'filename':filename,'record_id':record_id}, prefer_live=True)
+        z_payload={'record_id':record_id,'capped_confidence':zsolver.get('capped_confidence'),'display':zsolver.get('display'),'status':zsolver.get('status'),'source':zsolver.get('source'),'provisional':True,'separate_from_triad':True}
+        self._ledger('ZSOLVER_SCORE',z_payload)
+        self._document_ledger(record_id,'ZSOLVER_SCORE',z_payload)
         with self._write_lock, self._connect() as c:
             row=c.execute('SELECT metadata_json FROM records WHERE record_id=?',(record_id,)).fetchone()
             try: md=json.loads(row['metadata_json'] if row else '{}')
             except Exception: md={}
+            if zsolver.get('queued'):
+                q=list(md.get('zsolver_queue') or [])
+                q.append({'utc':utc_now(),'reason':zsolver.get('last_error') or 'zsolver API unavailable'})
+                md['zsolver_queue']=q[-20:]
+            else:
+                md.pop('zsolver_queue', None)
             md['aziel_review']=review; md['lattice_tip']=tip; md['quarantine_status']=review['quarantine_status']; md['triad_combined']=(review.get('triad') or {}).get('combined')
+            md['zsolver']=zsolver; md['succession']=self._succession_cite(record_id)
             c.execute('UPDATE records SET metadata_json=? WHERE record_id=?',(json.dumps(md),record_id))
+        cite=md.get('succession')
+        for item in (cite or {}).get('chain') or []:
+            if item.get('record_id') and item['record_id']!=record_id:
+                try: self._apply_triad_coverage(item['record_id'])
+                except Exception: pass
         return review
     def inspect_original(self, record_id):
         rec=self.get_record(record_id)
@@ -550,7 +738,7 @@ class AzielLibrary:
         structure=verify_bytes(raw, rec['original_name'])
         if rec.get('sha256') and structure.get('sha256') and rec['sha256']!=structure['sha256']:
             structure=dict(structure); structure['ok']=False; structure.setdefault('errors',[]).append('stored hash mismatch')
-        review=review_document(title=Path(rec['original_name']).stem, body=rec.get('extracted_text') or '', filename=rec['original_name'], sha256=rec.get('sha256') or structure.get('sha256'), author='Aziel Eliab', library='aziel', structure=structure)
+        review=review_document(title=Path(rec['original_name']).stem, body=rec.get('extracted_text') or '', filename=rec['original_name'], sha256=rec.get('sha256') or structure.get('sha256'), author='Aziel Eliab', library='aziel', structure=structure, coverage=self._succession_coverage(record_id))
         return {'record_id':record_id,'structure':structure,'review':review}
     def verify_original(self, record_id, event='download_verify'):
         rec=self.get_record(record_id)
@@ -578,28 +766,56 @@ class AzielLibrary:
         triad=review.get('triad') or {}
         combined=rec.get('triad_combined') if rec and rec.get('triad_combined') is not None else triad.get('combined')
         return bool(review.get('spre') and review.get('clce') and review.get('plr') and triad.get('ready') and combined is not None)
-    def backfill_reviews(self, *, limit=50, force=False, record_id=None):
+    def _stored_triad_matches(self, rec):
+        if not self._is_fully_scored(rec): return False
+        review=rec.get('review') or {}
+        expected=collection_triad(triad_composite(spre=review.get('spre'),clce=review.get('clce'),plr=review.get('plr')), rec.get('library') or 'aziel', self._succession_coverage(rec.get('record_id')))
+        stored=rec.get('triad_combined') if rec.get('triad_combined') is not None else (review.get('triad') or {}).get('combined')
+        if expected.get('combined') is None or stored is None: return False
+        try: return abs(float(stored)-float(expected['combined']))<0.0002
+        except (TypeError,ValueError): return False
+    def backfill_reviews(self, *, limit=50, force=False, record_id=None, all_records=False):
         self._assert_writable()
-        cap=max(1,min(int(limit or 50),200))
+        try: succ=self.backfill_succession()
+        except Exception: succ={'linked':0}
         with self._connect() as c:
             if record_id:
                 row=c.execute('SELECT * FROM records WHERE record_id=?',(record_id,)).fetchone()
                 rows=[dict(row)] if row else []
             else:
                 rows=[dict(x) for x in c.execute('SELECT * FROM records ORDER BY ingested_utc ASC')]
-        results=[]; processed=0; skipped=0
+        total=len(rows)
+        cap=total if all_records or record_id else max(1,min(int(limit or 50),200))
+        results=[]; processed=0; skipped=0; failed=0
         for raw in rows:
-            rec=self.get_record(raw['record_id'])
-            if self._is_fully_scored(rec) and not force:
-                skipped+=1
-                results.append({'record_id':rec['record_id'],'skipped':True,'reason':'already fully scored'})
-                continue
-            if processed>=cap:
-                break
-            review=self._apply_ingest_review(rec['record_id'], self.root/rec['stored_path'], rec['original_name'], rec.get('extracted_text') or '', rec.get('sha256') or '', library='aziel', event='verify_backfill')
-            processed+=1
-            results.append({'record_id':rec['record_id'],'skipped':False,'triad_combined':(review.get('triad') or {}).get('combined'),'quarantine_status':review.get('quarantine_status')})
-        return {'ok':True,'force':bool(force),'processed':processed,'skipped':skipped,'results':results}
+            if processed+skipped+failed>=cap: break
+            try:
+                rec=self.get_record(raw['record_id'])
+                z=rec.get('zsolver') or {}
+                z_ok=z.get('capped_confidence') is not None
+                if z_ok and z.get('status')=='queued':
+                    try:
+                        fresh=score_zsolver_document({'title':rec.get('original_name'),'body':rec.get('extracted_text') or '','filename':rec.get('original_name')}, prefer_live=True)
+                        with self._write_lock, self._connect() as c:
+                            row=c.execute('SELECT metadata_json FROM records WHERE record_id=?',(rec['record_id'],)).fetchone()
+                            try: md=json.loads(row['metadata_json'] if row else '{}')
+                            except Exception: md={}
+                            md['zsolver']=fresh
+                            if row: c.execute('UPDATE records SET metadata_json=? WHERE record_id=?',(json.dumps(md),rec['record_id']))
+                    except Exception:
+                        pass
+                if self._stored_triad_matches(rec) and z_ok and not force:
+                    skipped+=1
+                    results.append({'record_id':rec['record_id'],'skipped':True,'reason':'already fully scored'})
+                    continue
+                review=self._apply_ingest_review(rec['record_id'], self.root/rec['stored_path'], rec['original_name'], rec.get('extracted_text') or '', rec.get('sha256') or '', library='aziel', event='verify_backfill')
+                processed+=1
+                rec2=self.get_record(rec['record_id'])
+                results.append({'record_id':rec['record_id'],'skipped':False,'triad_combined':(review.get('triad') or {}).get('combined'),'zsolver_score':(rec2.get('zsolver') or {}).get('capped_confidence'),'zsolver_status':(rec2.get('zsolver') or {}).get('status'),'quarantine_status':review.get('quarantine_status')})
+            except Exception as e:
+                failed+=1
+                results.append({'record_id':raw.get('record_id'),'failed':True,'error':str(e)[:200]})
+        return {'ok':True,'force':bool(force),'all':bool(all_records),'total':total,'scored':processed,'processed':processed,'skipped':skipped,'failed':failed,'succession_linked':succ.get('linked',0),'results':results}
     def note_download(self, record_id):
         rec=self.get_record(record_id)
         payload={'record_id':record_id,'sha256':rec.get('sha256'),'filename':rec.get('original_name'),'quarantine_status':rec.get('quarantine_status') or 'CLEAR'}

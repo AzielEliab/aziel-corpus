@@ -71,7 +71,7 @@ export function recordBody(payload) {
       : "<span class=\"q-badge go\">Clear</span>";
   const sha = String(row.content_sha256 || "").trim();
   const shaHtml = sha ? "<p class=\"meta\">SHA-256 " + esc(sha.slice(0,12)) + "… · chain <a href=\"/v1/document-chain?record_id=" + esc(row.record_id) + "\">tip</a> · <a href=\"/receipt/" + esc(row.record_id) + "\">receipt</a></p>" : "<p class=\"meta\"><a href=\"/receipt/" + esc(row.record_id) + "\">receipt</a></p>";
-  const open = "<p><a class=\"button\" href=\"/file/" + esc(row.record_id) + "\">Download</a> <a class=\"button ghost\" href=\"/download?record=" + esc(row.record_id) + "\">Counted download</a></p>";
+  const open = "<p><a class=\"button\" href=\"/file/" + esc(row.record_id) + "\">Download</a> <a class=\"button ghost\" href=\"/download?record=" + esc(row.record_id) + "\">Counted download</a>" + (sha ? " <a class=\"button ghost\" href=\"/download?hash=" + esc(sha) + "\">By hash</a> <a class=\"button ghost\" href=\"/v1/docs/" + esc(sha) + "/download\">API hash</a>" : "") + "</p>";
   const qBanner = (q === "POISON_SUSPECT" || q === "QUARANTINE")
     ? "<div class=\"q-banner\">Quarantine — poison suspect. The file is still downloadable for auditors. It was not deleted.</div>"
     : "";
@@ -131,9 +131,30 @@ export function recordBody(payload) {
       return "<li>" + esc(d.artifact_type || "derived") + " · " + esc(d.processor || "") + " " + esc(d.processor_version || "") + link + (d.note ? "<br><span class=\"muted\">" + esc(String(d.note).slice(0, 280)) + "</span>" : "") + "</li>";
     }).join("") + "</ul>"
     : "<p class=\"muted\">No derived OCR or spectral artifacts stored for this record.</p>";
+  const succession = payload.succession || null;
+  const succChain = succession && Array.isArray(succession.chain) ? succession.chain : [];
+  function succLinks(list, empty) {
+    if (!list || !list.length) return "<p class=\"muted\">" + esc(empty) + "</p>";
+    return "<ul>" + list.map((x) => "<li><a href=\"/record/" + esc(x.record_id) + "\">" + esc(x.title || x.record_id) + "</a></li>").join("") + "</ul>";
+  }
+  const zsolver = payload.zsolver || (row && row.zsolver_json ? (() => { try { return JSON.parse(row.zsolver_json); } catch { return null; } })() : null);
+  const zDisp = zsolver && zsolver.display != null ? zsolver.display : (zsolver && zsolver.capped_confidence != null ? Math.round(Number(zsolver.capped_confidence) * 100) : (row && row.zsolver_score != null ? Math.round(Number(row.zsolver_score) * 100) : null));
+  const zQueued = zsolver && (zsolver.status === "queued" || zsolver.queued);
+  const zsolverHtml = zDisp != null
+    ? "<div class=\"card\"><h2>ZionPattern Solver</h2><div class=\"triad\"><div class=\"metric\">" + esc(zDisp) + "</div><div><p>Secondary public score. Separate from the triad. Provisional and assistive. Does not solve cases. Hard cap 75% / uncertainty floor 25%.</p><p class=\"muted\">" + esc((zsolver && zsolver.disclaimer) || "Provisional and assistive only. Author Aziel Eliab.") + (zQueued ? " Live score retry is queued." : "") + "</p></div></div></div>"
+    : "<div class=\"card\"><h2>ZionPattern Solver</h2><p class=\"muted\">Secondary score pending backfill or live retry.</p></div>";
+  const successionHtml = succChain.length >= 2
+    ? "<div class=\"card\"><h2>Succession</h2><p class=\"muted\">Exact-same-subject paper cites. Oldest to newest.</p><h3>Supersedes</h3>" +
+      succLinks(succession.supersedes, "Nothing earlier in this chain.") +
+      "<h3>Superseded by</h3>" +
+      succLinks(succession.superseded_by, "Nothing later in this chain.") +
+      "<h3>Full chain</h3><p>" +
+      succChain.map((x) => "<a href=\"/record/" + esc(x.record_id) + "\">" + esc(x.title || x.record_id) + "</a>").join(" → ") +
+      "</p></div>"
+    : "";
   const azielCls = String(row.library || "").toLowerCase() === "aziel" ? " record-aziel" : "";
   return "<section class=\"hero" + azielCls + "\">" + libTag(row.library) + " " + qBadge + "<h1>" + esc(row.title) + "</h1><p class=\"muted\">" + esc(row.author || "") + (row.domain ? " · " + esc(row.domain) : "") + (row.subjects ? " · " + esc(row.subjects) : "") + "</p></section>" +
-    qBanner + triadHtml +
+    qBanner + triadHtml + zsolverHtml + successionHtml +
     "<div class=\"card\"><h2>Status lights</h2><p class=\"muted\">Green means go. Yellow means read again. Red means stop and check. Easy enough for a 6th grader; kept for government use.</p>" + lightsHtml + "</div>" +
     "<div class=\"card\"><p class=\"meta\">" + esc(row.filename || "text record") + (row.created_utc ? " · " + esc(String(row.created_utc).replace("T", " ").slice(0, 16)) : "") + "</p>" + shaHtml + open +
     "<h3>SPRE + CLCE + PhysLing</h3>" + spreHtml + clceHtml + plrHtml +

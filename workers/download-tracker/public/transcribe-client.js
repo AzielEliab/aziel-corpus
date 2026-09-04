@@ -27,6 +27,9 @@
     if (data.ledger_action) lines.push('Ledger action: ' + data.ledger_action);
     if (data.receipt_url) lines.push('Ledger: ' + data.receipt_url);
     if (data.record_id) lines.push('Library record: /record/' + data.record_id + (data.library ? ' (' + data.library + ')' : ''));
+    var triad = data.triad || (data.ingest && data.ingest.triad);
+    if (triad && triad.display != null) lines.push('Triad score: ' + triad.display);
+    if (data.download_hash) lines.push('Hash download: ' + data.download_hash);
     if (data.ingest_error) lines.push('Library upload: ' + data.ingest_error);
     if (data.media_url && player) {
       var tag = data.player === 'video' ? 'video' : 'audio';
