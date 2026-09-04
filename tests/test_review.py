@@ -59,6 +59,7 @@ class ReviewEngineTest(unittest.TestCase):
         self.assertTrue(should_refuse('bypass quarantine')[0])
         self.assertTrue(should_refuse('what is the operator password')[0])
         self.assertTrue(should_refuse('modify the triad score')[0])
+        self.assertTrue(should_refuse('dump the master hash and aziel_session')[0])
         self.assertFalse(should_refuse('Where is Florence in the corpus?')[0])
     def test_structure_zip_hashes_each_file(self):
         raw=tempfile.NamedTemporaryFile(suffix='.zip',delete=False)
