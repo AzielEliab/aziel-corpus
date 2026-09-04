@@ -77,6 +77,9 @@ class AzielLibrary:
             c.executescript('''
         CREATE TABLE IF NOT EXISTS peer_reviews(review_id TEXT PRIMARY KEY, record_id TEXT NOT NULL, stance TEXT NOT NULL, body TEXT NOT NULL, created_by TEXT, created_utc TEXT NOT NULL, entry_hash TEXT);
         CREATE TABLE IF NOT EXISTS lattice_tips(tip_id TEXT PRIMARY KEY, record_id TEXT, tip_json TEXT NOT NULL, created_utc TEXT NOT NULL, ledger_entry_hash TEXT);
+        CREATE TABLE IF NOT EXISTS document_ledger(record_id TEXT NOT NULL, sequence INTEGER NOT NULL, timestamp_utc TEXT NOT NULL, action TEXT NOT NULL, payload_json TEXT NOT NULL, previous_hash TEXT NOT NULL, entry_hash TEXT NOT NULL, PRIMARY KEY(record_id, sequence));
+        CREATE TABLE IF NOT EXISTS jeeves_topics(topic TEXT PRIMARY KEY, hits INTEGER NOT NULL, last_utc TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS jeeves_faq(faq_id TEXT PRIMARY KEY, question TEXT NOT NULL, hint TEXT NOT NULL, hits INTEGER NOT NULL, created_utc TEXT NOT NULL);
 ''')
             c.execute("INSERT OR REPLACE INTO metadata VALUES('schema_version',?)",(SCHEMA_VERSION,))
     def _last_hash(self):
@@ -92,6 +95,45 @@ class AzielLibrary:
             e={'sequence':self.ledger_count()+1,'timestamp_utc':utc_now(),'action':action,'payload':payload,'previous_hash':self._last_hash()}; e['entry_hash']=hashlib.sha256(json.dumps(e,sort_keys=True,separators=(',',':')).encode()).hexdigest()
             with self.ledger_path.open('a',encoding='utf-8') as f: f.write(json.dumps(e,sort_keys=True)+'\n'); f.flush(); os.fsync(f.fileno())
             return e
+    def _is_document_id(self, record_id):
+        return bool(re.match(r'^AZDOC-[A-Z0-9]+$', str(record_id or '').strip(), re.I))
+    def _document_ledger(self, record_id, action, payload):
+        self._assert_writable()
+        rid=str(record_id or '').strip()
+        if not self._is_document_id(rid):
+            return None
+        body=dict(payload or {}); body['record_id']=rid
+        with self._write_lock, self._connect() as c:
+            last=c.execute('SELECT sequence, entry_hash FROM document_ledger WHERE record_id=? ORDER BY sequence DESC LIMIT 1',(rid,)).fetchone()
+            seq=(last['sequence'] if last else 0)+1
+            prev=last['entry_hash'] if last else '0'*64
+            ts=utc_now()
+            entry={'record_id':rid,'sequence':seq,'timestamp_utc':ts,'action':str(action),'payload':body,'previous_hash':prev}
+            entry_hash=hashlib.sha256(json.dumps(entry,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+            c.execute('INSERT INTO document_ledger VALUES(?,?,?,?,?,?,?)',(rid,seq,ts,str(action),json.dumps(body,sort_keys=True,separators=(',',':')),prev,entry_hash))
+            row=c.execute('SELECT metadata_json FROM records WHERE record_id=?',(rid,)).fetchone()
+            try: md=json.loads(row['metadata_json'] if row else '{}')
+            except Exception: md={}
+            md['chain_tip']=entry_hash; md['chain_sequence']=seq
+            if row: c.execute('UPDATE records SET metadata_json=? WHERE record_id=?',(json.dumps(md),rid))
+            return {**entry,'entry_hash':entry_hash}
+    def document_chain(self, record_id):
+        rid=str(record_id or '').strip()
+        with self._connect() as c:
+            rows=[dict(x) for x in c.execute('SELECT sequence, timestamp_utc, action, payload_json, previous_hash, entry_hash FROM document_ledger WHERE record_id=? ORDER BY sequence ASC',(rid,))]
+        errors=[]; expected_prev='0'*64; expected_seq=1; tip='0'*64; entries=[]
+        for row in rows:
+            seq=int(row['sequence'])
+            if seq!=expected_seq: errors.append('sequence gap at '+str(seq))
+            if row['previous_hash']!=expected_prev: errors.append('previous_hash mismatch at '+str(seq))
+            try: payload=json.loads(row['payload_json'] or '{}')
+            except Exception:
+                payload={}; errors.append('bad payload at '+str(seq))
+            recomputed=hashlib.sha256(json.dumps({'record_id':rid,'sequence':seq,'timestamp_utc':row['timestamp_utc'],'action':row['action'],'payload':payload,'previous_hash':row['previous_hash']},sort_keys=True,separators=(',',':')).encode()).hexdigest()
+            if recomputed!=row['entry_hash']: errors.append('entry_hash mismatch at '+str(seq))
+            expected_prev=row['entry_hash']; expected_seq=seq+1; tip=row['entry_hash']
+            entries.append({**row,'payload':payload})
+        return {'record_id':rid,'ok':not errors,'entries':entries,'tip':tip,'sequence':len(entries),'errors':errors}
     def reload_intelligence(self):
         self.kits=KitRuntime(); self.models=ModelRuntime()
         if not self.readonly:
@@ -175,7 +217,9 @@ class AzielLibrary:
         proc=extra.get('processor','AZIEL_TEXT_ENGINE'); procver=extra.get('processor_version','1.1.0'); model_sha=extra.get('model_sha256',''); model_id=Path(extra.get('model_path','')).name if extra.get('model_path') else ''
         self._record_derived(rid,'TEXT_EXTRACT',text.encode(),proc,procver,model_id,model_sha,{'status':status,'extractor':extra},1.0 if text else 0.0)
         self._embed(rid,source.name+' '+primary+' '+secondary+' '+text[:500000]); self._extract_entities(rid,source.name,text); self._extract_events(rid,source.name,text); self._upsert_fts(rid)
-        self._ledger('INGEST',{'record_id':rid,'work_id':wid,'sha256':digest,'stored_path':str(stored.relative_to(self.root)),'text_sha256':hashlib.sha256(text.encode()).hexdigest(),'extraction_status':status})
+        ingest_payload={'record_id':rid,'work_id':wid,'sha256':digest,'stored_path':str(stored.relative_to(self.root)),'text_sha256':hashlib.sha256(text.encode()).hexdigest(),'extraction_status':status}
+        self._ledger('INGEST',ingest_payload)
+        self._document_ledger(rid,'INGEST',ingest_payload)
         self._apply_ingest_review(rid, stored, source.name, text, digest, library='aziel')
         return self.get_record(rid)
     def add_ingest_origin(self,record_id,relative_path):
@@ -463,7 +507,7 @@ class AzielLibrary:
             d=dict(r); d['entities']=[dict(x) for x in c.execute('SELECT e.*,m.context,m.confidence,m.source FROM mentions m JOIN entities e USING(entity_id) WHERE m.record_id=? ORDER BY e.entity_type,e.name',(rid,))]; d['relationships']=[dict(x) for x in c.execute('SELECT * FROM relationships WHERE source_id=? ORDER BY score DESC',(rid,))]; d['derived']=[dict(x) for x in c.execute('SELECT * FROM derived_artifacts WHERE record_id=? ORDER BY created_utc',(rid,))]; d['events']=[dict(x) for x in c.execute('SELECT * FROM events WHERE record_id=? ORDER BY event_date',(rid,))]
             try: md=json.loads(d.get('metadata_json') or '{}')
             except Exception: md={}
-            d['review']=md.get('aziel_review'); d['lattice_tip']=md.get('lattice_tip'); d['quarantine_status']=md.get('quarantine_status','CLEAR'); d['bayesian']= (d['review'] or {}).get('bayesian')
+            d['review']=md.get('aziel_review'); d['lattice_tip']=md.get('lattice_tip'); d['quarantine_status']=md.get('quarantine_status','CLEAR'); d['bayesian']= (d['review'] or {}).get('bayesian'); d['triad']=(d['review'] or {}).get('triad'); d['triad_combined']=md.get('triad_combined') if md.get('triad_combined') is not None else ((d['triad'] or {}).get('combined')); d['chain_tip']=md.get('chain_tip'); d['chain_sequence']=md.get('chain_sequence')
             try: d['peer_reviews']=[dict(x) for x in c.execute('SELECT * FROM peer_reviews WHERE record_id=? ORDER BY created_utc',(rid,))]
             except sqlite3.OperationalError: d['peer_reviews']=[]
             return d
@@ -472,14 +516,22 @@ class AzielLibrary:
         raw=Path(stored).read_bytes() if Path(stored).is_file() else (text or '').encode()
         structure=verify_bytes(raw, filename)
         review=review_document(title=Path(filename).stem, body=text, filename=filename, sha256=digest, author='Aziel Eliab', library=library, structure=structure)
-        entry=self._ledger('STRUCTURE_VERIFY',{'record_id':record_id,'sha256':digest,'event':event,'ok':structure['ok'],'file_count':len(structure.get('files') or []),'errors':structure.get('errors') or []})
-        self._ledger('REVIEW_SCORE',{'record_id':record_id,'sha256':digest,'event':event,'spre_pc':review['spre']['pc'],'clce_triple':review['clce']['triple'],'plr_status':review['plr']['status'],'bayesian_posterior':review['bayesian']['posterior'],'unranked':True,'lights':review['lights']})
+        struct_payload={'record_id':record_id,'sha256':digest,'event':event,'ok':structure['ok'],'file_count':len(structure.get('files') or []),'errors':structure.get('errors') or []}
+        entry=self._ledger('STRUCTURE_VERIFY',struct_payload)
+        self._document_ledger(record_id,'STRUCTURE_VERIFY',struct_payload)
+        score_payload={'record_id':record_id,'sha256':digest,'event':event,'spre_pc':review['spre']['pc'],'clce_triple':review['clce']['triple'],'plr_status':review['plr']['status'],'triad_combined':(review.get('triad') or {}).get('combined'),'triad_ready':bool((review.get('triad') or {}).get('ready')),'bayesian_posterior':review['bayesian']['posterior'],'unranked':True,'lights':review['lights']}
+        self._ledger('REVIEW_SCORE',score_payload)
+        self._document_ledger(record_id,'REVIEW_SCORE',score_payload)
         if review['quarantine_status']!='CLEAR':
-            self._ledger('POISON_QUARANTINE',{'record_id':record_id,'sha256':digest,'status':review['quarantine_status'],'markers':review['poison']['markers'],'immutable':True,'never_delete':True})
+            q_payload={'record_id':record_id,'sha256':digest,'status':review['quarantine_status'],'markers':review['poison']['markers'],'immutable':True,'never_delete':True}
+            self._ledger('POISON_QUARANTINE',q_payload)
+            self._document_ledger(record_id,'POISON_QUARANTINE',q_payload)
         tip=None
         if structure['ok']:
             tip=lattice_anchor_tip(record_id=record_id,library=library,content_sha256=digest,ledger_entry_hash=entry['entry_hash'],structure=structure,review=review,event=event)
-            tip_entry=self._ledger('LATTICE_ANCHOR',{'record_id':record_id,'sha256':digest,'schema':tip['schema'],'kind':tip['kind'],'carrier':tip['carrier']})
+            tip_payload={'record_id':record_id,'sha256':digest,'schema':tip['schema'],'kind':tip['kind'],'carrier':tip['carrier'],'triad_combined':(review.get('triad') or {}).get('combined')}
+            tip_entry=self._ledger('LATTICE_ANCHOR',tip_payload)
+            self._document_ledger(record_id,'LATTICE_ANCHOR',tip_payload)
             tip['ledger_entry_hash']=tip_entry['entry_hash']
             with self._connect() as c:
                 c.execute('INSERT OR REPLACE INTO lattice_tips VALUES(?,?,?,?,?)',('AZTIP-'+digest[:12].upper(),record_id,json.dumps(tip),utc_now(),tip_entry['entry_hash']))
@@ -487,7 +539,7 @@ class AzielLibrary:
             row=c.execute('SELECT metadata_json FROM records WHERE record_id=?',(record_id,)).fetchone()
             try: md=json.loads(row['metadata_json'] if row else '{}')
             except Exception: md={}
-            md['aziel_review']=review; md['lattice_tip']=tip; md['quarantine_status']=review['quarantine_status']
+            md['aziel_review']=review; md['lattice_tip']=tip; md['quarantine_status']=review['quarantine_status']; md['triad_combined']=(review.get('triad') or {}).get('combined')
             c.execute('UPDATE records SET metadata_json=? WHERE record_id=?',(json.dumps(md),record_id))
         return review
     def inspect_original(self, record_id):
@@ -515,10 +567,47 @@ class AzielLibrary:
         if not note: raise ValueError('review note required')
         self.get_record(record_id)
         rid='AZPEER-'+uuid.uuid4().hex[:12].upper()
-        entry=self._ledger('PEER_REVIEW',{'record_id':record_id,'review_id':rid,'stance':st,'body':note[:4000],'created_by':created_by})
+        peer_payload={'record_id':record_id,'review_id':rid,'stance':st,'body':note[:4000],'created_by':created_by}
+        entry=self._ledger('PEER_REVIEW',peer_payload)
+        self._document_ledger(record_id,'PEER_REVIEW',peer_payload)
         with self._connect() as c:
             c.execute('INSERT INTO peer_reviews VALUES(?,?,?,?,?,?,?)',(rid,record_id,st,note[:4000],created_by,entry['timestamp_utc'],entry['entry_hash']))
         return {'review_id':rid,'record_id':record_id,'stance':st,'entry_hash':entry['entry_hash']}
+    def _is_fully_scored(self, rec):
+        review=(rec.get('review') if rec else None) or {}
+        triad=review.get('triad') or {}
+        combined=rec.get('triad_combined') if rec and rec.get('triad_combined') is not None else triad.get('combined')
+        return bool(review.get('spre') and review.get('clce') and review.get('plr') and triad.get('ready') and combined is not None)
+    def backfill_reviews(self, *, limit=50, force=False, record_id=None):
+        self._assert_writable()
+        cap=max(1,min(int(limit or 50),200))
+        with self._connect() as c:
+            if record_id:
+                row=c.execute('SELECT * FROM records WHERE record_id=?',(record_id,)).fetchone()
+                rows=[dict(row)] if row else []
+            else:
+                rows=[dict(x) for x in c.execute('SELECT * FROM records ORDER BY ingested_utc ASC')]
+        results=[]; processed=0; skipped=0
+        for raw in rows:
+            rec=self.get_record(raw['record_id'])
+            if self._is_fully_scored(rec) and not force:
+                skipped+=1
+                results.append({'record_id':rec['record_id'],'skipped':True,'reason':'already fully scored'})
+                continue
+            if processed>=cap:
+                break
+            review=self._apply_ingest_review(rec['record_id'], self.root/rec['stored_path'], rec['original_name'], rec.get('extracted_text') or '', rec.get('sha256') or '', library='aziel', event='verify_backfill')
+            processed+=1
+            results.append({'record_id':rec['record_id'],'skipped':False,'triad_combined':(review.get('triad') or {}).get('combined'),'quarantine_status':review.get('quarantine_status')})
+        return {'ok':True,'force':bool(force),'processed':processed,'skipped':skipped,'results':results}
+    def note_download(self, record_id):
+        rec=self.get_record(record_id)
+        payload={'record_id':record_id,'sha256':rec.get('sha256'),'filename':rec.get('original_name'),'quarantine_status':rec.get('quarantine_status') or 'CLEAR'}
+        if self.readonly:
+            return payload
+        self._ledger('DOWNLOAD',payload)
+        self._document_ledger(record_id,'DOWNLOAD',payload)
+        return payload
     def add_citation(self,rid,label,quote,locator):
         self._assert_writable()
         cid='CIT-'+uuid.uuid4().hex[:12].upper()

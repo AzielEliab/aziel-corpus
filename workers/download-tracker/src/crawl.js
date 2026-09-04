@@ -39,7 +39,7 @@ export async function sitemapXml(env) {
     HOST + "/", HOST + "/corpus", HOST + "/map", HOST + "/gazetteer", HOST + "/tree",
     HOST + "/health", HOST + "/intelligence", HOST + "/historical", HOST + "/verify",
     HOST + "/download", HOST + "/install.sh", HOST + "/v1/health", HOST + "/v1/search",
-    HOST + "/v1/skill", HOST + "/v1/example", HOST + "/v1/review", HOST + "/v1/lattice", HOST + "/openapi.json", HOST + "/llms.txt",
+    HOST + "/v1/skill", HOST + "/v1/example", HOST + "/v1/review", HOST + "/v1/lattice", HOST + "/v1/verify-backfill", HOST + "/openapi.json", HOST + "/llms.txt",
     HOST + "/cite.json", HOST + "/assets/world_110m.geojson", GITHUB_REPO,
   ];
   try {
@@ -74,6 +74,12 @@ export function citeDoc() {
     catalog: CATALOG + "/",
     review: HOST + "/v1/review",
     lattice: HOST + "/v1/lattice",
+    verify_backfill: HOST + "/v1/verify-backfill",
+    document_chain: HOST + "/v1/document-chain",
+    jeeves_chat: HOST + "/v1/jeeves/chat",
+    file: HOST + "/file/{record_id}",
+    download_record: HOST + "/download?record=",
+    triad: "TRIAD_V1 geometric mean of SPRE, CLCE, and PhysLing — primary visible score",
     how_to_cite: "Eliab, Aziel. (2026). Aziel Digital Library v2.7.0 [Software]. Apache-2.0. " + HOST + "/",
   };
 }
@@ -105,7 +111,11 @@ export function llmsDoc(limitation) {
     + "- GET " + HOST + "/v1/example\n"
     + "- GET " + HOST + "/v1/review?record_id=\n"
     + "- GET " + HOST + "/v1/lattice?record_id=\n"
+    + "- GET " + HOST + "/v1/verify-backfill\n"
+    + "- GET " + HOST + "/v1/document-chain?record_id=\n"
     + "- POST " + HOST + "/v1/score\n"
+    + "- POST " + HOST + "/v1/jeeves/chat\n"
+    + "- POST " + HOST + "/v1/jeeves/upload  (Corpus only)\n"
     + "- GET " + HOST + "/api/events\n"
     + "- GET " + HOST + "/api/gazetteer?q=Florence\n"
     + "- GET " + HOST + "/api/historical?date=1502\n"
@@ -115,5 +125,6 @@ export function llmsDoc(limitation) {
     + "- GET " + HOST + "/assets/world_110m.geojson\n\n"
     + "## Downloads (HTTP 200, counted, no 302)\n\n"
     + "- Package: " + HOST + "/download?asset=" + DEFAULT_ASSET + "\n"
+    + "- Record: " + HOST + "/file/{record_id} or " + HOST + "/download?record=AZDOC-… (HTTP 200; quarantined still downloadable)\n"
     + "- Install: curl -fsSL " + HOST + "/install.sh | bash\n";
 }

@@ -17,6 +17,9 @@ CLCE_LIMITATION = "CLCE detects inconsistency, not intent. Type D is a label, no
 PLR_LIMITATION = "PhysLing Review (PLR) flags physics-impossible or linguistically manipulative framing. It is a third review beside SPRE and CLCE. Not a court finding."
 POISON_LIMITATION = "Poison immunity quarantines suspected shells. Status is hash-chained. Records are never silently deleted. Official narrative is not merged into evidence."
 LATTICE_NOTE = "Public HTTPS site is not a mesh. AzielTether carries this tip. Survival interdependence with GodLock and other Aziel software is via downloadable tether + Worker bootstrap APIs."
+TRIAD_SCHEMA = "aziel.triad.v1"
+TRIAD_FORMULA = "TRIAD_V1 geometric mean: combined = (spre_pc × clce_consistency × plr_coherence)^(1/3). clce_consistency = CLCE.triple if triple ≥ 0.7 else pairwise_avg. plr_coherence = 0.6×physics_coherence + 0.4×linguistic_neutrality. Equal engine weight. Components stay stored for audit. Bayesian peer score is a separate unranked field."
+TRIAD_KID = "This one number is the report card from three checkers: SPRE, CLCE, and PhysLing. They all have to run first."
 
 STOP = set("a an the and or but if then of to for in on at by with from as is are was were be been being this that these those it its they them their you your we our not no".split())
 EVIDENCE_RE = re.compile(r"\b(measur|observ|photograph|instrument|primary source|archive|witness|citation|cited|dataset|sha-?256|hash|ledger|experiment|lab note|field note|timestamp|coordinate|latitud|longitud|si unit|kilogram|meter|joule|newton|pascal|kelvin|wavelength)\w*", re.I)
@@ -162,6 +165,25 @@ def poison_scan(title="",body="",filename="",library="corpus"):
     kid="Green: this does not look like a poison shell." if status=="CLEAR" else "Yellow: operator evidence file — watch for poison words, but keep the file." if status=="FLAGGED" else "Red: this looks like a poison story. It is locked in a quarantine box. It is not deleted."
     return {"engine":"POISON","suspected":suspected,"status":status,"markers":markers,"library":lib,"kid_plain":kid,"immutable":True,"never_delete":True,"limitation":POISON_LIMITATION}
 
+def clce_consistency(clce):
+    if not clce: return None
+    triple=clamp01(clce.get("triple"))
+    avg=clamp01(clce.get("pairwise_avg"))
+    return triple if triple>=0.7 else avg
+
+def plr_coherence(plr):
+    if not plr: return None
+    return clamp01(0.6*clamp01(plr.get("physics_coherence"))+0.4*clamp01(plr.get("linguistic_neutrality")))
+
+def triad_composite(*, spre=None, clce=None, plr=None):
+    spre_pc=clamp01(spre.get("pc")) if spre and spre.get("pc") is not None else None
+    clce_c=clce_consistency(clce)
+    plr_c=plr_coherence(plr)
+    ready=spre_pc is not None and clce_c is not None and plr_c is not None
+    eps=0.0001
+    combined=((max(spre_pc,eps)*max(clce_c,eps)*max(plr_c,eps))**(1/3)) if ready else None
+    return {"schema":TRIAD_SCHEMA,"formula":TRIAD_FORMULA,"ready":ready,"components":{"spre_pc":None if spre_pc is None else round4(spre_pc),"clce_consistency":None if clce_c is None else round4(clce_c),"plr_coherence":None if plr_c is None else round4(plr_c)},"weights":{"spre":1/3,"clce":1/3,"plr":1/3},"combined":None if combined is None else round4(combined),"display":None if combined is None else int(round(combined*100)),"kid_plain":TRIAD_KID,"primary_visible":True,"bayesian_separate":True}
+
 def bayesian_posterior(priors):
     keys=["evidence_completeness","physics_coherence","linguistic_neutrality","spre_pc","clce_consistency"]
     used={}; alpha=1.0; beta=1.0
@@ -217,7 +239,8 @@ def review_document(*, title="", body="", filename="", sha256="", author="", lib
         "poison":"PASS" if poison["status"]=="CLEAR" else "REVIEW" if poison["status"]=="FLAGGED" else "FLAG",
     }
     q="POISON_SUSPECT" if poison["status"]=="QUARANTINE" else "OPERATOR_FLAG" if poison["status"]=="FLAGGED" else "CLEAR"
-    return {"schema":REVIEW_SCHEMA,"author":"Aziel Eliab","library":library,"lights":lights,"structure":{"ok":bool(structure.get("ok")),"files":structure.get("files") or [],"errors":structure.get("errors") or []},"spre":spre,"clce":clce,"plr":plr,"poison":poison,"bayesian":bayes,"quarantine_status":q,"limitation":" ".join([SPRE_LIMITATION,CLCE_LIMITATION,PLR_LIMITATION,POISON_LIMITATION])}
+    triad=triad_composite(spre=spre,clce=clce,plr=plr)
+    return {"schema":REVIEW_SCHEMA,"author":"Aziel Eliab","library":library,"lights":lights,"structure":{"ok":bool(structure.get("ok")),"files":structure.get("files") or [],"errors":structure.get("errors") or []},"spre":spre,"clce":clce,"plr":plr,"poison":poison,"bayesian":bayes,"triad":triad,"quarantine_status":q,"limitation":" ".join([SPRE_LIMITATION,CLCE_LIMITATION,PLR_LIMITATION,POISON_LIMITATION,TRIAD_FORMULA])}
 
 def lattice_anchor_tip(*, record_id=None, library=None, content_sha256=None, ledger_entry_hash=None, structure=None, review=None, event="verified_ingest", verified_utc=None):
     from datetime import datetime, timezone
@@ -235,6 +258,7 @@ def lattice_anchor_tip(*, record_id=None, library=None, content_sha256=None, led
         "spre":{"pc":r.get("spre",{}).get("pc"),"band":r.get("spre",{}).get("band"),"limitation":r.get("spre",{}).get("limitation")} if r.get("spre") else None,
         "clce":{"triple":r.get("clce",{}).get("triple"),"pairwise_avg":r.get("clce",{}).get("pairwise_avg"),"advisory":True} if r.get("clce") else None,
         "plr":{"status":r.get("plr",{}).get("status"),"lights":r.get("plr",{}).get("lights")} if r.get("plr") else None,
+        "triad":{"combined":(r.get("triad") or {}).get("combined"),"display":(r.get("triad") or {}).get("display"),"ready":(r.get("triad") or {}).get("ready"),"formula":(r.get("triad") or {}).get("formula")} if r.get("triad") else None,
         "bayesian":{"posterior":r.get("bayesian",{}).get("posterior"),"unranked":True,"note":r.get("bayesian",{}).get("note")} if r.get("bayesian") else None,
         "quarantine":None if (r.get("quarantine_status") or "CLEAR")=="CLEAR" else r.get("quarantine_status"),
         "ledger_entry_hash":ledger_entry_hash,

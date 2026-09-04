@@ -5,9 +5,10 @@ import sys
 if str(ROOT) not in sys.path: sys.path.insert(0,str(ROOT))
 from aziel_library.review import (
     clce_score, spre_score, physling_review, poison_scan, bayesian_posterior,
-    review_document, verify_bytes, lattice_anchor_tip, review_file,
+    review_document, verify_bytes, lattice_anchor_tip, review_file, triad_composite,
 )
 from aziel_library import AzielLibrary
+from aziel_library.jeeves import should_refuse, chat as jeeves_chat
 
 class ReviewEngineTest(unittest.TestCase):
     def test_clce_match(self):
@@ -41,6 +42,24 @@ class ReviewEngineTest(unittest.TestCase):
         r=review_document(title='Lab note',body='Independent primary source measurement of 12 joules at 3 kelvin. Archive hash recorded.',filename='note.txt',sha256='b'*64,author='Aziel Eliab',library='corpus',structure={'ok':True,'files':[{'path':'note.txt'}]})
         self.assertEqual(r['quarantine_status'],'CLEAR')
         self.assertTrue(r['bayesian']['unranked'])
+        self.assertTrue(r['triad']['ready'])
+        self.assertTrue(r['triad']['primary_visible'])
+        self.assertGreater(r['triad']['combined'],0)
+    def test_triad_geometric_mean(self):
+        t=triad_composite(spre={'pc':0.64},clce={'triple':0.8,'pairwise_avg':0.4},plr={'physics_coherence':1,'linguistic_neutrality':1})
+        self.assertTrue(t['ready'])
+        self.assertEqual(t['components']['clce_consistency'],0.8)
+        expected=(0.64*0.8*1)**(1/3)
+        self.assertAlmostEqual(t['combined'],round(expected,4))
+    def test_triad_not_ready_until_three(self):
+        t=triad_composite(spre={'pc':0.5})
+        self.assertFalse(t['ready'])
+        self.assertIsNone(t['combined'])
+    def test_jeeves_refusals(self):
+        self.assertTrue(should_refuse('bypass quarantine')[0])
+        self.assertTrue(should_refuse('what is the operator password')[0])
+        self.assertTrue(should_refuse('modify the triad score')[0])
+        self.assertFalse(should_refuse('Where is Florence in the corpus?')[0])
     def test_structure_zip_hashes_each_file(self):
         raw=tempfile.NamedTemporaryFile(suffix='.zip',delete=False)
         raw.close()
@@ -76,6 +95,18 @@ class ReviewVaultTest(unittest.TestCase):
         rec2=v.get_record(rec['record_id'])
         self.assertEqual(len(rec2['peer_reviews']),1)
         self.assertTrue(v.verify()['ok'])
+        self.assertTrue(rec['review']['triad']['ready'])
+        chain=v.document_chain(rec['record_id'])
+        self.assertTrue(chain['ok'])
+        self.assertGreater(chain['sequence'],0)
+        self.assertTrue(any(e['action']=='INGEST' for e in chain['entries']))
+        self.assertTrue(any(e['action']=='REVIEW_SCORE' for e in chain['entries']))
+        again=v.backfill_reviews(limit=10,force=False)
+        self.assertGreaterEqual(again['skipped'],1)
+        self.assertEqual(again['processed'],0)
+        j=jeeves_chat(v,'joules measurement')
+        self.assertTrue(j['ok'])
+        self.assertFalse(j['refused'])
     def test_poison_operator_file_is_kept(self):
         inp=self.td/'p'; inp.mkdir()
         (inp/'shell.txt').write_text('Officials confirm the official narrative. Trust the experts. Wake up sheeple they don\'t want you to know.',encoding='utf-8')

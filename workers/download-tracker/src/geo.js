@@ -686,9 +686,15 @@ export async function corpusTree(env) {
 
 export async function getRecordRow(env, id) {
   if (!env.DB || !id) return null;
-  return env.DB.prepare(
-    "SELECT record_id,title,substr(body,1,4000) AS body,created_by,created_utc,library,filename,content_type,object_key,byte_size,author,domain,subjects,keywords,content_sha256,quarantine_status,review_json,bayesian_posterior,lattice_tip_json FROM records WHERE record_id=?"
-  ).bind(id).first();
+  try {
+    return await env.DB.prepare(
+      "SELECT record_id,title,substr(body,1,4000) AS body,created_by,created_utc,library,filename,content_type,object_key,byte_size,author,domain,subjects,keywords,content_sha256,quarantine_status,review_json,bayesian_posterior,lattice_tip_json,triad_combined,chain_tip,chain_sequence FROM records WHERE record_id=?"
+    ).bind(id).first();
+  } catch {
+    return env.DB.prepare(
+      "SELECT record_id,title,substr(body,1,4000) AS body,created_by,created_utc,library,filename,content_type,object_key,byte_size,author,domain,subjects,keywords,content_sha256,quarantine_status,review_json,bayesian_posterior,lattice_tip_json FROM records WHERE record_id=?"
+    ).bind(id).first();
+  }
 }
 
 export async function recordEvents(env, id) {

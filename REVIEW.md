@@ -22,6 +22,8 @@ v2.7.0 adds a third review beside SPRE and CLCE, poison quarantine that never si
 
 Lights on every record: Structure, SPRE, CLCE, PhysLing Review (PLR), Poison.
 
+The shelf and record page **lead with one triad composite score** after all three verifiers have run. Bayesian stays a separate unranked field.
+
 ## Engines
 
 ### Structure verify
@@ -97,10 +99,50 @@ On successful verified ingest, the Worker / local package emits:
 
 GET `/v1/lattice?record_id=` returns the latest tip. Survival interdependence with GodLock is via tether, not by turning the public site into a mesh.
 
+## Triad composite (one visible score)
+
+When **SPRE**, **CLCE**, and **PhysLing** have all verified a record, one combined score is computed and shown first.
+
+**TRIAD_V1 (auditable geometric mean):**
+
+`combined = (spre_pc × clce_consistency × plr_coherence)^(1/3)`
+
+- `clce_consistency` = CLCE.triple if triple ≥ 0.7, else pairwise_avg
+- `plr_coherence` = 0.6×physics_coherence + 0.4×linguistic_neutrality
+- Equal 1/3 engine weight. Epsilon 0.0001 avoids a zero product.
+- Display is `round(combined × 100)`.
+- Components stay stored for audit. Bayesian is **not** in this mean.
+
+## Backfill
+
+`GET /v1/verify-backfill?limit=25` (cron-friendly) and local CLI `aziel-library backfill-review` walk unscored records, run structure + all three engines, write triad + document hash-chain receipt. Safe to re-run. Skip already fully scored unless `force=1`.
+
+## Document-bound hash chains
+
+Every `AZDOC-…` record has its own `document_ledger` sequence. Upload, download, rescore, quarantine, and peer notes append to **that document**. Zip-asset verifies use `ASSET-…` ids and do not create orphan document chains. `GET /v1/document-chain?record_id=` returns the tip.
+
+## Downloads
+
+Every stored document (Aziel Library + Corpus, including text-only and quarantined) is downloadable:
+
+- `GET /file/{record_id}` — HTTP 200, ledger-linked
+- `GET /download?record=AZDOC-…` — counted + ledger-linked, HTTP 200 (no silent 302)
+
+Quarantined poison docs stay downloadable with a quarantine banner and `X-Aziel-Quarantine`.
+
+## Ask Jeeves
+
+Fixed bottom-right research assistant. Drawer, not a full-page takeover. Answers from public records. Add inside the panel files **Corpus only** (Lamb Lens) through the same ingest. Cannot change scores or reveal operator secrets.
+
 ## API
 
-- `GET /v1/review?record_id=`
+- `GET /v1/review?record_id=` — leads with triad combined score
 - `GET /v1/lattice?record_id=`
+- `GET /v1/verify-backfill`
+- `GET /v1/document-chain?record_id=`
 - `POST /v1/score` — preview only, no write
+- `POST /v1/jeeves/chat`
+- `POST /v1/jeeves/upload` — Corpus only
 - `POST /record/{id}/peer` — signed-in append
-- Download headers: `X-Aziel-SHA256`, `X-Aziel-Structure`
+- `GET /file/{record_id}` and `GET /download?record=`
+- Download headers: `X-Aziel-SHA256`, `X-Aziel-Structure`, `X-Aziel-Quarantine`, `X-Aziel-Triad`

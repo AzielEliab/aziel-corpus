@@ -17,6 +17,11 @@ export const PLR_LIMITATION =
   "PhysLing Review (PLR) flags physics-impossible or linguistically manipulative framing. It is a third review beside SPRE and CLCE. Not a court finding.";
 export const POISON_LIMITATION =
   "Poison immunity quarantines suspected shells. Status is hash-chained. Records are never silently deleted. Official narrative is not merged into evidence.";
+export const TRIAD_SCHEMA = "aziel.triad.v1";
+export const TRIAD_FORMULA =
+  "TRIAD_V1 geometric mean: combined = (spre_pc × clce_consistency × plr_coherence)^(1/3). clce_consistency = CLCE.triple if triple ≥ 0.7 else pairwise_avg. plr_coherence = 0.6×physics_coherence + 0.4×linguistic_neutrality. Equal engine weight. Components stay stored for audit. Bayesian peer score is a separate unranked field.";
+export const TRIAD_KID =
+  "This one number is the report card from three checkers: SPRE, CLCE, and PhysLing. They all have to run first.";
 
 const STOP = new Set(
   "a an the and or but if then of to for in on at by with from as is are was were be been being this that these those it its they them their you your we our not no".split(" ")
@@ -324,6 +329,49 @@ export function poisonScan({ title = "", body = "", filename = "", library = "co
   };
 }
 
+export function clceConsistency(clce) {
+  if (!clce) return null;
+  const triple = clamp01(clce.triple);
+  const avg = clamp01(clce.pairwise_avg);
+  return triple >= 0.7 ? triple : avg;
+}
+
+export function plrCoherence(plr) {
+  if (!plr) return null;
+  return clamp01(0.6 * clamp01(plr.physics_coherence) + 0.4 * clamp01(plr.linguistic_neutrality));
+}
+
+/**
+ * One visible final score after SPRE, CLCE, and PhysLing have all run.
+ * Geometric mean so one weak verifier pulls the report card down (auditable).
+ */
+export function triadComposite({ spre, clce, plr } = {}) {
+  const spre_pc = spre && spre.pc != null ? clamp01(spre.pc) : null;
+  const clce_consistency = clceConsistency(clce);
+  const plr_coherence = plrCoherence(plr);
+  const ready = spre_pc != null && clce_consistency != null && plr_coherence != null;
+  const eps = 0.0001;
+  const combined = ready
+    ? Math.pow(Math.max(spre_pc, eps) * Math.max(clce_consistency, eps) * Math.max(plr_coherence, eps), 1 / 3)
+    : null;
+  return {
+    schema: TRIAD_SCHEMA,
+    formula: TRIAD_FORMULA,
+    ready,
+    components: {
+      spre_pc: spre_pc == null ? null : round4(spre_pc),
+      clce_consistency: clce_consistency == null ? null : round4(clce_consistency),
+      plr_coherence: plr_coherence == null ? null : round4(plr_coherence),
+    },
+    weights: { spre: 1 / 3, clce: 1 / 3, plr: 1 / 3 },
+    combined: combined == null ? null : round4(combined),
+    display: combined == null ? null : Math.round(combined * 100),
+    kid_plain: TRIAD_KID,
+    primary_visible: true,
+    bayesian_separate: true,
+  };
+}
+
 export function bayesianPosterior(priors) {
   const keys = ["evidence_completeness", "physics_coherence", "linguistic_neutrality", "spre_pc", "clce_consistency"];
   const used = {};
@@ -392,8 +440,9 @@ export function reviewDocument(input = {}) {
     plr,
     poison,
     bayesian,
+    triad: triadComposite({ spre, clce, plr }),
     quarantine_status: poison.status === "QUARANTINE" ? "POISON_SUSPECT" : poison.status === "FLAGGED" ? "OPERATOR_FLAG" : "CLEAR",
-    limitation: [SPRE_LIMITATION, CLCE_LIMITATION, PLR_LIMITATION, POISON_LIMITATION].join(" "),
+    limitation: [SPRE_LIMITATION, CLCE_LIMITATION, PLR_LIMITATION, POISON_LIMITATION, TRIAD_FORMULA].join(" "),
   };
 }
 
