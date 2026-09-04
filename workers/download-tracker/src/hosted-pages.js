@@ -173,7 +173,7 @@ export function ocrFormHtml(payload) {
     const sw = lens.swatch
       ? "<span class=\"pill lens-swatch\" style=\"background:" + esc(lens.swatch) + "\">" + esc(lens.id) + "</span> "
       : "";
-    const img = "<img class=\"lens-sample\" src=\"/spectral-samples/" + encodeURIComponent(lens.id) + ".png\" width=\"72\" height=\"48\" alt=\"" + esc(lens.id) + " spectral sample\" loading=\"lazy\" decoding=\"async\">";
+    const img = "<img class=\"lens-sample\" src=\"/spectral-samples/" + encodeURIComponent(lens.id) + ".png\" width=\"96\" height=\"36\" alt=\"" + esc(lens.id) + " spectral sample\" loading=\"lazy\" decoding=\"async\">";
     return "<label class=\"checkrow lens-option\"><input type=\"checkbox\" name=\"lens\" value=\"" + esc(lens.id) + "\">" + img + "<span class=\"lens-copy\">" + sw + esc(lens.label) + "</span></label>";
   }).join("");
   let resultHtml = "";

@@ -33,7 +33,7 @@ input[type=checkbox],input[type=radio]{width:auto!important;min-width:18px;min-h
 .lens-box legend{font-weight:750;padding:0 6px;color:var(--ink)}
 .lens-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:8px;width:100%;min-width:0}
 .lens-grid .checkrow,.lens-option{margin:0;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);align-items:center}
-.lens-sample{width:72px;height:48px;object-fit:cover;border-radius:8px;flex:0 0 72px;border:1px solid var(--line);background:var(--line);display:block}
+.lens-sample{width:96px;height:36px;object-fit:contain;object-position:center;border-radius:8px;flex:0 0 96px;border:1px solid var(--line);background:var(--card);display:block}
 .lens-copy{min-width:0;flex:1 1 auto;color:var(--ink)}
 .lens-swatch{min-height:auto;padding:2px 8px;color:#fff}
 textarea{min-height:120px;resize:vertical}
