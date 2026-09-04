@@ -13,6 +13,7 @@ import {
   ensureSuccessionSchema,
   loadSuccessionCite,
   maybeBackfillSuccession,
+  maybeRescoreZsolverOnFirstHandPatternBreak,
   rescoreSuccessionMembers,
   successionCoverageFor,
 } from "./succession.js";
@@ -389,6 +390,7 @@ export async function backfillReviews(env, { limit = 25, force = false, recordId
     if (!force && storedTriadMatches(row, existing, coverage)) {
       let zsolver = null;
       try { zsolver = await scoreZsolverForRecord(env, { ...row, body: row.body, title: row.title, filename: row.filename, subjects: row.subjects, keywords: row.keywords }); } catch { zsolver = null; }
+      await maybeZsolverPatternBreakRescore(env, row);
       skipped += 1;
       results.push({ record_id: row.record_id, skipped: true, reason: "already fully scored", zsolver_status: zsolver && zsolver.status, zsolver_score: zsolver && zsolver.capped_confidence });
       continue;
@@ -427,6 +429,7 @@ export async function backfillReviews(env, { limit = 25, force = false, recordId
     try { await rescoreSuccessionMembers(env, row.record_id, { skip: row.record_id }); } catch { /* peers optional */ }
     let zsolver = null;
     try { zsolver = await scoreZsolverForRecord(env, { ...row, body: row.body, title: row.title, filename: row.filename }); } catch { zsolver = null; }
+    await maybeZsolverPatternBreakRescore(env, row);
     processed += 1;
     results.push({
       record_id: row.record_id,
@@ -480,6 +483,7 @@ export async function backfillOneRecord(env, row, { force = false } = {}) {
         zsolver_json: row.zsolver_json,
       }, { force: false });
     } catch { zsolver = parseZsolver(row.zsolver_json); }
+    await maybeZsolverPatternBreakRescore(env, row);
     return {
       record_id: row.record_id,
       skipped: true,
@@ -529,6 +533,7 @@ export async function backfillOneRecord(env, row, { force = false } = {}) {
       zsolver_json: row.zsolver_json,
     }, { force });
   } catch { zsolver = null; }
+  await maybeZsolverPatternBreakRescore(env, row);
   const zOk = zsolverIsLive(zsolver);
   return {
     record_id: row.record_id,
@@ -623,3 +628,18 @@ export async function fullBackfillStatus(env) {
 }
 
 export { sha256hex };
+
+async function maybeZsolverPatternBreakRescore(env, row) {
+  try {
+    const cite = await loadSuccessionCite(env, row && row.record_id);
+    await maybeRescoreZsolverOnFirstHandPatternBreak(env, {
+      record_id: row.record_id,
+      title: row.title,
+      body: row.body,
+      filename: row.filename,
+      subjects: row.subjects,
+      keywords: row.keywords,
+      zsolver_json: row.zsolver_json,
+    }, cite);
+  } catch { /* first-hand pattern-break optional */ }
+}
