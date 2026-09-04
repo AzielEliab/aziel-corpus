@@ -449,6 +449,13 @@ export default {
     }
 
     if ((url.pathname === "/download" || url.pathname.startsWith("/download/")) && (request.method === "GET" || request.method === "HEAD")) {
+      const recordId = (url.searchParams.get("record") || url.searchParams.get("record_id") || "").trim();
+      if (recordId) {
+        const dims = parseDims(url.searchParams);
+        dims.asset = "record:" + recordId;
+        if (request.method === "GET") await increment(env, dims);
+        return serveFile(env, recordId);
+      }
       const dims = parseDims(url.searchParams);
       if (!dims.asset && url.pathname.startsWith("/download/")) {
         dims.asset = decodeURIComponent(url.pathname.slice("/download/".length));

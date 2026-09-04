@@ -69,8 +69,16 @@ export function recordBody(payload) {
       ? "<span class=\"q-badge slow\">Operator flag — evidence still filed</span>"
       : "<span class=\"q-badge go\">Clear</span>";
   const sha = String(row.content_sha256 || "").trim();
-  const shaHtml = sha ? "<p class=\"meta\">SHA-256 " + esc(sha.slice(0,12)) + "… · <a href=\"/receipt/" + esc(row.record_id) + "\">receipt</a></p>" : "<p class=\"meta\"><a href=\"/receipt/" + esc(row.record_id) + "\">receipt</a></p>";
-  const open = row.object_key ? "<p><a class=\"button\" href=\"/file/" + esc(row.record_id) + "\">Open file</a></p>" : "";
+  const shaHtml = sha ? "<p class=\"meta\">SHA-256 " + esc(sha.slice(0,12)) + "… · chain <a href=\"/v1/document-chain?record_id=" + esc(row.record_id) + "\">tip</a> · <a href=\"/receipt/" + esc(row.record_id) + "\">receipt</a></p>" : "<p class=\"meta\"><a href=\"/receipt/" + esc(row.record_id) + "\">receipt</a></p>";
+  const open = "<p><a class=\"button\" href=\"/file/" + esc(row.record_id) + "\">Download</a> <a class=\"button ghost\" href=\"/download?record=" + esc(row.record_id) + "\">Counted download</a></p>";
+  const qBanner = (q === "POISON_SUSPECT" || q === "QUARANTINE")
+    ? "<div class=\"q-banner\">Quarantine — poison suspect. The file is still downloadable for auditors. It was not deleted.</div>"
+    : "";
+  const triad = (review && review.triad) || null;
+  const combined = triad && triad.combined != null ? triad.combined : row.triad_combined;
+  const triadHtml = combined != null
+    ? "<div class=\"triad-card\"><h2>Triad score</h2><div class=\"triad\"><div class=\"metric\">" + (triad && triad.display != null ? triad.display : Math.round(Number(combined) * 100)) + "</div><div><p>One combined report card after SPRE, CLCE, and PhysLing all ran.</p><p class=\"muted\">" + esc((triad && triad.formula) || "TRIAD_V1 geometric mean of the three verifiers.") + "</p></div></div></div>"
+    : "<div class=\"triad-card\"><h2>Triad score</h2><p class=\"muted\">Not scored yet. A backfill walk will write the combined score.</p></div>";
   const ev = events.length
     ? events.map((e) => "<div class=\"pill\">" + esc(e.event_date) + " · " + esc(e.place_name) + " · " + Number(e.confidence || 0).toFixed(2) + "</div>").join(" ")
     : "<p class=\"muted\">No mapped events extracted from this record.</p>";
@@ -115,6 +123,7 @@ export function recordBody(payload) {
     ? "<details><summary>AzielTether lattice tip</summary><pre class=\"verify\">" + esc(JSON.stringify(tip, null, 2)) + "</pre><p class=\"muted\">The live site is not a mesh. Tether software can carry this tip.</p></details>"
     : "";
   return "<section class=\"hero\">" + libTag(row.library) + " " + qBadge + "<h1>" + esc(row.title) + "</h1><p class=\"muted\">" + esc(row.author || "") + (row.domain ? " · " + esc(row.domain) : "") + (row.subjects ? " · " + esc(row.subjects) : "") + "</p></section>" +
+    qBanner + triadHtml +
     "<div class=\"card\"><h2>Status lights</h2><p class=\"muted\">Green means go. Yellow means read again. Red means stop and check. Easy enough for a 6th grader; kept for government use.</p>" + lightsHtml + "</div>" +
     "<div class=\"card\"><p class=\"meta\">" + esc(row.filename || "text record") + (row.created_utc ? " · " + esc(String(row.created_utc).replace("T", " ").slice(0, 16)) : "") + "</p>" + shaHtml + open +
     "<h3>SPRE + CLCE + PhysLing</h3>" + spreHtml + clceHtml + plrHtml +

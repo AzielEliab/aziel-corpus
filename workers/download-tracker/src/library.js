@@ -1,5 +1,5 @@
 import { randomBytes, createHash } from "node:crypto";
-import { appendLedger, ensureLedger } from "./ledger.js";
+import { appendLedger, appendDocumentLedger, ensureLedger } from "./ledger.js";
 import { ensureReviewSchema, reviewAndStore } from "./review-store.js";
 
 const MAX_BYTES = 25 * 1024 * 1024;
@@ -85,7 +85,7 @@ export async function searchRecords(env, { q, library, sort, author, domain, sub
   const query = String(q || "").trim();
   const lib = String(library || "all").toLowerCase();
   let sql =
-    "SELECT record_id, title, substr(body,1,280) AS snippet, created_by, created_utc, library, filename, content_type, object_key, byte_size, author, domain, subjects, keywords, content_sha256, quarantine_status FROM records";
+    "SELECT record_id, title, substr(body,1,280) AS snippet, created_by, created_utc, library, filename, content_type, object_key, byte_size, author, domain, subjects, keywords, content_sha256, quarantine_status, triad_combined, chain_tip, chain_sequence FROM records";
   const where = [];
   const binds = [];
   if (query) {
@@ -204,7 +204,7 @@ export async function putObject(env, key, bytes, contentType) {
 }
 
 
-async function getObject(env, key) {
+export async function getObject(env, key) {
   const store = env && env.FILES;
   if (!store) return null;
   if (isR2(store)) return store.get(key);
@@ -318,7 +318,9 @@ export async function ingestRecord(env, args) {
   if (duplicateOf) {
     await appendLedger(env, "DUPLICATE_SEEN", { record_id: id, existing_record_id: duplicateOf, library, sha256: contentSha, filename, byte_size: byteSize, title: finalTitle, created_by: who });
   }
-  await appendLedger(env, "INGEST", { record_id: id, library, sha256: contentSha, filename, byte_size: byteSize, title: finalTitle, created_by: who });
+  const ingestPayload = { record_id: id, library, sha256: contentSha, filename, byte_size: byteSize, title: finalTitle, created_by: who };
+  await appendLedger(env, "INGEST", ingestPayload);
+  await appendDocumentLedger(env, id, "INGEST", ingestPayload);
   let reviewBundle = null;
   try {
     reviewBundle = await reviewAndStore(env, {
@@ -362,52 +364,78 @@ export async function serveFile(env, recordId) {
   if (!id || !env || !env.DB) {
     return jsonErr("not found", 404);
   }
-  const row = await env.DB.prepare(
-    "SELECT record_id, title, body, filename, content_type, object_key, byte_size, library, author, content_sha256 FROM records WHERE record_id=?"
-  ).bind(id).first();
-  if (!row || !row.object_key) return jsonErr("not found", 404);
-  if (!env.FILES) return jsonErr("files binding missing", 500);
-  const obj = await getObject(env, row.object_key);
-  if (!obj) return jsonErr("not found", 404);
-  const ct = row.content_type || (obj.httpMetadata && obj.httpMetadata.contentType) || "application/octet-stream";
-  const name = safeFilename(row.filename || "file");
-  let bytes = null;
-  if (obj.arrayBuffer) bytes = await obj.arrayBuffer();
-  else if (obj.body && typeof obj.body.arrayBuffer === "function") bytes = await obj.body.arrayBuffer();
-  else if (typeof obj.body === "string") bytes = new TextEncoder().encode(obj.body);
-  let verify = null;
-  if (bytes) {
-    try {
-      verify = await reviewAndStore(env, {
-        recordId: row.record_id,
-        library: row.library,
-        title: row.title,
-        body: row.body,
-        filename: name,
-        contentType: ct,
-        sha256: row.content_sha256,
-        author: row.author,
-        bytes,
-        createdBy: "download",
-        event: "download_verify",
-        liveClce: false,
-      });
-    } catch { verify = null; }
+  let row;
+  try {
+    row = await env.DB.prepare(
+      "SELECT record_id, title, body, filename, content_type, object_key, byte_size, library, author, content_sha256, quarantine_status, triad_combined FROM records WHERE record_id=?"
+    ).bind(id).first();
+  } catch {
+    row = await env.DB.prepare(
+      "SELECT record_id, title, body, filename, content_type, object_key, byte_size, library, author, content_sha256 FROM records WHERE record_id=?"
+    ).bind(id).first();
   }
+  if (!row) return jsonErr("not found", 404);
+  let bytes = null;
+  let obj = null;
+  if (row.object_key) {
+    if (!env.FILES) return jsonErr("files binding missing", 500);
+    obj = await getObject(env, row.object_key);
+    if (obj) {
+      if (obj.arrayBuffer) bytes = await obj.arrayBuffer();
+      else if (obj.body && typeof obj.body.arrayBuffer === "function") bytes = await obj.body.arrayBuffer();
+      else if (typeof obj.body === "string") bytes = new TextEncoder().encode(obj.body);
+    }
+  }
+  if (!bytes) {
+    const text = String(row.body || row.title || row.record_id);
+    bytes = new TextEncoder().encode(text);
+  }
+  const ct = row.object_key
+    ? (row.content_type || (obj && obj.httpMetadata && obj.httpMetadata.contentType) || "application/octet-stream")
+    : "text/plain; charset=utf-8";
+  const name = safeFilename(row.filename || (row.object_key ? "file" : (row.title || row.record_id) + ".txt"));
+  let verify = null;
+  try {
+    verify = await reviewAndStore(env, {
+      recordId: row.record_id,
+      library: row.library,
+      title: row.title,
+      body: row.body,
+      filename: name,
+      contentType: ct,
+      sha256: row.content_sha256,
+      author: row.author,
+      bytes,
+      createdBy: "download",
+      event: "download_verify",
+      liveClce: false,
+    });
+  } catch { verify = null; }
+  try {
+    await appendDocumentLedger(env, row.record_id, "DOWNLOAD", {
+      record_id: row.record_id,
+      library: row.library,
+      sha256: row.content_sha256,
+      filename: name,
+      quarantine_status: (verify && verify.quarantine_status) || row.quarantine_status || "CLEAR",
+    });
+  } catch { /* document chain */ }
+  const q = String((verify && verify.quarantine_status) || row.quarantine_status || "CLEAR").toUpperCase();
   const inline = /^image\//i.test(ct) || ct === "application/pdf" || /\.(pdf|png|jpe?g|gif|webp|svg)$/i.test(name);
   const headers = new Headers();
   headers.set("Content-Type", ct);
   headers.set("Content-Disposition", `${inline ? "inline" : "attachment"}; filename="${name.replaceAll('"', "")}"`);
   headers.set("Cache-Control", "public, max-age=3600");
-  if (bytes) headers.set("Content-Length", String(bytes.byteLength || bytes.length));
-  else if (obj.size) headers.set("Content-Length", String(obj.size));
-  else if (row.byte_size) headers.set("Content-Length", String(row.byte_size));
+  headers.set("Content-Length", String(bytes.byteLength || bytes.length));
   if (row.content_sha256) headers.set("X-Aziel-SHA256", row.content_sha256);
   if (verify && verify.structure) headers.set("X-Aziel-Structure", verify.structure.ok ? "VERIFIED" : "FAILED");
-  if (verify && verify.quarantine_status) headers.set("X-Aziel-Quarantine", verify.quarantine_status);
+  headers.set("X-Aziel-Quarantine", q);
+  const triad = verify && verify.review && verify.review.triad;
+  if (triad && triad.combined != null) headers.set("X-Aziel-Triad", String(triad.combined));
+  else if (row.triad_combined != null) headers.set("X-Aziel-Triad", String(row.triad_combined));
+  headers.set("X-Aziel-Downloadable", "1");
   for (const [k, v] of Object.entries(cors())) headers.set(k, v);
-  const body = bytes != null ? bytes : obj.body;
-  return new Response(body, { status: 200, headers });
+  return new Response(bytes, { status: 200, headers });
 }
 
 function jsonErr(error, status) {

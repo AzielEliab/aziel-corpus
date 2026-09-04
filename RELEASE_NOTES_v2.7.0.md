@@ -13,6 +13,11 @@ Author: **Aziel Eliab**.
 - AzielTether lattice anchor tip (`aziel.lattice.anchor.v1`) on verified ingest. The live HTTPS site is not a mesh.
 - Record UI: quarantine badge, PhysLing lights, Bayesian score with unranked note, SPRE/CLCE summaries, peer-review panel. Mobile-clean status lights (green / yellow / red).
 - `/v1/review`, `/v1/lattice`, `POST /v1/score`. OpenAPI, llms.txt, and cite.json updated.
+- **Triad composite:** when SPRE, CLCE, and PhysLing have all run, one TRIAD_V1 geometric mean is the primary visible score. Components stay stored. Bayesian remains a separate unranked peer field.
+- **Backfill:** `GET /v1/verify-backfill` and `aziel-library backfill-review` score older unscored records (structure + three engines + triad + document chain). Idempotent unless `force`.
+- **Document-bound hash chains:** each `AZDOC-` record owns its chain tip. Upload, download, rescore, quarantine, and peer notes append there. No orphan chains for zip `ASSET-` ids.
+- **All documents downloadable:** `/file/{id}` and `/download?record=` return HTTP 200. Text-only and quarantined records included (quarantine banner + `X-Aziel-Quarantine`).
+- **Ask Jeeves:** fixed bottom-right FAB, mobile-safe drawer. Research assistant over public records. Add files to Corpus only. Cannot change scores or reveal operator secrets. `POST /v1/jeeves/chat`, `POST /v1/jeeves/upload`.
 
 ## Rules kept
 

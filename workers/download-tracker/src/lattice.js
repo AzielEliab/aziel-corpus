@@ -37,6 +37,9 @@ export function latticeAnchorTip({
     spre: r.spre ? { pc: r.spre.pc, band: r.spre.band, limitation: r.spre.limitation } : null,
     clce: r.clce ? { triple: r.clce.triple, pairwise_avg: r.clce.pairwise_avg, advisory: true } : null,
     plr: r.plr ? { status: r.plr.status, lights: r.plr.lights } : null,
+    triad: r.triad
+      ? { combined: r.triad.combined, display: r.triad.display, ready: r.triad.ready, formula: r.triad.formula }
+      : null,
     bayesian: r.bayesian
       ? { posterior: r.bayesian.posterior, unranked: true, note: r.bayesian.note }
       : null,
