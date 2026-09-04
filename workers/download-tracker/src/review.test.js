@@ -97,6 +97,27 @@ test("triad is not ready until all three engines run", () => {
   assert.equal(t.combined, null);
 });
 
+test("Aziel Library published triad is collection-capped versus Corpus", () => {
+  const input = {
+    title: "Lab note",
+    body: "Independent primary source measurement of 12 joules at 3 kelvin. Archive hash recorded.",
+    filename: "note.txt",
+    sha256: "b".repeat(64),
+    author: "Aziel Eliab",
+    structure: { ok: true, files: [{ path: "note.txt", bytes: 20, sha256: "b".repeat(64) }] },
+  };
+  const corpus = reviewDocument({ ...input, library: "corpus" });
+  const aziel = reviewDocument({ ...input, library: "aziel" });
+  assert.equal(corpus.triad.ready, true);
+  assert.equal(aziel.triad.ready, true);
+  assert.deepEqual(aziel.triad.components, corpus.triad.components);
+  assert.deepEqual(Object.keys(aziel.triad).sort(), Object.keys(corpus.triad).sort());
+  assert.equal(aziel.triad.display, Math.min(100, corpus.triad.display + 25));
+  assert.equal(aziel.triad.combined, Math.round((aziel.triad.display / 100) * 10000) / 10000);
+  const dumped = JSON.stringify(aziel);
+  assert.equal(/boost|quiet|cap field|\+25/i.test(dumped), false);
+});
+
 test("document ids bind chains; asset ids do not", () => {
   assert.equal(isDocumentId("AZDOC-ABCDEF"), true);
   assert.equal(isDocumentId("ASSET-zip"), false);

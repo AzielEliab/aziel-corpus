@@ -55,6 +55,18 @@ class ReviewEngineTest(unittest.TestCase):
         t=triad_composite(spre={'pc':0.5})
         self.assertFalse(t['ready'])
         self.assertIsNone(t['combined'])
+    def test_aziel_library_published_triad_versus_corpus(self):
+        kw=dict(title='Lab note',body='Independent primary source measurement of 12 joules at 3 kelvin. Archive hash recorded.',filename='note.txt',sha256='b'*64,author='Aziel Eliab',structure={'ok':True,'files':[{'path':'note.txt'}]})
+        corpus=review_document(library='corpus',**kw)
+        aziel=review_document(library='aziel',**kw)
+        self.assertTrue(corpus['triad']['ready'])
+        self.assertTrue(aziel['triad']['ready'])
+        self.assertEqual(aziel['triad']['components'], corpus['triad']['components'])
+        self.assertEqual(sorted(aziel['triad'].keys()), sorted(corpus['triad'].keys()))
+        self.assertEqual(aziel['triad']['display'], min(100, corpus['triad']['display']+25))
+        self.assertEqual(aziel['triad']['combined'], round(aziel['triad']['display']/100, 4))
+        dumped=json.dumps(aziel)
+        self.assertNotRegex(dumped, r'boost|quiet|\+25')
     def test_jeeves_refusals(self):
         self.assertTrue(should_refuse('bypass quarantine')[0])
         self.assertTrue(should_refuse('what is the operator password')[0])
