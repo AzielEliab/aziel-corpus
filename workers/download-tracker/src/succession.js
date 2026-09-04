@@ -4,10 +4,17 @@
  *
  * Chain only when the match is flawless. Loose topical relatedness is not enough.
  * Persist adjacent links immutably. Cite the full oldest → newest chain on both papers.
+ *
+ * ZionPattern: if a successor proves a pattern break with first-hand / primary
+ * materials only, force-rescore zsolver on every chain member. Narrative, news,
+ * wire service, and second-source materials never trigger that path. Triad
+ * coverage stays on rescoreSuccessionMembers — this zsolver path does not
+ * recalibrate triad.
  */
 import { randomBytes } from "node:crypto";
 import { appendLedger, appendDocumentLedger, isDocumentId } from "./ledger.js";
 import { triadComposite, triadCoveragePoints, collectionTriad } from "./review.js";
+import { detectFirstHandPatternBreak, patternBreakContext, scoreZsolverForRecord } from "./zsolver.js";
 
 export const SUCCESSION_SCHEMA = "aziel.succession.v1";
 
@@ -458,6 +465,56 @@ export async function rescoreSuccessionMembers(env, recordId, { skip } = {}) {
     if (skip && id === skip) continue;
     await applyTriadCoverage(env, id);
   }
+}
+
+async function loadZsolverRecord(env, recordId) {
+  if (!env || !env.DB || !recordId) return null;
+  try {
+    return await env.DB.prepare(
+      "SELECT record_id, title, substr(body,1,4000) AS body, filename, subjects, keywords, zsolver_json FROM records WHERE record_id=?"
+    ).bind(recordId).first();
+  } catch {
+    try {
+      return await env.DB.prepare(
+        "SELECT record_id, title, substr(body,1,4000) AS body, filename, zsolver_json FROM records WHERE record_id=?"
+      ).bind(recordId).first();
+    } catch {
+      return { record_id: recordId };
+    }
+  }
+}
+
+export async function maybeRescoreZsolverOnFirstHandPatternBreak(env, sourceRecord, cite, { scoreFn } = {}) {
+  const sourceId = sourceRecord && sourceRecord.record_id;
+  if (!sourceId) return { rescored: 0, skipped: true, reason: "no source record" };
+  const proof = detectFirstHandPatternBreak(sourceRecord);
+  if (!proof || !proof.proven) {
+    return { rescored: 0, skipped: true, reason: (proof && proof.reason) || "not first-hand pattern-break proof", evidence_class: proof && proof.evidence_class };
+  }
+  const chain = cite && Array.isArray(cite.chain) ? cite.chain : [];
+  if (chain.length < 2) {
+    return { rescored: 0, skipped: true, reason: "no succession link", evidence_class: proof.evidence_class };
+  }
+  const ids = chain.map((x) => x && x.record_id).filter(Boolean);
+  const idx = ids.indexOf(sourceId);
+  if (idx <= 0) {
+    return { rescored: 0, skipped: true, reason: "source is not a successor", evidence_class: proof.evidence_class };
+  }
+  const pattern_break = patternBreakContext({
+    source_record_id: sourceId,
+    superseded_ids: ids.slice(0, idx),
+  });
+  const score = typeof scoreFn === "function" ? scoreFn : scoreZsolverForRecord;
+  let rescored = 0;
+  const record_ids = [];
+  for (const id of ids) {
+    const rec = id === sourceId ? sourceRecord : (await loadZsolverRecord(env, id)) || { record_id: id };
+    if (!rec.record_id) rec.record_id = id;
+    await score(env, rec, { force: true, pattern_break });
+    rescored += 1;
+    record_ids.push(id);
+  }
+  return { rescored, skipped: false, pattern_break, record_ids };
 }
 
 export async function backfillSuccession(env) {

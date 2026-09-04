@@ -123,6 +123,8 @@ Every upload — Aziel Library and public Corpus — gets a **ZionPattern Solver
 
 Live path: HTTPS `POST https://zsolver-download-tracker.vibelock.workers.dev/v1/score` (or optional Worker service binding `ZSOLVER`). Document-derived yes/no/unknown answers are sent. If the API is unavailable, a queued status is persisted and retried on backfill/cron.
 
+If a later paper supersedes an earlier one **and proves a break in the ZionPattern with first-hand / primary materials only** (death certificate, autopsy, coroner file, original measurement, contemporaneous primary document, instrument data, original photograph with provenance, sworn affidavit, and similar), every ZionPattern-applicable document in that succession chain is force-rescored with `pattern_break` context so the live solver can recalibrate layers. Narrative, news coverage, wire service, second-hand summary, commentary, or opinion alone never trigger chain rescore. This path does not recalibrate triad.
+
 ## Paper succession cites
 
 When a later paper is the exact same subject/concept as an earlier one — same canonical subject key plus title lineage, or explicit `supersedes` metadata — both public record pages list the cite:
