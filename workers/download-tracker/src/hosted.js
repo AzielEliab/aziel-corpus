@@ -1,4 +1,4 @@
-import { page, patternBody, softwareBody, aboutBody, runtimeBody } from "./ui.js";
+import { page, patternBody, softwareBody, aboutBody } from "./ui.js";
 import { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, blockedAvBody } from "./hosted-pages.js";
 import { json, corsHeaders } from "./runtime.js";
 import { receiptForRecord, sha256hex } from "./ledger.js";
@@ -499,9 +499,6 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
   if (path === "/about" && method === "GET") {
     return html(page("About Aziel", aboutBody(), { signed, path: "/about" }));
   }
-  if (path === "/runtime" && method === "GET") {
-    return html(page("aziel-runtime", runtimeBody(), { signed, path: "/runtime" }));
-  }
   return null;
 }
 
@@ -543,14 +540,14 @@ async function loadSoftwareCatalog() {
     countLabel: (counts.filter((n) => n != null).reduce((a, b) => a + b, 0) || null) != null
       ? String(counts.filter((n) => n != null).reduce((a, b) => a + b, 0)) + " downloads"
       : null,
-    blurb: "Root source for AI: aziel-runtime catalog — pull versions, skills, MCP, counted downloads. Front-door HTTP only. Author Aziel Eliab.",
+    blurb: "AI pull/invoke root. Prefer /runtime for catalog, OpenAPI, MCP, skill, runtime.json, and pull/{slug}. Software tab stays the download catalog. Author Aziel Eliab.",
     links: [
-      { href: "https://aziel-runtime.vibelock.workers.dev/", label: "Open catalog", primary: true },
+      { href: "/runtime", label: "Runtime root", primary: true },
       { href: "https://github.com/AzielEliab/aziel-runtime", label: "GitHub" },
-      { href: "/runtime", label: "Site front door" },
-      { href: "https://aziel-runtime.vibelock.workers.dev/v1/catalog.json", label: "catalog.json" },
-      { href: "https://aziel-runtime.vibelock.workers.dev/openapi.json", label: "OpenAPI" },
-      { href: "https://aziel-runtime.vibelock.workers.dev/llms.txt", label: "llms.txt" },
+      { href: "https://aziel-runtime.vibelock.workers.dev/", label: "Origin catalog" },
+      { href: "/runtime/v1/catalog.json", label: "catalog.json" },
+      { href: "/runtime/openapi.json", label: "OpenAPI" },
+      { href: "/runtime/v1/runtime.json", label: "runtime.json" },
     ],
   });
   const ordered = [...products].sort((a, b) => {

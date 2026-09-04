@@ -203,7 +203,7 @@ export function page(title, body, { signed, scripts, path, kind, description } =
     : `<a href="/login">Log in</a><span class="sep">|</span><a href="/signup">Sign up</a>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)} — Aziel Digital Library</title>${headMeta({ title, path: path || "/", kind, description })}<style>${CSS}</style></head><body><div class="wrap">
 <div class="brandrow nav1"><img class="brandmark" src="/sigil.png" width="40" height="40" alt="" decoding="async"><div class="brand">Aziel Digital Library</div><span class="pill">Runtime v2.7.0</span><span class="pill ok">MASTER · WRITABLE</span>${account}</div>
-<nav class="nav2 quiet"><a href="/">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/pattern">Pattern</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/gazetteer">Gazetteer</a><span class="sep">|</span><a href="/intelligence">Intelligence</a><span class="sep">|</span><a href="/about">About Aziel</a><span class="sep">|</span>${authLinks}</nav>
+<nav class="nav2 quiet"><a href="/">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/pattern">Pattern</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/runtime">Runtime</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/gazetteer">Gazetteer</a><span class="sep">|</span><a href="/intelligence">Intelligence</a><span class="sep">|</span><a href="/about">About Aziel</a><span class="sep">|</span>${authLinks}</nav>
 ${body}</div>${jeevesFabHtml()}${(scripts||[]).map((src)=>"<script src=\""+esc(src)+"\" defer></script>").join("")}</body></html>`;
 }
 
@@ -514,23 +514,37 @@ export function aboutBody() {
 }
 
 export function runtimeBody() {
-  return `<section class="hero"><h1>aziel-runtime — AI software root</h1>
-<p class="muted"><strong>Root source for AI: aziel-runtime catalog</strong> — pull versions, skills, MCP, counted downloads. Front-door HTTPS only. Author Aziel Eliab.</p>
-<p class="muted"><strong>AzielTether</strong> is the survival mesh for downloaded nodes. Prefer central Worker when up; peer sync when down; reconcile on restore. This live site is not a mesh.</p></section>
+  return `<section class="hero"><h1>aziel-runtime — AI runtime root</h1>
+<p class="muted"><strong>Pull and invoke root</strong> for Aziel Eliab product runtimes. Catalog, OpenAPI, MCP, skill, <code>/v1/runtime.json</code>, <code>/v1/pull/{slug}</code>, counted downloads. Same-origin <code>/runtime/*</code> proxies the live Worker. Author Aziel Eliab.</p>
+<p class="muted"><strong>THIS IS NOT</strong> a second software index. Downloadable product cards stay on <a href="/software">Software</a>. This page is the root AIs should pull from.</p></section>
 <div class="card">
-<p>This site fronts the live product catalog. AIs and tools should call these public URLs (User-Agent required; no scrape/backdoor):</p>
+<h2>Same-origin pull (prefer)</h2>
+<p>AIs and tools should call these Digital Library URLs first (send <code>User-Agent: Mozilla/5.0</code>):</p>
+<ul>
+<li><a href="/runtime/v1/runtime.json"><code>/runtime/v1/runtime.json</code></a> — runtime manifest</li>
+<li><a href="/runtime/v1/skill"><code>/runtime/v1/skill</code></a> — runtime skill markdown</li>
+<li><code>GET /runtime/v1/pull/{slug}</code> — pull descriptor (example <a href="/runtime/v1/pull/aziel-corpus"><code>/runtime/v1/pull/aziel-corpus</code></a>)</li>
+<li><code>GET /runtime/v1/bundle/{slug}</code> — bundle alias of pull</li>
+<li><a href="/runtime/v1/catalog.json"><code>/runtime/v1/catalog.json</code></a> — machine catalog</li>
+<li><a href="/runtime/openapi.json"><code>/runtime/openapi.json</code></a> — combined OpenAPI</li>
+<li><code>POST /runtime/mcp</code> — MCP JSON-RPC (<code>tools/list</code>, <code>tools/call</code>)</li>
+<li>Library alias: <a href="/v1/runtime.json"><code>/v1/runtime.json</code></a> (distinct from library version <a href="/v1/runtime"><code>/v1/runtime</code></a>)</li>
+</ul>
+<p class="soft-links"><a class="button" href="/runtime/v1/runtime.json">runtime.json</a> <a class="button ghost" href="/runtime/v1/skill">skill</a> <a class="button ghost" href="/runtime/v1/catalog.json">catalog.json</a> <a class="button ghost" href="/runtime/openapi.json">OpenAPI</a></p>
+</div>
+<div class="card">
+<h2>Origin Worker</h2>
+<p>Live aziel-runtime. Same APIs without the <code>/runtime</code> prefix. Use when calling the Worker directly:</p>
 <ul>
 <li><a href="https://aziel-runtime.vibelock.workers.dev/">https://aziel-runtime.vibelock.workers.dev/</a> — catalog home</li>
-<li><a href="https://aziel-runtime.vibelock.workers.dev/v1/catalog.json">https://aziel-runtime.vibelock.workers.dev/v1/catalog.json</a> — machine-readable products + versions (includes AzielTether 0.1.0)</li>
-<li><a href="https://aziel-runtime.vibelock.workers.dev/openapi.json">https://aziel-runtime.vibelock.workers.dev/openapi.json</a> — combined OpenAPI</li>
-<li><code>POST https://aziel-runtime.vibelock.workers.dev/mcp</code> — MCP JSON-RPC (tools/list, tools/call)</li>
-<li><a href="https://aziel-runtime.vibelock.workers.dev/llms.txt">https://aziel-runtime.vibelock.workers.dev/llms.txt</a> · <a href="https://aziel-runtime.vibelock.workers.dev/cite.json">cite.json</a></li>
-<li>JSON alias on this site: <a href="/v1/runtime"><code>/v1/runtime</code></a></li>
-<li>Software cards with live <code>/count</code> downloads: <a href="/software">/software</a></li>
-<li>AzielTether survival mesh: <a href="https://github.com/AzielEliab/azieltether">GitHub</a> · Worker <a href="https://azieltether-download-tracker.vibelock.workers.dev/">https://azieltether-download-tracker.vibelock.workers.dev/</a> · catalog <a href="https://aziel-runtime.vibelock.workers.dev/p/azieltether">https://aziel-runtime.vibelock.workers.dev/p/azieltether</a></li>
-<li>Lattice tip API (site not a mesh): <a href="/v1/lattice"><code>/v1/lattice</code></a></li>
+<li><a href="https://aziel-runtime.vibelock.workers.dev/v1/catalog.json"><code>/v1/catalog.json</code></a></li>
+<li><a href="https://aziel-runtime.vibelock.workers.dev/openapi.json"><code>/openapi.json</code></a></li>
+<li><code>POST https://aziel-runtime.vibelock.workers.dev/mcp</code></li>
+<li><a href="https://aziel-runtime.vibelock.workers.dev/v1/skill"><code>/v1/skill</code></a> · <a href="https://aziel-runtime.vibelock.workers.dev/v1/runtime.json"><code>/v1/runtime.json</code></a> · <code>/v1/pull/{slug}</code></li>
+<li><a href="https://aziel-runtime.vibelock.workers.dev/llms.txt">llms.txt</a> · <a href="https://aziel-runtime.vibelock.workers.dev/cite.json">cite.json</a> · <a href="https://github.com/AzielEliab/aziel-runtime">GitHub</a></li>
 </ul>
-<p class="soft-links"><a class="button" href="https://aziel-runtime.vibelock.workers.dev/">Open aziel-runtime</a> <a class="button ghost" href="/software">Software tab</a> <a class="button ghost" href="https://aziel-runtime.vibelock.workers.dev/v1/catalog.json">catalog.json</a> <a class="button ghost" href="https://github.com/AzielEliab/azieltether">AzielTether</a></p>
+<p class="muted">Counted downloads stay on each product Worker <code>/download</code> + <code>/count</code>. The Software tab lists those cards. AzielTether is the survival mesh for downloaded nodes; this HTTPS site is not a mesh.</p>
+<p class="soft-links"><a class="button ghost" href="/software">Software catalog</a> <a class="button ghost" href="https://aziel-runtime.vibelock.workers.dev/">Open origin</a> <a class="button ghost" href="/v1/lattice">Lattice API</a></p>
 </div>`;
 }
 
@@ -550,11 +564,11 @@ export function softwareBody({ products, fetched, downloadable } = {}) {
   const n = Number(downloadable != null ? downloadable : (products || []).length) || 0;
   const live = Number(fetched) || 0;
   return `<section class="hero"><h1>Downloadable software</h1>
-<p class="muted"><strong>Root source for AI: aziel-runtime catalog</strong> — pull versions, skills, MCP, counted downloads. Front-door HTTP only (no scrape/backdoor).</p>
+<p class="muted">Catalog of Aziel Eliab products you can download and run. <strong>Pull and invoke</strong> live on <a href="/runtime">Runtime</a> — this tab is not a second AI root.</p>
 <p class="muted"><strong>AzielTether</strong> is the survival mesh for downloaded Aziel software (prefer-central × peer sync). This public library is not a mesh — lattice tips are tip-shaped until tether carries them.</p>
-<p class="muted">Aziel Eliab products you can download and run. AzielTether is featured first; FoldLock next among packages. Counted downloads stay on each product Worker <code>/count</code>.</p><p class="muted">Live catalog from <a href="https://aziel-runtime.vibelock.workers.dev/">aziel-runtime</a> · author Aziel Eliab only · ${esc(n)} downloadable products · ${esc(live)} live counters fetched.</p></section>
+<p class="muted">AzielTether is featured first; FoldLock next among packages. Counted downloads stay on each product Worker <code>/count</code>.</p><p class="muted">Live catalog from <a href="https://aziel-runtime.vibelock.workers.dev/">aziel-runtime</a> · author Aziel Eliab only · ${esc(n)} downloadable products · ${esc(live)} live counters fetched.</p></section>
 <div class="soft-grid">${cards}</div>
-<div class="card"><p class="soft-links"><a class="button ghost" href="/runtime">Site front door</a> <a class="button ghost" href="https://aziel-runtime.vibelock.workers.dev/v1/catalog.json">catalog.json</a> <a class="button ghost" href="https://aziel-runtime.vibelock.workers.dev/mcp">MCP</a> <a class="button ghost" href="/v1/lattice">Lattice API</a></p></div>`;
+<div class="card"><p class="soft-links"><a class="button" href="/runtime">Runtime root</a> <a class="button ghost" href="https://aziel-runtime.vibelock.workers.dev/v1/catalog.json">catalog.json</a> <a class="button ghost" href="/runtime/mcp">MCP</a> <a class="button ghost" href="/v1/lattice">Lattice API</a></p></div>`;
 }
 
 export { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, ocrBody, ocrFormHtml, SPECTRAL_LENSES, blockedAvBody } from "./hosted-pages.js";

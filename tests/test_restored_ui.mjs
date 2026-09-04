@@ -14,6 +14,7 @@ const NAV = [
   [">Corpus<", "/corpus"],
   [">Pattern<", "/pattern"],
   [">Software<", "/software"],
+  [">Runtime<", "/runtime"],
   [">Tree<", "/tree"],
   [">Map<", "/map"],
   [">Historical<", "/historical"],
@@ -87,7 +88,12 @@ test("Pattern, Software, About, and runtime pages render live copy", () => {
   assert.doesNotMatch(soft, /zenodo/i);
   const runtime = runtimeBody();
   assert.match(runtime, /aziel-runtime/);
-  assert.match(runtime, /\/v1\/runtime/);
+  assert.match(runtime, /\/runtime\/v1\/runtime\.json/);
+  assert.match(runtime, /\/runtime\/v1\/skill/);
+  assert.match(runtime, /\/runtime\/v1\/pull\//);
+  assert.match(runtime, /\/runtime\/openapi\.json/);
+  assert.match(runtime, /POST \/runtime\/mcp/);
+  assert.match(runtime, /THIS IS NOT<\/strong> a second software index/);
 });
 
 test("map page uses BCE year sliders and a month filter", () => {
