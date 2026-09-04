@@ -20,6 +20,9 @@ export function latticeAnchorTip({
   review,
   event = "verified_ingest",
   verified_utc,
+  run_id,
+  media_kind,
+  vibe_digest,
 } = {}) {
   const r = review || {};
   return {
@@ -28,6 +31,9 @@ export function latticeAnchorTip({
     carrier: "AzielTether",
     author: "Aziel Eliab",
     record_id: record_id || null,
+    run_id: run_id || null,
+    media_kind: media_kind || null,
+    vibe_digest: vibe_digest || null,
     library: library || null,
     content_sha256: content_sha256 || null,
     structure: {

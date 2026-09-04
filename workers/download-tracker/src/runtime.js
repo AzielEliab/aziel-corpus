@@ -7,6 +7,7 @@ import { receiptForRecord, documentChain } from "./ledger.js";
 import { loadRecordReview, runReviewBundle, backfillReviews } from "./review-store.js";
 import { latticeAnchorTip, LATTICE_NOTE } from "./lattice.js";
 import { handleJeevesApi, JEEVES_LIMITATION } from "./jeeves.js";
+import { receiptForMediaRun, isMediaRunId } from "./media.js";
 const PRODUCT = "aziel-corpus";
 const VERSION = "2.7.0";
 const SPEC = "aziel-digital-library-v2.7.0";
@@ -16,7 +17,7 @@ const CATALOG = "https://aziel-runtime.vibelock.workers.dev";
 const PROTOCOL = "2025-03-26";
 
 export const LIMITATION =
-  "THIS IS: Aziel Digital Library v2.7.0 — a self-contained immutable local digital library and intelligence runtime with poison immunity, PhysLing Review (required third verifier), triad composite score, document-bound hash chains, downloadable records, Ask Jeeves (research assistant), unranked Bayesian peer scores, and full-structure verify on upload/download. The public site is the MASTER (writable for signed-in accounts; anonymous GET is read-only). Operator writes go to Aziel Library only; public/anonymous writes go to Corpus only (Lamb Lens). The live HTTPS site is NOT a mesh. THIS IS NOT: a 26-card software index; Zenodo; Horton; OpenAI; a Tor/VPN; a guilt verdict. Author Aziel Eliab only.";
+  "THIS IS: Aziel Digital Library v2.7.0 — a self-contained immutable local digital library and intelligence runtime with poison immunity, PhysLing Review (required third verifier), triad composite score, document-bound hash chains, hosted Whisper transcription, VibeLock authenticity advisory, hash-chained media lattice for every OCR and transcript run, downloadable records, Ask Jeeves (research assistant), unranked Bayesian peer scores, and full-structure verify on upload/download. The public site is the MASTER (writable for signed-in accounts; anonymous GET is read-only). Operator writes go to Aziel Library only; public/anonymous writes go to Corpus only (Lamb Lens). The live HTTPS site is NOT a mesh. THIS IS NOT: a 26-card software index; Zenodo; Horton; OpenAI; a Tor/VPN; a guilt verdict; courtroom proof of media authenticity. Author Aziel Eliab only.";
 
 export const SKILL = `---
 name: Aziel Digital Library
@@ -27,7 +28,7 @@ description: Use when an assistant should search the Aziel Digital Library maste
 
 Self-contained immutable local digital library and intelligence runtime. Public site is MASTER. Anonymous GET is read-only. Signed-in accounts may ingest. Author: **Aziel Eliab**.
 
-**THIS IS:** Aziel Digital Library v2.7.0 (search, records, map, gazetteer, counted zip, poison immunity, PhysLing Review, triad composite, document hash-chains, Ask Jeeves, unranked Bayesian scores).
+**THIS IS:** Aziel Digital Library v2.7.0 (search, records, map, gazetteer, counted zip, poison immunity, PhysLing Review, triad composite, document hash-chains, hosted Whisper transcription, VibeLock advisory, media lattice receipts, Ask Jeeves, unranked Bayesian scores).
 
 **THIS IS NOT:** a 26-card software index. Not Zenodo. Not Horton. Not a mesh. Not a guilt engine.
 
@@ -55,6 +56,10 @@ Ops (do **not** increment downloads):
 - \`GET /v1/document-chain?record_id=\`
 - \`POST /v1/jeeves/chat\`
 - \`POST /v1/jeeves/upload\` (Corpus only, Lamb Lens)
+- \`POST /transcribe\` (Whisper; optional VibeLock advisory; lattice receipt even without library upload)
+- \`POST /ocr\` (hosted OCR; lattice receipt on every run)
+- \`GET /receipt/{id}\` and \`GET /ledger/{id}\` (AZDOC- or AZRUN-)
+- \`GET /v1/media-run?run_id=\`
 - \`GET /file/{record_id}\` and \`GET /download?record=\` — every record is downloadable (HTTP 200)
 
 Catalog aliases: \`GET /p/aziel-corpus/health\`, \`GET /p/aziel-corpus/search\`, \`GET /p/aziel-corpus/skill\`.
@@ -117,6 +122,11 @@ function openapi() {
       "/v1/document-chain": { get: { summary: "Per-document hash-chain bound to record_id. No orphan chains.", operationId: "documentChain", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
       "/v1/jeeves/chat": { post: { summary: "Ask Jeeves research assistant over public records. Lamb Lens. Cannot change scores.", operationId: "jeevesChat" } },
       "/v1/jeeves/upload": { post: { summary: "Ask Jeeves Add — Corpus only (never Aziel Library). Same ingest as the shelf.", operationId: "jeevesUpload" } },
+      "/v1/media-run": { get: { summary: "Hash-chained media lattice receipt for an OCR or transcript run (AZRUN-).", operationId: "mediaRun", parameters: [{ name: "run_id", in: "query", required: true, schema: { type: "string" } }] } },
+      "/transcribe": { post: { summary: "Hosted Whisper transcription. Optional VibeLock advisory. Always writes a media lattice receipt. Optional library upload (signed-in: Corpus; operator: Aziel Library).", operationId: "transcribe" } },
+      "/ocr": { post: { summary: "Hosted image/PDF OCR. Always writes a media lattice receipt. Optional VibeLock. Optional library upload.", operationId: "ocr" } },
+      "/receipt/{id}": { get: { summary: "Receipt for an AZDOC- record or AZRUN- media lattice entry.", operationId: "receipt", parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }] } },
+      "/ledger/{id}": { get: { summary: "Alias of /receipt/{id} for media lattice and document receipts.", operationId: "ledger", parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }] } },
       "/file/{record_id}": { get: { summary: "Download any stored record (text or file). HTTP 200. Quarantined poison docs stay downloadable with X-Aziel-Quarantine. Ledger-linked.", operationId: "file" } },
       "/download": { get: { summary: "Counted zip (asset=) or counted record download (record=AZDOC-…). HTTP 200, no silent 302.", operationId: "download", parameters: [{ name: "asset", in: "query", schema: { type: "string" } }, { name: "record", in: "query", schema: { type: "string" } }] } },
     },
@@ -154,6 +164,9 @@ export async function handleRuntimeApi(request, url, env) {
         document_chain: "hash-chain bound to AZDOC- id; uploads/downloads/rescores/quarantine/peer notes append",
         jeeves: JEEVES_LIMITATION,
         lattice: "aziel.lattice.anchor.v1 for AzielTether; site is not a mesh",
+        transcription: "POST /transcribe — Workers AI Whisper; video has no FFmpeg demux",
+        vibelock: "Optional advisory via live VibeLock /v1/analyze — not courtroom proof",
+        media_lattice: "Every OCR and transcript run appends kind ocr|transcript|ocr+vibelock|transcript+vibelock with content hash, prev_hash, and AzielTether tip",
       },
     });
   }
@@ -197,8 +210,13 @@ export async function handleRuntimeApi(request, url, env) {
     });
   }
   if (path === "/v1/lattice" && request.method === "GET") {
-    const recordId = (url.searchParams.get("record_id") || url.searchParams.get("id") || "").trim();
+    const recordId = (url.searchParams.get("record_id") || url.searchParams.get("id") || url.searchParams.get("run_id") || "").trim();
     if (!recordId) return json({ error: "record_id required", note: LATTICE_NOTE }, 400);
+    if (isMediaRunId(recordId)) {
+      const rec = await receiptForMediaRun(env, recordId);
+      if (!rec) return json({ error: "not found", note: LATTICE_NOTE }, 404);
+      return json({ ok: true, tip: rec.lattice_tip, run_id: rec.run_id, kind: rec.kind, note: LATTICE_NOTE, limitation: LIMITATION });
+    }
     const extra = await loadRecordReview(env, { record_id: recordId });
     const tip = extra.tip || latticeAnchorTip({ record_id: recordId, event: "lookup" });
     return json({ ok: true, tip, note: LATTICE_NOTE, limitation: LIMITATION });
@@ -229,6 +247,13 @@ export async function handleRuntimeApi(request, url, env) {
     if (!recordId) return json({ error: "record_id required" }, 400);
     const chain = await documentChain(env, recordId);
     return json({ ok: true, ...chain, limitation: LIMITATION });
+  }
+  if (path === "/v1/media-run" && request.method === "GET") {
+    const runId = (url.searchParams.get("run_id") || url.searchParams.get("id") || "").trim();
+    if (!runId) return json({ error: "run_id required" }, 400);
+    const rec = await receiptForMediaRun(env, runId);
+    if (!rec) return json({ error: "not found" }, 404);
+    return json({ ok: true, ...rec, limitation: LIMITATION });
   }
   if (path.startsWith("/v1/jeeves/")) {
     const jeeves = await handleJeevesApi(request, url, env, null);
