@@ -77,6 +77,8 @@ export function citeDoc() {
     verify_backfill: HOST + "/v1/verify-backfill",
     document_chain: HOST + "/v1/document-chain",
     jeeves_chat: HOST + "/v1/jeeves/chat",
+    jeeves_upload: HOST + "/v1/jeeves/upload",
+    jeeves: "Research assistant. Not sovereign. Not operator. Corpus-only Add. Cannot change scores.",
     file: HOST + "/file/{record_id}",
     download_record: HOST + "/download?record=",
     triad: "TRIAD_V1 geometric mean of SPRE, CLCE, and PhysLing — primary visible score",

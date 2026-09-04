@@ -132,7 +132,7 @@ Quarantined poison docs stay downloadable with a quarantine banner and `X-Aziel-
 
 ## Ask Jeeves
 
-Fixed bottom-right research assistant. Drawer, not a full-page takeover. Answers from public records. Add inside the panel files **Corpus only** (Lamb Lens) through the same ingest. Cannot change scores or reveal operator secrets.
+Fixed bottom-right research assistant. Drawer, not a full-page takeover. Answers from public records, map events, and gazetteer places. Learns topic frequencies and FAQ hints in D1/KV (never secrets). Add inside the panel files **Corpus only** (Lamb Lens) through the same ingest — even if the operator is signed in. Cannot change scores or reveal operator secrets.
 
 ## API
 

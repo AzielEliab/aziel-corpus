@@ -80,8 +80,8 @@ label.showpw{font-size:14px;color:var(--muted);white-space:nowrap;min-height:44p
 .triad .metric{font-size:42px;line-height:1}
 .triad-card{border:1px solid var(--line);border-radius:14px;padding:16px;background:#fff;margin:12px 0}
 .q-banner{background:#f8e0e3;color:#8a1524;border:1px solid #e4b4ba;border-radius:12px;padding:12px 14px;margin:10px 0;font-weight:650}
-.jeeves-fab{position:fixed;right:16px;bottom:16px;z-index:40;width:auto;min-width:120px;box-shadow:0 8px 24px #00000022}
-.jeeves-drawer{position:fixed;right:12px;bottom:72px;z-index:39;width:min(380px,calc(100vw - 24px));max-height:70vh;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 12px 32px #00000022}
+.jeeves-fab{position:fixed;right:16px;bottom:16px;z-index:40;width:auto;min-width:120px;max-width:calc(100vw - 32px);box-shadow:0 8px 24px #00000022;touch-action:manipulation;pointer-events:auto}
+.jeeves-drawer{position:fixed;right:12px;bottom:72px;z-index:39;width:min(380px,calc(100vw - 24px));max-height:70vh;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 12px 32px #00000022;touch-action:pan-y;pointer-events:auto}
 .jeeves-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .jeeves-x{background:transparent;color:var(--ink);border:0;min-height:44px;width:44px;padding:0}
 .jeeves-log{min-height:80px;max-height:28vh;overflow:auto;margin:8px 0;border:1px solid var(--line);border-radius:10px;padding:8px;background:#fff}
