@@ -318,18 +318,35 @@ function isAzielRow(r) {
   return String(r && r.library || "").toLowerCase() === "aziel";
 }
 
+function recordTimeMs(row) {
+  const ms = Date.parse(String((row && row.created_utc) || ""));
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+function preferredShelfRow(a, b) {
+  const la = String((a && a.library) || "").toLowerCase() === "aziel" ? 1 : 0;
+  const lb = String((b && b.library) || "").toLowerCase() === "aziel" ? 1 : 0;
+  if (la !== lb) return la > lb ? a : b;
+  const ta = recordTimeMs(a);
+  const tb = recordTimeMs(b);
+  if (ta !== tb) return ta > tb ? a : b;
+  return String((a && a.record_id) || "") >= String((b && b.record_id) || "") ? a : b;
+}
+
 function dedupeShelf(rows) {
-  const seen = new Set();
-  const out = [];
+  const bySha = new Map();
+  const noSha = [];
   for (const r of rows || []) {
     const sha = String(r.content_sha256 || "").trim().toLowerCase();
-    if (sha) {
-      if (seen.has(sha)) continue;
-      seen.add(sha);
+    if (!sha) {
+      noSha.push(r);
+      continue;
     }
-    out.push(r);
+    const prev = bySha.get(sha);
+    bySha.set(sha, prev ? preferredShelfRow(prev, r) : r);
   }
-  return out;
+  const keepers = new Set([...bySha.values(), ...noSha].map((r) => r && r.record_id).filter(Boolean));
+  return (rows || []).filter((r) => keepers.has(r.record_id));
 }
 
 function docCards(rows, state = {}, path = "/") {
