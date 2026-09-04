@@ -4,9 +4,11 @@ import { page, homeBody } from "./ui.js";
 import { handleHosted } from "./hosted.js";
 import { robotsTxt, sitemapXml, citeDoc, llmsDoc } from "./crawl.js";
 import { searchRecords, listFacets, parseBrowseParams, serveFile } from "./library.js";
+import { reviewAndStore } from "./review-store.js";
+import { verifyBytes, sha256hex } from "./structure.js";
 
 /**
- * Aziel Digital Library v2.6.2 public MASTER (Cloudflare Worker).
+ * Aziel Digital Library v2.7.0 public MASTER (Cloudflare Worker).
  *
  * GET  /          increments page-view counter, MASTER HTML (search, login, counted zip)
  * GET  /download  increments downloads, serves zip via env.ASSETS.fetch (HTTP 200, no 302)
@@ -215,7 +217,7 @@ async function collectStats(env) {
 
 function installScript() {
   return `#!/usr/bin/env bash
-# Aziel Digital Library v2.6.2 counted zip install.
+# Aziel Digital Library v2.7.0 counted zip install.
 set -euo pipefail
 HOST="${HOST}"
 ASSET="${DEFAULT_ASSET}"
@@ -238,7 +240,7 @@ python3 -m venv .venv
 python -m pip install -U pip
 python -m pip install -e .
 echo
-echo "Installed Aziel Digital Library v2.6.2."
+echo "Installed Aziel Digital Library v2.7.0."
 echo "Run:  python3 aziel_launcher.py"
 echo "Then open http://127.0.0.1:8765  (local MASTER)"
 echo "Aziel Digital Library. Author Aziel Eliab. Not a 26-card index."
@@ -272,17 +274,40 @@ async function serveAsset(request, env, asset, { head = false } = {}) {
   if (!assetRes.ok) {
     return json({ error: "asset not hosted", asset: name, status: assetRes.status }, 404);
   }
+  const bytes = await assetRes.arrayBuffer();
+  const structure = verifyBytes(bytes, { filename: name, contentType: contentTypeFor(name) });
+  const digest = structure.sha256 || sha256hex(new Uint8Array(bytes));
+  if (env.DB && !head) {
+    try {
+      await reviewAndStore(env, {
+        recordId: "ASSET-" + name.replace(/[^A-Za-z0-9._-]+/g, "_").slice(0, 80),
+        library: "package",
+        title: name,
+        body: "Aziel Digital Library counted zip. Author Aziel Eliab.",
+        filename: name,
+        contentType: contentTypeFor(name),
+        sha256: digest,
+        author: "Aziel Eliab",
+        bytes,
+        createdBy: "download",
+        event: "download_verify",
+        liveClce: false,
+      });
+    } catch { /* ledger optional on zip */ }
+  }
   const headers = new Headers();
   headers.set("Content-Type", contentTypeFor(name));
   headers.set("Content-Disposition", 'attachment; filename="' + name.replaceAll('"', "") + '"');
   headers.set("Cache-Control", "private, no-store");
-  const len = assetRes.headers.get("Content-Length");
-  if (len) headers.set("Content-Length", len);
+  headers.set("Content-Length", String(bytes.byteLength));
+  headers.set("X-Aziel-SHA256", digest);
+  headers.set("X-Aziel-Structure", structure.ok ? "VERIFIED" : "FAILED");
+  headers.set("X-Aziel-Files", String((structure.files || []).length));
   for (const [k, v] of Object.entries(corsHeaders())) headers.set(k, v);
   if (head) {
     return new Response(null, { status: 200, headers });
   }
-  return new Response(assetRes.body, { status: 200, headers });
+  return new Response(bytes, { status: 200, headers });
 }
 
 function escapeHtml(s) {
@@ -306,7 +331,7 @@ async function indexHtml(env, request) {
 }
 
 function llmsTxt() {
-  return `# Aziel Digital Library v2.6.2
+  return `# Aziel Digital Library v2.7.0
 
 Author: Aziel Eliab
 Library: ${HOST}/

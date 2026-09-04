@@ -1,4 +1,4 @@
-# Aziel Digital Library v2.6.2 - Historical Geographic State + Self-Contained Intelligence Runtime
+# Aziel Digital Library v2.7.0 - Poison immunity, PhysLing Review, unranked Bayesian scores
 
 This release makes the library's **core runtime independent of third-party Python packages and live services**. It uses Python's standard library for archival storage, hashing, SQLite/FTS search, ZIP-office extraction, baseline PDF text recovery, deterministic similarity vectors, entity indexing, `.azm` model packages, `.azk` knowledge kits, XLSX export and PDF reporting.
 
@@ -100,6 +100,9 @@ from the master with the built-in Publish Mirror page or the `publish-mirror` CL
 
 
 Use the Mass Ingest browser page for thousands of remote files/folders. For extremely large local trees use `bulk-ingest`, which walks directories incrementally and rebuilds the relationship graph once at completion.
+
+## Review, poison immunity, and lattice (v2.7.0)
+Every upload and download hashes and structurally verifies every file in the record or package, then re-scores with SPRE, a CLCE port (or live AZ-CLCE `/v1/score`), and **PhysLing Review (PLR)**. Suspected poison (official narrative without independent evidence, non-evidence advocacy, contradictory-only shells) is quarantined on the hash-chain — never silently deleted. A Bayesian posterior is stored as **unranked** metadata for manual peer-to-peer review and is never used to sort the shelf. Verified ingest emits an AzielTether lattice tip. The live HTTPS site is not a mesh. See `REVIEW.md`.
 
 ## Geospatial event reliability (v2.6.2)
 The private MASTER launcher now verifies that a disk-backed world gazetteer is usable. If none is READY, it automatically attempts the `lite` baseline and, after a successful build, re-indexes all existing records 

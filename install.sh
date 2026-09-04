@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Aziel Digital Library v2.6.2 counted zip install.
+# Aziel Digital Library v2.7.0 counted zip install.
 set -euo pipefail
 HOST="${AZIEL_LIBRARY_HOST:-https://www.azielcorpuslibrary.net}"
 FALLBACK="https://aziel-corpus-download-tracker.vibelock.workers.dev"
@@ -18,7 +18,7 @@ DIR="$(find . -maxdepth 1 -type d -name 'aziel-digital-library-*' | head -n 1)"
 if [ -n "${DIR}" ]; then
   cd "${DIR}"
 fi
-echo "Installed Aziel Digital Library v2.6.2."
+echo "Installed Aziel Digital Library v2.7.0."
 echo "Run:  python3 aziel_launcher.py"
 echo "Then open http://127.0.0.1:8765  (local MASTER)"
 echo "Aziel Digital Library. Author Aziel Eliab. Not a 26-card index."

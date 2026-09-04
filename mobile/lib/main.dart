@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'theme.dart';
 
 const limitation =
-    'THIS IS Aziel Digital Library v2.6.2 — a self-contained immutable local '
+    'THIS IS Aziel Digital Library v2.7.0 — a self-contained immutable local '
     'digital library and intelligence runtime. Public site is MASTER. '
     'Anonymous GET is read-only. Signed-in accounts may ingest. '
     'THIS IS NOT a 26-card software index. Not Zenodo. Not Horton. '
@@ -11,7 +11,7 @@ const limitation =
 
 const endpoints = <Map<String, String>>[
   {'slug': 'home', 'name': 'Public MASTER', 'one': 'https://www.azielcorpuslibrary.net/'},
-  {'slug': 'download', 'name': 'Counted zip v2.6.2', 'one': 'HTTP 200 /download — not a 302.'},
+  {'slug': 'download', 'name': 'Counted zip', 'one': 'HTTP 200 /download — not a 302. Structure-verified.'},
   {'slug': 'search', 'name': 'Search', 'one': 'GET /search and GET /v1/search?q='},
   {'slug': 'health', 'name': 'Health', 'one': 'GET /v1/health — does not increment downloads.'},
   {'slug': 'map', 'name': 'Temporal map', 'one': 'Published corpus map view.'},
@@ -66,7 +66,7 @@ class _LibraryPageState extends State<LibraryPage> {
             onChanged: (v) => setState(() => q = v),
           ),
           const SizedBox(height: 12),
-          Text('${shown.length} showing · author Aziel Eliab · v2.6.2'),
+          Text('${shown.length} showing · author Aziel Eliab · v2.7.0'),
           const SizedBox(height: 8),
           for (final w in shown)
             Card(

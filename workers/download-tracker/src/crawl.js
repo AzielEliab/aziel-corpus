@@ -4,6 +4,7 @@ const FALLBACK_HOST = "https://aziel-corpus-download-tracker.vibelock.workers.de
 const CATALOG = "https://aziel-runtime.vibelock.workers.dev";
 const GITHUB_REPO = "https://github.com/AzielEliab/aziel-corpus";
 const DEFAULT_ASSET = "aziel-digital-library-2.6.2.zip";
+const VERSION = "2.7.0";
 
 export function robotsTxt() {
   return [
@@ -38,7 +39,7 @@ export async function sitemapXml(env) {
     HOST + "/", HOST + "/corpus", HOST + "/map", HOST + "/gazetteer", HOST + "/tree",
     HOST + "/health", HOST + "/intelligence", HOST + "/historical", HOST + "/verify",
     HOST + "/download", HOST + "/install.sh", HOST + "/v1/health", HOST + "/v1/search",
-    HOST + "/v1/skill", HOST + "/v1/example", HOST + "/openapi.json", HOST + "/llms.txt",
+    HOST + "/v1/skill", HOST + "/v1/example", HOST + "/v1/review", HOST + "/v1/lattice", HOST + "/openapi.json", HOST + "/llms.txt",
     HOST + "/cite.json", HOST + "/assets/world_110m.geojson", GITHUB_REPO,
   ];
   try {
@@ -55,7 +56,7 @@ export function citeDoc() {
   return {
     author: "Aziel Eliab",
     title: "Aziel Digital Library",
-    version: "2.6.2",
+    version: VERSION,
     github: GITHUB_REPO,
     library: HOST + "/",
     download: HOST + "/download",
@@ -71,12 +72,14 @@ export function citeDoc() {
     llms: HOST + "/llms.txt",
     license: "Apache-2.0",
     catalog: CATALOG + "/",
-    how_to_cite: "Eliab, Aziel. (2026). Aziel Digital Library v2.6.2 [Software]. Apache-2.0. " + HOST + "/",
+    review: HOST + "/v1/review",
+    lattice: HOST + "/v1/lattice",
+    how_to_cite: "Eliab, Aziel. (2026). Aziel Digital Library v2.7.0 [Software]. Apache-2.0. " + HOST + "/",
   };
 }
 
 export function llmsDoc(limitation) {
-  return "# Aziel Digital Library v2.6.2\n\n"
+  return "# Aziel Digital Library v2.7.0\n\n"
     + "Author: Aziel Eliab\n"
     + "Library: " + HOST + "/\n"
     + "GitHub: " + GITHUB_REPO + "\n"
@@ -100,6 +103,9 @@ export function llmsDoc(limitation) {
     + "- GET " + HOST + "/v1/search?q=\n"
     + "- GET " + HOST + "/v1/skill\n"
     + "- GET " + HOST + "/v1/example\n"
+    + "- GET " + HOST + "/v1/review?record_id=\n"
+    + "- GET " + HOST + "/v1/lattice?record_id=\n"
+    + "- POST " + HOST + "/v1/score\n"
     + "- GET " + HOST + "/api/events\n"
     + "- GET " + HOST + "/api/gazetteer?q=Florence\n"
     + "- GET " + HOST + "/api/historical?date=1502\n"

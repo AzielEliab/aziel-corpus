@@ -7,6 +7,7 @@ import CITIES from "./cities-lite.js";
 import { unzipEntries, zipText } from "./zip.js";
 import { isOperator } from "./library.js";
 import { appendLedger, ensureLedger } from "./ledger.js";
+import { ensureReviewSchema } from "./review-store.js";
 
 const GEONAMES_ATTRIBUTION = "GeoNames geographical data — https://www.geonames.org/ — CC BY 4.0";
 const LAYER_CAP = 1024 * 1024;
@@ -191,6 +192,7 @@ async function migrate(env) {
   }
   try { await env.DB.prepare("ALTER TABLE records ADD COLUMN content_sha256 TEXT").run(); } catch { /* exists */ }
   try { await ensureLedger(env); } catch { /* ledger */ }
+  try { await ensureReviewSchema(env); } catch { /* review */ }
 }
 
 export function ensureSchema(env) {
@@ -685,7 +687,7 @@ export async function corpusTree(env) {
 export async function getRecordRow(env, id) {
   if (!env.DB || !id) return null;
   return env.DB.prepare(
-    "SELECT record_id,title,substr(body,1,4000) AS body,created_by,created_utc,library,filename,content_type,object_key,byte_size,author,domain,subjects,keywords,content_sha256 FROM records WHERE record_id=?"
+    "SELECT record_id,title,substr(body,1,4000) AS body,created_by,created_utc,library,filename,content_type,object_key,byte_size,author,domain,subjects,keywords,content_sha256,quarantine_status,review_json,bayesian_posterior,lattice_tip_json FROM records WHERE record_id=?"
   ).bind(id).first();
 }
 
