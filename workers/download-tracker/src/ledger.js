@@ -37,8 +37,10 @@ export async function ensureLedger(env) {
     "CREATE TABLE IF NOT EXISTS ledger (sequence INTEGER PRIMARY KEY, timestamp_utc TEXT NOT NULL, action TEXT NOT NULL, payload_json TEXT NOT NULL, previous_hash TEXT NOT NULL, entry_hash TEXT NOT NULL)"
   ).run();
   await env.DB.prepare(
-    "CREATE TABLE IF NOT EXISTS derived_artifacts (derived_id TEXT PRIMARY KEY, record_id TEXT, artifact_type TEXT, processor TEXT, processor_version TEXT, content_sha256 TEXT, created_utc TEXT, status TEXT)"
+    "CREATE TABLE IF NOT EXISTS derived_artifacts (derived_id TEXT PRIMARY KEY, record_id TEXT, artifact_type TEXT, processor TEXT, processor_version TEXT, content_sha256 TEXT, created_utc TEXT, status TEXT, object_key TEXT, note TEXT)"
   ).run();
+  try { await env.DB.prepare("ALTER TABLE derived_artifacts ADD COLUMN object_key TEXT").run(); } catch { /* exists */ }
+  try { await env.DB.prepare("ALTER TABLE derived_artifacts ADD COLUMN note TEXT").run(); } catch { /* exists */ }
   try { await env.DB.prepare("ALTER TABLE records ADD COLUMN content_sha256 TEXT").run(); } catch { /* exists */ }
   try { await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_records_sha ON records(content_sha256)").run(); } catch { /* exists */ }
   await env.DB.prepare(

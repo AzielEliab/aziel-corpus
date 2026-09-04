@@ -8,6 +8,7 @@ import { ensureReviewSchema } from "./review-store.js";
 import { mergeKitPlaces, sha256hex, utcNow, newId, ensureSchema } from "./geo.js";
 import { isOperator, libraryFor, ingestRecord, asFile, safeFilename, objectExists, putObject } from "./library.js";
 import { persistOcrRun, ensureMediaSchema } from "./media.js";
+import { enhancePngBytes, normalizeLenses, LIMITATION as SPECTRAL_LIMITATION, VERSION as SPECTRAL_VERSION } from "./spectral.js";
 
 const VISION_MODELS = [
   "@cf/meta/llama-3.2-11b-vision-instruct",
@@ -75,14 +76,15 @@ export function extractPdfText(bytes) {
   return chunks.join("\n").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim().slice(0, 200000);
 }
 
-export async function ocrFile(env, file) {
+export async function ocrFile(env, file, opts = {}) {
   const name = safeFilename(file && file.name);
   const ct = String((file && file.type) || "").toLowerCase();
   const raw = await file.arrayBuffer();
   const bytes = raw instanceof Uint8Array ? raw : new Uint8Array(raw);
+  const lenses = normalizeLenses(opts.lenses);
   if (ct === "application/pdf" || /\.pdf$/i.test(name)) {
     const text = extractPdfText(bytes);
-    if (text) return { ok: true, text, engine: "AZIEL_TEXT_ENGINE", kind: "pdf", filename: name, contentType: ct, bytes };
+    if (text) return { ok: true, text, engine: "AZIEL_TEXT_ENGINE", kind: "pdf", filename: name, contentType: ct, bytes, lenses, originalBytes: bytes };
     return {
       ok: false,
       kind: "pdf",
@@ -90,11 +92,119 @@ export async function ocrFile(env, file) {
       filename: name,
       contentType: ct,
       bytes,
+      lenses,
+      originalBytes: bytes,
       message: "This PDF has no extractable text stream. Snap a page photo and run hosted image OCR (or the in-page Tesseract.js fallback). pdftoppm is not required and is not offered as a download.",
     };
   }
-  const ocr = await runWorkersAiOcr(env, bytes, ct || "image/png");
-  return { ...ocr, kind: "image", filename: name, contentType: ct, bytes };
+  let workBytes = bytes;
+  let workType = ct || "image/png";
+  let overlay = null;
+  if (lenses.length) {
+    overlay = await enhancePngBytes(bytes, lenses);
+    if (overlay && overlay.ok && overlay.png) {
+      workBytes = overlay.png;
+      workType = "image/png";
+    } else if (overlay && !overlay.ok && !overlay.skipped) {
+      overlay = { ...overlay, note: "Spectral overlay needs a PNG raster (the page converts JPEG/WebP before submit). OCR ran on the original." };
+    }
+  }
+  const ocr = await runWorkersAiOcr(env, workBytes, workType);
+  return { ...ocr, kind: "image", filename: name, contentType: ct, bytes, lenses, overlay, originalBytes: bytes, enhancedBytes: overlay && overlay.ok ? overlay.png : null };
+}
+
+async function insertDerived(env, { derivedId, recordId, artifactType, processor, processorVersion, contentSha, objectKey, note, status }) {
+  const created = utcNow();
+  const ready = status || "READY";
+  try {
+    await env.DB.prepare(
+      "INSERT OR IGNORE INTO derived_artifacts(derived_id,record_id,artifact_type,processor,processor_version,content_sha256,created_utc,status,object_key,note) VALUES(?,?,?,?,?,?,?,?,?,?)"
+    ).bind(derivedId, recordId, artifactType, processor, processorVersion, contentSha, created, ready, objectKey || null, note || null).run();
+    return;
+  } catch { /* older schema */ }
+  try {
+    await env.DB.prepare(
+      "INSERT OR IGNORE INTO derived_artifacts(derived_id,record_id,artifact_type,processor,processor_version,content_sha256,created_utc,status) VALUES(?,?,?,?,?,?,?,?)"
+    ).bind(derivedId, recordId, artifactType, processor, processorVersion, contentSha, created, ready).run();
+  } catch { /* schema */ }
+}
+
+export async function listDerivedArtifacts(env, recordId) {
+  if (!env || !env.DB || !recordId) return [];
+  try {
+    return (await env.DB.prepare(
+      "SELECT derived_id,record_id,artifact_type,processor,processor_version,content_sha256,created_utc,status,object_key,note FROM derived_artifacts WHERE record_id=? ORDER BY created_utc"
+    ).bind(recordId).all()).results || [];
+  } catch {
+    try {
+      return (await env.DB.prepare(
+        "SELECT derived_id,record_id,artifact_type,processor,processor_version,content_sha256,created_utc,status FROM derived_artifacts WHERE record_id=? ORDER BY created_utc"
+      ).bind(recordId).all()).results || [];
+    } catch {
+      return [];
+    }
+  }
+}
+
+export async function recordOcrTextArtifact(env, recordId, extraText, extra = {}) {
+  if (!extraText || !env || !env.DB) return null;
+  await ensureLedger(env);
+  const derivedId = "AZDER-" + sha256hex(String(recordId) + extraText).slice(0, 12).toUpperCase();
+  const textSha = sha256hex(extraText);
+  const note = extra.note || (extra.lenses && extra.lenses.length ? "lenses " + extra.lenses.join(",") : null);
+  await insertDerived(env, {
+    derivedId,
+    recordId,
+    artifactType: "TEXT_EXTRACT",
+    processor: extra.processor || "AZIEL_OCR_HOSTED",
+    processorVersion: extra.processorVersion || "1.0.0",
+    contentSha: textSha,
+    note,
+  });
+  return { derived_id: derivedId, content_sha256: textSha };
+}
+
+export async function recordSpectralOverlayArtifact(env, recordId, overlayBytes, extra = {}) {
+  if (!overlayBytes || !env || !env.DB) return null;
+  await ensureLedger(env);
+  const bytes = overlayBytes instanceof Uint8Array ? overlayBytes : new Uint8Array(overlayBytes);
+  const digest = sha256hex(bytes);
+  const derivedId = "AZDER-" + sha256hex(String(recordId) + "SPECTRAL_OVERLAY" + digest).slice(0, 12).toUpperCase();
+  let objectKey = null;
+  if (env.FILES) {
+    objectKey = "derived/" + recordId + "/" + derivedId + ".png";
+    try {
+      if (!(await objectExists(env, objectKey))) {
+        await putObject(env, objectKey, bytes, "image/png");
+      }
+    } catch {
+      objectKey = objectKey;
+    }
+  }
+  const lenses = normalizeLenses(extra.lenses);
+  const note = [
+    lenses.length ? "lenses " + lenses.join(",") : "",
+    extra.plan && extra.plan.kind ? "plan " + extra.plan.kind : "",
+    SPECTRAL_LIMITATION,
+  ].filter(Boolean).join(" · ").slice(0, 2000);
+  await insertDerived(env, {
+    derivedId,
+    recordId,
+    artifactType: "SPECTRAL_OVERLAY",
+    processor: extra.processor || "SPECTRALLOCK_OCR_ASSIST",
+    processorVersion: extra.processorVersion || SPECTRAL_VERSION,
+    contentSha: digest,
+    objectKey,
+    note,
+  });
+  await appendLedger(env, "SPECTRAL_OVERLAY", {
+    record_id: recordId,
+    derived_id: derivedId,
+    sha256: digest,
+    lenses,
+    advisory: SPECTRAL_LIMITATION,
+  });
+  return { derived_id: derivedId, object_key: objectKey, content_sha256: digest };
 }
 
 export async function appendOcrToRecord(env, recordId, extraText, signed) {
@@ -105,12 +215,8 @@ export async function appendOcrToRecord(env, recordId, extraText, signed) {
   if (String(row.library || "") === "aziel" && !isOperator(signed)) return;
   const body = [row.body || "", extraText].filter(Boolean).join("\n\n").slice(0, 200000);
   await env.DB.prepare("UPDATE records SET body=? WHERE record_id=?").bind(body, recordId).run();
-  const derivedId = "AZDER-" + sha256hex(String(recordId) + extraText).slice(0, 12).toUpperCase();
-  const textSha = sha256hex(extraText);
-  try {
-    await env.DB.prepare("INSERT OR IGNORE INTO derived_artifacts(derived_id,record_id,artifact_type,processor,processor_version,content_sha256,created_utc,status) VALUES(?,?,?,?,?,?,?,?)").bind(derivedId, recordId, "TEXT_EXTRACT", "AZIEL_OCR_HOSTED", "1.0.0", textSha, utcNow(), "READY").run();
-  } catch { /* schema */ }
-  await appendLedger(env, "REPROCESS_EXTRACTION", { record_id: recordId, library: row.library, sha256: textSha, artifact: "OCR_TEXT" });
+  const art = await recordOcrTextArtifact(env, recordId, extraText);
+  await appendLedger(env, "REPROCESS_EXTRACTION", { record_id: recordId, library: row.library, sha256: art && art.content_sha256, artifact: "OCR_TEXT" });
 }
 
 

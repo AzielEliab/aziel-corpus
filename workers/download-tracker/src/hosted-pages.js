@@ -61,6 +61,7 @@ export function recordBody(payload) {
   const review = payload.review || (row && row.review_json ? (() => { try { return JSON.parse(row.review_json); } catch { return null; } })() : null);
   const peers = payload.peers || [];
   const tip = payload.tip;
+  const derived = payload.derived || [];
   if (!row) return "<div class=\"card\"><h2>Not found</h2><p>That record is not in the hosted corpus.</p></div>";
   const q = String(payload.quarantine_status || row.quarantine_status || (review && review.quarantine_status) || "CLEAR").toUpperCase();
   const qBadge = q === "POISON_SUSPECT" || q === "QUARANTINE"
@@ -122,14 +123,79 @@ export function recordBody(payload) {
   const tipHtml = tip
     ? "<details><summary>AzielTether lattice tip</summary><pre class=\"verify\">" + esc(JSON.stringify(tip, null, 2)) + "</pre><p class=\"muted\">The live site is not a mesh. Tether software can carry this tip.</p></details>"
     : "";
+  const der = derived.length
+    ? "<ul>" + derived.map((d) => {
+      const link = d.object_key || /overlay/i.test(String(d.artifact_type || ""))
+        ? " · <a href=\"/derived/" + esc(d.derived_id) + "\">open artifact</a>"
+        : "";
+      return "<li>" + esc(d.artifact_type || "derived") + " · " + esc(d.processor || "") + " " + esc(d.processor_version || "") + link + (d.note ? "<br><span class=\"muted\">" + esc(String(d.note).slice(0, 280)) + "</span>" : "") + "</li>";
+    }).join("") + "</ul>"
+    : "<p class=\"muted\">No derived OCR or spectral artifacts stored for this record.</p>";
   return "<section class=\"hero\">" + libTag(row.library) + " " + qBadge + "<h1>" + esc(row.title) + "</h1><p class=\"muted\">" + esc(row.author || "") + (row.domain ? " · " + esc(row.domain) : "") + (row.subjects ? " · " + esc(row.subjects) : "") + "</p></section>" +
     qBanner + triadHtml +
     "<div class=\"card\"><h2>Status lights</h2><p class=\"muted\">Green means go. Yellow means read again. Red means stop and check. Easy enough for a 6th grader; kept for government use.</p>" + lightsHtml + "</div>" +
     "<div class=\"card\"><p class=\"meta\">" + esc(row.filename || "text record") + (row.created_utc ? " · " + esc(String(row.created_utc).replace("T", " ").slice(0, 16)) : "") + "</p>" + shaHtml + open +
     "<h3>SPRE + CLCE + PhysLing</h3>" + spreHtml + clceHtml + plrHtml +
-    "<h3>Snippet</h3><p>" + esc(String(row.body || row.snippet || "").slice(0, 2000)) + "</p><h3>Temporal-geospatial events</h3>" + ev + tipHtml + "</div>" +
+    "<h3>Snippet</h3><p>" + esc(String(row.body || row.snippet || "").slice(0, 2000)) + "</p>" +
+    "<h3>Derived artifacts</h3>" + der +
+    "<h3>Temporal-geospatial events</h3>" + ev + tipHtml + "</div>" +
     bayesHtml +
     "<div class=\"card\"><h3>Peer-to-peer review</h3><p class=\"muted\">Notes append to the hash-chain. Peers endorse or challenge; nobody rewrites the past.</p>" + peerRows + peerForm + "</div>";
+}
+
+export const SPECTRAL_LENSES = [
+  { id: "zero", paper: "ZSA-1.0", swatch: "#6F6485", label: "zero (ZSA-1.0) — geometry / equilibrium" },
+  { id: "tazel", paper: "TSA-1.0", swatch: "#1EC9A5", label: "tazel (TSA-1.0) — hidden ink / revelation" },
+  { id: "vyrn", paper: "VSA-1.0", swatch: "#C00066", label: "vyrn (VSA-1.0) — pressure / purification" },
+  { id: "uv", paper: "UVSA-1.0", swatch: "#6a5acd", label: "uv (UVSA-1.0) — synthetic 365–400 nm look" },
+  { id: "rosetta", paper: "RSA-2.0", swatch: "", label: "rosetta (RSA-2.0) — 0.40·Z′ + 0.35·T′ + 0.25·V′" },
+  { id: "zen", paper: "ZENA-1.0", swatch: "", label: "zen (ZENA-1.0) — equal mix of Z′ T′ U′ V′" },
+  { id: "chaos", paper: "CSA-1.0", swatch: "", label: "chaos (CSA-1.0) — 0.40·U′ + 0.35·V′ + 0.20·T′ + 0.05·Z′" },
+  { id: "balance", paper: "BSA", swatch: "", label: "balance (BSA) — α·Zen + (1−α)·Chaos" },
+];
+
+export function ocrFormHtml(payload) {
+  const signed = payload && payload.signed;
+  const operator = !!(payload && payload.operator);
+  const error = payload && payload.error;
+  const result = payload && payload.result;
+  const err = error ? "<p class=\"bad\">" + esc(error) + "</p>" : "";
+  const saveLabel = operator
+    ? "Save extracted text into Aziel Library"
+    : signed
+      ? "Save extracted text into the corpus"
+      : "Sign in to save";
+  const saveDisabled = signed ? "" : " disabled";
+  const saveNote = signed
+    ? "<p class=\"muted\">Operator Save writes Aziel Library. Signed-in accounts write the corpus. Checked SpectralLock lenses mix into one pre-OCR overlay.</p>"
+    : "<p class=\"muted\">Lenses work without an account. <a href=\"/login\">Sign in</a> to save extracted text into the library vault.</p>";
+  const lensRows = SPECTRAL_LENSES.map((lens) => {
+    const sw = lens.swatch
+      ? "<span class=\"pill lens-swatch\" style=\"background:" + esc(lens.swatch) + "\">" + esc(lens.id) + "</span> "
+      : "";
+    const img = "<img class=\"lens-sample\" src=\"/spectral-samples/" + encodeURIComponent(lens.id) + ".png\" width=\"72\" height=\"48\" alt=\"" + esc(lens.id) + " spectral sample\" loading=\"lazy\" decoding=\"async\">";
+    return "<label class=\"checkrow lens-option\"><input type=\"checkbox\" name=\"lens\" value=\"" + esc(lens.id) + "\">" + img + "<span class=\"lens-copy\">" + sw + esc(lens.label) + "</span></label>";
+  }).join("");
+  let resultHtml = "";
+  if (result) {
+    const text = String(result.text || "").trim();
+    const rec = result.record_id ? "<p class=\"ok\">Saved as <a href=\"/record/" + esc(result.record_id) + "\">" + esc(result.record_id) + "</a>.</p>" : "";
+    const miss = result.missing || result.message ? "<p class=\"muted\">" + esc(result.missing || result.message) + "</p>" : "";
+    const lenses = (result.lenses || []).length ? "<p class=\"muted\">Lenses: " + esc((result.lenses || []).join(", ")) + "</p>" : "";
+    const receipt = result.receipt_url ? "<p class=\"muted\">Lattice receipt: <a href=\"" + esc(result.receipt_url) + "\">" + esc(result.run_id || "receipt") + "</a></p>" : "";
+    resultHtml = "<div id=\"ocrResult\"><h3>Extracted text</h3>" + rec + receipt + lenses + miss + "<pre class=\"verify\">" + esc(text || "(no text)") + "</pre><p class=\"muted\">Advisory spectral assist only. Not forensic. Not scribal truth. Author Aziel Eliab.</p></div>";
+  }
+  return err +
+    "<form id=\"ocrForm\" class=\"ocr-form media-form\" method=\"post\" action=\"/ocr\" enctype=\"multipart/form-data\" data-signed=\"" + (signed ? "1" : "0") + "\">" +
+    "<label class=\"filepick\">Image or scanned PDF<input type=\"file\" name=\"file\" accept=\"image/*,application/pdf\" required></label>" +
+    "<fieldset class=\"lens-box\"><legend>SpectralLock lenses (advisory)</legend>" +
+    "<div class=\"lens-grid\">" + lensRows + "</div>" +
+    "<p class=\"muted\">Whatever boxes are checked mix into one analysis pass. Single box = that channel only. Named composites use their published formula. Overlay is advisory, not a UV lamp and not a claim of hidden-ink proof. Sample thumbnails are SpectralLock overlays of the hosted OCR fixture.</p>" +
+    "</fieldset>" +
+    "<label class=\"checkrow\"><input type=\"checkbox\" name=\"save\" value=\"1\"" + saveDisabled + "> <span>" + esc(saveLabel) + "</span></label>" +
+    saveNote +
+    "<div class=\"media-actions\"><button type=\"submit\">Extract text</button></div>" +
+    "</form>" + (resultHtml || "<pre id=\"ocrHostedOut\" class=\"verify muted\">Choose a scan, then Extract text. Text and ledger receipt appear here.</pre>");
 }
 
 export function mapBody(payload) {
@@ -207,7 +273,7 @@ export function transcribeCard(payload) {
     + "<form id=\"transcribeForm\" class=\"media-form\" method=\"post\" action=\"/transcribe\" enctype=\"multipart/form-data\">"
     + "<label class=\"filepick\">Audio or video<input type=\"file\" name=\"file\" accept=\"audio/*,video/*,.wav,.mp3,.flac,.ogg,.m4a,.webm,.mp4,.mov\" required></label>"
     + "<div class=\"media-options\">"
-    + "<label class=\"showpw\"><input type=\"checkbox\" name=\"upload\" value=\"1\" " + (signed ? "" : "disabled ") + "> Upload to library</label>"
+    + "<label class=\"checkrow\"><input type=\"checkbox\" name=\"upload\" value=\"1\" " + (signed ? "" : "disabled ") + "> <span>Upload to library</span></label>"
     + "</div>"
     + "<div class=\"media-actions\"><button type=\"submit\">Transcribe + VibeLock determine</button></div>"
     + "<p class=\"muted\">" + esc(libraryUploadHint(signed, operator)) + " VibeLock determination is not courtroom proof. Full local engine: <a href=\"https://vibelock-download-tracker.vibelock.workers.dev/download?asset=vibelock-0.3.0.tar.gz\">download</a> · <a href=\"https://github.com/AzielEliab/vibelock\">GitHub</a>.</p>"
@@ -216,21 +282,10 @@ export function transcribeCard(payload) {
 }
 
 export function ocrUploadCard(payload) {
-  const signed = payload.signed;
-  const operator = payload.operator;
-  const err = payload.error ? "<p class=\"bad\">" + esc(payload.error) + "</p>" : "";
-  const saveLabel = operator ? "Aziel Library" : "Corpus (Lamb Lens)";
-  return "<div class=\"card\" id=\"ocr\"><h3>Hosted image / PDF OCR</h3>" + err
-    + "<p class=\"muted\">Images use Workers AI when bound. PDFs try an uncompressed text scan; if empty, snap a page photo instead of installing pdftoppm. Every OCR run writes a lattice receipt.</p>"
-    + "<form id=\"ocrForm\" class=\"media-form\" method=\"post\" action=\"/ocr\" enctype=\"multipart/form-data\">"
-    + "<label class=\"filepick\">Image or scanned PDF<input type=\"file\" name=\"file\" accept=\"image/*,application/pdf\" required></label>"
-    + "<div class=\"media-options\">"
-    + "<label class=\"showpw\"><input type=\"checkbox\" name=\"save\" value=\"1\" " + (signed ? "" : "disabled ") + "> Upload to library" + (signed ? " (" + esc(saveLabel) + ")" : "") + "</label>"
-    + "</div>"
-    + "<div class=\"media-actions\"><button type=\"submit\">Extract text</button></div>"
-    + "<p class=\"muted\">" + esc(libraryUploadHint(signed, operator)) + "</p>"
-    + "</form>"
-    + "<pre id=\"ocrHostedOut\" class=\"verify muted\">Choose a scan, then Extract text. Text and ledger receipt appear here.</pre></div>";
+  return "<div class=\"card\" id=\"ocr\"><h3>Hosted image / PDF OCR</h3>"
+    + "<p class=\"muted\">Images use Workers AI when bound. PDFs try an uncompressed text scan; if empty, snap a page photo instead of installing pdftoppm. Optional SpectralLock lenses mix into one pre-OCR overlay. Every OCR run writes a lattice receipt. Author Aziel Eliab.</p>"
+    + ocrFormHtml(payload)
+    + "</div>";
 }
 
 export function blockedAvBody(payload) {
@@ -242,8 +297,16 @@ export function blockedAvBody(payload) {
 }
 
 export function ocrPageBody(payload) {
-  return "<section class=\"hero\"><h1>OCR and transcription</h1><p class=\"muted\">Same hosted processors as <a href=\"/intelligence\">Intelligence</a>. Every run writes a hash-chained lattice receipt.</p></section>"
-    + ocrUploadCard(payload) + transcribeCard(payload);
+  return "<section class=\"hero\"><h1>OCR and transcription</h1><p class=\"muted\">Same hosted processors as <a href=\"/intelligence\">Intelligence</a>. Optional SpectralLock lenses mix into one pre-OCR overlay. Every run writes a hash-chained lattice receipt. Author Aziel Eliab.</p></section>"
+    + ocrUploadCard(payload) + transcribeCard(payload)
+    + "<div class=\"card\"><h3>In-page OCR fallback</h3><p class=\"muted\">Runs Tesseract.js from a CDN in this browser so a phone camera photo can still be read when Workers AI is not ready. Checked SpectralLock lenses enhance the raster first. Nothing is installed on your device. Browser-only fallback does not write the lattice; use Extract text above for a receipt.</p>"
+    + "<label class=\"filepick\">Photo<input id=\"ocrFile\" type=\"file\" accept=\"image/*\" capture=\"environment\"></label>"
+    + "<p><img id=\"ocrPreview\" alt=\"Spectral overlay preview\" hidden width=\"640\" height=\"400\" style=\"max-width:100%;height:auto;border-radius:10px;border:1px solid var(--line)\"></p>"
+    + "<pre id=\"ocrOut\" class=\"verify muted\">Choose a photo to read here.</pre></div>";
+}
+
+export function ocrBody(payload) {
+  return ocrPageBody(payload);
 }
 
 export function receiptBody(payload) {
@@ -300,7 +363,7 @@ export function intelligenceBody(payload) {
   return "<div class=\"card\"><h2>Aziel Intelligence Runtime</h2><p>Packages are <b>.azm</b> models and <b>.azk</b> knowledge kits. Manifests and payloads are hashed. All processors below run hosted — this page never asks you to install Tesseract, Poppler, or Whisper on your computer.</p>" + pkgForm + "</div><div class=\"card\"><h3>Hosted processors</h3><div class=\"grid\"><div class=\"card\"><b>Image OCR</b><div class=\"" + ocrCls + "\">" + ocrTxt + "</div><p class=\"muted\">" + (aiReady ? "Workers AI vision model extracts visible text." : "Workers AI is not bound or the vision model failed. Use the in-page Tesseract.js fallback.") + "</p></div><div class=\"card\"><b>Scanned PDF</b><div class=\"ok\">HOSTED (text-stream scan)</div><p class=\"muted\">Uncompressed PDF strings are read here. If a scan has no text layer, photograph a page for image OCR. pdftoppm is not offered as a download.</p></div><div class=\"card\"><b>Audio / video transcription</b><div class=\"" + whisperCls + "\">" + whisperTxt + "</div><p class=\"muted\">" + (aiReady ? "Workers AI Whisper transcribes audio. Video has no FFmpeg demux — extract an audio track if the container fails." : "Workers AI is not bound. There is no installer button.") + "</p></div></div></div>"
     + ocrUploadCard({ signed, operator, error })
     + transcribeCard({ signed, operator, aiReady })
-    + "<div class=\"card\"><h3>In-page OCR fallback</h3><p class=\"muted\">Runs Tesseract.js from a CDN in this browser so a phone camera photo can still be read when Workers AI is not ready. Nothing is installed on your device. Browser-only fallback does not write the lattice; use Extract text above for a receipt.</p><label class=\"filepick\">Photo<input id=\"ocrFile\" type=\"file\" accept=\"image/*\" capture=\"environment\"></label><pre id=\"ocrOut\" class=\"verify muted\">Choose a photo to read here.</pre></div>"
+    + "<div class=\"card\"><h3>In-page OCR fallback</h3><p class=\"muted\">Runs Tesseract.js from a CDN in this browser so a phone camera photo can still be read when Workers AI is not ready. Checked SpectralLock lenses on the form above enhance the raster first. Nothing is installed on your device. Browser-only fallback does not write the lattice; use Extract text above for a receipt.</p><label class=\"filepick\">Photo<input id=\"ocrFile\" type=\"file\" accept=\"image/*\" capture=\"environment\"></label><p><img id=\"ocrPreview\" alt=\"Spectral overlay preview\" hidden width=\"640\" height=\"400\" style=\"max-width:100%;height:auto;border-radius:10px;border:1px solid var(--line)\"></p><pre id=\"ocrOut\" class=\"verify muted\">Choose a photo to read here.</pre></div>"
     + recovery + "<div class=\"card\"><table class=\"plain\"><tr><th>ID</th><th>Kind</th><th>Type</th><th>Version</th><th>SHA-256</th><th>Status</th></tr>" + rows + "</table></div><div class=\"card\"><h3>Native engines</h3><div class=\"grid\"><div><b>AZIEL_TEXT_ENGINE</b><p class=\"muted\">HOSTED — text, CSV-ish, and conservative PDF string extraction.</p></div><div><b>AZIEL_HASH_VECTOR_V1</b><p class=\"muted\">Skipped on this Worker (local similarity vectors stay with the Python vault).</p></div><div><b>AZIEL_ENTITY_ENGINE</b><p class=\"muted\">HOSTED — gazetteer place resolution.</p></div><div><b>AZIEL_MODEL_RUNTIME</b><p class=\"muted\">HOSTED for archived .azm packages (HASHED_NAIVE_BAYES_TEXT stored and verified; neural tensors are not executed here).</p></div></div></div>";
 }
 
