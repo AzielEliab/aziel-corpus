@@ -137,13 +137,13 @@ test("truthy form flags", () => {
   assert.equal(truthy("0"), false);
 });
 
-test("intelligence page hosts Whisper and VibeLock options", () => {
+test("intelligence page hosts Whisper with mandatory VibeLock", () => {
   const html = intelligenceBody({ aiReady: true, packages: [], signed: { username: "reader" }, operator: false });
   assert.match(html, /HOSTED \(Workers AI Whisper\)/);
-  assert.match(html, /Review authenticity with VibeLock/);
-  assert.match(html, /Upload to library/);
+  assert.match(html, /VibeLock determination is mandatory/);
   assert.match(html, /action="\/transcribe"/);
   assert.doesNotMatch(html, /NOT HOSTED YET/);
+  assert.doesNotMatch(html, /Optional\s+VibeLock/);
   const ocr = ocrPageBody({ aiReady: true, signed: null, operator: false });
   assert.match(ocr, /action="\/transcribe"/);
   assert.match(ocr, /action="\/ocr"/);

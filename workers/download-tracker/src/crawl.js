@@ -67,7 +67,7 @@ export function citeDoc() {
     intelligence: HOST + "/intelligence",
     ocr: HOST + "/ocr",
     transcribe: HOST + "/transcribe",
-    transcribe_note: "POST /transcribe — Workers AI Whisper; optional VibeLock advisory; lattice receipt on every run",
+    transcribe_note: "POST /transcribe — Workers AI Whisper; mandatory VibeLock determination; hard A/V blocks (HTTP 451)",
     receipt: HOST + "/receipt/{id}",
     ledger: HOST + "/ledger/{id}",
     media_run: HOST + "/v1/media-run",
@@ -87,8 +87,8 @@ export function citeDoc() {
     jeeves_chat: HOST + "/v1/jeeves/chat",
     jeeves_upload: HOST + "/v1/jeeves/upload",
     jeeves: "Research assistant. Not sovereign. Not operator. Corpus-only Add. Cannot change scores.",
-    vibelock: "Advisory authenticity review via live VibeLock /v1/analyze. Not courtroom proof.",
-    media_lattice: "Every OCR and transcript run appends kind ocr|transcript|ocr+vibelock|transcript+vibelock",
+    vibelock: "Mandatory VibeLock determination on every /transcribe run. Hard blocks porn, nudity, child-sexual content. Not courtroom proof.",
+    media_lattice: "Transcript success: LATTICE_TRANSCRIPT_VIBELOCK. Blocked A/V: LATTICE_AV_BLOCKED (HTTP 451, never stored).",
     file: HOST + "/file/{record_id}",
     download_record: HOST + "/download?record=",
     triad: "TRIAD_V1 geometric mean of SPRE, CLCE, and PhysLing — primary visible score",
@@ -130,7 +130,8 @@ export function llmsDoc(limitation) {
     + "- POST " + HOST + "/v1/score\n"
     + "- POST " + HOST + "/v1/jeeves/chat\n"
     + "- POST " + HOST + "/v1/jeeves/upload  (Corpus only)\n"
-    + "- POST " + HOST + "/transcribe  (Whisper; optional VibeLock; lattice receipt)\n"
+    + "- POST " + HOST + "/transcribe  (Whisper + mandatory VibeLock; hard A/V blocks HTTP 451)\n"
+    + "- GET " + HOST + "/media/{sha256}  (allowed A/V playback only)\n"
     + "- POST " + HOST + "/ocr  (lattice receipt on every run)\n"
     + "- GET " + HOST + "/receipt/{id}  (AZDOC- or AZRUN-)\n"
     + "- GET " + HOST + "/ledger/{id}\n"

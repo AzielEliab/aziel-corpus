@@ -19,7 +19,8 @@ Custom domains: www.azielcorpuslibrary.net and azielcorpuslibrary.net
 - POST /v1/score  preview review, no write
 - POST /v1/jeeves/chat  Ask Jeeves (research assistant)
 - POST /v1/jeeves/upload  Corpus only (Lamb Lens)
-- POST /transcribe  hosted Whisper; optional VibeLock advisory; lattice receipt always
+- POST /transcribe  hosted Whisper + mandatory VibeLock determination; hard A/V blocks (HTTP 451)
+- GET /media/{sha256}  inline playback of allowed A/V only (blocked media is never stored)
 - POST /ocr  hosted OCR; lattice receipt always
 - GET /receipt/{id} and /ledger/{id}  AZDOC- or AZRUN-
 - GET /v1/media-run?run_id=

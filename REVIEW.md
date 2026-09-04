@@ -132,13 +132,15 @@ Quarantined poison docs stay downloadable with a quarantine banner and `X-Aziel-
 
 ## Hosted transcription and media lattice
 
-`POST /transcribe` runs Cloudflare Workers AI Whisper on uploaded audio (and container bytes for video; this Worker has no FFmpeg). Optional **Review authenticity with VibeLock** calls live `https://vibelock-download-tracker.vibelock.workers.dev/v1/analyze` with derived features. That result is **advisory only** — not courtroom proof.
+`POST /transcribe` runs Cloudflare Workers AI Whisper on uploaded audio (and container bytes for video; this Worker has no FFmpeg). **VibeLock determination is mandatory** on every run (live `/v1/analyze`, fallback `/v1/detect`). That authenticity score is **not courtroom proof**.
+
+Hard blocks: porn, nudity, and child-sexual content. Blocked media is **never stored** and **never playable** (HTTP 451). Allowed media is stored at `av/{sha256}` and served inline at `GET /media/{sha256}`. Anonymous `POST /transcribe` is allowed; save-to-library still requires sign-in.
 
 Every OCR run and every transcript run appends an immutable D1 `media_runs` + global ledger entry:
 
-- kind: `ocr` | `transcript` | `ocr+vibelock` | `transcript+vibelock`
-- content hash, prev_hash, timestamp, node/product scope, optional VibeLock digest
-- AzielTether lattice tip (`GET /v1/lattice?run_id=AZRUN-…`)
+- success: `LATTICE_TRANSCRIPT_VIBELOCK`
+- blocked: `LATTICE_AV_BLOCKED`
+- OCR: `ocr`
 
 Receipts: `/receipt/{id}` and `/ledger/{id}` (AZDOC- or AZRUN-). Optional library upload uses the same ingest as the shelf (signed-in → Corpus; operator → Aziel Library) and still runs SPRE × CLCE × PhysLing + unranked Bayesian. No score shortcuts.
 
@@ -155,7 +157,8 @@ Fixed bottom-right research assistant. Drawer, not a full-page takeover. Answers
 - `POST /v1/score` — preview only, no write
 - `POST /v1/jeeves/chat`
 - `POST /v1/jeeves/upload` — Corpus only
-- `POST /transcribe` — hosted Whisper; optional VibeLock advisory
+- `POST /transcribe` — hosted Whisper; **mandatory** VibeLock determination; hard A/V blocks
+- `GET /media/{sha256}` — allowed A/V playback only
 - `POST /ocr` — lattice receipt on every run
 - `GET /receipt/{id}` and `GET /ledger/{id}` — AZDOC- or AZRUN-
 - `GET /v1/media-run?run_id=`

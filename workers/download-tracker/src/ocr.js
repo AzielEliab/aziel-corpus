@@ -352,7 +352,7 @@ export async function healthSnapshot(env, extra = {}) {
     files: filesOk ? "ok" : "missing",
     ocr: aiBound(env) ? "HOSTED (Workers AI)" : "NOT READY — Workers AI binding missing",
     transcription: aiBound(env) ? "HOSTED (Workers AI Whisper)" : "NOT READY — Workers AI binding missing",
-    vibelock: "ADVISORY — live /v1/analyze (not courtroom proof)",
+    vibelock: "MANDATORY on /transcribe — hard blocks; not courtroom proof",
     mode: "MASTER",
   };
 }

@@ -124,6 +124,7 @@ pre.verify{white-space:pre-wrap;word-break:break-word;background:#fff;border:1px
 .media-options{display:flex;flex-direction:column;gap:6px;margin:8px 0 14px}
 .media-actions{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0}
 .media-form input[type=checkbox]{width:auto;min-height:18px;min-width:18px;flex:0 0 auto}
+.av-player{width:100%;max-width:100%;margin:8px 0;min-height:44px}
 @media (max-width:720px){
   .map-tools{flex-direction:column;align-items:stretch}
   .map-tools label,.map-tools button,.map-tools input,.map-tools select{width:100%}
@@ -381,4 +382,4 @@ export function stub(title, lead) {
   return `<div class="card"><h2>${esc(title)}</h2><p>${lead}</p><p class="muted">Hosted MASTER UI. Full local vault tools also run via <code>python3 aziel_launcher.py</code> on 127.0.0.1:8765.</p></div>`;
 }
 
-export { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody } from "./hosted-pages.js";
+export { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, blockedAvBody } from "./hosted-pages.js";

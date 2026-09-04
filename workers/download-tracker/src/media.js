@@ -9,7 +9,7 @@
 import { randomBytes } from "node:crypto";
 import { appendLedger, appendDocumentLedger, ensureLedger, isDocumentId, sha256hex, canonicalJson } from "./ledger.js";
 import { latticeAnchorTip } from "./lattice.js";
-import { asFile, safeFilename, ingestRecord, isOperator, libraryFor } from "./library.js";
+import { isOperator, libraryFor } from "./library.js";
 
 export const MEDIA_MAX_BYTES = 10 * 1024 * 1024;
 export const VIBELOCK_HOST = "https://vibelock-download-tracker.vibelock.workers.dev";
@@ -18,7 +18,7 @@ export const VIBELOCK_DETECT = VIBELOCK_HOST + "/v1/detect";
 export const VIBELOCK_DOWNLOAD = VIBELOCK_HOST + "/download?asset=vibelock-0.3.0.tar.gz";
 export const VIBELOCK_GITHUB = "https://github.com/AzielEliab/vibelock";
 export const VIBELOCK_LIMITATION =
-  "VibeLock advisory only. Not courtroom proof. Hosted /v1 is not a live microphone. Full local engine is the counted catalog download.";
+  "VibeLock determination is mandatory on every transcript. Hard blocks: porn, nudity, child-sexual content (never stored, never playable). Not courtroom proof. Hosted /v1 is not a live microphone. Full local engine is the counted catalog download.";
 
 export const WHISPER_MODELS = [
   "@cf/openai/whisper",
@@ -437,15 +437,18 @@ export async function persistMediaRun(env, args) {
     node: "aziel-corpus",
     product: "aziel-corpus",
     scope: "media-lattice",
-    advisory_only: !!vibe,
+    blocked: !!(args && args.blocked),
+    stored: args && args.stored === false ? false : true,
   };
-  const entry = await appendLedger(env, kind, payload);
+  const action = String((args && args.action) || kind);
+  payload.ledger_action = action;
+  const entry = await appendLedger(env, action, payload);
   const tip = latticeAnchorTip({
     record_id: recordId || runId,
     library: "media-run",
     content_sha256: contentSha,
     ledger_entry_hash: entry.entry_hash,
-    event: "media." + kind.replace(/\+/g, "_"),
+    event: "media." + String(action).replace(/\+/g, "_"),
     verified_utc: entry.timestamp_utc,
     run_id: runId,
     media_kind: kind,
@@ -493,6 +496,8 @@ export async function persistMediaRun(env, args) {
     created_utc: entry.timestamp_utc,
     receipt_url: "/receipt/" + runId,
     ledger_url: "/ledger/" + runId,
+    ledger_action: action,
+    blocked: !!(args && args.blocked),
   };
 }
 
@@ -529,10 +534,12 @@ function libraryNotes(text, run, vibe) {
     String(text || "").trim(),
     "Ledger: /receipt/" + run.run_id,
     "Kind: " + run.kind,
+    "VibeLock determination is mandatory (not courtroom proof).",
   ];
-  if (vibe) bits.push("VibeLock: advisory only — see /receipt/" + run.run_id);
   return bits.join("\n\n").slice(0, 200000);
 }
+
+export { libraryNotes };
 
 export function publicRunPayload(run, extra) {
   extra = extra || {};
@@ -563,79 +570,6 @@ export function publicRunPayload(run, extra) {
     vibelock_catalog: VIBELOCK_DOWNLOAD,
     vibelock_github: VIBELOCK_GITHUB,
     author: "Aziel Eliab",
-  };
-}
-
-export async function handleTranscribe(env, request, signed) {
-  if (!aiBound(env)) {
-    return { status: 503, body: { ok: false, error: "Workers AI not bound — Whisper is not available on this Worker.", author: "Aziel Eliab" } };
-  }
-  let form;
-  try { form = await request.formData(); } catch {
-    return { status: 400, body: { ok: false, error: "multipart form required" } };
-  }
-  const file = asFile(form.get("file") || form.get("media") || form.get("audio") || form.get("video"));
-  if (!file) return { status: 400, body: { ok: false, error: "audio or video file required" } };
-  if (file.size > MEDIA_MAX_BYTES) {
-    return { status: 413, body: { ok: false, error: "file too large for hosted Whisper", max_bytes: MEDIA_MAX_BYTES } };
-  }
-  const name = safeFilename(file.name);
-  const mime = guessMediaMime(name, file.type);
-  if (!isAudioOrVideo(mime, name)) {
-    return { status: 415, body: { ok: false, error: "unsupported type — send audio/* or video/* (wav, mp3, flac, ogg, m4a, webm, mp4)", accept: "audio/*,video/*" } };
-  }
-  const bytes = toU8(await file.arrayBuffer());
-  const wantVibe = truthy(form.get("vibelock") || form.get("review_authenticity"));
-  const wantUpload = truthy(form.get("upload") || form.get("upload_library") || form.get("save"));
-  const whisper = await transcribeWhisper(env, bytes, mime, name);
-  let vibe = null;
-  if (wantVibe) vibe = await reviewVibeLock(bytes, mime, name);
-  const run = await persistMediaRun(env, {
-    kind: mediaKind("transcript", wantVibe),
-    filename: name,
-    mime,
-    bytes,
-    text: whisper.text || "",
-    vibe,
-    error: whisper.ok ? null : (whisper.error || whisper.missing),
-  });
-  let ingest = null;
-  let ingest_error = null;
-  if (wantUpload) {
-    if (!signed) {
-      ingest_error = "Sign in to upload to the library. Signed-in non-operators write Corpus (Lamb Lens). Operator writes Aziel Library. Anonymous visitors cannot write.";
-    } else if (!whisper.text) {
-      ingest_error = "No transcript text to store. Library upload skipped.";
-    } else {
-      try {
-        ingest = await ingestRecord(env, {
-          signed,
-          title: name || "Transcript",
-          body: libraryNotes(whisper.text, run, vibe),
-          domain: "transcript",
-          keywords: "transcript,whisper" + (wantVibe ? ",vibelock" : ""),
-          file: bytesAsFile(bytes, name, mime),
-        });
-        await linkRunToRecord(env, run.run_id, ingest.id, run.kind, {
-          content_sha256: run.content_sha256,
-          transcript_sha256: run.transcript_sha256,
-        });
-        run.record_id = ingest.id;
-      } catch (err) {
-        ingest_error = err && err.message ? err.message : String(err);
-      }
-    }
-  }
-  return {
-    status: whisper.ok ? 200 : 422,
-    body: publicRunPayload(run, {
-      ok: whisper.ok,
-      whisper: { model: whisper.model || null, video: !!whisper.video },
-      vibe,
-      ingest,
-      ingest_error,
-      message: whisper.message || null,
-    }),
   };
 }
 
@@ -676,6 +610,8 @@ export async function receiptForMediaRun(env, runId) {
     immutable: true,
     receipt_url: "/receipt/" + row.run_id,
     ledger_url: "/ledger/" + row.run_id,
+    media_url: row.error === "AV_BLOCKED" ? null : (row.content_sha256 ? "/media/" + row.content_sha256 : null),
+    blocked: row.error === "AV_BLOCKED",
     vibelock_catalog: VIBELOCK_DOWNLOAD,
     vibelock_github: VIBELOCK_GITHUB,
     author: "Aziel Eliab",

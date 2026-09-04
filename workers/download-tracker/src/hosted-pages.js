@@ -202,17 +202,17 @@ export function transcribeCard(payload) {
   const err = payload.transcribeError ? "<p class=\"bad\">" + esc(payload.transcribeError) + "</p>" : "";
   const status = aiReady ? "<div class=\"ok\">HOSTED (Workers AI Whisper)</div>" : "<div class=\"bad\">NOT READY — Workers AI binding missing</div>";
   return "<div class=\"card\" id=\"transcribe\"><h3>Audio / video transcription</h3>" + status + err
-    + "<p class=\"muted\">Upload a sound or video file. Whisper runs on this Worker. Video has no FFmpeg here — if the container fails, extract a wav/mp3/flac/ogg/m4a/webm track. Every run writes a hash-chained lattice receipt, even if you do not upload to the library.</p>"
+    + "<p><b>VibeLock determination is mandatory.</b> Every run calls VibeLock. Porn, nudity, and child-sexual content are hard-blocked: blocked media is never stored and never playable.</p>"
+    + "<p class=\"muted\">Upload a sound or video file. Whisper runs on this Worker. Video has no FFmpeg here — if the container fails, extract a wav/mp3/flac/ogg/m4a/webm track. Allowed files are stored at <code>av/{sha256}</code> and played from <code>/media/{sha256}</code>. Every run writes a hash-chained lattice receipt (<code>LATTICE_TRANSCRIPT_VIBELOCK</code> or <code>LATTICE_AV_BLOCKED</code>).</p>"
     + "<form id=\"transcribeForm\" class=\"media-form\" method=\"post\" action=\"/transcribe\" enctype=\"multipart/form-data\">"
     + "<label class=\"filepick\">Audio or video<input type=\"file\" name=\"file\" accept=\"audio/*,video/*,.wav,.mp3,.flac,.ogg,.m4a,.webm,.mp4,.mov\" required></label>"
     + "<div class=\"media-options\">"
-    + "<label class=\"showpw\"><input type=\"checkbox\" name=\"vibelock\" value=\"1\"> Review authenticity with VibeLock</label>"
-    + "<label class=\"showpw\"><input type=\"checkbox\" name=\"upload\" value=\"1\"> Upload to library</label>"
+    + "<label class=\"showpw\"><input type=\"checkbox\" name=\"upload\" value=\"1\" " + (signed ? "" : "disabled ") + "> Upload to library</label>"
     + "</div>"
-    + "<div class=\"media-actions\"><button type=\"submit\">Transcribe</button></div>"
-    + "<p class=\"muted\">" + esc(libraryUploadHint(signed, operator)) + " VibeLock is advisory only — not courtroom proof. Full engine: <a href=\"https://vibelock-download-tracker.vibelock.workers.dev/download?asset=vibelock-0.3.0.tar.gz\">download</a> · <a href=\"https://github.com/AzielEliab/vibelock\">GitHub</a>.</p>"
+    + "<div class=\"media-actions\"><button type=\"submit\">Transcribe + VibeLock determine</button></div>"
+    + "<p class=\"muted\">" + esc(libraryUploadHint(signed, operator)) + " VibeLock determination is not courtroom proof. Full local engine: <a href=\"https://vibelock-download-tracker.vibelock.workers.dev/download?asset=vibelock-0.3.0.tar.gz\">download</a> · <a href=\"https://github.com/AzielEliab/vibelock\">GitHub</a>.</p>"
     + "</form>"
-    + "<pre id=\"transcribeOut\" class=\"verify muted\">Choose a file, then Transcribe. Transcript, VibeLock advisory, and ledger receipt appear here.</pre></div>";
+    + "<div id=\"transcribeResult\"><div id=\"transcribePlayer\"></div><pre id=\"transcribeOut\" class=\"verify muted\">Choose a file, then Transcribe + VibeLock determine. Allowed media shows a player and the determination receipt. Blocked media returns HTTP 451.</pre></div></div>";
 }
 
 export function ocrUploadCard(payload) {
@@ -225,13 +225,20 @@ export function ocrUploadCard(payload) {
     + "<form id=\"ocrForm\" class=\"media-form\" method=\"post\" action=\"/ocr\" enctype=\"multipart/form-data\">"
     + "<label class=\"filepick\">Image or scanned PDF<input type=\"file\" name=\"file\" accept=\"image/*,application/pdf\" required></label>"
     + "<div class=\"media-options\">"
-    + "<label class=\"showpw\"><input type=\"checkbox\" name=\"vibelock\" value=\"1\"> Review authenticity with VibeLock</label>"
     + "<label class=\"showpw\"><input type=\"checkbox\" name=\"save\" value=\"1\" " + (signed ? "" : "disabled ") + "> Upload to library" + (signed ? " (" + esc(saveLabel) + ")" : "") + "</label>"
     + "</div>"
     + "<div class=\"media-actions\"><button type=\"submit\">Extract text</button></div>"
     + "<p class=\"muted\">" + esc(libraryUploadHint(signed, operator)) + "</p>"
     + "</form>"
-    + "<pre id=\"ocrHostedOut\" class=\"verify muted\">Choose a scan, then Extract text. Text, VibeLock advisory, and ledger receipt appear here.</pre></div>";
+    + "<pre id=\"ocrHostedOut\" class=\"verify muted\">Choose a scan, then Extract text. Text and ledger receipt appear here.</pre></div>";
+}
+
+export function blockedAvBody(payload) {
+  const b = (payload && payload.blocked) || {};
+  return "<div class=\"card\"><h2 class=\"bad\">Blocked</h2><p>" + esc(b.message || "This audio/video is blocked. Porn, nudity, and child-sexual content are not stored and are not playable.") + "</p>"
+    + (b.reasons && b.reasons.length ? "<p class=\"muted\">Reasons: " + esc(b.reasons.join(", ")) + "</p>" : "")
+    + (b.receipt_url ? "<p><a class=\"button\" href=\"" + esc(b.receipt_url) + "\">View ledger receipt</a></p>" : "")
+    + "<pre class=\"verify\">" + esc(JSON.stringify({ blocked: true, status: 451, reasons: b.reasons || [], run_id: b.run_id || null, ledger_action: b.ledger_action || "LATTICE_AV_BLOCKED" }, null, 2)) + "</pre></div>";
 }
 
 export function ocrPageBody(payload) {
@@ -249,8 +256,14 @@ export function receiptBody(payload) {
   const sha = r.content_sha256 || "";
   const recLink = r.record_id ? "<p><a class=\"button\" href=\"/record/" + esc(r.record_id) + "\">Open library record</a></p>" : "";
   const vibeHtml = vibe
-    ? "<div class=\"card\"><h3>VibeLock advisory</h3><p class=\"muted\">" + esc(r.vibe_limitation || "Advisory only. Not courtroom proof.") + "</p><pre class=\"verify\">" + esc(JSON.stringify(vibe, null, 2)) + "</pre><p><a href=\"" + esc(r.vibelock_catalog || "https://vibelock-download-tracker.vibelock.workers.dev/download?asset=vibelock-0.3.0.tar.gz") + "\">Download local VibeLock</a> · <a href=\"" + esc(r.vibelock_github || "https://github.com/AzielEliab/vibelock") + "\">GitHub</a></p></div>"
+    ? "<div class=\"card\"><h3>VibeLock determination</h3><p class=\"muted\">Mandatory on every transcript. Not courtroom proof. Porn, nudity, and child-sexual content are hard-blocked.</p><pre class=\"verify\">" + esc(JSON.stringify(vibe, null, 2)) + "</pre><p><a href=\"" + esc(r.vibelock_catalog || "https://vibelock-download-tracker.vibelock.workers.dev/download?asset=vibelock-0.3.0.tar.gz") + "\">Download local VibeLock</a> · <a href=\"" + esc(r.vibelock_github || "https://github.com/AzielEliab/vibelock") + "\">GitHub</a></p></div>"
     : "";
+  const mediaUrl = r.media_url || (sha && r.error !== "AV_BLOCKED" && r.run_id ? "/media/" + sha : "");
+  const player = r.error === "AV_BLOCKED"
+    ? "<div class=\"card\"><p class=\"bad\">Blocked — this file was not stored and is not playable.</p></div>"
+    : (mediaUrl
+      ? "<div class=\"card\"><h3>Playback</h3><p class=\"muted\">Allowed media only. Blocked files are never stored.</p>" + (String(r.mime || "").indexOf("video/") === 0 ? "<video class=\"av-player\" controls src=\"" + esc(mediaUrl) + "\"></video>" : "<audio class=\"av-player\" controls src=\"" + esc(mediaUrl) + "\"></audio>") + "</div>"
+      : "");
   const textHtml = text
     ? "<div class=\"card\"><h3>Transcript / extracted text</h3><pre class=\"verify\">" + esc(text) + "</pre></div>"
     : "";
@@ -260,7 +273,7 @@ export function receiptBody(payload) {
     + (r.entry_hash ? "<p class=\"meta\">Entry " + esc(r.entry_hash) + "</p>" : "")
     + (r.prev_hash ? "<p class=\"meta\">Prev " + esc(r.prev_hash) + "</p>" : "")
     + (r.error ? "<p class=\"bad\">" + esc(r.error) + "</p>" : "")
-    + recLink + "</div>" + textHtml + vibeHtml
+    + recLink + "</div>" + player + textHtml + vibeHtml
     + (tip ? "<div class=\"card\"><h3>AzielTether lattice tip</h3><p class=\"muted\">Public HTTPS site is not a mesh.</p><pre class=\"verify\">" + esc(JSON.stringify(tip, null, 2)) + "</pre></div>" : "");
 }
 
