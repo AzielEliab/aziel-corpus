@@ -4,6 +4,7 @@ const FALLBACK_HOST = "https://aziel-corpus-download-tracker.vibelock.workers.de
 const CATALOG = "https://aziel-runtime.vibelock.workers.dev";
 const GITHUB_REPO = "https://github.com/AzielEliab/aziel-corpus";
 const DEFAULT_ASSET = "aziel-digital-library-2.6.2.zip";
+const VERSION = "2.7.0";
 
 export function robotsTxt() {
   return [
@@ -14,6 +15,9 @@ export function robotsTxt() {
     "Allow: /tree",
     "Allow: /health",
     "Allow: /intelligence",
+    "Allow: /ocr",
+    "Allow: /receipt",
+    "Allow: /ledger",
     "Allow: /historical",
     "Allow: /verify",
     "Allow: /corpus",
@@ -24,7 +28,6 @@ export function robotsTxt() {
     "Allow: /openapi.json",
     "Allow: /assets",
     "Allow: /assets/",
-    "Allow: /receipt",
     "Allow: /login",
     "Disallow: /logout",
     "Disallow: /signup",
@@ -36,9 +39,9 @@ export function robotsTxt() {
 export async function sitemapXml(env) {
   const locs = [
     HOST + "/", HOST + "/corpus", HOST + "/map", HOST + "/gazetteer", HOST + "/tree",
-    HOST + "/health", HOST + "/intelligence", HOST + "/historical", HOST + "/verify",
+    HOST + "/health", HOST + "/intelligence", HOST + "/ocr", HOST + "/historical", HOST + "/verify",
     HOST + "/download", HOST + "/install.sh", HOST + "/v1/health", HOST + "/v1/search",
-    HOST + "/v1/skill", HOST + "/v1/example", HOST + "/openapi.json", HOST + "/llms.txt",
+    HOST + "/v1/skill", HOST + "/v1/example", HOST + "/v1/review", HOST + "/v1/lattice", HOST + "/v1/verify-backfill", HOST + "/v1/media-run", HOST + "/openapi.json", HOST + "/llms.txt",
     HOST + "/cite.json", HOST + "/assets/world_110m.geojson", GITHUB_REPO,
   ];
   try {
@@ -55,13 +58,19 @@ export function citeDoc() {
   return {
     author: "Aziel Eliab",
     title: "Aziel Digital Library",
-    version: "2.6.2",
+    version: VERSION,
     github: GITHUB_REPO,
     library: HOST + "/",
     download: HOST + "/download",
     map: HOST + "/map",
     gazetteer: HOST + "/gazetteer",
     intelligence: HOST + "/intelligence",
+    ocr: HOST + "/ocr",
+    transcribe: HOST + "/transcribe",
+    transcribe_note: "POST /transcribe — Workers AI Whisper; mandatory VibeLock determination; hard A/V blocks (HTTP 451)",
+    receipt: HOST + "/receipt/{id}",
+    ledger: HOST + "/ledger/{id}",
+    media_run: HOST + "/v1/media-run",
     health: HOST + "/health",
     historical: HOST + "/historical",
     tree: HOST + "/tree",
@@ -71,12 +80,24 @@ export function citeDoc() {
     llms: HOST + "/llms.txt",
     license: "Apache-2.0",
     catalog: CATALOG + "/",
-    how_to_cite: "Eliab, Aziel. (2026). Aziel Digital Library v2.6.2 [Software]. Apache-2.0. " + HOST + "/",
+    review: HOST + "/v1/review",
+    lattice: HOST + "/v1/lattice",
+    verify_backfill: HOST + "/v1/verify-backfill",
+    document_chain: HOST + "/v1/document-chain",
+    jeeves_chat: HOST + "/v1/jeeves/chat",
+    jeeves_upload: HOST + "/v1/jeeves/upload",
+    jeeves: "Research assistant. Not sovereign. Not operator. Corpus-only Add. Cannot change scores.",
+    vibelock: "Mandatory VibeLock determination on every /transcribe run. Hard blocks porn, nudity, child-sexual content. Not courtroom proof.",
+    media_lattice: "Transcript success: LATTICE_TRANSCRIPT_VIBELOCK. Blocked A/V: LATTICE_AV_BLOCKED (HTTP 451, never stored).",
+    file: HOST + "/file/{record_id}",
+    download_record: HOST + "/download?record=",
+    triad: "TRIAD_V1 geometric mean of SPRE, CLCE, and PhysLing — primary visible score",
+    how_to_cite: "Eliab, Aziel. (2026). Aziel Digital Library v2.7.0 [Software]. Apache-2.0. " + HOST + "/",
   };
 }
 
 export function llmsDoc(limitation) {
-  return "# Aziel Digital Library v2.6.2\n\n"
+  return "# Aziel Digital Library v2.7.0\n\n"
     + "Author: Aziel Eliab\n"
     + "Library: " + HOST + "/\n"
     + "GitHub: " + GITHUB_REPO + "\n"
@@ -84,7 +105,7 @@ export function llmsDoc(limitation) {
     + "Catalog: " + CATALOG + "/\n"
     + "License: Apache-2.0\n\n"
     + limitation + "\n\n"
-    + "Hosted tools run on this Worker. Visitors do not download Python, Tesseract, Poppler, or Whisper to use Map, Gazetteer, Tree, Health, Intelligence, Historical Geography, Verify, or OCR.\n\n"
+    + "Hosted tools run on this Worker. Visitors do not download Python, Tesseract, Poppler, or Whisper to use Map, Gazetteer, Tree, Health, Intelligence, Historical Geography, Verify, OCR, or transcription.\n\n"
     + "## Public HTML (anonymous GET; User-Agent Mozilla/5.0)\n\n"
     + "- Search: " + HOST + "/\n"
     + "- Corpus: " + HOST + "/corpus\n"
@@ -92,7 +113,8 @@ export function llmsDoc(limitation) {
     + "- Temporal Map: " + HOST + "/map\n"
     + "- Gazetteer: " + HOST + "/gazetteer\n"
     + "- Historical Geography: " + HOST + "/historical\n"
-    + "- Intelligence / hosted OCR: " + HOST + "/intelligence\n"
+    + "- Intelligence / hosted OCR and Whisper: " + HOST + "/intelligence\n"
+    + "- OCR / transcription: " + HOST + "/ocr\n"
     + "- Health: " + HOST + "/health\n"
     + "- Verify: " + HOST + "/verify\n\n"
     + "## JSON / LLM routes (do not increment downloads)\n\n"
@@ -100,6 +122,19 @@ export function llmsDoc(limitation) {
     + "- GET " + HOST + "/v1/search?q=\n"
     + "- GET " + HOST + "/v1/skill\n"
     + "- GET " + HOST + "/v1/example\n"
+    + "- GET " + HOST + "/v1/review?record_id=\n"
+    + "- GET " + HOST + "/v1/lattice?record_id=\n"
+    + "- GET " + HOST + "/v1/verify-backfill\n"
+    + "- GET " + HOST + "/v1/document-chain?record_id=\n"
+    + "- GET " + HOST + "/v1/media-run?run_id=\n"
+    + "- POST " + HOST + "/v1/score\n"
+    + "- POST " + HOST + "/v1/jeeves/chat\n"
+    + "- POST " + HOST + "/v1/jeeves/upload  (Corpus only)\n"
+    + "- POST " + HOST + "/transcribe  (Whisper + mandatory VibeLock; hard A/V blocks HTTP 451)\n"
+    + "- GET " + HOST + "/media/{sha256}  (allowed A/V playback only)\n"
+    + "- POST " + HOST + "/ocr  (lattice receipt on every run)\n"
+    + "- GET " + HOST + "/receipt/{id}  (AZDOC- or AZRUN-)\n"
+    + "- GET " + HOST + "/ledger/{id}\n"
     + "- GET " + HOST + "/api/events\n"
     + "- GET " + HOST + "/api/gazetteer?q=Florence\n"
     + "- GET " + HOST + "/api/historical?date=1502\n"
@@ -109,5 +144,6 @@ export function llmsDoc(limitation) {
     + "- GET " + HOST + "/assets/world_110m.geojson\n\n"
     + "## Downloads (HTTP 200, counted, no 302)\n\n"
     + "- Package: " + HOST + "/download?asset=" + DEFAULT_ASSET + "\n"
+    + "- Record: " + HOST + "/file/{record_id} or " + HOST + "/download?record=AZDOC-… (HTTP 200; quarantined still downloadable)\n"
     + "- Install: curl -fsSL " + HOST + "/install.sh | bash\n";
 }

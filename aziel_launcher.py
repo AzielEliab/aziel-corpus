@@ -10,7 +10,7 @@ import time
 import urllib.request
 
 import webbrowser
-APP_VERSION = '2.6.2'
+APP_VERSION = '2.7.0'
 DEFAULT_PORT = 8765
 
 

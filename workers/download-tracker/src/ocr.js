@@ -4,8 +4,10 @@
 import { createHash } from "node:crypto";
 import { unzipEntries, zipText } from "./zip.js";
 import { appendLedger, verifyLedger, ensureLedger } from "./ledger.js";
+import { ensureReviewSchema } from "./review-store.js";
 import { mergeKitPlaces, sha256hex, utcNow, newId, ensureSchema } from "./geo.js";
 import { isOperator, libraryFor, ingestRecord, asFile, safeFilename, objectExists, putObject } from "./library.js";
+import { persistOcrRun, ensureMediaSchema } from "./media.js";
 
 const VISION_MODELS = [
   "@cf/meta/llama-3.2-11b-vision-instruct",
@@ -76,19 +78,23 @@ export function extractPdfText(bytes) {
 export async function ocrFile(env, file) {
   const name = safeFilename(file && file.name);
   const ct = String((file && file.type) || "").toLowerCase();
-  const bytes = await file.arrayBuffer();
+  const raw = await file.arrayBuffer();
+  const bytes = raw instanceof Uint8Array ? raw : new Uint8Array(raw);
   if (ct === "application/pdf" || /\.pdf$/i.test(name)) {
     const text = extractPdfText(bytes);
-    if (text) return { ok: true, text, engine: "AZIEL_TEXT_ENGINE", kind: "pdf" };
+    if (text) return { ok: true, text, engine: "AZIEL_TEXT_ENGINE", kind: "pdf", filename: name, contentType: ct, bytes };
     return {
       ok: false,
       kind: "pdf",
       text: "",
+      filename: name,
+      contentType: ct,
+      bytes,
       message: "This PDF has no extractable text stream. Snap a page photo and run hosted image OCR (or the in-page Tesseract.js fallback). pdftoppm is not required and is not offered as a download.",
     };
   }
   const ocr = await runWorkersAiOcr(env, bytes, ct || "image/png");
-  return { ...ocr, kind: "image", filename: name, contentType: ct };
+  return { ...ocr, kind: "image", filename: name, contentType: ct, bytes };
 }
 
 export async function appendOcrToRecord(env, recordId, extraText, signed) {
@@ -116,6 +122,16 @@ export async function ocrIngestHint(env, rec) {
     await appendOcrToRecord(env, rec.id, ocr.text, rec.signed);
     rec.extractText = [rec.extractText || "", ocr.text].filter(Boolean).join("\n\n");
   }
+  try {
+    await persistOcrRun(env, {
+      bytes: rec.ocrHint.bytes,
+      text: ocr.text || "",
+      filename: rec.title || rec.id,
+      mime: rec.ocrHint.contentType,
+      recordId: rec.id,
+      error: ocr.ok ? null : (ocr.error || ocr.missing),
+    });
+  } catch { /* lattice best-effort */ }
 }
 
 export async function fetchSelftestPng(env, request) {
@@ -149,6 +165,15 @@ export async function ocrSelftest(env, request) {
     created_utc: utcNow(),
   };
   await env.DB.prepare("INSERT OR REPLACE INTO metadata(key,value) VALUES(?,?)").bind("ocr_selftest", JSON.stringify(result)).run();
+  try {
+    await persistOcrRun(env, {
+      bytes,
+      text,
+      filename: "ocr_selftest.png",
+      mime: "image/png",
+      error: ok ? null : (result.missing || "selftest failed"),
+    });
+  } catch { /* lattice best-effort */ }
   return result;
 }
 
@@ -196,6 +221,16 @@ export async function reprocessPendingOcr(env, signed) {
         failed += 1;
         errors.push({ record_id: r.record_id, error: ocr.missing || ocr.error || "empty" });
       }
+      try {
+        await persistOcrRun(env, {
+          bytes,
+          text: ocr.text || "",
+          filename: r.record_id,
+          mime: r.content_type,
+          recordId: r.record_id,
+          error: ocr.ok ? null : (ocr.missing || ocr.error || "empty"),
+        });
+      } catch { /* lattice best-effort */ }
     } catch (err) {
       failed += 1;
       errors.push({ record_id: r.record_id, error: String(err && err.message ? err.message : err).slice(0, 200) });
@@ -287,6 +322,7 @@ export async function installPackage(env, { signed, file }) {
 
 export async function healthSnapshot(env, extra = {}) {
   await ensureSchema(env);
+  try { await ensureMediaSchema(env); } catch { /* media schema */ }
   const count = async (sql) => {
     try { const row = await env.DB.prepare(sql).first(); return Number(row && (row.n != null ? row.n : Object.values(row)[0])) || 0; }
     catch { return 0; }
@@ -309,17 +345,22 @@ export async function healthSnapshot(env, extra = {}) {
     gazetteer_places: places,
     packages,
     historical_layers: layers,
+    quarantined: await count("SELECT COUNT(*) AS n FROM records WHERE IFNULL(quarantine_status,'CLEAR') IN ('POISON_SUSPECT','QUARANTINE')"),
     views: extra.views || 0,
     downloads: extra.downloads || 0,
     d1: d1ok ? "ok" : "missing",
     files: filesOk ? "ok" : "missing",
     ocr: aiBound(env) ? "HOSTED (Workers AI)" : "NOT READY — Workers AI binding missing",
+    transcription: aiBound(env) ? "HOSTED (Workers AI Whisper)" : "NOT READY — Workers AI binding missing",
+    vibelock: "MANDATORY on /transcribe — hard blocks; not courtroom proof",
     mode: "MASTER",
   };
 }
 
 export async function verifyHosted(env, request) {
   await ensureSchema(env);
+  try { await ensureReviewSchema(env); } catch { /* review schema */ }
+  try { await ensureMediaSchema(env); } catch { /* media schema */ }
   const checks = [];
   const errors = [];
   let ledgerHead = null;
@@ -371,7 +412,10 @@ export async function verifyHosted(env, request) {
     historical_layers: ["layer_id"],
     metadata: ["key"],
     ledger: ["sequence", "entry_hash", "previous_hash"],
-    records: ["content_sha256"],
+    records: ["content_sha256", "quarantine_status", "review_json", "bayesian_posterior"],
+    peer_reviews: ["review_id", "record_id", "stance", "entry_hash"],
+    lattice_tips: ["tip_id", "record_id"],
+    media_runs: ["run_id", "kind", "content_sha256", "entry_hash", "prev_hash"],
   };
   for (const [table, cols] of Object.entries(need)) {
     try {
@@ -430,7 +474,7 @@ export async function verifyHosted(env, request) {
     ok: errors.length === 0,
     product: "aziel-corpus",
     name: "Aziel Digital Library",
-    version: "2.6.2",
+    version: "2.7.0",
     mode: "master",
     author: "Aziel Eliab",
     checks,

@@ -1,7 +1,8 @@
 import { isOperator } from "./library.js";
 import { headMeta, defaultDescription } from "./seo.js";
+import { jeevesFabHtml } from "./jeeves.js";
 
-/** Master UI chrome from Aziel Digital Library v2.6.2 webapp. Author: Aziel Eliab. */
+/** Master UI chrome from Aziel Digital Library v2.7.0 webapp. Author: Aziel Eliab. */
 export const CSS = `
 :root{--paper:#f6f3ee;--ink:#1c1916;--btn:#1f3a44;--card:#fffcf7;--line:#e2d9cc;--muted:#6b645c;--cream:#fffaf3}
 *{box-sizing:border-box}
@@ -63,14 +64,38 @@ label.showpw{font-size:14px;color:var(--muted);white-space:nowrap;min-height:44p
 .mini-chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
 .mini-chip{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink);text-decoration:none;font-size:13px;font-weight:600}
 .mini-chip.on{background:var(--btn);color:#fff;border-color:var(--btn)}
+.q-badge{display:inline-block;font-size:12px;font-weight:750;padding:4px 10px;border-radius:999px;margin-left:6px}
+.q-badge.go{background:#e4eee6;color:#1a5a32}
+.q-badge.slow{background:#fff3d6;color:#7a5b00}
+.q-badge.stop{background:#f8e0e3;color:#8a1524}
+.lights{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:12px 0}
+.light{display:flex;gap:10px;align-items:flex-start;padding:10px;border:1px solid var(--line);border-radius:12px;background:#fff;min-height:72px}
+.light .lamp{width:18px;height:18px;border-radius:50%;flex:0 0 18px;margin-top:4px;box-shadow:inset 0 0 0 2px #00000014}
+.light.go .lamp{background:#2f9e44}
+.light.slow .lamp{background:#f0c14b}
+.light.stop .lamp{background:#c92a2a}
 .shelf{display:block}
 .meta-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:10px 0}
+.triad{display:flex;gap:16px;align-items:center;margin:10px 0 4px}
+.triad .metric{font-size:42px;line-height:1}
+.triad-card{border:1px solid var(--line);border-radius:14px;padding:16px;background:#fff;margin:12px 0}
+.q-banner{background:#f8e0e3;color:#8a1524;border:1px solid #e4b4ba;border-radius:12px;padding:12px 14px;margin:10px 0;font-weight:650}
+.jeeves-fab{position:fixed;right:16px;bottom:16px;z-index:40;width:auto;min-width:120px;max-width:calc(100vw - 32px);box-shadow:0 8px 24px #00000022;touch-action:manipulation;pointer-events:auto}
+.jeeves-drawer{position:fixed;right:12px;bottom:72px;z-index:39;width:min(380px,calc(100vw - 24px));max-height:70vh;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 12px 32px #00000022;touch-action:pan-y;pointer-events:auto}
+.jeeves-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.jeeves-x{background:transparent;color:var(--ink);border:0;min-height:44px;width:44px;padding:0}
+.jeeves-log{min-height:80px;max-height:28vh;overflow:auto;margin:8px 0;border:1px solid var(--line);border-radius:10px;padding:8px;background:#fff}
+.jeeves-msg{margin:0 0 8px;font-size:14px}
+.jeeves-note{margin:6px 0 8px}
+.jeeves-ask,.jeeves-up{display:flex;flex-direction:column;gap:8px;margin:8px 0}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
 @media (max-width:720px){
-  .wrap{padding:16px 14px 56px}
+  .wrap{padding:16px 14px 88px}
   .brand{width:100%;font-size:20px}
   .search,.hero-search .search{width:100%;min-width:0}
   .hero-search{flex-direction:column}
   .hero-search button,.button,button{width:100%}
+  .jeeves-fab,.jeeves-drawer button,.jeeves-drawer .button,.jeeves-x{width:auto}
   .nav1,.nav2{width:100%}
   .doc,.card,.drop{padding:16px}
   .tools{width:100%}
@@ -78,6 +103,8 @@ label.showpw{font-size:14px;color:var(--muted);white-space:nowrap;min-height:44p
   .tools select,.tools input,.tools .search{width:100%;min-height:44px}
   .tools button{width:100%}
   .chips,.mini-chips{width:100%}
+  .lights{grid-template-columns:1fr}
+  .q-badge{display:block;margin:8px 0 0;width:fit-content}
 }
 
 .tree details{margin:4px 0}
@@ -94,10 +121,15 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--btn)}
 table.plain{width:100%;border-collapse:collapse}
 table.plain th,table.plain td{text-align:left;vertical-align:top;padding:10px 8px;border-bottom:1px solid var(--line)}
 pre.verify{white-space:pre-wrap;word-break:break-word;background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;overflow:auto}
+.media-options{display:flex;flex-direction:column;gap:6px;margin:8px 0 14px}
+.media-actions{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0}
+.media-form input[type=checkbox]{width:auto;min-height:18px;min-width:18px;flex:0 0 auto}
+.av-player{width:100%;max-width:100%;margin:8px 0;min-height:44px}
 @media (max-width:720px){
   .map-tools{flex-direction:column;align-items:stretch}
   .map-tools label,.map-tools button,.map-tools input,.map-tools select{width:100%}
   table.plain{display:block;overflow-x:auto}
+  .media-actions .button,.media-actions button{width:100%}
 }
 `;
 
@@ -119,9 +151,9 @@ export function page(title, body, { signed, scripts, path, kind, description } =
     ? `<a href="/aziel-library">Aziel Library</a><span class="sep">|</span>`
     : "";
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)} — Aziel Digital Library</title>${headMeta({ title, path: path || "/", kind, description })}<style>${CSS}</style></head><body><div class="wrap">
-<div class="nav1"><div class="brand">Aziel Digital Library</div><span class="pill">Runtime v2.6.2</span><span class="pill ok">MASTER · WRITABLE</span>${account}</div>
+<div class="nav1"><div class="brand">Aziel Digital Library</div><span class="pill">Runtime v2.7.0</span><span class="pill ok">MASTER · WRITABLE</span>${account}</div>
 <nav class="nav2 quiet"><a href="/">Search</a><span class="sep">|</span>${azielLink}<a href="/corpus">Corpus</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/gazetteer">Gazetteer</a><span class="sep">|</span><a href="/intelligence">Intelligence</a><span class="sep">|</span><a href="/health">Health</a><span class="sep">|</span><a href="/verify">Verify</a><span class="sep">|</span>${authLinks}</nav>
-${body}</div>${(scripts||[]).map((src)=>"<script src=\""+esc(src)+"\" defer></script>").join("")}</body></html>`;
+${body}</div>${jeevesFabHtml()}${(scripts||[]).map((src)=>"<script src=\""+esc(src)+"\" defer></script>").join("")}</body></html>`;
 }
 
 function esc(s) {
@@ -238,9 +270,11 @@ function docCards(rows, state = {}, path = "/") {
   const st = browseState(state);
   return `<div class="shelf">${rows
     .map((r) => {
-      const open = r.object_key
-        ? `<p><a class="button" href="/file/${esc(r.record_id)}">Open file</a></p>`
-        : "";
+      const combined = r.triad_combined != null ? Number(r.triad_combined) : (r.review && r.review.triad && r.review.triad.combined);
+      const triadRow = combined != null
+        ? `<p class="triad"><span class="metric">${Math.round(Number(combined) * 100)}</span><span class="muted">Triad score (SPRE × CLCE × PhysLing)</span></p>`
+        : `<p class="muted">Triad score pending backfill</p>`;
+      const open = `<p><a class="button" href="/file/${esc(r.record_id)}">Download</a></p>`;
       const file = r.filename ? esc(r.filename) : "text record";
       const when = r.created_utc ? esc(String(r.created_utc).replace("T", " ").slice(0, 16)) : "";
       const authorName = String(r.author || "").trim();
@@ -259,8 +293,14 @@ function docCards(rows, state = {}, path = "/") {
       const extra = [domainChips, subjectChips, keywordChips].filter(Boolean).join("");
             const sha = String(r.content_sha256 || "").trim();
       const shaRow = sha ? `<p class="meta">SHA-256 ${esc(sha.slice(0,12))}… · <a href="/receipt/${esc(r.record_id)}">receipt</a></p>` : `<p class="meta"><a href="/receipt/${esc(r.record_id)}">receipt</a></p>`;
+      const q = String(r.quarantine_status || "").toUpperCase();
+      const qBadge = q === "POISON_SUSPECT" || q === "QUARANTINE"
+        ? `<span class="q-badge stop">Quarantine</span>`
+        : q === "OPERATOR_FLAG" || q === "FLAGGED"
+          ? `<span class="q-badge slow">Flagged</span>`
+          : "";
 const extraRow = extra ? `<div class="mini-chips">${extra}</div>` : "";
-      return `<article class="doc">${libTag(r.library)}<h3>${esc(r.title)}</h3>${byline}${extraRow}<p class="meta">${file}${when ? " · " + when : ""}</p>${shaRow}<p>${esc(r.snippet || r.body || "")}</p>${open}</article>`;
+      return `<article class="doc">${libTag(r.library)}${qBadge}<h3><a href="/record/${esc(r.record_id)}">${esc(r.title)}</a></h3>${byline}${extraRow}${triadRow}<p class="meta">${file}${when ? " · " + when : ""}</p>${shaRow}<p>${esc(r.snippet || r.body || "")}</p>${open}</article>`;
     })
     .join("")}</div>`;
 }
@@ -283,7 +323,7 @@ export function homeBody({ q, lib, sort, domain, subject, keyword, author, rows,
 ${browseTools({ action: "/", showLibChips: true, ...state })}
 ${facetBlock(facets, state, "/")}
 ${docCards(rows, state, "/")}
-<div class="card row"><a class="button" href="/download">Download v2.6.2 zip</a></div>
+<div class="card row"><a class="button" href="/download">Download library zip</a></div>
 <div class="muted">One-click install: <code>curl -fsSL ${esc(host)}/install.sh | bash</code></div>`;
 }
 
@@ -342,4 +382,4 @@ export function stub(title, lead) {
   return `<div class="card"><h2>${esc(title)}</h2><p>${lead}</p><p class="muted">Hosted MASTER UI. Full local vault tools also run via <code>python3 aziel_launcher.py</code> on 127.0.0.1:8765.</p></div>`;
 }
 
-export { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody } from "./hosted-pages.js";
+export { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, blockedAvBody } from "./hosted-pages.js";
