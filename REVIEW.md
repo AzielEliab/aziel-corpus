@@ -127,6 +127,7 @@ Every stored document (Aziel Library + Corpus, including text-only and quarantin
 
 - `GET /file/{record_id}` — HTTP 200, ledger-linked
 - `GET /download?record=AZDOC-…` — counted + ledger-linked, HTTP 200 (no silent 302)
+- `GET /download?hash=` and `GET /v1/docs/{hash}/download` — download by content SHA-256 when a kept record matches. Duplicates are not deleted.
 
 Quarantined poison docs stay downloadable with a quarantine banner and `X-Aziel-Quarantine`.
 

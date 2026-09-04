@@ -362,6 +362,9 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
         result: { ...result, record_id: null, lenses, run_id: run && run.run_id, receipt_url: run && run.receipt_url },
       }), { signed, path: "/ocr", scripts: intelScripts(), kind: "ocr" }));
     }
+    const triad = record && record.review && record.review.triad
+      ? { combined: record.review.triad.combined, display: record.review.triad.display, ready: record.review.triad.ready }
+      : null;
     return json({
       ok: !!result.ok,
       text: result.text || "",
@@ -377,6 +380,10 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
       overlay: result.overlay ? { ok: !!result.overlay.ok, plan: result.overlay.plan, advisory: result.overlay.advisory, note: result.overlay.note } : null,
       record_id: record && record.id,
       library: record && record.library,
+      triad,
+      content_sha256: record && record.content_sha256,
+      download: record ? "/file/" + record.id : null,
+      download_hash: record && record.content_sha256 ? "/download?hash=" + record.content_sha256 : null,
     });
   }
   if (path === "/ocr-selftest" && method === "POST") {

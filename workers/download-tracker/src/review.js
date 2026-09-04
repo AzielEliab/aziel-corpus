@@ -354,6 +354,7 @@ export function triadComposite({ spre, clce, plr } = {}) {
   const combined = ready
     ? Math.pow(Math.max(spre_pc, eps) * Math.max(clce_consistency, eps) * Math.max(plr_coherence, eps), 1 / 3)
     : null;
+  const display = combined == null ? null : Math.round(combined * 100);
   return {
     schema: TRIAD_SCHEMA,
     formula: TRIAD_FORMULA,
@@ -365,7 +366,7 @@ export function triadComposite({ spre, clce, plr } = {}) {
     },
     weights: { spre: 1 / 3, clce: 1 / 3, plr: 1 / 3 },
     combined: combined == null ? null : round4(combined),
-    display: combined == null ? null : Math.round(combined * 100),
+    display,
     kid_plain: TRIAD_KID,
     primary_visible: true,
     bayesian_separate: true,
@@ -376,7 +377,7 @@ export function triadComposite({ spre, clce, plr } = {}) {
  * Aziel Library collection score is the published triad (display capped at 100).
  * Corpus stays the geometric mean. No extra keys — do not re-apply in backfill.
  */
-function collectionTriad(triad, library) {
+export function collectionTriad(triad, library) {
   if (!triad || !triad.ready || triad.display == null) return triad;
   if (String(library || "") !== "aziel") return triad;
   const display = Math.min(100, Number(triad.display) + 25);

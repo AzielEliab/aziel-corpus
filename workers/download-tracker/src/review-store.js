@@ -4,7 +4,7 @@
  */
 import { randomBytes } from "node:crypto";
 import { appendLedger, appendDocumentLedger, ensureLedger, hashPayload, isDocumentId } from "./ledger.js";
-import { reviewDocument } from "./review.js";
+import { reviewDocument, triadComposite, collectionTriad } from "./review.js";
 import { verifyBytes, verifyTextRecord, sha256hex } from "./structure.js";
 import { latticeAnchorTip } from "./lattice.js";
 
@@ -321,6 +321,18 @@ export function isFullyScored(row, review) {
   );
 }
 
+export function storedTriadMatches(row, review) {
+  if (!isFullyScored(row, review)) return false;
+  const expected = collectionTriad(triadComposite({
+    spre: review.spre,
+    clce: review.clce,
+    plr: review.plr,
+  }), row && row.library);
+  const stored = row && row.triad_combined != null ? Number(row.triad_combined) : review.triad && review.triad.combined;
+  if (expected.combined == null || stored == null || !Number.isFinite(Number(stored))) return false;
+  return Math.abs(Number(stored) - expected.combined) < 0.0002;
+}
+
 export async function backfillReviews(env, { limit = 25, force = false, recordId = null } = {}) {
   await ensureReviewSchema(env);
   const cap = Math.min(Math.max(Number(limit) || 25, 1), 50);
@@ -336,7 +348,7 @@ export async function backfillReviews(env, { limit = 25, force = false, recordId
         (await env.DB.prepare(
           force
             ? "SELECT record_id, title, body, filename, content_type, object_key, library, author, content_sha256, created_by, review_json, triad_combined FROM records ORDER BY created_utc ASC LIMIT ?"
-            : "SELECT record_id, title, body, filename, content_type, object_key, library, author, content_sha256, created_by, review_json, triad_combined FROM records WHERE review_json IS NULL OR review_json='' OR triad_combined IS NULL ORDER BY created_utc ASC LIMIT ?"
+            : "SELECT record_id, title, body, filename, content_type, object_key, library, author, content_sha256, created_by, review_json, triad_combined FROM records WHERE library='aziel' OR review_json IS NULL OR review_json='' OR triad_combined IS NULL ORDER BY CASE WHEN review_json IS NULL OR review_json='' OR triad_combined IS NULL THEN 0 ELSE 1 END, created_utc ASC LIMIT ?"
         ).bind(cap).all()).results || [];
     } catch {
       rows =
@@ -350,7 +362,7 @@ export async function backfillReviews(env, { limit = 25, force = false, recordId
   let skipped = 0;
   for (const row of rows) {
     const existing = await parseReviewJson(row.review_json);
-    if (!force && isFullyScored(row, existing)) {
+    if (!force && storedTriadMatches(row, existing)) {
       skipped += 1;
       results.push({ record_id: row.record_id, skipped: true, reason: "already fully scored" });
       continue;

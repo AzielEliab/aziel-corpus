@@ -2,7 +2,7 @@
  * Aziel Digital Library hosted runtime. /v1 never touches DOWNLOADS KV.
  * Author: Aziel Eliab.
  */
-import { searchRecords } from "./library.js";
+import { searchRecords, serveFileByHash, normalizeContentHash } from "./library.js";
 import { receiptForRecord, documentChain } from "./ledger.js";
 import { loadRecordReview, runReviewBundle, backfillReviews } from "./review-store.js";
 import { latticeAnchorTip, LATTICE_NOTE } from "./lattice.js";
@@ -62,6 +62,7 @@ Ops (do **not** increment downloads):
 - \`GET /receipt/{id}\` and \`GET /ledger/{id}\` (AZDOC- or AZRUN-)
 - \`GET /v1/media-run?run_id=\`
 - \`GET /file/{record_id}\` and \`GET /download?record=\` — every record is downloadable (HTTP 200)
+- \`GET /download?hash=\` and \`GET /v1/docs/{hash}/download\` — download by content SHA-256 when a kept record matches
 
 Catalog aliases: \`GET /p/aziel-corpus/health\`, \`GET /p/aziel-corpus/search\`, \`GET /p/aziel-corpus/skill\`.
 
@@ -122,15 +123,17 @@ function openapi() {
       "/v1/verify-backfill": { get: { summary: "Score unscored records (structure + SPRE + CLCE + PhysLing + triad + document hash-chain). Safe to re-run; skip fully scored unless force=1. Cron-friendly. Does not increment downloads.", operationId: "verifyBackfill", parameters: [{ name: "limit", in: "query", schema: { type: "integer", default: 25 } }, { name: "force", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "record_id", in: "query", schema: { type: "string" } }] } },
       "/v1/document-chain": { get: { summary: "Per-document hash-chain bound to record_id. No orphan chains.", operationId: "documentChain", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
       "/v1/jeeves/chat": { post: { summary: "Ask Jeeves research assistant over public records. Lamb Lens. Cannot change scores.", operationId: "jeevesChat" } },
-      "/v1/jeeves/upload": { post: { summary: "Ask Jeeves Add — Corpus only (never Aziel Library). Same ingest as the shelf.", operationId: "jeevesUpload" } },
+      "/v1/jeeves/upload": { post: { summary: "Ask Jeeves Add — same ingest as the shelf (structure, SPRE × CLCE × PhysLing, Bayesian). Signed-in public writes Corpus; operator writes Aziel Library.", operationId: "jeevesUpload" } },
       "/v1/media-run": { get: { summary: "Hash-chained media lattice receipt for an OCR or transcript run (AZRUN-).", operationId: "mediaRun", parameters: [{ name: "run_id", in: "query", required: true, schema: { type: "string" } }] } },
       "/transcribe": { post: { summary: "Hosted Whisper transcription with mandatory VibeLock determination. Hard-blocks porn, nudity, and child-sexual content (HTTP 451; never stored or playable). Allowed media at /media/{sha256}. Optional library upload (signed-in: Corpus; operator: Aziel Library).", operationId: "transcribe" } },
       "/ocr": { post: { summary: "Hosted image/PDF OCR. Always writes a media lattice receipt. Optional library upload.", operationId: "ocr" } },
       "/media/{sha256}": { get: { summary: "Inline playback of allowed A/V stored at av/{sha256}. Blocked media is never stored.", operationId: "media", parameters: [{ name: "sha256", in: "path", required: true, schema: { type: "string" } }] } },
       "/receipt/{id}": { get: { summary: "Receipt for an AZDOC- record or AZRUN- media lattice entry.", operationId: "receipt", parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }] } },
       "/ledger/{id}": { get: { summary: "Alias of /receipt/{id} for media lattice and document receipts.", operationId: "ledger", parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }] } },
-      "/file/{record_id}": { get: { summary: "Download any stored record (text or file). HTTP 200. Quarantined poison docs stay downloadable with X-Aziel-Quarantine. Ledger-linked.", operationId: "file" } },
-      "/download": { get: { summary: "Counted zip (asset=) or counted record download (record=AZDOC-…). HTTP 200, no silent 302.", operationId: "download", parameters: [{ name: "asset", in: "query", schema: { type: "string" } }, { name: "record", in: "query", schema: { type: "string" } }] } },
+      "/file/{record_id}": { get: { summary: "Download any stored record (text or file). HTTP 200. Quarantined poison docs stay downloadable with X-Aziel-Quarantine. Ledger-linked. A 64-hex SHA-256 also resolves the kept matching file.", operationId: "file" } },
+      "/download": { get: { summary: "Counted zip (asset=), counted record download (record=AZDOC-…), or counted content-hash download (hash=SHA-256). HTTP 200, no silent 302.", operationId: "download", parameters: [{ name: "asset", in: "query", schema: { type: "string" } }, { name: "record", in: "query", schema: { type: "string" } }, { name: "hash", in: "query", schema: { type: "string" } }, { name: "sha256", in: "query", schema: { type: "string" } }] } },
+      "/v1/docs/{hash}/download": { get: { summary: "Download the stored file for a kept record whose content_sha256 matches. Does not increment downloads. Duplicates are not deleted.", operationId: "downloadByHash", parameters: [{ name: "hash", in: "path", required: true, schema: { type: "string" } }] } },
+      "/v1/runtime": { get: { summary: "Package and runtime version discovery for catalog scrapers. Does not increment downloads.", operationId: "runtime" } },
     },
   };
 }
@@ -141,6 +144,28 @@ export async function handleRuntimeApi(request, url, env) {
     return new Response(null, { status: 204, headers: corsHeaders() });
   }
   if (path === "/openapi.json" && request.method === "GET") return json(openapi());
+  if (path === "/v1/runtime" && request.method === "GET") {
+    return json({
+      ok: true,
+      product: PRODUCT,
+      name: "Aziel Digital Library",
+      version: VERSION,
+      package: VERSION,
+      spec: SPEC,
+      mode: "master",
+      author: "Aziel Eliab",
+      host: HOST,
+      catalog: CATALOG,
+      protocol: PROTOCOL,
+      limitation: LIMITATION,
+    });
+  }
+  const docsDl = path.match(/^\/v1\/docs\/([^/]+)\/download$/);
+  if (docsDl && request.method === "GET") {
+    const hash = normalizeContentHash(decodeURIComponent(docsDl[1]));
+    if (!hash) return json({ error: "content hash required" }, 400);
+    return serveFileByHash(env, hash);
+  }
   if (path === "/v1" || path === "/v1/health") {
     if (request.method !== "GET") return json({ error: "GET only" }, 405);
     return json({
@@ -148,6 +173,7 @@ export async function handleRuntimeApi(request, url, env) {
       product: PRODUCT,
       name: "Aziel Digital Library",
       version: VERSION,
+      package: VERSION,
       spec: SPEC,
       mode: "master",
       limitation: LIMITATION,

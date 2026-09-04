@@ -30,6 +30,9 @@ Ops (do **not** increment downloads):
 - `GET /v1/skill`
 - `GET /v1/review?record_id=`
 - `GET /v1/lattice?record_id=`
+- `GET /v1/runtime`
+- `GET /v1/docs/{hash}/download` (content SHA-256; does not increment)
+- `GET /download?hash=` (counted content-hash download)
 
 Catalog aliases: `GET /p/aziel-corpus/health`, `GET /p/aziel-corpus/search`, `GET /p/aziel-corpus/skill`.
 

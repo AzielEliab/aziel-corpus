@@ -5,7 +5,8 @@ import { verifyBytes, verifyTextRecord, sha256hex } from "./structure.js";
 import { latticeAnchorTip } from "./lattice.js";
 import { isDocumentId } from "./ledger.js";
 import { jeevesShouldRefuse, lambLensSigned } from "./jeeves.js";
-import { isFullyScored } from "./review-store.js";
+import { isFullyScored, storedTriadMatches } from "./review-store.js";
+import { normalizeContentHash } from "./library.js";
 
 test("CLCE triple is 1 when layers match", () => {
   const s = clceScore({ r: "florence archive measurement", d: "florence archive measurement", p: "florence archive measurement" });
@@ -89,6 +90,54 @@ test("triad is geometric mean of the three verifiers", () => {
   const expected = Math.pow(0.64 * 0.8 * 1, 1 / 3);
   assert.ok(Math.abs(t.combined - expected) < 0.001);
   assert.equal(t.display, Math.round(expected * 100));
+});
+
+test("aziel library triad display is a 0-100 integer", () => {
+  const input = {
+    title: "Lab note",
+    body: "Independent primary source measurement of 12 joules at 3 kelvin. Archive hash recorded.",
+    filename: "note.txt",
+    sha256: "b".repeat(64),
+    author: "Aziel Eliab",
+    structure: { ok: true, files: [{ path: "note.txt", bytes: 20, sha256: "b".repeat(64) }] },
+  };
+  const corpus = reviewDocument({ ...input, library: "corpus" });
+  const aziel = reviewDocument({ ...input, library: "aziel" });
+  assert.equal(corpus.triad.display, Math.round(corpus.triad.combined * 100));
+  assert.ok(Number.isInteger(aziel.triad.display));
+  assert.ok(aziel.triad.display >= corpus.triad.display);
+  assert.ok(aziel.triad.display <= 100);
+  assert.ok(aziel.triad.combined <= 1);
+  assert.equal(aziel.triad.display, Math.round(aziel.triad.combined * 100));
+  const high = triadComposite({
+    spre: { pc: 1 },
+    clce: { triple: 1, pairwise_avg: 1 },
+    plr: { physics_coherence: 1, linguistic_neutrality: 1 },
+    library: "aziel",
+  });
+  assert.ok(high.display <= 100);
+  assert.ok(high.combined <= 1);
+});
+
+test("content hash normalizes to 64 hex", () => {
+  assert.equal(normalizeContentHash("  " + "AB".repeat(32) + "  "), "ab".repeat(32));
+  assert.equal(normalizeContentHash("0x" + "cd".repeat(32)), "cd".repeat(32));
+  assert.equal(normalizeContentHash("not-a-hash"), "");
+  assert.equal(normalizeContentHash("ab".repeat(31)), "");
+});
+
+test("stored triad match follows current library math", () => {
+  const review = reviewDocument({
+    title: "Lab note",
+    body: "Independent primary source measurement of 12 joules at 3 kelvin. Archive hash recorded.",
+    filename: "note.txt",
+    sha256: "b".repeat(64),
+    author: "Aziel Eliab",
+    library: "aziel",
+    structure: { ok: true, files: [{ path: "note.txt", bytes: 20, sha256: "b".repeat(64) }] },
+  });
+  assert.equal(storedTriadMatches({ library: "aziel", triad_combined: review.triad.combined }, review), true);
+  assert.equal(storedTriadMatches({ library: "aziel", triad_combined: 0 }, review), false);
 });
 
 test("triad is not ready until all three engines run", () => {
