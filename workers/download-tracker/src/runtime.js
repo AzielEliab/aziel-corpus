@@ -181,6 +181,21 @@ export async function handleRuntimeApi(request, url, env) {
   if (path === "/v1/example" && request.method === "GET") {
     return json({ q: "Florence" });
   }
+  if (path === "/v1/runtime" && request.method === "GET") {
+    return json({
+      ok: true,
+      author: "Aziel Eliab",
+      title: "aziel-runtime catalog front door",
+      catalog: CATALOG + "/",
+      catalog_json: CATALOG + "/v1/catalog.json",
+      openapi: CATALOG + "/openapi.json",
+      mcp: CATALOG + "/mcp",
+      software: HOST + "/software",
+      runtime: HOST + "/runtime",
+      lattice: HOST + "/v1/lattice",
+      limitation: LIMITATION,
+    });
+  }
   if (path === "/v1/search" && request.method === "GET") {
     const q = (url.searchParams.get("q") || "").trim();
     const lib = (url.searchParams.get("lib") || "all").trim() || "all";

@@ -144,14 +144,10 @@ export async function handleAuth(request, url, env, ctx) {
   }
 
   if (path === "/aziel-library" && request.method === "GET") {
-    if (!signed) return loginGate(signed, "Operator sign-in is required for Aziel Library upload.");
-    if (!isOperator(signed)) {
-      return html(page("Forbidden", `<div class="card"><h2>Forbidden</h2><p>Aziel Library upload is for the operator. Use <a href="/corpus">Corpus</a> to post.</p></div>`, { signed }), { status: 403, signed });
-    }
     const browse = parseBrowseParams(url);
     const rows = await searchRecords(env, { q: browse.q, library: "aziel", sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300 });
     const facets = await listFacets(env, { library: "aziel" });
-    return html(page("Aziel Library", azielLibraryBody({ rows, facets, ...browse, lib: "aziel" }), { signed, path: "/aziel-library", kind: "search" }), { signed });
+    return html(page("Aziel Library", azielLibraryBody({ rows, facets, ...browse, lib: "aziel", signed }), { signed, path: "/aziel-library", kind: "search" }), { signed });
   }
   if (path === "/aziel-library" && request.method === "POST") {
     if (!signed) return loginGate(signed, "Operator sign-in is required for Aziel Library upload.");
@@ -165,14 +161,14 @@ export async function handleAuth(request, url, env, ctx) {
     const meta = formMeta(form);
     if (!file) {
       const rows = await searchRecords(env, { library: "aziel", limit: 300 });
-      return html(page("Aziel Library", azielLibraryBody({ rows, error: "A file is required." }), { signed }), { status: 400, signed });
+      return html(page("Aziel Library", azielLibraryBody({ rows, error: "A file is required.", signed }), { signed }), { status: 400, signed });
     }
     try {
       const rec = await ingestRecord(env, { signed, title, body: notes, file, ...meta });
       await afterIngest(env, rec, ctx);
     } catch (err) {
       const rows = await searchRecords(env, { library: "aziel", limit: 300 });
-      return html(page("Aziel Library", azielLibraryBody({ rows, error: err && err.message ? err.message : "Upload failed." }), { signed }), { status: err && err.status ? err.status : 400, signed });
+      return html(page("Aziel Library", azielLibraryBody({ rows, error: err && err.message ? err.message : "Upload failed.", signed }), { signed }), { status: err && err.status ? err.status : 400, signed });
     }
     return new Response(null, { status: 303, headers: { Location: "/aziel-library" } });
   }

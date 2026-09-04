@@ -1,8 +1,8 @@
-import { page } from "./ui.js";
+import { page, patternBody, softwareBody, aboutBody, runtimeBody } from "./ui.js";
 import { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, blockedAvBody } from "./hosted-pages.js";
 import { json, corsHeaders } from "./runtime.js";
 import { receiptForRecord, sha256hex } from "./ledger.js";
-import { isOperator, asFile, getObject, putObject, objectExists, ingestRecord, safeFilename, serveDerived } from "./library.js";
+import { isOperator, asFile, getObject, putObject, objectExists, ingestRecord, safeFilename, serveDerived, patternClusters } from "./library.js";
 import {
   persistOcrRun, persistMediaRun, receiptForMediaRun, isMediaRunId, truthy, bytesAsFile,
   libraryNotes, publicRunPayload, linkRunToRecord, MEDIA_MAX_BYTES, guessMediaMime,
@@ -104,6 +104,9 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
   }
   if ((path === "/assets/ocr_selftest.png" || path === "/ocr_selftest.png") && method === "GET") {
     return assetFromPublic(env, request, "ocr_selftest.png", "image/png");
+  }
+  if ((path === "/sigil.png" || path === "/assets/sigil.png") && method === "GET") {
+    return assetFromPublic(env, request, "sigil.png", "image/png");
   }
   const spectralSample = path.match(/^\/(?:assets\/)?spectral-samples\/([a-z0-9-]+)\.png$/);
   if (spectralSample && method === "GET") {
@@ -478,5 +481,101 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     if ((request.headers.get("Accept") || "").includes("json")) return json({ ok: true, record_id: recordId });
     return new Response(null, { status: 303, headers: { Location: "/record/" + encodeURIComponent(recordId) } });
   }
+  if (path === "/pattern" && method === "GET") {
+    const clusters = await patternClusters(env);
+    return html(page("Pattern", patternBody(clusters), { signed, path: "/pattern" }));
+  }
+  if (path === "/software" && method === "GET") {
+    const catalog = await loadSoftwareCatalog();
+    return html(page("Software", softwareBody(catalog), { signed, path: "/software" }));
+  }
+  if (path === "/about" && method === "GET") {
+    return html(page("About Aziel", aboutBody(), { signed, path: "/about" }));
+  }
+  if (path === "/runtime" && method === "GET") {
+    return html(page("aziel-runtime", runtimeBody(), { signed, path: "/runtime" }));
+  }
   return null;
+}
+
+const CATALOG_URL = "https://aziel-runtime.vibelock.workers.dev/v1/catalog.json";
+const FEATURED = new Set(["azieltether", "foldlock"]);
+
+async function fetchCount(url) {
+  if (!url) return null;
+  try {
+    const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 AzielDigitalLibrary" } });
+    if (!res.ok) return null;
+    const j = await res.json();
+    const n = j && (j.downloads != null ? j.downloads : j.total != null ? j.total : j.count);
+    const num = Number(n);
+    return Number.isFinite(num) ? num : null;
+  } catch {
+    return null;
+  }
+}
+
+async function loadSoftwareCatalog() {
+  let products = [];
+  try {
+    const res = await fetch(CATALOG_URL, { headers: { "User-Agent": "Mozilla/5.0 AzielDigitalLibrary" } });
+    if (res.ok) {
+      const j = await res.json();
+      products = Array.isArray(j.products) ? j.products : [];
+    }
+  } catch {
+    products = [];
+  }
+  const counts = await Promise.all(products.map((p) => fetchCount(p.count)));
+  let fetched = 0;
+  const cards = [];
+  cards.push({
+    name: "aziel-runtime",
+    version: "catalog",
+    root: true,
+    countLabel: (counts.filter((n) => n != null).reduce((a, b) => a + b, 0) || null) != null
+      ? String(counts.filter((n) => n != null).reduce((a, b) => a + b, 0)) + " downloads"
+      : null,
+    blurb: "Root source for AI: aziel-runtime catalog — pull versions, skills, MCP, counted downloads. Front-door HTTP only. Author Aziel Eliab.",
+    links: [
+      { href: "https://aziel-runtime.vibelock.workers.dev/", label: "Open catalog", primary: true },
+      { href: "https://github.com/AzielEliab/aziel-runtime", label: "GitHub" },
+      { href: "/runtime", label: "Site front door" },
+      { href: "https://aziel-runtime.vibelock.workers.dev/v1/catalog.json", label: "catalog.json" },
+      { href: "https://aziel-runtime.vibelock.workers.dev/openapi.json", label: "OpenAPI" },
+      { href: "https://aziel-runtime.vibelock.workers.dev/llms.txt", label: "llms.txt" },
+    ],
+  });
+  const ordered = [...products].sort((a, b) => {
+    const fa = FEATURED.has(String(a.slug || "").toLowerCase()) ? 0 : 1;
+    const fb = FEATURED.has(String(b.slug || "").toLowerCase()) ? 0 : 1;
+    if (fa !== fb) return fa - fb;
+    if (String(a.slug).toLowerCase() === "azieltether") return -1;
+    if (String(b.slug).toLowerCase() === "azieltether") return 1;
+    return String(a.name || "").localeCompare(String(b.name || ""));
+  });
+  ordered.forEach((p, i) => {
+    const slug = String(p.slug || "").toLowerCase();
+    const n = counts[products.indexOf(p)];
+    if (n != null) fetched += 1;
+    const countLabel = n != null ? String(n) + " downloads" : (p.count ? "downloads live on Worker" : "");
+    const workerHome = p.download ? String(p.download).replace(/\/download\/?$/, "/") : "";
+    const links = [];
+    if (p.download) links.push({ href: p.download, label: "Download", primary: true });
+    if (p.github) links.push({ href: p.github, label: "GitHub" });
+    if (slug === "azieltether") {
+      links.push({ href: "/v1/lattice", label: "Lattice API" });
+      if (workerHome) links.push({ href: workerHome, label: "Worker" });
+      links.push({ href: "https://aziel-runtime.vibelock.workers.dev/p/azieltether", label: "Catalog card" });
+    }
+    cards.push({
+      name: p.name || p.slug,
+      version: p.version || "",
+      featured: FEATURED.has(slug),
+      countLabel,
+      blurb: p.one_line || p.banner || "",
+      links,
+    });
+  });
+  return { products: cards, fetched, downloadable: products.length };
 }
