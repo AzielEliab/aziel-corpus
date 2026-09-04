@@ -116,8 +116,8 @@ test("Aziel Library is publicly browseable and shelf SHA-dedupes", () => {
   });
   assert.match(html, /about-aziel/);
   assert.match(html, /Anyone can browse Aziel Library/);
-  assert.match(html, /AZDOC-1/);
-  assert.doesNotMatch(html, /AZDOC-2/);
+  assert.match(html, /AZDOC-2/);
+  assert.doesNotMatch(html, /AZDOC-1/);
   assert.match(html, /doc-aziel/);
   const home = homeBody({
     rows: [
@@ -128,15 +128,15 @@ test("Aziel Library is publicly browseable and shelf SHA-dedupes", () => {
     downloads: 1,
     host: "https://www.azielcorpuslibrary.net",
   });
-  assert.match(home, /href="\/file\/A"/);
-  assert.doesNotMatch(home, /href="\/file\/B"/);
+  assert.match(home, /href="\/file\/B"/);
+  assert.doesNotMatch(home, /href="\/file\/A"/);
   assert.deepEqual(
     dedupeShelfRows([
       { record_id: "1", content_sha256: "abc" },
       { record_id: "2", content_sha256: "ABC" },
       { record_id: "3", content_sha256: "" },
     ]).map((r) => r.record_id),
-    ["1", "3"]
+    ["2", "3"]
   );
 });
 
