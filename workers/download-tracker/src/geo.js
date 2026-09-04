@@ -493,37 +493,68 @@ async function textFromObject(env, key) {
   }
 }
 
+const DERIVED_SLICE = 8000;
+const DERIVED_ROWS = 4;
+
+function sliceDerived(value) {
+  return String(value || "").slice(0, DERIVED_SLICE);
+}
+
 /** OCR / transcript / FILES-linked extracts — body of a PDF upload is often metadata + binary. */
-export async function derivedTextForRecord(env, recordId) {
+export async function derivedTextForRecord(env, recordId, opts = {}) {
   if (!env || !env.DB || !recordId) return "";
+  const loadObjects = opts.loadObjects !== false;
   const chunks = [];
   try {
     const rows = (await env.DB.prepare(
-      "SELECT transcript FROM media_runs WHERE record_id=? AND IFNULL(transcript,'') != '' ORDER BY created_utc DESC LIMIT 8"
-    ).bind(recordId).all()).results || [];
-    for (const r of rows) if (r.transcript) chunks.push(String(r.transcript));
-  } catch { /* schema */ }
+      "SELECT substr(transcript,1,8000) AS transcript FROM media_runs WHERE record_id=? AND IFNULL(transcript,'') != '' ORDER BY created_utc DESC LIMIT ?"
+    ).bind(recordId, DERIVED_ROWS).all()).results || [];
+    for (const r of rows) if (r.transcript) chunks.push(sliceDerived(r.transcript));
+  } catch {
+    try {
+      const rows = (await env.DB.prepare(
+        "SELECT transcript FROM media_runs WHERE record_id=? AND IFNULL(transcript,'') != '' ORDER BY created_utc DESC LIMIT 4"
+      ).bind(recordId).all()).results || [];
+      for (const r of rows) if (r.transcript) chunks.push(sliceDerived(r.transcript));
+    } catch { /* schema */ }
+  }
   try {
     const rows = (await env.DB.prepare(
-      "SELECT result FROM ocr_jobs WHERE record_id=? AND IFNULL(result,'') != '' ORDER BY created_utc DESC LIMIT 8"
-    ).bind(recordId).all()).results || [];
-    for (const r of rows) if (r.result) chunks.push(String(r.result));
-  } catch { /* schema */ }
+      "SELECT substr(result,1,8000) AS result FROM ocr_jobs WHERE record_id=? AND IFNULL(result,'') != '' ORDER BY created_utc DESC LIMIT ?"
+    ).bind(recordId, DERIVED_ROWS).all()).results || [];
+    for (const r of rows) if (r.result) chunks.push(sliceDerived(r.result));
+  } catch {
+    try {
+      const rows = (await env.DB.prepare(
+        "SELECT result FROM ocr_jobs WHERE record_id=? AND IFNULL(result,'') != '' ORDER BY created_utc DESC LIMIT 4"
+      ).bind(recordId).all()).results || [];
+      for (const r of rows) if (r.result) chunks.push(sliceDerived(r.result));
+    } catch { /* schema */ }
+  }
   try {
-    const rows = (await env.DB.prepare(
-      "SELECT artifact_type, note, object_key FROM derived_artifacts WHERE record_id=? ORDER BY created_utc DESC LIMIT 12"
-    ).bind(recordId).all()).results || [];
+    let rows = [];
+    try {
+      rows = (await env.DB.prepare(
+        "SELECT artifact_type, substr(note,1,8000) AS note, object_key FROM derived_artifacts WHERE record_id=? ORDER BY created_utc DESC LIMIT ?"
+      ).bind(recordId, DERIVED_ROWS).all()).results || [];
+    } catch {
+      rows = (await env.DB.prepare(
+        "SELECT artifact_type, note, object_key FROM derived_artifacts WHERE record_id=? ORDER BY created_utc DESC LIMIT 4"
+      ).bind(recordId).all()).results || [];
+    }
     for (const r of rows) {
       const kind = String(r.artifact_type || "");
-      if (r.note && /text|ocr|extract|transcript/i.test(kind + " " + String(r.note || "").slice(0, 40))) {
-        chunks.push(String(r.note));
-      } else if (r.note && String(r.note).length > 80) {
-        chunks.push(String(r.note));
+      const note = sliceDerived(r.note);
+      if (note && /text|ocr|extract|transcript/i.test(kind + " " + note.slice(0, 40))) {
+        chunks.push(note);
+      } else if (note && note.length > 80) {
+        chunks.push(note);
       }
       const key = String(r.object_key || "");
-      if (key && (/text|ocr|extract/i.test(kind) || /\.(txt|md|json)$/i.test(key))) {
+      const haveNote = note.length >= 40;
+      if (loadObjects && !haveNote && key && (/text|ocr|extract/i.test(kind) || /\.(txt|md|json)$/i.test(key))) {
         const txt = await textFromObject(env, key);
-        if (txt) chunks.push(txt);
+        if (txt) chunks.push(sliceDerived(txt));
       }
     }
   } catch { /* schema */ }
@@ -763,13 +794,13 @@ export async function continueVerifyGeo(env, { ms = 18000, force = false } = {})
     cursor = "";
     await metaSet(env, "geo_verify_done_utc", "");
   }
-  const selectFull = cursor
-    ? "SELECT record_id, title, substr(body,1,200000) AS body, author, domain, subjects, keywords, filename FROM records WHERE record_id>? ORDER BY record_id ASC LIMIT 3"
-    : "SELECT record_id, title, substr(body,1,200000) AS body, author, domain, subjects, keywords, filename FROM records ORDER BY record_id ASC LIMIT 3";
-  const selectLite = cursor
-    ? "SELECT record_id, title, substr(body,1,200000) AS body FROM records WHERE record_id>? ORDER BY record_id ASC LIMIT 3"
-    : "SELECT record_id, title, substr(body,1,200000) AS body FROM records ORDER BY record_id ASC LIMIT 3";
   while (Date.now() - started < ms) {
+    const selectFull = cursor
+      ? "SELECT record_id, title, substr(body,1,80000) AS body, author, domain, subjects, keywords, filename FROM records WHERE record_id>? ORDER BY record_id ASC LIMIT 1"
+      : "SELECT record_id, title, substr(body,1,80000) AS body, author, domain, subjects, keywords, filename FROM records ORDER BY record_id ASC LIMIT 1";
+    const selectLite = cursor
+      ? "SELECT record_id, title, substr(body,1,80000) AS body FROM records WHERE record_id>? ORDER BY record_id ASC LIMIT 1"
+      : "SELECT record_id, title, substr(body,1,80000) AS body FROM records ORDER BY record_id ASC LIMIT 1";
     let batch = [];
     try {
       batch = (await env.DB.prepare(selectFull).bind(...(cursor ? [cursor] : [])).all()).results || [];
@@ -785,42 +816,40 @@ export async function continueVerifyGeo(env, { ms = 18000, force = false } = {})
       await metaSet(env, "geo_verify_stats", JSON.stringify(stats));
       break;
     }
-    for (const row of batch) {
-      try {
-        let existing = 0;
-        try {
-          const hit = await env.DB.prepare("SELECT COUNT(*) AS n FROM events WHERE record_id=?").bind(row.record_id).first();
-          existing = Number(hit && hit.n) || 0;
-        } catch { existing = 0; }
-        if (existing && !force) {
-          stats.skipped += 1;
-        } else {
-          const extraText = await derivedTextForRecord(env, row.record_id);
-          const n = await extractEventsForText(env, {
-            recordId: row.record_id,
-            title: row.title,
-            body: row.body,
-            author: row.author,
-            domain: row.domain,
-            subjects: row.subjects,
-            keywords: row.keywords,
-            filename: row.filename,
-            extraText,
-            createdBy: "verify-geo",
-          });
-          stats.events_created += n;
-          stats.scanned += 1;
-        }
-      } catch {
-        stats.failed += 1;
-      }
-      cursor = row.record_id;
-      stats.cursor = cursor;
-      if (Date.now() - started >= ms) break;
-    }
+    const row = batch[0];
+    cursor = row.record_id;
+    stats.cursor = cursor;
     await metaSet(env, "geo_verify_cursor", cursor);
     await metaSet(env, "geo_verify_stats", JSON.stringify({ ...stats, updated_utc: new Date().toISOString() }));
-    if (Date.now() - started >= ms) break;
+    try {
+      let existing = 0;
+      try {
+        const hit = await env.DB.prepare("SELECT COUNT(*) AS n FROM events WHERE record_id=?").bind(row.record_id).first();
+        existing = Number(hit && hit.n) || 0;
+      } catch { existing = 0; }
+      if (existing && !force) {
+        stats.skipped += 1;
+      } else {
+        const extraText = await derivedTextForRecord(env, row.record_id, { loadObjects: false });
+        const n = await extractEventsForText(env, {
+          recordId: row.record_id,
+          title: row.title,
+          body: row.body,
+          author: row.author,
+          domain: row.domain,
+          subjects: row.subjects,
+          keywords: row.keywords,
+          filename: row.filename,
+          extraText,
+          createdBy: "verify-geo",
+        });
+        stats.events_created += n;
+        stats.scanned += 1;
+      }
+    } catch {
+      stats.failed += 1;
+    }
+    await metaSet(env, "geo_verify_stats", JSON.stringify({ ...stats, updated_utc: new Date().toISOString() }));
   }
   return stats;
 }
