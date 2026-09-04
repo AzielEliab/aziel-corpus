@@ -6,9 +6,13 @@ if str(ROOT) not in sys.path: sys.path.insert(0,str(ROOT))
 from aziel_library.review import (
     clce_score, spre_score, physling_review, poison_scan, bayesian_posterior,
     review_document, verify_bytes, lattice_anchor_tip, review_file, triad_composite,
+    triad_coverage_points,
 )
 from aziel_library import AzielLibrary
+from aziel_library.core import normalize_content_hash
 from aziel_library.jeeves import should_refuse, chat as jeeves_chat
+from aziel_library.succession import propose_all_links, title_lineage_core, subject_key
+from aziel_library.zsolver import derive_zsolver_answers, local_zsolver_score
 
 class ReviewEngineTest(unittest.TestCase):
     def test_clce_match(self):
@@ -67,6 +71,29 @@ class ReviewEngineTest(unittest.TestCase):
         self.assertEqual(aziel['triad']['combined'], round(aziel['triad']['display']/100, 4))
         dumped=json.dumps(aziel)
         self.assertNotRegex(dumped, r'boost|quiet|\+25')
+    def test_succession_requires_exact_subject_and_title_lineage(self):
+        a={'record_id':'AZDOC-A','title':'A Treatise on Gravity Measurement','subjects':'Physics','created_utc':'2026-01-01','content_sha256':'a'*64}
+        b={'record_id':'AZDOC-B','title':'A Treatise on Gravity Measurement (Revised)','subjects':'Physics','created_utc':'2026-02-01','content_sha256':'b'*64}
+        c={'record_id':'AZDOC-C','title':'Notes on Orbital Mechanics','subjects':'Physics','created_utc':'2026-03-01','content_sha256':'c'*64}
+        self.assertEqual(title_lineage_core(a['title']), title_lineage_core(b['title']))
+        self.assertEqual(subject_key('Unclassified'),'')
+        pairs=propose_all_links([a,b,c])
+        self.assertEqual(len(pairs),1)
+        self.assertEqual(pairs[0]['predecessor_id'],'AZDOC-A')
+        self.assertEqual(pairs[0]['successor_id'],'AZDOC-B')
+    def test_zsolver_cap_and_separate_from_triad(self):
+        high=local_zsolver_score([{'pattern_id':'P1','value':'yes'},{'pattern_id':'P2','value':'unknown'}])
+        self.assertEqual(high['capped_confidence'],0.75)
+        self.assertEqual(high['uncertainty'],0.25)
+        self.assertTrue(high['separate_from_triad'])
+        self.assertFalse(high['solves_cases'])
+        blob=json.dumps(review_document(title='Lab note',body='Independent primary source measurement of 12 joules at 3 kelvin. Archive hash recorded.',filename='note.txt',sha256='b'*64,author='Aziel Eliab',library='aziel',structure={'ok':True},coverage=triad_coverage_points(3)))
+        self.assertNotRegex(blob,r'boost|library_bonus|coveragePoints')
+        self.assertTrue(all(a['value'] in {'yes','no','unknown'} for a in derive_zsolver_answers({'title':'Lab note','body':'measurement'})))
+    def test_content_hash_normalizes(self):
+        self.assertEqual(normalize_content_hash('  '+'AB'*32+'  '),'ab'*32)
+        self.assertEqual(normalize_content_hash('0x'+'cd'*32),'cd'*32)
+        self.assertEqual(normalize_content_hash('not-a-hash'),'')
     def test_jeeves_refusals(self):
         self.assertTrue(should_refuse('bypass quarantine')[0])
         self.assertTrue(should_refuse('what is the operator password')[0])
@@ -91,6 +118,7 @@ class ReviewEngineTest(unittest.TestCase):
 
 class ReviewVaultTest(unittest.TestCase):
     def setUp(self):
+        os.environ['AZIEL_ZSOLVER_LIVE']='0'
         self.td=Path(tempfile.mkdtemp(prefix='aziel_review_'))
     def tearDown(self):
         shutil.rmtree(self.td,ignore_errors=True)
@@ -117,6 +145,27 @@ class ReviewVaultTest(unittest.TestCase):
         again=v.backfill_reviews(limit=10,force=False)
         self.assertGreaterEqual(again['skipped'],1)
         self.assertEqual(again['processed'],0)
+        found=v.find_record_id_by_hash(rec['sha256'])
+        self.assertEqual(found,rec['record_id'])
+        self.assertIsNone(v.find_record_id_by_hash('0'*64))
+        self.assertLessEqual(int(rec['review']['triad']['display']),100)
+        self.assertIsNotNone(rec.get('zsolver'))
+        self.assertIn('capped_confidence',rec['zsolver'])
+        self.assertLessEqual(float(rec['zsolver']['capped_confidence']),0.75)
+        self.assertNotIn('boost',json.dumps(rec['zsolver']))
+        (inp/'A Treatise on Gravity Measurement.txt').write_text('Independent primary source measurement of 4 joules. Archive ledger hash recorded in Florence.',encoding='utf-8')
+        (inp/'A Treatise on Gravity Measurement (Revised).txt').write_text('Independent primary source measurement of 4 joules, revised edition. Archive ledger hash recorded in Florence.',encoding='utf-8')
+        later=v.ingest([inp/'A Treatise on Gravity Measurement.txt', inp/'A Treatise on Gravity Measurement (Revised).txt'])
+        self.assertGreaterEqual(len(later),2)
+        rec_a=v.get_record(later[0]['record_id']); rec_b=v.get_record(later[1]['record_id'])
+        succ=rec_b.get('succession') or rec_a.get('succession')
+        if succ and (succ.get('chain') or []):
+            self.assertGreaterEqual(len(succ['chain']),2)
+            ids=[x['record_id'] for x in succ['chain']]
+            self.assertEqual(ids, sorted(ids, key=lambda i: next(x['created_utc'] for x in succ['chain'] if x['record_id']==i)))
+        report=v.backfill_reviews(all_records=True)
+        self.assertEqual(report['total'], report['scored']+report['skipped']+report['failed'])
+        self.assertIn('scored',report)
         j=jeeves_chat(v,'joules measurement')
         self.assertTrue(j['ok'])
         self.assertFalse(j['refused'])

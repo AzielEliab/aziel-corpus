@@ -1,11 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { clceScore, spreScore, physLingReview, poisonScan, bayesianPosterior, reviewDocument, triadComposite } from "./review.js";
+import { clceScore, spreScore, physLingReview, poisonScan, bayesianPosterior, reviewDocument, triadComposite, triadCoveragePoints } from "./review.js";
+import { deriveZsolverAnswers, localZsolverScore } from "./zsolver.js";
+import { proposeAllLinks, titleLineageCore, subjectKey } from "./succession.js";
 import { verifyBytes, verifyTextRecord, sha256hex } from "./structure.js";
 import { latticeAnchorTip } from "./lattice.js";
 import { isDocumentId } from "./ledger.js";
 import { jeevesShouldRefuse, lambLensSigned } from "./jeeves.js";
-import { isFullyScored } from "./review-store.js";
+import { isFullyScored, storedTriadMatches } from "./review-store.js";
+import { normalizeContentHash } from "./library.js";
 
 test("CLCE triple is 1 when layers match", () => {
   const s = clceScore({ r: "florence archive measurement", d: "florence archive measurement", p: "florence archive measurement" });
@@ -89,6 +92,54 @@ test("triad is geometric mean of the three verifiers", () => {
   const expected = Math.pow(0.64 * 0.8 * 1, 1 / 3);
   assert.ok(Math.abs(t.combined - expected) < 0.001);
   assert.equal(t.display, Math.round(expected * 100));
+});
+
+test("aziel library triad display is a 0-100 integer", () => {
+  const input = {
+    title: "Lab note",
+    body: "Independent primary source measurement of 12 joules at 3 kelvin. Archive hash recorded.",
+    filename: "note.txt",
+    sha256: "b".repeat(64),
+    author: "Aziel Eliab",
+    structure: { ok: true, files: [{ path: "note.txt", bytes: 20, sha256: "b".repeat(64) }] },
+  };
+  const corpus = reviewDocument({ ...input, library: "corpus" });
+  const aziel = reviewDocument({ ...input, library: "aziel" });
+  assert.equal(corpus.triad.display, Math.round(corpus.triad.combined * 100));
+  assert.ok(Number.isInteger(aziel.triad.display));
+  assert.ok(aziel.triad.display >= corpus.triad.display);
+  assert.ok(aziel.triad.display <= 100);
+  assert.ok(aziel.triad.combined <= 1);
+  assert.equal(aziel.triad.display, Math.round(aziel.triad.combined * 100));
+  const high = triadComposite({
+    spre: { pc: 1 },
+    clce: { triple: 1, pairwise_avg: 1 },
+    plr: { physics_coherence: 1, linguistic_neutrality: 1 },
+    library: "aziel",
+  });
+  assert.ok(high.display <= 100);
+  assert.ok(high.combined <= 1);
+});
+
+test("content hash normalizes to 64 hex", () => {
+  assert.equal(normalizeContentHash("  " + "AB".repeat(32) + "  "), "ab".repeat(32));
+  assert.equal(normalizeContentHash("0x" + "cd".repeat(32)), "cd".repeat(32));
+  assert.equal(normalizeContentHash("not-a-hash"), "");
+  assert.equal(normalizeContentHash("ab".repeat(31)), "");
+});
+
+test("stored triad match follows current library math", () => {
+  const review = reviewDocument({
+    title: "Lab note",
+    body: "Independent primary source measurement of 12 joules at 3 kelvin. Archive hash recorded.",
+    filename: "note.txt",
+    sha256: "b".repeat(64),
+    author: "Aziel Eliab",
+    library: "aziel",
+    structure: { ok: true, files: [{ path: "note.txt", bytes: 20, sha256: "b".repeat(64) }] },
+  });
+  assert.equal(storedTriadMatches({ library: "aziel", triad_combined: review.triad.combined }, review), true);
+  assert.equal(storedTriadMatches({ library: "aziel", triad_combined: 0 }, review), false);
 });
 
 test("triad is not ready until all three engines run", () => {
@@ -180,4 +231,65 @@ test("lattice tip documents tether not mesh", () => {
   assert.equal(tip.author, "Aziel Eliab");
   assert.match(tip.note, /not a mesh/);
   assert.equal(tip.bayesian.unranked, true);
+});
+
+test("succession chains only exact subject plus title lineage", () => {
+  const a = { record_id: "AZDOC-A", title: "A Treatise on Gravity Measurement", subjects: "Physics", created_utc: "2026-01-01", content_sha256: "a".repeat(64) };
+  const b = { record_id: "AZDOC-B", title: "A Treatise on Gravity Measurement (Revised)", subjects: "Physics", created_utc: "2026-02-01", content_sha256: "b".repeat(64) };
+  const c = { record_id: "AZDOC-C", title: "Notes on Orbital Mechanics", subjects: "Physics", created_utc: "2026-03-01", content_sha256: "c".repeat(64) };
+  const d = { record_id: "AZDOC-D", title: "A Treatise on Gravity Measurement v2", subjects: "Unclassified", created_utc: "2026-04-01", content_sha256: "d".repeat(64) };
+  assert.equal(titleLineageCore(a.title), titleLineageCore(b.title));
+  assert.equal(subjectKey("Unclassified"), "");
+  const pairs = proposeAllLinks([a, b, c, d]);
+  assert.equal(pairs.length, 1);
+  assert.equal(pairs[0].predecessor_id, "AZDOC-A");
+  assert.equal(pairs[0].successor_id, "AZDOC-B");
+});
+
+test("explicit supersedes metadata chains when chronology agrees", () => {
+  const old = { record_id: "AZDOC-OLD", title: "Different Title One", subjects: "Legal", created_utc: "2026-01-01", content_sha256: "1".repeat(64) };
+  const neu = { record_id: "AZDOC-NEW", title: "Different Title Two", subjects: "Technology", created_utc: "2026-02-01", content_sha256: "2".repeat(64), keywords: "supersedes:AZDOC-OLD" };
+  const pairs = proposeAllLinks([old, neu]);
+  assert.equal(pairs.length, 1);
+  assert.equal(pairs[0].predecessor_id, "AZDOC-OLD");
+  assert.equal(pairs[0].successor_id, "AZDOC-NEW");
+  assert.equal(pairs[0].reason, "explicit");
+});
+
+test("same SHA is not succession", () => {
+  const sha = "e".repeat(64);
+  const a = { record_id: "AZDOC-E1", title: "Shared Title Lineage Document", subjects: "Forecasting", created_utc: "2026-01-01", content_sha256: sha };
+  const b = { record_id: "AZDOC-E2", title: "Shared Title Lineage Document (Updated)", subjects: "Forecasting", created_utc: "2026-02-01", content_sha256: sha };
+  assert.equal(proposeAllLinks([a, b]).length, 0);
+});
+
+test("zsolver local port respects 75 cap and 25 floor", () => {
+  const high = localZsolverScore([{ pattern_id: "P1", value: "yes" }, { pattern_id: "P2", value: "unknown" }]);
+  assert.equal(high.capped_confidence, 0.75);
+  assert.equal(high.uncertainty, 0.25);
+  assert.ok(high.display <= 75);
+  assert.equal(high.separate_from_triad, true);
+  assert.equal(high.solves_cases, false);
+  const none = localZsolverScore([{ pattern_id: "P1", value: "unknown" }]);
+  assert.equal(none.capped_confidence, 0);
+  assert.equal(none.uncertainty, 1);
+});
+
+test("zsolver is not folded into triad and has no boost fields", () => {
+  const review = reviewDocument({
+    title: "Lab note",
+    body: "Independent primary source measurement of 12 joules at 3 kelvin. Archive hash recorded.",
+    filename: "note.txt",
+    sha256: "b".repeat(64),
+    author: "Aziel Eliab",
+    library: "aziel",
+    structure: { ok: true, files: [{ path: "note.txt", bytes: 20, sha256: "b".repeat(64) }] },
+    coverage: triadCoveragePoints(3),
+  });
+  const blob = JSON.stringify(review);
+  assert.equal(/boost|library_bonus|coveragePoints/i.test(blob), false);
+  assert.ok(!review.zsolver);
+  assert.ok(review.triad.display <= 100);
+  const answers = deriveZsolverAnswers({ title: "Lab note", body: "measurement" });
+  assert.ok(answers.every((a) => a.value === "unknown" || a.value === "yes" || a.value === "no"));
 });

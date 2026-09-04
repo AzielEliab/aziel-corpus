@@ -3,7 +3,7 @@ const HOST = "https://www.azielcorpuslibrary.net";
 const FALLBACK_HOST = "https://aziel-corpus-download-tracker.vibelock.workers.dev";
 const CATALOG = "https://aziel-runtime.vibelock.workers.dev";
 const GITHUB_REPO = "https://github.com/AzielEliab/aziel-corpus";
-const DEFAULT_ASSET = "aziel-digital-library-2.6.2.zip";
+const DEFAULT_ASSET = "aziel-digital-library-2.7.0.zip";
 const VERSION = "2.7.0";
 
 export function robotsTxt() {
@@ -14,7 +14,7 @@ export function robotsTxt() {
     "Allow: /gazetteer",
     "Allow: /tree",
     "Allow: /health",
-    "Allow: /ocr",
+    "Allow: /v1/health",
     "Allow: /intelligence",
     "Allow: /ocr",
     "Allow: /receipt",
@@ -78,7 +78,7 @@ export function citeDoc() {
     receipt: HOST + "/receipt/{id}",
     ledger: HOST + "/ledger/{id}",
     media_run: HOST + "/v1/media-run",
-    health: HOST + "/health",
+    health: HOST + "/v1/health",
     historical: HOST + "/historical",
     tree: HOST + "/tree",
     verify: HOST + "/verify",
@@ -93,12 +93,16 @@ export function citeDoc() {
     document_chain: HOST + "/v1/document-chain",
     jeeves_chat: HOST + "/v1/jeeves/chat",
     jeeves_upload: HOST + "/v1/jeeves/upload",
-    jeeves: "Research assistant. Not sovereign. Not operator. Corpus-only Add. Cannot change scores.",
+    jeeves: "Research assistant. Not sovereign. Not operator. Add uses the same ingest path as the shelf. Cannot change scores.",
     vibelock: "Mandatory VibeLock determination on every /transcribe run. Hard blocks porn, nudity, child-sexual content. Not courtroom proof.",
     media_lattice: "Transcript success: LATTICE_TRANSCRIPT_VIBELOCK. Blocked A/V: LATTICE_AV_BLOCKED (HTTP 451, never stored).",
     file: HOST + "/file/{record_id}",
     download_record: HOST + "/download?record=",
+    download_hash: HOST + "/download?hash=",
+    docs_download: HOST + "/v1/docs/{hash}/download",
     triad: "TRIAD_V1 geometric mean of SPRE, CLCE, and PhysLing — primary visible score",
+    succession: "Exact-same-subject paper cites: Supersedes / Superseded by on the record page and GET /v1/review. Uncertain matches are not chained.",
+    zsolver: "ZionPattern Solver secondary public score on every record. Separate from triad. Hard 75% cap / 25% floor. Provisional. Does not solve cases.",
     how_to_cite: "Eliab, Aziel. (2026). Aziel Digital Library v2.7.0 [Software]. Apache-2.0. " + HOST + "/",
   };
 }
@@ -126,7 +130,6 @@ export function llmsDoc(limitation) {
     + "- Historical Geography: " + HOST + "/historical\n"
     + "- Intelligence / hosted OCR and Whisper: " + HOST + "/intelligence\n"
     + "- OCR / transcription: " + HOST + "/ocr\n"
-    + "- Health: " + HOST + "/health\n"
     + "- Verify: " + HOST + "/verify\n\n"
     + "## JSON / LLM routes (do not increment downloads)\n\n"
     + "- GET " + HOST + "/v1/health\n"
@@ -140,7 +143,9 @@ export function llmsDoc(limitation) {
     + "- GET " + HOST + "/v1/media-run?run_id=\n"
     + "- POST " + HOST + "/v1/score\n"
     + "- POST " + HOST + "/v1/jeeves/chat\n"
-    + "- POST " + HOST + "/v1/jeeves/upload  (Corpus only)\n"
+    + "- POST " + HOST + "/v1/jeeves/upload\n"
+    + "- GET " + HOST + "/v1/docs/{hash}/download\n"
+    + "- GET " + HOST + "/v1/runtime\n"
     + "- POST " + HOST + "/transcribe  (Whisper + mandatory VibeLock; hard A/V blocks HTTP 451)\n"
     + "- GET " + HOST + "/media/{sha256}  (allowed A/V playback only)\n"
     + "- POST " + HOST + "/ocr  (lattice receipt on every run)\n"
@@ -156,5 +161,6 @@ export function llmsDoc(limitation) {
     + "## Downloads (HTTP 200, counted, no 302)\n\n"
     + "- Package: " + HOST + "/download?asset=" + DEFAULT_ASSET + "\n"
     + "- Record: " + HOST + "/file/{record_id} or " + HOST + "/download?record=AZDOC-… (HTTP 200; quarantined still downloadable)\n"
+    + "- By content hash: " + HOST + "/download?hash=SHA-256 or " + HOST + "/v1/docs/{hash}/download\n"
     + "- Install: curl -fsSL " + HOST + "/install.sh | bash\n";
 }

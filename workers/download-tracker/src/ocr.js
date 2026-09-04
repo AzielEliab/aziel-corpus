@@ -536,8 +536,8 @@ export async function verifyHosted(env, request) {
 
   if (env.ASSETS && request) {
     try {
-      const assetUrl = new URL("/aziel-digital-library-2.6.2.zip", request.url);
-      const res = await env.ASSETS.fetch(new Request(assetUrl, { method: "GET" }));
+      let res = await env.ASSETS.fetch(new Request(new URL("/aziel-digital-library-2.7.0.zip", request.url), { method: "GET" }));
+      if (!res.ok) res = await env.ASSETS.fetch(new Request(new URL("/aziel-digital-library-2.6.2.zip", request.url), { method: "GET" }));
       add("download_zip_asset", res.ok, res.ok ? "ASSETS hosts counted zip" : "status " + res.status);
     } catch (err) {
       add("download_zip_asset", false, String(err && err.message ? err.message : err));

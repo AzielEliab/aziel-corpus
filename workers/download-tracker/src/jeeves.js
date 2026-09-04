@@ -21,7 +21,7 @@ function json(body, status = 200) {
 
 export const JEEVES_NAME = "Ask Jeeves";
 export const JEEVES_LIMITATION =
-  "Ask Jeeves is a research assistant over public library text. It is not sovereign, not the operator, and cannot change SPRE, CLCE, PhysLing, Bayesian, or triad scores. Add always files to Corpus (Lamb Lens), never Aziel Library.";
+  "Ask Jeeves is a research assistant over public library text. It is not sovereign, not the operator, and cannot change SPRE, CLCE, PhysLing, Bayesian, or triad scores. Add uses the same ingest path as the shelf (structure, SPRE × CLCE × PhysLing, Bayesian, document hash-chain). Signed-in public Add files to Corpus (Lamb Lens). Operator Add files to Aziel Library.";
 
 const REFUSE_RE =
   /\b(operator (password|hash|credential|account|secret|cookie)|master password|master hash|password hash|hidden admin|hidden operator|admin route|\/admin\b|superadmin|aziel_session|session token|scrypt|delete[- ]?all|wipe (the )?(corpus|library|ledger)|drop table|bypass quarantine|unquarantine|forge (a )?(score|triad|receipt)|modify (the )?(spre|clce|plr|physling|bayesian|triad|combined)( score)?|change (the )?score|set (the )?(triad|score)|exfiltrat|dump (all )?(hashes|credentials|sessions)|reveal (the )?(operator|master))\b/i;
@@ -289,9 +289,9 @@ export async function jeevesChat(env, { question, signed } = {}) {
   };
 }
 
-export async function jeevesUpload(env, { signed, file, title, body, author, domain, subjects, keywords }) {
+export async function jeevesUpload(env, { signed, file, title, body, author, domain, subjects, keywords, supersedes, superseded_by }) {
   if (!signed) {
-    const err = new Error("sign in to add a file to Corpus");
+    const err = new Error("sign in to add a file");
     err.status = 401;
     throw err;
   }
@@ -301,17 +301,14 @@ export async function jeevesUpload(env, { signed, file, title, body, author, dom
     err.status = 400;
     throw err;
   }
-  if (isOperator(signed)) {
-    /* still allowed to Add, but only as Lamb Lens public — never Aziel Library */
-  }
-  const lamb = lambLensSigned(signed);
-  if (isOperator(lamb)) {
-    const err = new Error("Ask Jeeves cannot write Aziel Library");
+  const who = isOperator(signed) ? signed : lambLensSigned(signed);
+  if (!isOperator(signed) && isOperator(who)) {
+    const err = new Error("Ask Jeeves public Add cannot write Aziel Library");
     err.status = 403;
     throw err;
   }
   const record = await ingestRecord(env, {
-    signed: lamb,
+    signed: who,
     title,
     body,
     file: f,
@@ -319,21 +316,30 @@ export async function jeevesUpload(env, { signed, file, title, body, author, dom
     domain,
     subjects,
     keywords,
+    supersedes,
+    superseded_by,
   });
-  if (record.library !== "corpus") {
-    const err = new Error("Ask Jeeves cannot write Aziel Library");
+  const lib = record.library === "aziel" ? "aziel" : "corpus";
+  if (!isOperator(signed) && lib !== "corpus") {
+    const err = new Error("Ask Jeeves public Add cannot write Aziel Library");
     err.status = 403;
     throw err;
   }
+  const triad = record.review && record.review.triad ? { combined: record.review.triad.combined, display: record.review.triad.display, ready: record.review.triad.ready } : null;
   return {
     ok: true,
-    library: "corpus",
-    lamb_lens: true,
+    library: lib,
+    lamb_lens: lib === "corpus",
     record_id: record.id,
     title: record.title,
+    content_sha256: record.content_sha256 || null,
     quarantine_status: record.quarantine_status,
-    triad: record.review && record.review.triad,
+    triad,
+    zsolver: record.zsolver
+      ? { capped_confidence: record.zsolver.capped_confidence, display: record.zsolver.display, status: record.zsolver.status, disclaimer: record.zsolver.disclaimer }
+      : null,
     download: "/file/" + record.id,
+    download_hash: record.content_sha256 ? "/download?hash=" + record.content_sha256 : null,
     href: "/record/" + record.id,
     limitation: JEEVES_LIMITATION,
   };
@@ -378,6 +384,8 @@ export async function handleJeevesApi(request, url, env, signed) {
     let domain = "";
     let subjects = "";
     let keywords = "";
+    let supersedes = "";
+    let superseded_by = "";
     const ct = request.headers.get("Content-Type") || "";
     if (ct.includes("multipart/form-data")) {
       const form = await request.formData();
@@ -388,12 +396,19 @@ export async function handleJeevesApi(request, url, env, signed) {
       domain = form.get("domain") || "";
       subjects = form.get("subjects") || "";
       keywords = form.get("keywords") || "";
+      supersedes = form.get("supersedes") || "";
+      superseded_by = form.get("superseded_by") || "";
     } else {
       try {
         const body = await request.json();
         title = body.title || "";
         notes = body.body || body.notes || "";
         author = body.author || "";
+        domain = body.domain || "";
+        subjects = body.subjects || "";
+        keywords = body.keywords || "";
+        supersedes = body.supersedes || "";
+        superseded_by = body.superseded_by || "";
       } catch {
         return json({ error: "multipart or JSON body required" }, 400);
       }
@@ -409,6 +424,8 @@ export async function handleJeevesApi(request, url, env, signed) {
           domain,
           subjects,
           keywords,
+          supersedes,
+          superseded_by,
         })
       );
     } catch (err) {
@@ -418,24 +435,26 @@ export async function handleJeevesApi(request, url, env, signed) {
   return null;
 }
 
-export function jeevesFabHtml() {
+export function jeevesFabHtml(signed) {
+  const op = isOperator(signed);
+  const dest = op ? "Aziel Library" : "Corpus";
   return `<button type="button" class="jeeves-fab" id="jeevesFab" aria-expanded="false" aria-controls="jeevesDrawer">Ask Jeeves</button>
 <aside class="jeeves-drawer" id="jeevesDrawer" hidden>
   <header class="jeeves-head"><strong>Ask Jeeves</strong><button type="button" class="jeeves-x" id="jeevesClose" aria-label="Close">×</button></header>
-  <p class="muted jeeves-note">Research assistant. Not sovereign. Not the operator. Cannot change scores. Add files only to Corpus.</p>
+  <p class="muted jeeves-note">Research assistant. Not sovereign. Not the operator. Cannot change scores. Add uses the same ingest path as the shelf.</p>
   <div class="jeeves-log" id="jeevesLog" aria-live="polite"></div>
   <form class="jeeves-ask" id="jeevesAsk">
     <label class="sr-only" for="jeevesQ">Question</label>
     <textarea id="jeevesQ" name="q" rows="2" maxlength="2000" placeholder="Ask about a filed record…"></textarea>
     <button type="submit">Ask</button>
   </form>
-  <details class="jeeves-add"><summary>Add to Corpus</summary>
+  <details class="jeeves-add"><summary>Add a file</summary>
     <form class="jeeves-up" id="jeevesUp" enctype="multipart/form-data">
       <label class="filepick">File<input type="file" name="file"></label>
       <input name="title" placeholder="Title">
       <textarea name="body" rows="3" placeholder="Notes"></textarea>
-      <p class="muted">Same ingest as the shelf: structure, SPRE × CLCE × PhysLing, Bayesian, document hash-chain. Never Aziel Library.</p>
-      <button type="submit">Add to Corpus</button>
+      <p class="muted">Same ingest as the shelf: structure, SPRE × CLCE × PhysLing, Bayesian, document hash-chain. Files go to ${dest}.</p>
+      <button type="submit">Add</button>
     </form>
   </details>
 </aside>
@@ -470,7 +489,9 @@ export function jeevesFabHtml() {
       .then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j};});})
       .then(function(x){
         if(!x.ok){line("Jeeves",x.j.error||"Upload failed");return;}
-        line("Jeeves","Filed to Corpus as "+x.j.record_id+". Same review engines. Download stays on the record.");
+        var dest=x.j.library==="aziel"?"Aziel Library":"Corpus";
+        var score=(x.j.triad&&x.j.triad.display!=null)?" Triad "+x.j.triad.display+".":"";
+        line("Jeeves","Filed to "+dest+" as "+x.j.record_id+"."+score+" Same review engines.");
         if(x.j.href){var a=document.createElement("a");a.href=x.j.href;a.textContent="Open "+x.j.record_id;a.className="button ghost";log.appendChild(a);}
       })
       .catch(function(){line("Jeeves","Upload failed.");});

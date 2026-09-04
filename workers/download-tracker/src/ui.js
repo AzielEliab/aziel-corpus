@@ -347,7 +347,14 @@ function docCards(rows, state = {}, path = "/") {
       const triadRow = display != null
         ? `<p class="triad"><span class="metric">${esc(display)}</span><span class="muted">Triad score (SPRE × CLCE × PhysLing)</span></p>`
         : (quietAziel ? "" : `<p class="muted">Triad score pending backfill</p>`);
-      const open = `<p><a class="button" href="/file/${esc(r.record_id)}">Download</a></p>`;
+      const zScore = r.zsolver_score != null ? Number(r.zsolver_score) : (r.zsolver && r.zsolver.capped_confidence);
+      const zDisp = r.zsolver && r.zsolver.display != null ? r.zsolver.display : (zScore != null && Number.isFinite(zScore) ? Math.round(zScore * 100) : null);
+      const zStat = String(r.zsolver_status || (r.zsolver && r.zsolver.status) || "").toLowerCase();
+      const zRow = zDisp != null
+        ? `<p class="triad"><span class="metric">${esc(zDisp)}</span><span class="muted">ZionPattern Solver (secondary` + (zStat === "queued" ? ", retry queued" : "") + `)</span></p>`
+        : (quietAziel ? "" : `<p class="muted">ZionPattern Solver pending backfill</p>`);
+      const sha = String(r.content_sha256 || "").trim();
+      const open = `<p><a class="button" href="/file/${esc(r.record_id)}">Download</a>` + (sha ? ` <a class="button ghost" href="/download?hash=${esc(sha)}">By hash</a>` : "") + `</p>`;
       const file = r.filename ? esc(r.filename) : "text record";
       const when = r.created_utc ? esc(String(r.created_utc).replace("T", " ").slice(0, 16)) : "";
       const authorName = String(r.author || "").trim();
@@ -364,7 +371,6 @@ function docCards(rows, state = {}, path = "/") {
         .map((t) => miniChip(t, browseHref(path, st, { keyword: t }), String(st.keyword).toLowerCase() === t.toLowerCase()))
         .join("");
       const extra = [domainChips, subjectChips, keywordChips].filter(Boolean).join("");
-      const sha = String(r.content_sha256 || "").trim();
       const shaRow = sha ? `<p class="meta">SHA-256 ${esc(sha.slice(0,12))}… · <a href="/receipt/${esc(r.record_id)}">receipt</a></p>` : `<p class="meta"><a href="/receipt/${esc(r.record_id)}">receipt</a></p>`;
       const q = String(r.quarantine_status || "").toUpperCase();
       const qBadge = q === "POISON_SUSPECT" || q === "QUARANTINE"
@@ -374,7 +380,7 @@ function docCards(rows, state = {}, path = "/") {
           : "";
       const extraRow = extra ? `<div class="mini-chips">${extra}</div>` : "";
       const docCls = aziel ? "doc doc-aziel" : "doc";
-      return `<article class="${docCls}">${libTag(r.library)}${qBadge}<h3><a href="/record/${esc(r.record_id)}">${esc(r.title)}</a></h3>${byline}${extraRow}${triadRow}<p class="meta">${file}${when ? " · " + when : ""}</p>${shaRow}<p>${esc(r.snippet || r.body || "")}</p>${open}</article>`;
+      return `<article class="${docCls}">${libTag(r.library)}${qBadge}<h3><a href="/record/${esc(r.record_id)}">${esc(r.title)}</a></h3>${byline}${extraRow}${triadRow}${zRow}<p class="meta">${file}${when ? " · " + when : ""}</p>${shaRow}<p>${esc(r.snippet || r.body || "")}</p>${open}</article>`;
     })
     .join("")}</div>`;
 }
