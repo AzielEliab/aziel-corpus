@@ -22,6 +22,11 @@ export function robotsTxt() {
     "Allow: /historical",
     "Allow: /verify",
     "Allow: /corpus",
+    "Allow: /aziel-library",
+    "Allow: /pattern",
+    "Allow: /software",
+    "Allow: /about",
+    "Allow: /runtime",
     "Allow: /v1",
     "Allow: /v1/",
     "Allow: /cite.json",
@@ -39,7 +44,8 @@ export function robotsTxt() {
 
 export async function sitemapXml(env) {
   const locs = [
-    HOST + "/", HOST + "/corpus", HOST + "/map", HOST + "/gazetteer", HOST + "/tree",
+    HOST + "/", HOST + "/aziel-library", HOST + "/corpus", HOST + "/pattern", HOST + "/software",
+    HOST + "/about", HOST + "/runtime", HOST + "/map", HOST + "/gazetteer", HOST + "/tree",
     HOST + "/health", HOST + "/intelligence", HOST + "/ocr", HOST + "/historical", HOST + "/verify",
     HOST + "/download", HOST + "/install.sh", HOST + "/v1/health", HOST + "/v1/search",
     HOST + "/v1/skill", HOST + "/v1/example", HOST + "/v1/review", HOST + "/v1/lattice", HOST + "/v1/verify-backfill", HOST + "/v1/media-run", HOST + "/openapi.json", HOST + "/llms.txt",
@@ -110,6 +116,10 @@ export function llmsDoc(limitation) {
     + "## Public HTML (anonymous GET; User-Agent Mozilla/5.0)\n\n"
     + "- Search: " + HOST + "/\n"
     + "- Corpus: " + HOST + "/corpus\n"
+    + "- Software: " + HOST + "/software\n"
+    + "- Runtime root: " + HOST + "/runtime\n"
+    + "- About Aziel: " + HOST + "/about\n"
+    + "- Pattern: " + HOST + "/pattern\n"
     + "- Tree: " + HOST + "/tree\n"
     + "- Temporal Map: " + HOST + "/map\n"
     + "- Gazetteer: " + HOST + "/gazetteer\n"
