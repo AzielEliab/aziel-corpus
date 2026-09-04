@@ -1,9 +1,17 @@
 import { page } from "./ui.js";
-import { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody } from "./hosted-pages.js";
+import { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, blockedAvBody } from "./hosted-pages.js";
 import { json, corsHeaders } from "./runtime.js";
-import { receiptForRecord } from "./ledger.js";
-import { isOperator, asFile } from "./library.js";
-import { handleTranscribe, persistOcrRun, receiptForMediaRun, isMediaRunId, truthy, bytesAsFile } from "./media.js";
+import { receiptForRecord, sha256hex } from "./ledger.js";
+import { isOperator, asFile, getObject, putObject, objectExists, ingestRecord, safeFilename } from "./library.js";
+import {
+  persistOcrRun, persistMediaRun, receiptForMediaRun, isMediaRunId, truthy, bytesAsFile,
+  libraryNotes, publicRunPayload, linkRunToRecord, MEDIA_MAX_BYTES, guessMediaMime,
+  isAudioOrVideo, isVideoMedia,
+} from "./media.js";
+import {
+  whisperBound, transcribeFile, vibeDetermination, safetyScanText, safetyFromVibe,
+  combineSafety, blockedPublicPayload, LATTICE_AV_BLOCKED, LATTICE_TRANSCRIPT_VIBELOCK, AV_BLOCK_STATUS,
+} from "./transcript.js";
 import { addPeerReview, loadRecordReview } from "./review-store.js";
 import {
   ensureSchema, ensurePlaces, gazetteerStatus, gazetteerSearch, lookupPlaces,
@@ -15,7 +23,6 @@ import {
   aiBound, ocrFile, ocrSelftest, lastOcrSelftest, pendingOcrCount, reprocessPendingOcr,
   listPackages, installPackage, healthSnapshot, verifyHosted, appendOcrToRecord,
 } from "./ocr.js";
-import { ingestRecord } from "./library.js";
 
 function intelScripts() {
   var c = [104,116,116,112,115,58,47,47,99,100,110,46,106,115,100,101,108,105,118,114,46,110,101,116,47,110,112,109,47,116,101,115,115,101,114,97,99,116,46,106,115,64,53,47,100,105,115,116,47,116,101,115,115,101,114,97,99,116,46,109,105,110,46,106,115];
@@ -46,6 +53,31 @@ function html(pageBody, extra) {
   });
 }
 
+async function serveAvMedia(env, sha) {
+  const hex = String(sha || "").toLowerCase();
+  if (!/^[0-9a-f]{64}$/.test(hex)) return json({ error: "not found" }, 404);
+  const obj = await getObject(env, "av/" + hex);
+  if (!obj) return json({ error: "not found" }, 404);
+  const headers = new Headers();
+  const ct = (obj.httpMetadata && obj.httpMetadata.contentType) || "application/octet-stream";
+  headers.set("Content-Type", ct);
+  headers.set("Content-Disposition", "inline");
+  headers.set("X-Content-Type-Options", "nosniff");
+  headers.set("Cache-Control", "public, max-age=31536000, immutable");
+  for (const [k, v] of Object.entries(corsHeaders())) headers.set(k, v);
+  return new Response(obj.body, { status: 200, headers });
+}
+
+function formHasFields(form) {
+  if (!form) return false;
+  try {
+    const first = form.keys().next();
+    return first && first.done === false;
+  } catch {
+    return true;
+  }
+}
+
 async function assetFromPublic(env, request, name, contentType) {
   if (!env.ASSETS) return json({ error: "assets binding missing" }, 500);
   const assetUrl = new URL("/" + name, request.url);
@@ -70,6 +102,10 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
   }
   if ((path === "/assets/ocr_selftest.png" || path === "/ocr_selftest.png") && method === "GET") {
     return assetFromPublic(env, request, "ocr_selftest.png", "image/png");
+  }
+  const avMatch = path.match(/^\/media\/([0-9a-fA-F]{64})$/);
+  if (avMatch && method === "GET") {
+    return serveAvMedia(env, avMatch[1]);
   }
 
   if (path === "/api/gazetteer" && method === "GET") {
@@ -133,21 +169,123 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     return html(page("OCR", ocrPageBody({ aiReady: aiBound(env), signed, operator: isOperator(signed) }), { signed, path: "/ocr", scripts: intelScripts(), kind: "intelligence" }));
   }
   if (path === "/transcribe" && method === "POST") {
-    const out = await handleTranscribe(env, request, signed);
+    let form;
+    try { form = await request.formData(); } catch {
+      return json({ error: "multipart form required" }, 400);
+    }
+    if (!formHasFields(form)) return json({ error: "empty form" }, 400);
+    if (!whisperBound(env)) return json({ error: "Workers AI not bound — Whisper is not available on this Worker." }, 503);
+    const file = asFile(form.get("file") || form.get("media") || form.get("audio") || form.get("video"));
+    if (!file) return json({ error: "audio or video file required" }, 400);
+    if (file.size > MEDIA_MAX_BYTES) return json({ error: "file too large for hosted Whisper", max_bytes: MEDIA_MAX_BYTES }, 413);
+    const name = safeFilename(file.name);
+    const mime = guessMediaMime(name, file.type);
+    if (!isAudioOrVideo(mime, name)) {
+      return json({ error: "unsupported type — send audio/* or video/* (wav, mp3, flac, ogg, m4a, webm, mp4)", accept: "audio/*,video/*" }, 415);
+    }
+    const raw = await file.arrayBuffer();
+    const bytes = raw instanceof Uint8Array ? raw : new Uint8Array(raw);
+    const sha = sha256hex(bytes);
+    const whisper = await transcribeFile(env, bytes, mime, name);
+    const vibe = await vibeDetermination(bytes, mime, name);
+    const safety = combineSafety(
+      safetyScanText([whisper.text || "", name].join("\n"), { filename: name, mime }),
+      safetyFromVibe(vibe)
+    );
+    const wantUpload = truthy(form.get("upload") || form.get("upload_library") || form.get("save"));
+    let mediaUrl = null;
+    let storageError = null;
+    if (!safety.blocked) {
+      try {
+        const key = "av/" + sha;
+        if (!(await objectExists(env, key))) {
+          await putObject(env, key, bytes, mime || "application/octet-stream");
+        }
+        mediaUrl = "/media/" + sha;
+      } catch (err) {
+        if (err && err.status === 409) mediaUrl = "/media/" + sha;
+        else storageError = err && err.message ? err.message : String(err);
+      }
+    }
+    const run = await persistMediaRun(env, {
+      kind: "transcript+vibelock",
+      action: safety.blocked ? LATTICE_AV_BLOCKED : LATTICE_TRANSCRIPT_VIBELOCK,
+      filename: name,
+      mime,
+      bytes,
+      text: safety.blocked ? "" : (whisper.text || ""),
+      vibe: { ...vibe, safety, determination: "mandatory" },
+      blocked: safety.blocked,
+      stored: !safety.blocked && !!mediaUrl,
+      error: safety.blocked ? "AV_BLOCKED" : (whisper.ok ? null : (whisper.error || whisper.missing)),
+    });
+    if (safety.blocked) {
+      const blocked = blockedPublicPayload({
+        reasons: safety.reasons,
+        policy: safety.policy,
+        run_id: run.run_id,
+        receipt_url: run.receipt_url,
+        ledger_url: run.ledger_url,
+        vibe,
+      });
+      if (wantsHtml(request)) {
+        return html(page("Blocked", blockedAvBody({ blocked }), { signed, path: "/transcribe" }), { status: AV_BLOCK_STATUS });
+      }
+      return json(blocked, AV_BLOCK_STATUS);
+    }
+    let ingest = null;
+    let ingest_error = null;
+    if (wantUpload) {
+      if (!signed) {
+        ingest_error = "Sign in to upload to the library. Signed-in non-operators write Corpus (Lamb Lens). Operator writes Aziel Library. Anonymous visitors cannot write.";
+      } else if (!whisper.text) {
+        ingest_error = "No transcript text to store. Library upload skipped.";
+      } else {
+        try {
+          ingest = await ingestRecord(env, {
+            signed,
+            title: name || "Transcript",
+            body: libraryNotes(whisper.text, run, vibe),
+            domain: "transcript",
+            keywords: "transcript,whisper,vibelock",
+            file: bytesAsFile(bytes, name, mime),
+          });
+          await linkRunToRecord(env, run.run_id, ingest.id, LATTICE_TRANSCRIPT_VIBELOCK, {
+            content_sha256: run.content_sha256,
+            transcript_sha256: run.transcript_sha256,
+          });
+          run.record_id = ingest.id;
+        } catch (err) {
+          ingest_error = err && err.message ? err.message : String(err);
+        }
+      }
+    }
+    const body = publicRunPayload(run, {
+      ok: whisper.ok,
+      whisper: { model: whisper.model || null, video: !!whisper.video },
+      vibe,
+      ingest,
+      ingest_error,
+      message: whisper.message || storageError || null,
+    });
+    body.blocked = false;
+    body.playable = !!mediaUrl;
+    body.media_url = mediaUrl;
+    body.media_sha256 = sha;
+    body.ledger_action = LATTICE_TRANSCRIPT_VIBELOCK;
+    body.vibe_determination = "mandatory";
+    body.player = isVideoMedia(mime, name) ? "video" : "audio";
     if (wantsHtml(request)) {
-      const loc = out.body && out.body.record_id
-        ? "/record/" + out.body.record_id
-        : (out.body && out.body.run_id ? "/receipt/" + out.body.run_id : "/intelligence");
+      const loc = ingest ? "/record/" + ingest.id : "/receipt/" + run.run_id;
       return new Response(null, { status: 303, headers: { Location: loc } });
     }
-    return json(out.body, out.status || 200);
+    return json(body, whisper.ok ? 200 : 422);
   }
   if (path === "/ocr" && method === "POST") {
     const form = await request.formData();
     const file = asFile(form.get("file"));
     if (!file) return json({ error: "file required" }, 400);
     const save = truthy(form.get("save") || form.get("upload") || form.get("upload_library"));
-    const wantVibe = truthy(form.get("vibelock") || form.get("review_authenticity"));
     if (save && !signed) return json({ error: "login required to upload to library" }, 401);
     const result = await ocrFile(env, file);
     let record = null;
@@ -157,7 +295,7 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
         title: file.name || "OCR extract",
         body: result.text,
         domain: "ocr",
-        keywords: "ocr" + (wantVibe ? ",vibelock" : ""),
+        keywords: "ocr",
         file: result.bytes ? bytesAsFile(result.bytes, file.name || result.filename, file.type || result.contentType) : null,
       });
       try { await extractEventsForRecord(env, record.id); } catch {}
@@ -170,7 +308,6 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
         filename: file.name || result.filename,
         mime: file.type || result.contentType,
         recordId: record && record.id,
-        wantVibe,
         error: result.ok ? null : (result.message || result.missing || result.error),
       });
     } catch { run = null; }
@@ -189,7 +326,6 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
       receipt_url: run && run.receipt_url,
       ledger_url: run && run.ledger_url,
       lattice_tip: run && run.lattice_tip,
-      vibe: run && run.vibe,
       record_id: record && record.id,
       library: record && record.library,
     });

@@ -18,6 +18,7 @@ Author: **Aziel Eliab**.
 - **Document-bound hash chains:** each `AZDOC-` record owns its chain tip. Upload, download, rescore, quarantine, and peer notes append there. No orphan chains for zip `ASSET-` ids.
 - **All documents downloadable:** `/file/{id}` and `/download?record=` return HTTP 200. Text-only and quarantined records included (quarantine banner + `X-Aziel-Quarantine`).
 - **Ask Jeeves:** fixed bottom-right FAB, mobile-safe drawer. Research assistant over public records. Add files to Corpus only. Cannot change scores or reveal operator secrets. `POST /v1/jeeves/chat`, `POST /v1/jeeves/upload`.
+- **Hosted Whisper + mandatory VibeLock:** every `/transcribe` run calls VibeLock determination. Hard blocks porn, nudity, and child-sexual content (HTTP 451). Blocked media is never stored and never playable. Allowed media is at `av/{sha256}` / `GET /media/{sha256}`. Ledger `LATTICE_TRANSCRIPT_VIBELOCK` or `LATTICE_AV_BLOCKED`.
 
 ## Rules kept
 
