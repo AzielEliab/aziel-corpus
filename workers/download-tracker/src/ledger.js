@@ -47,7 +47,7 @@ export async function ensureLedger(env) {
     "CREATE TABLE IF NOT EXISTS document_ledger (record_id TEXT NOT NULL, sequence INTEGER NOT NULL, timestamp_utc TEXT NOT NULL, action TEXT NOT NULL, payload_json TEXT NOT NULL, previous_hash TEXT NOT NULL, entry_hash TEXT NOT NULL, PRIMARY KEY (record_id, sequence))"
   ).run();
   try { await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_doc_ledger_tip ON document_ledger(record_id, sequence)").run(); } catch { /* exists */ }
-  for (const col of ["chain_tip TEXT", "chain_sequence INTEGER", "triad_combined REAL"]) {
+  for (const col of ["chain_tip TEXT", "chain_sequence INTEGER", "triad_combined REAL", "shelf_hidden INTEGER DEFAULT 0"]) {
     try { await env.DB.prepare("ALTER TABLE records ADD COLUMN " + col).run(); } catch { /* exists */ }
   }
 }

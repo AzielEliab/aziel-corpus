@@ -2,7 +2,7 @@
  * Aziel Digital Library hosted runtime. /v1 never touches DOWNLOADS KV.
  * Author: Aziel Eliab.
  */
-import { searchRecords, serveFileByHash, normalizeContentHash } from "./library.js";
+import { searchRecords, serveFileByHash, normalizeContentHash, dedupeShelfRows } from "./library.js";
 import { receiptForRecord, documentChain } from "./ledger.js";
 import { loadRecordReview, runReviewBundle, backfillReviews, continueFullBackfill, fullBackfillStatus } from "./review-store.js";
 import { latticeAnchorTip, LATTICE_NOTE } from "./lattice.js";
@@ -237,7 +237,7 @@ export async function handleRuntimeApi(request, url, env) {
     const domain = (url.searchParams.get("domain") || "").trim();
     const subject = (url.searchParams.get("subject") || "").trim();
     const keyword = (url.searchParams.get("keyword") || "").trim();
-    const rows = await searchRecords(env, { q, library: lib, sort, author, domain, subject, keyword, limit: 50 });
+    const rows = dedupeShelfRows(await searchRecords(env, { q, library: lib, sort, author, domain, subject, keyword, limit: 50 }));
     return json({ ok: true, q, lib, sort, author, domain, subject, keyword, results: rows, bayesian_unranked: true, limitation: LIMITATION });
   }
   if (path === "/v1/review" && request.method === "GET") {
