@@ -101,6 +101,8 @@ export async function searchRecords(env, { q, library, sort, author, domain, sub
     where.push("library = ?");
     binds.push(lib);
   }
+  // Oldest identical-SHA copies stay in D1/receipts but leave the public shelf.
+  where.push("IFNULL(shelf_hidden,0) = 0");
   const authorFilter = String(author || "").trim();
   if (authorFilter) {
     where.push("IFNULL(author,'') LIKE ?");
@@ -132,18 +134,38 @@ export async function searchRecords(env, { q, library, sort, author, domain, sub
   }
 }
 
+function recordTimeMs(row) {
+  const ms = Date.parse(String((row && row.created_utc) || ""));
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+/** Prefer Aziel Library over Corpus, then newest created_utc, then record_id. */
+export function preferredShelfRow(a, b) {
+  const la = String((a && a.library) || "").toLowerCase() === "aziel" ? 1 : 0;
+  const lb = String((b && b.library) || "").toLowerCase() === "aziel" ? 1 : 0;
+  if (la !== lb) return la > lb ? a : b;
+  const ta = recordTimeMs(a);
+  const tb = recordTimeMs(b);
+  if (ta !== tb) return ta > tb ? a : b;
+  return String((a && a.record_id) || "") >= String((b && b.record_id) || "") ? a : b;
+}
+
+/** Hide duplicate public shelf rows by content SHA; keep preferred copy. */
 export function dedupeShelfRows(rows) {
-  const seen = new Set();
-  const out = [];
+  const bySha = new Map();
+  const noSha = [];
   for (const r of rows || []) {
     const sha = String(r.content_sha256 || "").trim().toLowerCase();
-    if (sha) {
-      if (seen.has(sha)) continue;
-      seen.add(sha);
+    if (!sha) {
+      noSha.push(r);
+      continue;
     }
-    out.push(r);
+    const prev = bySha.get(sha);
+    bySha.set(sha, prev ? preferredShelfRow(prev, r) : r);
   }
-  return out;
+  const keepers = new Set([...bySha.values(), ...noSha].map((r) => r && r.record_id).filter(Boolean));
+  // Preserve caller sort order among keepers.
+  return (rows || []).filter((r) => keepers.has(r.record_id));
 }
 
 function countTokens(rows, getter, cap) {
@@ -206,10 +228,12 @@ export async function listFacets(env, { library } = {}) {
   const lib = String(library || "all").toLowerCase();
   let sql = "SELECT author, domain, subjects, keywords FROM records";
   const binds = [];
+  const where = ["IFNULL(shelf_hidden,0) = 0"];
   if (lib === "aziel" || lib === "corpus") {
-    sql += " WHERE library = ?";
+    where.push("library = ?");
     binds.push(lib);
   }
+  sql += " WHERE " + where.join(" AND ");
   sql += " ORDER BY created_utc DESC LIMIT 400";
   const rows = (await env.DB.prepare(sql).bind(...binds).all()).results || [];
   return {
