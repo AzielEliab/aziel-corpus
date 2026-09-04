@@ -181,7 +181,7 @@ async function migrate(env) {
     `CREATE TABLE IF NOT EXISTS ocr_jobs (id TEXT PRIMARY KEY, record_id TEXT, status TEXT, result TEXT, created_utc TEXT)`,
     `CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value TEXT)`,
     `CREATE TABLE IF NOT EXISTS ledger (sequence INTEGER PRIMARY KEY, timestamp_utc TEXT NOT NULL, action TEXT NOT NULL, payload_json TEXT NOT NULL, previous_hash TEXT NOT NULL, entry_hash TEXT NOT NULL)`,
-    `CREATE TABLE IF NOT EXISTS derived_artifacts (derived_id TEXT PRIMARY KEY, record_id TEXT, artifact_type TEXT, processor TEXT, processor_version TEXT, content_sha256 TEXT, created_utc TEXT, status TEXT)`,
+    `CREATE TABLE IF NOT EXISTS derived_artifacts (derived_id TEXT PRIMARY KEY, record_id TEXT, artifact_type TEXT, processor TEXT, processor_version TEXT, content_sha256 TEXT, created_utc TEXT, status TEXT, object_key TEXT, note TEXT)`,
     `CREATE TABLE IF NOT EXISTS events (event_id TEXT PRIMARY KEY, event_date TEXT, place_name TEXT, lat REAL, lon REAL, title TEXT, record_id TEXT, created_by TEXT, created_utc TEXT NOT NULL)`,
   ];
   for (const sql of tables) {
@@ -191,6 +191,8 @@ async function migrate(env) {
     try { await env.DB.prepare("ALTER TABLE events ADD COLUMN " + col).run(); } catch { /* duplicate column */ }
   }
   try { await env.DB.prepare("ALTER TABLE records ADD COLUMN content_sha256 TEXT").run(); } catch { /* exists */ }
+  try { await env.DB.prepare("ALTER TABLE derived_artifacts ADD COLUMN object_key TEXT").run(); } catch { /* exists */ }
+  try { await env.DB.prepare("ALTER TABLE derived_artifacts ADD COLUMN note TEXT").run(); } catch { /* exists */ }
   try { await ensureLedger(env); } catch { /* ledger */ }
   try { await ensureReviewSchema(env); } catch { /* review */ }
 }

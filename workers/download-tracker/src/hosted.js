@@ -2,7 +2,7 @@ import { page } from "./ui.js";
 import { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, blockedAvBody } from "./hosted-pages.js";
 import { json, corsHeaders } from "./runtime.js";
 import { receiptForRecord, sha256hex } from "./ledger.js";
-import { isOperator, asFile, getObject, putObject, objectExists, ingestRecord, safeFilename } from "./library.js";
+import { isOperator, asFile, getObject, putObject, objectExists, ingestRecord, safeFilename, serveDerived } from "./library.js";
 import {
   persistOcrRun, persistMediaRun, receiptForMediaRun, isMediaRunId, truthy, bytesAsFile,
   libraryNotes, publicRunPayload, linkRunToRecord, MEDIA_MAX_BYTES, guessMediaMime,
@@ -21,8 +21,10 @@ import {
 } from "./geo.js";
 import {
   aiBound, ocrFile, ocrSelftest, lastOcrSelftest, pendingOcrCount, reprocessPendingOcr,
-  listPackages, installPackage, healthSnapshot, verifyHosted, appendOcrToRecord,
+  listPackages, installPackage, healthSnapshot, verifyHosted,
+  recordOcrTextArtifact, recordSpectralOverlayArtifact, listDerivedArtifacts,
 } from "./ocr.js";
+import { normalizeLenses } from "./spectral.js";
 
 function intelScripts() {
   var c = [104,116,116,112,115,58,47,47,99,100,110,46,106,115,100,101,108,105,118,114,46,110,101,116,47,110,112,109,47,116,101,115,115,101,114,97,99,116,46,106,115,64,53,47,100,105,115,116,47,116,101,115,115,101,114,97,99,116,46,109,105,110,46,106,115];
@@ -103,6 +105,10 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
   if ((path === "/assets/ocr_selftest.png" || path === "/ocr_selftest.png") && method === "GET") {
     return assetFromPublic(env, request, "ocr_selftest.png", "image/png");
   }
+  const spectralSample = path.match(/^\/(?:assets\/)?spectral-samples\/([a-z0-9-]+)\.png$/);
+  if (spectralSample && method === "GET") {
+    return assetFromPublic(env, request, "spectral-samples/" + spectralSample[1] + ".png", "image/png");
+  }
   const avMatch = path.match(/^\/media\/([0-9a-fA-F]{64})$/);
   if (avMatch && method === "GET") {
     return serveAvMedia(env, avMatch[1]);
@@ -166,7 +172,7 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     return new Response(null, { status: 303, headers: { Location: "/historical" } });
   }
   if (path === "/ocr" && method === "GET") {
-    return html(page("OCR", ocrPageBody({ aiReady: aiBound(env), signed, operator: isOperator(signed) }), { signed, path: "/ocr", scripts: intelScripts(), kind: "intelligence" }));
+    return html(page("OCR", ocrPageBody({ aiReady: aiBound(env), signed, operator: isOperator(signed) }), { signed, path: "/ocr", scripts: intelScripts(), kind: "ocr" }));
   }
   if (path === "/transcribe" && method === "POST") {
     let form;
@@ -284,26 +290,59 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
   if (path === "/ocr" && method === "POST") {
     const form = await request.formData();
     const file = asFile(form.get("file"));
-    if (!file) return json({ error: "file required" }, 400);
-    const save = truthy(form.get("save") || form.get("upload") || form.get("upload_library"));
-    if (save && !signed) return json({ error: "login required to upload to library" }, 401);
-    const result = await ocrFile(env, file);
+    const lenses = normalizeLenses(form.getAll("lens"));
+    const saveWanted = truthy(form.get("save") || form.get("upload") || form.get("upload_library"));
+    const operator = isOperator(signed);
+    const ocrPayload = { aiReady: aiBound(env), signed, operator };
+    if (!file) {
+      if (wantsHtml(request)) {
+        return html(page("OCR", ocrPageBody({ ...ocrPayload, error: "A file is required." }), { signed, path: "/ocr", scripts: intelScripts(), kind: "ocr" }), { status: 400 });
+      }
+      return json({ error: "file required" }, 400);
+    }
+    if (saveWanted && !signed && !wantsHtml(request)) {
+      return json({ error: "login required to upload to library" }, 401);
+    }
+    const result = await ocrFile(env, file, { lenses });
     let record = null;
-    if (save && result.text) {
-      record = await ingestRecord(env, {
-        signed,
-        title: file.name || "OCR extract",
-        body: result.text,
-        domain: "ocr",
-        keywords: "ocr",
-        file: result.bytes ? bytesAsFile(result.bytes, file.name || result.filename, file.type || result.contentType) : null,
-      });
-      try { await extractEventsForRecord(env, record.id); } catch {}
+    if (saveWanted && signed && result.text) {
+      const original = result.originalBytes || result.bytes;
+      const upload = original
+        ? bytesAsFile(original, file.name || result.filename || "ocr-scan.png", file.type || result.contentType)
+        : file;
+      try {
+        record = await ingestRecord(env, {
+          signed,
+          title: file.name || "OCR extract",
+          body: result.text,
+          domain: "ocr",
+          subjects: lenses.join(", "),
+          keywords: lenses.length ? "ocr, spectral" : "ocr",
+          file: upload,
+          skipOcrHint: true,
+        });
+      } catch {
+        record = await ingestRecord(env, {
+          signed,
+          title: file.name || "OCR extract",
+          body: result.text,
+          domain: "ocr",
+          subjects: lenses.join(", "),
+          keywords: lenses.length ? "ocr, spectral" : "ocr",
+          file: null,
+          skipOcrHint: true,
+        });
+      }
+      try { await recordOcrTextArtifact(env, record.id, result.text, { lenses }); } catch { /* derived */ }
+      if (result.enhancedBytes) {
+        try { await recordSpectralOverlayArtifact(env, record.id, result.enhancedBytes, { lenses, plan: result.overlay && result.overlay.plan }); } catch { /* overlay */ }
+      }
+      try { await extractEventsForRecord(env, record.id); } catch { /* events */ }
     }
     let run = null;
     try {
       run = await persistOcrRun(env, {
-        bytes: result.bytes,
+        bytes: result.originalBytes || result.bytes,
         text: result.text || "",
         filename: file.name || result.filename,
         mime: file.type || result.contentType,
@@ -311,21 +350,28 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
         error: result.ok ? null : (result.message || result.missing || result.error),
       });
     } catch { run = null; }
+    const saveNote = saveWanted && !signed ? "Sign in to save extracted text into the library." : null;
     if (wantsHtml(request)) {
-      const loc = record ? "/record/" + record.id : (run ? "/receipt/" + run.run_id : "/intelligence");
-      return new Response(null, { status: 303, headers: { Location: loc } });
+      if (record) return new Response(null, { status: 303, headers: { Location: "/record/" + record.id } });
+      return html(page("OCR", ocrPageBody({
+        ...ocrPayload,
+        error: saveNote,
+        result: { ...result, record_id: null, lenses, run_id: run && run.run_id, receipt_url: run && run.receipt_url },
+      }), { signed, path: "/ocr", scripts: intelScripts(), kind: "ocr" }));
     }
     return json({
       ok: !!result.ok,
       text: result.text || "",
       engine: result.engine || result.model || null,
       missing: result.missing || null,
-      message: result.message || null,
+      message: result.message || saveNote || null,
       kind: (run && run.kind) || result.kind,
       run_id: run && run.run_id,
       receipt_url: run && run.receipt_url,
       ledger_url: run && run.ledger_url,
       lattice_tip: run && run.lattice_tip,
+      lenses,
+      overlay: result.overlay ? { ok: !!result.overlay.ok, plan: result.overlay.plan, advisory: result.overlay.advisory, note: result.overlay.note } : null,
       record_id: record && record.id,
       library: record && record.library,
     });
@@ -406,7 +452,13 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     if (!row) return html(page("Not found", recordBody({ row: null, events: [] }), { signed, path: path }), { status: 404 });
     const events = await recordEvents(env, row.record_id);
     const extra = await loadRecordReview(env, row);
-    return html(page(row.title || "Record", recordBody({ row, events, signed, ...extra }), { signed, path: "/record/" + row.record_id }));
+    let derived = [];
+    try { derived = await listDerivedArtifacts(env, row.record_id); } catch { derived = []; }
+    return html(page(row.title || "Record", recordBody({ row, events, signed, derived, ...extra }), { signed, path: "/record/" + row.record_id }));
+  }
+  const derMatch = path.match(/^\/derived\/([^/]+)$/);
+  if (derMatch && method === "GET") {
+    return serveDerived(env, decodeURIComponent(derMatch[1]));
   }
   const peerMatch = path.match(/^\/record\/([^/]+)\/peer$/);
   if (peerMatch && method === "POST") {
