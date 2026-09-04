@@ -218,8 +218,9 @@ export async function handleAuth(request, url, env, ctx) {
     return new Response(null, { status: 303, headers: { Location: "/corpus" } });
   }
 
-  if (request.method === "POST" && path !== "/login" && path !== "/signup" && path !== "/event") {
-    if (!signed) return json({ error: "login required" }, 401);
+  if (request.method === "POST") {
+    const publicPosts = new Set(["/login", "/signup", "/event", "/ocr", "/transcribe", "/ingest"]);
+    if (!publicPosts.has(path) && !signed) return json({ error: "login required" }, 401);
   }
   return null;
 }

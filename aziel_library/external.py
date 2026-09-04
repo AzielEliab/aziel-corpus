@@ -258,7 +258,7 @@ class BootstrapManager:
         if dry_run: return {'url':url,'path':str(dest),'status':'dry_run'}
         tmp=dest.with_suffix(dest.suffix+'.partial'); tmp.unlink(missing_ok=True)
         try:
-            req=urllib.request.Request(url,headers={'User-Agent':'AzielDigitalLibrary/2.6.2','Accept':'*/*'})
+            req=urllib.request.Request(url,headers={'User-Agent':'AzielDigitalLibrary/2.7.0','Accept':'*/*'})
             with urllib.request.urlopen(req,timeout=90) as r, tmp.open('wb') as f:
                 while True:
                     b=r.read(1024*1024)

@@ -1,7 +1,11 @@
 {
   "private": true,
-  "description": "Aziel Digital Library v2.6.2 public MASTER + counted zip + hosted /v1",
+  "type": "module",
+  "description": "Aziel Digital Library v2.7.0 public MASTER + counted zip + hosted /v1",
   "license": "Apache-2.0",
+  "scripts": {
+    "test": "node --test src/review.test.js src/media.test.js src/transcript.test.js"
+  },
   "dependencies": {
     "wrangler": "^4.127.1"
   }

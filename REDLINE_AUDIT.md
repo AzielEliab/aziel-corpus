@@ -38,5 +38,8 @@ Root causes and fixes:
 
 Certification adds real raster OCR tests for both image and image-only PDF paths, poisoned-local-tessdata fallback, bootstrap completion semantics, and pending-record recovery.
 
+## v2.7.0 review / poison / lattice
+Hosted and local ingest now structurally verify every file, score SPRE + CLCE + PhysLing Review, store an unranked Bayesian posterior, and hash-chain quarantine instead of deleting suspected poison. Lattice tips are for AzielTether; the public site is not a mesh. SPRE does not assert criminal guilt.
+
 ## v2.6.2 geospatial completion hotfix
 The v2.6.1 OCR repair correctly fed extracted text back into entity/event processing, but QA reproduced a separate geography readiness failure: a fresh MASTER did not automatically install a world gazetteer, gazetteer installation did not automatically re-index earlier documents, and the date grammar only recognized ISO-like numeric dates. The launcher baseline, automatic re-index, natural-language date normalization, span-based event pairing, metadata upgrade logic, and OCR-to-map regression tests were added in v2.6.2.

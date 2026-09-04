@@ -1,6 +1,6 @@
 [project]
 name = "aziel-digital-library"
-version = "2.6.2"
+version = "2.7.0"
 description = "Self-contained immutable local digital library and intelligence runtime"
 requires-python = ">=3.11"
 dependencies = []

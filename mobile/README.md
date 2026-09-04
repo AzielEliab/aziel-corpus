@@ -1,6 +1,6 @@
 # Aziel Digital Library — iPhone & Android
 
-On-device stub for Aziel Digital Library v2.6.2. Author Aziel Eliab.
+On-device stub for Aziel Digital Library v2.7.0. Author Aziel Eliab.
 
 Offline-capable UI shell. No analytics. Dark matte / gold.
 

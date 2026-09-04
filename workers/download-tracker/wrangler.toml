@@ -17,7 +17,7 @@ database_id = "23f33238-f1ca-4066-b56e-af66a1e72031"
 [assets]
 directory = "./public"
 binding = "ASSETS"
-run_worker_first = ["/", "/download", "/download/*", "/stats", "/event", "/go", "/count", "/install.sh", "/v1", "/v1/*", "/openapi.json", "/login", "/logout", "/signup", "/ingest", "/search", "/health", "/verify", "/map", "/gazetteer", "/historical", "/tree", "/intelligence", "/historical-import", "/comments", "/comments/*", "/robots.txt", "/sitemap.xml", "/cite.json", "/llms.txt", "/api", "/api/*", "/aziel-library", "/corpus", "/file", "/file/*", "/assets", "/assets/*", "/ocr", "/ocr-selftest", "/ocr-reprocess", "/gazetteer-reindex", "/install-package", "/record", "/record/*", "/receipt", "/receipt/*"]
+run_worker_first = ["/", "/download", "/download/*", "/stats", "/event", "/go", "/count", "/install.sh", "/v1", "/v1/*", "/openapi.json", "/login", "/logout", "/signup", "/ingest", "/search", "/health", "/verify", "/map", "/gazetteer", "/historical", "/tree", "/intelligence", "/historical-import", "/comments", "/comments/*", "/robots.txt", "/sitemap.xml", "/cite.json", "/llms.txt", "/api", "/api/*", "/aziel-library", "/corpus", "/file", "/file/*", "/assets", "/assets/*", "/ocr", "/ocr-selftest", "/ocr-reprocess", "/gazetteer-reindex", "/install-package", "/record", "/record/*", "/receipt", "/receipt/*", "/transcribe", "/ledger", "/ledger/*", "/media", "/media/*"]
 
 [[routes]]
 pattern = "www.azielcorpuslibrary.net"

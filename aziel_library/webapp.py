@@ -6,13 +6,14 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from .core import AzielLibrary
 from .external import ExternalRuntime, BootstrapManager
+from .jeeves import chat as jeeves_chat, JEEVES_LIMITATION
 
 from .mirror import publish_mirror, read_manifest
-APP_VERSION='2.6.2'
+APP_VERSION='2.7.0'
 
 UI_MODE='master'
 
-CSS='''body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;margin:0;background:#f4f7f8;color:#18272d}.wrap{max-width:1500px;margin:auto;padding:22px}.card{background:#fff;border:1px solid #dbe3e6;border-radius:12px;padding:18px;margin:14px 0;box-shadow:0 2px 10px #00000008}.top{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.brand{font-size:25px;font-weight:800}.muted{color:#66777e}.pill{background:#e9f1f3;border-radius:12px;padding:3px 8px;font-size:12px}.button,button{background:#1f3a44;color:white;border:0;padding:9px 13px;border-radius:8px;text-decoration:none;cursor:pointer}.search,input,select{padding:9px;border:1px solid #bdcbd0;border-radius:8px}.search{min-width:340px;flex:1}table{width:100%;border-collapse:collapse}th,td{text-align:left;vertical-align:top;padding:9px;border-bottom:1px solid #e4eaec}th{background:#f3f7f8;position:sticky;top:0}.hash{font-family:ui-monospace,monospace;font-size:11px;word-break:break-all}.why{font-size:12px;color:#52676f}.scroll{overflow:auto;max-height:68vh}.tree ul{margin-left:15px}.tree summary{cursor:pointer;padding:4px}.ok{color:#176a38;font-weight:700}.bad{color:#a51d2d;font-weight:700}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.metric{font-size:28px;font-weight:800}mark{background:#ffe48c}pre{white-space:pre-wrap;word-break:break-word}'''
+CSS='''body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;margin:0;background:#f4f7f8;color:#18272d}.wrap{max-width:1500px;margin:auto;padding:22px 22px 88px}.card{background:#fff;border:1px solid #dbe3e6;border-radius:12px;padding:18px;margin:14px 0;box-shadow:0 2px 10px #00000008}.top{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.brand{font-size:25px;font-weight:800}.muted{color:#66777e}.pill{background:#e9f1f3;border-radius:12px;padding:3px 8px;font-size:12px}.button,button{background:#1f3a44;color:white;border:0;padding:9px 13px;border-radius:8px;text-decoration:none;cursor:pointer}.search,input,select{padding:9px;border:1px solid #bdcbd0;border-radius:8px}.search{min-width:340px;flex:1}table{width:100%;border-collapse:collapse}th,td{text-align:left;vertical-align:top;padding:9px;border-bottom:1px solid #e4eaec}th{background:#f3f7f8;position:sticky;top:0}.hash{font-family:ui-monospace,monospace;font-size:11px;word-break:break-all}.why{font-size:12px;color:#52676f}.scroll{overflow:auto;max-height:68vh}.tree ul{margin-left:15px}.tree summary{cursor:pointer;padding:4px}.ok{color:#176a38;font-weight:700}.bad{color:#a51d2d;font-weight:700}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.metric{font-size:28px;font-weight:800}mark{background:#ffe48c}pre{white-space:pre-wrap;word-break:break-word}.q-badge{display:inline-block;font-size:12px;font-weight:750;padding:4px 10px;border-radius:999px}.lights{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:12px 0}.light{display:flex;gap:10px;align-items:flex-start;padding:10px;border:1px solid #dbe3e6;border-radius:12px}.lamp{width:18px;height:18px;border-radius:50%;flex:0 0 18px}.go .lamp{background:#2f9e44}.slow .lamp{background:#f0c14b}.stop .lamp{background:#c92a2a}.triad{display:flex;gap:16px;align-items:center}.q-banner{background:#f8e0e3;color:#8a1524;border-radius:12px;padding:12px;margin:10px 0;font-weight:650}.jeeves-fab{position:fixed;right:16px;bottom:16px;z-index:40;width:auto}.jeeves-drawer{position:fixed;right:12px;bottom:72px;z-index:39;width:min(380px,calc(100vw - 24px));max-height:70vh;overflow:auto;background:#fff;border:1px solid #dbe3e6;border-radius:16px;padding:14px;box-shadow:0 12px 32px #00000022}.jeeves-log{min-height:80px;max-height:28vh;overflow:auto;border:1px solid #dbe3e6;border-radius:10px;padding:8px;margin:8px 0}@media(max-width:720px){.search{min-width:0;width:100%}.lights{grid-template-columns:1fr}.button,button{width:100%}.jeeves-fab,.jeeves-drawer button{width:auto}}'''
 
 def page(title,body):
     mode = getattr(globals().get('Handler'), 'mode', UI_MODE)
@@ -20,7 +21,8 @@ def page(title,body):
     mode_badge = "<span class='pill ok'>MASTER · WRITABLE</span>" if master else "<span class='pill bad'>PUBLIC MIRROR · READ ONLY</span>"
     admin = "<a class='button' href='/ingest'>Mass Ingest</a><a class='button' href='/mirror'>Publish Mirror</a>" if master else "<a class='button' href='/mirror'>Mirror Info</a>"
 
-    return f"<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width'><title>{html.escape(title)}</title><style>{CSS}</style></head><body><div class='wrap'><div class='top'><div class='brand'>Aziel Digital Library</div><span class='pill'>Runtime v{APP_VERSION}</span>{mode_badge}<a class='button' href='/'>Search</a><a class='button' href='/tree'>Tree</a><a class='button' href='/map'>Temporal Map</a><a class='button' href='/historical'>Historical Geography</a><a class='button' href='/gazetteer'>Gazetteer</a><a class='button' href='/intelligence'>Intelligence</a><a class='button' href='/health'>Health</a><a class='button' href='/verify'>Verify</a>{admin}</div>{body}</div></body></html>"
+    jeeves='''<button type="button" class="jeeves-fab" id="jeevesFab">Ask Jeeves</button><aside class="jeeves-drawer" id="jeevesDrawer" hidden><p><b>Ask Jeeves</b> — research assistant. Not sovereign. Not operator. Cannot change scores.</p><div class="jeeves-log" id="jeevesLog"></div><form id="jeevesAsk"><textarea name="q" rows="2" placeholder="Ask about a filed record…"></textarea><p><button>Ask</button></p></form><details><summary>Add a file</summary><form id="jeevesUp" enctype="multipart/form-data"><input type="file" name="file"><p class="muted">Same ingest as the shelf: structure, SPRE × CLCE × PhysLing, Bayesian, document hash-chain. On the public site this is Corpus only. On this local MASTER it files the workstation vault the same way.</p><p><button type="submit">Add</button></p></form></details></aside><script>(function(){var d=document.getElementById('jeevesDrawer'),l=document.getElementById('jeevesLog');document.getElementById('jeevesFab').addEventListener('click',function(){d.hidden=!d.hidden});document.getElementById('jeevesAsk').addEventListener('submit',function(e){e.preventDefault();var q=this.q.value.trim();if(!q)return;var p=document.createElement('p');p.textContent='You: '+q;l.appendChild(p);this.q.value='';fetch('/api/jeeves/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})}).then(r=>r.json()).then(j=>{var n=document.createElement('p');n.textContent='Jeeves: '+(j.answer||j.error||'');l.appendChild(n);});});document.getElementById('jeevesUp').addEventListener('submit',function(e){e.preventDefault();var f=this.file.files[0];if(!f)return;var x=new XMLHttpRequest();x.open('POST','/api/ingest-file?name='+encodeURIComponent(f.name));x.setRequestHeader('Content-Type','application/octet-stream');x.onload=function(){var n=document.createElement('p');try{var j=JSON.parse(x.responseText);n.textContent=j.ok?('Jeeves: filed '+j.record_id+' — same ingest, downloadable.'):('Jeeves: '+(j.error||'upload failed'));}catch(err){n.textContent='Jeeves: upload failed';}l.appendChild(n);};x.send(f);});})();</script>'''
+    return f"<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width'><title>{html.escape(title)}</title><style>{CSS}</style></head><body><div class='wrap'><div class='top'><div class='brand'>Aziel Digital Library</div><span class='pill'>Runtime v{APP_VERSION}</span>{mode_badge}<a class='button' href='/'>Search</a><a class='button' href='/tree'>Tree</a><a class='button' href='/map'>Temporal Map</a><a class='button' href='/historical'>Historical Geography</a><a class='button' href='/gazetteer'>Gazetteer</a><a class='button' href='/intelligence'>Intelligence</a><a class='button' href='/health'>Health</a><a class='button' href='/verify'>Verify</a>{admin}</div>{body}</div>{jeeves}</body></html>"
 class Handler(BaseHTTPRequestHandler):
     vault: AzielLibrary
     mode: str = 'master'
@@ -141,12 +143,21 @@ class Handler(BaseHTTPRequestHandler):
             target=(self.vault.root/r['stored_path']).resolve()
             try: target.relative_to(self.vault.root.resolve())
             except ValueError: return self.send_error(500,'stored object path escaped vault root')
-            if not target.is_file(): return self.send_error(404,'stored original missing')
-            size=target.stat().st_size
-            ctype=r.get('mime_type') or 'application/octet-stream'
-            quoted=urllib.parse.quote(r['original_name'],safe='')
-            self.send_response(200); self.send_header('Content-Type',ctype); self.send_header('Content-Disposition',f"attachment; filename*=UTF-8''{quoted}"); self._security_headers(); self.send_header('Content-Length',str(size)); self.end_headers()
-            with target.open('rb') as src: shutil.copyfileobj(src,self.wfile,length=1024*1024)
+            try: self.vault.note_download(rid)
+            except Exception: pass
+            try: self.vault.verify_original(rid)
+            except Exception: pass
+            q=str(r.get('quarantine_status') or 'CLEAR')
+            if target.is_file():
+                size=target.stat().st_size
+                ctype=r.get('mime_type') or 'application/octet-stream'
+                quoted=urllib.parse.quote(r['original_name'],safe='')
+                self.send_response(200); self.send_header('Content-Type',ctype); self.send_header('Content-Disposition',f"attachment; filename*=UTF-8''{quoted}"); self.send_header('X-Aziel-Quarantine',q); self._security_headers(); self.send_header('Content-Length',str(size)); self.end_headers()
+                with target.open('rb') as src: shutil.copyfileobj(src,self.wfile,length=1024*1024)
+                return None
+            text=(r.get('extracted_text') or r.get('original_name') or rid).encode()
+            name=urllib.parse.quote((r.get('original_name') or rid)+'.txt',safe='')
+            self.send_response(200); self.send_header('Content-Type','text/plain; charset=utf-8'); self.send_header('Content-Disposition',f"attachment; filename*=UTF-8''{name}"); self.send_header('X-Aziel-Quarantine',q); self._security_headers(); self.send_header('Content-Length',str(len(text))); self.end_headers(); self.wfile.write(text)
             return None
         if u.path.startswith('/record/'):
             rid=urllib.parse.unquote(u.path.rsplit('/',1)[-1])
@@ -155,7 +166,26 @@ class Handler(BaseHTTPRequestHandler):
             rel=''.join(f"<li><a href='/record/{urllib.parse.quote(x['target_id'],safe='')}'>{html.escape(x['target_id'])}</a> - {x['score']:.3f} - {html.escape(x['reason'])}</li>" for x in r['relationships']) or '<li>No defensible relationship yet.</li>'; ents=''.join(f"<span class='pill'>{html.escape(x['entity_type'])}: {html.escape(x['name'])} [{html.escape(x['source'])}]</span> " for x in r['entities'])
             der=''.join(f"<tr><td>{html.escape(x['artifact_type'])}</td><td>{html.escape(x['processor'])} {html.escape(x['processor_version'])}</td><td>{html.escape(x['model_id'])}</td><td class='hash'>{html.escape(x['content_sha256'])}</td></tr>" for x in r['derived'])
             events_html=''.join(f"<div class='pill'>{html.escape(x['event_date'])} · {html.escape(x['place_name'])} · {x['confidence']:.2f}</div> " for x in r['events']) or "<p class='muted'>No mapped events extracted from this record.</p>"
-            body=f"<div class='card'><h2>{html.escape(r['original_name'])}</h2><p><b>{html.escape(r['primary_subject'])}</b> -> {html.escape(r['secondary_subject'])}</p><p>{html.escape(r['classification_reason'])}</p><p><b>Original SHA-256</b><br><span class='hash'>{r['sha256']}</span></p>{("<p><b>Object path</b><br><span class='hash'>"+html.escape(r['stored_path'])+"</span></p>") if self.mode=='master' else ''}<p><a class='button' href='/original/{urllib.parse.quote(r['record_id'],safe='')}'>Download preserved original</a></p><p><b>Extraction</b> {html.escape(r['extraction_status'])}</p><h3>Entities</h3>{ents}<h3>Temporal–Geospatial events</h3>{events_html}<h3>Connections</h3><ul>{rel}</ul><h3>Derived provenance</h3><table><tr><th>Artifact</th><th>Processor</th><th>Model</th><th>Content SHA-256</th></tr>{der}</table><h3>Indexed text</h3><pre>{html.escape(r['extracted_text'][:30000])}</pre></div>"
+            review=r.get('review') or {}
+            lights=review.get('lights') or {}
+            def lamp(key,label,kid=''):
+                st=str(lights.get(key) or 'REVIEW')
+                cls='go' if st in {'PASS','CLEAR'} else 'stop' if st in {'FLAG','QUARANTINE'} else 'slow'
+                word='Green' if cls=='go' else 'Red' if cls=='stop' else 'Yellow'
+                return f"<div class='light {cls}'><span class='lamp'></span><div><b>{html.escape(label)}</b> — {word}<div class='muted'>{html.escape(kid or st)}</div></div></div>"
+            q=str(r.get('quarantine_status') or review.get('quarantine_status') or 'CLEAR')
+            qbadge="<span class='q-badge stop'>Quarantine — poison suspect (kept, not deleted)</span>" if q in {'POISON_SUSPECT','QUARANTINE'} else "<span class='q-badge slow'>Operator flag</span>" if q in {'OPERATOR_FLAG','FLAGGED'} else "<span class='q-badge go'>Clear</span>"
+            lights_html=lamp('structure','Structure')+lamp('spre','SPRE',(review.get('spre') or {}).get('kid_plain',''))+lamp('clce','CLCE',(review.get('clce') or {}).get('kid_plain',''))+lamp('plr','PhysLing Review',(review.get('plr') or {}).get('kid_plain',''))+lamp('poison','Poison',(review.get('poison') or {}).get('kid_plain',''))
+            bayes=(review.get('bayesian') or r.get('bayesian') or {})
+            bayes_html=f"<div class='card'><h3>Bayesian peer score</h3><div class='metric'>{float(bayes.get('posterior') or 0):.3f}</div><p class='muted'>Unranked metadata. This number does not sort the shelf. For manual peer-to-peer review if the operator is gone one day.</p></div>" if bayes.get('posterior') is not None else ''
+            peers=''.join(f"<p><b>{html.escape(p['stance'])}</b> · {html.escape(p.get('created_by') or 'peer')} · {html.escape(str(p.get('created_utc') or ''))}<br>{html.escape(p.get('body') or '')}</p>" for p in r.get('peer_reviews') or []) or "<p class='muted'>No peer notes yet.</p>"
+            peer_form=f"<form method='post' action='/record/{urllib.parse.quote(r['record_id'],safe='')}/peer'><select name='stance'><option value='note'>Note</option><option value='endorse'>Endorse</option><option value='challenge'>Challenge</option></select><input name='body' placeholder='Peer note' required> <button>Append peer review</button></form>" if self.mode=='master' else "<p class='muted'>Mirror is read-only. Peer notes stay on the master hash-chain.</p>"
+            spre=review.get('spre') or {}; clce=review.get('clce') or {}; plr=review.get('plr') or {}; triad=review.get('triad') or r.get('triad') or {}
+            combined=triad.get('display') if triad.get('display') is not None else (int(round(float(triad['combined'])*100)) if triad.get('combined') is not None else None)
+            qbanner="<div class='q-banner'>Quarantine — poison suspect. Still downloadable for auditors. Not deleted.</div>" if q in {'POISON_SUSPECT','QUARANTINE'} else ''
+            triad_html=f"<div class='card'><h2>Triad score</h2><div class='triad'><div class='metric'>{combined if combined is not None else '—'}</div><div><p>One combined report card after SPRE, CLCE, and PhysLing all ran.</p><p class='muted'>{html.escape(str(triad.get('formula') or 'TRIAD_V1 geometric mean of the three verifiers.'))}</p></div></div></div>"
+            review_html=f"<div class='card'><h3>Status lights</h3><p class='muted'>Green means go. Yellow means read again. Red means stop and check.</p><div class='lights'>{lights_html}</div><p><b>SPRE PC</b> {spre.get('pc','—')} · <b>CLCE</b> {clce.get('triple','—')} · <b>PhysLing</b> {html.escape(str(plr.get('status') or '—'))}</p><p class='muted'>SPRE does not assert criminal guilt. Official narrative is not merged into evidence.</p></div>"
+            body=f"<div class='card'><h2>{html.escape(r['original_name'])}</h2><p>{qbadge}</p>{qbanner}<p><b>{html.escape(r['primary_subject'])}</b> -> {html.escape(r['secondary_subject'])}</p><p>{html.escape(r['classification_reason'])}</p><p><b>Original SHA-256</b><br><span class='hash'>{r['sha256']}</span></p>{("<p><b>Object path</b><br><span class='hash'>"+html.escape(r['stored_path'])+"</span></p>") if self.mode=='master' else ''}<p><a class='button' href='/original/{urllib.parse.quote(r['record_id'],safe='')}'>Download</a></p><p><b>Extraction</b> {html.escape(r['extraction_status'])}</p></div>{triad_html}{review_html}{bayes_html}<div class='card'><h3>Peer-to-peer review</h3>{peers}{peer_form}</div><div class='card'><h3>Entities</h3>{ents}<h3>Temporal–Geospatial events</h3>{events_html}<h3>Connections</h3><ul>{rel}</ul><h3>Derived provenance</h3><table><tr><th>Artifact</th><th>Processor</th><th>Model</th><th>Content SHA-256</th></tr>{der}</table><h3>Indexed text</h3><pre>{html.escape(r['extracted_text'][:30000])}</pre></div>"
             return self.send_html(page(r['original_name'],body))
         if u.path.startswith('/export/'):
             kind=u.path.rsplit('/',1)[-1]
@@ -172,7 +202,13 @@ class Handler(BaseHTTPRequestHandler):
     def row(self,r):
         raw_snip=r.get('snippet') or r['extracted_text'][:220]
         snip=html.escape(raw_snip).replace('\x01','<mark>').replace('\x02','</mark>')
-        return f"<tr><td><a href='/record/{r['record_id']}'><b>{html.escape(r['original_name'])}</b></a><br><span class='pill'>{html.escape(r['media_class'])}</span></td><td>{html.escape(r['primary_subject'])}<br>-> {html.escape(r['secondary_subject'])}</td><td>{snip}</td><td class='why'>{html.escape(r['classification_reason'])}</td><td class='hash'>{(html.escape(r['stored_path'])+'<br>') if self.mode=='master' else ''}{html.escape(r['sha256'][:20])}...</td></tr>"
+        md={}
+        try: md=json.loads(r.get('metadata_json') or '{}')
+        except Exception: md={}
+        review=md.get('aziel_review') or {}
+        triad=review.get('triad') or {}
+        display=triad.get('display') if triad.get('display') is not None else ('—' )
+        return f"<tr><td><a href='/record/{r['record_id']}'><b>{html.escape(r['original_name'])}</b></a><br><span class='pill'>{html.escape(r['media_class'])}</span> <a class='button' href='/original/{urllib.parse.quote(r['record_id'],safe='')}'>Download</a></td><td><b>{display}</b> triad<br>{html.escape(r['primary_subject'])}<br>-> {html.escape(r['secondary_subject'])}</td><td>{snip}</td><td class='why'>{html.escape(r['classification_reason'])}</td><td class='hash'>{(html.escape(r['stored_path'])+'<br>') if self.mode=='master' else ''}{html.escape(r['sha256'][:20])}...</td></tr>"
     def tree_html(self,node):
         ch=node.get('children',[]); label=html.escape(node['name']); extra=f" <span class='why'>- {html.escape(node.get('reason',''))} ({node.get('connections',0)} links)</span>" if 'reason' in node else ''
         if not ch:
@@ -263,10 +299,17 @@ class Handler(BaseHTTPRequestHandler):
             except OSError: pass
             raise
     def do_POST(self):
-
+        u=urllib.parse.urlparse(self.path)
+        if u.path=='/api/jeeves/chat':
+            try:
+                n=int(self.headers.get('Content-Length') or 0)
+                raw=self.rfile.read(n) if n else b'{}'
+                body=json.loads(raw.decode() or '{}')
+                return self.send_json(jeeves_chat(self.vault, body.get('question') or body.get('q') or ''))
+            except Exception as e:
+                return self.send_json({'ok':False,'error':str(e),'limitation':JEEVES_LIMITATION},status=400)
         if self.mode=='mirror':
             return self.send_error(403,'this is a read-only public mirror; corpus mutations are disabled')
-        u=urllib.parse.urlparse(self.path)
         if u.path=='/api/ingest-file':
             q=urllib.parse.parse_qs(u.query); name=q.get('name',['upload.bin'])[0]; rel=q.get('relative',[''])[0]
             p=None
@@ -354,6 +397,12 @@ class Handler(BaseHTTPRequestHandler):
                 self.vault.add_event(q.get('date',[''])[0],q.get('place',[''])[0],q.get('lat',[''])[0],q.get('lon',[''])[0],title=q.get('title',[''])[0],record_id=q.get('record_id',[''])[0])
             except Exception as e: return self.send_error(400,str(e))
             return self.redirect('/map')
+        if self.path.startswith('/record/') and self.path.endswith('/peer'):
+            rid=urllib.parse.unquote(self.path.strip('/').split('/')[1])
+            length=int(self.headers.get('Content-Length',0)); raw=self.rfile.read(length).decode('utf-8','replace'); q=urllib.parse.parse_qs(raw)
+            try: self.vault.add_peer_review(rid,q.get('stance',['note'])[0],q.get('body',[''])[0],created_by='operator')
+            except Exception as e: return self.send_error(400,str(e))
+            return self.redirect('/record/'+urllib.parse.quote(rid,safe=''))
         if self.path not in {'/upload','/install'}: return self.send_error(404)
         try:
             paths=self._multipart_files()
