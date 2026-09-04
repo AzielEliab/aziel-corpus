@@ -1,7 +1,7 @@
 import { randomBytes, createHash } from "node:crypto";
 import { appendLedger, appendDocumentLedger, ensureLedger } from "./ledger.js";
 import { ensureReviewSchema, reviewAndStore } from "./review-store.js";
-import { applySuccessionForRecord, rescoreSuccessionMembers, successionCoverageFor } from "./succession.js";
+import { applySuccessionForRecord, maybeRescoreZsolverOnFirstHandPatternBreak, rescoreSuccessionMembers, successionCoverageFor } from "./succession.js";
 import { scoreZsolverForRecord } from "./zsolver.js";
 
 const MAX_BYTES = 25 * 1024 * 1024;
@@ -464,6 +464,17 @@ export async function ingestRecord(env, args) {
       keywords: keywordsIn,
     });
   } catch { zsolver = null; }
+  try {
+    await maybeRescoreZsolverOnFirstHandPatternBreak(env, {
+      record_id: id,
+      title: finalTitle,
+      body: searchBody || notes,
+      filename,
+      subjects: subjectsIn,
+      keywords: keywordsIn,
+      zsolver_json: zsolver ? JSON.stringify(zsolver) : null,
+    }, succession && succession.cite);
+  } catch { /* first-hand pattern-break rescore optional */ }
   return {
     id,
     library,
