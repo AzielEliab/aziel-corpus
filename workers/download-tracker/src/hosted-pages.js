@@ -25,6 +25,37 @@ export function treeBody(payload) {
         (r.author ? " <span class=\"muted\">· " + esc(r.author) + "</span>" : "") + "</li>";
     }).join("") + "</ul>";
   }
+  function countDocs(node) {
+    if (Array.isArray(node)) return node.length;
+    if (node instanceof Map) {
+      let n = 0;
+      for (const v of node.values()) n += countDocs(v);
+      return n;
+    }
+    if (node && typeof node === "object") {
+      let n = 0;
+      for (const v of Object.values(node)) n += countDocs(v);
+      return n;
+    }
+    return 0;
+  }
+  function renderMicros(micros) {
+    const microMap = micros instanceof Map ? micros : new Map(Object.entries(micros || {}));
+    // Legacy shape: subject -> rows[]
+    if (Array.isArray(micros)) return docs(micros);
+    const keys = [...microMap.keys()];
+    const onlyEmpty = keys.length === 1 && keys[0] === "";
+    if (onlyEmpty) return docs(microMap.get("") || []);
+    const parts = [];
+    for (const [micro, rows] of microMap) {
+      if (!micro) {
+        parts.push(docs(rows));
+        continue;
+      }
+      parts.push("<details><summary>" + esc(micro) + " <span class=\"muted\">(" + (rows || []).length + ")</span></summary>" + docs(rows) + "</details>");
+    }
+    return parts.join("");
+  }
   const libHtml = [];
   const libMap = libraries instanceof Map ? libraries : new Map(Object.entries(libraries || {}));
   for (const [lib, domains] of libMap) {
@@ -34,8 +65,9 @@ export function treeBody(payload) {
     for (const [domain, subjects] of domainMap) {
       const subHtml = [];
       const subMap = subjects instanceof Map ? subjects : new Map(Object.entries(subjects || {}));
-      for (const [subject, rows] of subMap) {
-        subHtml.push("<details><summary>" + esc(subject) + " <span class=\"muted\">(" + rows.length + ")</span></summary>" + docs(rows) + "</details>");
+      for (const [subject, micros] of subMap) {
+        const n = countDocs(micros);
+        subHtml.push("<details><summary>" + esc(subject) + " <span class=\"muted\">(" + n + ")</span></summary>" + renderMicros(micros) + "</details>");
       }
       domainHtml.push("<details open><summary>" + esc(domain) + "</summary>" + subHtml.join("") + "</details>");
     }
@@ -44,7 +76,7 @@ export function treeBody(payload) {
   const stand = standalone.length
     ? "<details open><summary>Standalone / unclassified</summary>" + docs(standalone) + "</details>"
     : "<p class=\"muted\">No unclassified records.</p>";
-  return "<section class=\"hero\"><h1>Evidence-based corpus tree</h1><p class=\"muted\">Grouped by library → domain → subject → document. Unclassified objects stay standalone. Links are never invented.</p></section><div class=\"card tree\">" + (libHtml.join("") || "<p class=\"muted\">No classified records yet.</p>") + stand + "</div>";
+  return "<section class=\"hero\"><h1>Evidence-based corpus tree</h1><p class=\"muted\">Grouped by library → domain → subject → optional micro → document. Multi-domain paths allowed. Unclassified objects stay standalone. Links are never invented.</p></section><div class=\"card tree\">" + (libHtml.join("") || "<p class=\"muted\">No classified records yet.</p>") + stand + "</div>";
 }
 
 function light(status, label, kid) {
