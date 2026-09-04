@@ -4,7 +4,7 @@ import { page, homeBody } from "./ui.js";
 import { handleHosted } from "./hosted.js";
 import { robotsTxt, sitemapXml, citeDoc, llmsDoc } from "./crawl.js";
 import { searchRecords, listFacets, parseBrowseParams, serveFile, serveFileByHash, normalizeContentHash } from "./library.js";
-import { reviewAndStore } from "./review-store.js";
+import { reviewAndStore, continueFullBackfill } from "./review-store.js";
 import { verifyBytes, sha256hex } from "./structure.js";
 
 /**
@@ -369,7 +369,17 @@ ${LIMITATION}
 }
 
 export default {
+  async scheduled(event, env, ctx) {
+    if (ctx && typeof ctx.waitUntil === "function") {
+      ctx.waitUntil(continueFullBackfill(env, { ms: 20000, all: false }));
+    } else {
+      await continueFullBackfill(env, { ms: 20000, all: false });
+    }
+  },
   async fetch(request, env, ctx) {
+    if (ctx && typeof ctx.waitUntil === "function") {
+      ctx.waitUntil(continueFullBackfill(env, { ms: 8000, all: false }).catch(() => null));
+    }
     const url = new URL(request.url);
 
     if (request.method === "OPTIONS") {

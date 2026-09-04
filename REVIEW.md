@@ -115,7 +115,23 @@ When **SPRE**, **CLCE**, and **PhysLing** have all verified a record, one combin
 
 ## Backfill
 
-`GET /v1/verify-backfill?limit=25` (cron-friendly) and local CLI `aziel-library backfill-review` walk unscored records, run structure + all three engines, write triad + document hash-chain receipt. Safe to re-run. Skip already fully scored unless `force=1`.
+`GET /v1/verify-backfill?all=1` walks **every stored Aziel Library and Corpus record** and writes triad, ZionPattern Solver secondary score, and exact-same-subject succession cites. Reports `total`, `scored`, `skipped`, `failed`. Auto-continues on first request after ship and on a minute cron until the cursor is exhausted. Local: `aziel-library backfill-review --all`. Safe to re-run. Skip already fully scored live zsolver + matching triad unless `force=1`. If the live zsolver API is down, the secondary score is queued and retried (not silently omitted).
+
+## ZionPattern Solver (secondary public score)
+
+Every upload — Aziel Library and public Corpus — gets a **ZionPattern Solver** score. It is stored on the record, shown on the shelf and detail page, and returned by `GET /v1/review`. It is **not** merged into the triad. Hard 75% confidence cap / 25% uncertainty floor. Provisional and assistive. Does not solve Zioncheck or any case. Author Aziel Eliab.
+
+Live path: HTTPS `POST https://zsolver-download-tracker.vibelock.workers.dev/v1/score` (or optional Worker service binding `ZSOLVER`). Document-derived yes/no/unknown answers are sent. If the API is unavailable, a queued status is persisted and retried on backfill/cron.
+
+## Paper succession cites
+
+When a later paper is the exact same subject/concept as an earlier one — same canonical subject key plus title lineage, or explicit `supersedes` metadata — both public record pages list the cite:
+
+- **Supersedes** → earlier papers in the chain
+- **Superseded by** → later papers in the chain
+- Full chain oldest → newest
+
+Uncertain or merely related papers are not chained. Same-file SHA duplicates are not succession. Links are append-only. `GET /v1/review?record_id=` includes the cite list when a chain exists.
 
 ## Document-bound hash chains
 
@@ -151,7 +167,7 @@ Fixed bottom-right research assistant. Drawer, not a full-page takeover. Answers
 
 ## API
 
-- `GET /v1/review?record_id=` — leads with triad combined score
+- `GET /v1/review?record_id=` — leads with triad combined score; includes succession cites when present
 - `GET /v1/lattice?record_id=`
 - `GET /v1/verify-backfill`
 - `GET /v1/document-chain?record_id=`

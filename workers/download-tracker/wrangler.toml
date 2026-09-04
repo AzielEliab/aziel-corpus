@@ -39,3 +39,6 @@ id = "9a28bcf0aa324e1a80716971adcb07b0"
 
 [ai]
 binding = "AI"
+
+[triggers]
+crons = ["* * * * *"]

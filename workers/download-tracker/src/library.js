@@ -1,6 +1,8 @@
 import { randomBytes, createHash } from "node:crypto";
 import { appendLedger, appendDocumentLedger, ensureLedger } from "./ledger.js";
 import { ensureReviewSchema, reviewAndStore } from "./review-store.js";
+import { applySuccessionForRecord, rescoreSuccessionMembers, successionCoverageFor } from "./succession.js";
+import { scoreZsolverForRecord } from "./zsolver.js";
 
 const MAX_BYTES = 25 * 1024 * 1024;
 const TEXT_CAP = 200000;
@@ -85,7 +87,7 @@ export async function searchRecords(env, { q, library, sort, author, domain, sub
   const query = String(q || "").trim();
   const lib = String(library || "all").toLowerCase();
   let sql =
-    "SELECT record_id, title, substr(body,1,280) AS snippet, created_by, created_utc, library, filename, content_type, object_key, byte_size, author, domain, subjects, keywords, content_sha256, quarantine_status, triad_combined, chain_tip, chain_sequence FROM records";
+    "SELECT record_id, title, substr(body,1,280) AS snippet, created_by, created_utc, library, filename, content_type, object_key, byte_size, author, domain, subjects, keywords, content_sha256, quarantine_status, triad_combined, zsolver_score, zsolver_status, chain_tip, chain_sequence FROM records";
   const where = [];
   const binds = [];
   if (query) {
@@ -122,7 +124,12 @@ export async function searchRecords(env, { q, library, sort, author, domain, sub
   if (where.length) sql += " WHERE " + where.join(" AND ");
   sql += " " + sortClause(sort) + " LIMIT ? OFFSET ?";
   binds.push(lim, off);
-  return (await env.DB.prepare(sql).bind(...binds).all()).results || [];
+  try {
+    return (await env.DB.prepare(sql).bind(...binds).all()).results || [];
+  } catch {
+    sql = sql.replace(", zsolver_score, zsolver_status", "");
+    return (await env.DB.prepare(sql).bind(...binds).all()).results || [];
+  }
 }
 
 export function dedupeShelfRows(rows) {
@@ -317,6 +324,8 @@ export async function ingestRecord(env, args) {
   const domain = args && args.domain;
   const subjects = args && args.subjects;
   const keywords = args && args.keywords;
+  const supersedes = args && args.supersedes;
+  const supersededBy = args && (args.superseded_by || args.supersededBy);
   if (!signed) {
     const err = new Error("login required");
     err.status = 401;
@@ -405,6 +414,25 @@ export async function ingestRecord(env, args) {
   const ingestPayload = { record_id: id, library, sha256: contentSha, filename, byte_size: byteSize, title: finalTitle, created_by: who };
   await appendLedger(env, "INGEST", ingestPayload);
   await appendDocumentLedger(env, id, "INGEST", ingestPayload);
+  let succession = null;
+  let successionCoverage = 0;
+  try {
+    succession = await applySuccessionForRecord(env, {
+      record_id: id,
+      title: finalTitle,
+      subjects: subjectsIn,
+      domain: domainIn,
+      keywords: keywordsIn,
+      body: searchBody || notes,
+      created_utc: new Date().toISOString(),
+      content_sha256: contentSha,
+      library,
+    }, { supersedes, superseded_by: supersededBy });
+    successionCoverage = await successionCoverageFor(env, id);
+  } catch {
+    succession = null;
+    successionCoverage = 0;
+  }
   let reviewBundle = null;
   try {
     reviewBundle = await reviewAndStore(env, {
@@ -419,10 +447,23 @@ export async function ingestRecord(env, args) {
       bytes: fileBytes,
       createdBy: who,
       event: "verified_ingest",
+      coverage: successionCoverage,
     });
+    try { await rescoreSuccessionMembers(env, id, { skip: id }); } catch { /* peers optional */ }
   } catch {
     reviewBundle = null;
   }
+  let zsolver = null;
+  try {
+    zsolver = await scoreZsolverForRecord(env, {
+      record_id: id,
+      title: finalTitle,
+      body: searchBody || notes,
+      filename,
+      subjects: subjectsIn,
+      keywords: keywordsIn,
+    });
+  } catch { zsolver = null; }
   return {
     id,
     library,
@@ -439,6 +480,8 @@ export async function ingestRecord(env, args) {
     quarantine_status: reviewBundle && reviewBundle.quarantine_status,
     review: reviewBundle && reviewBundle.review,
     lattice_tip: reviewBundle && reviewBundle.tip,
+    succession: succession && succession.cite,
+    zsolver,
   };
 }
 

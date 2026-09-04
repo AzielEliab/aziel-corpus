@@ -289,7 +289,7 @@ export async function jeevesChat(env, { question, signed } = {}) {
   };
 }
 
-export async function jeevesUpload(env, { signed, file, title, body, author, domain, subjects, keywords }) {
+export async function jeevesUpload(env, { signed, file, title, body, author, domain, subjects, keywords, supersedes, superseded_by }) {
   if (!signed) {
     const err = new Error("sign in to add a file");
     err.status = 401;
@@ -316,6 +316,8 @@ export async function jeevesUpload(env, { signed, file, title, body, author, dom
     domain,
     subjects,
     keywords,
+    supersedes,
+    superseded_by,
   });
   const lib = record.library === "aziel" ? "aziel" : "corpus";
   if (!isOperator(signed) && lib !== "corpus") {
@@ -333,6 +335,9 @@ export async function jeevesUpload(env, { signed, file, title, body, author, dom
     content_sha256: record.content_sha256 || null,
     quarantine_status: record.quarantine_status,
     triad,
+    zsolver: record.zsolver
+      ? { capped_confidence: record.zsolver.capped_confidence, display: record.zsolver.display, status: record.zsolver.status, disclaimer: record.zsolver.disclaimer }
+      : null,
     download: "/file/" + record.id,
     download_hash: record.content_sha256 ? "/download?hash=" + record.content_sha256 : null,
     href: "/record/" + record.id,
@@ -379,6 +384,8 @@ export async function handleJeevesApi(request, url, env, signed) {
     let domain = "";
     let subjects = "";
     let keywords = "";
+    let supersedes = "";
+    let superseded_by = "";
     const ct = request.headers.get("Content-Type") || "";
     if (ct.includes("multipart/form-data")) {
       const form = await request.formData();
@@ -389,12 +396,19 @@ export async function handleJeevesApi(request, url, env, signed) {
       domain = form.get("domain") || "";
       subjects = form.get("subjects") || "";
       keywords = form.get("keywords") || "";
+      supersedes = form.get("supersedes") || "";
+      superseded_by = form.get("superseded_by") || "";
     } else {
       try {
         const body = await request.json();
         title = body.title || "";
         notes = body.body || body.notes || "";
         author = body.author || "";
+        domain = body.domain || "";
+        subjects = body.subjects || "";
+        keywords = body.keywords || "";
+        supersedes = body.supersedes || "";
+        superseded_by = body.superseded_by || "";
       } catch {
         return json({ error: "multipart or JSON body required" }, 400);
       }
@@ -410,6 +424,8 @@ export async function handleJeevesApi(request, url, env, signed) {
           domain,
           subjects,
           keywords,
+          supersedes,
+          superseded_by,
         })
       );
     } catch (err) {
