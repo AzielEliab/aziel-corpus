@@ -130,6 +130,18 @@ Every stored document (Aziel Library + Corpus, including text-only and quarantin
 
 Quarantined poison docs stay downloadable with a quarantine banner and `X-Aziel-Quarantine`.
 
+## Hosted transcription and media lattice
+
+`POST /transcribe` runs Cloudflare Workers AI Whisper on uploaded audio (and container bytes for video; this Worker has no FFmpeg). Optional **Review authenticity with VibeLock** calls live `https://vibelock-download-tracker.vibelock.workers.dev/v1/analyze` with derived features. That result is **advisory only** — not courtroom proof.
+
+Every OCR run and every transcript run appends an immutable D1 `media_runs` + global ledger entry:
+
+- kind: `ocr` | `transcript` | `ocr+vibelock` | `transcript+vibelock`
+- content hash, prev_hash, timestamp, node/product scope, optional VibeLock digest
+- AzielTether lattice tip (`GET /v1/lattice?run_id=AZRUN-…`)
+
+Receipts: `/receipt/{id}` and `/ledger/{id}` (AZDOC- or AZRUN-). Optional library upload uses the same ingest as the shelf (signed-in → Corpus; operator → Aziel Library) and still runs SPRE × CLCE × PhysLing + unranked Bayesian. No score shortcuts.
+
 ## Ask Jeeves
 
 Fixed bottom-right research assistant. Drawer, not a full-page takeover. Answers from public records, map events, and gazetteer places. Learns topic frequencies and FAQ hints in D1/KV (never secrets). Add inside the panel files **Corpus only** (Lamb Lens) through the same ingest — even if the operator is signed in. Cannot change scores or reveal operator secrets.
@@ -143,6 +155,10 @@ Fixed bottom-right research assistant. Drawer, not a full-page takeover. Answers
 - `POST /v1/score` — preview only, no write
 - `POST /v1/jeeves/chat`
 - `POST /v1/jeeves/upload` — Corpus only
+- `POST /transcribe` — hosted Whisper; optional VibeLock advisory
+- `POST /ocr` — lattice receipt on every run
+- `GET /receipt/{id}` and `GET /ledger/{id}` — AZDOC- or AZRUN-
+- `GET /v1/media-run?run_id=`
 - `POST /record/{id}/peer` — signed-in append
 - `GET /file/{record_id}` and `GET /download?record=`
 - Download headers: `X-Aziel-SHA256`, `X-Aziel-Structure`, `X-Aziel-Quarantine`, `X-Aziel-Triad`

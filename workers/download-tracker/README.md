@@ -19,6 +19,10 @@ Custom domains: www.azielcorpuslibrary.net and azielcorpuslibrary.net
 - POST /v1/score  preview review, no write
 - POST /v1/jeeves/chat  Ask Jeeves (research assistant)
 - POST /v1/jeeves/upload  Corpus only (Lamb Lens)
+- POST /transcribe  hosted Whisper; optional VibeLock advisory; lattice receipt always
+- POST /ocr  hosted OCR; lattice receipt always
+- GET /receipt/{id} and /ledger/{id}  AZDOC- or AZRUN-
+- GET /v1/media-run?run_id=
 - POST /record/{id}/peer  signed-in endorse / challenge / note
 - Counted zip: GET /download HTTP 200, not a 302; structure-verified
 - /v1 never increments KV

@@ -190,6 +190,80 @@ export function gazetteerBody(payload) {
   return "<div class=\"card\"><h2>Aziel World Gazetteer</h2><div class=\"grid\">" + metricCard("Status", st.state || "EMPTY") + metricCard("Places", Number(st.places || 0).toLocaleString()) + metricCard("Profile", st.profile || "lite") + metricCard("Historic aliases", st.historical_aliases || 0) + "</div><p class=\"muted\">Hosted lite cities profile. Runtime lookup does not require a visitor download. Attribution: GeoNames CC BY 4.0 · <a href=\"https://www.geonames.org/\">https://www.geonames.org/</a></p>" + err + "</div><div class=\"card\"><form class=\"hero-search\" method=\"get\" action=\"/gazetteer\"><input class=\"search\" name=\"q\" value=\"" + esc(q) + "\" placeholder=\"Search place name\"><button>Search</button></form><div class=\"scroll\"><table class=\"plain\"><tr><th>Place</th><th>Region</th><th>Coordinates</th><th>Type</th><th>Population</th></tr>" + (rows || "<tr><td colspan=\"5\" class=\"muted\">Search a place name. Coordinates are never guessed; ambiguous matches are listed as candidates.</td></tr>") + "</table></div></div><div class=\"card\"><h3>Source receipts</h3><ul><li>GeoNames cities15000 lite extract — CC BY 4.0 — https://www.geonames.org/</li></ul>" + reindex + "</div>";
 }
 
+function libraryUploadHint(signed, operator) {
+  if (!signed) return "Upload to library requires sign-in. Signed-in accounts write Corpus (Lamb Lens). Operator writes Aziel Library.";
+  return "Upload stores media + text in " + (operator ? "Aziel Library" : "Corpus (Lamb Lens)") + " and runs SPRE × CLCE × PhysLing + unranked Bayesian (no score shortcuts).";
+}
+
+export function transcribeCard(payload) {
+  const signed = payload.signed;
+  const operator = payload.operator;
+  const aiReady = payload.aiReady;
+  const err = payload.transcribeError ? "<p class=\"bad\">" + esc(payload.transcribeError) + "</p>" : "";
+  const status = aiReady ? "<div class=\"ok\">HOSTED (Workers AI Whisper)</div>" : "<div class=\"bad\">NOT READY — Workers AI binding missing</div>";
+  return "<div class=\"card\" id=\"transcribe\"><h3>Audio / video transcription</h3>" + status + err
+    + "<p class=\"muted\">Upload a sound or video file. Whisper runs on this Worker. Video has no FFmpeg here — if the container fails, extract a wav/mp3/flac/ogg/m4a/webm track. Every run writes a hash-chained lattice receipt, even if you do not upload to the library.</p>"
+    + "<form id=\"transcribeForm\" class=\"media-form\" method=\"post\" action=\"/transcribe\" enctype=\"multipart/form-data\">"
+    + "<label class=\"filepick\">Audio or video<input type=\"file\" name=\"file\" accept=\"audio/*,video/*,.wav,.mp3,.flac,.ogg,.m4a,.webm,.mp4,.mov\" required></label>"
+    + "<div class=\"media-options\">"
+    + "<label class=\"showpw\"><input type=\"checkbox\" name=\"vibelock\" value=\"1\"> Review authenticity with VibeLock</label>"
+    + "<label class=\"showpw\"><input type=\"checkbox\" name=\"upload\" value=\"1\"> Upload to library</label>"
+    + "</div>"
+    + "<div class=\"media-actions\"><button type=\"submit\">Transcribe</button></div>"
+    + "<p class=\"muted\">" + esc(libraryUploadHint(signed, operator)) + " VibeLock is advisory only — not courtroom proof. Full engine: <a href=\"https://vibelock-download-tracker.vibelock.workers.dev/download?asset=vibelock-0.3.0.tar.gz\">download</a> · <a href=\"https://github.com/AzielEliab/vibelock\">GitHub</a>.</p>"
+    + "</form>"
+    + "<pre id=\"transcribeOut\" class=\"verify muted\">Choose a file, then Transcribe. Transcript, VibeLock advisory, and ledger receipt appear here.</pre></div>";
+}
+
+export function ocrUploadCard(payload) {
+  const signed = payload.signed;
+  const operator = payload.operator;
+  const err = payload.error ? "<p class=\"bad\">" + esc(payload.error) + "</p>" : "";
+  const saveLabel = operator ? "Aziel Library" : "Corpus (Lamb Lens)";
+  return "<div class=\"card\" id=\"ocr\"><h3>Hosted image / PDF OCR</h3>" + err
+    + "<p class=\"muted\">Images use Workers AI when bound. PDFs try an uncompressed text scan; if empty, snap a page photo instead of installing pdftoppm. Every OCR run writes a lattice receipt.</p>"
+    + "<form id=\"ocrForm\" class=\"media-form\" method=\"post\" action=\"/ocr\" enctype=\"multipart/form-data\">"
+    + "<label class=\"filepick\">Image or scanned PDF<input type=\"file\" name=\"file\" accept=\"image/*,application/pdf\" required></label>"
+    + "<div class=\"media-options\">"
+    + "<label class=\"showpw\"><input type=\"checkbox\" name=\"vibelock\" value=\"1\"> Review authenticity with VibeLock</label>"
+    + "<label class=\"showpw\"><input type=\"checkbox\" name=\"save\" value=\"1\" " + (signed ? "" : "disabled ") + "> Upload to library" + (signed ? " (" + esc(saveLabel) + ")" : "") + "</label>"
+    + "</div>"
+    + "<div class=\"media-actions\"><button type=\"submit\">Extract text</button></div>"
+    + "<p class=\"muted\">" + esc(libraryUploadHint(signed, operator)) + "</p>"
+    + "</form>"
+    + "<pre id=\"ocrHostedOut\" class=\"verify muted\">Choose a scan, then Extract text. Text, VibeLock advisory, and ledger receipt appear here.</pre></div>";
+}
+
+export function ocrPageBody(payload) {
+  return "<section class=\"hero\"><h1>OCR and transcription</h1><p class=\"muted\">Same hosted processors as <a href=\"/intelligence\">Intelligence</a>. Every run writes a hash-chained lattice receipt.</p></section>"
+    + ocrUploadCard(payload) + transcribeCard(payload);
+}
+
+export function receiptBody(payload) {
+  const r = payload.receipt || {};
+  const id = r.run_id || r.record_id || "";
+  const kind = r.kind || (r.record_id ? "record" : "receipt");
+  const text = r.transcript || "";
+  const vibe = r.vibe;
+  const tip = r.lattice_tip;
+  const sha = r.content_sha256 || "";
+  const recLink = r.record_id ? "<p><a class=\"button\" href=\"/record/" + esc(r.record_id) + "\">Open library record</a></p>" : "";
+  const vibeHtml = vibe
+    ? "<div class=\"card\"><h3>VibeLock advisory</h3><p class=\"muted\">" + esc(r.vibe_limitation || "Advisory only. Not courtroom proof.") + "</p><pre class=\"verify\">" + esc(JSON.stringify(vibe, null, 2)) + "</pre><p><a href=\"" + esc(r.vibelock_catalog || "https://vibelock-download-tracker.vibelock.workers.dev/download?asset=vibelock-0.3.0.tar.gz") + "\">Download local VibeLock</a> · <a href=\"" + esc(r.vibelock_github || "https://github.com/AzielEliab/vibelock") + "\">GitHub</a></p></div>"
+    : "";
+  const textHtml = text
+    ? "<div class=\"card\"><h3>Transcript / extracted text</h3><pre class=\"verify\">" + esc(text) + "</pre></div>"
+    : "";
+  return "<section class=\"hero\"><h1>Lattice receipt</h1><p class=\"muted\">Immutable hash-chained entry. JSON also at <a href=\"/receipt/" + esc(id) + "\">/receipt/" + esc(id) + "</a> and <a href=\"/ledger/" + esc(id) + "\">/ledger/" + esc(id) + "</a>.</p></section>"
+    + "<div class=\"card\"><p><b>Kind</b> " + esc(kind) + "</p><p><b>Id</b> " + esc(id) + "</p>"
+    + (sha ? "<p class=\"meta\">SHA-256 " + esc(sha) + "</p>" : "")
+    + (r.entry_hash ? "<p class=\"meta\">Entry " + esc(r.entry_hash) + "</p>" : "")
+    + (r.prev_hash ? "<p class=\"meta\">Prev " + esc(r.prev_hash) + "</p>" : "")
+    + (r.error ? "<p class=\"bad\">" + esc(r.error) + "</p>" : "")
+    + recLink + "</div>" + textHtml + vibeHtml
+    + (tip ? "<div class=\"card\"><h3>AzielTether lattice tip</h3><p class=\"muted\">Public HTTPS site is not a mesh.</p><pre class=\"verify\">" + esc(JSON.stringify(tip, null, 2)) + "</pre></div>" : "");
+}
+
 export function intelligenceBody(payload) {
   const packages = payload.packages || [];
   const aiReady = payload.aiReady;
@@ -199,9 +273,10 @@ export function intelligenceBody(payload) {
   const operator = payload.operator;
   const error = payload.error;
   const rows = packages.map((x) => "<tr><td>" + esc(x.package_id) + "</td><td>" + esc(x.kind) + "</td><td>" + esc(x.package_type) + "</td><td>" + esc(x.version) + "</td><td class=\"muted\">" + esc(String(x.sha256 || "").slice(0, 16)) + "…</td><td>" + esc(x.status) + "</td></tr>").join("") || "<tr><td colspan=\"6\" class=\"muted\">No .azm/.azk packages installed yet.</td></tr>";
-  const err = error ? "<p class=\"bad\">" + esc(error) + "</p>" : "";
   const ocrCls = aiReady ? "ok" : "bad";
   const ocrTxt = aiReady ? "HOSTED (Workers AI)" : "NOT READY — Workers AI binding or vision model missing";
+  const whisperCls = aiReady ? "ok" : "bad";
+  const whisperTxt = aiReady ? "HOSTED (Workers AI Whisper)" : "NOT READY — Workers AI binding missing";
   const pkgForm = signed
     ? "<form method=\"post\" action=\"/install-package\" enctype=\"multipart/form-data\"><label class=\"filepick\">Package (.azm / .azk)<input type=\"file\" name=\"package\" accept=\".azm,.azk,application/zip\" required></label><button>Install package</button></form>"
     : "<p class=\"muted\">Sign in to install a verified .azm / .azk package. Nothing is downloaded to your phone.</p>";
@@ -209,15 +284,16 @@ export function intelligenceBody(payload) {
   const recovery = operator
     ? "<div class=\"card\"><h3>OCR verification + recovery</h3><div class=\"grid\"><div><b>End-to-end OCR</b><div class=\"" + (verified ? "ok" : "bad") + "\">" + (verified ? "VERIFIED" : "NOT YET VERIFIED") + "</div><p class=\"muted\">Last test: " + esc((lastTest && lastTest.created_utc) || "never") + (lastTest && lastTest.missing ? " · " + esc(lastTest.missing) : "") + "</p></div><div><b>Image records</b><div class=\"metric\">" + Number(pending || 0).toLocaleString() + "</div><p class=\"muted\">Preserved originals that can be re-read by hosted OCR.</p></div></div><div class=\"map-tools\"><form method=\"post\" action=\"/ocr-selftest\"><button>Run OCR self-test</button></form><form method=\"post\" action=\"/ocr-reprocess\"><button>Reprocess pending scans</button></form></div><p class=\"muted\">Self-test succeeds only if hosted OCR reads AZIEL and OCR from the fixture. Processors stay on this Worker — there is no Tesseract/Poppler/Whisper download.</p></div>"
     : "";
-  const ocrUpload = signed
-    ? "<div class=\"card\"><h3>Hosted image / PDF OCR</h3>" + err + "<form method=\"post\" action=\"/ocr\" enctype=\"multipart/form-data\"><label class=\"filepick\">Image or scanned PDF<input type=\"file\" name=\"file\" accept=\"image/*,application/pdf\" required></label><label class=\"showpw\"><input type=\"checkbox\" name=\"save\" value=\"1\"> Save extracted text into " + (operator ? "Aziel Library" : "the corpus") + "</label><button>Extract text</button></form><p class=\"muted\">Images use Workers AI when bound. PDFs try an uncompressed text scan; if empty, snap a page photo instead of installing pdftoppm.</p></div>"
-    : "<div class=\"card\"><h3>Hosted image / PDF OCR</h3><p class=\"muted\">Sign in to upload an image for hosted OCR. The in-page fallback below works without an account.</p></div>";
-  return "<div class=\"card\"><h2>Aziel Intelligence Runtime</h2><p>Packages are <b>.azm</b> models and <b>.azk</b> knowledge kits. Manifests and payloads are hashed. All processors below run hosted — this page never asks you to install Tesseract, Poppler, or Whisper on your computer.</p>" + pkgForm + "</div><div class=\"card\"><h3>Hosted processors</h3><div class=\"grid\"><div class=\"card\"><b>Image OCR</b><div class=\"" + ocrCls + "\">" + ocrTxt + "</div><p class=\"muted\">" + (aiReady ? "Workers AI vision model extracts visible text." : "Workers AI is not bound or the vision model failed. Use the in-page Tesseract.js fallback.") + "</p></div><div class=\"card\"><b>Scanned PDF</b><div class=\"ok\">HOSTED (text-stream scan)</div><p class=\"muted\">Uncompressed PDF strings are read here. If a scan has no text layer, photograph a page for image OCR. pdftoppm is not offered as a download.</p></div><div class=\"card\"><b>Audio / video transcription</b><div class=\"bad\">NOT HOSTED YET</div><p class=\"muted\">Whisper is not bound on this Worker. There is no installer button.</p></div></div></div>" + ocrUpload + "<div class=\"card\"><h3>In-page OCR fallback</h3><p class=\"muted\">Runs Tesseract.js from a CDN in this browser so a phone camera photo can still be read when Workers AI is not ready. Nothing is installed on your device.</p><label class=\"filepick\">Photo<input id=\"ocrFile\" type=\"file\" accept=\"image/*\" capture=\"environment\"></label><pre id=\"ocrOut\" class=\"verify muted\">Choose a photo to read here.</pre></div>" + recovery + "<div class=\"card\"><table class=\"plain\"><tr><th>ID</th><th>Kind</th><th>Type</th><th>Version</th><th>SHA-256</th><th>Status</th></tr>" + rows + "</table></div><div class=\"card\"><h3>Native engines</h3><div class=\"grid\"><div><b>AZIEL_TEXT_ENGINE</b><p class=\"muted\">HOSTED — text, CSV-ish, and conservative PDF string extraction.</p></div><div><b>AZIEL_HASH_VECTOR_V1</b><p class=\"muted\">Skipped on this Worker (local similarity vectors stay with the Python vault).</p></div><div><b>AZIEL_ENTITY_ENGINE</b><p class=\"muted\">HOSTED — gazetteer place resolution.</p></div><div><b>AZIEL_MODEL_RUNTIME</b><p class=\"muted\">HOSTED for archived .azm packages (HASHED_NAIVE_BAYES_TEXT stored and verified; neural tensors are not executed here).</p></div></div></div>";
+  return "<div class=\"card\"><h2>Aziel Intelligence Runtime</h2><p>Packages are <b>.azm</b> models and <b>.azk</b> knowledge kits. Manifests and payloads are hashed. All processors below run hosted — this page never asks you to install Tesseract, Poppler, or Whisper on your computer.</p>" + pkgForm + "</div><div class=\"card\"><h3>Hosted processors</h3><div class=\"grid\"><div class=\"card\"><b>Image OCR</b><div class=\"" + ocrCls + "\">" + ocrTxt + "</div><p class=\"muted\">" + (aiReady ? "Workers AI vision model extracts visible text." : "Workers AI is not bound or the vision model failed. Use the in-page Tesseract.js fallback.") + "</p></div><div class=\"card\"><b>Scanned PDF</b><div class=\"ok\">HOSTED (text-stream scan)</div><p class=\"muted\">Uncompressed PDF strings are read here. If a scan has no text layer, photograph a page for image OCR. pdftoppm is not offered as a download.</p></div><div class=\"card\"><b>Audio / video transcription</b><div class=\"" + whisperCls + "\">" + whisperTxt + "</div><p class=\"muted\">" + (aiReady ? "Workers AI Whisper transcribes audio. Video has no FFmpeg demux — extract an audio track if the container fails." : "Workers AI is not bound. There is no installer button.") + "</p></div></div></div>"
+    + ocrUploadCard({ signed, operator, error })
+    + transcribeCard({ signed, operator, aiReady })
+    + "<div class=\"card\"><h3>In-page OCR fallback</h3><p class=\"muted\">Runs Tesseract.js from a CDN in this browser so a phone camera photo can still be read when Workers AI is not ready. Nothing is installed on your device. Browser-only fallback does not write the lattice; use Extract text above for a receipt.</p><label class=\"filepick\">Photo<input id=\"ocrFile\" type=\"file\" accept=\"image/*\" capture=\"environment\"></label><pre id=\"ocrOut\" class=\"verify muted\">Choose a photo to read here.</pre></div>"
+    + recovery + "<div class=\"card\"><table class=\"plain\"><tr><th>ID</th><th>Kind</th><th>Type</th><th>Version</th><th>SHA-256</th><th>Status</th></tr>" + rows + "</table></div><div class=\"card\"><h3>Native engines</h3><div class=\"grid\"><div><b>AZIEL_TEXT_ENGINE</b><p class=\"muted\">HOSTED — text, CSV-ish, and conservative PDF string extraction.</p></div><div><b>AZIEL_HASH_VECTOR_V1</b><p class=\"muted\">Skipped on this Worker (local similarity vectors stay with the Python vault).</p></div><div><b>AZIEL_ENTITY_ENGINE</b><p class=\"muted\">HOSTED — gazetteer place resolution.</p></div><div><b>AZIEL_MODEL_RUNTIME</b><p class=\"muted\">HOSTED for archived .azm packages (HASHED_NAIVE_BAYES_TEXT stored and verified; neural tensors are not executed here).</p></div></div></div>";
 }
 
 export function healthBody(payload) {
   const h = payload.health || {};
-  const items = [["Records", h.records], ["Aziel Library", h.aziel_library], ["Corpus", h.corpus], ["Quarantined", h.quarantined], ["Events", h.events], ["Gazetteer places", h.gazetteer_places], ["Packages", h.packages], ["Historical layers", h.historical_layers], ["Views", h.views], ["Downloads", h.downloads], ["D1", h.d1], ["FILES", h.files], ["OCR", h.ocr], ["Mode", h.mode]];
+  const items = [["Records", h.records], ["Aziel Library", h.aziel_library], ["Corpus", h.corpus], ["Quarantined", h.quarantined], ["Events", h.events], ["Gazetteer places", h.gazetteer_places], ["Packages", h.packages], ["Historical layers", h.historical_layers], ["Views", h.views], ["Downloads", h.downloads], ["D1", h.d1], ["FILES", h.files], ["OCR", h.ocr], ["Transcription", h.transcription], ["VibeLock", h.vibelock], ["Mode", h.mode]];
   const cards = items.map(([k, v]) => metricCard(k, v == null ? "—" : v, /missing|NOT READY/i.test(String(v)) ? "bad" : /ok|HOSTED|MASTER/i.test(String(v)) ? "ok" : "")).join("");
   return "<section class=\"hero\"><h1>Health</h1><p class=\"muted\">Live hosted MASTER dashboard. JSON lives at <a href=\"/v1/health\">/v1/health</a>.</p></section><div class=\"grid\">" + cards + "</div>";
 }

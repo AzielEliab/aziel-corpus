@@ -1,8 +1,9 @@
 import { page } from "./ui.js";
-import { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody } from "./hosted-pages.js";
+import { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody } from "./hosted-pages.js";
 import { json, corsHeaders } from "./runtime.js";
 import { receiptForRecord } from "./ledger.js";
 import { isOperator, asFile } from "./library.js";
+import { handleTranscribe, persistOcrRun, receiptForMediaRun, isMediaRunId, truthy, bytesAsFile } from "./media.js";
 import { addPeerReview, loadRecordReview } from "./review-store.js";
 import {
   ensureSchema, ensurePlaces, gazetteerStatus, gazetteerSearch, lookupPlaces,
@@ -18,7 +19,23 @@ import { ingestRecord } from "./library.js";
 
 function intelScripts() {
   var c = [104,116,116,112,115,58,47,47,99,100,110,46,106,115,100,101,108,105,118,114,46,110,101,116,47,110,112,109,47,116,101,115,115,101,114,97,99,116,46,106,115,64,53,47,100,105,115,116,47,116,101,115,115,101,114,97,99,116,46,109,105,110,46,106,115];
-  return [String.fromCharCode.apply(null, c), "/ocr-fallback.js"];
+  return [String.fromCharCode.apply(null, c), "/ocr-fallback.js", "/transcribe-client.js"];
+}
+
+function wantsHtml(request) {
+  const accept = request.headers.get("Accept") || "";
+  return accept.includes("text/html") && !accept.includes("application/json");
+}
+
+async function receiptForAny(env, id) {
+  const key = String(id || "").trim();
+  if (isMediaRunId(key)) {
+    const media = await receiptForMediaRun(env, key);
+    if (media) return media;
+  }
+  const rec = await receiptForRecord(env, key);
+  if (rec) return rec;
+  return receiptForMediaRun(env, key);
 }
 
 function html(pageBody, extra) {
@@ -112,23 +129,70 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     }
     return new Response(null, { status: 303, headers: { Location: "/historical" } });
   }
+  if (path === "/ocr" && method === "GET") {
+    return html(page("OCR", ocrPageBody({ aiReady: aiBound(env), signed, operator: isOperator(signed) }), { signed, path: "/ocr", scripts: intelScripts(), kind: "intelligence" }));
+  }
+  if (path === "/transcribe" && method === "POST") {
+    const out = await handleTranscribe(env, request, signed);
+    if (wantsHtml(request)) {
+      const loc = out.body && out.body.record_id
+        ? "/record/" + out.body.record_id
+        : (out.body && out.body.run_id ? "/receipt/" + out.body.run_id : "/intelligence");
+      return new Response(null, { status: 303, headers: { Location: loc } });
+    }
+    return json(out.body, out.status || 200);
+  }
   if (path === "/ocr" && method === "POST") {
-    if (!signed) return json({ error: "login required" }, 401);
     const form = await request.formData();
     const file = asFile(form.get("file"));
     if (!file) return json({ error: "file required" }, 400);
+    const save = truthy(form.get("save") || form.get("upload") || form.get("upload_library"));
+    const wantVibe = truthy(form.get("vibelock") || form.get("review_authenticity"));
+    if (save && !signed) return json({ error: "login required to upload to library" }, 401);
     const result = await ocrFile(env, file);
-    const save = String(form.get("save") || "") === "1";
     let record = null;
     if (save && result.text) {
-      record = await ingestRecord(env, { signed, title: file.name || "OCR extract", body: result.text, domain: "ocr", file: null });
+      record = await ingestRecord(env, {
+        signed,
+        title: file.name || "OCR extract",
+        body: result.text,
+        domain: "ocr",
+        keywords: "ocr" + (wantVibe ? ",vibelock" : ""),
+        file: result.bytes ? bytesAsFile(result.bytes, file.name || result.filename, file.type || result.contentType) : null,
+      });
       try { await extractEventsForRecord(env, record.id); } catch {}
     }
-    const accept = request.headers.get("Accept") || "";
-    if (accept.includes("html")) {
-      return new Response(null, { status: 303, headers: { Location: record ? "/record/" + record.id : "/intelligence" } });
+    let run = null;
+    try {
+      run = await persistOcrRun(env, {
+        bytes: result.bytes,
+        text: result.text || "",
+        filename: file.name || result.filename,
+        mime: file.type || result.contentType,
+        recordId: record && record.id,
+        wantVibe,
+        error: result.ok ? null : (result.message || result.missing || result.error),
+      });
+    } catch { run = null; }
+    if (wantsHtml(request)) {
+      const loc = record ? "/record/" + record.id : (run ? "/receipt/" + run.run_id : "/intelligence");
+      return new Response(null, { status: 303, headers: { Location: loc } });
     }
-    return json({ ok: !!result.ok, text: result.text || "", engine: result.engine || result.model || null, missing: result.missing || null, message: result.message || null, kind: result.kind, record_id: record && record.id });
+    return json({
+      ok: !!result.ok,
+      text: result.text || "",
+      engine: result.engine || result.model || null,
+      missing: result.missing || null,
+      message: result.message || null,
+      kind: (run && run.kind) || result.kind,
+      run_id: run && run.run_id,
+      receipt_url: run && run.receipt_url,
+      ledger_url: run && run.ledger_url,
+      lattice_tip: run && run.lattice_tip,
+      vibe: run && run.vibe,
+      record_id: record && record.id,
+      library: record && record.library,
+    });
   }
   if (path === "/ocr-selftest" && method === "POST") {
     if (!isOperator(signed)) return json({ error: "operator required" }, 403);
@@ -179,16 +243,20 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     const packages = await listPackages(env);
     const lastTest = await lastOcrSelftest(env);
     const pending = await pendingOcrCount(env);
-    return html(page("Intelligence", intelligenceBody({ packages, aiReady: aiBound(env), lastTest, pending, signed, operator: isOperator(signed) }), { signed, path: "/intelligence", scripts: intelScripts() }));
+    return html(page("Intelligence", intelligenceBody({ packages, aiReady: aiBound(env), lastTest, pending, signed, operator: isOperator(signed) }), { signed, path: "/intelligence", scripts: intelScripts(), kind: "intelligence" }));
   }
   if (path === "/health" && method === "GET") {
     const health = await healthSnapshot(env, { views: stats && stats.views, downloads: stats && stats.downloads });
     return html(page("Health", healthBody({ health }), { signed, path: "/health" }));
   }
-  const recpt = path.match(/^\/receipt\/([^/]+)$/);
+  const recpt = path.match(/^\/(?:receipt|ledger)\/([^/]+)$/);
   if (recpt && method === "GET") {
-    const doc = await receiptForRecord(env, decodeURIComponent(recpt[1]));
+    const id = decodeURIComponent(recpt[1]);
+    const doc = await receiptForAny(env, id);
     if (!doc) return json({ error: "not found" }, 404);
+    if (wantsHtml(request)) {
+      return html(page("Receipt " + id, receiptBody({ receipt: doc }), { signed, path: "/receipt/" + id }));
+    }
     return json(doc);
   }
   if (path === "/verify" && method === "GET") {
