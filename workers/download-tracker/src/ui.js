@@ -24,6 +24,18 @@ body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;bac
 .search,input,select,textarea{padding:12px 14px;border:1px solid #d3c8b8;border-radius:10px;background:#fff;color:var(--ink);font:inherit}
 .search{min-width:0;width:100%;flex:1 1 auto}
 input,select,textarea{width:100%;min-height:44px}
+input[type=checkbox],input[type=radio]{width:auto!important;min-width:18px;min-height:18px;max-width:22px;height:18px;padding:0;flex:0 0 auto;accent-color:var(--btn);appearance:auto;-webkit-appearance:checkbox;background:transparent;border:0;box-shadow:none}
+.checkrow{display:flex;align-items:flex-start;gap:10px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;width:100%;min-width:0;min-height:44px;line-height:1.35;font-size:15px;color:var(--ink);background:transparent}
+.checkrow input{margin-top:3px}
+.ocr-form{display:flex;flex-direction:column;gap:12px;min-width:0;max-width:100%}
+.ocr-form button{align-self:flex-start;max-width:100%}
+.lens-box{border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0;max-width:100%;margin:0;background:var(--card);color:var(--ink)}
+.lens-box legend{font-weight:750;padding:0 6px;color:var(--ink)}
+.lens-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:8px;width:100%;min-width:0}
+.lens-grid .checkrow,.lens-option{margin:0;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);align-items:center}
+.lens-sample{width:96px;height:36px;object-fit:contain;object-position:center;border-radius:8px;flex:0 0 96px;border:1px solid var(--line);background:var(--card);display:block}
+.lens-copy{min-width:0;flex:1 1 auto;color:var(--ink)}
+.lens-swatch{min-height:auto;padding:2px 8px;color:#fff}
 textarea{min-height:120px;resize:vertical}
 label.filepick{display:block;margin:8px 0 14px}
 input[type=file]{width:100%;min-height:44px;padding:10px;background:#fff}
@@ -102,7 +114,7 @@ label.showpw{font-size:14px;color:var(--muted);white-space:nowrap;min-height:44p
   .tools-grid{grid-template-columns:1fr}
   .tools select,.tools input,.tools .search{width:100%;min-height:44px}
   .tools button{width:100%}
-  .chips,.mini-chips{width:100%}
+  .chips,.mini-chips,.checkrow,.lens-grid,.ocr-form,.ocr-form button{width:100%}
   .lights{grid-template-columns:1fr}
   .q-badge{display:block;margin:8px 0 0;width:fit-content}
 }
@@ -152,7 +164,7 @@ export function page(title, body, { signed, scripts, path, kind, description } =
     : "";
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)} — Aziel Digital Library</title>${headMeta({ title, path: path || "/", kind, description })}<style>${CSS}</style></head><body><div class="wrap">
 <div class="nav1"><div class="brand">Aziel Digital Library</div><span class="pill">Runtime v2.7.0</span><span class="pill ok">MASTER · WRITABLE</span>${account}</div>
-<nav class="nav2 quiet"><a href="/">Search</a><span class="sep">|</span>${azielLink}<a href="/corpus">Corpus</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/gazetteer">Gazetteer</a><span class="sep">|</span><a href="/intelligence">Intelligence</a><span class="sep">|</span><a href="/health">Health</a><span class="sep">|</span><a href="/verify">Verify</a><span class="sep">|</span>${authLinks}</nav>
+<nav class="nav2 quiet"><a href="/">Search</a><span class="sep">|</span>${azielLink}<a href="/corpus">Corpus</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/gazetteer">Gazetteer</a><span class="sep">|</span><a href="/ocr">OCR</a><span class="sep">|</span><a href="/intelligence">Intelligence</a><span class="sep">|</span><a href="/health">Health</a><span class="sep">|</span><a href="/verify">Verify</a><span class="sep">|</span>${authLinks}</nav>
 ${body}</div>${jeevesFabHtml()}${(scripts||[]).map((src)=>"<script src=\""+esc(src)+"\" defer></script>").join("")}</body></html>`;
 }
 
@@ -382,4 +394,4 @@ export function stub(title, lead) {
   return `<div class="card"><h2>${esc(title)}</h2><p>${lead}</p><p class="muted">Hosted MASTER UI. Full local vault tools also run via <code>python3 aziel_launcher.py</code> on 127.0.0.1:8765.</p></div>`;
 }
 
-export { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, blockedAvBody } from "./hosted-pages.js";
+export { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, ocrBody, ocrFormHtml, SPECTRAL_LENSES, blockedAvBody } from "./hosted-pages.js";

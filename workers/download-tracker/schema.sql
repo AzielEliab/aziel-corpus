@@ -132,8 +132,12 @@ CREATE TABLE IF NOT EXISTS derived_artifacts (
   processor_version TEXT,
   content_sha256 TEXT,
   created_utc TEXT,
-  status TEXT
+  status TEXT,
+  object_key TEXT,
+  note TEXT
 );
+ALTER TABLE derived_artifacts ADD COLUMN object_key TEXT;
+ALTER TABLE derived_artifacts ADD COLUMN note TEXT;
 ALTER TABLE records ADD COLUMN content_sha256 TEXT;
 CREATE INDEX IF NOT EXISTS idx_records_sha ON records(content_sha256);
 ALTER TABLE records ADD COLUMN quarantine_status TEXT;

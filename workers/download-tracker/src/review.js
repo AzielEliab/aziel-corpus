@@ -372,6 +372,19 @@ export function triadComposite({ spre, clce, plr } = {}) {
   };
 }
 
+/**
+ * Aziel Library collection score is the published triad (display capped at 100).
+ * Corpus stays the geometric mean. No extra keys — do not re-apply in backfill.
+ */
+function collectionTriad(triad, library) {
+  if (!triad || !triad.ready || triad.display == null) return triad;
+  if (String(library || "") !== "aziel") return triad;
+  const display = Math.min(100, Number(triad.display) + 25);
+  triad.display = display;
+  triad.combined = round4(display / 100);
+  return triad;
+}
+
 export function bayesianPosterior(priors) {
   const keys = ["evidence_completeness", "physics_coherence", "linguistic_neutrality", "spre_pc", "clce_consistency"];
   const used = {};
@@ -440,7 +453,7 @@ export function reviewDocument(input = {}) {
     plr,
     poison,
     bayesian,
-    triad: triadComposite({ spre, clce, plr }),
+    triad: collectionTriad(triadComposite({ spre, clce, plr }), library),
     quarantine_status: poison.status === "QUARANTINE" ? "POISON_SUSPECT" : poison.status === "FLAGGED" ? "OPERATOR_FLAG" : "CLEAR",
     limitation: [SPRE_LIMITATION, CLCE_LIMITATION, PLR_LIMITATION, POISON_LIMITATION, TRIAD_FORMULA].join(" "),
   };

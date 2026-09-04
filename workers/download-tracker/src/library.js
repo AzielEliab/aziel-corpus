@@ -292,7 +292,7 @@ export async function ingestRecord(env, args) {
     } else {
       searchBody = [notes, filename].filter(Boolean).join("\n");
     }
-    if (String(contentType).toLowerCase().startsWith("image/")) {
+    if (!args.skipOcrHint && String(contentType).toLowerCase().startsWith("image/")) {
       ocrHint = { bytes, contentType };
     }
   } else {
@@ -436,6 +436,31 @@ export async function serveFile(env, recordId) {
   headers.set("X-Aziel-Downloadable", "1");
   for (const [k, v] of Object.entries(cors())) headers.set(k, v);
   return new Response(bytes, { status: 200, headers });
+}
+
+export async function serveDerived(env, derivedId) {
+  const id = String(derivedId || "").trim();
+  if (!id || !env || !env.DB) return jsonErr("not found", 404);
+  let row = null;
+  try {
+    row = await env.DB.prepare(
+      "SELECT derived_id, record_id, artifact_type, object_key, content_sha256 FROM derived_artifacts WHERE derived_id=?"
+    ).bind(id).first();
+  } catch {
+    row = null;
+  }
+  if (!row || !row.object_key) return jsonErr("not found", 404);
+  if (!env.FILES) return jsonErr("files binding missing", 500);
+  const obj = await getObject(env, row.object_key);
+  if (!obj) return jsonErr("not found", 404);
+  const ct = (obj.httpMetadata && obj.httpMetadata.contentType) || "image/png";
+  const name = safeFilename(id + (String(row.artifact_type || "").toLowerCase().includes("overlay") ? ".png" : ".bin"));
+  const headers = new Headers();
+  headers.set("Content-Type", ct);
+  headers.set("Content-Disposition", `inline; filename="${name.replaceAll('"', "")}"`);
+  headers.set("Cache-Control", "public, max-age=3600");
+  for (const [k, v] of Object.entries(cors())) headers.set(k, v);
+  return new Response(obj.body, { status: 200, headers });
 }
 
 function jsonErr(error, status) {
