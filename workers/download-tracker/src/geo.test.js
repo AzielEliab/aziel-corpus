@@ -7,6 +7,8 @@ import {
   paperDateMentions,
   zioncheckTitleSeed,
   extractEventsForText,
+  derivedTextForRecord,
+  continueVerifyGeo,
   normName,
 } from "./geo.js";
 
@@ -212,4 +214,115 @@ test("OCR / derived extra text in the bag can supply the missing place+date", as
   const ev = env.events.find((e) => e.place_name === "Seattle" && e.event_date === "1936-08");
   assert.ok(ev);
   assert.ok(ev.source === "AUTO_SENTENCE" || ev.source === "AUTO_CONTEXT" || ev.source === "AUTO_DOCUMENT");
+});
+
+test("derivedTextForRecord prefers note slices and skips FILES when loadObjects is false", async () => {
+  const note = "OCR note: funeral in Seattle August 1936. " + "x".repeat(12000);
+  let filesGets = 0;
+  const env = {
+    FILES: {
+      head: async () => ({ size: 1 }),
+      get: async () => {
+        filesGets += 1;
+        throw new Error("FILES object load should be skipped");
+      },
+    },
+    DB: {
+      prepare(sql) {
+        const self = { _args: [], bind(...a) { self._args = a; return self; } };
+        self.all = async () => {
+          if (/media_runs/.test(sql)) {
+            return { results: [{ transcript: "transcript slice " + "t".repeat(12000) }] };
+          }
+          if (/ocr_jobs/.test(sql)) {
+            return { results: [{ result: "ocr job " + "o".repeat(12000) }] };
+          }
+          if (/derived_artifacts/.test(sql)) {
+            return { results: [{ artifact_type: "TEXT_EXTRACT", note, object_key: "derived/AZDOC-X/AZDER-1.txt" }] };
+          }
+          return { results: [] };
+        };
+        self.first = async () => null;
+        self.run = async () => ({ success: true });
+        return self;
+      },
+      async batch() {},
+    },
+  };
+  const text = await derivedTextForRecord(env, "AZDOC-X", { loadObjects: false });
+  assert.ok(text.includes("Seattle"));
+  assert.ok(text.includes("transcript slice"));
+  assert.ok(!text.includes("x".repeat(9000)), "note slice is capped");
+  assert.ok(!text.includes("t".repeat(9000)), "transcript slice is capped");
+  assert.equal(filesGets, 0);
+});
+
+test("continueVerifyGeo advances cursor before extract and walks LIMIT 1 without FILES loads", async () => {
+  const records = [
+    { record_id: "AZDOC-AAA", title: "First", body: "no geo", author: "", domain: "", subjects: "", keywords: "", filename: "a.pdf" },
+    { record_id: "AZDOC-BBB", title: "Second", body: "no geo", author: "", domain: "", subjects: "", keywords: "", filename: "b.pdf" },
+  ];
+  const metadata = {};
+  const ops = [];
+  let filesGets = 0;
+  const env = {
+    FILES: {
+      head: async () => ({ size: 1 }),
+      get: async () => {
+        filesGets += 1;
+        throw new Error("verify-geo must not load FILES objects");
+      },
+    },
+    DB: {
+      prepare(sql) {
+        const self = { _sql: sql, _args: [], bind(...a) { self._args = a; return self; } };
+        self.first = async () => {
+          if (/COUNT\(\*\) AS n FROM places/.test(sql)) return { n: 999999 };
+          if (/COUNT\(\*\) AS n FROM records/.test(sql)) return { n: records.length };
+          if (/COUNT\(\*\) AS n FROM events/.test(sql)) return { n: 0 };
+          if (/FROM metadata WHERE key/.test(sql)) {
+            const v = metadata[self._args[0]];
+            return v != null ? { value: v } : null;
+          }
+          return null;
+        };
+        self.all = async () => {
+          if (/FROM records/.test(sql) && /LIMIT 1/.test(sql)) {
+            ops.push("select:" + (self._args[0] || "start"));
+            assert.match(sql, /substr\(body,1,80000\)/);
+            assert.match(sql, /LIMIT 1/);
+            if (/record_id>\?/.test(sql)) {
+              const after = self._args[0];
+              return { results: records.filter((r) => r.record_id > after).slice(0, 1) };
+            }
+            return { results: records.slice(0, 1) };
+          }
+          if (/media_runs|ocr_jobs|derived_artifacts/.test(sql)) {
+            ops.push("derived:" + self._args[0]);
+            return { results: [{ artifact_type: "TEXT_EXTRACT", note: "lenses zero\nshort", object_key: "derived/AZDOC-AAA/x.txt" }] };
+          }
+          return { results: [] };
+        };
+        self.run = async () => {
+          if (/INSERT OR REPLACE INTO metadata/.test(sql)) {
+            metadata[self._args[0]] = self._args[1];
+            if (self._args[0] === "geo_verify_cursor") ops.push("cursor:" + self._args[1]);
+          }
+          return { success: true };
+        };
+        return self;
+      },
+      async batch() {},
+    },
+  };
+  const report = await continueVerifyGeo(env, { ms: 8000, force: true });
+  assert.equal(filesGets, 0);
+  assert.ok(report.ok);
+  const firstCursor = ops.findIndex((x) => x === "cursor:AZDOC-AAA");
+  const firstDerived = ops.findIndex((x) => x.startsWith("derived:AZDOC-AAA"));
+  assert.ok(firstCursor >= 0, "cursor written for first record");
+  assert.ok(firstDerived >= 0, "derived text loaded for first record");
+  assert.ok(firstCursor < firstDerived, "cursor advances before extract so a hung record cannot freeze the walk");
+  assert.ok(ops.some((x) => x === "select:AZDOC-AAA"), "next chunk uses record_id>? not the same first row");
+  assert.equal(metadata.geo_verify_done_utc && metadata.geo_verify_done_utc.length > 0, true);
 });
