@@ -31,6 +31,7 @@ export function defaultDescription(kind) {
   if (kind === "historical") return "Historical geography layers for Aziel Digital Library. Author Aziel Eliab.";
   if (kind === "verify") return "Integrity verification of the hosted Aziel Digital Library MASTER. Author Aziel Eliab.";
   if (kind === "corpus") return "Public corpus of Aziel Digital Library. Search published records. Author Aziel Eliab.";
+  if (kind === "runtime") return "aziel-runtime AI pull/invoke root on the Aziel Digital Library. Catalog, OpenAPI, MCP, skill, runtime.json, pull/{slug}. Author Aziel Eliab.";
   return "Aziel Digital Library by Aziel Eliab. Search, map, gazetteer, intelligence, and hosted OCR on the public MASTER.";
 }
 
@@ -46,6 +47,19 @@ function jsonLd(title, path, kind, description) {
   }
   if (kind === "map" || path === "/map") {
     graph.push({ "@type": "Map", "name": "Temporal Map", "url": CANON_HOST + "/map", "creator": org });
+  }
+  if (kind === "runtime" || path === "/runtime") {
+    graph.push({
+      "@type": "SoftwareApplication",
+      "name": "aziel-runtime",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Cloudflare Workers",
+      "url": CANON_HOST + "/runtime",
+      "description": description,
+      "author": org,
+      "license": "https://www.apache.org/licenses/LICENSE-2.0",
+      "codeRepository": "https://github.com/AzielEliab/aziel-runtime",
+    });
   }
   return { "@context": "https://schema.org", "@graph": graph };
 }

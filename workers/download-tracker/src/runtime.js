@@ -40,9 +40,13 @@ Always send \`User-Agent: Mozilla/5.0\`.
 - Library: ${HOST}/
 - Fallback Worker: ${FALLBACK_HOST}/
 - Worker OpenAPI: ${HOST}/openapi.json
-- Catalog OpenAPI: ${CATALOG}/openapi.json
-- MCP: \`POST ${CATALOG}/mcp\`
-- Live skill: \`GET ${HOST}/v1/skill\`
+- Runtime root: ${HOST}/runtime
+- Catalog OpenAPI: ${HOST}/runtime/openapi.json (origin ${CATALOG}/openapi.json)
+- MCP: \`POST ${HOST}/runtime/mcp\` (origin \`POST ${CATALOG}/mcp\`)
+- Runtime skill: \`GET ${HOST}/runtime/v1/skill\`
+- Runtime manifest: \`GET ${HOST}/runtime/v1/runtime.json\` or \`GET ${HOST}/v1/runtime.json\`
+- Pull: \`GET ${HOST}/runtime/v1/pull/{slug}\`
+- Library skill: \`GET ${HOST}/v1/skill\`
 
 Ops (do **not** increment downloads):
 
@@ -137,6 +141,14 @@ function openapi() {
       "/download": { get: { summary: "Counted zip (asset=), counted record download (record=AZDOC-…), or counted content-hash download (hash=SHA-256). HTTP 200, no silent 302.", operationId: "download", parameters: [{ name: "asset", in: "query", schema: { type: "string" } }, { name: "record", in: "query", schema: { type: "string" } }, { name: "hash", in: "query", schema: { type: "string" } }, { name: "sha256", in: "query", schema: { type: "string" } }] } },
       "/v1/docs/{hash}/download": { get: { summary: "Download the stored file for a kept record whose content_sha256 matches. Does not increment downloads. Duplicates are not deleted.", operationId: "downloadByHash", parameters: [{ name: "hash", in: "path", required: true, schema: { type: "string" } }] } },
       "/v1/runtime": { get: { summary: "Package and runtime version discovery for catalog scrapers. Does not increment downloads.", operationId: "runtime" } },
+      "/v1/runtime.json": { get: { summary: "aziel-runtime pull/invoke manifest (proxied). Distinct from /v1/runtime library version.", operationId: "runtimeRoot" } },
+      "/runtime": { get: { summary: "aziel-runtime AI pull/invoke root page.", operationId: "runtimePage" } },
+      "/runtime/v1/runtime.json": { get: { summary: "aziel-runtime manifest via same-origin proxy.", operationId: "runtimeProxyManifest" } },
+      "/runtime/v1/skill": { get: { summary: "aziel-runtime skill markdown via same-origin proxy.", operationId: "runtimeProxySkill" } },
+      "/runtime/v1/pull/{slug}": { get: { summary: "Pull descriptor for one product slug via same-origin proxy.", operationId: "runtimeProxyPull" } },
+      "/runtime/v1/catalog.json": { get: { summary: "Live aziel-runtime catalog via same-origin proxy.", operationId: "runtimeProxyCatalog" } },
+      "/runtime/openapi.json": { get: { summary: "Combined aziel-runtime OpenAPI via same-origin proxy.", operationId: "runtimeProxyOpenapi" } },
+      "/runtime/mcp": { post: { summary: "aziel-runtime MCP JSON-RPC via same-origin proxy.", operationId: "runtimeProxyMcp" } },
     },
   };
 }
@@ -159,6 +171,7 @@ export async function handleRuntimeApi(request, url, env) {
       author: "Aziel Eliab",
       host: HOST,
       catalog: CATALOG,
+      runtime_root: HOST + "/runtime",
       protocol: PROTOCOL,
       limitation: LIMITATION,
     });
@@ -183,6 +196,7 @@ export async function handleRuntimeApi(request, url, env) {
       author: "Aziel Eliab",
       host: HOST,
       catalog: CATALOG,
+      runtime_root: HOST + "/runtime",
       protocol: PROTOCOL,
       review: {
         spre: "Source Provenance Reliability Engine (no guilt verdict)",
@@ -213,21 +227,6 @@ export async function handleRuntimeApi(request, url, env) {
   }
   if (path === "/v1/example" && request.method === "GET") {
     return json({ q: "Florence" });
-  }
-  if (path === "/v1/runtime" && request.method === "GET") {
-    return json({
-      ok: true,
-      author: "Aziel Eliab",
-      title: "aziel-runtime catalog front door",
-      catalog: CATALOG + "/",
-      catalog_json: CATALOG + "/v1/catalog.json",
-      openapi: CATALOG + "/openapi.json",
-      mcp: CATALOG + "/mcp",
-      software: HOST + "/software",
-      runtime: HOST + "/runtime",
-      lattice: HOST + "/v1/lattice",
-      limitation: LIMITATION,
-    });
   }
   if (path === "/v1/search" && request.method === "GET") {
     const q = (url.searchParams.get("q") || "").trim();

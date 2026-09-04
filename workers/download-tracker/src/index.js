@@ -1,4 +1,5 @@
 import { handleRuntimeApi, corsHeaders, json, LIMITATION } from "./runtime.js";
+import { handleRuntimeRoot } from "./runtime-root.js";
 import { handleAuth, getSession } from "./auth.js";
 import { page, homeBody } from "./ui.js";
 import { handleHosted } from "./hosted.js";
@@ -396,6 +397,13 @@ export default {
       return json({ error: "records are append-only; PUT/PATCH/DELETE are rejected" }, 405);
     }
 
+
+    const hostedPathEarly = url.pathname.replace(/\/+$/, "") || "/";
+    if (hostedPathEarly === "/runtime" || hostedPathEarly === "/v1/runtime.json" || url.pathname.startsWith("/runtime/")) {
+      const signedRuntime = hostedPathEarly === "/runtime" ? await getSession(env, request) : null;
+      const runtimeRoot = await handleRuntimeRoot(request, url, env, signedRuntime);
+      if (runtimeRoot) return runtimeRoot;
+    }
 
     const runtime = await handleRuntimeApi(request, url, env);
     if (runtime) return runtime;

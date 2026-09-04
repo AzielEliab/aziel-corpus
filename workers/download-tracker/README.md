@@ -13,6 +13,9 @@ Custom domains: www.azielcorpuslibrary.net and azielcorpuslibrary.net
 - GET /download?record=AZDOC-…: counted + ledger-linked document download
 - GET /download?hash=SHA-256 and GET /v1/docs/{hash}/download: serve the kept file for that content hash (duplicates are not deleted)
 - GET /v1/runtime: package/runtime version 2.7.0 for catalog discovery
+- GET/HEAD /runtime: aziel-runtime AI pull/invoke root page (not a second software index)
+- GET/HEAD /runtime/*: same-origin proxy to aziel-runtime (service binding AZIEL_RUNTIME, else workers.dev). Fallbacks for /v1/skill, /v1/runtime.json, /v1/pull/{slug}
+- GET /v1/runtime.json: aziel-runtime manifest alias (distinct from /v1/runtime)
 - GET /v1/search?q=&lib=all|aziel|corpus
 - GET /v1/review?record_id=  triad composite + SPRE + CLCE + PhysLing + Bayesian (unranked)
 - GET /v1/lattice?record_id=  AzielTether tip (site is not a mesh)

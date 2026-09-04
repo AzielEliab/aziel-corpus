@@ -48,7 +48,7 @@ export async function sitemapXml(env) {
     HOST + "/about", HOST + "/runtime", HOST + "/map", HOST + "/gazetteer", HOST + "/tree",
     HOST + "/health", HOST + "/intelligence", HOST + "/ocr", HOST + "/historical", HOST + "/verify",
     HOST + "/download", HOST + "/install.sh", HOST + "/v1/health", HOST + "/v1/search",
-    HOST + "/v1/skill", HOST + "/v1/example", HOST + "/v1/review", HOST + "/v1/lattice", HOST + "/v1/verify-backfill", HOST + "/v1/verify-geo", HOST + "/v1/media-run", HOST + "/openapi.json", HOST + "/llms.txt",
+    HOST + "/v1/skill", HOST + "/v1/example", HOST + "/v1/review", HOST + "/v1/lattice", HOST + "/v1/verify-backfill", HOST + "/v1/verify-geo", HOST + "/v1/media-run", HOST + "/v1/runtime.json", HOST + "/runtime/v1/runtime.json", HOST + "/runtime/v1/skill", HOST + "/runtime/v1/catalog.json", HOST + "/runtime/openapi.json", HOST + "/openapi.json", HOST + "/llms.txt",
     HOST + "/cite.json", HOST + "/assets/world_110m.geojson", GITHUB_REPO,
   ];
   try {
@@ -87,6 +87,13 @@ export function citeDoc() {
     llms: HOST + "/llms.txt",
     license: "Apache-2.0",
     catalog: CATALOG + "/",
+    runtime: HOST + "/runtime",
+    runtime_json: HOST + "/runtime/v1/runtime.json",
+    runtime_skill: HOST + "/runtime/v1/skill",
+    runtime_pull: HOST + "/runtime/v1/pull/{slug}",
+    runtime_openapi: HOST + "/runtime/openapi.json",
+    runtime_mcp: HOST + "/runtime/mcp",
+    runtime_origin: CATALOG + "/",
     review: HOST + "/v1/review",
     lattice: HOST + "/v1/lattice",
     verify_backfill: HOST + "/v1/verify-backfill",
@@ -123,6 +130,11 @@ export function llmsDoc(limitation) {
     + "- Corpus: " + HOST + "/corpus\n"
     + "- Software: " + HOST + "/software\n"
     + "- Runtime root: " + HOST + "/runtime\n"
+    + "- Runtime manifest: " + HOST + "/runtime/v1/runtime.json\n"
+    + "- Runtime skill: " + HOST + "/runtime/v1/skill\n"
+    + "- Runtime pull: " + HOST + "/runtime/v1/pull/{slug}\n"
+    + "- Runtime OpenAPI: " + HOST + "/runtime/openapi.json\n"
+    + "- Runtime MCP: POST " + HOST + "/runtime/mcp\n"
     + "- About Aziel: " + HOST + "/about\n"
     + "- Pattern: " + HOST + "/pattern\n"
     + "- Tree: " + HOST + "/tree\n"
@@ -149,6 +161,13 @@ export function llmsDoc(limitation) {
     + "- POST " + HOST + "/v1/jeeves/upload\n"
     + "- GET " + HOST + "/v1/docs/{hash}/download\n"
     + "- GET " + HOST + "/v1/runtime\n"
+    + "- GET " + HOST + "/v1/runtime.json\n"
+    + "- GET " + HOST + "/runtime/v1/runtime.json\n"
+    + "- GET " + HOST + "/runtime/v1/skill\n"
+    + "- GET " + HOST + "/runtime/v1/pull/{slug}\n"
+    + "- GET " + HOST + "/runtime/v1/catalog.json\n"
+    + "- GET " + HOST + "/runtime/openapi.json\n"
+    + "- POST " + HOST + "/runtime/mcp\n"
     + "- POST " + HOST + "/transcribe  (Whisper + mandatory VibeLock; hard A/V blocks HTTP 451)\n"
     + "- GET " + HOST + "/media/{sha256}  (allowed A/V playback only)\n"
     + "- POST " + HOST + "/ocr  (lattice receipt on every run)\n"
