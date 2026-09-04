@@ -4,6 +4,7 @@
 import { createHash } from "node:crypto";
 import { unzipEntries, zipText } from "./zip.js";
 import { appendLedger, verifyLedger, ensureLedger } from "./ledger.js";
+import { ensureReviewSchema } from "./review-store.js";
 import { mergeKitPlaces, sha256hex, utcNow, newId, ensureSchema } from "./geo.js";
 import { isOperator, libraryFor, ingestRecord, asFile, safeFilename, objectExists, putObject } from "./library.js";
 
@@ -309,6 +310,7 @@ export async function healthSnapshot(env, extra = {}) {
     gazetteer_places: places,
     packages,
     historical_layers: layers,
+    quarantined: await count("SELECT COUNT(*) AS n FROM records WHERE IFNULL(quarantine_status,'CLEAR') IN ('POISON_SUSPECT','QUARANTINE')"),
     views: extra.views || 0,
     downloads: extra.downloads || 0,
     d1: d1ok ? "ok" : "missing",
@@ -320,6 +322,7 @@ export async function healthSnapshot(env, extra = {}) {
 
 export async function verifyHosted(env, request) {
   await ensureSchema(env);
+  try { await ensureReviewSchema(env); } catch { /* review schema */ }
   const checks = [];
   const errors = [];
   let ledgerHead = null;
@@ -371,7 +374,9 @@ export async function verifyHosted(env, request) {
     historical_layers: ["layer_id"],
     metadata: ["key"],
     ledger: ["sequence", "entry_hash", "previous_hash"],
-    records: ["content_sha256"],
+    records: ["content_sha256", "quarantine_status", "review_json", "bayesian_posterior"],
+    peer_reviews: ["review_id", "record_id", "stance", "entry_hash"],
+    lattice_tips: ["tip_id", "record_id"],
   };
   for (const [table, cols] of Object.entries(need)) {
     try {
@@ -430,7 +435,7 @@ export async function verifyHosted(env, request) {
     ok: errors.length === 0,
     product: "aziel-corpus",
     name: "Aziel Digital Library",
-    version: "2.6.2",
+    version: "2.7.0",
     mode: "master",
     author: "Aziel Eliab",
     checks,

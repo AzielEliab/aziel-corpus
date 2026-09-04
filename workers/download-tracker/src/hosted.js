@@ -3,6 +3,7 @@ import { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, hea
 import { json, corsHeaders } from "./runtime.js";
 import { receiptForRecord } from "./ledger.js";
 import { isOperator, asFile } from "./library.js";
+import { addPeerReview, loadRecordReview } from "./review-store.js";
 import {
   ensureSchema, ensurePlaces, gazetteerStatus, gazetteerSearch, lookupPlaces,
   reindexGeography, listEvents, addManualEvent, unresolvedPlaceMentions,
@@ -200,7 +201,26 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     const row = await getRecordRow(env, decodeURIComponent(recMatch[1]));
     if (!row) return html(page("Not found", recordBody({ row: null, events: [] }), { signed, path: path }), { status: 404 });
     const events = await recordEvents(env, row.record_id);
-    return html(page(row.title || "Record", recordBody({ row, events }), { signed, path: "/record/" + row.record_id }));
+    const extra = await loadRecordReview(env, row);
+    return html(page(row.title || "Record", recordBody({ row, events, signed, ...extra }), { signed, path: "/record/" + row.record_id }));
+  }
+  const peerMatch = path.match(/^\/record\/([^/]+)\/peer$/);
+  if (peerMatch && method === "POST") {
+    if (!signed) return json({ error: "login required" }, 401);
+    const recordId = decodeURIComponent(peerMatch[1]);
+    const form = await request.formData();
+    try {
+      await addPeerReview(env, {
+        recordId,
+        stance: form.get("stance"),
+        body: form.get("body") || form.get("note"),
+        signed,
+      });
+    } catch (err) {
+      return json({ error: err && err.message ? err.message : "review failed" }, err && err.status ? err.status : 400);
+    }
+    if ((request.headers.get("Accept") || "").includes("json")) return json({ ok: true, record_id: recordId });
+    return new Response(null, { status: 303, headers: { Location: "/record/" + encodeURIComponent(recordId) } });
   }
   return null;
 }

@@ -136,3 +136,23 @@ CREATE TABLE IF NOT EXISTS derived_artifacts (
 );
 ALTER TABLE records ADD COLUMN content_sha256 TEXT;
 CREATE INDEX IF NOT EXISTS idx_records_sha ON records(content_sha256);
+ALTER TABLE records ADD COLUMN quarantine_status TEXT;
+ALTER TABLE records ADD COLUMN review_json TEXT;
+ALTER TABLE records ADD COLUMN bayesian_posterior REAL;
+ALTER TABLE records ADD COLUMN lattice_tip_json TEXT;
+CREATE TABLE IF NOT EXISTS peer_reviews (
+  review_id TEXT PRIMARY KEY,
+  record_id TEXT NOT NULL,
+  stance TEXT NOT NULL,
+  body TEXT NOT NULL,
+  created_by TEXT,
+  created_utc TEXT NOT NULL,
+  entry_hash TEXT
+);
+CREATE TABLE IF NOT EXISTS lattice_tips (
+  tip_id TEXT PRIMARY KEY,
+  record_id TEXT,
+  tip_json TEXT NOT NULL,
+  created_utc TEXT NOT NULL,
+  ledger_entry_hash TEXT
+);

@@ -1,13 +1,13 @@
 ---
 name: Aziel Digital Library
-description: Use when an assistant should search the Aziel Digital Library master corpus, check health, or fetch the counted v2.6.2 software zip via hosted /v1 or aziel-runtime.
+description: Use when an assistant should search the Aziel Digital Library master corpus, check health, review scores, or fetch the counted software zip via hosted /v1 or aziel-runtime.
 ---
 
-# Aziel Digital Library v2.6.2
+# Aziel Digital Library v2.7.0
 
 Self-contained immutable local digital library and intelligence runtime. Public site is MASTER. Anonymous GET is read-only. Signed-in accounts may ingest. Author: **Aziel Eliab**.
 
-**THIS IS:** Aziel Digital Library v2.6.2 (search, records, map, gazetteer, counted zip).
+**THIS IS:** Aziel Digital Library v2.7.0 (search, records, map, gazetteer, counted zip, poison immunity, PhysLing Review, unranked Bayesian scores).
 
 **THIS IS NOT:** a 26-card software index. Not Zenodo. Not Horton.
 
@@ -28,6 +28,8 @@ Ops (do **not** increment downloads):
 - `GET /v1/search?q=`
 - `GET /v1/example`
 - `GET /v1/skill`
+- `GET /v1/review?record_id=`
+- `GET /v1/lattice?record_id=`
 
 Catalog aliases: `GET /p/aziel-corpus/health`, `GET /p/aziel-corpus/search`, `GET /p/aziel-corpus/skill`.
 

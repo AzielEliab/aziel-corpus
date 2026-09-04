@@ -47,17 +47,80 @@ export function treeBody(payload) {
   return "<section class=\"hero\"><h1>Evidence-based corpus tree</h1><p class=\"muted\">Grouped by library → domain → subject → document. Unclassified objects stay standalone. Links are never invented.</p></section><div class=\"card tree\">" + (libHtml.join("") || "<p class=\"muted\">No classified records yet.</p>") + stand + "</div>";
 }
 
+function light(status, label, kid) {
+  const st = String(status || "REVIEW").toUpperCase();
+  const cls = st === "PASS" || st === "CLEAR" ? "go" : st === "FLAG" || st === "QUARANTINE" ? "stop" : "slow";
+  const word = st === "PASS" || st === "CLEAR" ? "Green" : st === "FLAG" || st === "QUARANTINE" ? "Red" : "Yellow";
+  return "<div class=\"light " + cls + "\"><span class=\"lamp\" aria-hidden=\"true\"></span><div><b>" + esc(label) + "</b> — " + word + "<div class=\"muted\">" + esc(kid || st) + "</div></div></div>";
+}
+
 export function recordBody(payload) {
   const row = payload.row;
   const events = payload.events || [];
+  const signed = payload.signed;
+  const review = payload.review || (row && row.review_json ? (() => { try { return JSON.parse(row.review_json); } catch { return null; } })() : null);
+  const peers = payload.peers || [];
+  const tip = payload.tip;
   if (!row) return "<div class=\"card\"><h2>Not found</h2><p>That record is not in the hosted corpus.</p></div>";
+  const q = String(payload.quarantine_status || row.quarantine_status || (review && review.quarantine_status) || "CLEAR").toUpperCase();
+  const qBadge = q === "POISON_SUSPECT" || q === "QUARANTINE"
+    ? "<span class=\"q-badge stop\">Quarantine — poison suspect (kept, not deleted)</span>"
+    : q === "OPERATOR_FLAG" || q === "FLAGGED"
+      ? "<span class=\"q-badge slow\">Operator flag — evidence still filed</span>"
+      : "<span class=\"q-badge go\">Clear</span>";
   const sha = String(row.content_sha256 || "").trim();
   const shaHtml = sha ? "<p class=\"meta\">SHA-256 " + esc(sha.slice(0,12)) + "… · <a href=\"/receipt/" + esc(row.record_id) + "\">receipt</a></p>" : "<p class=\"meta\"><a href=\"/receipt/" + esc(row.record_id) + "\">receipt</a></p>";
   const open = row.object_key ? "<p><a class=\"button\" href=\"/file/" + esc(row.record_id) + "\">Open file</a></p>" : "";
   const ev = events.length
     ? events.map((e) => "<div class=\"pill\">" + esc(e.event_date) + " · " + esc(e.place_name) + " · " + Number(e.confidence || 0).toFixed(2) + "</div>").join(" ")
     : "<p class=\"muted\">No mapped events extracted from this record.</p>";
-  return "<section class=\"hero\">" + libTag(row.library) + "<h1>" + esc(row.title) + "</h1><p class=\"muted\">" + esc(row.author || "") + (row.domain ? " · " + esc(row.domain) : "") + (row.subjects ? " · " + esc(row.subjects) : "") + "</p></section><div class=\"card\"><p class=\"meta\">" + esc(row.filename || "text record") + (row.created_utc ? " · " + esc(String(row.created_utc).replace("T", " ").slice(0, 16)) : "") + "</p>" + shaHtml + open + "<h3>Snippet</h3><p>" + esc(String(row.body || row.snippet || "").slice(0, 2000)) + "</p><h3>Temporal-geospatial events</h3>" + ev + "</div>";
+  const lights = (review && review.lights) || {};
+  const spre = review && review.spre;
+  const clce = review && review.clce;
+  const plr = review && review.plr;
+  const bayes = review && review.bayesian;
+  const posterior = bayes && bayes.posterior != null ? bayes.posterior : row.bayesian_posterior;
+  const lightsHtml = review
+    ? "<div class=\"lights\">" +
+      light(lights.structure, "Structure", review.structure && review.structure.ok ? "Every file was hashed and checked." : "A file failed the structure check.") +
+      light(lights.spre, "SPRE", spre && spre.kid_plain) +
+      light(lights.clce, "CLCE", clce && clce.kid_plain) +
+      light(lights.plr, "PhysLing Review", plr && plr.kid_plain) +
+      light(lights.poison, "Poison", review.poison && review.poison.kid_plain) +
+      "</div>"
+    : "<p class=\"muted\">Review scores are not on this record yet.</p>";
+  const spreHtml = spre
+    ? "<p><b>SPRE PC</b> " + Number(spre.pc).toFixed(2) + " · " + esc(spre.band) + "</p><p class=\"muted\">" + esc(spre.limitation) + "</p>"
+    : "";
+  const clceHtml = clce
+    ? "<p><b>CLCE</b> triple " + Number(clce.triple).toFixed(2) + " · pairwise " + Number(clce.pairwise_avg).toFixed(2) + " · " + esc(clce.band || "") + "</p><p class=\"muted\">" + esc(clce.limitation || "") + "</p>"
+    : "";
+  const plrHtml = plr
+    ? "<p><b>PhysLing Review (PLR)</b> " + esc(plr.status) + "</p><div class=\"mini-chips\">" +
+      Object.entries(plr.lights || {}).map(([k, v]) => "<span class=\"mini-chip " + (v === "PASS" ? "on" : "") + "\">" + esc(k) + ": " + esc(v) + "</span>").join("") +
+      "</div><p class=\"muted\">" + esc(plr.limitation) + "</p>"
+    : "";
+  const bayesHtml = posterior != null
+    ? "<div class=\"card\"><h3>Bayesian peer score</h3><div class=\"metric\">" + Number(posterior).toFixed(3) + "</div><p class=\"muted\">Unranked metadata. This number is for manual peer-to-peer review. It does not sort the shelf.</p>" +
+      (bayes && bayes.priors ? "<p class=\"muted\">Priors: evidence " + bayes.priors.evidence_completeness + " · physics " + bayes.priors.physics_coherence + " · language " + bayes.priors.linguistic_neutrality + " · SPRE " + bayes.priors.spre_pc + " · CLCE " + bayes.priors.clce_consistency + "</p>" : "") +
+      "</div>"
+    : "";
+  const peerRows = peers.length
+    ? peers.map((p) => "<div class=\"event-row\"><b>" + esc(p.stance) + "</b> · " + esc(p.created_by || "peer") + " · " + esc(String(p.created_utc || "").replace("T", " ").slice(0, 16)) + "<br>" + esc(p.body) + "<br><span class=\"muted\">ledger " + esc(String(p.entry_hash || "").slice(0, 16)) + "…</span></div>").join("")
+    : "<p class=\"muted\">No peer notes yet. Endorse or challenge without rewriting history.</p>";
+  const peerForm = signed
+    ? "<form method=\"post\" action=\"/record/" + esc(row.record_id) + "/peer\"><label>Stance<select name=\"stance\"><option value=\"note\">Note</option><option value=\"endorse\">Endorse</option><option value=\"challenge\">Challenge</option></select></label><textarea name=\"body\" rows=\"4\" placeholder=\"Peer note — appends to the hash-chain\" required></textarea><p><button>Append peer review</button></p></form>"
+    : "<p class=\"muted\">Sign in to append a peer endorse or challenge. History stays append-only if the operator is gone one day.</p>";
+  const tipHtml = tip
+    ? "<details><summary>AzielTether lattice tip</summary><pre class=\"verify\">" + esc(JSON.stringify(tip, null, 2)) + "</pre><p class=\"muted\">The live site is not a mesh. Tether software can carry this tip.</p></details>"
+    : "";
+  return "<section class=\"hero\">" + libTag(row.library) + " " + qBadge + "<h1>" + esc(row.title) + "</h1><p class=\"muted\">" + esc(row.author || "") + (row.domain ? " · " + esc(row.domain) : "") + (row.subjects ? " · " + esc(row.subjects) : "") + "</p></section>" +
+    "<div class=\"card\"><h2>Status lights</h2><p class=\"muted\">Green means go. Yellow means read again. Red means stop and check. Easy enough for a 6th grader; kept for government use.</p>" + lightsHtml + "</div>" +
+    "<div class=\"card\"><p class=\"meta\">" + esc(row.filename || "text record") + (row.created_utc ? " · " + esc(String(row.created_utc).replace("T", " ").slice(0, 16)) : "") + "</p>" + shaHtml + open +
+    "<h3>SPRE + CLCE + PhysLing</h3>" + spreHtml + clceHtml + plrHtml +
+    "<h3>Snippet</h3><p>" + esc(String(row.body || row.snippet || "").slice(0, 2000)) + "</p><h3>Temporal-geospatial events</h3>" + ev + tipHtml + "</div>" +
+    bayesHtml +
+    "<div class=\"card\"><h3>Peer-to-peer review</h3><p class=\"muted\">Notes append to the hash-chain. Peers endorse or challenge; nobody rewrites the past.</p>" + peerRows + peerForm + "</div>";
 }
 
 export function mapBody(payload) {
@@ -145,7 +208,7 @@ export function intelligenceBody(payload) {
 
 export function healthBody(payload) {
   const h = payload.health || {};
-  const items = [["Records", h.records], ["Aziel Library", h.aziel_library], ["Corpus", h.corpus], ["Events", h.events], ["Gazetteer places", h.gazetteer_places], ["Packages", h.packages], ["Historical layers", h.historical_layers], ["Views", h.views], ["Downloads", h.downloads], ["D1", h.d1], ["FILES", h.files], ["OCR", h.ocr], ["Mode", h.mode]];
+  const items = [["Records", h.records], ["Aziel Library", h.aziel_library], ["Corpus", h.corpus], ["Quarantined", h.quarantined], ["Events", h.events], ["Gazetteer places", h.gazetteer_places], ["Packages", h.packages], ["Historical layers", h.historical_layers], ["Views", h.views], ["Downloads", h.downloads], ["D1", h.d1], ["FILES", h.files], ["OCR", h.ocr], ["Mode", h.mode]];
   const cards = items.map(([k, v]) => metricCard(k, v == null ? "—" : v, /missing|NOT READY/i.test(String(v)) ? "bad" : /ok|HOSTED|MASTER/i.test(String(v)) ? "ok" : "")).join("");
   return "<section class=\"hero\"><h1>Health</h1><p class=\"muted\">Live hosted MASTER dashboard. JSON lives at <a href=\"/v1/health\">/v1/health</a>.</p></section><div class=\"grid\">" + cards + "</div>";
 }

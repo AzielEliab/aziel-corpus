@@ -10,7 +10,8 @@ from .exporters import write_xlsx, write_pdf
 from .gazetteer import WorldGazetteer
 
 from .historical_geo import HistoricalGeography
-SCHEMA_VERSION='7.2'
+from .review import review_document, verify_bytes, lattice_anchor_tip
+SCHEMA_VERSION='7.3'
 
 SUBJECT_RULES={'Legal':{'court','custody','divorce','motion','filing','attorney','evidence','hearing','order','respondent','petitioner'},'Research':{'research','framework','theory','analysis','manuscript','voynich','codex','translation','discovery','whitepaper'},'Technology':{'software','code','python','github','cloudflare','api','database','arduino','circuit','server','algorithm'},'Forecasting':{'forecast','prediction','verification','accuracy','weather','ledger','calibration','jeeves','aziel','zd30'},'Mechanical & HVAC':{'hvac','compressor','txv','refrigerant','pressure','capacitor','coil','goodman','r32','subcooling'},'Religion & History':{'jesus','god','hebrew','bible','isaiah','religion','resurrection','historical','papacy','vatican'},'Personal Records':{'email','message','call','transcript','calendar','receipt','invoice','account','security','breach'}}
 def utc_now(): return datetime.now(timezone.utc).isoformat(timespec='seconds')
@@ -73,6 +74,10 @@ class AzielLibrary:
 ''')
             try: c.execute("CREATE VIRTUAL TABLE IF NOT EXISTS records_fts USING fts5(record_id UNINDEXED,title,body,subjects,entities)")
             except sqlite3.OperationalError: pass
+            c.executescript('''
+        CREATE TABLE IF NOT EXISTS peer_reviews(review_id TEXT PRIMARY KEY, record_id TEXT NOT NULL, stance TEXT NOT NULL, body TEXT NOT NULL, created_by TEXT, created_utc TEXT NOT NULL, entry_hash TEXT);
+        CREATE TABLE IF NOT EXISTS lattice_tips(tip_id TEXT PRIMARY KEY, record_id TEXT, tip_json TEXT NOT NULL, created_utc TEXT NOT NULL, ledger_entry_hash TEXT);
+''')
             c.execute("INSERT OR REPLACE INTO metadata VALUES('schema_version',?)",(SCHEMA_VERSION,))
     def _last_hash(self):
         if not self.ledger_path.exists(): return '0'*64
@@ -170,7 +175,9 @@ class AzielLibrary:
         proc=extra.get('processor','AZIEL_TEXT_ENGINE'); procver=extra.get('processor_version','1.1.0'); model_sha=extra.get('model_sha256',''); model_id=Path(extra.get('model_path','')).name if extra.get('model_path') else ''
         self._record_derived(rid,'TEXT_EXTRACT',text.encode(),proc,procver,model_id,model_sha,{'status':status,'extractor':extra},1.0 if text else 0.0)
         self._embed(rid,source.name+' '+primary+' '+secondary+' '+text[:500000]); self._extract_entities(rid,source.name,text); self._extract_events(rid,source.name,text); self._upsert_fts(rid)
-        self._ledger('INGEST',{'record_id':rid,'work_id':wid,'sha256':digest,'stored_path':str(stored.relative_to(self.root)),'text_sha256':hashlib.sha256(text.encode()).hexdigest(),'extraction_status':status}); return self.get_record(rid)
+        self._ledger('INGEST',{'record_id':rid,'work_id':wid,'sha256':digest,'stored_path':str(stored.relative_to(self.root)),'text_sha256':hashlib.sha256(text.encode()).hexdigest(),'extraction_status':status})
+        self._apply_ingest_review(rid, stored, source.name, text, digest, library='aziel')
+        return self.get_record(rid)
     def add_ingest_origin(self,record_id,relative_path):
         self._assert_writable(); rel=str(relative_path or '').replace('\\','/').strip('/')
         if not rel: return
@@ -453,7 +460,65 @@ class AzielLibrary:
         with self._connect() as c:
             r=c.execute('SELECT * FROM records WHERE record_id=?',(rid,)).fetchone()
             if not r: raise KeyError(rid)
-            d=dict(r); d['entities']=[dict(x) for x in c.execute('SELECT e.*,m.context,m.confidence,m.source FROM mentions m JOIN entities e USING(entity_id) WHERE m.record_id=? ORDER BY e.entity_type,e.name',(rid,))]; d['relationships']=[dict(x) for x in c.execute('SELECT * FROM relationships WHERE source_id=? ORDER BY score DESC',(rid,))]; d['derived']=[dict(x) for x in c.execute('SELECT * FROM derived_artifacts WHERE record_id=? ORDER BY created_utc',(rid,))]; d['events']=[dict(x) for x in c.execute('SELECT * FROM events WHERE record_id=? ORDER BY event_date',(rid,))]; return d
+            d=dict(r); d['entities']=[dict(x) for x in c.execute('SELECT e.*,m.context,m.confidence,m.source FROM mentions m JOIN entities e USING(entity_id) WHERE m.record_id=? ORDER BY e.entity_type,e.name',(rid,))]; d['relationships']=[dict(x) for x in c.execute('SELECT * FROM relationships WHERE source_id=? ORDER BY score DESC',(rid,))]; d['derived']=[dict(x) for x in c.execute('SELECT * FROM derived_artifacts WHERE record_id=? ORDER BY created_utc',(rid,))]; d['events']=[dict(x) for x in c.execute('SELECT * FROM events WHERE record_id=? ORDER BY event_date',(rid,))]
+            try: md=json.loads(d.get('metadata_json') or '{}')
+            except Exception: md={}
+            d['review']=md.get('aziel_review'); d['lattice_tip']=md.get('lattice_tip'); d['quarantine_status']=md.get('quarantine_status','CLEAR'); d['bayesian']= (d['review'] or {}).get('bayesian')
+            try: d['peer_reviews']=[dict(x) for x in c.execute('SELECT * FROM peer_reviews WHERE record_id=? ORDER BY created_utc',(rid,))]
+            except sqlite3.OperationalError: d['peer_reviews']=[]
+            return d
+    def _apply_ingest_review(self, record_id, stored, filename, text, digest, library='aziel', event='verified_ingest'):
+        self._assert_writable()
+        raw=Path(stored).read_bytes() if Path(stored).is_file() else (text or '').encode()
+        structure=verify_bytes(raw, filename)
+        review=review_document(title=Path(filename).stem, body=text, filename=filename, sha256=digest, author='Aziel Eliab', library=library, structure=structure)
+        entry=self._ledger('STRUCTURE_VERIFY',{'record_id':record_id,'sha256':digest,'event':event,'ok':structure['ok'],'file_count':len(structure.get('files') or []),'errors':structure.get('errors') or []})
+        self._ledger('REVIEW_SCORE',{'record_id':record_id,'sha256':digest,'event':event,'spre_pc':review['spre']['pc'],'clce_triple':review['clce']['triple'],'plr_status':review['plr']['status'],'bayesian_posterior':review['bayesian']['posterior'],'unranked':True,'lights':review['lights']})
+        if review['quarantine_status']!='CLEAR':
+            self._ledger('POISON_QUARANTINE',{'record_id':record_id,'sha256':digest,'status':review['quarantine_status'],'markers':review['poison']['markers'],'immutable':True,'never_delete':True})
+        tip=None
+        if structure['ok']:
+            tip=lattice_anchor_tip(record_id=record_id,library=library,content_sha256=digest,ledger_entry_hash=entry['entry_hash'],structure=structure,review=review,event=event)
+            tip_entry=self._ledger('LATTICE_ANCHOR',{'record_id':record_id,'sha256':digest,'schema':tip['schema'],'kind':tip['kind'],'carrier':tip['carrier']})
+            tip['ledger_entry_hash']=tip_entry['entry_hash']
+            with self._connect() as c:
+                c.execute('INSERT OR REPLACE INTO lattice_tips VALUES(?,?,?,?,?)',('AZTIP-'+digest[:12].upper(),record_id,json.dumps(tip),utc_now(),tip_entry['entry_hash']))
+        with self._write_lock, self._connect() as c:
+            row=c.execute('SELECT metadata_json FROM records WHERE record_id=?',(record_id,)).fetchone()
+            try: md=json.loads(row['metadata_json'] if row else '{}')
+            except Exception: md={}
+            md['aziel_review']=review; md['lattice_tip']=tip; md['quarantine_status']=review['quarantine_status']
+            c.execute('UPDATE records SET metadata_json=? WHERE record_id=?',(json.dumps(md),record_id))
+        return review
+    def inspect_original(self, record_id):
+        rec=self.get_record(record_id)
+        stored=(self.root/rec['stored_path']).resolve()
+        stored.relative_to(self.root.resolve())
+        raw=stored.read_bytes() if stored.is_file() else b''
+        structure=verify_bytes(raw, rec['original_name'])
+        if rec.get('sha256') and structure.get('sha256') and rec['sha256']!=structure['sha256']:
+            structure=dict(structure); structure['ok']=False; structure.setdefault('errors',[]).append('stored hash mismatch')
+        review=review_document(title=Path(rec['original_name']).stem, body=rec.get('extracted_text') or '', filename=rec['original_name'], sha256=rec.get('sha256') or structure.get('sha256'), author='Aziel Eliab', library='aziel', structure=structure)
+        return {'record_id':record_id,'structure':structure,'review':review}
+    def verify_original(self, record_id, event='download_verify'):
+        rec=self.get_record(record_id)
+        stored=(self.root/rec['stored_path']).resolve()
+        stored.relative_to(self.root.resolve())
+        if self.readonly:
+            return self.inspect_original(record_id)['review']
+        return self._apply_ingest_review(record_id, stored, rec['original_name'], rec.get('extracted_text') or '', rec['sha256'], library='aziel', event=event)
+    def add_peer_review(self, record_id, stance, body, created_by='peer'):
+        self._assert_writable()
+        st=str(stance or 'note').lower()
+        if st not in {'endorse','challenge','note'}: raise ValueError('stance must be endorse, challenge, or note')
+        note=str(body or '').strip()
+        if not note: raise ValueError('review note required')
+        self.get_record(record_id)
+        rid='AZPEER-'+uuid.uuid4().hex[:12].upper()
+        entry=self._ledger('PEER_REVIEW',{'record_id':record_id,'review_id':rid,'stance':st,'body':note[:4000],'created_by':created_by})
+        with self._connect() as c:
+            c.execute('INSERT INTO peer_reviews VALUES(?,?,?,?,?,?,?)',(rid,record_id,st,note[:4000],created_by,entry['timestamp_utc'],entry['entry_hash']))
+        return {'review_id':rid,'record_id':record_id,'stance':st,'entry_hash':entry['entry_hash']}
     def add_citation(self,rid,label,quote,locator):
         self._assert_writable()
         cid='CIT-'+uuid.uuid4().hex[:12].upper()

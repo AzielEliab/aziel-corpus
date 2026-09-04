@@ -1,5 +1,6 @@
 import { randomBytes, createHash } from "node:crypto";
 import { appendLedger, ensureLedger } from "./ledger.js";
+import { ensureReviewSchema, reviewAndStore } from "./review-store.js";
 
 const MAX_BYTES = 25 * 1024 * 1024;
 const TEXT_CAP = 200000;
@@ -71,18 +72,20 @@ function sortClause(sort) {
   if (key === "alpha" || key === "title") return "ORDER BY title COLLATE NOCASE ASC";
   if (key === "author") return "ORDER BY IFNULL(author,'') COLLATE NOCASE ASC, title COLLATE NOCASE ASC";
   if (key === "domain") return "ORDER BY IFNULL(domain,'') COLLATE NOCASE ASC, title COLLATE NOCASE ASC";
+  // Bayesian posterior is unranked metadata — never a default shelf sort.
   return "ORDER BY created_utc DESC";
 }
 
 export async function searchRecords(env, { q, library, sort, author, domain, subject, keyword, limit, offset } = {}) {
   if (!env || !env.DB) return [];
   try { await ensureLedger(env); } catch { /* schema */ }
+  try { await ensureReviewSchema(env); } catch { /* schema */ }
   const lim = Math.min(Math.max(Number(limit) || 300, 1), 500);
   const off = Math.max(Number(offset) || 0, 0);
   const query = String(q || "").trim();
   const lib = String(library || "all").toLowerCase();
   let sql =
-    "SELECT record_id, title, substr(body,1,280) AS snippet, created_by, created_utc, library, filename, content_type, object_key, byte_size, author, domain, subjects, keywords, content_sha256 FROM records";
+    "SELECT record_id, title, substr(body,1,280) AS snippet, created_by, created_utc, library, filename, content_type, object_key, byte_size, author, domain, subjects, keywords, content_sha256, quarantine_status FROM records";
   const where = [];
   const binds = [];
   if (query) {
@@ -236,6 +239,7 @@ export async function ingestRecord(env, args) {
     throw err;
   }
   await ensureLedger(env);
+  try { await ensureReviewSchema(env); } catch { /* schema */ }
   const library = libraryFor(signed);
   let ocrHint = null;
   const id = "AZDOC-" + randomBytes(6).toString("hex").toUpperCase();
@@ -248,6 +252,7 @@ export async function ingestRecord(env, args) {
   let searchBody = notes;
   let contentSha = null;
   let duplicateOf = null;
+  let fileBytes = null;
   const f = asFile(file);
   const domainIn = csvField(domain);
   const subjectsIn = csvField(subjects);
@@ -268,6 +273,7 @@ export async function ingestRecord(env, args) {
     contentType = f.type || "application/octet-stream";
     byteSize = f.size;
     const bytes = await f.arrayBuffer();
+    fileBytes = bytes;
     contentSha = digestBytes(bytes);
     let existing = null;
     try {
@@ -313,7 +319,41 @@ export async function ingestRecord(env, args) {
     await appendLedger(env, "DUPLICATE_SEEN", { record_id: id, existing_record_id: duplicateOf, library, sha256: contentSha, filename, byte_size: byteSize, title: finalTitle, created_by: who });
   }
   await appendLedger(env, "INGEST", { record_id: id, library, sha256: contentSha, filename, byte_size: byteSize, title: finalTitle, created_by: who });
-  return { id, library, title: finalTitle, object_key: objectKey, author: biblioAuthor, domain: domainIn, subjects: subjectsIn, keywords: keywordsIn, ocrHint, extractText: searchBody, content_sha256: contentSha, signed };
+  let reviewBundle = null;
+  try {
+    reviewBundle = await reviewAndStore(env, {
+      recordId: id,
+      library,
+      title: finalTitle,
+      body: searchBody || notes,
+      filename,
+      contentType,
+      sha256: contentSha,
+      author: biblioAuthor,
+      bytes: fileBytes,
+      createdBy: who,
+      event: "verified_ingest",
+    });
+  } catch {
+    reviewBundle = null;
+  }
+  return {
+    id,
+    library,
+    title: finalTitle,
+    object_key: objectKey,
+    author: biblioAuthor,
+    domain: domainIn,
+    subjects: subjectsIn,
+    keywords: keywordsIn,
+    ocrHint,
+    extractText: searchBody,
+    content_sha256: contentSha,
+    signed,
+    quarantine_status: reviewBundle && reviewBundle.quarantine_status,
+    review: reviewBundle && reviewBundle.review,
+    lattice_tip: reviewBundle && reviewBundle.tip,
+  };
 }
 
 
@@ -323,7 +363,7 @@ export async function serveFile(env, recordId) {
     return jsonErr("not found", 404);
   }
   const row = await env.DB.prepare(
-    "SELECT record_id, filename, content_type, object_key, byte_size FROM records WHERE record_id=?"
+    "SELECT record_id, title, body, filename, content_type, object_key, byte_size, library, author, content_sha256 FROM records WHERE record_id=?"
   ).bind(id).first();
   if (!row || !row.object_key) return jsonErr("not found", 404);
   if (!env.FILES) return jsonErr("files binding missing", 500);
@@ -331,15 +371,43 @@ export async function serveFile(env, recordId) {
   if (!obj) return jsonErr("not found", 404);
   const ct = row.content_type || (obj.httpMetadata && obj.httpMetadata.contentType) || "application/octet-stream";
   const name = safeFilename(row.filename || "file");
+  let bytes = null;
+  if (obj.arrayBuffer) bytes = await obj.arrayBuffer();
+  else if (obj.body && typeof obj.body.arrayBuffer === "function") bytes = await obj.body.arrayBuffer();
+  else if (typeof obj.body === "string") bytes = new TextEncoder().encode(obj.body);
+  let verify = null;
+  if (bytes) {
+    try {
+      verify = await reviewAndStore(env, {
+        recordId: row.record_id,
+        library: row.library,
+        title: row.title,
+        body: row.body,
+        filename: name,
+        contentType: ct,
+        sha256: row.content_sha256,
+        author: row.author,
+        bytes,
+        createdBy: "download",
+        event: "download_verify",
+        liveClce: false,
+      });
+    } catch { verify = null; }
+  }
   const inline = /^image\//i.test(ct) || ct === "application/pdf" || /\.(pdf|png|jpe?g|gif|webp|svg)$/i.test(name);
   const headers = new Headers();
   headers.set("Content-Type", ct);
   headers.set("Content-Disposition", `${inline ? "inline" : "attachment"}; filename="${name.replaceAll('"', "")}"`);
   headers.set("Cache-Control", "public, max-age=3600");
-  if (obj.size) headers.set("Content-Length", String(obj.size));
+  if (bytes) headers.set("Content-Length", String(bytes.byteLength || bytes.length));
+  else if (obj.size) headers.set("Content-Length", String(obj.size));
   else if (row.byte_size) headers.set("Content-Length", String(row.byte_size));
+  if (row.content_sha256) headers.set("X-Aziel-SHA256", row.content_sha256);
+  if (verify && verify.structure) headers.set("X-Aziel-Structure", verify.structure.ok ? "VERIFIED" : "FAILED");
+  if (verify && verify.quarantine_status) headers.set("X-Aziel-Quarantine", verify.quarantine_status);
   for (const [k, v] of Object.entries(cors())) headers.set(k, v);
-  return new Response(obj.body, { status: 200, headers });
+  const body = bytes != null ? bytes : obj.body;
+  return new Response(body, { status: 200, headers });
 }
 
 function jsonErr(error, status) {

@@ -126,7 +126,34 @@ export async function receiptForRecord(env, recordId) {
   ).bind(id).first();
   if (!row) return null;
   const entries = await ledgerEntriesForRecord(env, id);
-  return { record_id: row.record_id, title: row.title, library: row.library, filename: row.filename, byte_size: row.byte_size, content_sha256: row.content_sha256 || null, created_by: row.created_by, created_utc: row.created_utc, immutable: true, ledger: entries };
+  let extra = {};
+  try {
+    const full = await env.DB.prepare(
+      "SELECT quarantine_status, review_json, bayesian_posterior, lattice_tip_json FROM records WHERE record_id=?"
+    ).bind(id).first();
+    if (full) {
+      extra = {
+        quarantine_status: full.quarantine_status || "CLEAR",
+        bayesian_posterior: full.bayesian_posterior,
+        bayesian_unranked: true,
+        review: full.review_json ? JSON.parse(full.review_json) : null,
+        lattice_tip: full.lattice_tip_json ? JSON.parse(full.lattice_tip_json) : null,
+      };
+    }
+  } catch { /* older schema */ }
+  return {
+    record_id: row.record_id,
+    title: row.title,
+    library: row.library,
+    filename: row.filename,
+    byte_size: row.byte_size,
+    content_sha256: row.content_sha256 || null,
+    created_by: row.created_by,
+    created_utc: row.created_utc,
+    immutable: true,
+    ledger: entries,
+    ...extra,
+  };
 }
 
 export { ZERO };
