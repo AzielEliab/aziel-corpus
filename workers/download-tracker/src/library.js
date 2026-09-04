@@ -125,6 +125,58 @@ export async function searchRecords(env, { q, library, sort, author, domain, sub
   return (await env.DB.prepare(sql).bind(...binds).all()).results || [];
 }
 
+export function dedupeShelfRows(rows) {
+  const seen = new Set();
+  const out = [];
+  for (const r of rows || []) {
+    const sha = String(r.content_sha256 || "").trim().toLowerCase();
+    if (sha) {
+      if (seen.has(sha)) continue;
+      seen.add(sha);
+    }
+    out.push(r);
+  }
+  return out;
+}
+
+function countTokens(rows, getter, cap) {
+  const map = new Map();
+  for (const r of rows || []) {
+    const parts = String(getter(r) || "").split(/[,;]+/);
+    for (const part of parts) {
+      const token = part.trim();
+      if (!token) continue;
+      const key = token.toLowerCase();
+      const cur = map.get(key) || { label: token, n: 0 };
+      cur.n += 1;
+      map.set(key, cur);
+    }
+  }
+  return [...map.values()].sort((a, b) => b.n - a.n || a.label.localeCompare(b.label)).slice(0, cap);
+}
+
+export async function patternClusters(env, { limit = 400 } = {}) {
+  const rows = dedupeShelfRows(await searchRecords(env, { library: "all", sort: "newest", limit: Math.min(Math.max(Number(limit) || 400, 1), 500) }));
+  const domains = countTokens(rows, (r) => r.domain, 24);
+  const subjects = countTokens(rows, (r) => r.subjects, 24);
+  const keywords = countTokens(rows, (r) => r.keywords, 24);
+  const pairs = new Map();
+  for (const r of rows) {
+    const ds = String(r.domain || "").split(/[,;]+/).map((s) => s.trim()).filter(Boolean);
+    const ss = String(r.subjects || "").split(/[,;]+/).map((s) => s.trim()).filter(Boolean);
+    for (const d of ds) {
+      for (const s of ss) {
+        const key = d.toLowerCase() + "\0" + s.toLowerCase();
+        const cur = pairs.get(key) || { domain: d, subject: s, n: 0 };
+        cur.n += 1;
+        pairs.set(key, cur);
+      }
+    }
+  }
+  const crosses = [...pairs.values()].sort((a, b) => b.n - a.n || a.domain.localeCompare(b.domain)).slice(0, 24);
+  return { total: rows.length, domains, subjects, keywords, crosses };
+}
+
 function collectTokens(values, cap) {
   const seen = new Map();
   for (const raw of values) {
