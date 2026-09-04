@@ -4,6 +4,8 @@
  *
  * Hard 75% confidence cap / 25% uncertainty floor. Provisional and assistive.
  * Does not solve Zioncheck or any case. Not merged into triad. No Aziel Library +25.
+ * First-hand succession pattern-break proof can force-rescore a chain; narrative
+ * and second-source materials never trigger that path.
  */
 import { appendLedger, appendDocumentLedger, isDocumentId } from "./ledger.js";
 
@@ -13,7 +15,17 @@ export const ZSOLVER_DISCLAIMER =
 export const ZSOLVER_CAP = 0.75;
 export const ZSOLVER_FLOOR = 0.25;
 
+export const EVIDENCE_CLASS_FIRST_HAND = "first_hand";
+export const EVIDENCE_CLASS_SECOND_HAND = "second_hand";
+
 const PATTERN_IDS = ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9"];
+
+const FIRST_HAND_RE =
+  /\b(death\s*cert(?:ificate)?s?|autopsy(?:\s+report)?|post[-\s]?mortem|coroner(?:['’]s)?\s+(?:file|report|inquest)|medical\s+examiner(?:\s+file)?|original\s+measurements?|independent\s+measurements?|contemporaneous\s+(?:primary|document|record|note|primary\s+document)|instrument\s+data|original\s+instrument|original\s+photographs?|photograph(?:s)?\s+with\s+provenance|sworn\s+affidavit|\baffidavit\b|first[-\s]?hand|primary\s+source|primary\s+document|original\s+document)\b/i;
+const SECOND_HAND_RE =
+  /\b(news\s+coverage|news\s+reports?|newspapers?|news\s+articles?|wire[-\s]?service|associated\s+press|\breuters\b|\bupi\b|second[-\s]?hand|second[-\s]?source|second-source\s+materials?|commentary|opinion\s+piece|editorials?|op-eds?|press\s+accounts?|media\s+accounts?|according\s+to\s+(?:reports?|officials)|official\s+narrative|narrative\s+only|summary\s+of\s+(?:reports?|coverage)|wire[-\s]?service\s+locked)\b/i;
+const PATTERN_BREAK_RE =
+  /\b(pattern\s+break|breaks?\s+(?:the|this|a)\s+pattern|break\s+in\s+the\s+pattern|proves?\s+a\s+break|first[-\s]?hand\s+disproof|contradicts?|refutes?|disproves?|invalidates?\s+the\s+prior|forensic\s+contradiction|corrects\s+the\s+record)\b/i;
 
 const SIGNALS = {
   P1: { yes: ["unexplained gap", "timeline contradiction", "clocks cannot", "kinematic impossibility"], no: ["timeline consistent", "clocks agree"] },
@@ -35,6 +47,54 @@ function hay(input) {
     input && input.subjects,
     input && input.keywords,
   ].filter(Boolean).join("\n").toLowerCase();
+}
+
+function evidenceHay(input) {
+  const filename = String((input && input.filename) || "").replace(/[-_]+/g, " ");
+  return hay({ ...input, filename });
+}
+
+export function classifyEvidenceClass(input = {}) {
+  const text = evidenceHay(input);
+  if (FIRST_HAND_RE.test(text)) return EVIDENCE_CLASS_FIRST_HAND;
+  if (SECOND_HAND_RE.test(text)) return EVIDENCE_CLASS_SECOND_HAND;
+  return "unknown";
+}
+
+export function detectFirstHandPatternBreak(input = {}) {
+  const evidence_class = classifyEvidenceClass(input);
+  const text = evidenceHay(input);
+  const breakProof = PATTERN_BREAK_RE.test(text);
+  if (evidence_class !== EVIDENCE_CLASS_FIRST_HAND) {
+    return {
+      proven: false,
+      evidence_class,
+      reason: evidence_class === EVIDENCE_CLASS_SECOND_HAND
+        ? "narrative or second-source materials alone cannot prove a pattern break"
+        : "first-hand materials required",
+    };
+  }
+  if (!breakProof) {
+    return {
+      proven: false,
+      evidence_class: EVIDENCE_CLASS_FIRST_HAND,
+      reason: "first-hand materials present but no pattern-break proof",
+    };
+  }
+  return {
+    proven: true,
+    evidence_class: EVIDENCE_CLASS_FIRST_HAND,
+    reason: "first-hand pattern-break proof",
+  };
+}
+
+export function patternBreakContext({ source_record_id, superseded_ids } = {}) {
+  return {
+    proven: true,
+    evidence_class: EVIDENCE_CLASS_FIRST_HAND,
+    source_record_id: source_record_id || "",
+    superseded_ids: Array.isArray(superseded_ids) ? superseded_ids.filter(Boolean) : [],
+  };
 }
 
 function hasAny(text, needles) {
@@ -131,14 +191,20 @@ function normalizeLive(json, answers, source) {
   };
 }
 
-async function postScore(fetcher, url, answers) {
+function scoreBody(answers, extra) {
+  const body = { answers };
+  if (extra && extra.pattern_break) body.pattern_break = extra.pattern_break;
+  return body;
+}
+
+async function postScore(fetcher, url, answers, extra) {
   const ac = new AbortController();
   const t = setTimeout(() => ac.abort(), 4000);
   try {
     const res = await fetcher(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", "User-Agent": "Mozilla/5.0 AzielDigitalLibrary" },
-      body: JSON.stringify({ answers }),
+      body: JSON.stringify(scoreBody(answers, extra)),
       signal: ac.signal,
     });
     if (!res || !res.ok) return null;
@@ -148,17 +214,17 @@ async function postScore(fetcher, url, answers) {
   }
 }
 
-export async function requestZsolverScore(env, answers) {
+export async function requestZsolverScore(env, answers, extra) {
   const list = Array.isArray(answers) ? answers : [];
   if (env && env.ZSOLVER && typeof env.ZSOLVER.fetch === "function") {
     try {
-      const json = await postScore((u, init) => env.ZSOLVER.fetch(new Request("https://zsolver/v1/score", init)), "https://zsolver/v1/score", list);
+      const json = await postScore((u, init) => env.ZSOLVER.fetch(new Request("https://zsolver/v1/score", init)), "https://zsolver/v1/score", list, extra);
       const live = normalizeLive(json, list, "zsolver-binding");
       if (live) return live;
     } catch { /* fall through to HTTPS */ }
   }
   try {
-    const json = await postScore(fetch, ZSOLVER_HOST + "/v1/score", list);
+    const json = await postScore(fetch, ZSOLVER_HOST + "/v1/score", list, extra);
     const live = normalizeLive(json, list, "zsolver-live");
     if (live) return live;
   } catch { /* local port + queue */ }
@@ -213,36 +279,43 @@ async function persistReport(env, recordId, report) {
     provisional: true,
     separate_from_triad: true,
   };
+  if (stored.pattern_break) payload.pattern_break = stored.pattern_break;
   await appendLedger(env, "ZSOLVER_SCORE", payload);
   if (isDocumentId(recordId)) await appendDocumentLedger(env, recordId, "ZSOLVER_SCORE", payload);
   return stored;
 }
 
-export async function enqueueZsolver(env, recordId, answers, error) {
+export async function enqueueZsolver(env, recordId, answers, error, extra) {
   await ensureZsolverSchema(env);
   const when = new Date().toISOString();
   const next = new Date(Date.now() + 60 * 1000).toISOString();
   try {
     await env.DB.prepare(
       "INSERT INTO zsolver_queue(record_id,payload_json,attempts,next_utc,last_error,created_utc) VALUES(?,?,1,?,?,?) ON CONFLICT(record_id) DO UPDATE SET payload_json=excluded.payload_json, attempts=zsolver_queue.attempts+1, next_utc=excluded.next_utc, last_error=excluded.last_error"
-    ).bind(recordId, JSON.stringify({ answers }), next, String(error || "unavailable").slice(0, 300), when).run();
+    ).bind(recordId, JSON.stringify(scoreBody(answers, extra)), next, String(error || "unavailable").slice(0, 300), when).run();
   } catch { /* schema */ }
 }
 
-export async function scoreZsolverForRecord(env, record, { force = false } = {}) {
+function attachPatternBreak(report, pattern_break) {
+  if (!report || !pattern_break) return report;
+  return { ...report, pattern_break };
+}
+
+export async function scoreZsolverForRecord(env, record, { force = false, pattern_break = null } = {}) {
   if (!env || !env.DB || !record || !record.record_id) return null;
   await ensureZsolverSchema(env);
   const existing = parseZsolver(record.zsolver_json);
   if (!force && zsolverIsLive(existing)) return existing;
   const answers = deriveZsolverAnswers(record);
-  const live = await requestZsolverScore(env, answers);
+  const extra = pattern_break ? { pattern_break } : null;
+  const live = await requestZsolverScore(env, answers, extra);
   if (live) {
     try { await env.DB.prepare("DELETE FROM zsolver_queue WHERE record_id=?").bind(record.record_id).run(); } catch { /* */ }
-    return persistReport(env, record.record_id, live);
+    return persistReport(env, record.record_id, attachPatternBreak(live, pattern_break));
   }
-  await enqueueZsolver(env, record.record_id, answers, "zsolver API unavailable");
+  await enqueueZsolver(env, record.record_id, answers, "zsolver API unavailable", extra);
   const queued = pendingZsolver(answers, "zsolver API unavailable");
-  return persistReport(env, record.record_id, queued);
+  return persistReport(env, record.record_id, attachPatternBreak(queued, pattern_break));
 }
 
 export async function drainZsolverQueue(env, { limit = 20 } = {}) {
@@ -259,10 +332,15 @@ export async function drainZsolverQueue(env, { limit = 20 } = {}) {
   let failed = 0;
   for (const row of rows) {
     let answers = [];
-    try { answers = (JSON.parse(row.payload_json) || {}).answers || []; } catch { answers = []; }
-    const live = await requestZsolverScore(env, answers);
+    let pattern_break = null;
+    try {
+      const payload = JSON.parse(row.payload_json) || {};
+      answers = payload.answers || [];
+      pattern_break = payload.pattern_break || null;
+    } catch { answers = []; }
+    const live = await requestZsolverScore(env, answers, pattern_break ? { pattern_break } : null);
     if (live) {
-      await persistReport(env, row.record_id, live);
+      await persistReport(env, row.record_id, attachPatternBreak(live, pattern_break));
       try { await env.DB.prepare("DELETE FROM zsolver_queue WHERE record_id=?").bind(row.record_id).run(); } catch { /* */ }
       scored += 1;
     } else {

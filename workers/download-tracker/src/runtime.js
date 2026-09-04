@@ -191,7 +191,7 @@ export async function handleRuntimeApi(request, url, env) {
         backfill: "GET /v1/verify-backfill scores older unscored records",
         document_chain: "hash-chain bound to AZDOC- id; uploads/downloads/rescores/quarantine/peer notes append",
         succession: "Exact-same-subject paper cites (Supersedes / Superseded by). Uncertain matches are not chained.",
-        zsolver: "ZionPattern Solver secondary public score on every upload. Separate from triad. Hard 75% cap / 25% floor. Provisional. If the live API is down, the score is queued and retried.",
+        zsolver: "ZionPattern Solver secondary public score on every upload. Separate from triad. Hard 75% cap / 25% floor. Provisional. If the live API is down, the score is queued and retried. When a superseding document proves a ZionPattern break with first-hand / primary materials only, every document in that succession chain is force-rescored. Narrative, news, and second-source materials never trigger chain rescore.",
         backfill_all: "GET /v1/verify-backfill?all=1 walks every stored Aziel Library and Corpus record",
         jeeves: JEEVES_LIMITATION,
         lattice: "aziel.lattice.anchor.v1 for AzielTether; site is not a mesh",
