@@ -160,3 +160,4 @@ CREATE TABLE IF NOT EXISTS lattice_tips (
   created_utc TEXT NOT NULL,
   ledger_entry_hash TEXT
 );
+ALTER TABLE records ADD COLUMN shelf_hidden INTEGER DEFAULT 0;
