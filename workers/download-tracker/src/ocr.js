@@ -151,7 +151,17 @@ export async function recordOcrTextArtifact(env, recordId, extraText, extra = {}
   await ensureLedger(env);
   const derivedId = "AZDER-" + sha256hex(String(recordId) + extraText).slice(0, 12).toUpperCase();
   const textSha = sha256hex(extraText);
-  const note = extra.note || (extra.lenses && extra.lenses.length ? "lenses " + extra.lenses.join(",") : null);
+  const lensNote = extra.note || (extra.lenses && extra.lenses.length ? "lenses " + extra.lenses.join(",") : "");
+  const note = [lensNote, String(extraText).slice(0, 8000)].filter(Boolean).join("\n").slice(0, 12000);
+  let objectKey = extra.objectKey || null;
+  if (!objectKey && env.FILES) {
+    try {
+      objectKey = "derived/" + recordId + "/" + derivedId + ".txt";
+      if (!(await objectExists(env, objectKey))) {
+        await putObject(env, objectKey, extraText, "text/plain; charset=utf-8");
+      }
+    } catch { objectKey = extra.objectKey || null; }
+  }
   await insertDerived(env, {
     derivedId,
     recordId,
@@ -159,9 +169,10 @@ export async function recordOcrTextArtifact(env, recordId, extraText, extra = {}
     processor: extra.processor || "AZIEL_OCR_HOSTED",
     processorVersion: extra.processorVersion || "1.0.0",
     contentSha: textSha,
+    objectKey,
     note,
   });
-  return { derived_id: derivedId, content_sha256: textSha };
+  return { derived_id: derivedId, content_sha256: textSha, object_key: objectKey };
 }
 
 export async function recordSpectralOverlayArtifact(env, recordId, overlayBytes, extra = {}) {

@@ -5,6 +5,7 @@ import { handleHosted } from "./hosted.js";
 import { robotsTxt, sitemapXml, citeDoc, llmsDoc } from "./crawl.js";
 import { searchRecords, listFacets, parseBrowseParams, serveFile, serveFileByHash, normalizeContentHash } from "./library.js";
 import { reviewAndStore, continueFullBackfill } from "./review-store.js";
+import { continueVerifyGeo } from "./geo.js";
 import { verifyBytes, sha256hex } from "./structure.js";
 
 /**
@@ -365,20 +366,25 @@ ${LIMITATION}
 - GET ${HOST}/v1/search?q=
 - GET ${HOST}/v1/skill
 - GET ${HOST}/v1/example
+- GET ${HOST}/v1/verify-geo?status=1
 `;
 }
 
 export default {
   async scheduled(event, env, ctx) {
-    if (ctx && typeof ctx.waitUntil === "function") {
-      ctx.waitUntil(continueFullBackfill(env, { ms: 20000, all: false }));
-    } else {
-      await continueFullBackfill(env, { ms: 20000, all: false });
-    }
+    const walk = async () => {
+      await continueFullBackfill(env, { ms: 12000, all: false }).catch(() => null);
+      await continueVerifyGeo(env, { ms: 12000, force: false }).catch(() => null);
+    };
+    if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(walk());
+    else await walk();
   },
   async fetch(request, env, ctx) {
     if (ctx && typeof ctx.waitUntil === "function") {
-      ctx.waitUntil(continueFullBackfill(env, { ms: 8000, all: false }).catch(() => null));
+      ctx.waitUntil((async () => {
+        await continueFullBackfill(env, { ms: 8000, all: false }).catch(() => null);
+        await continueVerifyGeo(env, { ms: 8000, force: false }).catch(() => null);
+      })());
     }
     const url = new URL(request.url);
 

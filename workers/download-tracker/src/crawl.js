@@ -48,7 +48,7 @@ export async function sitemapXml(env) {
     HOST + "/about", HOST + "/runtime", HOST + "/map", HOST + "/gazetteer", HOST + "/tree",
     HOST + "/health", HOST + "/intelligence", HOST + "/ocr", HOST + "/historical", HOST + "/verify",
     HOST + "/download", HOST + "/install.sh", HOST + "/v1/health", HOST + "/v1/search",
-    HOST + "/v1/skill", HOST + "/v1/example", HOST + "/v1/review", HOST + "/v1/lattice", HOST + "/v1/verify-backfill", HOST + "/v1/media-run", HOST + "/openapi.json", HOST + "/llms.txt",
+    HOST + "/v1/skill", HOST + "/v1/example", HOST + "/v1/review", HOST + "/v1/lattice", HOST + "/v1/verify-backfill", HOST + "/v1/verify-geo", HOST + "/v1/media-run", HOST + "/openapi.json", HOST + "/llms.txt",
     HOST + "/cite.json", HOST + "/assets/world_110m.geojson", GITHUB_REPO,
   ];
   try {
@@ -90,6 +90,7 @@ export function citeDoc() {
     review: HOST + "/v1/review",
     lattice: HOST + "/v1/lattice",
     verify_backfill: HOST + "/v1/verify-backfill",
+    verify_geo: HOST + "/v1/verify-geo",
     document_chain: HOST + "/v1/document-chain",
     jeeves_chat: HOST + "/v1/jeeves/chat",
     jeeves_upload: HOST + "/v1/jeeves/upload",
@@ -139,6 +140,8 @@ export function llmsDoc(limitation) {
     + "- GET " + HOST + "/v1/review?record_id=\n"
     + "- GET " + HOST + "/v1/lattice?record_id=\n"
     + "- GET " + HOST + "/v1/verify-backfill\n"
+    + "- GET " + HOST + "/v1/verify-geo?force=1\n"
+    + "- GET " + HOST + "/v1/verify-geo?status=1\n"
     + "- GET " + HOST + "/v1/document-chain?record_id=\n"
     + "- GET " + HOST + "/v1/media-run?run_id=\n"
     + "- POST " + HOST + "/v1/score\n"
