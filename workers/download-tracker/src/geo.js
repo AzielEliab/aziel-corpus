@@ -8,6 +8,7 @@ import { unzipEntries, zipText } from "./zip.js";
 import { isOperator, getObject } from "./library.js";
 import { appendLedger, ensureLedger } from "./ledger.js";
 import { ensureReviewSchema } from "./review-store.js";
+import { expandTreePaths } from "./domain-classify.js";
 
 const GEONAMES_ATTRIBUTION = "GeoNames geographical data — https://www.geonames.org/ — CC BY 4.0";
 const LAYER_CAP = 1024 * 1024;
@@ -1098,27 +1099,41 @@ export async function importHistorical(env, { filename, bytes }) {
 }
 
 export async function corpusTree(env) {
-  const rows = (await env.DB.prepare(
-    "SELECT record_id,title,library,domain,subjects,author,filename,created_utc FROM records ORDER BY library, IFNULL(domain,''), IFNULL(subjects,''), title LIMIT 800"
-  ).all()).results || [];
+  let rows = [];
+  try {
+    rows = (await env.DB.prepare(
+      "SELECT record_id,title,library,domain,subjects,author,filename,created_utc FROM records WHERE IFNULL(shelf_hidden,0)=0 ORDER BY library, IFNULL(domain,''), IFNULL(subjects,''), title LIMIT 800"
+    ).all()).results || [];
+  } catch {
+    rows = (await env.DB.prepare(
+      "SELECT record_id,title,library,domain,subjects,author,filename,created_utc FROM records ORDER BY library, IFNULL(domain,''), IFNULL(subjects,''), title LIMIT 800"
+    ).all()).results || [];
+  }
   const libs = new Map();
   const standalone = [];
+  const placed = new Set();
   for (const r of rows) {
-    const domain = String(r.domain || "").trim();
-    const subject = String(r.subjects || "").split(/[,;]/)[0].trim();
-    if (!domain && !subject) {
+    const paths = expandTreePaths(r);
+    if (!paths.length) {
       standalone.push(r);
       continue;
     }
     const lib = String(r.library || "corpus");
     if (!libs.has(lib)) libs.set(lib, new Map());
     const domains = libs.get(lib);
-    const dkey = domain || "(no domain)";
-    if (!domains.has(dkey)) domains.set(dkey, new Map());
-    const subjects = domains.get(dkey);
-    const skey = subject || "(no subject)";
-    if (!subjects.has(skey)) subjects.set(skey, []);
-    subjects.get(skey).push(r);
+    for (const p of paths) {
+      const dkey = p.main || "(no domain)";
+      if (!domains.has(dkey)) domains.set(dkey, new Map());
+      const subjects = domains.get(dkey);
+      const skey = p.sub || "(no subject)";
+      if (!subjects.has(skey)) subjects.set(skey, new Map());
+      const micros = subjects.get(skey);
+      const mkey = p.micro || "";
+      if (!micros.has(mkey)) micros.set(mkey, []);
+      const bucket = micros.get(mkey);
+      if (!bucket.some((x) => x.record_id === r.record_id)) bucket.push(r);
+      placed.add(r.record_id);
+    }
   }
   return { libraries: libs, standalone };
 }

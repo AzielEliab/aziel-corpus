@@ -3,6 +3,7 @@ import { appendLedger, appendDocumentLedger, ensureLedger } from "./ledger.js";
 import { ensureReviewSchema, reviewAndStore } from "./review-store.js";
 import { applySuccessionForRecord, maybeRescoreZsolverOnFirstHandPatternBreak, rescoreSuccessionMembers, successionCoverageFor } from "./succession.js";
 import { scoreZsolverForRecord } from "./zsolver.js";
+import { applyAutoClassification } from "./domain-classify.js";
 
 const MAX_BYTES = 25 * 1024 * 1024;
 const TEXT_CAP = 200000;
@@ -371,8 +372,8 @@ export async function ingestRecord(env, args) {
   let duplicateOf = null;
   let fileBytes = null;
   const f = asFile(file);
-  const domainIn = csvField(domain);
-  const subjectsIn = csvField(subjects);
+  let domainIn = csvField(domain);
+  let subjectsIn = csvField(subjects);
   const keywordsIn = csvField(keywords);
   let biblioAuthor = metaField(author);
   if (isOperator(signed)) {
@@ -423,6 +424,22 @@ export async function ingestRecord(env, args) {
     err.status = 400;
     throw err;
   }
+  // Front-door auto domain classification when domain/subjects empty or weak.
+  try {
+    const auto = applyAutoClassification({
+      title: finalTitle,
+      body: searchBody || notes,
+      domain: domainIn,
+      subjects: subjectsIn,
+      keywords: keywordsIn,
+      filename,
+      author: biblioAuthor,
+    });
+    if (auto && auto.auto) {
+      domainIn = csvField(auto.domain) || domainIn;
+      subjectsIn = csvField(auto.subjects) || subjectsIn;
+    }
+  } catch { /* classification optional */ }
   const metaBits = [biblioAuthor, domainIn, subjectsIn, keywordsIn].filter(Boolean);
   if (metaBits.length) {
     searchBody = [searchBody, metaBits.join("\n")].filter(Boolean).join("\n\n");
