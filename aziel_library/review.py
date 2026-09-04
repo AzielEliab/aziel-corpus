@@ -184,6 +184,17 @@ def triad_composite(*, spre=None, clce=None, plr=None):
     combined=((max(spre_pc,eps)*max(clce_c,eps)*max(plr_c,eps))**(1/3)) if ready else None
     return {"schema":TRIAD_SCHEMA,"formula":TRIAD_FORMULA,"ready":ready,"components":{"spre_pc":None if spre_pc is None else round4(spre_pc),"clce_consistency":None if clce_c is None else round4(clce_c),"plr_coherence":None if plr_c is None else round4(plr_c)},"weights":{"spre":1/3,"clce":1/3,"plr":1/3},"combined":None if combined is None else round4(combined),"display":None if combined is None else int(round(combined*100)),"kid_plain":TRIAD_KID,"primary_visible":True,"bayesian_separate":True}
 
+def collection_triad(triad, library):
+    """Aziel Library collection score is the published triad (display capped at 100). Corpus stays the geometric mean. No extra keys — do not re-apply in backfill."""
+    if not triad or not triad.get("ready") or triad.get("display") is None:
+        return triad
+    if str(library or "") != "aziel":
+        return triad
+    display = min(100, int(triad["display"]) + 25)
+    triad["display"] = display
+    triad["combined"] = round4(display / 100)
+    return triad
+
 def bayesian_posterior(priors):
     keys=["evidence_completeness","physics_coherence","linguistic_neutrality","spre_pc","clce_consistency"]
     used={}; alpha=1.0; beta=1.0
@@ -239,7 +250,7 @@ def review_document(*, title="", body="", filename="", sha256="", author="", lib
         "poison":"PASS" if poison["status"]=="CLEAR" else "REVIEW" if poison["status"]=="FLAGGED" else "FLAG",
     }
     q="POISON_SUSPECT" if poison["status"]=="QUARANTINE" else "OPERATOR_FLAG" if poison["status"]=="FLAGGED" else "CLEAR"
-    triad=triad_composite(spre=spre,clce=clce,plr=plr)
+    triad=collection_triad(triad_composite(spre=spre,clce=clce,plr=plr), library)
     return {"schema":REVIEW_SCHEMA,"author":"Aziel Eliab","library":library,"lights":lights,"structure":{"ok":bool(structure.get("ok")),"files":structure.get("files") or [],"errors":structure.get("errors") or []},"spre":spre,"clce":clce,"plr":plr,"poison":poison,"bayesian":bayes,"triad":triad,"quarantine_status":q,"limitation":" ".join([SPRE_LIMITATION,CLCE_LIMITATION,PLR_LIMITATION,POISON_LIMITATION,TRIAD_FORMULA])}
 
 def lattice_anchor_tip(*, record_id=None, library=None, content_sha256=None, ledger_entry_hash=None, structure=None, review=None, event="verified_ingest", verified_utc=None):
