@@ -7,7 +7,7 @@ description: Use when an assistant should search the Aziel Digital Library maste
 
 Self-contained immutable local digital library and intelligence runtime. Public site is MASTER. Anonymous GET is read-only. Signed-in accounts may ingest. Author: **Aziel Eliab**.
 
-**THIS IS:** Aziel Digital Library v2.7.0 (search, records, map, gazetteer, counted zip, poison immunity, PhysLing Review, unranked Bayesian scores).
+**THIS IS:** Aziel Digital Library v2.7.0 (search, records, map, gazetteer, counted zip, poison immunity, PhysLing Review, unranked Bayesian scores, exact-same-subject succession cites).
 
 **THIS IS NOT:** a 26-card software index. Not Zenodo. Not Horton.
 
@@ -28,9 +28,10 @@ Ops (do **not** increment downloads):
 - `GET /v1/search?q=`
 - `GET /v1/example`
 - `GET /v1/skill`
-- `GET /v1/review?record_id=`
+- `GET /v1/review?record_id=` (triad + ZionPattern Solver secondary score + succession cites)
 - `GET /v1/lattice?record_id=`
 - `GET /v1/runtime`
+- `GET /v1/verify-backfill?all=1` (walk every stored Aziel Library + Corpus record)
 - `GET /v1/docs/{hash}/download` (content SHA-256; does not increment)
 - `GET /download?hash=` (counted content-hash download)
 

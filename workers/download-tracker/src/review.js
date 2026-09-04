@@ -345,6 +345,12 @@ export function plrCoherence(plr) {
  * One visible final score after SPRE, CLCE, and PhysLing have all run.
  * Geometric mean so one weak verifier pulls the report card down (auditable).
  */
+export function triadCoveragePoints(chainLength) {
+  const n = Number(chainLength);
+  if (!Number.isFinite(n) || n < 2) return 0;
+  return Math.min(12, Math.floor(n - 1) * 3);
+}
+
 export function triadComposite({ spre, clce, plr } = {}) {
   const spre_pc = spre && spre.pc != null ? clamp01(spre.pc) : null;
   const clce_consistency = clceConsistency(clce);
@@ -377,10 +383,15 @@ export function triadComposite({ spre, clce, plr } = {}) {
  * Aziel Library collection score is the published triad (display capped at 100).
  * Corpus stays the geometric mean. No extra keys — do not re-apply in backfill.
  */
-export function collectionTriad(triad, library) {
+export function collectionTriad(triad, library, coverage) {
   if (!triad || !triad.ready || triad.display == null) return triad;
-  if (String(library || "") !== "aziel") return triad;
-  const display = Math.min(100, Number(triad.display) + 25);
+  const cov = Math.max(0, Math.min(12, Math.round(Number(coverage) || 0)));
+  const aziel = String(library || "") === "aziel";
+  if (!cov && !aziel) return triad;
+  let display = Number(triad.display);
+  if (cov) display += cov;
+  if (aziel) display += 25;
+  display = Math.min(100, display);
   triad.display = display;
   triad.combined = round4(display / 100);
   return triad;
@@ -454,7 +465,7 @@ export function reviewDocument(input = {}) {
     plr,
     poison,
     bayesian,
-    triad: collectionTriad(triadComposite({ spre, clce, plr }), library),
+    triad: collectionTriad(triadComposite({ spre, clce, plr }), library, input.coverage),
     quarantine_status: poison.status === "QUARANTINE" ? "POISON_SUSPECT" : poison.status === "FLAGGED" ? "OPERATOR_FLAG" : "CLEAR",
     limitation: [SPRE_LIMITATION, CLCE_LIMITATION, PLR_LIMITATION, POISON_LIMITATION, TRIAD_FORMULA].join(" "),
   };

@@ -101,6 +101,8 @@ export function citeDoc() {
     download_hash: HOST + "/download?hash=",
     docs_download: HOST + "/v1/docs/{hash}/download",
     triad: "TRIAD_V1 geometric mean of SPRE, CLCE, and PhysLing — primary visible score",
+    succession: "Exact-same-subject paper cites: Supersedes / Superseded by on the record page and GET /v1/review. Uncertain matches are not chained.",
+    zsolver: "ZionPattern Solver secondary public score on every record. Separate from triad. Hard 75% cap / 25% floor. Provisional. Does not solve cases.",
     how_to_cite: "Eliab, Aziel. (2026). Aziel Digital Library v2.7.0 [Software]. Apache-2.0. " + HOST + "/",
   };
 }

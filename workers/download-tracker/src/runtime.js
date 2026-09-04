@@ -4,7 +4,7 @@
  */
 import { searchRecords, serveFileByHash, normalizeContentHash } from "./library.js";
 import { receiptForRecord, documentChain } from "./ledger.js";
-import { loadRecordReview, runReviewBundle, backfillReviews } from "./review-store.js";
+import { loadRecordReview, runReviewBundle, backfillReviews, continueFullBackfill, fullBackfillStatus } from "./review-store.js";
 import { latticeAnchorTip, LATTICE_NOTE } from "./lattice.js";
 import { handleJeevesApi, JEEVES_LIMITATION } from "./jeeves.js";
 import { receiptForMediaRun, isMediaRunId } from "./media.js";
@@ -17,7 +17,7 @@ const CATALOG = "https://aziel-runtime.vibelock.workers.dev";
 const PROTOCOL = "2025-03-26";
 
 export const LIMITATION =
-  "THIS IS: Aziel Digital Library v2.7.0 — a self-contained immutable local digital library and intelligence runtime with poison immunity, PhysLing Review (required third verifier), triad composite score, document-bound hash chains, hosted Whisper transcription with mandatory VibeLock determination and hard A/V blocks (porn, nudity, child-sexual content never stored or playable), hash-chained media lattice for every OCR and transcript run, downloadable records, Ask Jeeves (research assistant), unranked Bayesian peer scores, and full-structure verify on upload/download. The public site is the MASTER (writable for signed-in accounts; anonymous GET is read-only). Operator writes go to Aziel Library only; public/anonymous writes go to Corpus only (Lamb Lens). The live HTTPS site is NOT a mesh. THIS IS NOT: a 26-card software index; Zenodo; Horton; OpenAI; a Tor/VPN; a guilt verdict; courtroom proof of media authenticity. Author Aziel Eliab only.";
+  "THIS IS: Aziel Digital Library v2.7.0 — a self-contained immutable local digital library and intelligence runtime with poison immunity, PhysLing Review (required third verifier), triad composite score, ZionPattern Solver secondary score (public, separate from triad; 75% cap / 25% floor; provisional), exact-same-subject paper succession cites, document-bound hash chains, hosted Whisper transcription with mandatory VibeLock determination and hard A/V blocks (porn, nudity, child-sexual content never stored or playable), hash-chained media lattice for every OCR and transcript run, downloadable records, Ask Jeeves (research assistant), unranked Bayesian peer scores, and full-structure verify on upload/download. The public site is the MASTER (writable for signed-in accounts; anonymous GET is read-only). Operator writes go to Aziel Library only; public/anonymous writes go to Corpus only (Lamb Lens). The live HTTPS site is NOT a mesh. THIS IS NOT: a 26-card software index; Zenodo; Horton; OpenAI; a Tor/VPN; a guilt verdict; courtroom proof of media authenticity. Author Aziel Eliab only.";
 
 export const SKILL = `---
 name: Aziel Digital Library
@@ -28,7 +28,7 @@ description: Use when an assistant should search the Aziel Digital Library maste
 
 Self-contained immutable local digital library and intelligence runtime. Public site is MASTER. Anonymous GET is read-only. Signed-in accounts may ingest. Author: **Aziel Eliab**.
 
-**THIS IS:** Aziel Digital Library v2.7.0 (search, records, map, gazetteer, counted zip, poison immunity, PhysLing Review, triad composite, document hash-chains, hosted Whisper transcription with mandatory VibeLock determination and hard A/V blocks, media lattice receipts, Ask Jeeves, unranked Bayesian scores).
+**THIS IS:** Aziel Digital Library v2.7.0 (search, records, map, gazetteer, counted zip, poison immunity, PhysLing Review, triad composite, exact-same-subject succession cites, document hash-chains, hosted Whisper transcription with mandatory VibeLock determination and hard A/V blocks, media lattice receipts, Ask Jeeves, unranked Bayesian scores).
 
 **THIS IS NOT:** a 26-card software index. Not Zenodo. Not Horton. Not a mesh. Not a guilt engine.
 
@@ -49,10 +49,10 @@ Ops (do **not** increment downloads):
 - \`GET /v1/search?q=\`
 - \`GET /v1/example\`
 - \`GET /v1/skill\`
-- \`GET /v1/review?record_id=\` (leads with triad combined score)
+- \`GET /v1/review?record_id=\` (triad + ZionPattern Solver secondary score + succession cites)
 - \`GET /v1/lattice?record_id=\`
 - \`POST /v1/score\` (document review preview)
-- \`GET /v1/verify-backfill\` (score unscored records; skip unless \`force=1\`)
+- \`GET /v1/verify-backfill?all=1\` (walk every stored Aziel Library + Corpus record)
 - \`GET /v1/document-chain?record_id=\`
 - \`POST /v1/jeeves/chat\`
 - \`POST /v1/jeeves/upload\` (Corpus only, Lamb Lens)
@@ -117,10 +117,10 @@ function openapi() {
       "/v1/search": { get: { summary: "Search published records in both libraries.", operationId: "search", parameters: [{ name: "q", in: "query", schema: { type: "string" } }, { name: "lib", in: "query", schema: { type: "string", enum: ["all", "aziel", "corpus"] } }, { name: "sort", in: "query", schema: { type: "string", enum: ["newest", "oldest", "alpha", "title", "author", "domain"] } }, { name: "author", in: "query", schema: { type: "string" } }, { name: "domain", in: "query", schema: { type: "string" } }, { name: "subject", in: "query", schema: { type: "string" } }, { name: "keyword", in: "query", schema: { type: "string" } }] } },
       "/v1/example": { get: { summary: "Sample search payload.", operationId: "example" } },
       "/v1/skill": { get: { summary: "Skill markdown.", operationId: "skill" } },
-      "/v1/review": { get: { summary: "Triad composite (SPRE × CLCE × PhysLing geometric mean) plus component scores, Bayesian (unranked), quarantine, and document chain tip. Does not increment downloads.", operationId: "review", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
+      "/v1/review": { get: { summary: "Triad composite (SPRE × CLCE × PhysLing geometric mean) plus component scores, Bayesian (unranked), quarantine, document chain tip, and exact-same-subject succession cites when present. Does not increment downloads.", operationId: "review", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
       "/v1/lattice": { get: { summary: "AzielTether lattice anchor tip for a verified record. Public site is not a mesh.", operationId: "lattice", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
       "/v1/score": { post: { summary: "Preview document review (SPRE, CLCE port, PhysLing, poison, triad, Bayesian). Advisory. Does not write.", operationId: "score" } },
-      "/v1/verify-backfill": { get: { summary: "Score unscored records (structure + SPRE + CLCE + PhysLing + triad + document hash-chain). Safe to re-run; skip fully scored unless force=1. Cron-friendly. Does not increment downloads.", operationId: "verifyBackfill", parameters: [{ name: "limit", in: "query", schema: { type: "integer", default: 25 } }, { name: "force", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "record_id", in: "query", schema: { type: "string" } }] } },
+      "/v1/verify-backfill": { get: { summary: "Walk stored records: triad, ZionPattern Solver secondary score, and exact-same-subject succession. all=1 walks every remaining doc (chunked). Reports total/scored/skipped/failed. Does not increment downloads.", operationId: "verifyBackfill", parameters: [{ name: "limit", in: "query", schema: { type: "integer", default: 25 } }, { name: "force", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "all", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "record_id", in: "query", schema: { type: "string" } }] } },
       "/v1/document-chain": { get: { summary: "Per-document hash-chain bound to record_id. No orphan chains.", operationId: "documentChain", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
       "/v1/jeeves/chat": { post: { summary: "Ask Jeeves research assistant over public records. Lamb Lens. Cannot change scores.", operationId: "jeevesChat" } },
       "/v1/jeeves/upload": { post: { summary: "Ask Jeeves Add — same ingest as the shelf (structure, SPRE × CLCE × PhysLing, Bayesian). Signed-in public writes Corpus; operator writes Aziel Library.", operationId: "jeevesUpload" } },
@@ -190,6 +190,9 @@ export async function handleRuntimeApi(request, url, env) {
         triad: "TRIAD_V1 geometric mean of SPRE PC, CLCE consistency, PhysLing coherence — primary visible score",
         backfill: "GET /v1/verify-backfill scores older unscored records",
         document_chain: "hash-chain bound to AZDOC- id; uploads/downloads/rescores/quarantine/peer notes append",
+        succession: "Exact-same-subject paper cites (Supersedes / Superseded by). Uncertain matches are not chained.",
+        zsolver: "ZionPattern Solver secondary public score on every upload. Separate from triad. Hard 75% cap / 25% floor. Provisional. If the live API is down, the score is queued and retried.",
+        backfill_all: "GET /v1/verify-backfill?all=1 walks every stored Aziel Library and Corpus record",
         jeeves: JEEVES_LIMITATION,
         lattice: "aziel.lattice.anchor.v1 for AzielTether; site is not a mesh",
         transcription: "POST /transcribe — Workers AI Whisper; video has no FFmpeg demux; VibeLock determination is mandatory",
@@ -246,6 +249,8 @@ export async function handleRuntimeApi(request, url, env) {
       triad,
       triad_combined: (triad && triad.combined) != null ? triad.combined : receipt.triad_combined,
       primary_score: "triad",
+      zsolver: extra.zsolver || null,
+      succession: extra.succession || null,
       bayesian_unranked: true,
       document_chain: receipt.document_chain || null,
       ...extra,
@@ -280,8 +285,15 @@ export async function handleRuntimeApi(request, url, env) {
   }
   if (path === "/v1/verify-backfill" && request.method === "GET") {
     const force = url.searchParams.get("force") === "1" || url.searchParams.get("force") === "true";
+    const all = url.searchParams.get("all") === "1" || url.searchParams.get("all") === "true";
+    const statusOnly = url.searchParams.get("status") === "1";
     const limit = url.searchParams.get("limit");
     const recordId = (url.searchParams.get("record_id") || url.searchParams.get("id") || "").trim() || null;
+    if (statusOnly) return json({ ...(await fullBackfillStatus(env)), limitation: LIMITATION });
+    if (all || !recordId) {
+      const report = await continueFullBackfill(env, { ms: all ? 25000 : 18000, force, all });
+      return json({ ...report, limitation: LIMITATION });
+    }
     const report = await backfillReviews(env, { limit, force, recordId });
     return json({ ...report, limitation: LIMITATION });
   }
