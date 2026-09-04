@@ -8,6 +8,7 @@ import { loadRecordReview, runReviewBundle, backfillReviews, continueFullBackfil
 import { latticeAnchorTip, LATTICE_NOTE } from "./lattice.js";
 import { handleJeevesApi, JEEVES_LIMITATION } from "./jeeves.js";
 import { receiptForMediaRun, isMediaRunId } from "./media.js";
+import { continueVerifyGeo, geoVerifyStatus, GEO_PIN_NOTE } from "./geo.js";
 const PRODUCT = "aziel-corpus";
 const VERSION = "2.7.0";
 const SPEC = "aziel-digital-library-v2.7.0";
@@ -53,6 +54,7 @@ Ops (do **not** increment downloads):
 - \`GET /v1/lattice?record_id=\`
 - \`POST /v1/score\` (document review preview)
 - \`GET /v1/verify-backfill?all=1\` (walk every stored Aziel Library + Corpus record)
+- \`GET /v1/verify-geo?force=1\` / \`?status=1\` (chunked map pins: paper date × event × geolocation)
 - \`GET /v1/document-chain?record_id=\`
 - \`POST /v1/jeeves/chat\`
 - \`POST /v1/jeeves/upload\` (Corpus only, Lamb Lens)
@@ -121,6 +123,7 @@ function openapi() {
       "/v1/lattice": { get: { summary: "AzielTether lattice anchor tip for a verified record. Public site is not a mesh.", operationId: "lattice", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
       "/v1/score": { post: { summary: "Preview document review (SPRE, CLCE port, PhysLing, poison, triad, Bayesian). Advisory. Does not write.", operationId: "score" } },
       "/v1/verify-backfill": { get: { summary: "Walk stored records: triad, ZionPattern Solver secondary score, and exact-same-subject succession. all=1 walks every remaining doc (chunked). Reports total/scored/skipped/failed. Does not increment downloads.", operationId: "verifyBackfill", parameters: [{ name: "limit", in: "query", schema: { type: "integer", default: 25 } }, { name: "force", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "all", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "record_id", in: "query", schema: { type: "string" } }] } },
+      "/v1/verify-geo": { get: { summary: "Chunked geography reindex: date × event × geolocation pins for docs with geospatial anchors (paper time, never upload time). force=1 restarts. status=1 progress. Does not increment downloads.", operationId: "verifyGeo", parameters: [{ name: "force", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "status", in: "query", schema: { type: "string", enum: ["0", "1"] } }] } },
       "/v1/document-chain": { get: { summary: "Per-document hash-chain bound to record_id. No orphan chains.", operationId: "documentChain", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
       "/v1/jeeves/chat": { post: { summary: "Ask Jeeves research assistant over public records. Lamb Lens. Cannot change scores.", operationId: "jeevesChat" } },
       "/v1/jeeves/upload": { post: { summary: "Ask Jeeves Add — same ingest as the shelf (structure, SPRE × CLCE × PhysLing, Bayesian). Signed-in public writes Corpus; operator writes Aziel Library.", operationId: "jeevesUpload" } },
@@ -193,6 +196,7 @@ export async function handleRuntimeApi(request, url, env) {
         succession: "Exact-same-subject paper cites (Supersedes / Superseded by). Uncertain matches are not chained.",
         zsolver: "ZionPattern Solver secondary public score on every upload. Separate from triad. Hard 75% cap / 25% floor. Provisional. If the live API is down, the score is queued and retried. When a superseding document proves a ZionPattern break with first-hand / primary materials only, every document in that succession chain is force-rescored. Narrative, news, and second-source materials never trigger chain rescore.",
         backfill_all: "GET /v1/verify-backfill?all=1 walks every stored Aziel Library and Corpus record",
+        verify_geo: "GET /v1/verify-geo?force=1 / ?status=1 — chunked paper-date × event × geolocation pins. Never upload time.",
         jeeves: JEEVES_LIMITATION,
         lattice: "aziel.lattice.anchor.v1 for AzielTether; site is not a mesh",
         transcription: "POST /transcribe — Workers AI Whisper; video has no FFmpeg demux; VibeLock determination is mandatory",
@@ -282,6 +286,26 @@ export async function handleRuntimeApi(request, url, env) {
       liveClce: false,
     });
     return json({ ok: true, triad: bundle.review && bundle.review.triad, ...bundle, bayesian_unranked: true, limitation: LIMITATION });
+  }
+  if (path === "/v1/verify-geo" && request.method === "GET") {
+    const force = url.searchParams.get("force") === "1" || url.searchParams.get("force") === "true";
+    const statusOnly = url.searchParams.get("status") === "1" || url.searchParams.get("status") === "true";
+    if (statusOnly) return json({ ...(await geoVerifyStatus(env)), limitation: LIMITATION });
+    const report = await continueVerifyGeo(env, { ms: 18000, force });
+    const live = await geoVerifyStatus(env);
+    if (report.done) {
+      return json({
+        ok: true,
+        done: true,
+        done_utc: live.done_utc,
+        cursor: live.cursor || "",
+        stats: report,
+        events_live: live.events,
+        note: GEO_PIN_NOTE,
+        limitation: LIMITATION,
+      });
+    }
+    return json({ ...report, events_live: live.events, note: GEO_PIN_NOTE, limitation: LIMITATION });
   }
   if (path === "/v1/verify-backfill" && request.method === "GET") {
     const force = url.searchParams.get("force") === "1" || url.searchParams.get("force") === "true";
