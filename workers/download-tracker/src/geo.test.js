@@ -284,12 +284,17 @@ test("continueVerifyGeo advances cursor before extract and walks LIMIT 1 without
             const v = metadata[self._args[0]];
             return v != null ? { value: v } : null;
           }
+          if (/FROM records WHERE record_id=\?/.test(sql) && /\bbody\b/.test(sql)) {
+            const rec = records.find((r) => r.record_id === self._args[0]);
+            if (rec && rec.binaryFail) throw new Error("BLOB");
+            return rec ? { body: rec.body } : null;
+          }
           return null;
         };
         self.all = async () => {
           if (/FROM records/.test(sql) && /LIMIT 1/.test(sql)) {
             ops.push("select:" + (self._args[0] || "start"));
-            assert.match(sql, /substr\(body,1,80000\)/);
+            assert.doesNotMatch(sql, /substr\s*\(\s*body/i);
             assert.match(sql, /LIMIT 1/);
             if (/record_id>\?/.test(sql)) {
               const after = self._args[0];
@@ -325,4 +330,58 @@ test("continueVerifyGeo advances cursor before extract and walks LIMIT 1 without
   assert.ok(firstCursor < firstDerived, "cursor advances before extract so a hung record cannot freeze the walk");
   assert.ok(ops.some((x) => x === "select:AZDOC-AAA"), "next chunk uses record_id>? not the same first row");
   assert.equal(metadata.geo_verify_done_utc && metadata.geo_verify_done_utc.length > 0, true);
+});
+
+test("continueVerifyGeo walks past a binary PDF body that fails CAST/SELECT", async () => {
+  const records = [
+    { record_id: "AZDOC-BIN", title: "Scanned PDF", body: "%PDF-1.4", binaryFail: true, filename: "scan.pdf" },
+    { record_id: "AZDOC-OK", title: "Seattle notes August 1936", body: "Meeting in Seattle in August 1936.", filename: "note.txt" },
+  ];
+  const metadata = {};
+  const env = {
+    DB: {
+      prepare(sql) {
+        const self = { _sql: sql, _args: [], bind(...a) { self._args = a; return self; } };
+        self.first = async () => {
+          if (/COUNT\(\*\) AS n FROM places/.test(sql)) return { n: 999999 };
+          if (/COUNT\(\*\) AS n FROM records/.test(sql)) return { n: records.length };
+          if (/COUNT\(\*\) AS n FROM events/.test(sql)) return { n: 0 };
+          if (/FROM metadata WHERE key/.test(sql)) {
+            const v = metadata[self._args[0]];
+            return v != null ? { value: v } : null;
+          }
+          if (/FROM records WHERE record_id=\?/.test(sql) && /\bbody\b/.test(sql)) {
+            const rec = records.find((r) => r.record_id === self._args[0]);
+            if (!rec) return null;
+            if (rec.binaryFail) throw new Error("cannot CAST BLOB");
+            return { body: rec.body };
+          }
+          return null;
+        };
+        self.all = async () => {
+          if (/FROM records/.test(sql) && /LIMIT 1/.test(sql)) {
+            assert.doesNotMatch(sql, /substr\s*\(\s*body/i);
+            if (/record_id>\?/.test(sql)) {
+              return { results: records.filter((r) => r.record_id > self._args[0]).slice(0, 1) };
+            }
+            return { results: records.slice(0, 1) };
+          }
+          return { results: [] };
+        };
+        self.run = async () => {
+          if (/INSERT OR REPLACE INTO metadata/.test(sql)) metadata[self._args[0]] = self._args[1];
+          if (/INSERT OR IGNORE INTO events/.test(sql)) {
+            /* extract may insert */
+          }
+          return { success: true };
+        };
+        return self;
+      },
+      async batch() {},
+    },
+  };
+  const report = await continueVerifyGeo(env, { ms: 8000, force: true });
+  assert.equal(report.failed, 0);
+  assert.ok(report.scanned >= 2);
+  assert.ok(report.done);
 });

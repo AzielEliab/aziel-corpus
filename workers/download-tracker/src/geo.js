@@ -778,6 +778,30 @@ export async function geoVerifyStatus(env) {
   return { ok: true, total, events, done: !!done, done_utc: done || null, cursor: cursor || "", stats };
 }
 
+async function fetchRecordBodyForGeo(env, recordId) {
+  if (!env || !env.DB || !recordId) return "";
+  const sqls = [
+    "SELECT CAST(body AS TEXT) AS body FROM records WHERE record_id=?",
+    "SELECT body FROM records WHERE record_id=?",
+  ];
+  for (const sql of sqls) {
+    try {
+      const row = await env.DB.prepare(sql).bind(recordId).first();
+      if (row && row.body != null && row.body !== "") return readableBodyPrefix(row.body, 80000);
+    } catch { /* binary PDF body can fail CAST/SELECT */ }
+  }
+  return "";
+}
+
+function verifyGeoListSql(cursor, full) {
+  const cols = full
+    ? "record_id, title, author, domain, subjects, keywords, filename"
+    : "record_id, title";
+  return cursor
+    ? "SELECT " + cols + " FROM records WHERE record_id>? ORDER BY record_id ASC LIMIT 1"
+    : "SELECT " + cols + " FROM records ORDER BY record_id ASC LIMIT 1";
+}
+
 export async function continueVerifyGeo(env, { ms = 18000, force = false } = {}) {
   await ensurePlaces(env);
   const started = Date.now();
@@ -795,12 +819,10 @@ export async function continueVerifyGeo(env, { ms = 18000, force = false } = {})
     await metaSet(env, "geo_verify_done_utc", "");
   }
   while (Date.now() - started < ms) {
-    const selectFull = cursor
-      ? "SELECT record_id, title, substr(body,1,80000) AS body, author, domain, subjects, keywords, filename FROM records WHERE record_id>? ORDER BY record_id ASC LIMIT 1"
-      : "SELECT record_id, title, substr(body,1,80000) AS body, author, domain, subjects, keywords, filename FROM records ORDER BY record_id ASC LIMIT 1";
-    const selectLite = cursor
-      ? "SELECT record_id, title, substr(body,1,80000) AS body FROM records WHERE record_id>? ORDER BY record_id ASC LIMIT 1"
-      : "SELECT record_id, title, substr(body,1,80000) AS body FROM records ORDER BY record_id ASC LIMIT 1";
+    // Rebuild from the *current* cursor each iteration. Defining SQL once from
+    // cursor="" (force=1) would re-select the first row forever.
+    const selectFull = verifyGeoListSql(cursor, true);
+    const selectLite = verifyGeoListSql(cursor, false);
     let batch = [];
     try {
       batch = (await env.DB.prepare(selectFull).bind(...(cursor ? [cursor] : [])).all()).results || [];
@@ -830,11 +852,12 @@ export async function continueVerifyGeo(env, { ms = 18000, force = false } = {})
       if (existing && !force) {
         stats.skipped += 1;
       } else {
+        const body = await fetchRecordBodyForGeo(env, row.record_id);
         const extraText = await derivedTextForRecord(env, row.record_id, { loadObjects: false });
         const n = await extractEventsForText(env, {
           recordId: row.record_id,
           title: row.title,
-          body: row.body,
+          body,
           author: row.author,
           domain: row.domain,
           subjects: row.subjects,
