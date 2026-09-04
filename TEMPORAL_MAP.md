@@ -20,3 +20,7 @@ Coordinates can come from installed `.azk` knowledge kits. This keeps geocoding 
 
 ## v2.6.2 document event extraction
 MASTER first run now attempts to build a baseline local world gazetteer automatically. Ingested text (including OCR text) can create a map event only when a place resolves to retained coordinates. Supported date text includes `YYYY`, `YYYY-MM`, `YYYY-MM-DD`, `Month D, YYYY`, `D Month YYYY`, and `Month YYYY`. Ambiguous slash dates are intentionally not guessed. Same-sentence date/place pairs are automatic high-confidence events; nearby pairs caused by line wrapping/OCR layout become REVIEW events. Installing a gazetteer automatically re-indexes existing records.
+
+## Hosted Map pins (Worker)
+
+`GET /v1/verify-geo?force=1` / `?status=1` walks stored records in chunks. The extraction bag is title + subjects + keywords + author + domain + filename + readable body prefix + OCR/derived/transcript text. Pins use paper month/year (year-only dates are marked estimated) — never `created_utc`. Place names resolve only through gazetteer `resolveUnique`. Explicit lat/lon pairs in the text pin when a paper date is also present; unlabeled `40.0000,0.0000` noise is not invented into a coordinate. Ambiguous places stay unpinned. Zioncheck Visual Archive titles may seed Seattle × 1936-08 after `resolveUnique("Seattle")`.

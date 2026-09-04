@@ -32,6 +32,7 @@ Ops (do **not** increment downloads):
 - `GET /v1/lattice?record_id=`
 - `GET /v1/runtime`
 - `GET /v1/verify-backfill?all=1` (walk every stored Aziel Library + Corpus record)
+- `GET /v1/verify-geo?force=1` / `?status=1` (chunked map pins: paper date × event × geolocation)
 - `GET /v1/docs/{hash}/download` (content SHA-256; does not increment)
 - `GET /download?hash=` (counted content-hash download)
 

@@ -17,6 +17,7 @@ Custom domains: www.azielcorpuslibrary.net and azielcorpuslibrary.net
 - GET /v1/review?record_id=  triad composite + SPRE + CLCE + PhysLing + Bayesian (unranked)
 - GET /v1/lattice?record_id=  AzielTether tip (site is not a mesh)
 - GET /v1/verify-backfill  score unscored records (skip unless force=1)
+- GET /v1/verify-geo?force=1 / ?status=1  chunked paper-date × event × geolocation pins (never upload time)
 - GET /v1/document-chain?record_id=  per-document hash-chain
 - POST /v1/score  preview review, no write
 - POST /v1/jeeves/chat  Ask Jeeves (research assistant)

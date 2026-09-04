@@ -172,6 +172,7 @@ Fixed bottom-right research assistant. Drawer, not a full-page takeover. Answers
 - `GET /v1/review?record_id=` — leads with triad combined score; includes succession cites when present
 - `GET /v1/lattice?record_id=`
 - `GET /v1/verify-backfill`
+- `GET /v1/verify-geo?force=1` / `?status=1` — chunked map pins (paper date × event × geolocation; never upload time)
 - `GET /v1/document-chain?record_id=`
 - `POST /v1/score` — preview only, no write
 - `POST /v1/jeeves/chat`
