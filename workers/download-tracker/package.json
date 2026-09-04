@@ -1,6 +1,8 @@
 {
   "private": true,
   "type": "module",
+  "version": "2.7.0",
+  "name": "aziel-corpus-download-tracker",
   "description": "Aziel Digital Library v2.7.0 public MASTER + counted zip + hosted /v1",
   "license": "Apache-2.0",
   "scripts": {

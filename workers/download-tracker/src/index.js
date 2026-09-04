@@ -3,7 +3,7 @@ import { handleAuth, getSession } from "./auth.js";
 import { page, homeBody } from "./ui.js";
 import { handleHosted } from "./hosted.js";
 import { robotsTxt, sitemapXml, citeDoc, llmsDoc } from "./crawl.js";
-import { searchRecords, listFacets, parseBrowseParams, serveFile } from "./library.js";
+import { searchRecords, listFacets, parseBrowseParams, serveFile, serveFileByHash, normalizeContentHash } from "./library.js";
 import { reviewAndStore } from "./review-store.js";
 import { verifyBytes, sha256hex } from "./structure.js";
 
@@ -20,8 +20,10 @@ import { verifyBytes, sha256hex } from "./structure.js";
  */
 
 const PROJECT = "aziel-corpus";
-const DEFAULT_ASSET = "aziel-digital-library-2.6.2.zip";
-const ALLOWED_ASSETS = new Set([DEFAULT_ASSET]);
+const VERSION = "2.7.0";
+const DEFAULT_ASSET = "aziel-digital-library-2.7.0.zip";
+const LEGACY_ASSET = "aziel-digital-library-2.6.2.zip";
+const ALLOWED_ASSETS = new Set([DEFAULT_ASSET, LEGACY_ASSET]);
 const DEFAULT_OWNER = "AzielEliab";
 const DEFAULT_REPO = "aziel-corpus";
 const DEFAULT_BRANCH = "main";
@@ -217,10 +219,11 @@ async function collectStats(env) {
 
 function installScript() {
   return `#!/usr/bin/env bash
-# Aziel Digital Library v2.7.0 counted zip install.
+# Aziel Digital Library v${VERSION} counted zip install.
 set -euo pipefail
 HOST="${HOST}"
 ASSET="${DEFAULT_ASSET}"
+LEGACY="${LEGACY_ASSET}"
 WORKDIR="\${AZIEL_LIBRARY_HOME:-\$HOME/aziel-digital-library}"
 mkdir -p "\$WORKDIR"
 cd "\$WORKDIR"
@@ -228,7 +231,10 @@ echo "Downloading counted zip from \${HOST}/download (User-Agent Mozilla/5.0)…
 if ! curl -fsSL -A 'Mozilla/5.0' "\${HOST}/download?asset=\${ASSET}" -o "\${ASSET}"; then
   echo "Canonical host failed; trying workers.dev fallback…"
   HOST="${FALLBACK_HOST}"
-  curl -fsSL -A 'Mozilla/5.0' "\${HOST}/download?asset=\${ASSET}" -o "\${ASSET}"
+  if ! curl -fsSL -A 'Mozilla/5.0' "\${HOST}/download?asset=\${ASSET}" -o "\${ASSET}"; then
+    ASSET="\$LEGACY"
+    curl -fsSL -A 'Mozilla/5.0' "\${HOST}/download?asset=\${ASSET}" -o "\${ASSET}"
+  fi
 fi
 python3 -m zipfile -e "\${ASSET}" .
 DIR="\$(find . -maxdepth 1 -type d -name 'aziel-digital-library-*' -o -name 'aziel-digital-library-*' | head -n 1)"
@@ -240,7 +246,7 @@ python3 -m venv .venv
 python -m pip install -U pip
 python -m pip install -e .
 echo
-echo "Installed Aziel Digital Library v2.7.0."
+echo "Installed Aziel Digital Library v${VERSION}."
 echo "Run:  python3 aziel_launcher.py"
 echo "Then open http://127.0.0.1:8765  (local MASTER)"
 echo "Aziel Digital Library. Author Aziel Eliab. Not a 26-card index."
@@ -269,23 +275,29 @@ async function serveAsset(request, env, asset, { head = false } = {}) {
   if (!env.ASSETS) {
     return json({ error: "assets binding missing" }, 500);
   }
-  const assetUrl = new URL("/" + name, request.url);
-  const assetRes = await env.ASSETS.fetch(new Request(assetUrl, { method: "GET" }));
+  let served = name;
+  let assetUrl = new URL("/" + served, request.url);
+  let assetRes = await env.ASSETS.fetch(new Request(assetUrl, { method: "GET" }));
+  if (!assetRes.ok && served === DEFAULT_ASSET) {
+    served = LEGACY_ASSET;
+    assetUrl = new URL("/" + served, request.url);
+    assetRes = await env.ASSETS.fetch(new Request(assetUrl, { method: "GET" }));
+  }
   if (!assetRes.ok) {
     return json({ error: "asset not hosted", asset: name, status: assetRes.status }, 404);
   }
   const bytes = await assetRes.arrayBuffer();
-  const structure = verifyBytes(bytes, { filename: name, contentType: contentTypeFor(name) });
+  const structure = verifyBytes(bytes, { filename: served, contentType: contentTypeFor(served) });
   const digest = structure.sha256 || sha256hex(new Uint8Array(bytes));
   if (env.DB && !head) {
     try {
       await reviewAndStore(env, {
-        recordId: "ASSET-" + name.replace(/[^A-Za-z0-9._-]+/g, "_").slice(0, 80),
+        recordId: "ASSET-" + served.replace(/[^A-Za-z0-9._-]+/g, "_").slice(0, 80),
         library: "package",
-        title: name,
+        title: served,
         body: "Aziel Digital Library counted zip. Author Aziel Eliab.",
-        filename: name,
-        contentType: contentTypeFor(name),
+        filename: served,
+        contentType: contentTypeFor(served),
         sha256: digest,
         author: "Aziel Eliab",
         bytes,
@@ -296,8 +308,8 @@ async function serveAsset(request, env, asset, { head = false } = {}) {
     } catch { /* ledger optional on zip */ }
   }
   const headers = new Headers();
-  headers.set("Content-Type", contentTypeFor(name));
-  headers.set("Content-Disposition", 'attachment; filename="' + name.replaceAll('"', "") + '"');
+  headers.set("Content-Type", contentTypeFor(served));
+  headers.set("Content-Disposition", 'attachment; filename="' + served.replaceAll('"', "") + '"');
   headers.set("Cache-Control", "private, no-store");
   headers.set("Content-Length", String(bytes.byteLength));
   headers.set("X-Aziel-SHA256", digest);
@@ -377,7 +389,9 @@ export default {
 
     const fileMatch = url.pathname.match(/^\/file\/([^/]+)\/?$/);
     if (fileMatch && request.method === "GET") {
-      return serveFile(env, decodeURIComponent(fileMatch[1]));
+      const id = decodeURIComponent(fileMatch[1]);
+      if (normalizeContentHash(id)) return serveFileByHash(env, id);
+      return serveFile(env, id);
     }
 
     if ((url.pathname === "/install.sh" || url.pathname === "/install.sh/") && request.method === "GET") {
@@ -456,9 +470,18 @@ export default {
         if (request.method === "GET") await increment(env, dims);
         return serveFile(env, recordId);
       }
+      const rawHash = (url.searchParams.get("hash") || url.searchParams.get("sha256") || url.searchParams.get("content_sha256") || "").trim();
+      const pathTail = url.pathname.startsWith("/download/") ? decodeURIComponent(url.pathname.slice("/download/".length)) : "";
+      const hash = normalizeContentHash(rawHash) || normalizeContentHash(pathTail);
+      if (hash) {
+        const dims = parseDims(url.searchParams);
+        dims.asset = "hash:" + hash;
+        if (request.method === "GET") await increment(env, dims);
+        return serveFileByHash(env, hash);
+      }
       const dims = parseDims(url.searchParams);
-      if (!dims.asset && url.pathname.startsWith("/download/")) {
-        dims.asset = decodeURIComponent(url.pathname.slice("/download/".length));
+      if (!dims.asset && pathTail) {
+        dims.asset = pathTail;
       }
       const asset = dims.asset || DEFAULT_ASSET;
       dims.asset = asset;

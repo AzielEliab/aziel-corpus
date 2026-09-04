@@ -10,11 +10,17 @@ from .exporters import write_xlsx, write_pdf
 from .gazetteer import WorldGazetteer
 
 from .historical_geo import HistoricalGeography
-from .review import review_document, verify_bytes, lattice_anchor_tip
+from .review import review_document, verify_bytes, lattice_anchor_tip, triad_composite, collection_triad
 SCHEMA_VERSION='7.3'
 
 SUBJECT_RULES={'Legal':{'court','custody','divorce','motion','filing','attorney','evidence','hearing','order','respondent','petitioner'},'Research':{'research','framework','theory','analysis','manuscript','voynich','codex','translation','discovery','whitepaper'},'Technology':{'software','code','python','github','cloudflare','api','database','arduino','circuit','server','algorithm'},'Forecasting':{'forecast','prediction','verification','accuracy','weather','ledger','calibration','jeeves','aziel','zd30'},'Mechanical & HVAC':{'hvac','compressor','txv','refrigerant','pressure','capacitor','coil','goodman','r32','subcooling'},'Religion & History':{'jesus','god','hebrew','bible','isaiah','religion','resurrection','historical','papacy','vatican'},'Personal Records':{'email','message','call','transcript','calendar','receipt','invoice','account','security','breach'}}
 def utc_now(): return datetime.now(timezone.utc).isoformat(timespec='seconds')
+def normalize_content_hash(value):
+    h=str(value or '').strip().lower()
+    if h.startswith('0x'): h=h[2:]
+    h=h.replace('-','').replace(' ','')
+    if len(h)!=64 or any(c not in '0123456789abcdef' for c in h): return ''
+    return h
 def stable_id(prefix,digest): return f'{prefix}-{digest[:12].upper()}'
 def classify(mime,suffix):
     m=(mime or '').lower(); s=suffix.lower()
@@ -500,6 +506,12 @@ class AzielLibrary:
             if media_class: sql+=' AND media_class=?'; args.append(media_class)
             if subject: sql+=' AND primary_subject=?'; args.append(subject)
             return [dict(x) for x in c.execute(sql+' ORDER BY ingested_utc DESC',args)]
+    def find_record_id_by_hash(self, digest):
+        h=normalize_content_hash(digest)
+        if not h: return None
+        with self._connect() as c:
+            row=c.execute('SELECT record_id FROM records WHERE lower(sha256)=? ORDER BY ingested_utc ASC LIMIT 1',(h,)).fetchone()
+            return row['record_id'] if row else None
     def get_record(self,rid):
         with self._connect() as c:
             r=c.execute('SELECT * FROM records WHERE record_id=?',(rid,)).fetchone()
@@ -578,6 +590,14 @@ class AzielLibrary:
         triad=review.get('triad') or {}
         combined=rec.get('triad_combined') if rec and rec.get('triad_combined') is not None else triad.get('combined')
         return bool(review.get('spre') and review.get('clce') and review.get('plr') and triad.get('ready') and combined is not None)
+    def _stored_triad_matches(self, rec):
+        if not self._is_fully_scored(rec): return False
+        review=rec.get('review') or {}
+        expected=collection_triad(triad_composite(spre=review.get('spre'),clce=review.get('clce'),plr=review.get('plr')), rec.get('library') or 'aziel')
+        stored=rec.get('triad_combined') if rec.get('triad_combined') is not None else (review.get('triad') or {}).get('combined')
+        if expected.get('combined') is None or stored is None: return False
+        try: return abs(float(stored)-float(expected['combined']))<0.0002
+        except (TypeError,ValueError): return False
     def backfill_reviews(self, *, limit=50, force=False, record_id=None):
         self._assert_writable()
         cap=max(1,min(int(limit or 50),200))
@@ -590,7 +610,7 @@ class AzielLibrary:
         results=[]; processed=0; skipped=0
         for raw in rows:
             rec=self.get_record(raw['record_id'])
-            if self._is_fully_scored(rec) and not force:
+            if self._stored_triad_matches(rec) and not force:
                 skipped+=1
                 results.append({'record_id':rec['record_id'],'skipped':True,'reason':'already fully scored'})
                 continue

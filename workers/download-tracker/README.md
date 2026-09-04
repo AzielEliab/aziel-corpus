@@ -11,6 +11,8 @@ Custom domains: www.azielcorpuslibrary.net and azielcorpuslibrary.net
 - POST /ingest: signed-in users (not operator); optional file + title/notes
 - GET /file/{record_id}: every record downloadable (text or file), HTTP 200, including quarantined
 - GET /download?record=AZDOC-…: counted + ledger-linked document download
+- GET /download?hash=SHA-256 and GET /v1/docs/{hash}/download: serve the kept file for that content hash (duplicates are not deleted)
+- GET /v1/runtime: package/runtime version 2.7.0 for catalog discovery
 - GET /v1/search?q=&lib=all|aziel|corpus
 - GET /v1/review?record_id=  triad composite + SPRE + CLCE + PhysLing + Bayesian (unranked)
 - GET /v1/lattice?record_id=  AzielTether tip (site is not a mesh)
@@ -18,7 +20,7 @@ Custom domains: www.azielcorpuslibrary.net and azielcorpuslibrary.net
 - GET /v1/document-chain?record_id=  per-document hash-chain
 - POST /v1/score  preview review, no write
 - POST /v1/jeeves/chat  Ask Jeeves (research assistant)
-- POST /v1/jeeves/upload  Corpus only (Lamb Lens)
+- POST /v1/jeeves/upload  same ingest/score path as the shelf (public → Corpus; operator → Aziel Library)
 - POST /transcribe  hosted Whisper + mandatory VibeLock determination; hard A/V blocks (HTTP 451)
 - GET /media/{sha256}  inline playback of allowed A/V only (blocked media is never stored)
 - POST /ocr  hosted OCR; lattice receipt always

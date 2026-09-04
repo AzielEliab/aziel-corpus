@@ -221,6 +221,38 @@ function digestBytes(bytes) {
   return createHash("sha256").update(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes)).digest("hex");
 }
 
+export function normalizeContentHash(value) {
+  let h = String(value || "").trim().toLowerCase();
+  if (h.startsWith("0x")) h = h.slice(2);
+  h = h.replace(/[-\s]/g, "");
+  if (!/^[0-9a-f]{64}$/.test(h)) return "";
+  return h;
+}
+
+export async function findRecordByHash(env, digest) {
+  const h = normalizeContentHash(digest);
+  if (!h || !env || !env.DB) return null;
+  try {
+    return await env.DB.prepare(
+      "SELECT record_id, object_key, content_sha256, library FROM records WHERE lower(content_sha256)=? ORDER BY CASE WHEN object_key IS NOT NULL AND object_key != '' THEN 0 ELSE 1 END, created_utc ASC LIMIT 1"
+    ).bind(h).first();
+  } catch {
+    try {
+      return await env.DB.prepare(
+        "SELECT record_id, object_key, content_sha256 FROM records WHERE lower(content_sha256)=? ORDER BY created_utc ASC LIMIT 1"
+      ).bind(h).first();
+    } catch {
+      return null;
+    }
+  }
+}
+
+export async function serveFileByHash(env, digest) {
+  const row = await findRecordByHash(env, digest);
+  if (!row) return jsonErr("not found", 404);
+  return serveFile(env, row.record_id);
+}
+
 export async function objectExists(env, key) {
   const store = env && env.FILES;
   if (!store || !key) return false;

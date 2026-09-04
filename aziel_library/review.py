@@ -182,7 +182,8 @@ def triad_composite(*, spre=None, clce=None, plr=None):
     ready=spre_pc is not None and clce_c is not None and plr_c is not None
     eps=0.0001
     combined=((max(spre_pc,eps)*max(clce_c,eps)*max(plr_c,eps))**(1/3)) if ready else None
-    return {"schema":TRIAD_SCHEMA,"formula":TRIAD_FORMULA,"ready":ready,"components":{"spre_pc":None if spre_pc is None else round4(spre_pc),"clce_consistency":None if clce_c is None else round4(clce_c),"plr_coherence":None if plr_c is None else round4(plr_c)},"weights":{"spre":1/3,"clce":1/3,"plr":1/3},"combined":None if combined is None else round4(combined),"display":None if combined is None else int(round(combined*100)),"kid_plain":TRIAD_KID,"primary_visible":True,"bayesian_separate":True}
+    display=None if combined is None else int(round(combined*100))
+    return {"schema":TRIAD_SCHEMA,"formula":TRIAD_FORMULA,"ready":ready,"components":{"spre_pc":None if spre_pc is None else round4(spre_pc),"clce_consistency":None if clce_c is None else round4(clce_c),"plr_coherence":None if plr_c is None else round4(plr_c)},"weights":{"spre":1/3,"clce":1/3,"plr":1/3},"combined":None if combined is None else round4(combined),"display":display,"kid_plain":TRIAD_KID,"primary_visible":True,"bayesian_separate":True}
 
 def collection_triad(triad, library):
     """Aziel Library collection score is the published triad (display capped at 100). Corpus stays the geometric mean. No extra keys — do not re-apply in backfill."""

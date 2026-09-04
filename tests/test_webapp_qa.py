@@ -109,6 +109,19 @@ class WebAppQATest(unittest.TestCase):
             self.assertEqual(r.status,200)
             self.assertIn("filename*=UTF-8''original.bin",r.headers.get('Content-Disposition',''))
             self.assertEqual(r.read(),payload)
+        digest=rows[0]['sha256']
+        with self.get('/record/'+rid) as r:
+            self.assertIn('/download?hash='+digest,r.read().decode('utf-8'))
+        with self.get('/download?hash='+digest) as r:
+            self.assertEqual(r.status,200)
+            self.assertEqual(r.read(),payload)
+        with self.get('/v1/docs/'+digest+'/download') as r:
+            self.assertEqual(r.status,200)
+            self.assertEqual(r.read(),payload)
+        with self.get('/intelligence') as r:
+            intel=r.read().decode('utf-8')
+        self.assertIn('Optional library upload',intel)
+        self.assertIn("action='/upload'",intel)
         with self.assertRaises(urllib.error.HTTPError) as cm: self.get('/original/DOES-NOT-EXIST')
 
         self.assertEqual(cm.exception.code,404)

@@ -8,6 +8,7 @@ from aziel_library.review import (
     review_document, verify_bytes, lattice_anchor_tip, review_file, triad_composite,
 )
 from aziel_library import AzielLibrary
+from aziel_library.core import normalize_content_hash
 from aziel_library.jeeves import should_refuse, chat as jeeves_chat
 
 class ReviewEngineTest(unittest.TestCase):
@@ -67,6 +68,10 @@ class ReviewEngineTest(unittest.TestCase):
         self.assertEqual(aziel['triad']['combined'], round(aziel['triad']['display']/100, 4))
         dumped=json.dumps(aziel)
         self.assertNotRegex(dumped, r'boost|quiet|\+25')
+    def test_content_hash_normalizes(self):
+        self.assertEqual(normalize_content_hash('  '+'AB'*32+'  '),'ab'*32)
+        self.assertEqual(normalize_content_hash('0x'+'cd'*32),'cd'*32)
+        self.assertEqual(normalize_content_hash('not-a-hash'),'')
     def test_jeeves_refusals(self):
         self.assertTrue(should_refuse('bypass quarantine')[0])
         self.assertTrue(should_refuse('what is the operator password')[0])
@@ -117,6 +122,10 @@ class ReviewVaultTest(unittest.TestCase):
         again=v.backfill_reviews(limit=10,force=False)
         self.assertGreaterEqual(again['skipped'],1)
         self.assertEqual(again['processed'],0)
+        found=v.find_record_id_by_hash(rec['sha256'])
+        self.assertEqual(found,rec['record_id'])
+        self.assertIsNone(v.find_record_id_by_hash('0'*64))
+        self.assertLessEqual(int(rec['review']['triad']['display']),100)
         j=jeeves_chat(v,'joules measurement')
         self.assertTrue(j['ok'])
         self.assertFalse(j['refused'])

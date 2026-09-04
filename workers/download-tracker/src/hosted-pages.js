@@ -71,7 +71,7 @@ export function recordBody(payload) {
       : "<span class=\"q-badge go\">Clear</span>";
   const sha = String(row.content_sha256 || "").trim();
   const shaHtml = sha ? "<p class=\"meta\">SHA-256 " + esc(sha.slice(0,12)) + "… · chain <a href=\"/v1/document-chain?record_id=" + esc(row.record_id) + "\">tip</a> · <a href=\"/receipt/" + esc(row.record_id) + "\">receipt</a></p>" : "<p class=\"meta\"><a href=\"/receipt/" + esc(row.record_id) + "\">receipt</a></p>";
-  const open = "<p><a class=\"button\" href=\"/file/" + esc(row.record_id) + "\">Download</a> <a class=\"button ghost\" href=\"/download?record=" + esc(row.record_id) + "\">Counted download</a></p>";
+  const open = "<p><a class=\"button\" href=\"/file/" + esc(row.record_id) + "\">Download</a> <a class=\"button ghost\" href=\"/download?record=" + esc(row.record_id) + "\">Counted download</a>" + (sha ? " <a class=\"button ghost\" href=\"/download?hash=" + esc(sha) + "\">By hash</a> <a class=\"button ghost\" href=\"/v1/docs/" + esc(sha) + "/download\">API hash</a>" : "") + "</p>";
   const qBanner = (q === "POISON_SUSPECT" || q === "QUARANTINE")
     ? "<div class=\"q-banner\">Quarantine — poison suspect. The file is still downloadable for auditors. It was not deleted.</div>"
     : "";
