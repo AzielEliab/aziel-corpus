@@ -5,7 +5,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import CITIES from "./cities-lite.js";
 import { unzipEntries, zipText } from "./zip.js";
-import { isOperator } from "./library.js";
+import { isOperator, getObject } from "./library.js";
 import { appendLedger, ensureLedger } from "./ledger.js";
 import { ensureReviewSchema } from "./review-store.js";
 
@@ -136,6 +136,101 @@ export function candidatePhrases(text, maxCandidates = 400) {
     }
   }
   return found;
+}
+
+const PAPER_YEAR_MAX = 2036;
+const BAG_BODY_CAP = 80000;
+const GEO_PIN_NOTE = "Pins are paper date × event × geolocation. Never upload time. Docs without resolvable place+date stay unpinned.";
+
+/** Strip PDF/binary so metadata + any printable text layer remain for pinning. */
+export function readableBodyPrefix(body, maxLen = BAG_BODY_CAP) {
+  const src = String(body || "");
+  if (!src) return "";
+  const pdf = src.indexOf("%PDF");
+  const head = pdf >= 0 ? src.slice(0, pdf) : src;
+  let rest = "";
+  if (pdf >= 0) {
+    const bin = src.slice(pdf, Math.min(src.length, pdf + 400000));
+    const runs = (bin.match(/[\t\n\r\x20-\x7E\u00A0-\u024F]{6,}/g) || [])
+      .filter((r) => !/^%PDF-\d/i.test(r.trim()));
+    rest = runs.join("\n");
+  }
+  return (head + "\n" + rest)
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, " ")
+    .replace(/[^\S\n]+/g, " ")
+    .slice(0, maxLen);
+}
+
+/** Title + subjects + keywords + author + domain + filename + readable body. Never upload time. */
+export function buildExtractionBag(row = {}, extraText = "") {
+  const bits = [
+    row.title,
+    row.subjects,
+    row.keywords,
+    row.author,
+    row.domain,
+    row.filename,
+    readableBodyPrefix(row.body),
+    extraText,
+  ].map((s) => String(s || "").trim()).filter(Boolean);
+  return bits.join("\n");
+}
+
+function clampCoord(lat, lon) {
+  lat = Number(lat); lon = Number(lon);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+  return { lat, lon };
+}
+
+/**
+ * Explicit lat/lon written in the document. Both halves required — never invent lon=0.
+ * Unlabeled 40.0000,0.0000 table noise is rejected.
+ */
+export function extractCoordinatePairs(text) {
+  const src = String(text || "");
+  const found = [];
+  const seen = new Set();
+  const add = (start, end, lat, lon, labeled) => {
+    const c = clampCoord(lat, lon);
+    if (!c) return;
+    if (!labeled && Math.abs(c.lon) < 0.0001) return;
+    const key = c.lat.toFixed(4) + "," + c.lon.toFixed(4);
+    if (seen.has(key)) return;
+    seen.add(key);
+    found.push({ start, end, lat: c.lat, lon: c.lon, labeled: !!labeled });
+  };
+  const labeledRx = /\blat(?:itude)?\s*[:=]?\s*(-?\d{1,2}(?:\.\d+)?)\s*°?\s*[NnSs]?\s*[,;\s]+(?:lon(?:g(?:itude)?)?)\s*[:=]?\s*(-?\d{1,3}(?:\.\d+)?)/gi;
+  for (const m of src.matchAll(labeledRx)) add(m.index, m.index + m[0].length, m[1], m[2], true);
+  const lonlatRx = /\blon(?:g(?:itude)?)?\s*[:=]?\s*(-?\d{1,3}(?:\.\d+)?)\s*°?\s*[EeWw]?\s*[,;\s]+lat(?:itude)?\s*[:=]?\s*(-?\d{1,2}(?:\.\d+)?)/gi;
+  for (const m of src.matchAll(lonlatRx)) add(m.index, m.index + m[0].length, m[2], m[1], true);
+  const geoLabelRx = /\b(?:geo(?:graphic)?\s+)?(?:coord(?:inate)?s?|position)\s*[:=]?\s*(-?\d{1,2}(?:\.\d+)?)\s*[,;]\s*(-?\d{1,3}(?:\.\d+)?)\b/gi;
+  for (const m of src.matchAll(geoLabelRx)) add(m.index, m.index + m[0].length, m[1], m[2], true);
+  const hemiRx = /\b(-?\d{1,2}(?:\.\d+)?)\s*°\s*([NnSs])\s*[,;\s]+(-?\d{1,3}(?:\.\d+)?)\s*°\s*([EeWw])\b/g;
+  for (const m of src.matchAll(hemiRx)) {
+    let lat = Number(m[1]); let lon = Number(m[3]);
+    if (String(m[2]).toUpperCase() === "S") lat = -Math.abs(lat);
+    if (String(m[4]).toUpperCase() === "W") lon = -Math.abs(lon);
+    add(m.index, m.index + m[0].length, lat, lon, true);
+  }
+  const pairRx = /\b(-?\d{1,2}\.\d{2,6})\s*[,;]\s*(-?\d{1,3}\.\d{2,6})\b/g;
+  for (const m of src.matchAll(pairRx)) add(m.index, m.index + m[0].length, m[1], m[2], false);
+  return found.sort((a, b) => a.start - b.start);
+}
+
+export function paperDateMentions(text) {
+  return extractDateMentions(text).filter((d) => {
+    const year = parseInt(String(d.date).slice(0, 4), 10);
+    return Number.isFinite(year) && year >= 1 && year <= PAPER_YEAR_MAX;
+  });
+}
+
+/** Optional title seed: Zioncheck Visual Archive papers are Seattle × 1936-08 (paper month, not upload). */
+export function zioncheckTitleSeed(row = {}) {
+  const bag = [row.title, row.filename, row.subjects, row.keywords].map((x) => String(x || "")).join(" ");
+  if (!/zioncheck/i.test(bag)) return null;
+  if (!/visual\s+archive|marion|vol\.?\s*[1-5]/i.test(bag)) return null;
+  return { date: "1936-08", placeName: "Seattle", label: "Zioncheck Visual Archive", estimated: false };
 }
 
 function dateFloor(value) {
@@ -364,77 +459,15 @@ function mentionSpans(text, names) {
   return spans.sort((a, b) => a.start - b.start);
 }
 
-export async function extractEventsForText(env, { recordId, title, body, createdBy = "auto" }) {
-  await ensurePlaces(env);
-  const raw = String((body || "") + "\n" + (title || "")).slice(0, 400000);
-  if (!raw.trim()) return 0;
-  const dates = extractDateMentions(raw);
-  if (!dates.length) return 0;
-  const phrases = candidatePhrases(raw);
-  const resolved = [];
-  const tried = new Set();
-  for (const p of phrases) {
-    const n = normName(p);
-    if (!n || tried.has(n)) continue;
-    tried.add(n);
-    const hit = await resolveUnique(env, p);
-    if (hit && hit.lat != null && hit.lon != null) resolved.push({ phrase: p, place: hit });
-  }
-  if (!resolved.length) return 0;
-  const pmentions = [];
-  for (const item of resolved) {
-    for (const sp of mentionSpans(raw, [item.phrase, item.place.name, item.place.asciiname])) {
-      pmentions.push({ ...sp, place: item.place });
-    }
-  }
-  pmentions.sort((a, b) => a.start - b.start);
-  const bounds = sentenceBounds(raw);
-  const made = [];
-  const pairKeys = new Set();
-  for (const pm of pmentions) {
-    const candidates = [];
-    for (const dm of dates) {
-      let gap;
-      if (dm.end < pm.start) gap = pm.start - dm.end;
-      else if (pm.end < dm.start) gap = dm.start - pm.end;
-      else gap = 0;
-      const same = segmentId(bounds, dm.start) === segmentId(bounds, pm.start);
-      if (same) candidates.push({ gap: gap < 500 ? 0 : gap, dm, source: "AUTO_SENTENCE", conf: 0.9, status: "AUTO" });
-      else if (gap <= 220) candidates.push({ gap, dm, source: "AUTO_CONTEXT", conf: 0.7, status: "REVIEW" });
-    }
-    candidates.sort((a, b) => a.gap - b.gap);
-    for (const c of candidates.slice(0, 2)) {
-      const key = [c.dm.date, pm.place.geonameid, pm.start, c.dm.start].join("|");
-      if (pairKeys.has(key)) continue;
-      pairKeys.add(key);
-      const eid = "AZEVT-" + sha256hex([recordId, c.dm.date, String(pm.place.geonameid), String(pm.start), String(c.dm.start)].join("|")).slice(0, 12).toUpperCase();
-      made.push({
-        event_id: eid,
-        event_date: c.dm.date,
-        place_name: pm.place.name,
-        lat: pm.place.lat,
-        lon: pm.place.lon,
-        title: c.dm.date + " — " + pm.place.name,
-        record_id: recordId || "",
-        created_by: createdBy,
-        created_utc: utcNow(),
-        confidence: c.conf,
-        source: c.source,
-        status: c.status,
-      });
-    }
-  }
-  if (!made.length && dates.length === 1 && resolved.length === 1) {
-    const dm = dates[0];
-    const pl = resolved[0].place;
-    const eid = "AZEVT-" + sha256hex((recordId || "") + "|" + dm.date + "|" + pl.geonameid).slice(0, 12).toUpperCase();
-    made.push({
-      event_id: eid, event_date: dm.date, place_name: pl.name, lat: pl.lat, lon: pl.lon,
-      title: dm.date + " — " + pl.name, record_id: recordId || "", created_by: createdBy, created_utc: utcNow(),
-      confidence: 0.7, source: "AUTO_DOCUMENT", status: "REVIEW",
-    });
-  }
-  if (!made.length) return 0;
+function eventTitle(date, place, extra, estimated) {
+  const bits = [date + " — " + place];
+  if (extra) bits[0] += " (" + extra + ")";
+  if (estimated) bits[0] += " (estimated)";
+  return bits[0].slice(0, 240);
+}
+
+async function persistEvents(env, made) {
+  if (!made.length || !env || !env.DB) return made.length;
   const stmts = made.map((e) =>
     env.DB.prepare(
       "INSERT OR IGNORE INTO events(event_id,event_date,place_name,lat,lon,title,record_id,created_by,created_utc,confidence,source,status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)"
@@ -444,20 +477,372 @@ export async function extractEventsForText(env, { recordId, title, body, created
   return made.length;
 }
 
+async function textFromObject(env, key) {
+  if (!env || !key) return "";
+  try {
+    const obj = await getObject(env, key);
+    if (!obj) return "";
+    let bytes = null;
+    if (obj.arrayBuffer) bytes = await obj.arrayBuffer();
+    else if (obj.body && typeof obj.body.arrayBuffer === "function") bytes = await obj.body.arrayBuffer();
+    else if (typeof obj.text === "function") return String(await obj.text()).slice(0, BAG_BODY_CAP);
+    if (!bytes) return "";
+    return new TextDecoder("utf-8", { fatal: false }).decode(bytes instanceof ArrayBuffer ? new Uint8Array(bytes) : bytes).slice(0, BAG_BODY_CAP);
+  } catch {
+    return "";
+  }
+}
+
+/** OCR / transcript / FILES-linked extracts — body of a PDF upload is often metadata + binary. */
+export async function derivedTextForRecord(env, recordId) {
+  if (!env || !env.DB || !recordId) return "";
+  const chunks = [];
+  try {
+    const rows = (await env.DB.prepare(
+      "SELECT transcript FROM media_runs WHERE record_id=? AND IFNULL(transcript,'') != '' ORDER BY created_utc DESC LIMIT 8"
+    ).bind(recordId).all()).results || [];
+    for (const r of rows) if (r.transcript) chunks.push(String(r.transcript));
+  } catch { /* schema */ }
+  try {
+    const rows = (await env.DB.prepare(
+      "SELECT result FROM ocr_jobs WHERE record_id=? AND IFNULL(result,'') != '' ORDER BY created_utc DESC LIMIT 8"
+    ).bind(recordId).all()).results || [];
+    for (const r of rows) if (r.result) chunks.push(String(r.result));
+  } catch { /* schema */ }
+  try {
+    const rows = (await env.DB.prepare(
+      "SELECT artifact_type, note, object_key FROM derived_artifacts WHERE record_id=? ORDER BY created_utc DESC LIMIT 12"
+    ).bind(recordId).all()).results || [];
+    for (const r of rows) {
+      const kind = String(r.artifact_type || "");
+      if (r.note && /text|ocr|extract|transcript/i.test(kind + " " + String(r.note || "").slice(0, 40))) {
+        chunks.push(String(r.note));
+      } else if (r.note && String(r.note).length > 80) {
+        chunks.push(String(r.note));
+      }
+      const key = String(r.object_key || "");
+      if (key && (/text|ocr|extract/i.test(kind) || /\.(txt|md|json)$/i.test(key))) {
+        const txt = await textFromObject(env, key);
+        if (txt) chunks.push(txt);
+      }
+    }
+  } catch { /* schema */ }
+  return chunks.join("\n\n").slice(0, BAG_BODY_CAP);
+}
+
+export async function extractEventsForText(env, opts = {}) {
+  const {
+    recordId, title, body, subjects, keywords, author, domain, filename,
+    extraText = "", createdBy = "auto", skipGazetteer = false, resolve,
+  } = opts;
+  if (!skipGazetteer) await ensurePlaces(env);
+  const resolvePlace = resolve || ((name) => resolveUnique(env, name));
+  const row = { title, body, subjects, keywords, author, domain, filename };
+  const raw = buildExtractionBag(row, extraText).slice(0, 400000);
+  if (!raw.trim()) return 0;
+  const dates = paperDateMentions(raw);
+  const coords = extractCoordinatePairs(raw);
+  const seed = zioncheckTitleSeed(row);
+  const made = [];
+  const pairKeys = new Set();
+  const now = utcNow();
+  const docTitle = String(title || "").trim();
+
+  const add = (e) => {
+    const key = [e.event_date, e.place_name, e.lat, e.lon, e.source].join("|");
+    if (pairKeys.has(key)) return;
+    pairKeys.add(key);
+    made.push(e);
+  };
+
+  if (dates.length && coords.length) {
+    const bounds = sentenceBounds(raw);
+    for (const c of coords) {
+      const candidates = [];
+      for (const dm of dates) {
+        let gap;
+        if (dm.end < c.start) gap = c.start - dm.end;
+        else if (c.end < dm.start) gap = dm.start - c.end;
+        else gap = 0;
+        const same = segmentId(bounds, dm.start) === segmentId(bounds, c.start);
+        const estimated = dm.precision === "YEAR";
+        if (same) candidates.push({ gap: gap < 500 ? 0 : gap, dm, estimated, source: "AUTO_COORD", conf: 0.85, status: estimated ? "ESTIMATED" : "AUTO" });
+        else if (gap <= 400) candidates.push({ gap, dm, estimated, source: "AUTO_COORD", conf: 0.8, status: estimated ? "ESTIMATED" : "AUTO" });
+      }
+      if (!candidates.length && dates.length === 1) {
+        const dm = dates[0];
+        candidates.push({ gap: 0, dm, estimated: dm.precision === "YEAR", source: "AUTO_COORD", conf: 0.8, status: dm.precision === "YEAR" ? "ESTIMATED" : "AUTO" });
+      }
+      candidates.sort((a, b) => a.gap - b.gap);
+      const pick = candidates[0];
+      if (!pick) continue;
+      const placeName = "coord " + c.lat.toFixed(4) + "," + c.lon.toFixed(4);
+      const eid = "AZEVT-" + sha256hex([recordId || "", pick.dm.date, placeName, String(c.start)].join("|")).slice(0, 12).toUpperCase();
+      add({
+        event_id: eid,
+        event_date: pick.dm.date,
+        place_name: placeName,
+        lat: c.lat,
+        lon: c.lon,
+        title: eventTitle(pick.dm.date, docTitle || placeName, "", pick.estimated),
+        record_id: recordId || "",
+        created_by: createdBy,
+        created_utc: now,
+        confidence: pick.conf,
+        source: "AUTO_COORD",
+        status: pick.status,
+      });
+    }
+  }
+
+  if (dates.length) {
+    const phrases = candidatePhrases(raw);
+    const resolved = [];
+    const tried = new Set();
+    for (const p of phrases) {
+      const n = normName(p);
+      if (!n || tried.has(n)) continue;
+      tried.add(n);
+      const hit = await resolvePlace(p);
+      if (hit && hit.lat != null && hit.lon != null) resolved.push({ phrase: p, place: hit });
+    }
+    const pmentions = [];
+    for (const item of resolved) {
+      for (const sp of mentionSpans(raw, [item.phrase, item.place.name, item.place.asciiname])) {
+        pmentions.push({ ...sp, place: item.place });
+      }
+    }
+    pmentions.sort((a, b) => a.start - b.start);
+    const bounds = sentenceBounds(raw);
+    for (const pm of pmentions) {
+      const candidates = [];
+      for (const dm of dates) {
+        let gap;
+        if (dm.end < pm.start) gap = pm.start - dm.end;
+        else if (pm.end < dm.start) gap = dm.start - pm.end;
+        else gap = 0;
+        const same = segmentId(bounds, dm.start) === segmentId(bounds, pm.start);
+        const estimated = dm.precision === "YEAR";
+        if (same) candidates.push({ gap: gap < 500 ? 0 : gap, dm, source: "AUTO_SENTENCE", conf: 0.9, status: estimated ? "ESTIMATED" : "AUTO" });
+        else if (gap <= 220) candidates.push({ gap, dm, source: "AUTO_CONTEXT", conf: 0.7, status: estimated ? "ESTIMATED" : "REVIEW" });
+      }
+      candidates.sort((a, b) => a.gap - b.gap);
+      for (const c of candidates.slice(0, 2)) {
+        const eid = "AZEVT-" + sha256hex([recordId, c.dm.date, String(pm.place.geonameid), String(pm.start), String(c.dm.start)].join("|")).slice(0, 12).toUpperCase();
+        add({
+          event_id: eid,
+          event_date: c.dm.date,
+          place_name: pm.place.name,
+          lat: pm.place.lat,
+          lon: pm.place.lon,
+          title: eventTitle(c.dm.date, pm.place.name, "", c.status === "ESTIMATED"),
+          record_id: recordId || "",
+          created_by: createdBy,
+          created_utc: now,
+          confidence: c.conf,
+          source: c.source,
+          status: c.status,
+        });
+      }
+    }
+    if (!made.filter((e) => e.source !== "AUTO_COORD").length && dates.length === 1 && resolved.length === 1) {
+      const dm = dates[0];
+      const pl = resolved[0].place;
+      const estimated = dm.precision === "YEAR";
+      const eid = "AZEVT-" + sha256hex((recordId || "") + "|" + dm.date + "|" + pl.geonameid).slice(0, 12).toUpperCase();
+      add({
+        event_id: eid, event_date: dm.date, place_name: pl.name, lat: pl.lat, lon: pl.lon,
+        title: eventTitle(dm.date, pl.name, "", estimated), record_id: recordId || "", created_by: createdBy, created_utc: now,
+        confidence: 0.7, source: "AUTO_DOCUMENT", status: estimated ? "ESTIMATED" : "REVIEW",
+      });
+    }
+  }
+
+  if (seed) {
+    const hit = await resolvePlace(seed.placeName);
+    if (hit && hit.lat != null && hit.lon != null) {
+      const eid = "AZEVT-" + sha256hex([recordId || "", seed.date, String(hit.geonameid), "SEED"].join("|")).slice(0, 12).toUpperCase();
+      add({
+        event_id: eid,
+        event_date: seed.date,
+        place_name: hit.name,
+        lat: hit.lat,
+        lon: hit.lon,
+        title: eventTitle(seed.date, hit.name, seed.label, false),
+        record_id: recordId || "",
+        created_by: createdBy,
+        created_utc: now,
+        confidence: 0.9,
+        source: "AUTO_SEED",
+        status: "AUTO",
+      });
+    }
+  }
+
+  if (!made.length) return 0;
+  return persistEvents(env, made);
+}
+
 export async function extractEventsForRecord(env, recordId) {
   if (!env.DB || !recordId) return 0;
-  const row = await env.DB.prepare("SELECT record_id,title,body FROM records WHERE record_id=?").bind(recordId).first();
+  let row;
+  try {
+    row = await env.DB.prepare(
+      "SELECT record_id,title,body,author,domain,subjects,keywords,filename FROM records WHERE record_id=?"
+    ).bind(recordId).first();
+  } catch {
+    row = await env.DB.prepare("SELECT record_id,title,body FROM records WHERE record_id=?").bind(recordId).first();
+  }
   if (!row) return 0;
-  return extractEventsForText(env, { recordId: row.record_id, title: row.title, body: row.body, createdBy: "auto" });
+  const extraText = await derivedTextForRecord(env, recordId);
+  return extractEventsForText(env, {
+    recordId: row.record_id,
+    title: row.title,
+    body: row.body,
+    author: row.author,
+    domain: row.domain,
+    subjects: row.subjects,
+    keywords: row.keywords,
+    filename: row.filename,
+    extraText,
+    createdBy: "auto",
+  });
+}
+
+async function metaGet(env, key) {
+  try {
+    const row = await env.DB.prepare("SELECT value FROM metadata WHERE key=?").bind(key).first();
+    return row && row.value != null ? String(row.value) : "";
+  } catch { return ""; }
+}
+
+async function metaSet(env, key, value) {
+  try {
+    await env.DB.prepare("INSERT OR REPLACE INTO metadata(key,value) VALUES(?,?)").bind(key, String(value == null ? "" : value)).run();
+  } catch { /* optional */ }
+}
+
+async function countRecords(env) {
+  try {
+    const row = await env.DB.prepare("SELECT COUNT(*) AS n FROM records").first();
+    return Number(row && row.n) || 0;
+  } catch { return 0; }
+}
+
+async function countEvents(env) {
+  try {
+    const row = await env.DB.prepare("SELECT COUNT(*) AS n FROM events").first();
+    return Number(row && row.n) || 0;
+  } catch { return 0; }
+}
+
+export async function geoVerifyStatus(env) {
+  await ensureSchema(env);
+  const total = await countRecords(env);
+  const events = await countEvents(env);
+  const done = await metaGet(env, "geo_verify_done_utc");
+  const cursor = await metaGet(env, "geo_verify_cursor");
+  let stats = null;
+  try { stats = JSON.parse(await metaGet(env, "geo_verify_stats") || "null"); } catch { stats = null; }
+  return { ok: true, total, events, done: !!done, done_utc: done || null, cursor: cursor || "", stats };
+}
+
+export async function continueVerifyGeo(env, { ms = 18000, force = false } = {}) {
+  await ensurePlaces(env);
+  const started = Date.now();
+  const total = await countRecords(env);
+  const stats = { ok: true, total, scanned: 0, events_created: 0, skipped: 0, failed: 0, done: false, cursor: "" };
+  let cursor = await metaGet(env, "geo_verify_cursor");
+  const doneFlag = await metaGet(env, "geo_verify_done_utc");
+  if (doneFlag && !force) {
+    stats.done = true;
+    stats.cursor = cursor;
+    return stats;
+  }
+  if (force) {
+    cursor = "";
+    await metaSet(env, "geo_verify_done_utc", "");
+  }
+  const selectFull = cursor
+    ? "SELECT record_id, title, substr(body,1,200000) AS body, author, domain, subjects, keywords, filename FROM records WHERE record_id>? ORDER BY record_id ASC LIMIT 3"
+    : "SELECT record_id, title, substr(body,1,200000) AS body, author, domain, subjects, keywords, filename FROM records ORDER BY record_id ASC LIMIT 3";
+  const selectLite = cursor
+    ? "SELECT record_id, title, substr(body,1,200000) AS body FROM records WHERE record_id>? ORDER BY record_id ASC LIMIT 3"
+    : "SELECT record_id, title, substr(body,1,200000) AS body FROM records ORDER BY record_id ASC LIMIT 3";
+  while (Date.now() - started < ms) {
+    let batch = [];
+    try {
+      batch = (await env.DB.prepare(selectFull).bind(...(cursor ? [cursor] : [])).all()).results || [];
+    } catch {
+      try {
+        batch = (await env.DB.prepare(selectLite).bind(...(cursor ? [cursor] : [])).all()).results || [];
+      } catch { batch = []; }
+    }
+    if (!batch.length) {
+      stats.done = true;
+      await metaSet(env, "geo_verify_done_utc", new Date().toISOString());
+      await metaSet(env, "geo_verify_cursor", "");
+      await metaSet(env, "geo_verify_stats", JSON.stringify(stats));
+      break;
+    }
+    for (const row of batch) {
+      try {
+        let existing = 0;
+        try {
+          const hit = await env.DB.prepare("SELECT COUNT(*) AS n FROM events WHERE record_id=?").bind(row.record_id).first();
+          existing = Number(hit && hit.n) || 0;
+        } catch { existing = 0; }
+        if (existing && !force) {
+          stats.skipped += 1;
+        } else {
+          const extraText = await derivedTextForRecord(env, row.record_id);
+          const n = await extractEventsForText(env, {
+            recordId: row.record_id,
+            title: row.title,
+            body: row.body,
+            author: row.author,
+            domain: row.domain,
+            subjects: row.subjects,
+            keywords: row.keywords,
+            filename: row.filename,
+            extraText,
+            createdBy: "verify-geo",
+          });
+          stats.events_created += n;
+          stats.scanned += 1;
+        }
+      } catch {
+        stats.failed += 1;
+      }
+      cursor = row.record_id;
+      stats.cursor = cursor;
+      if (Date.now() - started >= ms) break;
+    }
+    await metaSet(env, "geo_verify_cursor", cursor);
+    await metaSet(env, "geo_verify_stats", JSON.stringify({ ...stats, updated_utc: new Date().toISOString() }));
+    if (Date.now() - started >= ms) break;
+  }
+  return stats;
 }
 
 export async function reindexGeography(env) {
   await ensurePlaces(env);
-  // Reindex is append-only; originals and existing events stay.
-  const rows = (await env.DB.prepare("SELECT record_id,title,body FROM records ORDER BY created_utc DESC LIMIT 400").all()).results || [];
+  let rows = [];
+  try {
+    rows = (await env.DB.prepare(
+      "SELECT record_id,title,body,author,domain,subjects,keywords,filename FROM records ORDER BY created_utc DESC LIMIT 400"
+    ).all()).results || [];
+  } catch {
+    rows = (await env.DB.prepare("SELECT record_id,title,body FROM records ORDER BY created_utc DESC LIMIT 400").all()).results || [];
+  }
   let events = 0;
   for (const r of rows) {
-    events += await extractEventsForText(env, { recordId: r.record_id, title: r.title, body: r.body, createdBy: "auto" });
+    const extraText = await derivedTextForRecord(env, r.record_id);
+    events += await extractEventsForText(env, {
+      recordId: r.record_id, title: r.title, body: r.body, author: r.author,
+      domain: r.domain, subjects: r.subjects, keywords: r.keywords, filename: r.filename,
+      extraText, createdBy: "auto",
+    });
   }
   await appendLedger(env, "GEOGRAPHY_REINDEX", { records: rows.length, events_created: events });
   return { records: rows.length, events_created: events };
@@ -734,4 +1119,4 @@ export function newId(prefix) {
   return prefix + randomBytes(6).toString("hex").toUpperCase();
 }
 
-export { GEONAMES_ATTRIBUTION, CITIES, sha256hex, utcNow, LAYER_CAP };
+export { GEONAMES_ATTRIBUTION, CITIES, sha256hex, utcNow, LAYER_CAP, GEO_PIN_NOTE, PAPER_YEAR_MAX };
