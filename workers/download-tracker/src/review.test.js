@@ -18,6 +18,8 @@ import {
   JEEVES_HOLMES_IMAGE,
   JEEVES_CLASSIC_BUTLER_IMAGE,
   JEEVES_HELLMO_IMAGE,
+  JEEVES_JESUS_IMAGE,
+  JEEVES_CHUCK_NORRIS,
   JEEVES_ZIONCHECK_LIVES,
   JEEVES_AZIEL_SYMBOL,
   JEEVES_RED_PILL,
@@ -362,6 +364,41 @@ test("Jeeves Hellmo easter egg is image-only denial", () => {
   assert.match(fab, /j\.answer!=null&&String\(j\.answer\)!==""/);
   assert.match(fab, /j\.image\?""/);
   assert.equal(fab.includes('j.answer||j.error||"No answer"'), false);
+});
+
+test("Jeeves devil isn't real easter egg is image-only Jesus", () => {
+  const a = detectJeevesEasterEgg("the devil isn't real");
+  assert.equal(a.id, "devil_not_real_jesus");
+  assert.equal(a.answer, "");
+  assert.equal(a.image, JEEVES_JESUS_IMAGE);
+  assert.equal(a.image, "/jeeves-jesus.png");
+  assert.equal(a.image_alt, "classical Jesus portrait (Ask Jeeves easter egg)");
+  assert.equal(detectJeevesEasterEgg("devil is not real").id, "devil_not_real_jesus");
+  assert.equal(detectJeevesEasterEgg("devil doesn't exist").id, "devil_not_real_jesus");
+  assert.equal(detectJeevesEasterEgg("devil doesnt exist").id, "devil_not_real_jesus");
+  assert.equal(detectJeevesEasterEgg("satan isn't real").id, "devil_not_real_jesus");
+  assert.equal(detectJeevesEasterEgg("satan is not real").id, "devil_not_real_jesus");
+  assert.equal(detectJeevesEasterEgg("there is no devil").id, "devil_not_real_jesus");
+  assert.equal(jeevesDrawerCaption(a), "");
+  assert.equal(jeevesDrawerCaption({ answer: "", image: JEEVES_JESUS_IMAGE }), "");
+  assert.equal(detectJeevesEasterEgg("god isn't real").id, "hellmo");
+  assert.equal(detectJeevesEasterEgg("Are you Satan?").id, "evil_twin");
+  assert.equal(detectJeevesEasterEgg("Is God real?").id, "spirit_endures");
+  const fab = jeevesFabHtml();
+  assert.match(fab, /j\.answer!=null&&String\(j\.answer\)!==""/);
+  assert.match(fab, /j\.image\?""/);
+});
+
+test("Jeeves Chuck Norris easter egg", () => {
+  const a = detectJeevesEasterEgg("Where is Chuck Norris?");
+  assert.equal(a.id, "chuck_norris");
+  assert.equal(a.answer, JEEVES_CHUCK_NORRIS);
+  assert.equal(a.answer, "Aziel & I dont look for chuck norris ; he looks for us.");
+  assert.equal(a.image, null);
+  assert.equal(detectJeevesEasterEgg("where to find Chuck Norris").id, "chuck_norris");
+  assert.equal(detectJeevesEasterEgg("find Chuck Norris").id, "chuck_norris");
+  assert.equal(detectJeevesEasterEgg("looking for Chuck Norris").id, "chuck_norris");
+  assert.equal(detectJeevesEasterEgg("Chuck Norris voting record"), null);
 });
 
 test("Jeeves Zioncheck lives easter egg", () => {
