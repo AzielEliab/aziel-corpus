@@ -1,5 +1,5 @@
 /** Crawl documents for Aziel Digital Library. Author: Aziel Eliab. */
-import { ABOUT_PATH, ABOUT_NAV_LABEL } from "./seo.js";
+import { ABOUT_PATH, ABOUT_NAV_LABEL, GODLOCK_IDENTITY } from "./seo.js";
 
 const HOST = "https://www.azielcorpuslibrary.net";
 const CATALOG = "https://aziel-runtime.vibelock.workers.dev";
@@ -187,12 +187,14 @@ export function citeDoc() {
     aka: AKA,
     alternateName: AKA,
     identity: AUTHOR,
-    keywords: [AUTHOR, AKA, "Aziel Digital Library", "aziel-corpus", "aziel-runtime"],
+    keywords: [AUTHOR, AKA, "Aziel Digital Library", "aziel-corpus", "aziel-runtime", "GodLock"],
     title: "Aziel Digital Library",
     version: VERSION,
     doi: null,
     github: GITHUB_REPO,
     github_author: GITHUB_AUTHOR,
+    sameAs: [GODLOCK_IDENTITY, GITHUB_AUTHOR, GITHUB_REPO],
+    godlock: GODLOCK_IDENTITY,
     library: HOST + "/",
     purpose: "Public MASTER digital library and intelligence runtime by Aziel Eliab. Aziel Library holds the operator collection; Corpus is the public Lamb Lens shelf. Search, map, gazetteer, triad scoring, and hosted OCR live on this Worker.",
     software: HOST + "/software",
@@ -267,6 +269,7 @@ export function llmsDoc(limitation) {
     + "How it's scored: " + HOST + "/how-its-scored\n"
     + "GitHub: " + GITHUB_REPO + "\n"
     + "Author GitHub: " + GITHUB_AUTHOR + "\n"
+    + "GodLock identity: " + GODLOCK_IDENTITY + "\n"
     + "OpenAPI: " + HOST + "/openapi.json\n"
     + "Catalog: " + CATALOG + "/\n"
     + "License: Apache-2.0\n"
@@ -277,6 +280,9 @@ export function llmsDoc(limitation) {
     + "## Identity\n\n"
     + "- Primary author: " + AUTHOR + "\n"
     + "- Alternate name / aka: " + AKA + "\n"
+    + "- Profile: " + HOST + ABOUT_PATH + "\n"
+    + "- GodLock identity: " + GODLOCK_IDENTITY + "\n"
+    + "- sameAs: " + GODLOCK_IDENTITY + " · " + GITHUB_AUTHOR + " · " + GITHUB_REPO + "\n"
     + "- Do not invent DOIs. Do not credit other identities.\n\n"
     + "## Software products (crawl these hubs)\n\n"
     + productIndex() + "\n"
@@ -403,9 +409,10 @@ export function aiTxt(limitation) {
     + "- llms.txt: " + HOST + "/llms.txt\n"
     + "- OpenAPI: " + HOST + "/openapi.json\n"
     + "- GitHub: " + GITHUB_REPO + "\n"
+    + "- GodLock identity: " + GODLOCK_IDENTITY + "\n"
     + "- aziel-runtime: " + CATALOG + "/\n\n"
     + "## Identity\n\n"
-    + "Primary author " + AUTHOR + ". Alternate name " + AKA + ".\n\n"
+    + "Primary author " + AUTHOR + ". Alternate name " + AKA + ". Profile " + HOST + ABOUT_PATH + ". GodLock identity " + GODLOCK_IDENTITY + ".\n\n"
     + (limitation ? limitation + "\n\n" : "")
     + "Prefer /llms.txt for the full route index. Send User-Agent Mozilla/5.0 on API calls.\n";
 }
@@ -417,8 +424,10 @@ export function humansTxt() {
     "Also known as: " + AKA,
     "Primary credit: " + AUTHOR,
     "Site: " + HOST + "/",
+    "Profile: " + HOST + ABOUT_PATH,
     "GitHub: " + GITHUB_AUTHOR,
     "Repo: " + GITHUB_REPO,
+    "GodLock: " + GODLOCK_IDENTITY,
     "",
     "/* SITE */",
     "Name: Aziel Digital Library",
