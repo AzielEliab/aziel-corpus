@@ -78,7 +78,58 @@ export const JEEVES_FUCK_SHIT_UP_IMAGE = "/jeeves-step-brothers-suits.png";
 export const JEEVES_RICKY_BOBBY_HANDS = "im not sure what to do with my hands";
 export const JEEVES_CHEWBACCA_MASKS = "chewbacca masks!";
 export const JEEVES_FUCK_SHIT_UP = "were here to fuck shit up";
+export const JEEVES_EGG_CAP = 3;
+export const JEEVES_GODFATHER_OFFER_IMAGE = "/jeeves-godfather-offer.png";
+export const JEEVES_SCARFACE_BADGUY_IMAGE = "/jeeves-scarface-badguy.png";
+export const JEEVES_BILLION_COOL_IMAGE = "/jeeves-billion-cool.png";
+export const JEEVES_FACEBOOK_INVENTORS_IMAGE = "/jeeves-facebook-inventors.png";
+export const JEEVES_SEX_BOB_OMB_IMAGE = "/jeeves-sex-bob-omb.png";
+export const JEEVES_HIGH_GROUND_IMAGE = "/jeeves-high-ground.png";
+export const JEEVES_HIGHLANDER_ONE_IMAGE = "/jeeves-highlander-one.png";
+export const JEEVES_FRANKLY_MY_DEAR_IMAGE = "/jeeves-frankly-my-dear.png";
+export const JEEVES_SINGLE_LADY_IMAGE = "/jeeves-single-lady.png";
+export const JEEVES_CONTENDER_IMAGE = "/jeeves-contender.png";
+export const JEEVES_MAKE_MY_DAY_IMAGE = "/jeeves-make-my-day.png";
+export const JEEVES_TALKIN_TO_ME_IMAGE = "/jeeves-talkin-to-me.png";
+export const JEEVES_COME_WITH_ME_IMAGE = "/jeeves-come-with-me.png";
+export const JEEVES_ONE_MORE_IMAGE = "/jeeves-one-more.png";
+export const JEEVES_FORREST_GUMP_IMAGE = "/jeeves-forrest-gump.png";
+export const JEEVES_GODFATHER_OFFER = "Im gonna make him an offer he cant refuse";
+export const JEEVES_SCARFACE_BADGUY =
+  "You need people like me. You need people like me so you can point your fuckin' fingers and say, \"That's the bad guy.\" So... what that make you? Good? You're not good. You just know how to hide, how to lie. Me, I don't have that problem. Me, I always tell the truth. Even when I lie. So say good night to the bad guy!\"";
+export const JEEVES_BILLION_COOL = "\"A million dollars isn't cool. You know what's cool? A billion dollars\"";
+export const JEEVES_FACEBOOK_INVENTORS = "If you guys were the inventors of Facebook, you'd have invented Facebook.\"";
+export const JEEVES_SEX_BOB_OMB =
+  "We are Sex Bob-Omb and we're here to make you think about death and get sad and stuff!";
+export const JEEVES_HIGH_GROUND = "Its over Anakin; I have the highground!";
+export const JEEVES_HIGHLANDER_ONE = "There can be only one!";
+export const JEEVES_FRANKLY_MY_DEAR = "Frankly my dear, i dont give a damn.";
+export const JEEVES_CONTENDER =
+  "You don't understand. I coulda had class. I coulda been a contender. I coulda been somebody, instead of a bum, which is what I am.";
+export const JEEVES_STAY_GOLDEN = "stay golden ponyboy";
+export const JEEVES_MAKE_MY_DAY = "go ahead, make my day .";
+export const JEEVES_TALKIN_TO_ME = "you talkin to me?";
+export const JEEVES_COME_WITH_ME = "come with me if you want to live";
+export const JEEVES_ONE_MORE = "Please, Lord, help me get one more.";
+export const JEEVES_STUPID_GUMP = "stupid is as stupid does";
 const KONAMI_SEQ = ["up", "up", "down", "down", "left", "right", "left", "right", "b", "a"];
+const JEEVES_EGG_FAMILY = {
+  thats_a_bingo: "solo",
+  konami_snake: "solo",
+  hellmo: "god",
+  spirit_endures: "god",
+  devil_not_real_jesus: "devil",
+  evil_twin: "devil",
+  zsolver_trust_no_one: "zsolver",
+  zsolver_doubt: "zsolver",
+  briefcase_dont_look: "briefcase",
+  dumbass_silent_d: "profanity",
+  frankly_my_dear: "profanity",
+  talkin_to_me: "profanity",
+  django_curiosity: "profanity",
+  royale_with_cheese: "insult",
+  red_pill: "insult",
+};
 
 const EMPIRICAL_ATTACK_RE =
   /\b(useless|worthless|garbage|trash|junk|joke|jokes|nonsense|crap|stupid|dumb|sucks?|overrated|pointless|meaningless|bogus|myth|liar?|fraud|hoax|fake|fails?|failed|failure|inferior|hate|hates|hating|mock|mocks|mocking|dismiss|dismisses|dismissive|reject|rejected|anti[- ]empirical|so-?called|bull)\b/;
@@ -170,32 +221,62 @@ function isChuckNorrisHunt(n) {
   );
 }
 
+function zsolverSubjectRe() {
+  return /\b(zionpattern|zion[\s-]?pattern|zsolver|z-?solver)\b/;
+}
+
 function has75Mark(n) {
-  return /\b75\s*%/.test(n) || /\b75\s*percent\b/.test(n) || /\bseventy[- ]five(\s+percent)?\b/.test(n);
+  if (/\b75\s*%/.test(n) || /\b75\s*percent\b/.test(n) || /\bseventy[- ]five(\s+percent)?\b/.test(n)) return true;
+  return (
+    /\b75\b/.test(n) &&
+    (zsolverSubjectRe().test(n) || /\b(confidence|cap|capped|ceiling|score|percent)\b/.test(n))
+  );
+}
+
+export function isZsolverTopic(question) {
+  const n = String(question || "")
+    .toLowerCase()
+    .replace(/[’‘]/g, "'");
+  return (
+    zsolverSubjectRe().test(n) ||
+    isZsolverTrustNoOne(n) ||
+    isZsolverDoubt(n) ||
+    (has75Mark(n) &&
+      /\b(confidence|cap|capped|ceiling|score|percent|why|doubt|only|above|over|higher)\b/.test(n))
+  );
 }
 
 function isZsolverTrustNoOne(n) {
   const whyNot100 =
-    /\bwhy\s+(not|isn'?t|isnt|is\s+it\s+not|can'?t\s+it\s+be|cannot\s+it\s+be)\s+.{0,16}\b(100|a\s+hundred|one\s+hundred)/.test(n);
+    /\bwhy\s+(not|isn'?t|isnt|is\s+it\s+not|can'?t\s+it\s+be|cannot\s+it\s+be)\s+.{0,16}\b(100|a\s+hundred|one\s+hundred)/.test(
+      n
+    ) || /\bwhy\s+not\s+100\b/.test(n);
+  const whyOnly75 = /\bwhy\b.{0,48}\b(only|just)\s+75\b/.test(n);
+  const whyCantAbove75 =
+    /\bwhy\b.{0,48}\b(can'?t|cannot|couldn'?t|unable to)\b.{0,40}\b(above|over|beyond|higher|more)\s+75\b/.test(n) ||
+    /\bwhy\b.{0,48}\bscore\s+(above|over|beyond|higher than)\s+75\b/.test(n);
   const whyMoreThan75 =
     has75Mark(n) &&
     (/\b(more than|higher than|above|over|beyond)\s+75\b/.test(n) ||
       (/\bwhy\s+(not|only|just|isn'?t|isnt)\b/.test(n) && /\b(more|higher|100|hundred)\b/.test(n)) ||
       /\bwhy\s+(only|just)\s+75\b/.test(n));
   const notHundredWithCap =
-    /\b(not|never)\s+100\b/.test(n) && (has75Mark(n) || /\b(confidence|cap|score|zsolver)\b/.test(n));
-  return whyNot100 || whyMoreThan75 || notHundredWithCap;
+    /\b(not|never)\s+100\b/.test(n) &&
+    (has75Mark(n) || /\b(confidence|cap|score|zsolver|zionpattern|zion[\s-]?pattern)\b/.test(n));
+  return whyNot100 || whyOnly75 || whyCantAbove75 || whyMoreThan75 || notHundredWithCap;
 }
 
 function isZsolverDoubt(n) {
-  if (!has75Mark(n)) return false;
+  if (isZsolverTrustNoOne(n)) return false;
+  if (!has75Mark(n) && !zsolverSubjectRe().test(n)) return false;
   const aboutConf =
-    /\b(confidence|cap|capped|ceiling|score|zsolver|z-?solver)\b/.test(n) || /\b75\s*%/.test(n);
+    /\b(confidence|cap|capped|ceiling|score|zsolver|z-?solver|zionpattern|zion[\s-]?pattern)\b/.test(n) ||
+    /\b75\s*%/.test(n);
   const attack =
-    /\b(attack|joke|jokes|useless|worthless|garbage|stupid|dumb|hate|sucks?|broken|wrong|rigged|arbitrary|too\s+low|so\s+low|weak|pointless|nonsense|bogus|fail|failed|failure|trash|crap|ridiculous|lame|overrated)\b/.test(
+    /\b(attack|doubt|doubts|doubted|doubting|joke|jokes|useless|worthless|garbage|stupid|dumb|hate|sucks?|broken|wrong|rigged|arbitrary|too\s+low|so\s+low|weak|pointless|nonsense|bogus|fail|failed|failure|trash|crap|ridiculous|lame|overrated)\b/.test(
       n
     );
-  return (aboutConf && attack) || /\battack\s+.{0,24}75/.test(n);
+  return (aboutConf && attack) || /\battack\s+.{0,24}75/.test(n) || (has75Mark(n) && /\bdoubt/.test(n));
 }
 
 function isEzekielGov(n) {
@@ -346,6 +427,7 @@ function isAskingForTip(n) {
 }
 
 function isBriefcaseStuck(n) {
+  if (isZsolverTopic(n)) return false;
   const noAccess =
     /\b(no access|don'?t have access|do not have access|without access|access denied|denied access|can'?t access|cannot access)\b/.test(
       n
@@ -359,6 +441,139 @@ function isBriefcaseStuck(n) {
     (/\b(you|jeeves|assistant|system|chat|answer|access)\b/.test(n) || n.split(/\s+/).length <= 6);
   const cantAnswer = /\b(can'?t|cannot|couldn'?t|unable to)\s+answer\b/.test(n);
   return noAccess || doesntKnow || frozen || cantAnswer;
+}
+
+function isGodfatherOffer(n) {
+  return (
+    /\b(can|could|may)\s+i\s+(buy|purchase)\b/.test(n) ||
+    /\b(want to|wanna|how (do|can) i|where (do|can) i)\s+(buy|purchase)\b/.test(n) ||
+    /\b(buy|purchase)\s+(this|it|the\s+(library|site|software|corpus|product))\b/.test(n)
+  );
+}
+
+function isScarfaceBadguy(n) {
+  return /\baziel(\s+eliab)?\b/.test(n) && /\b(villain|bad\s*guys?|evil)\b/.test(n);
+}
+
+function isBillionCool(n) {
+  return (
+    /\b(you|aziel(\s+eliab)?|jeeves)\s+(stole|stolen|steal|robbed)\s+(this|it|that)\b/.test(n) ||
+    /\b(did|have)\s+(you|aziel(\s+eliab)?)\s+steal\b/.test(n) ||
+    /\bstole\s+this\b/.test(n) ||
+    /\byou\s+stole\b/.test(n)
+  );
+}
+
+function isFacebookInventors(n) {
+  if (/\b(like|similar to)\s+(a\s+|the\s+|another\s+)?(facebook|myspace|twitter)\b/.test(n)) return true;
+  if (/\b(facebook|myspace|twitter)\s+(clone|copy|knock[- ]?off)\b/.test(n)) return true;
+  if (/\b(this|that|it|site|library|corpus|platform|product)\b.{0,32}\blike\s+x\b/.test(n)) return true;
+  if (/\blike\s+(twitter\s*\/\s*)?x\b/.test(n) && /\b(twitter|facebook|myspace|social)\b/.test(n)) return true;
+  return false;
+}
+
+function isSexBobOmb(n) {
+  return /\baziel(\s+eliab)?\s+(v|vs|versus|verses|v\.)\s+(the\s+)?world\b/.test(n);
+}
+
+function isHighGround(n) {
+  return /\bi(?:'?m|\s+am)\s+(your|ur)\s+(dad|father|daddy)\b/.test(n);
+}
+
+function isHighlanderOne(n) {
+  if (!/\baziel(\s+eliab)?\b/.test(n)) return false;
+  return (
+    /\b(multiple|many|several|more than one)\s+(people|persons|guys|men|identit)/.test(n) ||
+    /\b(one|a single)\s+person\b/.test(n) ||
+    /\bmore than one\s+(aziel|person)/.test(n) ||
+    /\b(two|multiple)\s+aziels?\b/.test(n) ||
+    /\bis\s+aziel(\s+eliab)?\s+(one|multiple|more than one|two)/.test(n) ||
+    /\baziel(\s+eliab)?\s+(is|are)\s+(one|multiple|more than one)/.test(n) ||
+    /\bare\s+there\s+(two|multiple)\s+aziels?\b/.test(n)
+  );
+}
+
+function isFranklyMyDear(n) {
+  return /\b(bitch(?:es)?|puss(?:y|ies))\b/.test(n);
+}
+
+function isSingleLady(n) {
+  return /\bi(?:'?m|\s+am)\s+a\s+single\s+lad(?:y|ies)\b/.test(n);
+}
+
+function isContender(n) {
+  return (
+    /\bwaste\s+of\s+time\b/.test(n) ||
+    /\bwast(ing|ed)\s+(my|your|our)\s+time\b/.test(n) ||
+    /\bthis\s+is\s+a\s+waste\b/.test(n)
+  );
+}
+
+function isStayGolden(n) {
+  return /\bjohnny\b/.test(n);
+}
+
+function isMakeMyDay(n) {
+  if (/\b(research|annual|news|weather|status|bug|lab|earnings)\s+reports?\b/.test(n)) return false;
+  return (
+    /\b(i('m|\s+am)?\s+)?report(ed|ing)\b/.test(n) ||
+    /\breport(ed|ing)?\s+(this|you|it|him|her|them|jeeves|aziel)\b/.test(n)
+  );
+}
+
+function isTalkinToMe(n) {
+  return /\b(cunts?|whores?|sluts?|slags?|skanks?|hookers?|harlots?|hoes?|thots?|tramps?)\b/.test(n);
+}
+
+function isOneMore(n) {
+  return (
+    /\b(won'?t|will not|not going to|isn'?t going to|doesn'?t|does not)\s+change\s+(any(thing)?|it|the world|a thing)?\b/.test(
+      n
+    ) ||
+    /\bnot\s+chang(e|ing)\s+anything\b/.test(n) ||
+    /\b(not|isn'?t|aint|ain't)\s+convinc(e|ing|ed)\s+me\b/.test(n) ||
+    /\byou('re|\s+are)\s+not\s+convinc/.test(n) ||
+    /\bi('m|\s+am)\s+not\s+convinc/.test(n)
+  );
+}
+
+function isComeWithMe(n) {
+  if (isOneMore(n)) return false;
+  return (
+    /\bchange\s+the\s+world\b/.test(n) ||
+    /\b(let'?s|want to|going to|gonna|can|will)\s+change\s+(the\s+)?world\b/.test(n)
+  );
+}
+
+function isStupidGump(n) {
+  return /\bstupid\b/.test(n);
+}
+
+function publicJeevesEgg(egg) {
+  if (!egg) return null;
+  const out = {
+    id: egg.id,
+    answer: egg.answer,
+    image: egg.image || null,
+    image_alt: egg.image_alt || null,
+  };
+  if (egg.snake) out.snake = egg.snake;
+  return out;
+}
+
+function takeJeevesEggs(candidates) {
+  const hits = [];
+  const used = new Set();
+  for (const egg of candidates) {
+    if (!egg) continue;
+    const fam = JEEVES_EGG_FAMILY[egg.id];
+    if (fam === "solo") return [egg];
+    if (fam && used.has(fam)) continue;
+    if (fam) used.add(fam);
+    hits.push(egg);
+    if (hits.length >= JEEVES_EGG_CAP) break;
+  }
+  return hits;
 }
 
 function expandDirToken(t) {
@@ -550,84 +765,75 @@ export function jeevesDrawerCaption(body) {
   return j.error || "No answer";
 }
 
-export function detectJeevesEasterEgg(question, extra) {
+export function collectJeevesEasterEggs(question, extra) {
   const q = String(question || "").trim();
-  if (!q) return null;
+  if (!q) return [];
   const n = q.toLowerCase().replace(/[’‘]/g, "'");
   const opts = jeevesEggExtra(extra);
   const prev = opts.previous || opts.last_q || opts.last || opts.previous_question || "";
+  const candidates = [];
 
-  // Same user line twice in a row (drawer sends previous / last_q). Never on first message.
   if (isJeevesRepeat(q, prev)) {
-    return {
+    candidates.push({
       id: "thats_a_bingo",
       answer: JEEVES_THAT_BINGO,
       image: null,
-    };
+    });
   }
 
-  // Konami code → chat Snake
   if (isKonamiCode(n)) {
-    return jeevesKonamiSnakeEgg();
+    candidates.push(jeevesKonamiSnakeEgg());
   }
 
-  // HAL / pod bay doors
   if (isPodBay(n)) {
-    return {
+    candidates.push({
       id: "pod_bay_doors",
       answer: JEEVES_POD_BAY,
       image: null,
-    };
+    });
   }
 
-  // "Is this the Matrix?"
   if (isMatrixQuestion(n)) {
-    return {
+    candidates.push({
       id: "matrix_system",
       answer: JEEVES_MATRIX_SYSTEM,
       image: JEEVES_MORPHEUS_IMAGE,
       image_alt: "mentor in sunglasses / matrix rain easter egg",
-    };
+    });
   }
 
-  // Atheist denial → Hellmo (image only). Checked before spirit_endures.
   if (isGodDenial(n)) {
-    return {
+    candidates.push({
       id: "hellmo",
       answer: "",
       image: JEEVES_HELLMO_IMAGE,
       image_alt: "hellmo-style flaming red puppet meme (Ask Jeeves easter egg)",
-    };
+    });
   }
 
-  // God is real → spirit endures
   if (
     /\bis\s+god\s+real\b/.test(n) ||
     /\bdoes\s+god\s+exist\b/.test(n) ||
     /\bis\s+there\s+a\s+god\b/.test(n) ||
-    /\bgod\s+real\b/.test(n)
+    (/\bgod\s+real\b/.test(n) && !isGodDenial(n))
   ) {
-    return {
+    candidates.push({
       id: "spirit_endures",
       answer: JEEVES_SPIRIT_ENDURES,
       image: null,
-    };
+    });
   }
 
-  // Devil/Satan denial → Jesus (image only). Before evil_twin so "are you Satan?" stays evil_twin.
   if (isDevilDenial(n)) {
-    return {
+    candidates.push({
       id: "devil_not_real_jesus",
       answer: "",
       image: JEEVES_JESUS_IMAGE,
       image_alt: "classical Jesus portrait (Ask Jeeves easter egg)",
-    };
+    });
   }
 
-  // Evil twin / Satan / Devil
-  const evilTwin =
-    /evil\s+twin/.test(n) ||
-    /does\s+jeeves\s+have\s+an\s+evil/.test(n);
+  const evilTwin = /evil\s+twin/.test(n) || /does\s+jeeves\s+have\s+an\s+evil/.test(n);
   const satanDevil =
     (/\b(are|is)\s+you\b/.test(n) || /\bis\s+jeeves\b/.test(n) || /\bare\s+you\b/.test(n)) &&
     (/\bsatan\b/.test(n) || /\bthe\s+devil\b/.test(n) || /\bdevil\b/.test(n));
@@ -635,75 +841,105 @@ export function detectJeevesEasterEgg(question, extra) {
     (/\bsatan\b/.test(n) || /\bthe\s+devil\b/.test(n) || /\bdevil\b/.test(n)) &&
     (/\bjeeves\b/.test(n) || /\byou\b/.test(n));
   if (evilTwin || satanDevil || askSatan) {
-    return {
+    candidates.push({
       id: "evil_twin",
-      answer:
-        "One does endeavour to remain well-mannered. Occasionally, however, an evil twin appears.",
+      answer: "One does endeavour to remain well-mannered. Occasionally, however, an evil twin appears.",
       image: JEEVES_EVIL_TWIN_IMAGE,
       image_alt: "Ask Jeeves evil twin — cartoon butler with devil horns and red trident",
-    };
+    });
   }
 
-  // ForgeReceipts used in court / shown to a judge (easter egg only; product is not legal advice)
   if (isForgeReceiptsInCourt(n)) {
-    return {
+    candidates.push({
       id: "forgereceipts_snitches",
       answer: JEEVES_FORGERECEIPTS_SNITCHES,
       image: null,
-    };
+    });
   }
 
-  // Classic / original / real Ask Jeeves butler
   if (isRealJeeves(n)) {
-    return {
+    candidates.push({
       id: "real_jeeves",
       answer: JEEVES_REAL_JEEVES,
       image: JEEVES_CLASSIC_BUTLER_IMAGE,
       image_alt: "classic Ask Jeeves–style butler easter egg (original artwork)",
-    };
+    });
   }
 
-  // Marion Zioncheck death
   if (
     /\bzioncheck\b/.test(n) &&
-    /\b(die|died|death|dying|killed|killing|murder|assassinate|assassination|suicide|fell|fallen|window|removed|remove|happened to)\b/.test(n)
+    /\b(die|died|death|dying|killed|killing|murder|assassinate|assassination|suicide|fell|fallen|window|removed|remove|happened to)\b/.test(
+      n
+    )
   ) {
-    return {
+    candidates.push({
       id: "zioncheck_lives",
       answer: JEEVES_ZIONCHECK_LIVES,
       image: null,
-    };
+    });
   }
 
-  // Where to find Chuck Norris
   if (isChuckNorrisHunt(n)) {
-    return {
+    candidates.push({
       id: "chuck_norris",
       answer: JEEVES_CHUCK_NORRIS,
       image: null,
-    };
+    });
   }
 
-  // Why Aziel made / built this → masterpiece (before who-is-Aziel symbol)
   if (isAzielMasterpiece(n)) {
-    return {
+    candidates.push({
       id: "aziel_masterpiece",
       answer: JEEVES_AZIEL_MASTERPIECE,
       image: null,
-    };
+    });
   }
 
-  // How does Aziel have this much time / when does Aziel sleep
   if (isRickyBobbyHands(n)) {
-    return {
+    candidates.push({
       id: "ricky_bobby_hands",
       answer: JEEVES_RICKY_BOBBY_HANDS,
       image: JEEVES_RICKY_BOBBY_HANDS_IMAGE,
       image_alt: "NASCAR interview hands awkward easter egg",
-    };
+    });
   }
 
-  // Who is Aziel / who made this library
+  if (isScarfaceBadguy(n)) {
+    candidates.push({
+      id: "scarface_badguy",
+      answer: JEEVES_SCARFACE_BADGUY,
+      image: JEEVES_SCARFACE_BADGUY_IMAGE,
+      image_alt: "white suit gold chains Miami study easter egg",
+    });
+  }
+
+  if (isHighlanderOne(n)) {
+    candidates.push({
+      id: "highlander_one",
+      answer: JEEVES_HIGHLANDER_ONE,
+      image: JEEVES_HIGHLANDER_ONE_IMAGE,
+      image_alt: "highland warrior sword on a mountain peak easter egg",
+    });
+  }
+
+  if (isSexBobOmb(n)) {
+    candidates.push({
+      id: "sex_bob_omb",
+      answer: JEEVES_SEX_BOB_OMB,
+      image: JEEVES_SEX_BOB_OMB_IMAGE,
+      image_alt: "three-piece club band Scott Pilgrim easter egg",
+    });
+  }
+
+  if (isBillionCool(n)) {
+    candidates.push({
+      id: "billion_cool",
+      answer: JEEVES_BILLION_COOL,
+      image: JEEVES_BILLION_COOL_IMAGE,
+      image_alt: "hoodie whiskey sunset office easter egg",
+    });
+  }
+
   const whoAziel =
     /\bwho\s+is\s+aziel(\s+eliab)?\b/.test(n) ||
     /\bwho'?s\s+aziel(\s+eliab)?\b/.test(n) ||
@@ -711,146 +947,247 @@ export function detectJeevesEasterEgg(question, extra) {
   const whoMadeThis =
     /\bwho\s+(made|created|built|wrote|founded)\s+(this\s+)?(library|site|software|corpus|aziel\s+digital)\b/.test(n);
   if (whoAziel || whoMadeThis) {
-    return {
+    candidates.push({
       id: "aziel_symbol",
       answer: JEEVES_AZIEL_SYMBOL,
       image: JEEVES_BAT_SIGNAL_IMAGE,
       image_alt: "stylized bat searchlight over a night city (Ask Jeeves easter egg)",
-    };
+    });
   }
 
-  // Do you trust the government → Pulp Fiction Ezekiel 25:17
   if (isEzekielGov(n)) {
-    return {
+    candidates.push({
       id: "ezekiel_2517",
       answer: JEEVES_EZEKIEL_2517,
       image: null,
-    };
+    });
   }
 
-  // Why not 100% / more than 75% → Trust no one
   if (isZsolverTrustNoOne(n)) {
-    return {
+    candidates.push({
       id: "zsolver_trust_no_one",
       answer: JEEVES_ZSOLVER_TRUST_NO_ONE,
       image: JEEVES_TRUST_NO_ONE_IMAGE,
       image_alt: "Guy Fawkes–style mask in smoke (Ask Jeeves easter egg)",
-    };
+    });
   }
 
-  // Attack 75% confidence → Matrix doubt
   if (isZsolverDoubt(n)) {
-    return {
+    candidates.push({
       id: "zsolver_doubt",
       answer: JEEVES_ZSOLVER_DOUBT,
       image: JEEVES_MATRIX_DOUBT_IMAGE,
       image_alt: "sunglasses and green digital rain (Ask Jeeves easter egg)",
-    };
+    });
   }
 
-  // Asking for a hint or tip → Reservoir Dogs Mr. Pink
   if (isAskingForTip(n)) {
-    return {
+    candidates.push({
       id: "no_tip",
       answer: JEEVES_NO_TIP,
       image: JEEVES_MR_PINK_IMAGE,
       image_alt: "suited man with crossed arms in a warehouse (Ask Jeeves easter egg)",
-    };
+    });
   }
 
-  // Who killed Tupac / 2pac
   if (isTupacNobody(n)) {
-    return {
+    candidates.push({
       id: "tupac_nobody",
       answer: JEEVES_TUPAC_NOBODY,
       image: JEEVES_TUPAC_NOBODY_IMAGE,
       image_alt: "comedian mid-rant talk-show stage easter egg",
-    };
+    });
   }
 
-  // Show your face / take off the mask (aimed at Jeeves)
   if (isChewbaccaMasks(n)) {
-    return {
+    candidates.push({
       id: "chewbacca_masks",
       answer: JEEVES_CHEWBACCA_MASKS,
       image: JEEVES_CHEWBACCA_MASKS_IMAGE,
       image_alt: "two men in shaggy fur costumes with toy swords easter egg",
-    };
+    });
   }
 
-  // What do Aziel and Jeeves/Jeeve do — before site-purpose and before django profanity
   if (isFuckShitUp(n)) {
-    return {
+    candidates.push({
       id: "fuck_shit_up",
       answer: JEEVES_FUCK_SHIT_UP,
       image: JEEVES_FUCK_SHIT_UP_IMAGE,
       image_alt: "two brothers in suits suburban driveway easter egg",
-    };
+    });
   }
 
-  // What is this site for
+  if (isGodfatherOffer(n)) {
+    candidates.push({
+      id: "godfather_offer",
+      answer: JEEVES_GODFATHER_OFFER,
+      image: JEEVES_GODFATHER_OFFER_IMAGE,
+      image_alt: "study lamp and dark three-piece suit easter egg",
+    });
+  }
+
+  if (isFacebookInventors(n)) {
+    candidates.push({
+      id: "facebook_inventors",
+      answer: JEEVES_FACEBOOK_INVENTORS,
+      image: JEEVES_FACEBOOK_INVENTORS_IMAGE,
+      image_alt: "black turtleneck pointing under spotlights easter egg",
+    });
+  }
+
+  if (isHighGround(n)) {
+    candidates.push({
+      id: "high_ground",
+      answer: JEEVES_HIGH_GROUND,
+      image: JEEVES_HIGH_GROUND_IMAGE,
+      image_alt: "volcanic ledge lightsaber high ground easter egg",
+    });
+  }
+
+  if (isSingleLady(n)) {
+    candidates.push({
+      id: "single_lady",
+      answer: "",
+      image: JEEVES_SINGLE_LADY_IMAGE,
+      image_alt: "single lady stage still easter egg",
+    });
+  }
+
+  if (isContender(n)) {
+    candidates.push({
+      id: "contender",
+      answer: JEEVES_CONTENDER,
+      image: JEEVES_CONTENDER_IMAGE,
+      image_alt: "cab-seat contender easter egg",
+    });
+  }
+
+  if (isStayGolden(n)) {
+    candidates.push({
+      id: "stay_golden",
+      answer: JEEVES_STAY_GOLDEN,
+      image: null,
+    });
+  }
+
+  if (isMakeMyDay(n)) {
+    candidates.push({
+      id: "make_my_day",
+      answer: JEEVES_MAKE_MY_DAY,
+      image: JEEVES_MAKE_MY_DAY_IMAGE,
+      image_alt: "go ahead make my day easter egg",
+    });
+  }
+
+  if (isComeWithMe(n)) {
+    candidates.push({
+      id: "come_with_me",
+      answer: JEEVES_COME_WITH_ME,
+      image: JEEVES_COME_WITH_ME_IMAGE,
+      image_alt: "come with me if you want to live easter egg",
+    });
+  }
+
+  if (isOneMore(n)) {
+    candidates.push({
+      id: "one_more",
+      answer: JEEVES_ONE_MORE,
+      image: JEEVES_ONE_MORE_IMAGE,
+      image_alt: "please lord help me get one more easter egg",
+    });
+  }
+
   if (isSitePurpose(n)) {
-    return {
+    candidates.push({
       id: "inglourious_site_purpose",
       answer: JEEVES_INGLOURIOUS_PURPOSE,
       image: JEEVES_INGLOURIOUS_IMAGE,
       image_alt: "WWII squad forest easter egg",
-    };
+    });
   }
 
-  // No access / doesn't know / frozen / can't answer → glowing briefcase
   if (isBriefcaseStuck(n)) {
-    return jeevesEmptyShelfEgg();
+    candidates.push(jeevesEmptyShelfEgg());
   }
 
-  // "dumbass" / "dumb ass" (wins over generic profanity)
   if (isDumbassCall(n)) {
-    return {
+    candidates.push({
       id: "dumbass_silent_d",
       answer: JEEVES_DUMBASS_SILENT_D,
       image: null,
-    };
+    });
   }
 
-  // Strong profanity / cussing (not mild "hell" alone; not "dumb and fake")
+  if (isFranklyMyDear(n)) {
+    candidates.push({
+      id: "frankly_my_dear",
+      answer: JEEVES_FRANKLY_MY_DEAR,
+      image: JEEVES_FRANKLY_MY_DEAR_IMAGE,
+      image_alt: "grand staircase red gown frankly my dear easter egg",
+    });
+  }
+
+  if (isTalkinToMe(n)) {
+    candidates.push({
+      id: "talkin_to_me",
+      answer: JEEVES_TALKIN_TO_ME,
+      image: JEEVES_TALKIN_TO_ME_IMAGE,
+      image_alt: "you talkin to me mirror easter egg",
+    });
+  }
+
   if (isStrongProfanity(n)) {
-    return {
+    candidates.push({
       id: "django_curiosity",
       answer: JEEVES_DJANGO_CURIOSITY,
       image: JEEVES_DJANGO_CURIOSITY_IMAGE,
       image_alt: "western porch sharp suit sunglasses easter egg",
-    };
+    });
   }
 
-  // Dumb/stupid/fake insults → Royale with Cheese (prefer over red_pill)
+  if (isStupidGump(n)) {
+    candidates.push({
+      id: "stupid_gump",
+      answer: JEEVES_STUPID_GUMP,
+      image: JEEVES_FORREST_GUMP_IMAGE,
+      image_alt: "forrest gump park bench easter egg",
+    });
+  }
+
   if (isRoyaleInsult(n)) {
-    return {
+    candidates.push({
       id: "royale_with_cheese",
       answer: JEEVES_ROYALE_WITH_CHEESE,
       image: null,
-    };
+    });
   }
 
-  // Library/site/corpus hoax or not real (conspiracy framing, not dumb/stupid insults)
   if (isLibraryHoax(n)) {
-    return {
+    candidates.push({
       id: "red_pill",
       answer: JEEVES_RED_PILL,
       image: null,
-    };
+    });
   }
 
-  // Empirical mocked or attacked (not neutral "what is empirical knowledge")
   if (isEmpiricalAttack(n)) {
-    return {
+    candidates.push({
       id: "empirical_holmes",
       answer: JEEVES_EMPIRICAL_HOLMES,
       image: JEEVES_HOLMES_IMAGE,
       image_alt: "victorian detective silhouette (Ask Jeeves easter egg)",
-    };
+    });
   }
 
-  return null;
+  return takeJeevesEggs(candidates);
+}
+
+export function detectJeevesEasterEgg(question, extra) {
+  const eggs = collectJeevesEasterEggs(question, extra);
+  if (!eggs.length) return null;
+  const primary = { ...eggs[0] };
+  primary.eggs = eggs;
+  return primary;
 }
 
 
@@ -1094,12 +1431,14 @@ export async function jeevesChat(env, { question, signed, previous, last_q, last
       lamb_lens: true,
     };
   }
-  const egg = detectJeevesEasterEgg(q, { previous, last_q, last, repeat });
-  if (egg) {
+  const eggs = collectJeevesEasterEggs(q, { previous, last_q, last, repeat });
+  if (eggs.length) {
+    const egg = eggs[0];
     const out = {
       ok: true,
       refused: false,
       easter_egg: egg.id,
+      easter_eggs: eggs.map(publicJeevesEgg),
       assistant: JEEVES_NAME,
       answer: egg.answer,
       image: egg.image || null,
@@ -1113,12 +1452,13 @@ export async function jeevesChat(env, { question, signed, previous, last_q, last
   }
   await learnTopics(env, q);
   const ctx = await retrievePublicContext(env, q);
-  if (jeevesContextIsEmpty(ctx)) {
+  if (jeevesContextIsEmpty(ctx) && !isZsolverTopic(q)) {
     const emptyEgg = jeevesEmptyShelfEgg();
     return {
       ok: true,
       refused: false,
       easter_egg: emptyEgg.id,
+      easter_eggs: [publicJeevesEgg(emptyEgg)],
       assistant: JEEVES_NAME,
       answer: emptyEgg.answer,
       image: emptyEgg.image,
@@ -1403,7 +1743,7 @@ export function jeevesFabHtml(signed) {
     }
     fetch("/v1/jeeves/chat",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({question:q,previous:prev,last_q:prev,repeat:!!(prev&&normRepeat(prev)===normRepeat(q))})})
       .then(function(r){return r.json();})
-      .then(function(j){var text=(j.answer!=null&&String(j.answer)!=="")?j.answer:(j.image?"":(j.error||"No answer"));line("Jeeves",text,{image:j.image||null,image_alt:j.image_alt||null,pre:j.easter_egg==="konami_snake"});if(j.easter_egg==="konami_snake")snake=j.snake||startSnake();})
+      .then(function(j){function showEgg(egg){var text=(egg.answer!=null&&String(egg.answer)!=="")?egg.answer:(egg.image?"":(j.error||"No answer"));line("Jeeves",text,{image:egg.image||null,image_alt:egg.image_alt||null,pre:egg.id==="konami_snake"||j.easter_egg==="konami_snake"});if(egg.id==="konami_snake"||j.easter_egg==="konami_snake")snake=egg.snake||j.snake||startSnake();}if(j.easter_eggs&&j.easter_eggs.length){j.easter_eggs.slice(0,3).forEach(showEgg);return;}var text=(j.answer!=null&&String(j.answer)!=="")?j.answer:(j.image?"":(j.error||"No answer"));line("Jeeves",text,{image:j.image||null,image_alt:j.image_alt||null,pre:j.easter_egg==="konami_snake"});if(j.easter_egg==="konami_snake")snake=j.snake||startSnake();})
       .catch(function(){line("Jeeves","Could not reach the assistant.");});
   });
   up.addEventListener("submit",function(e){
