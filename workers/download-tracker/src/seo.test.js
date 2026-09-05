@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { headMeta, defaultDescription, recordDescription, personNode, SHARE_IMAGE, ABOUT_PATH, aboutRedirectFrom } from "./seo.js";
+import { handleRuntimeApi } from "./runtime.js";
 import { page, howItsScoredBody } from "./ui.js";
 
 const BANNED = /Collin Horton|GodLock\.AZ|\+25|quiet (Aziel|triad|boost)|10\.5281\/zenodo/i;
@@ -16,7 +17,14 @@ test("JSON-LD types the author as Person with alternateName", () => {
   assert.equal(person["@type"], "Person");
   assert.equal(person.name, "Aziel Eliab");
   assert.deepEqual(person.alternateName, ["Aziel Elroi Eliab"]);
+  assert.ok(person.sameAs.includes("https://godlock.uk/AzielEliab"));
   assert.ok(person.sameAs.includes("https://github.com/AzielEliab"));
+  assert.ok(person.sameAs.includes("https://github.com/AzielEliab/aziel-corpus"));
+  assert.deepEqual(person.sameAs, [
+    "https://godlock.uk/AzielEliab",
+    "https://github.com/AzielEliab",
+    "https://github.com/AzielEliab/aziel-corpus",
+  ]);
 
   const html = headMeta({ title: "Aziel Eliab", path: ABOUT_PATH, kind: "about" });
   const ld = graphFrom(html);
@@ -30,6 +38,12 @@ test("JSON-LD types the author as Person with alternateName", () => {
   assert.equal(who["@id"], "https://www.azielcorpuslibrary.net/AzielEliab#aziel-eliab");
   assert.equal(who.url, "https://www.azielcorpuslibrary.net/AzielEliab");
   assert.ok(who.alternateName.includes("Aziel Elroi Eliab"));
+  assert.ok(who.sameAs.includes("https://godlock.uk/AzielEliab"));
+  assert.ok(who.sameAs.includes("https://github.com/AzielEliab"));
+  assert.ok(who.sameAs.includes("https://github.com/AzielEliab/aziel-corpus"));
+  assert.match(html, /rel="me" href="https:\/\/godlock\.uk\/AzielEliab"/);
+  assert.match(html, /keywords" content="Aziel Eliab, Aziel Elroi Eliab, Aziel Digital Library/);
+  assert.match(html, /GodLock/);
   const profile = ld["@graph"].find((n) => n["@type"] === "ProfilePage");
   assert.equal(profile.url, "https://www.azielcorpuslibrary.net/AzielEliab");
   const org = ld["@graph"].find((n) => n["@type"] === "Organization");
@@ -43,6 +57,7 @@ test("JSON-LD types the author as Person with alternateName", () => {
 test("page-specific descriptions and share images", () => {
   assert.match(defaultDescription("about"), /Aziel Eliab/);
   assert.match(defaultDescription("about"), /Aziel Elroi Eliab/);
+  assert.match(defaultDescription("about"), /GodLock/);
   assert.match(defaultDescription("software"), /Software|aziel-runtime/i);
   assert.match(defaultDescription("scored"), /intentional suppression/);
   assert.match(defaultDescription("search"), /Search Aziel Digital Library/);
@@ -95,4 +110,17 @@ test("chrome page for how-its-scored does not leak the quiet triad boost", () =>
   assert.match(html, /Aziel Elroi Eliab/);
   assert.doesNotMatch(html, BANNED);
   assert.doesNotMatch(html, /collection score is the published triad/);
+});
+
+test("OpenAPI identity URLs include /AzielEliab and GodLock", async () => {
+  const url = new URL("https://www.azielcorpuslibrary.net/openapi.json");
+  const res = await handleRuntimeApi(new Request(url, { method: "GET" }), url, {});
+  assert.equal(res.status, 200);
+  const spec = await res.json();
+  assert.ok(spec.paths["/AzielEliab"]);
+  assert.equal(spec.info.contact.name, "Aziel Eliab");
+  assert.equal(spec.info.contact.url, "https://www.azielcorpuslibrary.net/AzielEliab");
+  assert.match(spec.info.description, /godlock\.uk\/AzielEliab/);
+  assert.match(spec.paths["/AzielEliab"].get.summary, /godlock\.uk\/AzielEliab/);
+  assert.doesNotMatch(JSON.stringify(spec), BANNED);
 });

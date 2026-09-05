@@ -39,6 +39,7 @@ Always send \`User-Agent: Mozilla/5.0\`.
 
 - Library: ${HOST}/
 - Aziel Eliab: ${HOST}/AzielEliab
+- GodLock identity: https://godlock.uk/AzielEliab
 - Software hub: ${HOST}/software
 - How it's scored: ${HOST}/how-its-scored
 - Fallback Worker: ${FALLBACK_HOST}/
@@ -121,8 +122,8 @@ function openapi() {
       title: "Aziel Digital Library",
       version: VERSION,
       summary: "Public MASTER digital library by Aziel Eliab (also known as Aziel Elroi Eliab).",
-      description: LIMITATION + " Author Aziel Eliab (aka Aziel Elroi Eliab; primary credit Aziel Eliab). Software hub " + HOST + "/software. Runtime catalog " + HOST + "/runtime. Origin catalog " + CATALOG + "/. GitHub https://github.com/AzielEliab/aziel-corpus. How records are scored: " + HOST + "/how-its-scored. No invented DOIs.",
-      contact: { name: "Aziel Eliab", url: "https://github.com/AzielEliab" },
+      description: LIMITATION + " Author Aziel Eliab (aka Aziel Elroi Eliab; primary credit Aziel Eliab). Identity " + HOST + "/AzielEliab. GodLock identity https://godlock.uk/AzielEliab. Software hub " + HOST + "/software. Runtime catalog " + HOST + "/runtime. Origin catalog " + CATALOG + "/. GitHub https://github.com/AzielEliab and https://github.com/AzielEliab/aziel-corpus. How records are scored: " + HOST + "/how-its-scored. No invented DOIs.",
+      contact: { name: "Aziel Eliab", url: HOST + "/AzielEliab" },
       license: { name: "Apache-2.0", url: "https://www.apache.org/licenses/LICENSE-2.0" },
     },
     servers: [{ url: HOST }, { url: FALLBACK_HOST }],
@@ -150,7 +151,7 @@ function openapi() {
       "/v1/docs/{hash}/download": { get: { summary: "Download the stored file for a kept record whose content_sha256 matches. Does not increment downloads. Duplicates are not deleted.", operationId: "downloadByHash", parameters: [{ name: "hash", in: "path", required: true, schema: { type: "string" } }] } },
       "/v1/runtime": { get: { summary: "Digital Library package discovery (NOT aziel-runtime engine manifest). Use /v1/runtime.json for engine-runtime 1.4.0.", operationId: "runtime" } },
       "/v1/runtime.json": { get: { summary: "aziel-runtime 1.4.0 engine-runtime manifest (proxied). Distinct from /v1/runtime library package discovery.", operationId: "runtimeRoot" } },
-      "/AzielEliab": { get: { summary: "Aziel Eliab — author profile page (HTML). Legacy /about and /aboutme permanently redirect here.", operationId: "azielEliab" } },
+      "/AzielEliab": { get: { summary: "Aziel Eliab — author profile page (HTML). Corresponds with https://godlock.uk/AzielEliab. Legacy /about and /aboutme permanently redirect here.", operationId: "azielEliab" } },
       "/runtime": { get: { summary: "aziel-runtime 1.3.0 engine-runtime page. Prefer /runtime/*. In-process engines + engine_digest. Proxy is not exec.", operationId: "runtimePage" } },
       "/runtime/v1/health": { get: { summary: "aziel-runtime 1.3.0 health via same-origin proxy.", operationId: "runtimeProxyHealth" } },
       "/runtime/v1/runtime.json": { get: { summary: "aziel-runtime 1.4.0 engine-runtime manifest via same-origin proxy.", operationId: "runtimeProxyManifest" } },

@@ -75,6 +75,8 @@ test("Pattern, Software, About, and runtime pages render live copy", () => {
   assert.match(about, /Aziel Library/);
   assert.match(about, /href="\/software"/);
   assert.match(about, /href="\/how-its-scored"/);
+  assert.match(about, /href="https:\/\/godlock\.uk\/AzielEliab"/);
+  assert.match(about, /GodLock is one product Aziel Eliab built/);
   const scored = howItsScoredBody();
   assert.match(scored, /How it's scored/);
   assert.match(scored, /SPRE/);
@@ -104,6 +106,7 @@ test("Pattern, Software, About, and runtime pages render live copy", () => {
   assert.match(soft, /aziel-runtime/);
   assert.match(soft, /href="\/how-its-scored"/);
   assert.match(soft, /href="\/runtime"/);
+  assert.match(soft, /href="https:\/\/godlock\.uk\/AzielEliab"/);
   assert.doesNotMatch(soft, /zenodo/i);
   const runtime = runtimeBody();
   assert.match(runtime, /aziel-runtime/);
@@ -117,6 +120,7 @@ test("Pattern, Software, About, and runtime pages render live copy", () => {
   assert.match(runtime, /engine_digest/);
   assert.match(runtime, /\/runtime\/v1\/session\/open/);
   assert.match(runtime, /proxy_fallback/);
+  assert.match(runtime, /href="https:\/\/godlock\.uk\/AzielEliab"/);
   assert.doesNotMatch(runtime, /10\.5281\/zenodo/i);
 });
 
