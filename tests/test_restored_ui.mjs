@@ -94,6 +94,11 @@ test("Pattern, Software, About, and runtime pages render live copy", () => {
   assert.match(runtime, /\/runtime\/openapi\.json/);
   assert.match(runtime, /POST \/runtime\/mcp/);
   assert.match(runtime, /THIS IS NOT<\/strong> a second software index/);
+  assert.match(runtime, /engine-runtime 1\.3\.0/);
+  assert.match(runtime, /engine_digest/);
+  assert.match(runtime, /\/runtime\/v1\/session\/open/);
+  assert.match(runtime, /proxy_fallback/);
+  assert.doesNotMatch(runtime, /10\.5281\/zenodo/i);
 });
 
 test("map page uses BCE year sliders and a month filter", () => {

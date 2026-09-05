@@ -535,12 +535,12 @@ async function loadSoftwareCatalog() {
   const cards = [];
   cards.push({
     name: "aziel-runtime",
-    version: "catalog",
+    version: "1.3.0",
     root: true,
     countLabel: (counts.filter((n) => n != null).reduce((a, b) => a + b, 0) || null) != null
       ? String(counts.filter((n) => n != null).reduce((a, b) => a + b, 0)) + " downloads"
       : null,
-    blurb: "AI pull/invoke root. Prefer /runtime for catalog, OpenAPI, MCP, skill, runtime.json, and pull/{slug}. Software tab stays the download catalog. Author Aziel Eliab.",
+    blurb: "AI runtime root (engine-runtime 1.3.0). Prefer /runtime. Catalog/pull/proxy remain; listed engines run in-process with engine_digest. Software tab stays the download catalog. Author Aziel Eliab.",
     links: [
       { href: "/runtime", label: "Runtime root", primary: true },
       { href: "https://github.com/AzielEliab/aziel-runtime", label: "GitHub" },
