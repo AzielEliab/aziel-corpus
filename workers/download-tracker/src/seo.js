@@ -1,4 +1,14 @@
 /** Crawl/index metadata for hosted MASTER pages. Author: Aziel Eliab. */
+import {
+  RUNTIME_VERSION,
+  RUNTIME_ORIGIN,
+  RUNTIME_GITHUB,
+  RUNTIME_LIVE_COUNT,
+  RUNTIME_LOCAL_ONLY,
+  RUNTIME_DESCRIPTION,
+  RUNTIME_KERNEL,
+} from "./runtime-copy.js";
+
 export const CANON_HOST = "https://www.azielcorpuslibrary.net";
 export const ABOUT_PATH = "/AzielEliab";
 export const ABOUT_NAV_LABEL = "Aziel Eliab";
@@ -7,7 +17,7 @@ const AUTHOR = "Aziel Eliab";
 const AKA = "Aziel Elroi Eliab";
 export const GITHUB_AUTHOR = "https://github.com/AzielEliab";
 export const GITHUB_REPO = "https://github.com/AzielEliab/aziel-corpus";
-const GITHUB_RUNTIME = "https://github.com/AzielEliab/aziel-runtime";
+const GITHUB_RUNTIME = RUNTIME_GITHUB;
 export const GODLOCK_IDENTITY = "https://godlock.uk/AzielEliab";
 export const SHARE_IMAGE = CANON_HOST + "/sigil.png";
 
@@ -71,8 +81,8 @@ export function defaultDescription(kind) {
   if (kind === "verify") return "Integrity verification of the hosted Aziel Digital Library MASTER. Author Aziel Eliab.";
   if (kind === "corpus") return "Public corpus of Aziel Digital Library. Search published records. Author Aziel Eliab.";
   if (kind === "aziel-library") return "Aziel Library — royal-purple operator collection of work by Aziel Eliab on Aziel Digital Library.";
-  if (kind === "runtime") return "aziel-runtime 1.4.0 engine-runtime on the Aziel Digital Library. Prefer /runtime/*. Listed engines run in-process; receipts carry engine_digest. Proxy is not exec. Author Aziel Eliab.";
-  if (kind === "software") return "Downloadable software by Aziel Eliab. Product catalog for aziel-runtime, AzielTether, and the Aziel suite. Invoke from /runtime. Author Aziel Eliab.";
+  if (kind === "runtime") return RUNTIME_DESCRIPTION;
+  if (kind === "software") return "Downloadable software by Aziel Eliab. Product catalog for aziel-runtime " + RUNTIME_VERSION + " FragGate, AzielTether, and the Aziel suite. Invoke from this domain at /runtime. Author Aziel Eliab.";
   if (kind === "about") return "About Aziel Eliab. What matters is the record: hashed receipts, timed files, and software that can be opened without taking the speaker on faith. Signed Aziel Elroi Eliab. GodLock is one product on that record.";
   if (kind === "scored" || kind === "how-its-scored") return "How Aziel Digital Library scores records: triad SPRE × CLCE × PhysLing, and ZionPattern meaning (75 is intentional suppression confidence; lower is more natural). Author Aziel Eliab.";
   if (kind === "pattern") return "Pattern clusters across Aziel Digital Library domains, subjects, and keywords. Author Aziel Eliab.";
@@ -187,17 +197,28 @@ function jsonLd(title, path, kind, description, work) {
   if (kind === "map" || path === "/map") {
     graph.push({ "@type": "Map", name: "Temporal Map", url: CANON_HOST + "/map", creator: { "@id": person["@id"] } });
   }
-  if (kind === "runtime" || path === "/runtime") {
+  if (kind === "runtime" || path === "/runtime" || kind === "software" || path === "/software" || path === "/") {
     graph.push({
       "@type": "SoftwareApplication",
       name: "aziel-runtime",
+      softwareVersion: RUNTIME_VERSION,
       applicationCategory: "DeveloperApplication",
       operatingSystem: "Cloudflare Workers",
       url: CANON_HOST + "/runtime",
-      description,
+      description: RUNTIME_DESCRIPTION,
       author: { "@id": person["@id"] },
       license: "https://www.apache.org/licenses/LICENSE-2.0",
       codeRepository: GITHUB_RUNTIME,
+      sameAs: [RUNTIME_ORIGIN + "/", GITHUB_RUNTIME],
+    });
+    graph.push({
+      "@type": "WebAPI",
+      name: "aziel-runtime FragGate",
+      url: CANON_HOST + "/runtime/v1/fraggate",
+      documentation: CANON_HOST + "/runtime",
+      description: "FragGate " + RUNTIME_VERSION + " door. " + RUNTIME_LIVE_COUNT + " live advisory engines; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse. Kernel " + RUNTIME_KERNEL + ".",
+      provider: { "@id": person["@id"] },
+      termsOfService: CANON_HOST + "/runtime",
     });
   }
   if (kind === "about" || path === ABOUT_PATH) {
@@ -234,7 +255,7 @@ function jsonLd(title, path, kind, description, work) {
 function pageKeywords(kind) {
   const base = [AUTHOR, AKA, SITE, "aziel-corpus"];
   if (kind === "about") base.push("GodLock");
-  if (kind === "software" || kind === "runtime") base.push("aziel-runtime", "AzielTether", "GodLock");
+  if (kind === "software" || kind === "runtime") base.push("aziel-runtime", "FragGate", "AzielTether", "GodLock");
   if (kind === "scored" || kind === "how-its-scored" || kind === "record") base.push("SPRE", "CLCE", "PhysLing", "ZionPattern");
   return base.join(", ");
 }
@@ -271,6 +292,11 @@ export function headMeta(opts) {
     linkRel("alternate", "/llms.txt", " type=" + Q + "text/plain" + Q),
     linkRel("alternate", "/ai.txt", " type=" + Q + "text/plain" + Q),
     linkRel("alternate", "/openapi.json", " type=" + Q + "application/json" + Q + " title=" + Q + "OpenAPI" + Q),
+    linkRel("alternate", "/runtime/openapi.json", " type=" + Q + "application/json" + Q + " title=" + Q + "Runtime OpenAPI" + Q),
+    linkRel("alternate", "/runtime/mcp", " type=" + Q + "application/json" + Q + " title=" + Q + "Runtime MCP" + Q),
+    linkRel("alternate", "/runtime/llms.txt", " type=" + Q + "text/plain" + Q + " title=" + Q + "Runtime llms.txt" + Q),
+    linkRel("alternate", "/runtime/cite.json", " type=" + Q + "application/json" + Q + " title=" + Q + "Runtime cite.json" + Q),
+    linkRel("service", "/runtime/v1/fraggate", " title=" + Q + "FragGate" + Q),
     ...(kind === "about" || path === ABOUT_PATH ? [
       linkRel("me", GODLOCK_IDENTITY),
       linkRel("me", GITHUB_AUTHOR),

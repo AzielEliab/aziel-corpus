@@ -1,97 +1,100 @@
 /**
  * aziel-runtime hosted as the Digital Library AI runtime root.
- * /runtime is the human + AI page. /runtime/* proxies aziel-runtime 1.4.0.
+ * /runtime is the human + AI page. /runtime/* proxies aziel-runtime 1.6.2 FragGate.
  * Author: Aziel Eliab.
  */
 import { page, runtimeBody } from "./ui.js";
 import { corsHeaders, json } from "./runtime.js";
+import {
+  HOST,
+  RUNTIME_ORIGIN,
+  RUNTIME_VERSION,
+  RUNTIME_DOOR,
+  RUNTIME_KERNEL,
+  RUNTIME_GITHUB,
+  RUNTIME_LIVE_COUNT,
+  RUNTIME_PRODUCT_COUNT,
+  RUNTIME_LOCAL_ONLY,
+  ENGINE_SLUGS,
+  AI_CLIENTS,
+  RUNTIME_DESCRIPTION,
+  RUNTIME_LIMITATION,
+  runtimeHowTo,
+} from "./runtime-copy.js";
 
-export const HOST = "https://www.azielcorpuslibrary.net";
-export const RUNTIME_ORIGIN = "https://aziel-runtime.vibelock.workers.dev";
-export const RUNTIME_VERSION = "1.4.0";
-export const ENGINE_SLUGS = [
-  "ark",
-  "azai",
-  "azbot",
-  "azclce",
-  "aziel-corpus",
-  "azieltether",
-  "azos",
-  "chronolock",
-  "codelock",
-  "decisiongate",
-  "employeelock",
-  "foldlock",
-  "forgereceipts",
-  "glossafilter",
-  "godlock",
-  "mialock",
-  "miragegrid",
-  "postking",
-  "shadowlock",
-  "spectrallock",
-  "staticclock",
-  "temporallock",
-  "trajectorylock",
-  "veillock",
-  "vibelock",
-  "whistlelock",
-  "zsolver"
-];
+export {
+  HOST,
+  RUNTIME_ORIGIN,
+  RUNTIME_VERSION,
+  ENGINE_SLUGS,
+  RUNTIME_LIMITATION,
+};
+
 const UA = "Mozilla/5.0 AzielDigitalLibrary";
-
-export const RUNTIME_LIMITATION =
-  "THIS IS: aziel-runtime 1.4.0 engine-runtime — the AI runtime root for Aziel Eliab products. Prefer same-origin /runtime/*. Catalog, pull, OpenAPI, MCP, skill, and proxy front doors remain. Every catalog Software slug runs in-process in the Worker isolate; receipts carry engine_digest and ran_in: aziel-runtime. Proxy is not exec. Session is open → policy → exec → receipt → close. Binding-only ops may be per-op proxy_fallback; proxy_fallback_slugs is empty. Hosted on the Digital Library at /runtime. THIS IS NOT: a second software index. The Software tab stays the product-card catalog. The public library MASTER is not a mesh. No invented Zenodo DOIs. Author Aziel Eliab only.";
 
 export function runtimeSkillMd() {
   return `---
 name: aziel-runtime
-description: Use when an assistant should pull or invoke Aziel Eliab product runtimes from the Digital Library runtime root. Prefer same-origin /runtime/*. Origin is engine-runtime 1.4.0 (in-process engines + engine_digest). Catalog/pull/proxy remain; proxy is not exec.
+description: >-
+  One door — discover, route, refuse. FragGate ${RUNTIME_VERSION} on the Digital Library
+  at /runtime. ${RUNTIME_LIVE_COUNT} live advisory engines; ${RUNTIME_LOCAL_ONLY} local_only;
+  stubs refuse. Prefer same-origin /runtime/*. ${RUNTIME_ORIGIN} is alternate/sameAs.
 ---
 
 # aziel-runtime
 
-**AI runtime root** for Aziel Eliab products. Hosted on the Digital Library at ${HOST}/runtime. Origin Worker: ${RUNTIME_ORIGIN}/ (**engine-runtime ${RUNTIME_VERSION}**).
+**FragGate door ${RUNTIME_VERSION}** for Aziel Eliab products. Hosted on this domain at ${HOST}/runtime.
+Alternate origin (sameAs): ${RUNTIME_ORIGIN}/. Kernel: ${RUNTIME_KERNEL} (FG-0.1).
 
-**THIS IS:** 1.4.0 engine-runtime. Prefer same-origin \`/runtime/*\`. Catalog, OpenAPI, MCP, \`/v1/skill\`, \`/v1/runtime.json\`, \`/v1/pull/{slug}\`, and proxy front doors remain. Every catalog Software slug runs inside the Worker isolate (\`engine_slugs\` / \`true_engine_slugs\`: \`${ENGINE_SLUGS.join("`, `")}\`); session receipts carry \`engine_digest\` and \`ran_in: aziel-runtime\`. Session is \`open → policy → exec → receipt → close\`. \`proxy_fallback_slugs\` is empty.
-
-**THIS IS NOT:** a second software index. Downloadable product cards live at ${HOST}/software. Proxy is not exec. Binding-only ops may be per-op \`proxy_fallback\`; every catalog slug is still a true engine. Do **not** treat \`${HOST}/v1/runtime\` as the engine manifest (that is Digital Library package discovery). Engine manifest: \`${HOST}/v1/runtime.json\` or \`${HOST}/runtime/v1/runtime.json\`. The library MASTER search/OCR/map APIs stay on ${HOST}/v1/*. No invented Zenodo DOIs. Author **Aziel Eliab** only.
+**THIS IS:** ${RUNTIME_VERSION} FragGate. One door — discover, route, refuse. Prefer same-origin \`/runtime/*\`.
+${RUNTIME_LIVE_COUNT} live advisory engines; ${RUNTIME_LOCAL_ONLY} stays local_only; stub verbs refuse.
+Catalog slugs (\`${ENGINE_SLUGS.join("`, `")}\`) are true engines. HTTP \`/p/{slug}/{op}\` is a proxy and is not exec.
+Do **not** treat \`${HOST}/v1/runtime\` as the engine manifest (that is Digital Library package discovery).
+Engine manifest: \`${HOST}/runtime/v1/runtime.json\` or \`${HOST}/v1/runtime.json\`.
+Author **Aziel Eliab** only.
 
 Always send \`User-Agent: Mozilla/5.0\`.
+
+${runtimeHowTo(HOST)}
 
 ## Same-origin pull root (prefer)
 
 - Page: ${HOST}/runtime
+- FragGate: \`GET ${HOST}/runtime/v1/fraggate\`
+- FragGate list: \`GET ${HOST}/runtime/v1/fraggate/list\`
+- FragGate call: \`POST ${HOST}/runtime/v1/fraggate/call\`
 - Health: \`GET ${HOST}/runtime/v1/health\`
 - Manifest: \`GET ${HOST}/runtime/v1/runtime.json\`
 - Skill: \`GET ${HOST}/runtime/v1/skill\`
-- Session open: \`POST ${HOST}/runtime/v1/session/open\`
-- Session exec: \`POST ${HOST}/runtime/v1/session/{id}/exec\`
 - Pull: \`GET ${HOST}/runtime/v1/pull/{slug}\`
 - Bundle: \`GET ${HOST}/runtime/v1/bundle/{slug}\`
 - Catalog: \`GET ${HOST}/runtime/v1/catalog.json\`
 - OpenAPI: \`GET ${HOST}/runtime/openapi.json\`
 - MCP: \`POST ${HOST}/runtime/mcp\`
+- Runtime llms.txt: ${HOST}/runtime/llms.txt
+- Runtime cite.json: ${HOST}/runtime/cite.json
 - Counted downloads: each product Worker's \`/download\` + \`/count\` (listed in catalog / pull)
+- Session tools (\`/runtime/v1/session/*\`) are advanced/internal. Prefer \`fraggate_call\`.
 
-## Origin Worker
+## Alternate origin (sameAs)
 
 - ${RUNTIME_ORIGIN}/
+- ${RUNTIME_ORIGIN}/v1/fraggate
+- ${RUNTIME_ORIGIN}/v1/fraggate/list
+- \`POST ${RUNTIME_ORIGIN}/v1/fraggate/call\`
 - ${RUNTIME_ORIGIN}/v1/health
-- ${RUNTIME_ORIGIN}/v1/catalog.json
 - ${RUNTIME_ORIGIN}/openapi.json
 - \`POST ${RUNTIME_ORIGIN}/mcp\`
-- ${RUNTIME_ORIGIN}/v1/skill
-- ${RUNTIME_ORIGIN}/v1/runtime.json
-- ${RUNTIME_ORIGIN}/v1/pull/{slug}
-- \`POST ${RUNTIME_ORIGIN}/v1/session/open\`
-- \`POST ${RUNTIME_ORIGIN}/v1/session/{id}/exec\`
+- ${RUNTIME_GITHUB}
+
+Compatible AI clients: ${AI_CLIENTS}.
 
 ## Example
 
 \`\`\`bash
 curl -sI -A 'Mozilla/5.0' ${HOST}/runtime
 curl -s -A 'Mozilla/5.0' ${HOST}/runtime/v1/health
+curl -s -A 'Mozilla/5.0' ${HOST}/runtime/v1/fraggate/list
 curl -s -A 'Mozilla/5.0' ${HOST}/runtime/v1/runtime.json
 curl -s -A 'Mozilla/5.0' ${HOST}/runtime/v1/skill
 curl -s -A 'Mozilla/5.0' ${HOST}/runtime/v1/pull/aziel-corpus
@@ -109,12 +112,16 @@ export function runtimeManifest(via = "library") {
     title: "aziel-runtime",
     kind: "runtime_root",
     role: "engine-runtime",
+    door: RUNTIME_DOOR,
+    kernel: RUNTIME_KERNEL,
     version: RUNTIME_VERSION,
-    layer: "catalog+pull+proxy+session+in-process-engines",
+    layer: "catalog+pull+proxy+session+in-process-engines+fraggate",
+    live_count: RUNTIME_LIVE_COUNT,
+    product_count: RUNTIME_PRODUCT_COUNT,
+    local_only: [RUNTIME_LOCAL_ONLY.toLowerCase()],
     true_engine_runtime: true,
     true_engine_slugs: ENGINE_SLUGS.slice(),
     engine_slugs: ENGINE_SLUGS.slice(),
-    proxy_fallback_slugs: [],
     proxy_is_not_exec: true,
     product: "aziel-runtime",
     name: "Aziel Eliab Runtime",
@@ -122,6 +129,7 @@ export function runtimeManifest(via = "library") {
     via,
     host: HOST + "/runtime",
     origin: RUNTIME_ORIGIN + "/",
+    sameAs: [RUNTIME_ORIGIN + "/", RUNTIME_GITHUB],
     library: HOST + "/",
     software: HOST + "/software",
     catalog: HOST + "/runtime/v1/catalog.json",
@@ -133,14 +141,23 @@ export function runtimeManifest(via = "library") {
     skill: HOST + "/runtime/v1/skill",
     skill_origin: RUNTIME_ORIGIN + "/v1/skill",
     runtime_json: HOST + "/runtime/v1/runtime.json",
+    fraggate: HOST + "/runtime/v1/fraggate",
+    fraggate_list: HOST + "/runtime/v1/fraggate/list",
+    fraggate_call: HOST + "/runtime/v1/fraggate/call",
     pull: HOST + "/runtime/v1/pull/{slug}",
     bundle: HOST + "/runtime/v1/bundle/{slug}",
     session_open: HOST + "/runtime/v1/session/open",
     session_exec: HOST + "/runtime/v1/session/{id}/exec",
+    session_note: "advanced/internal — prefer fraggate_call",
     health: HOST + "/runtime/v1/health",
-    llms: HOST + "/llms.txt",
-    github: "https://github.com/AzielEliab/aziel-runtime",
+    llms: HOST + "/runtime/llms.txt",
+    library_llms: HOST + "/llms.txt",
+    cite: HOST + "/runtime/cite.json",
+    robots: HOST + "/runtime/robots.txt",
+    github: RUNTIME_GITHUB,
+    compatible_clients: AI_CLIENTS,
     license: "Apache-2.0",
+    description: RUNTIME_DESCRIPTION,
     limitation: RUNTIME_LIMITATION,
   };
 }
@@ -291,7 +308,7 @@ export async function handleRuntimeRoot(request, url, env, signed) {
       signed,
       path: "/runtime",
       kind: "runtime",
-      description: "aziel-runtime 1.4.0 engine-runtime on the Aziel Digital Library. Prefer /runtime/*. Every catalog Software slug runs in-process; receipts carry engine_digest. Proxy is not exec. Author Aziel Eliab.",
+      description: RUNTIME_DESCRIPTION,
     });
   }
 
