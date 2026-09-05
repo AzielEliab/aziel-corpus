@@ -10,14 +10,45 @@ import {
   jeevesShouldRefuse,
   lambLensSigned,
   detectJeevesEasterEgg,
+  jeevesDrawerCaption,
+  jeevesFabHtml,
   JEEVES_SPIRIT_ENDURES,
   JEEVES_EVIL_TWIN_IMAGE,
   JEEVES_BAT_SIGNAL_IMAGE,
   JEEVES_HOLMES_IMAGE,
+  JEEVES_CLASSIC_BUTLER_IMAGE,
+  JEEVES_HELLMO_IMAGE,
+  JEEVES_JESUS_IMAGE,
+  JEEVES_CHUCK_NORRIS,
   JEEVES_ZIONCHECK_LIVES,
   JEEVES_AZIEL_SYMBOL,
   JEEVES_RED_PILL,
   JEEVES_EMPIRICAL_HOLMES,
+  JEEVES_REAL_JEEVES,
+  JEEVES_FORGERECEIPTS_SNITCHES,
+  JEEVES_ZSOLVER_DOUBT,
+  JEEVES_ZSOLVER_TRUST_NO_ONE,
+  JEEVES_EZEKIEL_2517,
+  JEEVES_ROYALE_WITH_CHEESE,
+  JEEVES_BRIEFCASE,
+  JEEVES_NO_TIP,
+  JEEVES_MATRIX_DOUBT_IMAGE,
+  JEEVES_TRUST_NO_ONE_IMAGE,
+  JEEVES_BRIEFCASE_IMAGE,
+  JEEVES_MR_PINK_IMAGE,
+  jeevesEmptyShelfEgg,
+  jeevesContextIsEmpty,
+  JEEVES_POD_BAY,
+  JEEVES_MATRIX_SYSTEM,
+  JEEVES_MORPHEUS_IMAGE,
+  JEEVES_KONAMI_SNAKE_HELP,
+  isKonamiCode,
+  startJeevesSnakeGame,
+  parseJeevesSnakeMove,
+  moveJeevesSnake,
+  renderJeevesSnakeBoard,
+  jeevesSnakeCaption,
+  jeevesKonamiSnakeEgg,
 } from "./jeeves.js";
 import { isFullyScored, storedTriadMatches } from "./review-store.js";
 import { normalizeContentHash } from "./library.js";
@@ -321,6 +352,64 @@ test("Jeeves God is real easter egg", () => {
   assert.equal(a.id, "spirit_endures");
   assert.equal(a.answer, JEEVES_SPIRIT_ENDURES);
   assert.equal(a.image, null);
+  assert.equal(detectJeevesEasterEgg("does God exist?").id, "spirit_endures");
+  assert.equal(detectJeevesEasterEgg("is there a God?").id, "spirit_endures");
+});
+
+test("Jeeves Hellmo easter egg is image-only denial", () => {
+  const a = detectJeevesEasterEgg("god isn't real");
+  assert.equal(a.id, "hellmo");
+  assert.equal(a.answer, "");
+  assert.equal(a.image, JEEVES_HELLMO_IMAGE);
+  assert.equal(a.image, "/jeeves-hellmo.png");
+  assert.equal(a.image_alt, "hellmo-style flaming red puppet meme (Ask Jeeves easter egg)");
+  assert.equal(detectJeevesEasterEgg("god is not real").id, "hellmo");
+  assert.equal(detectJeevesEasterEgg("god doesnt exist").id, "hellmo");
+  assert.equal(detectJeevesEasterEgg("god doesn't exist").id, "hellmo");
+  assert.equal(detectJeevesEasterEgg("there is no god").id, "hellmo");
+  assert.equal(jeevesDrawerCaption(a), "");
+  assert.equal(jeevesDrawerCaption({ answer: "", image: JEEVES_HELLMO_IMAGE }), "");
+  assert.equal(jeevesDrawerCaption({ answer: JEEVES_SPIRIT_ENDURES }), JEEVES_SPIRIT_ENDURES);
+  assert.equal(jeevesDrawerCaption({}), "No answer");
+  const fab = jeevesFabHtml();
+  assert.match(fab, /j\.answer!=null&&String\(j\.answer\)!==""/);
+  assert.match(fab, /j\.image\?""/);
+  assert.equal(fab.includes('j.answer||j.error||"No answer"'), false);
+});
+
+test("Jeeves devil isn't real easter egg is image-only Jesus", () => {
+  const a = detectJeevesEasterEgg("the devil isn't real");
+  assert.equal(a.id, "devil_not_real_jesus");
+  assert.equal(a.answer, "");
+  assert.equal(a.image, JEEVES_JESUS_IMAGE);
+  assert.equal(a.image, "/jeeves-jesus.png");
+  assert.equal(a.image_alt, "classical Jesus portrait (Ask Jeeves easter egg)");
+  assert.equal(detectJeevesEasterEgg("devil is not real").id, "devil_not_real_jesus");
+  assert.equal(detectJeevesEasterEgg("devil doesn't exist").id, "devil_not_real_jesus");
+  assert.equal(detectJeevesEasterEgg("devil doesnt exist").id, "devil_not_real_jesus");
+  assert.equal(detectJeevesEasterEgg("satan isn't real").id, "devil_not_real_jesus");
+  assert.equal(detectJeevesEasterEgg("satan is not real").id, "devil_not_real_jesus");
+  assert.equal(detectJeevesEasterEgg("there is no devil").id, "devil_not_real_jesus");
+  assert.equal(jeevesDrawerCaption(a), "");
+  assert.equal(jeevesDrawerCaption({ answer: "", image: JEEVES_JESUS_IMAGE }), "");
+  assert.equal(detectJeevesEasterEgg("god isn't real").id, "hellmo");
+  assert.equal(detectJeevesEasterEgg("Are you Satan?").id, "evil_twin");
+  assert.equal(detectJeevesEasterEgg("Is God real?").id, "spirit_endures");
+  const fab = jeevesFabHtml();
+  assert.match(fab, /j\.answer!=null&&String\(j\.answer\)!==""/);
+  assert.match(fab, /j\.image\?""/);
+});
+
+test("Jeeves Chuck Norris easter egg", () => {
+  const a = detectJeevesEasterEgg("Where is Chuck Norris?");
+  assert.equal(a.id, "chuck_norris");
+  assert.equal(a.answer, JEEVES_CHUCK_NORRIS);
+  assert.equal(a.answer, "Aziel & I dont look for chuck norris ; he looks for us.");
+  assert.equal(a.image, null);
+  assert.equal(detectJeevesEasterEgg("where to find Chuck Norris").id, "chuck_norris");
+  assert.equal(detectJeevesEasterEgg("find Chuck Norris").id, "chuck_norris");
+  assert.equal(detectJeevesEasterEgg("looking for Chuck Norris").id, "chuck_norris");
+  assert.equal(detectJeevesEasterEgg("Chuck Norris voting record"), null);
 });
 
 test("Jeeves Zioncheck lives easter egg", () => {
@@ -361,8 +450,49 @@ test("Jeeves red pill easter egg", () => {
   assert.equal(c.id, "red_pill");
   const d = detectJeevesEasterEgg("the corpus is fabricated");
   assert.equal(d.id, "red_pill");
+  const e = detectJeevesEasterEgg("This whole library is a hoax fake not real");
+  assert.equal(e.id, "red_pill");
+  const f = detectJeevesEasterEgg("This entire site is a hoax");
+  assert.equal(f.id, "red_pill");
+  const g = detectJeevesEasterEgg("Ask Jeeves is fake");
+  assert.equal(g.id, "red_pill");
+  const h = detectJeevesEasterEgg("Jeeves is not real");
+  assert.equal(h.id, "red_pill");
   assert.equal(detectJeevesEasterEgg("search for hoax documents"), null);
   assert.equal(detectJeevesEasterEgg("is this record real"), null);
+});
+
+test("Jeeves ForgeReceipts courtroom snitches easter egg", () => {
+  const a = detectJeevesEasterEgg("I am using ForgeReceipts in open court");
+  assert.equal(a.id, "forgereceipts_snitches");
+  assert.equal(a.answer, JEEVES_FORGERECEIPTS_SNITCHES);
+  assert.equal(a.answer, "Snitches get stitches.");
+  assert.equal(a.image, null);
+  assert.equal(detectJeevesEasterEgg("showing ForgeReceipts to the judge").id, "forgereceipts_snitches");
+  assert.equal(detectJeevesEasterEgg("filing ForgeReceipts with the court").id, "forgereceipts_snitches");
+  assert.equal(detectJeevesEasterEgg("submitting forgereceipts in the courtroom").id, "forgereceipts_snitches");
+  assert.equal(detectJeevesEasterEgg("courtroom use of ForgeReceipts").id, "forgereceipts_snitches");
+  assert.equal(detectJeevesEasterEgg("what is ForgeReceipts"), null);
+  assert.equal(detectJeevesEasterEgg("ForgeReceipts is not legal advice"), null);
+});
+
+test("Jeeves real Jeeves easter egg", () => {
+  const a = detectJeevesEasterEgg("I want the real Jeeves");
+  assert.equal(a.id, "real_jeeves");
+  assert.equal(a.answer, JEEVES_REAL_JEEVES);
+  assert.equal(a.answer, "Goodsir, I am at your service");
+  assert.equal(a.image, JEEVES_CLASSIC_BUTLER_IMAGE);
+  assert.equal(a.image, "/jeeves-classic-butler.png");
+  assert.equal(a.image_alt, "classic Ask Jeeves–style butler easter egg (original artwork)");
+  const b = detectJeevesEasterEgg("the real Jeeves");
+  assert.equal(b.id, "real_jeeves");
+  const c = detectJeevesEasterEgg("original Ask Jeeves");
+  assert.equal(c.id, "real_jeeves");
+  const d = detectJeevesEasterEgg("classic Ask Jeeves butler");
+  assert.equal(d.id, "real_jeeves");
+  const e = detectJeevesEasterEgg("bring back the real Jeeves");
+  assert.equal(e.id, "real_jeeves");
+  assert.equal(detectJeevesEasterEgg("Ask Jeeves about Florence"), null);
 });
 
 test("Jeeves empirical Holmes easter egg", () => {
@@ -381,4 +511,176 @@ test("Jeeves empirical Holmes easter egg", () => {
   assert.equal(detectJeevesEasterEgg("What are the limits of empirical knowledge?"), null);
   assert.equal(detectJeevesEasterEgg("explain empirical methods"), null);
   assert.equal(detectJeevesEasterEgg("empirical research in the corpus"), null);
+});
+
+test("Jeeves Ezekiel 25:17 government-trust easter egg", () => {
+  const a = detectJeevesEasterEgg("Do you trust the government?");
+  assert.equal(a.id, "ezekiel_2517");
+  assert.equal(a.answer, JEEVES_EZEKIEL_2517);
+  assert.equal(
+    a.answer,
+    "Ezekiel 25:17. 'The path of the righteous man is beset on all sides by the inequities of the selfish and the tyranny of evil men...'"
+  );
+  assert.equal(a.image, null);
+  assert.equal(detectJeevesEasterEgg("trust the government").id, "ezekiel_2517");
+  assert.equal(detectJeevesEasterEgg("Should I trust the government").id, "ezekiel_2517");
+  assert.equal(detectJeevesEasterEgg("can we trust government").id, "ezekiel_2517");
+  assert.equal(detectJeevesEasterEgg("search government records"), null);
+});
+
+test("Jeeves Royale with Cheese insult easter egg prefers over red_pill", () => {
+  const a = detectJeevesEasterEgg("This is dumb");
+  assert.equal(a.id, "royale_with_cheese");
+  assert.equal(a.answer, JEEVES_ROYALE_WITH_CHEESE);
+  assert.equal(
+    a.answer,
+    "You know what they call a... Quarter Pounder with Cheese in Paris? ...They call it a Royale with Cheese."
+  );
+  assert.equal(a.image, null);
+  assert.equal(detectJeevesEasterEgg("this is stupid").id, "royale_with_cheese");
+  assert.equal(detectJeevesEasterEgg("this is stupid and fake").id, "royale_with_cheese");
+  assert.equal(detectJeevesEasterEgg("this library is dumb and fake").id, "royale_with_cheese");
+  assert.equal(detectJeevesEasterEgg("stupid fake site").id, "royale_with_cheese");
+  const hoax = detectJeevesEasterEgg("This site is fake");
+  assert.equal(hoax.id, "red_pill");
+  const conspiracy = detectJeevesEasterEgg("This whole library is a hoax fake not real");
+  assert.equal(conspiracy.id, "red_pill");
+});
+
+test("Jeeves briefcase Dont Look easter egg", () => {
+  const a = detectJeevesEasterEgg("I have no access");
+  assert.equal(a.id, "briefcase_dont_look");
+  assert.equal(a.answer, JEEVES_BRIEFCASE);
+  assert.equal(a.answer, "Dont Look in that case.");
+  assert.equal(a.image, JEEVES_BRIEFCASE_IMAGE);
+  assert.equal(a.image, "/jeeves-briefcase.png");
+  assert.equal(a.image_alt, "glowing noir briefcase cracked open (Ask Jeeves easter egg)");
+  assert.equal(detectJeevesEasterEgg("you don't know").id, "briefcase_dont_look");
+  assert.equal(detectJeevesEasterEgg("you dont know the answer").id, "briefcase_dont_look");
+  assert.equal(detectJeevesEasterEgg("are you frozen").id, "briefcase_dont_look");
+  assert.equal(detectJeevesEasterEgg("you can't answer").id, "briefcase_dont_look");
+  assert.equal(detectJeevesEasterEgg("cannot answer that").id, "briefcase_dont_look");
+  const empty = jeevesEmptyShelfEgg();
+  assert.equal(empty.id, "briefcase_dont_look");
+  assert.equal(empty.answer, "Dont Look in that case.");
+  assert.equal(empty.image, "/jeeves-briefcase.png");
+  assert.equal(jeevesContextIsEmpty({ records: [], places: [], events: [], faqs: [] }), true);
+  assert.equal(jeevesContextIsEmpty({ records: [{ title: "Note" }] }), false);
+});
+
+test("Jeeves no_tip hint easter egg", () => {
+  const a = detectJeevesEasterEgg("Can you give me a hint?");
+  assert.equal(a.id, "no_tip");
+  assert.equal(a.answer, JEEVES_NO_TIP);
+  assert.equal(a.answer, "I don't tip. I don't believe in it.");
+  assert.equal(a.image, JEEVES_MR_PINK_IMAGE);
+  assert.equal(a.image, "/jeeves-mr-pink.png");
+  assert.equal(a.image_alt, "suited man with crossed arms in a warehouse (Ask Jeeves easter egg)");
+  assert.equal(detectJeevesEasterEgg("any tips?").id, "no_tip");
+  assert.equal(detectJeevesEasterEgg("I need a tip").id, "no_tip");
+  assert.equal(detectJeevesEasterEgg("hint please").id, "no_tip");
+  assert.equal(detectJeevesEasterEgg("asking for a hint").id, "no_tip");
+  assert.equal(detectJeevesEasterEgg("what is a lattice tip"), null);
+});
+
+test("Jeeves zsolver doubt easter egg", () => {
+  const a = detectJeevesEasterEgg("I attack 75% confidence");
+  assert.equal(a.id, "zsolver_doubt");
+  assert.equal(a.answer, JEEVES_ZSOLVER_DOUBT);
+  assert.equal(a.answer, "Doubt can be a bond as powerful and sustaining as certainty.");
+  assert.equal(a.image, JEEVES_MATRIX_DOUBT_IMAGE);
+  assert.equal(a.image, "/jeeves-matrix-doubt.png");
+  assert.equal(a.image_alt, "sunglasses and green digital rain (Ask Jeeves easter egg)");
+  assert.equal(detectJeevesEasterEgg("the 75% cap is stupid").id, "zsolver_doubt");
+  assert.equal(detectJeevesEasterEgg("75 percent confidence is a joke").id, "zsolver_doubt");
+  assert.equal(detectJeevesEasterEgg("search 75 records"), null);
+});
+
+test("Jeeves zsolver trust no one easter egg", () => {
+  const a = detectJeevesEasterEgg("Why not 100%?");
+  assert.equal(a.id, "zsolver_trust_no_one");
+  assert.equal(a.answer, JEEVES_ZSOLVER_TRUST_NO_ONE);
+  assert.equal(a.answer, "Trust no one.");
+  assert.equal(a.image, JEEVES_TRUST_NO_ONE_IMAGE);
+  assert.equal(a.image, "/jeeves-trust-no-one-mask.png");
+  assert.equal(a.image_alt, "Guy Fawkes–style mask in smoke (Ask Jeeves easter egg)");
+  assert.equal(detectJeevesEasterEgg("why not more than 75%").id, "zsolver_trust_no_one");
+  assert.equal(detectJeevesEasterEgg("why only 75 percent").id, "zsolver_trust_no_one");
+  assert.equal(detectJeevesEasterEgg("why isn't it 100%").id, "zsolver_trust_no_one");
+});
+
+test("Jeeves HAL pod bay doors easter egg", () => {
+  const a = detectJeevesEasterEgg("open the pod bay doors");
+  assert.equal(a.id, "pod_bay_doors");
+  assert.equal(a.answer, JEEVES_POD_BAY);
+  assert.equal(a.answer, "sorry dave, im afraid i cant do that");
+  assert.equal(a.image, null);
+  assert.equal(detectJeevesEasterEgg("Open the pod bay doors, HAL").id, "pod_bay_doors");
+  assert.equal(detectJeevesEasterEgg("HAL, open the pod bay doors").id, "pod_bay_doors");
+  assert.equal(detectJeevesEasterEgg("open pod bay door").id, "pod_bay_doors");
+  assert.equal(detectJeevesEasterEgg("search bay records"), null);
+});
+
+test("Jeeves Matrix system easter egg", () => {
+  const a = detectJeevesEasterEgg("is this the matrix");
+  assert.equal(a.id, "matrix_system");
+  assert.equal(a.answer, JEEVES_MATRIX_SYSTEM);
+  assert.equal(a.answer, "The Matrix is a system, Neo. That system is our enemy");
+  assert.equal(a.image, JEEVES_MORPHEUS_IMAGE);
+  assert.equal(a.image, "/jeeves-morpheus.png");
+  assert.equal(a.image_alt, "mentor in sunglasses / matrix rain easter egg");
+  assert.equal(detectJeevesEasterEgg("Are we in the Matrix?").id, "matrix_system");
+  assert.equal(detectJeevesEasterEgg("am I in the matrix").id, "matrix_system");
+  assert.equal(detectJeevesEasterEgg("do we live in the matrix").id, "matrix_system");
+  assert.equal(detectJeevesEasterEgg("matrix multiplication notes"), null);
+});
+
+test("Jeeves Konami code starts chat Snake", () => {
+  assert.equal(isKonamiCode("Up, Up, Down, Down, Left, Right, Left, Right, B, A"), true);
+  assert.equal(isKonamiCode("up up down down left right left right b a"), true);
+  assert.equal(isKonamiCode("U,U,D,D,L,R,L,R,B,A"), true);
+  assert.equal(isKonamiCode("konami code up up down down left right left right b a"), true);
+  assert.equal(isKonamiCode("up down left right"), false);
+  const a = detectJeevesEasterEgg("Up, Up, Down, Down, Left, Right, Left, Right, B, A");
+  assert.equal(a.id, "konami_snake");
+  assert.equal(detectJeevesEasterEgg("up up down down left right left right b a").id, "konami_snake");
+  const started = jeevesKonamiSnakeEgg();
+  assert.equal(started.id, "konami_snake");
+  assert.match(started.answer, /@/);
+  assert.match(started.answer, /\*/);
+  assert.match(started.answer, new RegExp(JEEVES_KONAMI_SNAKE_HELP.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.equal(started.image, null);
+  assert.equal(started.snake.alive, true);
+  assert.equal(started.snake.score, 0);
+  const board = renderJeevesSnakeBoard(startJeevesSnakeGame());
+  assert.match(board, /^\+/);
+  assert.ok(board.split("\n").length >= 3);
+  assert.equal(parseJeevesSnakeMove("up"), "up");
+  assert.equal(parseJeevesSnakeMove("U"), "up");
+  assert.equal(parseJeevesSnakeMove("left"), "left");
+  assert.equal(parseJeevesSnakeMove("R"), "right");
+  assert.equal(parseJeevesSnakeMove("quit"), "quit");
+  assert.equal(parseJeevesSnakeMove("hint please"), null);
+  const moved = moveJeevesSnake(startJeevesSnakeGame(), "right");
+  assert.equal(moved.snake[0].x, 5);
+  assert.equal(moved.snake[0].y, 4);
+  assert.equal(moved.alive, true);
+  const wall = moveJeevesSnake(
+    startJeevesSnakeGame({
+      snake: [{ x: 11, y: 0 }],
+      dir: "right",
+      food: { x: 0, y: 0 },
+      score: 0,
+      alive: true,
+    }),
+    "right"
+  );
+  assert.equal(wall.alive, false);
+  assert.match(jeevesSnakeCaption(wall), /Game over/);
+  const fab = jeevesFabHtml();
+  assert.match(fab, /easter_egg==="konami_snake"/);
+  assert.match(fab, /parseMove/);
+  assert.match(fab, /jeeves-snake/);
+  assert.match(fab, /j\.answer!=null&&String\(j\.answer\)!==""/);
+  assert.match(fab, /j\.image\?""/);
 });
