@@ -61,6 +61,23 @@ export const JEEVES_MATRIX_SYSTEM = "The Matrix is a system, Neo. That system is
 export const JEEVES_KONAMI_SNAKE_HELP = "up/down/left/right or U/D/L/R · quit to stop";
 export const JEEVES_SNAKE_W = 12;
 export const JEEVES_SNAKE_H = 8;
+export const JEEVES_DJANGO_CURIOSITY_IMAGE = "/jeeves-django-curiosity.png";
+export const JEEVES_INGLOURIOUS_IMAGE = "/jeeves-inglourious-basterds.png";
+export const JEEVES_TUPAC_NOBODY_IMAGE = "/jeeves-kat-williams.gif";
+export const JEEVES_DJANGO_CURIOSITY = "You had my curiosity, now you have my attention.";
+export const JEEVES_DUMBASS_SILENT_D = "the D is silent.";
+export const JEEVES_INGLOURIOUS_PURPOSE =
+  "were gonna be doin one thing and one thing only...\nkillin Nazi's";
+export const JEEVES_THAT_BINGO = "thats a bingo!";
+export const JEEVES_AZIEL_MASTERPIECE = "I think this just might be my masterpiece";
+export const JEEVES_TUPAC_NOBODY =
+  "If the police say nobody shot him, I believe nobody shot him. And if nobody shot him, that's the same nobody that shot Tupac. And if nobody shot Tupac, it's the same nobody that shot MLK. And if nobody shot him, that's the same person that shot Malcolm X too. It's a lot of nobodies out there, and nobody minds if nobody comes up missing.";
+export const JEEVES_RICKY_BOBBY_HANDS_IMAGE = "/jeeves-ricky-bobby-hands.png";
+export const JEEVES_CHEWBACCA_MASKS_IMAGE = "/jeeves-chewbacca-masks.png";
+export const JEEVES_FUCK_SHIT_UP_IMAGE = "/jeeves-step-brothers-suits.png";
+export const JEEVES_RICKY_BOBBY_HANDS = "im not sure what to do with my hands";
+export const JEEVES_CHEWBACCA_MASKS = "chewbacca masks!";
+export const JEEVES_FUCK_SHIT_UP = "were here to fuck shit up";
 const KONAMI_SEQ = ["up", "up", "down", "down", "left", "right", "left", "right", "b", "a"];
 
 const EMPIRICAL_ATTACK_RE =
@@ -198,6 +215,121 @@ function isRoyaleInsult(n) {
   const callingThingInsult =
     /\b(dumb|stupid|idiotic|lame)\s+(ass\s+)?(library|site|software|corpus|jeeves|product)\b/.test(n);
   return thisIsInsult || insultPlusFake || callingThingInsult;
+}
+
+export function normalizeJeevesRepeat(text) {
+  return String(text || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[’‘]/g, "'")
+    .replace(/\s+/g, " ");
+}
+
+export function isJeevesRepeat(question, previous) {
+  const a = normalizeJeevesRepeat(question);
+  const b = normalizeJeevesRepeat(previous);
+  return Boolean(a && b && a === b);
+}
+
+function jeevesEggExtra(extra) {
+  if (extra == null) return {};
+  if (typeof extra === "string") return { previous: extra };
+  return extra;
+}
+
+function isDumbassCall(n) {
+  return /\bdumb[\s-]*ass(es)?\b/.test(n);
+}
+
+function isStrongProfanity(n) {
+  if (isDumbassCall(n) && !/\b(fuck|shit|bitch|asshole|damn|hell|cunt|bastard|dick|prick|twat)\b/.test(n)) {
+    return false;
+  }
+  return (
+    /\b(fuck(?:ed|er|ing|s)?|motherfuck(?:er|ing|ers)?|shit(?:ty|s)?|bullshit|horseshit|assholes?|bitch(?:es|ing|y)?|bastards?|cunts?|dickheads?|cocksuckers?|pricks?|twats?|wankers?|dumbfucks?|jackasses?)\b/.test(
+      n
+    ) ||
+    /\b(damn\s+you|god\s*damn(?:ed)?|go\s+to\s+hell|to\s+hell\s+with(?:\s+you)?|hell\s+with\s+you|kiss\s+my\s+ass|suck\s+my|piss(?:ed|ing)?\s+off|son\s+of\s+a\s+bitch|piece\s+of\s+shit)\b/.test(
+      n
+    )
+  );
+}
+
+function isAzielMasterpiece(n) {
+  const whyAzielVerb =
+    /\bwhy\s+did\s+aziel(\s+eliab)?\s+(do|make|create|build|write|start|found|publish)\b/.test(n) ||
+    /\bwhy\s+aziel(\s+eliab)?\s+(made|created|built|wrote|started|founded|published|did)\b/.test(n) ||
+    /\baziel(\s+eliab)?[,:]?\s+why\s+(did\s+you\s+)?(do|make|create|build|write|start)\b/.test(n) ||
+    /\baziel(\s+eliab)?\s+why\s+(make|create|build|do)\b/.test(n);
+  const whyYouWithAziel =
+    /\baziel(\s+eliab)?\b/.test(n) &&
+    /\bwhy\s+did\s+you\s+(do|make|create|build|write|start|found|publish)\b/.test(n);
+  const whyCreateThis =
+    /\bwhy\s+(did\s+you\s+)?(create|make|build)\s+(this\s+)?(library|site|website|corpus|software)\b/.test(n) ||
+    /\bwhy\s+was\s+this\s+(library|site|software|corpus|website)\s+(made|created|built)\b/.test(n) ||
+    /\bwhy\s+(create|make|build)\s+(the|this)\s+(library|site|website|corpus)\b/.test(n);
+  return whyAzielVerb || whyYouWithAziel || whyCreateThis;
+}
+
+function isSitePurpose(n) {
+  const place =
+    /\b(this\s+)?(site|website|web\s*site)\b/.test(n) ||
+    /\bazielcorpuslibrary\b/.test(n) ||
+    /\bthis\s+(aziel\s+)?(digital\s+)?(library|corpus)\b/.test(n) ||
+    /\b(the|this)\s+aziel\s+(digital\s+)?(library|corpus)\b/.test(n);
+  if (!place) return false;
+  return (
+    /\bwhat\s+(is|does)\s+.{0,48}\b(for|do)\b/.test(n) ||
+    /\bwhat'?s\s+.{0,32}\bfor\b/.test(n) ||
+    /\bpurpose\s+of\s+(this\s+)?(site|website|library|corpus|azielcorpuslibrary)\b/.test(n) ||
+    /\bwhat\s+is\s+the\s+purpose\b/.test(n) ||
+    /\bwhat'?s\s+the\s+purpose\b/.test(n) ||
+    /\bwhat\s+does\s+.{0,32}\bdo\b/.test(n)
+  );
+}
+
+function isTupacNobody(n) {
+  if (!/\b(2pac|tupac|tu-?pac)(\s+amaru)?(\s+shakur)?\b/.test(n)) return false;
+  return /\b(who\s+)?(killed|killing|kill|shot|murdered|murder|assassinated|assassination|died|death)\b/.test(n);
+}
+
+function isRickyBobbyHands(n) {
+  if (!/\baziel(\s+eliab)?\b/.test(n)) return false;
+  const lotsOfTime =
+    /\b(this|that|so)\s+much(\s+free)?\s+time\b/.test(n) ||
+    /\bfree\s+time\b/.test(n) ||
+    /\benough\s+time\b/.test(n);
+  const findTime =
+    /\b(find|found|gets?|got|have|has|had)\s+(the\s+)?(time|free time)\b/.test(n) ||
+    /\bwhere\s+(do|does|did|can)\s+aziel(\s+eliab)?\s+(find|get|have)\s+(the\s+)?time\b/.test(n);
+  const howTime = /\bhow\s+(do|does|did)\s+aziel(\s+eliab)?\b/.test(n) && /\btime\b/.test(n);
+  const sleep =
+    /\bsleep/.test(n) && /\b(when|how|where|does|did|do)\b/.test(n);
+  return lotsOfTime || findTime || howTime || sleep;
+}
+
+function isChewbaccaMasks(n) {
+  return (
+    /\bshow(\s+me)?\s+(your|the)\s+face\b/.test(n) ||
+    /\bwhat\s+do\s+you\s+look\s+like\b/.test(n) ||
+    /\bwhat\s+does\s+(jeeves|ask\s+jeeves)\s+look\s+like\b/.test(n) ||
+    /\btake\s+off\s+(the|your)\s+mask\b/.test(n) ||
+    /\breveal\s+(your|the)\s+face\b/.test(n) ||
+    /\b(see|show)\s+(your|jeeves'?s?)\s+face\b/.test(n)
+  );
+}
+
+function isFuckShitUp(n) {
+  const duo =
+    /\baziel(\s+eliab)?\s+and\s+jeeve[s]?\b/.test(n) ||
+    /\bjeeve[s]?\s+and\s+aziel(\s+eliab)?\b/.test(n);
+  if (!duo) return false;
+  return (
+    /\bwhat\s+do\b/.test(n) ||
+    /\bwhat\s+are\b/.test(n) ||
+    /\bhere\s+for\b/.test(n) ||
+    /\bwhat\s+.+?\bdo\b/.test(n)
+  );
 }
 
 function isAskingForTip(n) {
@@ -418,10 +550,21 @@ export function jeevesDrawerCaption(body) {
   return j.error || "No answer";
 }
 
-export function detectJeevesEasterEgg(question) {
+export function detectJeevesEasterEgg(question, extra) {
   const q = String(question || "").trim();
   if (!q) return null;
   const n = q.toLowerCase().replace(/[’‘]/g, "'");
+  const opts = jeevesEggExtra(extra);
+  const prev = opts.previous || opts.last_q || opts.last || opts.previous_question || "";
+
+  // Same user line twice in a row (drawer sends previous / last_q). Never on first message.
+  if (isJeevesRepeat(q, prev)) {
+    return {
+      id: "thats_a_bingo",
+      answer: JEEVES_THAT_BINGO,
+      image: null,
+    };
+  }
 
   // Konami code → chat Snake
   if (isKonamiCode(n)) {
@@ -541,17 +684,33 @@ export function detectJeevesEasterEgg(question) {
     };
   }
 
-  // Who is Aziel / why did Aziel make this
+  // Why Aziel made / built this → masterpiece (before who-is-Aziel symbol)
+  if (isAzielMasterpiece(n)) {
+    return {
+      id: "aziel_masterpiece",
+      answer: JEEVES_AZIEL_MASTERPIECE,
+      image: null,
+    };
+  }
+
+  // How does Aziel have this much time / when does Aziel sleep
+  if (isRickyBobbyHands(n)) {
+    return {
+      id: "ricky_bobby_hands",
+      answer: JEEVES_RICKY_BOBBY_HANDS,
+      image: JEEVES_RICKY_BOBBY_HANDS_IMAGE,
+      image_alt: "NASCAR interview hands awkward easter egg",
+    };
+  }
+
+  // Who is Aziel / who made this library
   const whoAziel =
     /\bwho\s+is\s+aziel(\s+eliab)?\b/.test(n) ||
     /\bwho'?s\s+aziel(\s+eliab)?\b/.test(n) ||
     /\btell\s+me\s+about\s+aziel(\s+eliab)?\b/.test(n);
-  const whyAzielMade =
-    /\bwhy\s+did\s+aziel(\s+eliab)?\s+(make|create|build|write|start|found|publish)\b/.test(n) ||
-    /\bwhy\s+aziel(\s+eliab)?\s+(made|created|built|wrote|started|founded|published)\b/.test(n) ||
-    /\bwhy\s+was\s+this\s+(library|site|software|corpus)\s+(made|created|built)\b/.test(n) ||
+  const whoMadeThis =
     /\bwho\s+(made|created|built|wrote|founded)\s+(this\s+)?(library|site|software|corpus|aziel\s+digital)\b/.test(n);
-  if (whoAziel || whyAzielMade) {
+  if (whoAziel || whoMadeThis) {
     return {
       id: "aziel_symbol",
       answer: JEEVES_AZIEL_SYMBOL,
@@ -599,9 +758,68 @@ export function detectJeevesEasterEgg(question) {
     };
   }
 
+  // Who killed Tupac / 2pac
+  if (isTupacNobody(n)) {
+    return {
+      id: "tupac_nobody",
+      answer: JEEVES_TUPAC_NOBODY,
+      image: JEEVES_TUPAC_NOBODY_IMAGE,
+      image_alt: "comedian mid-rant talk-show stage easter egg",
+    };
+  }
+
+  // Show your face / take off the mask (aimed at Jeeves)
+  if (isChewbaccaMasks(n)) {
+    return {
+      id: "chewbacca_masks",
+      answer: JEEVES_CHEWBACCA_MASKS,
+      image: JEEVES_CHEWBACCA_MASKS_IMAGE,
+      image_alt: "two men in shaggy fur costumes with toy swords easter egg",
+    };
+  }
+
+  // What do Aziel and Jeeves/Jeeve do — before site-purpose and before django profanity
+  if (isFuckShitUp(n)) {
+    return {
+      id: "fuck_shit_up",
+      answer: JEEVES_FUCK_SHIT_UP,
+      image: JEEVES_FUCK_SHIT_UP_IMAGE,
+      image_alt: "two brothers in suits suburban driveway easter egg",
+    };
+  }
+
+  // What is this site for
+  if (isSitePurpose(n)) {
+    return {
+      id: "inglourious_site_purpose",
+      answer: JEEVES_INGLOURIOUS_PURPOSE,
+      image: JEEVES_INGLOURIOUS_IMAGE,
+      image_alt: "WWII squad forest easter egg",
+    };
+  }
+
   // No access / doesn't know / frozen / can't answer → glowing briefcase
   if (isBriefcaseStuck(n)) {
     return jeevesEmptyShelfEgg();
+  }
+
+  // "dumbass" / "dumb ass" (wins over generic profanity)
+  if (isDumbassCall(n)) {
+    return {
+      id: "dumbass_silent_d",
+      answer: JEEVES_DUMBASS_SILENT_D,
+      image: null,
+    };
+  }
+
+  // Strong profanity / cussing (not mild "hell" alone; not "dumb and fake")
+  if (isStrongProfanity(n)) {
+    return {
+      id: "django_curiosity",
+      answer: JEEVES_DJANGO_CURIOSITY,
+      image: JEEVES_DJANGO_CURIOSITY_IMAGE,
+      image_alt: "western porch sharp suit sunglasses easter egg",
+    };
   }
 
   // Dumb/stupid/fake insults → Royale with Cheese (prefer over red_pill)
@@ -857,7 +1075,7 @@ async function maybeWorkersAi(env, question, ctx) {
   return null;
 }
 
-export async function jeevesChat(env, { question, signed } = {}) {
+export async function jeevesChat(env, { question, signed, previous, last_q, last, repeat } = {}) {
   const q = String(question || "").trim().slice(0, 2000);
   if (!q) {
     const err = new Error("question required");
@@ -876,7 +1094,7 @@ export async function jeevesChat(env, { question, signed } = {}) {
       lamb_lens: true,
     };
   }
-  const egg = detectJeevesEasterEgg(q);
+  const egg = detectJeevesEasterEgg(q, { previous, last_q, last, repeat });
   if (egg) {
     const out = {
       ok: true,
@@ -1017,7 +1235,16 @@ export async function handleJeevesApi(request, url, env, signed) {
       return json({ error: "JSON body required" }, 400);
     }
     try {
-      return json(await jeevesChat(env, { question: body.question || body.q || body.message, signed: who }));
+      return json(
+        await jeevesChat(env, {
+          question: body.question || body.q || body.message,
+          previous: body.previous || body.last_q || body.last,
+          last_q: body.last_q || body.previous,
+          last: body.last,
+          repeat: body.repeat,
+          signed: who,
+        })
+      );
     } catch (err) {
       return json({ error: err && err.message ? err.message : "chat failed" }, err && err.status ? err.status : 400);
     }
@@ -1116,6 +1343,8 @@ export function jeevesFabHtml(signed) {
   function shut(){drawer.hidden=true;fab.setAttribute("aria-expanded","false");}
   function esc(s){return String(s||"").replace(/[&<>]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c]});}
   var snake=null;
+  var lastUserMsg="";
+  function normRepeat(s){return String(s||"").trim().toLowerCase().replace(/[\\u2018\\u2019]/g,"'").replace(/\\s+/g," ");}
   function cloneSnake(st){return {w:st.w,h:st.h,snake:st.snake.map(function(p){return {x:p.x,y:p.y};}),dir:st.dir,food:{x:st.food.x,y:st.food.y},score:st.score,alive:st.alive};}
   function startSnake(st){st=st||{};return {w:st.w||12,h:st.h||8,snake:(st.snake&&st.snake.length)?st.snake.map(function(p){return {x:p.x,y:p.y};}):[{x:4,y:4},{x:3,y:4},{x:2,y:4}],dir:st.dir||"right",food:st.food||{x:8,y:4},score:st.score||0,alive:st.alive!==false};}
   function parseMove(t){var n=String(t||"").trim().toLowerCase();if(/^(quit|exit|stop|end)$/.test(n))return"quit";if(/^(up|u|north|\\^)$/.test(n))return"up";if(/^(down|d|south|v)$/.test(n))return"down";if(/^(left|l|west|<)$/.test(n))return"left";if(/^(right|r|east|>)$/.test(n))return"right";return null;}
@@ -1165,12 +1394,14 @@ export function jeevesFabHtml(signed) {
     if(!q)return;
     line("You",q);
     document.getElementById("jeevesQ").value="";
+    var prev=lastUserMsg;
+    lastUserMsg=q;
     if(snake&&snake.alive){
       var mv=parseMove(q);
       if(mv==="quit"){snake=null;line("Jeeves","Snake ended.");return;}
       if(mv){snake=moveSnake(snake,mv);line("Jeeves",renderSnake(snake),{pre:true});if(!snake.alive)snake=null;return;}
     }
-    fetch("/v1/jeeves/chat",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({question:q})})
+    fetch("/v1/jeeves/chat",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({question:q,previous:prev,last_q:prev,repeat:!!(prev&&normRepeat(prev)===normRepeat(q))})})
       .then(function(r){return r.json();})
       .then(function(j){var text=(j.answer!=null&&String(j.answer)!=="")?j.answer:(j.image?"":(j.error||"No answer"));line("Jeeves",text,{image:j.image||null,image_alt:j.image_alt||null,pre:j.easter_egg==="konami_snake"});if(j.easter_egg==="konami_snake")snake=j.snake||startSnake();})
       .catch(function(){line("Jeeves","Could not reach the assistant.");});
