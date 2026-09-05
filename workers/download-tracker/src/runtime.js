@@ -142,14 +142,14 @@ function openapi() {
       "/file/{record_id}": { get: { summary: "Download any stored record (text or file). HTTP 200. Quarantined poison docs stay downloadable with X-Aziel-Quarantine. Ledger-linked. A 64-hex SHA-256 also resolves the kept matching file.", operationId: "file" } },
       "/download": { get: { summary: "Counted zip (asset=), counted record download (record=AZDOC-…), or counted content-hash download (hash=SHA-256). HTTP 200, no silent 302.", operationId: "download", parameters: [{ name: "asset", in: "query", schema: { type: "string" } }, { name: "record", in: "query", schema: { type: "string" } }, { name: "hash", in: "query", schema: { type: "string" } }, { name: "sha256", in: "query", schema: { type: "string" } }] } },
       "/v1/docs/{hash}/download": { get: { summary: "Download the stored file for a kept record whose content_sha256 matches. Does not increment downloads. Duplicates are not deleted.", operationId: "downloadByHash", parameters: [{ name: "hash", in: "path", required: true, schema: { type: "string" } }] } },
-      "/v1/runtime": { get: { summary: "Package and runtime version discovery for catalog scrapers. Does not increment downloads.", operationId: "runtime" } },
-      "/v1/runtime.json": { get: { summary: "aziel-runtime 1.3.0 engine-runtime manifest (proxied). Distinct from /v1/runtime library version.", operationId: "runtimeRoot" } },
+      "/v1/runtime": { get: { summary: "Digital Library package discovery (NOT aziel-runtime engine manifest). Use /v1/runtime.json for engine-runtime 1.4.0.", operationId: "runtime" } },
+      "/v1/runtime.json": { get: { summary: "aziel-runtime 1.4.0 engine-runtime manifest (proxied). Distinct from /v1/runtime library package discovery.", operationId: "runtimeRoot" } },
       "/runtime": { get: { summary: "aziel-runtime 1.3.0 engine-runtime page. Prefer /runtime/*. In-process engines + engine_digest. Proxy is not exec.", operationId: "runtimePage" } },
       "/runtime/v1/health": { get: { summary: "aziel-runtime 1.3.0 health via same-origin proxy.", operationId: "runtimeProxyHealth" } },
-      "/runtime/v1/runtime.json": { get: { summary: "aziel-runtime 1.3.0 manifest via same-origin proxy.", operationId: "runtimeProxyManifest" } },
+      "/runtime/v1/runtime.json": { get: { summary: "aziel-runtime 1.4.0 engine-runtime manifest via same-origin proxy.", operationId: "runtimeProxyManifest" } },
       "/runtime/v1/skill": { get: { summary: "aziel-runtime skill markdown via same-origin proxy.", operationId: "runtimeProxySkill" } },
       "/runtime/v1/session/open": { post: { summary: "Open an aziel-runtime session (same-origin proxy). True exec is open → policy → exec → receipt → close.", operationId: "runtimeProxySessionOpen" } },
-      "/runtime/v1/session/{id}/exec": { post: { summary: "Session exec via same-origin proxy. Listed engines run in-process; other slugs are proxy_fallback. Proxy is not exec.", operationId: "runtimeProxySessionExec" } },
+      "/runtime/v1/session/{id}/exec": { post: { summary: "Session exec via same-origin proxy. Every catalog slug runs in-process (engine_digest). Binding-only ops may be per-op proxy_fallback. Proxy /p is not exec.", operationId: "runtimeProxySessionExec" } },
       "/runtime/v1/pull/{slug}": { get: { summary: "Pull descriptor for one product slug via same-origin proxy.", operationId: "runtimeProxyPull" } },
       "/runtime/v1/catalog.json": { get: { summary: "Live aziel-runtime catalog via same-origin proxy.", operationId: "runtimeProxyCatalog" } },
       "/runtime/openapi.json": { get: { summary: "Combined aziel-runtime OpenAPI via same-origin proxy.", operationId: "runtimeProxyOpenapi" } },
@@ -179,6 +179,13 @@ export async function handleRuntimeApi(request, url, env) {
       runtime_root: HOST + "/runtime",
       protocol: PROTOCOL,
       limitation: LIMITATION,
+      // Disambiguation: this is NOT aziel-runtime's machine manifest.
+      is_aziel_runtime_manifest: false,
+      role: "digital-library-package",
+      note: "Digital Library package discovery only. Engine manifest is GET /v1/runtime.json or GET /runtime/v1/runtime.json (aziel-runtime 1.4.0 engine-runtime).",
+      aziel_runtime_manifest: HOST + "/v1/runtime.json",
+      aziel_runtime_manifest_alias: HOST + "/runtime/v1/runtime.json",
+      aziel_runtime_origin: "https://aziel-runtime.vibelock.workers.dev/v1/runtime.json",
     });
   }
   const docsDl = path.match(/^\/v1\/docs\/([^/]+)\/download$/);
