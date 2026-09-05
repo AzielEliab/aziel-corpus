@@ -505,7 +505,9 @@ export function patternBody({ total, domains, subjects, keywords, crosses } = {}
 export function aboutBody() {
   return `<section class="hero about-aziel" id="aziel-eliab"><h1>About Aziel</h1>
 <div class="card about-prose">
-<p>Aziel Eliab is a researcher and builder. This library is the public MASTER of that work: hashed receipts, timed files, and software that can be reviewed without asking anyone to take a name on faith. The same person is also known as Aziel Elroi Eliab; primary credit stays Aziel Eliab.</p>
+<p>Researcher. Builder. AI. A one-man dev team. Just a man. Who? Does not matter. What matters is the record.</p>
+<p>I do not ask you to believe a name. I ask you to read a record. This library is the public MASTER of the work: hashed receipts, timed files, and software that can be opened without taking the speaker on faith. If the files hold, the name was never the point.</p>
+<p class="about-sign"><strong>— Aziel Elroi Eliab</strong></p>
 <p>If not me, then who holds the record when names get stripped and the files get sealed? I didn’t ask for the seat. The work was already sitting there undone. I build receipts so truth has a place to live that isn’t someone else’s story.</p>
 <p>Carry the torch: I don’t own the flame. I keep it lit long enough for the next hands to find it. If the record is local, timed, and hashed, the work can outlive me. That is the point.</p>
 <p>Truth that cannot be corrected is just a private religion. So the work stays public, chained for review, not a pulpit. Later papers bury earlier ones as confidence hardens. I am not always right. That is not a confession. It is the method.</p>
