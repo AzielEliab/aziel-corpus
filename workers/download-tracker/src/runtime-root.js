@@ -291,7 +291,7 @@ export async function handleRuntimeRoot(request, url, env, signed) {
       signed,
       path: "/runtime",
       kind: "runtime",
-      description: "aziel-runtime 1.4.0 engine-runtime on the Aziel Digital Library. Prefer /runtime/*. Listed engines run in-process; receipts carry engine_digest. Proxy is not exec. Author Aziel Eliab.",
+      description: "aziel-runtime 1.4.0 engine-runtime on the Aziel Digital Library. Prefer /runtime/*. Every catalog Software slug runs in-process; receipts carry engine_digest. Proxy is not exec. Author Aziel Eliab.",
     });
   }
 
