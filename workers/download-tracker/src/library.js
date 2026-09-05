@@ -320,15 +320,54 @@ export async function putObject(env, key, bytes, contentType) {
 }
 
 
+/** Read bytes from an R2 object or our KV getObject wrapper. */
+export async function readObjectBytes(obj) {
+  if (!obj) return null;
+  try {
+    if (typeof obj.arrayBuffer === "function") {
+      const ab = await obj.arrayBuffer();
+      if (ab) return ab;
+    }
+  } catch { /* fall through */ }
+  const b = obj.body;
+  if (b == null) return null;
+  try {
+    if (typeof b.arrayBuffer === "function") return await b.arrayBuffer();
+  } catch { /* ReadableStream has no .arrayBuffer */ }
+  try {
+    return await new Response(b).arrayBuffer();
+  } catch { /* */ }
+  if (typeof b === "string") return new TextEncoder().encode(b);
+  if (b instanceof ArrayBuffer) return b;
+  if (ArrayBuffer.isView(b)) return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength);
+  return null;
+}
+
 export async function getObject(env, key) {
   const store = env && env.FILES;
   if (!store) return null;
   if (isR2(store)) return store.get(key);
+  // Prefer arrayBuffer so PDF/binary downloads never depend on stream.arrayBuffer().
+  try {
+    const res = await store.getWithMetadata(key, { type: "arrayBuffer" });
+    if (res && res.value != null) {
+      const value = res.value;
+      const ct = (res.metadata && res.metadata.contentType) || "application/octet-stream";
+      return {
+        arrayBuffer: async () => value,
+        body: value,
+        httpMetadata: { contentType: ct },
+      };
+    }
+  } catch { /* fall back to stream */ }
   const res = await store.getWithMetadata(key, { type: "stream" });
   if (!res || res.value == null) return null;
+  const stream = res.value;
+  const ct = (res.metadata && res.metadata.contentType) || "application/octet-stream";
   return {
-    body: res.value,
-    httpMetadata: { contentType: (res.metadata && res.metadata.contentType) || "application/octet-stream" },
+    body: stream,
+    arrayBuffer: async () => new Response(stream).arrayBuffer(),
+    httpMetadata: { contentType: ct },
   };
 }
 
@@ -559,13 +598,11 @@ export async function serveFile(env, recordId) {
   if (row.object_key) {
     if (!env.FILES) return jsonErr("files binding missing", 500);
     obj = await getObject(env, row.object_key);
-    if (obj) {
-      if (obj.arrayBuffer) bytes = await obj.arrayBuffer();
-      else if (obj.body && typeof obj.body.arrayBuffer === "function") bytes = await obj.body.arrayBuffer();
-      else if (typeof obj.body === "string") bytes = new TextEncoder().encode(obj.body);
-    }
+    if (obj) bytes = await readObjectBytes(obj);
+    if (!bytes) return jsonErr("stored file unreadable", 500);
   }
   if (!bytes) {
+    // Text-only records (no object_key) may serve notes; never substitute notes for a missing binary.
     const text = String(row.body || row.title || row.record_id);
     bytes = new TextEncoder().encode(text);
   }
