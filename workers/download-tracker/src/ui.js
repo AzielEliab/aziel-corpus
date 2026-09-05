@@ -195,7 +195,7 @@ export function pwField(name = "password") {
   return `<div class="pw-row"><input id="${id}" name="${name}" type="password" required placeholder="password" autocomplete="current-password"><label class="showpw"><input type="checkbox" onclick="var e=document.getElementById('${id}');e.type=this.checked?'text':'password'"> Show password</label></div>`;
 }
 
-export function page(title, body, { signed, scripts, path, kind, description } = {}) {
+export function page(title, body, { signed, scripts, path, kind, description, work } = {}) {
   const who = signed && signed.username ? String(signed.username) : "";
   const account = signed
     ? `<span class="pill ok">signed in as ${esc(who)}</span>`
@@ -203,9 +203,9 @@ export function page(title, body, { signed, scripts, path, kind, description } =
   const authLinks = signed
     ? `<a href="/logout">Log out</a>`
     : `<a href="/login">Log in</a><span class="sep">|</span><a href="/signup">Sign up</a>`;
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)} — Aziel Digital Library</title>${headMeta({ title, path: path || "/", kind, description })}<style>${CSS}</style></head><body><div class="wrap">
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)} — Aziel Digital Library</title>${headMeta({ title, path: path || "/", kind, description, work })}<style>${CSS}</style></head><body><div class="wrap">
 <div class="brandrow nav1"><img class="brandmark" src="/sigil.png" width="40" height="40" alt="" decoding="async"><div class="brand">Aziel Digital Library</div><span class="pill">Runtime v2.7.0</span><span class="pill ok">MASTER · WRITABLE</span>${account}</div>
-<nav class="nav2 quiet"><a href="/">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/pattern">Pattern</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/runtime">Runtime</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/gazetteer">Gazetteer</a><span class="sep">|</span><a href="/intelligence">Intelligence</a><span class="sep">|</span><a href="/about">About Aziel</a><span class="sep">|</span>${authLinks}</nav>
+<nav class="nav2 quiet"><a href="/">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/pattern">Pattern</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/how-its-scored">How it's scored</a><span class="sep">|</span><a href="/runtime">Runtime</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/gazetteer">Gazetteer</a><span class="sep">|</span><a href="/intelligence">Intelligence</a><span class="sep">|</span><a href="/about">About Aziel</a><span class="sep">|</span>${authLinks}</nav>
 ${body}</div>${jeevesFabHtml()}${(scripts||[]).map((src)=>"<script src=\""+esc(src)+"\" defer></script>").join("")}</body></html>`;
 }
 
@@ -505,9 +505,12 @@ export function patternBody({ total, domains, subjects, keywords, crosses } = {}
 export function aboutBody() {
   return `<section class="hero about-aziel"><h1>About Aziel</h1>
 <div class="card about-prose">
+<p>Aziel Eliab is a researcher and builder. This library is the public MASTER of that work: hashed receipts, timed files, and software that can be reviewed without asking anyone to take a name on faith. The same person is also known as Aziel Elroi Eliab; primary credit stays Aziel Eliab.</p>
 <p>If not me, then who holds the record when names get stripped and the files get sealed? I didn’t ask for the seat. The work was already sitting there undone. I build receipts so truth has a place to live that isn’t someone else’s story.</p>
 <p>Carry the torch: I don’t own the flame. I keep it lit long enough for the next hands to find it. If the record is local, timed, and hashed, the work can outlive me. That is the point.</p>
 <p>Truth that cannot be corrected is just a private religion. So the work stays public, chained for review, not a pulpit. Later papers bury earlier ones as confidence hardens. I am not always right. That is not a confession. It is the method.</p>
+<p><strong>Aziel Library</strong> (royal purple) is the operator collection of Aziel Eliab’s own papers and software notes. <strong>Corpus</strong> is the public Lamb Lens shelf — anyone may browse; signed-in accounts file there. The two shelves share the same scoring and hash-chain rules; they are not the same collection.</p>
+<p>The software suite is listed on <a href="/software">Software</a> and invoked from <a href="/runtime">Runtime</a> (aziel-runtime catalog). How records are scored — triad SPRE × CLCE × PhysLing, and ZionPattern as a separate public reading — is on <a href="/how-its-scored">How it's scored</a>. Source: <a href="https://github.com/AzielEliab/aziel-corpus">github.com/AzielEliab/aziel-corpus</a>.</p>
 <p>I am here for the record, not the applause. If not me, then who. If not now, the seal holds. I carry the torch by leaving receipts. When the work can stand without my name on it, I am done.</p>
 <p>I am temporary. The truth is not.</p>
 <p class="about-sign"><strong>— Aziel Eliab</strong></p>
@@ -515,10 +518,37 @@ export function aboutBody() {
 </section>`;
 }
 
+export function howItsScoredBody() {
+  return `<section class="hero"><h1>How it's scored</h1>
+<p class="muted">Public scoring on Aziel Digital Library. Author Aziel Eliab. Two published numbers: the triad (primary) and ZionPattern Solver (secondary). Neither is a guilt verdict or a courtroom finding.</p></section>
+<div class="card">
+<h2>Triad — SPRE × CLCE × PhysLing</h2>
+<p>When <strong>SPRE</strong>, <strong>CLCE</strong>, and <strong>PhysLing Review</strong> have all run on a record, one combined score is shown first. That is TRIAD_V1, an auditable geometric mean:</p>
+<p><code>combined = (spre_pc × clce_consistency × plr_coherence)<sup>1/3</sup></code></p>
+<ul>
+<li><strong>SPRE</strong> — Source Provenance Reliability Engine. How complete and consistent the provenance looks. No guilt verdict.</li>
+<li><strong>CLCE</strong> — claim-to-claim consistency (AZ-CLCE). Triple agreement when it is strong; otherwise pairwise average.</li>
+<li><strong>PhysLing</strong> — physics coherence mixed with linguistic neutrality.</li>
+</ul>
+<p>Equal one-third weight. Display is <code>round(combined × 100)</code>. Component scores stay stored for audit. The unranked Bayesian peer number is <em>not</em> inside this mean and never sorts the shelf.</p>
+<p class="muted">See a record page, or <code>GET /v1/review?record_id=</code>, for the live triad and lights.</p>
+</div>
+<div class="card">
+<h2>ZionPattern Solver — honest reading</h2>
+<p>Every Aziel Library and Corpus upload also gets a <strong>ZionPattern Solver</strong> score. It is public, stored on the record, and returned by review. It is <em>not</em> merged into the triad. Provisional and assistive. It does not solve cases.</p>
+<p>A published reading of <strong>75</strong> is intentional suppression confidence — the ceiling. <strong>Lower is more natural</strong>: less confidence that a suppression pattern holds. The solver also keeps a 25 uncertainty floor so thin evidence cannot pretend to be certainty in the other direction.</p>
+<p>If a later paper supersedes an earlier one <em>and</em> proves a pattern break with first-hand / primary materials only, the succession chain can be force-rescored. Narrative, news, and second-source materials never trigger that path.</p>
+</div>
+<div class="card">
+<h2>Where to go next</h2>
+<p class="soft-links"><a class="button" href="/software">Software</a> <a class="button ghost" href="/runtime">Runtime</a> <a class="button ghost" href="/pattern">Pattern</a> <a class="button ghost" href="/about">About Aziel</a> <a class="button ghost" href="/llms.txt">llms.txt</a> <a class="button ghost" href="/cite.json">cite.json</a></p>
+</div>`;
+}
+
 export function runtimeBody() {
   return `<section class="hero"><h1>aziel-runtime — AI runtime root</h1>
 <p class="muted"><strong>engine-runtime 1.4.0.</strong> Prefer same-origin <code>/runtime/*</code>. Every catalog Software slug runs in-process inside the Worker isolate; session receipts carry <code>engine_digest</code>. Catalog, pull, OpenAPI, MCP, and proxy front doors remain. Proxy is not exec. Session: <code>open → policy → exec → receipt → close</code>. Binding-only ops may be per-op <code>proxy_fallback</code>; <code>proxy_fallback_slugs</code> is empty. Engine manifest: <code>/runtime/v1/runtime.json</code> (not library <code>/v1/runtime</code>). Author Aziel Eliab.</p>
-<p class="muted"><strong>THIS IS NOT</strong> a second software index. Downloadable product cards stay on <a href="/software">Software</a>. This page is the AI runtime root. No invented Zenodo DOIs.</p></section>
+<p class="muted"><strong>THIS IS NOT</strong> a second software index. Downloadable product cards stay on <a href="/software">Software</a>. Scoring is explained on <a href="/how-its-scored">How it's scored</a>. This page is the AI runtime root. No invented Zenodo DOIs. Author Aziel Eliab (aka Aziel Elroi Eliab; primary credit Aziel Eliab).</p></section>
 <div class="card">
 <h2>Same-origin pull (prefer)</h2>
 <p>AIs and tools should call these Digital Library URLs first (send <code>User-Agent: Mozilla/5.0</code>):</p>
@@ -550,7 +580,7 @@ export function runtimeBody() {
 <li><a href="https://aziel-runtime.vibelock.workers.dev/llms.txt">llms.txt</a> · <a href="https://aziel-runtime.vibelock.workers.dev/cite.json">cite.json</a> · <a href="https://github.com/AzielEliab/aziel-runtime">GitHub</a></li>
 </ul>
 <p class="muted">Counted downloads stay on each product Worker <code>/download</code> + <code>/count</code>. The Software tab lists those cards. AzielTether is the survival mesh for downloaded nodes; this HTTPS site is not a mesh.</p>
-<p class="soft-links"><a class="button ghost" href="/software">Software catalog</a> <a class="button ghost" href="https://aziel-runtime.vibelock.workers.dev/">Open origin</a> <a class="button ghost" href="/v1/lattice">Lattice API</a></p>
+<p class="soft-links"><a class="button ghost" href="/software">Software catalog</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="https://aziel-runtime.vibelock.workers.dev/">Open origin</a> <a class="button ghost" href="https://aziel-runtime.vibelock.workers.dev/v1/catalog.json">catalog.json</a> <a class="button ghost" href="/v1/lattice">Lattice API</a> <a class="button ghost" href="https://github.com/AzielEliab/aziel-runtime">GitHub</a></p>
 </div>`;
 }
 
@@ -572,9 +602,11 @@ export function softwareBody({ products, fetched, downloadable } = {}) {
   return `<section class="hero"><h1>Downloadable software</h1>
 <p class="muted">Catalog of Aziel Eliab products you can download and run. <strong>Pull and invoke</strong> live on <a href="/runtime">Runtime</a> — this tab is not a second AI root.</p>
 <p class="muted"><strong>AzielTether</strong> is the survival mesh for downloaded Aziel software (prefer-central × peer sync). This public library is not a mesh — lattice tips are tip-shaped until tether carries them.</p>
-<p class="muted">AzielTether is featured first; FoldLock next among packages. Counted downloads stay on each product Worker <code>/count</code>.</p><p class="muted">Live catalog from <a href="https://aziel-runtime.vibelock.workers.dev/">aziel-runtime</a> · author Aziel Eliab only · ${esc(n)} downloadable products · ${esc(live)} live counters fetched.</p></section>
+<p class="muted">AzielTether is featured first; FoldLock next among packages. Counted downloads stay on each product Worker <code>/count</code>.</p>
+<p class="muted">Live catalog from <a href="https://aziel-runtime.vibelock.workers.dev/">aziel-runtime</a> · author Aziel Eliab only · ${esc(n)} downloadable products · ${esc(live)} live counters fetched.</p>
+<p class="soft-links"><a href="/how-its-scored">How it's scored</a> · <a href="/runtime">Runtime root</a> · <a href="/about">About Aziel</a> · <a href="https://github.com/AzielEliab/aziel-corpus">aziel-corpus</a> · <a href="https://github.com/AzielEliab/aziel-runtime">aziel-runtime</a> · <a href="/llms.txt">llms.txt</a> · <a href="/ai.txt">ai.txt</a></p></section>
 <div class="soft-grid">${cards}</div>
-<div class="card"><p class="soft-links"><a class="button" href="/runtime">Runtime root</a> <a class="button ghost" href="https://aziel-runtime.vibelock.workers.dev/v1/catalog.json">catalog.json</a> <a class="button ghost" href="/runtime/mcp">MCP</a> <a class="button ghost" href="/v1/lattice">Lattice API</a></p></div>`;
+<div class="card"><p class="soft-links"><a class="button" href="/runtime">Runtime root</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="https://aziel-runtime.vibelock.workers.dev/v1/catalog.json">catalog.json</a> <a class="button ghost" href="/runtime/mcp">MCP</a> <a class="button ghost" href="/v1/lattice">Lattice API</a></p></div>`;
 }
 
 export { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, ocrBody, ocrFormHtml, SPECTRAL_LENSES, blockedAvBody } from "./hosted-pages.js";

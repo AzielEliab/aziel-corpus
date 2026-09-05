@@ -18,7 +18,7 @@ const CATALOG = "https://aziel-runtime.vibelock.workers.dev";
 const PROTOCOL = "2025-03-26";
 
 export const LIMITATION =
-  "THIS IS: Aziel Digital Library v2.7.0 — a self-contained immutable local digital library and intelligence runtime with poison immunity, PhysLing Review (required third verifier), triad composite score, ZionPattern Solver secondary score (public, separate from triad; 75% cap / 25% floor; provisional), exact-same-subject paper succession cites, document-bound hash chains, hosted Whisper transcription with mandatory VibeLock determination and hard A/V blocks (porn, nudity, child-sexual content never stored or playable), hash-chained media lattice for every OCR and transcript run, downloadable records, Ask Jeeves (research assistant), unranked Bayesian peer scores, and full-structure verify on upload/download. The public site is the MASTER (writable for signed-in accounts; anonymous GET is read-only). Operator writes go to Aziel Library only; public/anonymous writes go to Corpus only (Lamb Lens). The live HTTPS site is NOT a mesh. THIS IS NOT: a 26-card software index; Zenodo; Horton; OpenAI; a Tor/VPN; a guilt verdict; courtroom proof of media authenticity. Author Aziel Eliab only.";
+  "THIS IS: Aziel Digital Library v2.7.0 — a self-contained immutable local digital library and intelligence runtime with poison immunity, PhysLing Review (required third verifier), triad composite score, ZionPattern Solver secondary score (public, separate from triad; 75 = intentional suppression confidence, lower is more natural; 75 ceiling / 25 floor; provisional), exact-same-subject paper succession cites, document-bound hash chains, hosted Whisper transcription with mandatory VibeLock determination and hard A/V blocks (porn, nudity, child-sexual content never stored or playable), hash-chained media lattice for every OCR and transcript run, downloadable records, Ask Jeeves (research assistant), unranked Bayesian peer scores, and full-structure verify on upload/download. The public site is the MASTER (writable for signed-in accounts; anonymous GET is read-only). Operator writes go to Aziel Library only; public/anonymous writes go to Corpus only (Lamb Lens). The live HTTPS site is NOT a mesh. THIS IS NOT: a 26-card software index; Zenodo; Horton; OpenAI; a Tor/VPN; a guilt verdict; courtroom proof of media authenticity. Author Aziel Eliab only (also known as Aziel Elroi Eliab).";
 
 export const SKILL = `---
 name: Aziel Digital Library
@@ -27,7 +27,7 @@ description: Use when an assistant should search the Aziel Digital Library maste
 
 # Aziel Digital Library v2.7.0
 
-Self-contained immutable local digital library and intelligence runtime. Public site is MASTER. Anonymous GET is read-only. Signed-in accounts may ingest. Author: **Aziel Eliab**.
+Self-contained immutable local digital library and intelligence runtime. Public site is MASTER. Anonymous GET is read-only. Signed-in accounts may ingest. Author: **Aziel Eliab** (also known as Aziel Elroi Eliab; primary credit Aziel Eliab).
 
 **THIS IS:** Aziel Digital Library v2.7.0 (search, records, map, gazetteer, counted zip, poison immunity, PhysLing Review, triad composite, exact-same-subject succession cites, document hash-chains, hosted Whisper transcription with mandatory VibeLock determination and hard A/V blocks, media lattice receipts, Ask Jeeves, unranked Bayesian scores).
 
@@ -38,8 +38,13 @@ Always send \`User-Agent: Mozilla/5.0\`.
 ## Call these URLs
 
 - Library: ${HOST}/
+- About: ${HOST}/about
+- Software hub: ${HOST}/software
+- How it's scored: ${HOST}/how-its-scored
 - Fallback Worker: ${FALLBACK_HOST}/
 - Worker OpenAPI: ${HOST}/openapi.json
+- llms.txt: ${HOST}/llms.txt
+- ai.txt: ${HOST}/ai.txt
 - Runtime root: ${HOST}/runtime (aziel-runtime 1.3.0 engine-runtime; prefer /runtime/*)
 - Catalog OpenAPI: ${HOST}/runtime/openapi.json (origin ${CATALOG}/openapi.json)
 - MCP: \`POST ${HOST}/runtime/mcp\` (origin \`POST ${CATALOG}/mcp\`)
@@ -97,7 +102,7 @@ Local MASTER is writable on http://127.0.0.1:8765. Apache-2.0. Forks welcome.
 export function corsHeaders() {
   return {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Accept, MCP-Protocol-Version, mcp-session-id",
   };
 }
@@ -115,9 +120,10 @@ function openapi() {
     info: {
       title: "Aziel Digital Library",
       version: VERSION,
-      description: LIMITATION,
-      contact: { name: "Aziel Eliab", url: HOST },
-      license: { name: "Apache-2.0" },
+      summary: "Public MASTER digital library by Aziel Eliab (also known as Aziel Elroi Eliab).",
+      description: LIMITATION + " Author Aziel Eliab (aka Aziel Elroi Eliab; primary credit Aziel Eliab). Software hub " + HOST + "/software. Runtime catalog " + HOST + "/runtime. Origin catalog " + CATALOG + "/. GitHub https://github.com/AzielEliab/aziel-corpus. How records are scored: " + HOST + "/how-its-scored. No invented DOIs.",
+      contact: { name: "Aziel Eliab", url: "https://github.com/AzielEliab" },
+      license: { name: "Apache-2.0", url: "https://www.apache.org/licenses/LICENSE-2.0" },
     },
     servers: [{ url: HOST }, { url: FALLBACK_HOST }],
     paths: {
@@ -163,7 +169,11 @@ export async function handleRuntimeApi(request, url, env) {
   if (request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders() });
   }
-  if (path === "/openapi.json" && request.method === "GET") return json(openapi());
+  if (path === "/openapi.json" && (request.method === "GET" || request.method === "HEAD")) {
+    const res = json(openapi());
+    if (request.method === "HEAD") return new Response(null, { status: res.status, headers: res.headers });
+    return res;
+  }
   if (path === "/v1/runtime" && request.method === "GET") {
     return json({
       ok: true,
@@ -220,7 +230,7 @@ export async function handleRuntimeApi(request, url, env) {
         backfill: "GET /v1/verify-backfill scores older unscored records",
         document_chain: "hash-chain bound to AZDOC- id; uploads/downloads/rescores/quarantine/peer notes append",
         succession: "Exact-same-subject paper cites (Supersedes / Superseded by). Uncertain matches are not chained.",
-        zsolver: "ZionPattern Solver secondary public score on every upload. Separate from triad. Hard 75% cap / 25% floor. Provisional. If the live API is down, the score is queued and retried. When a superseding document proves a ZionPattern break with first-hand / primary materials only, every document in that succession chain is force-rescored. Narrative, news, and second-source materials never trigger chain rescore.",
+        zsolver: "ZionPattern Solver secondary public score on every upload. Separate from triad. 75 means intentional suppression confidence; lower is more natural. Hard 75 ceiling / 25 uncertainty floor. Provisional. If the live API is down, the score is queued and retried. When a superseding document proves a ZionPattern break with first-hand / primary materials only, every document in that succession chain is force-rescored. Narrative, news, and second-source materials never trigger chain rescore. See " + HOST + "/how-its-scored",
         backfill_all: "GET /v1/verify-backfill?all=1 walks every stored Aziel Library and Corpus record",
         verify_geo: "GET /v1/verify-geo?force=1 / ?status=1 — chunked paper-date × event × geolocation pins. Never upload time.",
         jeeves: JEEVES_LIMITATION,
