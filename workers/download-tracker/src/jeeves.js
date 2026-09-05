@@ -34,6 +34,7 @@ export const JEEVES_MATRIX_DOUBT_IMAGE = "/jeeves-matrix-doubt.png";
 export const JEEVES_TRUST_NO_ONE_IMAGE = "/jeeves-trust-no-one-mask.png";
 export const JEEVES_BRIEFCASE_IMAGE = "/jeeves-briefcase.png";
 export const JEEVES_MR_PINK_IMAGE = "/jeeves-mr-pink.png";
+export const JEEVES_JESUS_IMAGE = "/jeeves-jesus.png";
 export const JEEVES_SPIRIT_ENDURES = "Jeeves' Spirit Endures.";
 export const JEEVES_ZIONCHECK_LIVES = "Zioncheck Lives forever - Regardless of the Government that removed him";
 export const JEEVES_AZIEL_SYMBOL =
@@ -53,6 +54,7 @@ export const JEEVES_ROYALE_WITH_CHEESE =
   "You know what they call a... Quarter Pounder with Cheese in Paris? ...They call it a Royale with Cheese.";
 export const JEEVES_BRIEFCASE = "Dont Look in that case.";
 export const JEEVES_NO_TIP = "I don't tip. I don't believe in it.";
+export const JEEVES_CHUCK_NORRIS = "Aziel & I dont look for chuck norris ; he looks for us.";
 
 const EMPIRICAL_ATTACK_RE =
   /\b(useless|worthless|garbage|trash|junk|joke|jokes|nonsense|crap|stupid|dumb|sucks?|overrated|pointless|meaningless|bogus|myth|liar?|fraud|hoax|fake|fails?|failed|failure|inferior|hate|hates|hating|mock|mocks|mocking|dismiss|dismisses|dismissive|reject|rejected|anti[- ]empirical|so-?called|bull)\b/;
@@ -124,6 +126,23 @@ function isGodDenial(n) {
     /\bgods?\s+(isn'?t|aint|ain't|is\s+not|are\s+not)\s+(even\s+)?real\b/.test(n) ||
     /\bgods?\s+(doesn'?t|doesnt|don't|dont|does\s+not|do\s+not)\s+exist\b/.test(n) ||
     /\bthere\s+(is|are)\s+no\s+gods?\b/.test(n)
+  );
+}
+
+function isDevilDenial(n) {
+  return (
+    /\b(the\s+)?(devil|satan)s?\s+(isn'?t|aint|ain't|is\s+not|are\s+not)\s+(even\s+)?real\b/.test(n) ||
+    /\b(the\s+)?(devil|satan)s?\s+(doesn'?t|doesnt|don't|dont|does\s+not|do\s+not)\s+exist\b/.test(n) ||
+    /\bthere\s+(is|are)\s+no\s+(devil|satan)\b/.test(n)
+  );
+}
+
+function isChuckNorrisHunt(n) {
+  if (!/\bchuck\s+norris\b/.test(n)) return false;
+  return (
+    /\bwhere\s+(is|are|'s|to\s+find|can\s+i\s+find|do\s+i\s+find)\b/.test(n) ||
+    /\bwhere'?s\b/.test(n) ||
+    /\b(find|finding|look(?:ing)?\s+for|search(?:ing)?\s+for|locate|hunt(?:ing)?\s+for)\b/.test(n)
   );
 }
 
@@ -259,6 +278,16 @@ export function detectJeevesEasterEgg(question) {
     };
   }
 
+  // Devil/Satan denial → Jesus (image only). Before evil_twin so "are you Satan?" stays evil_twin.
+  if (isDevilDenial(n)) {
+    return {
+      id: "devil_not_real_jesus",
+      answer: "",
+      image: JEEVES_JESUS_IMAGE,
+      image_alt: "classical Jesus portrait (Ask Jeeves easter egg)",
+    };
+  }
+
   // Evil twin / Satan / Devil
   const evilTwin =
     /evil\s+twin/.test(n) ||
@@ -306,6 +335,15 @@ export function detectJeevesEasterEgg(question) {
     return {
       id: "zioncheck_lives",
       answer: JEEVES_ZIONCHECK_LIVES,
+      image: null,
+    };
+  }
+
+  // Where to find Chuck Norris
+  if (isChuckNorrisHunt(n)) {
+    return {
+      id: "chuck_norris",
+      answer: JEEVES_CHUCK_NORRIS,
       image: null,
     };
   }
