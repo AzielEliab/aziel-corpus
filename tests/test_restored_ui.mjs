@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { CSS, page, aboutBody, patternBody, softwareBody, runtimeBody, azielLibraryBody, homeBody } from "../workers/download-tracker/src/ui.js";
+import { CSS, page, aboutBody, howItsScoredBody, patternBody, softwareBody, runtimeBody, azielLibraryBody, homeBody } from "../workers/download-tracker/src/ui.js";
 import { ocrPageBody, mapBody, SPECTRAL_LENSES } from "../workers/download-tracker/src/hosted-pages.js";
 import { dedupeShelfRows } from "../workers/download-tracker/src/library.js";
 
@@ -14,6 +14,7 @@ const NAV = [
   [">Corpus<", "/corpus"],
   [">Pattern<", "/pattern"],
   [">Software<", "/software"],
+  [">How it's scored<", "/how-its-scored"],
   [">Runtime<", "/runtime"],
   [">Tree<", "/tree"],
   [">Map<", "/map"],
@@ -69,6 +70,22 @@ test("Pattern, Software, About, and runtime pages render live copy", () => {
   assert.match(about, /About Aziel/);
   assert.match(about, /— Aziel Eliab/);
   assert.match(about, /I am temporary/);
+  assert.match(about, /researcher and builder/);
+  assert.match(about, /Aziel Elroi Eliab/);
+  assert.match(about, /Aziel Library/);
+  assert.match(about, /href="\/software"/);
+  assert.match(about, /href="\/how-its-scored"/);
+  const scored = howItsScoredBody();
+  assert.match(scored, /How it's scored/);
+  assert.match(scored, /SPRE/);
+  assert.match(scored, /CLCE/);
+  assert.match(scored, /PhysLing/);
+  assert.match(scored, /intentional suppression confidence/);
+  assert.match(scored, /lower is more natural/i);
+  assert.doesNotMatch(scored, /\+25/);
+  assert.doesNotMatch(scored, /quiet/i);
+  assert.doesNotMatch(scored, /Collin Horton/i);
+  assert.doesNotMatch(scored, /GodLock\.AZ/i);
   const pattern = patternBody({
     total: 3,
     domains: [{ label: "research", n: 2 }],
@@ -85,6 +102,8 @@ test("Pattern, Software, About, and runtime pages render live copy", () => {
   });
   assert.match(soft, /Downloadable software/);
   assert.match(soft, /aziel-runtime/);
+  assert.match(soft, /href="\/how-its-scored"/);
+  assert.match(soft, /href="\/runtime"/);
   assert.doesNotMatch(soft, /zenodo/i);
   const runtime = runtimeBody();
   assert.match(runtime, /aziel-runtime/);
@@ -94,7 +113,7 @@ test("Pattern, Software, About, and runtime pages render live copy", () => {
   assert.match(runtime, /\/runtime\/openapi\.json/);
   assert.match(runtime, /POST \/runtime\/mcp/);
   assert.match(runtime, /THIS IS NOT<\/strong> a second software index/);
-  assert.match(runtime, /engine-runtime 1\.3\.0/);
+  assert.match(runtime, /engine-runtime 1\.4\.0/);
   assert.match(runtime, /engine_digest/);
   assert.match(runtime, /\/runtime\/v1\/session\/open/);
   assert.match(runtime, /proxy_fallback/);
