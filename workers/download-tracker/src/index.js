@@ -259,6 +259,8 @@ function contentTypeFor(asset) {
   const a = String(asset || "").toLowerCase();
   if (a.endsWith(".zip")) return "application/zip";
   if (a.endsWith(".pdf")) return "application/pdf";
+  if (a.endsWith(".gif")) return "image/gif";
+  if (a.endsWith(".png")) return "image/png";
   if (a.endsWith(".tar.gz") || a.endsWith(".tgz") || a.endsWith(".gz")) return "application/gzip";
   return "application/octet-stream";
 }

@@ -42,6 +42,15 @@ import {
   JEEVES_MATRIX_SYSTEM,
   JEEVES_MORPHEUS_IMAGE,
   JEEVES_KONAMI_SNAKE_HELP,
+  JEEVES_DJANGO_CURIOSITY,
+  JEEVES_DJANGO_CURIOSITY_IMAGE,
+  JEEVES_DUMBASS_SILENT_D,
+  JEEVES_INGLOURIOUS_PURPOSE,
+  JEEVES_INGLOURIOUS_IMAGE,
+  JEEVES_THAT_BINGO,
+  JEEVES_AZIEL_MASTERPIECE,
+  JEEVES_TUPAC_NOBODY,
+  JEEVES_TUPAC_NOBODY_IMAGE,
   isKonamiCode,
   startJeevesSnakeGame,
   parseJeevesSnakeMove,
@@ -430,12 +439,9 @@ test("Jeeves Aziel symbol easter egg", () => {
   assert.equal(a.answer, JEEVES_AZIEL_SYMBOL);
   assert.equal(a.image, JEEVES_BAT_SIGNAL_IMAGE);
   assert.equal(a.image_alt, "stylized bat searchlight over a night city (Ask Jeeves easter egg)");
-  const b = detectJeevesEasterEgg("Why did Aziel make this library?");
-  assert.equal(b.id, "aziel_symbol");
-  const c = detectJeevesEasterEgg("Why did Aziel make this?");
-  assert.equal(c.id, "aziel_symbol");
   const d = detectJeevesEasterEgg("Who is Aziel Eliab?");
   assert.equal(d.id, "aziel_symbol");
+  assert.equal(detectJeevesEasterEgg("Who made this library?").id, "aziel_symbol");
   assert.equal(detectJeevesEasterEgg("search Aziel records"), null);
 });
 
@@ -684,3 +690,101 @@ test("Jeeves Konami code starts chat Snake", () => {
   assert.match(fab, /j\.answer!=null&&String\(j\.answer\)!==""/);
   assert.match(fab, /j\.image\?""/);
 });
+
+test("Jeeves django_curiosity profanity easter egg", () => {
+  const a = detectJeevesEasterEgg("fuck you Jeeves");
+  assert.equal(a.id, "django_curiosity");
+  assert.equal(a.answer, JEEVES_DJANGO_CURIOSITY);
+  assert.equal(a.answer, "You had my curiosity, now you have my attention.");
+  assert.equal(a.image, JEEVES_DJANGO_CURIOSITY_IMAGE);
+  assert.equal(a.image, "/jeeves-django-curiosity.png");
+  assert.equal(a.image_alt, "western porch sharp suit sunglasses easter egg");
+  assert.equal(detectJeevesEasterEgg("this is bullshit").id, "django_curiosity");
+  assert.equal(detectJeevesEasterEgg("you asshole").id, "django_curiosity");
+  assert.equal(detectJeevesEasterEgg("damn you").id, "django_curiosity");
+  assert.equal(detectJeevesEasterEgg("go to hell").id, "django_curiosity");
+  assert.equal(detectJeevesEasterEgg("motherfucker").id, "django_curiosity");
+  assert.equal(detectJeevesEasterEgg("this is a piece of shit").id, "django_curiosity");
+  assert.equal(detectJeevesEasterEgg("the gates of hell"), null);
+  assert.equal(detectJeevesEasterEgg("this is dumb and fake").id, "royale_with_cheese");
+  assert.equal(detectJeevesEasterEgg("this library is dumb and fake").id, "royale_with_cheese");
+});
+
+test("Jeeves dumbass_silent_d beats django_curiosity", () => {
+  const a = detectJeevesEasterEgg("you're a dumbass");
+  assert.equal(a.id, "dumbass_silent_d");
+  assert.equal(a.answer, JEEVES_DUMBASS_SILENT_D);
+  assert.equal(a.answer, "the D is silent.");
+  assert.equal(a.image, null);
+  assert.equal(detectJeevesEasterEgg("jeeves you dumbass").id, "dumbass_silent_d");
+  assert.equal(detectJeevesEasterEgg("dumb ass").id, "dumbass_silent_d");
+  assert.equal(detectJeevesEasterEgg("fuck you dumbass").id, "dumbass_silent_d");
+  assert.equal(detectJeevesEasterEgg("you dumb-ass").id, "dumbass_silent_d");
+});
+
+test("Jeeves inglourious_site_purpose easter egg", () => {
+  const a = detectJeevesEasterEgg("what is this site for");
+  assert.equal(a.id, "inglourious_site_purpose");
+  assert.equal(a.answer, JEEVES_INGLOURIOUS_PURPOSE);
+  assert.equal(a.answer, "were gonna be doin one thing and one thing only...\nkillin Nazi's");
+  assert.match(a.answer, /Nazi's/);
+  assert.equal(a.image, JEEVES_INGLOURIOUS_IMAGE);
+  assert.equal(a.image, "/jeeves-inglourious-basterds.png");
+  assert.equal(a.image_alt, "WWII squad forest easter egg");
+  assert.equal(detectJeevesEasterEgg("what does this site do").id, "inglourious_site_purpose");
+  assert.equal(detectJeevesEasterEgg("what is azielcorpuslibrary for").id, "inglourious_site_purpose");
+  assert.equal(detectJeevesEasterEgg("purpose of this website").id, "inglourious_site_purpose");
+  assert.equal(detectJeevesEasterEgg("what's the purpose of this site").id, "inglourious_site_purpose");
+  assert.equal(detectJeevesEasterEgg("search site records"), null);
+});
+
+test("Jeeves thats_a_bingo via previous/last_q", () => {
+  assert.equal(detectJeevesEasterEgg("hello there"), null);
+  const a = detectJeevesEasterEgg("hello there", { previous: "hello there" });
+  assert.equal(a.id, "thats_a_bingo");
+  assert.equal(a.answer, JEEVES_THAT_BINGO);
+  assert.equal(a.answer, "thats a bingo!");
+  assert.equal(a.image, null);
+  assert.equal(detectJeevesEasterEgg("Hello There", { last_q: "  hello   there " }).id, "thats_a_bingo");
+  assert.equal(detectJeevesEasterEgg("hello there", "HELLO THERE").id, "thats_a_bingo");
+  assert.equal(detectJeevesEasterEgg("hello there", { previous: "" }), null);
+  assert.equal(detectJeevesEasterEgg("hello there", { last_q: "something else" }), null);
+  assert.equal(detectJeevesEasterEgg("is this the matrix", { previous: "is this the matrix" }).id, "thats_a_bingo");
+  const fab = jeevesFabHtml();
+  assert.match(fab, /lastUserMsg/);
+  assert.match(fab, /previous:prev/);
+  assert.match(fab, /last_q:prev/);
+});
+
+test("Jeeves aziel_masterpiece easter egg", () => {
+  const a = detectJeevesEasterEgg("aziel why did you do this");
+  assert.equal(a.id, "aziel_masterpiece");
+  assert.equal(a.answer, JEEVES_AZIEL_MASTERPIECE);
+  assert.equal(a.answer, "I think this just might be my masterpiece");
+  assert.equal(a.image, null);
+  assert.equal(detectJeevesEasterEgg("aziel why make this").id, "aziel_masterpiece");
+  assert.equal(detectJeevesEasterEgg("why did aziel make this").id, "aziel_masterpiece");
+  assert.equal(detectJeevesEasterEgg("Why did Aziel make this library?").id, "aziel_masterpiece");
+  assert.equal(detectJeevesEasterEgg("why did Aziel build this site").id, "aziel_masterpiece");
+  assert.equal(detectJeevesEasterEgg("Who is Aziel?").id, "aziel_symbol");
+});
+
+test("Jeeves tupac_nobody easter egg", () => {
+  const a = detectJeevesEasterEgg("who killed tupac");
+  assert.equal(a.id, "tupac_nobody");
+  assert.equal(a.answer, JEEVES_TUPAC_NOBODY);
+  assert.equal(
+    a.answer,
+    "If the police say nobody shot him, I believe nobody shot him. And if nobody shot him, that's the same nobody that shot Tupac. And if nobody shot Tupac, it's the same nobody that shot MLK. And if nobody shot him, that's the same person that shot Malcolm X too. It's a lot of nobodies out there, and nobody minds if nobody comes up missing."
+  );
+  assert.equal(a.image, JEEVES_TUPAC_NOBODY_IMAGE);
+  assert.equal(a.image, "/jeeves-kat-williams.gif");
+  assert.equal(a.image_alt, "comedian mid-rant talk-show stage easter egg");
+  assert.equal(detectJeevesEasterEgg("who killed 2pac").id, "tupac_nobody");
+  assert.equal(detectJeevesEasterEgg("who shot Tupac Shakur").id, "tupac_nobody");
+  assert.equal(detectJeevesEasterEgg("who killed tupac shakur").id, "tupac_nobody");
+  assert.equal(detectJeevesEasterEgg("tupac lyrics in the corpus"), null);
+  assert.equal(detectJeevesEasterEgg("you can't answer").id, "briefcase_dont_look");
+  assert.equal(detectJeevesEasterEgg("why not more than 75%").id, "zsolver_trust_no_one");
+});
+
