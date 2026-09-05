@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { headMeta, defaultDescription, recordDescription, personNode, SHARE_IMAGE } from "./seo.js";
+import { headMeta, defaultDescription, recordDescription, personNode, SHARE_IMAGE, ABOUT_PATH, aboutRedirectFrom } from "./seo.js";
 import { page, howItsScoredBody } from "./ui.js";
 
 const BANNED = /Collin Horton|GodLock\.AZ|\+25|quiet (Aziel|triad|boost)|10\.5281\/zenodo/i;
@@ -18,7 +18,7 @@ test("JSON-LD types the author as Person with alternateName", () => {
   assert.deepEqual(person.alternateName, ["Aziel Elroi Eliab"]);
   assert.ok(person.sameAs.includes("https://github.com/AzielEliab"));
 
-  const html = headMeta({ title: "About Aziel", path: "/about", kind: "about" });
+  const html = headMeta({ title: "Aziel Eliab", path: ABOUT_PATH, kind: "about" });
   const ld = graphFrom(html);
   const types = ld["@graph"].map((n) => n["@type"]);
   assert.ok(types.includes("Person"));
@@ -27,7 +27,11 @@ test("JSON-LD types the author as Person with alternateName", () => {
   assert.ok(types.includes("ProfilePage"));
   const who = ld["@graph"].find((n) => n["@type"] === "Person");
   assert.equal(who.name, "Aziel Eliab");
+  assert.equal(who["@id"], "https://www.azielcorpuslibrary.net/AzielEliab#aziel-eliab");
+  assert.equal(who.url, "https://www.azielcorpuslibrary.net/AzielEliab");
   assert.ok(who.alternateName.includes("Aziel Elroi Eliab"));
+  const profile = ld["@graph"].find((n) => n["@type"] === "ProfilePage");
+  assert.equal(profile.url, "https://www.azielcorpuslibrary.net/AzielEliab");
   const org = ld["@graph"].find((n) => n["@type"] === "Organization");
   assert.equal(org.name, "Aziel Digital Library");
   const site = ld["@graph"].find((n) => n["@type"] === "WebSite");
@@ -42,7 +46,7 @@ test("page-specific descriptions and share images", () => {
   assert.match(defaultDescription("software"), /Software|aziel-runtime/i);
   assert.match(defaultDescription("scored"), /intentional suppression/);
   assert.match(defaultDescription("search"), /Search Aziel Digital Library/);
-  const about = headMeta({ title: "About Aziel", path: "/about", kind: "about" });
+  const about = headMeta({ title: "Aziel Eliab", path: ABOUT_PATH, kind: "about" });
   const record = headMeta({
     title: "The Cockroach Doctrine",
     path: "/record/AZDOC-1",
@@ -70,6 +74,16 @@ test("recordDescription uses document title and Aziel Eliab for library docs", (
   const corpus = recordDescription({ title: "Filed note", author: "A reader", library: "corpus" });
   assert.match(corpus, /Filed note by A reader/);
   assert.match(corpus, /Aziel Eliab/);
+});
+
+test("legacy /about paths permanently redirect to /AzielEliab", () => {
+  assert.equal(aboutRedirectFrom("/about"), "/AzielEliab");
+  assert.equal(aboutRedirectFrom("/about/"), "/AzielEliab");
+  assert.equal(aboutRedirectFrom("/aboutme"), "/AzielEliab");
+  assert.equal(aboutRedirectFrom("/azieleliab"), "/AzielEliab");
+  assert.equal(aboutRedirectFrom("/AZIELELIAB"), "/AzielEliab");
+  assert.equal(aboutRedirectFrom("/AzielEliab"), null);
+  assert.equal(aboutRedirectFrom("/software"), null);
 });
 
 test("chrome page for how-its-scored does not leak the quiet triad boost", () => {
