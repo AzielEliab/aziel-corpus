@@ -128,7 +128,7 @@ function isGodDenial(n) {
 }
 
 function has75Mark(n) {
-  return /\b(75\s*%|75\s*percent|seventy[- ]five(\s+percent)?)\b/.test(n);
+  return /\b75\s*%/.test(n) || /\b75\s*percent\b/.test(n) || /\bseventy[- ]five(\s+percent)?\b/.test(n);
 }
 
 function isZsolverTrustNoOne(n) {
