@@ -47,11 +47,10 @@ function verifyMaster(password, rec) {
   const got = scryptSync(password, salt, rec.dklen || 32, { N: rec.n || 16384, r: rec.r || 8, p: rec.p || 1 });
   return safeEq(got, expected);
 }
-function html(pageBody, { status = 200, signed, extraHeaders } = {}) {
-  return new Response(pageBody, {
-    status,
-    headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders(), ...(extraHeaders || {}) },
-  });
+function html(pageBody, { status = 200, signed, extraHeaders, head } = {}) {
+  const headers = { "Content-Type": "text/html; charset=utf-8", ...corsHeaders(), ...(extraHeaders || {}) };
+  if (head) return new Response(null, { status, headers });
+  return new Response(pageBody, { status, headers });
 }
 function loginGate(signed, message) {
   return html(page("Log in required", `<div class="card"><h2>Sign in</h2><p>${message}</p><p><a class="button" href="/login">Log in</a> <a class="button ghost" href="/signup">Sign up</a></p></div>`, { signed }), { status: 401, signed });
@@ -143,11 +142,11 @@ export async function handleAuth(request, url, env, ctx) {
     return new Response(null, { status: 303, headers: { Location: "/", "Set-Cookie": cookie(token) } });
   }
 
-  if (path === "/aziel-library" && request.method === "GET") {
+  if (path === "/aziel-library" && (request.method === "GET" || request.method === "HEAD")) {
     const browse = parseBrowseParams(url);
-    const rows = await searchRecords(env, { q: browse.q, library: "aziel", sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300 });
-    const facets = await listFacets(env, { library: "aziel" });
-    return html(page("Aziel Library", azielLibraryBody({ rows, facets, ...browse, lib: "aziel", signed }), { signed, path: "/aziel-library", kind: "search" }), { signed });
+    const rows = request.method === "HEAD" ? [] : await searchRecords(env, { q: browse.q, library: "aziel", sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300 });
+    const facets = request.method === "HEAD" ? {} : await listFacets(env, { library: "aziel" });
+    return html(page("Aziel Library", azielLibraryBody({ rows, facets, ...browse, lib: "aziel", signed }), { signed, path: "/aziel-library", kind: "aziel-library" }), { signed, head: request.method === "HEAD" });
   }
   if (path === "/aziel-library" && request.method === "POST") {
     if (!signed) return loginGate(signed, "Operator sign-in is required for Aziel Library upload.");
@@ -173,11 +172,11 @@ export async function handleAuth(request, url, env, ctx) {
     return new Response(null, { status: 303, headers: { Location: "/aziel-library" } });
   }
 
-  if (path === "/corpus" && request.method === "GET") {
+  if (path === "/corpus" && (request.method === "GET" || request.method === "HEAD")) {
     const browse = parseBrowseParams(url);
-    const rows = await searchRecords(env, { q: browse.q, library: "corpus", sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300 });
-    const facets = await listFacets(env, { library: "corpus" });
-    return html(page("Corpus library", corpusBody({ signed, rows, facets, ...browse, lib: "corpus" }), { signed, path: "/corpus", kind: "corpus" }), { signed });
+    const rows = request.method === "HEAD" ? [] : await searchRecords(env, { q: browse.q, library: "corpus", sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300 });
+    const facets = request.method === "HEAD" ? {} : await listFacets(env, { library: "corpus" });
+    return html(page("Corpus library", corpusBody({ signed, rows, facets, ...browse, lib: "corpus" }), { signed, path: "/corpus", kind: "corpus" }), { signed, head: request.method === "HEAD" });
   }
 
   if (path === "/ingest" && request.method === "GET") {

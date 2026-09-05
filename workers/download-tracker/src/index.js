@@ -3,7 +3,7 @@ import { handleRuntimeRoot } from "./runtime-root.js";
 import { handleAuth, getSession } from "./auth.js";
 import { page, homeBody } from "./ui.js";
 import { handleHosted } from "./hosted.js";
-import { robotsTxt, sitemapXml, citeDoc, llmsDoc } from "./crawl.js";
+import { robotsTxt, sitemapXml, citeDoc, llmsDoc, aiTxt, humansTxt, isReadMethod, crawlResponse, MIME } from "./crawl.js";
 import { searchRecords, listFacets, parseBrowseParams, serveFile, serveFileByHash, normalizeContentHash } from "./library.js";
 import { reviewAndStore, continueFullBackfill } from "./review-store.js";
 import { continueVerifyGeo } from "./geo.js";
@@ -431,11 +431,12 @@ export default {
       });
     }
 
-    if (url.pathname === "/" && request.method === "GET") {
+    if (url.pathname === "/" && isReadMethod(request.method)) {
+      if (request.method === "HEAD") {
+        return crawlResponse(request, "", "text/html; charset=utf-8", corsHeaders());
+      }
       await incrementViews(env);
-      return new Response(await indexHtml(env, request), {
-        headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders() },
-      });
+      return crawlResponse(request, await indexHtml(env, request), "text/html; charset=utf-8", corsHeaders());
     }
 
     const signed = await getSession(env, request);
@@ -516,29 +517,25 @@ export default {
     }
 
     // gitbaby-seo-routes
-    if ((url.pathname === "/robots.txt" || url.pathname === "/robots.txt/") && request.method === "GET") {
-      const body = robotsTxt();
-      return new Response(body, {
-        status: 200,
-        headers: { "Content-Type": "text/plain; charset=utf-8", ...corsHeaders() },
-      });
+    const crawlPath = url.pathname.replace(/\/+$/, "") || "/";
+    if (isReadMethod(request.method) && crawlPath === "/robots.txt") {
+      return crawlResponse(request, robotsTxt(), MIME.plain, corsHeaders());
     }
-    if ((url.pathname === "/sitemap.xml" || url.pathname === "/sitemap.xml/") && request.method === "GET") {
+    if (isReadMethod(request.method) && crawlPath === "/sitemap.xml") {
       const xml = await sitemapXml(env);
-      const lastmod = new Date().toUTCString();
-      return new Response(xml, {
-        status: 200,
-        headers: { "Content-Type": "application/xml; charset=utf-8", "Last-Modified": lastmod, ...corsHeaders() },
-      });
+      return crawlResponse(request, xml, MIME.xml, { "Last-Modified": new Date().toUTCString(), ...corsHeaders() });
     }
-    if ((url.pathname === "/cite.json" || url.pathname === "/cite.json/") && request.method === "GET") {
-      return json(citeDoc());
+    if (isReadMethod(request.method) && crawlPath === "/cite.json") {
+      return crawlResponse(request, JSON.stringify(citeDoc(), null, 2), MIME.json, corsHeaders());
     }
-    if ((url.pathname === "/llms.txt" || url.pathname === "/llms.txt/") && request.method === "GET") {
-      return new Response(llmsDoc(LIMITATION), {
-        status: 200,
-        headers: { "Content-Type": "text/plain; charset=utf-8", ...corsHeaders() },
-      });
+    if (isReadMethod(request.method) && crawlPath === "/llms.txt") {
+      return crawlResponse(request, llmsDoc(LIMITATION), MIME.plain, corsHeaders());
+    }
+    if (isReadMethod(request.method) && crawlPath === "/ai.txt") {
+      return crawlResponse(request, aiTxt(LIMITATION), MIME.plain, corsHeaders());
+    }
+    if (isReadMethod(request.method) && crawlPath === "/humans.txt") {
+      return crawlResponse(request, humansTxt(), MIME.plain, corsHeaders());
     }
     // /gitbaby-seo-routes
     if (request.method === "POST") {

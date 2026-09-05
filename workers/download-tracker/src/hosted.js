@@ -1,4 +1,5 @@
-import { page, patternBody, softwareBody, aboutBody } from "./ui.js";
+import { page, patternBody, softwareBody, aboutBody, howItsScoredBody } from "./ui.js";
+import { recordDescription } from "./seo.js";
 import { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, blockedAvBody } from "./hosted-pages.js";
 import { json, corsHeaders } from "./runtime.js";
 import { receiptForRecord, sha256hex } from "./ledger.js";
@@ -49,10 +50,10 @@ async function receiptForAny(env, id) {
 
 function html(pageBody, extra) {
   extra = extra || {};
-  return new Response(pageBody, {
-    status: extra.status || 200,
-    headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders() },
-  });
+  const headers = { "Content-Type": "text/html; charset=utf-8", ...corsHeaders() };
+  const status = extra.status || 200;
+  if (extra.head) return new Response(null, { status, headers });
+  return new Response(pageBody, { status, headers });
 }
 
 async function serveAvMedia(env, sha) {
@@ -97,30 +98,33 @@ async function assetFromPublic(env, request, name, contentType) {
 export async function handleHosted(request, url, env, ctx, signed, stats) {
   const path = url.pathname.replace(/\/+$/, "") || "/";
   const method = request.method;
+  const head = method === "HEAD";
+  const read = method === "GET" || head;
+  const pageHtml = (pageBody, extra) => html(pageBody, Object.assign({}, extra, { head }));
   await ensureSchema(env);
 
-  if ((path === "/assets/world_110m.geojson" || path === "/world_110m.geojson") && method === "GET") {
+  if ((path === "/assets/world_110m.geojson" || path === "/world_110m.geojson") && read) {
     return assetFromPublic(env, request, "world_110m.geojson", "application/geo+json");
   }
-  if ((path === "/assets/ocr_selftest.png" || path === "/ocr_selftest.png") && method === "GET") {
+  if ((path === "/assets/ocr_selftest.png" || path === "/ocr_selftest.png") && read) {
     return assetFromPublic(env, request, "ocr_selftest.png", "image/png");
   }
-  if ((path === "/sigil.png" || path === "/assets/sigil.png") && method === "GET") {
+  if ((path === "/sigil.png" || path === "/assets/sigil.png") && read) {
     return assetFromPublic(env, request, "sigil.png", "image/png");
   }
-  if ((path === "/jeeves-kat-williams.gif" || path === "/assets/jeeves-kat-williams.gif") && method === "GET") {
+  if ((path === "/jeeves-kat-williams.gif" || path === "/assets/jeeves-kat-williams.gif") && read) {
     return assetFromPublic(env, request, "jeeves-kat-williams.gif", "image/gif");
   }
   const spectralSample = path.match(/^\/(?:assets\/)?spectral-samples\/([a-z0-9-]+)\.png$/);
-  if (spectralSample && method === "GET") {
+  if (spectralSample && read) {
     return assetFromPublic(env, request, "spectral-samples/" + spectralSample[1] + ".png", "image/png");
   }
   const avMatch = path.match(/^\/media\/([0-9a-fA-F]{64})$/);
-  if (avMatch && method === "GET") {
+  if (avMatch && read) {
     return serveAvMedia(env, avMatch[1]);
   }
 
-  if (path === "/api/gazetteer" && method === "GET") {
+  if (path === "/api/gazetteer" && read) {
     const q = (url.searchParams.get("q") || "").trim();
     const rows = q ? await lookupPlaces(env, q, 20) : [];
     const exactNorm = q.toLowerCase();
@@ -128,10 +132,10 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     const ids = new Set(exact.map((r) => r.geonameid));
     return json({ ok: true, q, matches: rows, ambiguous: ids.size !== 1, pin: ids.size === 1 ? exact[0] : null, attribution: "GeoNames CC BY 4.0 https://www.geonames.org/" });
   }
-  if (path === "/api/events" && method === "GET") {
+  if (path === "/api/events" && read) {
     return json({ ok: true, events: await listEvents(env) });
   }
-  if (path === "/api/historical" && method === "GET") {
+  if (path === "/api/historical" && read) {
     const date = url.searchParams.get("date") || url.searchParams.get("year") || "";
     return json(await historicalGeojson(env, date));
   }
@@ -166,19 +170,19 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     if (!file) {
       const st = await historicalStatus(env);
       const layers = await historicalLayers(env);
-      return html(page("Historical Geography", historicalBody({ status: st, layers, signed, error: "A layer file is required." }), { signed, path: "/historical" }), { status: 400 });
+      return pageHtml(page("Historical Geography", historicalBody({ status: st, layers, signed, error: "A layer file is required." }), { signed, path: "/historical" }), { status: 400 });
     }
     try {
       await importHistorical(env, { filename: file.name, bytes: await file.arrayBuffer() });
     } catch (err) {
       const st = await historicalStatus(env);
       const layers = await historicalLayers(env);
-      return html(page("Historical Geography", historicalBody({ status: st, layers, signed, error: err && err.message ? err.message : "import failed" }), { signed, path: "/historical" }), { status: err && err.status ? err.status : 400 });
+      return pageHtml(page("Historical Geography", historicalBody({ status: st, layers, signed, error: err && err.message ? err.message : "import failed" }), { signed, path: "/historical" }), { status: err && err.status ? err.status : 400 });
     }
     return new Response(null, { status: 303, headers: { Location: "/historical" } });
   }
-  if (path === "/ocr" && method === "GET") {
-    return html(page("OCR", ocrPageBody({ aiReady: aiBound(env), signed, operator: isOperator(signed) }), { signed, path: "/ocr", scripts: intelScripts(), kind: "ocr" }));
+  if (path === "/ocr" && read) {
+    return pageHtml(page("OCR", ocrPageBody({ aiReady: aiBound(env), signed, operator: isOperator(signed) }), { signed, path: "/ocr", scripts: intelScripts(), kind: "ocr" }));
   }
   if (path === "/transcribe" && method === "POST") {
     let form;
@@ -241,7 +245,7 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
         vibe,
       });
       if (wantsHtml(request)) {
-        return html(page("Blocked", blockedAvBody({ blocked }), { signed, path: "/transcribe" }), { status: AV_BLOCK_STATUS });
+        return pageHtml(page("Blocked", blockedAvBody({ blocked }), { signed, path: "/transcribe" }), { status: AV_BLOCK_STATUS });
       }
       return json(blocked, AV_BLOCK_STATUS);
     }
@@ -302,7 +306,7 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     const ocrPayload = { aiReady: aiBound(env), signed, operator };
     if (!file) {
       if (wantsHtml(request)) {
-        return html(page("OCR", ocrPageBody({ ...ocrPayload, error: "A file is required." }), { signed, path: "/ocr", scripts: intelScripts(), kind: "ocr" }), { status: 400 });
+        return pageHtml(page("OCR", ocrPageBody({ ...ocrPayload, error: "A file is required." }), { signed, path: "/ocr", scripts: intelScripts(), kind: "ocr" }), { status: 400 });
       }
       return json({ error: "file required" }, 400);
     }
@@ -359,7 +363,7 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     const saveNote = saveWanted && !signed ? "Sign in to save extracted text into the library." : null;
     if (wantsHtml(request)) {
       if (record) return new Response(null, { status: 303, headers: { Location: "/record/" + record.id } });
-      return html(page("OCR", ocrPageBody({
+      return pageHtml(page("OCR", ocrPageBody({
         ...ocrPayload,
         error: saveNote,
         result: { ...result, record_id: null, lenses, run_id: run && run.run_id, receipt_url: run && run.receipt_url },
@@ -406,71 +410,83 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
       await installPackage(env, { signed, file: form.get("package") || form.get("file") });
     } catch (err) {
       const packages = await listPackages(env);
-      return html(page("Intelligence", intelligenceBody({ packages, aiReady: aiBound(env), lastTest: await lastOcrSelftest(env), pending: await pendingOcrCount(env), signed, operator: isOperator(signed), error: err && err.message ? err.message : "install failed" }), { signed, path: "/intelligence", scripts: intelScripts() }), { status: err && err.status ? err.status : 400 });
+      return pageHtml(page("Intelligence", intelligenceBody({ packages, aiReady: aiBound(env), lastTest: await lastOcrSelftest(env), pending: await pendingOcrCount(env), signed, operator: isOperator(signed), error: err && err.message ? err.message : "install failed" }), { signed, path: "/intelligence", scripts: intelScripts() }), { status: err && err.status ? err.status : 400 });
     }
     return new Response(null, { status: 303, headers: { Location: "/intelligence" } });
   }
-  if (path === "/tree" && method === "GET") {
+  if (path === "/tree" && read) {
     await ensurePlaces(env, ctx);
     const tree = await corpusTree(env);
-    return html(page("Corpus Tree", treeBody(tree), { signed, path: "/tree" }));
+    return pageHtml(page("Corpus Tree", treeBody(tree), { signed, path: "/tree", kind: "tree" }));
   }
-  if (path === "/map" && method === "GET") {
+  if (path === "/map" && read) {
     const gst = await gazetteerStatus(env, ctx);
     const events = await listEvents(env);
     let unresolved = [];
     try { unresolved = await unresolvedPlaceMentions(env); } catch { unresolved = []; }
     const hst = await historicalStatus(env);
-    return html(page("Temporal Map", mapBody({ events, unresolved, gazetteer: gst, historical: hst, signed }), { signed, path: "/map", scripts: ["/map-client.js"], kind: "map" }));
+    return pageHtml(page("Temporal Map", mapBody({ events, unresolved, gazetteer: gst, historical: hst, signed }), { signed, path: "/map", scripts: ["/map-client.js"], kind: "map" }));
   }
-  if (path === "/historical" && method === "GET") {
+  if (path === "/historical" && read) {
     const st = await historicalStatus(env);
     const layers = await historicalLayers(env);
-    return html(page("Historical Geography", historicalBody({ status: st, layers, signed }), { signed, path: "/historical" }));
+    return pageHtml(page("Historical Geography", historicalBody({ status: st, layers, signed }), { signed, path: "/historical", kind: "historical" }));
   }
-  if (path === "/gazetteer" && method === "GET") {
+  if (path === "/gazetteer" && read) {
     const st = await gazetteerStatus(env, ctx);
     const q = (url.searchParams.get("q") || "").trim();
     const results = q ? await gazetteerSearch(env, q, 50) : [];
-    return html(page("World Gazetteer", gazetteerBody({ status: st, q, results, signed }), { signed, path: "/gazetteer" }));
+    return pageHtml(page("World Gazetteer", gazetteerBody({ status: st, q, results, signed }), { signed, path: "/gazetteer", kind: "gazetteer" }));
   }
-  if (path === "/intelligence" && method === "GET") {
+  if (path === "/intelligence" && read) {
     const packages = await listPackages(env);
     const lastTest = await lastOcrSelftest(env);
     const pending = await pendingOcrCount(env);
-    return html(page("Intelligence", intelligenceBody({ packages, aiReady: aiBound(env), lastTest, pending, signed, operator: isOperator(signed) }), { signed, path: "/intelligence", scripts: intelScripts(), kind: "intelligence" }));
+    return pageHtml(page("Intelligence", intelligenceBody({ packages, aiReady: aiBound(env), lastTest, pending, signed, operator: isOperator(signed) }), { signed, path: "/intelligence", scripts: intelScripts(), kind: "intelligence" }));
   }
-  if (path === "/health" && method === "GET") {
+  if (path === "/health" && read) {
     const health = await healthSnapshot(env, { views: stats && stats.views, downloads: stats && stats.downloads });
-    return html(page("Health", healthBody({ health }), { signed, path: "/health" }));
+    return pageHtml(page("Health", healthBody({ health }), { signed, path: "/health", kind: "health" }));
   }
   const recpt = path.match(/^\/(?:receipt|ledger)\/([^/]+)$/);
-  if (recpt && method === "GET") {
+  if (recpt && read) {
     const id = decodeURIComponent(recpt[1]);
     const doc = await receiptForAny(env, id);
     if (!doc) return json({ error: "not found" }, 404);
     if (wantsHtml(request)) {
-      return html(page("Receipt " + id, receiptBody({ receipt: doc }), { signed, path: "/receipt/" + id }));
+      return pageHtml(page("Receipt " + id, receiptBody({ receipt: doc }), { signed, path: "/receipt/" + id }));
     }
     return json(doc);
   }
-  if (path === "/verify" && method === "GET") {
+  if (path === "/verify" && read) {
 
     const report = await verifyHosted(env, request);
-    return html(page("Verify", verifyBody({ report }), { signed, path: "/verify" }));
+    return pageHtml(page("Verify", verifyBody({ report }), { signed, path: "/verify", kind: "verify" }));
   }
   const recMatch = path.match(/^\/record\/([^/]+)$/);
-  if (recMatch && method === "GET") {
+  if (recMatch && read) {
     const row = await getRecordRow(env, decodeURIComponent(recMatch[1]));
-    if (!row) return html(page("Not found", recordBody({ row: null, events: [] }), { signed, path: path }), { status: 404 });
+    if (!row) return pageHtml(page("Not found", recordBody({ row: null, events: [] }), { signed, path: path, kind: "record" }), { status: 404 });
     const events = await recordEvents(env, row.record_id);
     const extra = await loadRecordReview(env, row);
     let derived = [];
     try { derived = await listDerivedArtifacts(env, row.record_id); } catch { derived = []; }
-    return html(page(row.title || "Record", recordBody({ row, events, signed, derived, ...extra }), { signed, path: "/record/" + row.record_id }));
+    return pageHtml(page(row.title || "Record", recordBody({ row, events, signed, derived, ...extra }), {
+      signed,
+      path: "/record/" + row.record_id,
+      kind: "record",
+      description: recordDescription(row),
+      work: {
+        title: row.title,
+        author: row.author,
+        library: row.library,
+        record_id: row.record_id,
+        datePublished: row.created_utc,
+      },
+    }));
   }
   const derMatch = path.match(/^\/derived\/([^/]+)$/);
-  if (derMatch && method === "GET") {
+  if (derMatch && read) {
     return serveDerived(env, decodeURIComponent(derMatch[1]));
   }
   const peerMatch = path.match(/^\/record\/([^/]+)\/peer$/);
@@ -491,16 +507,19 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     if ((request.headers.get("Accept") || "").includes("json")) return json({ ok: true, record_id: recordId });
     return new Response(null, { status: 303, headers: { Location: "/record/" + encodeURIComponent(recordId) } });
   }
-  if (path === "/pattern" && method === "GET") {
+  if (path === "/pattern" && read) {
     const clusters = await patternClusters(env);
-    return html(page("Pattern", patternBody(clusters), { signed, path: "/pattern" }));
+    return pageHtml(page("Pattern", patternBody(clusters), { signed, path: "/pattern", kind: "pattern" }));
   }
-  if (path === "/software" && method === "GET") {
+  if (path === "/software" && read) {
     const catalog = await loadSoftwareCatalog();
-    return html(page("Software", softwareBody(catalog), { signed, path: "/software" }));
+    return pageHtml(page("Software", softwareBody(catalog), { signed, path: "/software", kind: "software" }));
   }
-  if (path === "/about" && method === "GET") {
-    return html(page("About Aziel", aboutBody(), { signed, path: "/about" }));
+  if (path === "/how-its-scored" && read) {
+    return pageHtml(page("How it's scored", howItsScoredBody(), { signed, path: "/how-its-scored", kind: "scored" }));
+  }
+  if (path === "/about" && read) {
+    return pageHtml(page("About Aziel", aboutBody(), { signed, path: "/about", kind: "about" }));
   }
   return null;
 }

@@ -110,7 +110,7 @@ export function recordBody(payload) {
   const triad = (review && review.triad) || null;
   const combined = triad && triad.combined != null ? triad.combined : row.triad_combined;
   const triadHtml = combined != null
-    ? "<div class=\"triad-card\"><h2>Triad score</h2><div class=\"triad\"><div class=\"metric\">" + (triad && triad.display != null ? triad.display : Math.round(Number(combined) * 100)) + "</div><div><p>One combined report card after SPRE, CLCE, and PhysLing all ran.</p><p class=\"muted\">" + esc((triad && triad.formula) || "TRIAD_V1 geometric mean of the three verifiers.") + "</p></div></div></div>"
+    ? "<div class=\"triad-card\"><h2>Triad score</h2><div class=\"triad\"><div class=\"metric\">" + (triad && triad.display != null ? triad.display : Math.round(Number(combined) * 100)) + "</div><div><p>One combined report card after SPRE, CLCE, and PhysLing all ran.</p><p class=\"muted\">" + esc((triad && triad.formula) || "TRIAD_V1 geometric mean of the three verifiers.") + " <a href=\"/how-its-scored\">How it's scored</a>.</p></div></div></div>"
     : "<div class=\"triad-card\"><h2>Triad score</h2><p class=\"muted\">Not scored yet. A backfill walk will write the combined score.</p></div>";
   const ev = events.length
     ? events.map((e) => "<div class=\"pill\">" + esc(e.event_date) + " · " + esc(e.place_name) + " · " + Number(e.confidence || 0).toFixed(2) + "</div>").join(" ")
@@ -173,7 +173,7 @@ export function recordBody(payload) {
   const zDisp = zsolver && zsolver.display != null ? zsolver.display : (zsolver && zsolver.capped_confidence != null ? Math.round(Number(zsolver.capped_confidence) * 100) : (row && row.zsolver_score != null ? Math.round(Number(row.zsolver_score) * 100) : null));
   const zQueued = zsolver && (zsolver.status === "queued" || zsolver.queued);
   const zsolverHtml = zDisp != null
-    ? "<div class=\"card\"><h2>ZionPattern Solver</h2><div class=\"triad\"><div class=\"metric\">" + esc(zDisp) + "</div><div><p>Secondary public score. Separate from the triad. Provisional and assistive. Does not solve cases. Hard cap 75% / uncertainty floor 25%.</p><p class=\"muted\">" + esc((zsolver && zsolver.disclaimer) || "Provisional and assistive only. Author Aziel Eliab.") + (zQueued ? " Live score retry is queued." : "") + "</p></div></div></div>"
+    ? "<div class=\"card\"><h2>ZionPattern Solver</h2><div class=\"triad\"><div class=\"metric\">" + esc(zDisp) + "</div><div><p>Secondary public score. Separate from the triad. 75 means intentional suppression confidence; lower is more natural. Provisional and assistive. Does not solve cases.</p><p class=\"muted\">" + esc((zsolver && zsolver.disclaimer) || "Provisional and assistive only. Author Aziel Eliab.") + " <a href=\"/how-its-scored\">How it's scored</a>." + (zQueued ? " Live score retry is queued." : "") + "</p></div></div></div>"
     : "<div class=\"card\"><h2>ZionPattern Solver</h2><p class=\"muted\">Secondary score pending backfill or live retry.</p></div>";
   const successionHtml = succChain.length >= 2
     ? "<div class=\"card\"><h2>Succession</h2><p class=\"muted\">Exact-same-subject paper cites. Oldest to newest.</p><h3>Supersedes</h3>" +
