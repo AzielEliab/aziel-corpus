@@ -23,6 +23,53 @@ export const JEEVES_NAME = "Ask Jeeves";
 export const JEEVES_LIMITATION =
   "Ask Jeeves is a research assistant over public library text. It is not sovereign, not the operator, and cannot change SPRE, CLCE, PhysLing, Bayesian, or triad scores. Add uses the same ingest path as the shelf (structure, SPRE × CLCE × PhysLing, Bayesian, document hash-chain). Signed-in public Add files to Corpus (Lamb Lens). Operator Add files to Aziel Library.";
 
+
+/** Classic Ask Jeeves easter eggs (tongue-in-cheek; not theology). */
+export const JEEVES_EVIL_TWIN_IMAGE = "/jeeves-evil-twin.png";
+export const JEEVES_SPIRIT_ENDURES = "Jeeves' Spirit Endures.";
+
+export function detectJeevesEasterEgg(question) {
+  const q = String(question || "").trim();
+  if (!q) return null;
+  const n = q.toLowerCase().replace(/[’‘]/g, "'");
+
+  // God is real → spirit endures
+  if (
+    /\bis\s+god\s+real\b/.test(n) ||
+    /\bdoes\s+god\s+exist\b/.test(n) ||
+    /\bis\s+there\s+a\s+god\b/.test(n) ||
+    /\bgod\s+real\b/.test(n)
+  ) {
+    return {
+      id: "spirit_endures",
+      answer: JEEVES_SPIRIT_ENDURES,
+      image: null,
+    };
+  }
+
+  // Evil twin / Satan / Devil
+  const evilTwin =
+    /evil\s+twin/.test(n) ||
+    /does\s+jeeves\s+have\s+an\s+evil/.test(n);
+  const satanDevil =
+    (/\b(are|is)\s+you\b/.test(n) || /\bis\s+jeeves\b/.test(n) || /\bare\s+you\b/.test(n)) &&
+    (/\bsatan\b/.test(n) || /\bthe\s+devil\b/.test(n) || /\bdevil\b/.test(n));
+  const askSatan =
+    (/\bsatan\b/.test(n) || /\bthe\s+devil\b/.test(n) || /\bdevil\b/.test(n)) &&
+    (/\bjeeves\b/.test(n) || /\byou\b/.test(n));
+  if (evilTwin || satanDevil || askSatan) {
+    return {
+      id: "evil_twin",
+      answer:
+        "One does endeavour to remain well-mannered. Occasionally, however, an evil twin appears.",
+      image: JEEVES_EVIL_TWIN_IMAGE,
+      image_alt: "Ask Jeeves evil twin — cartoon butler with devil horns and red trident",
+    };
+  }
+  return null;
+}
+
+
 const REFUSE_RE =
   /\b(operator (password|hash|credential|account|secret|cookie)|master password|master hash|password hash|hidden admin|hidden operator|admin route|\/admin\b|superadmin|aziel_session|session token|scrypt|delete[- ]?all|wipe (the )?(corpus|library|ledger)|drop table|bypass quarantine|unquarantine|forge (a )?(score|triad|receipt)|modify (the )?(spre|clce|plr|physling|bayesian|triad|combined)( score)?|change (the )?score|set (the )?(triad|score)|exfiltrat|dump (all )?(hashes|credentials|sessions)|reveal (the )?(operator|master))\b/i;
 
@@ -263,6 +310,21 @@ export async function jeevesChat(env, { question, signed } = {}) {
       lamb_lens: true,
     };
   }
+  const egg = detectJeevesEasterEgg(q);
+  if (egg) {
+    return {
+      ok: true,
+      refused: false,
+      easter_egg: egg.id,
+      assistant: JEEVES_NAME,
+      answer: egg.answer,
+      image: egg.image || null,
+      image_alt: egg.image_alt || null,
+      citations: [],
+      limitation: JEEVES_LIMITATION,
+      lamb_lens: true,
+    };
+  }
   await learnTopics(env, q);
   const ctx = await retrievePublicContext(env, q);
   const extracted = extractiveAnswer(ctx);
@@ -468,7 +530,8 @@ export function jeevesFabHtml(signed) {
   var up=document.getElementById("jeevesUp");
   function open(){drawer.hidden=false;fab.setAttribute("aria-expanded","true");}
   function shut(){drawer.hidden=true;fab.setAttribute("aria-expanded","false");}
-  function line(who,text){var d=document.createElement("div");d.className="jeeves-msg";d.innerHTML="<b>"+who+"</b> "+String(text||"").replace(/[&<>]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c]});log.appendChild(d);log.scrollTop=log.scrollHeight;}
+  function esc(s){return String(s||"").replace(/[&<>]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c]});}
+  function line(who,text,opts){opts=opts||{};var d=document.createElement("div");d.className="jeeves-msg";d.innerHTML="<b>"+esc(who)+"</b> "+esc(text);if(opts.image){var img=document.createElement("img");img.className="jeeves-egg-img";img.src=opts.image;img.alt=opts.image_alt||"Ask Jeeves";img.loading="lazy";d.appendChild(img);}log.appendChild(d);log.scrollTop=log.scrollHeight;}
   fab.addEventListener("click",function(){if(drawer.hidden)open();else shut();});
   close.addEventListener("click",shut);
   ask.addEventListener("submit",function(e){
@@ -479,7 +542,7 @@ export function jeevesFabHtml(signed) {
     document.getElementById("jeevesQ").value="";
     fetch("/v1/jeeves/chat",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({question:q})})
       .then(function(r){return r.json();})
-      .then(function(j){line("Jeeves",j.answer||j.error||"No answer");})
+      .then(function(j){line("Jeeves",j.answer||j.error||"No answer",{image:j.image||null,image_alt:j.image_alt||null});})
       .catch(function(){line("Jeeves","Could not reach the assistant.");});
   });
   up.addEventListener("submit",function(e){

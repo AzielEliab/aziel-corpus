@@ -6,7 +6,7 @@ import { proposeAllLinks, titleLineageCore, subjectKey } from "./succession.js";
 import { verifyBytes, verifyTextRecord, sha256hex } from "./structure.js";
 import { latticeAnchorTip } from "./lattice.js";
 import { isDocumentId } from "./ledger.js";
-import { jeevesShouldRefuse, lambLensSigned } from "./jeeves.js";
+import { jeevesShouldRefuse, lambLensSigned, detectJeevesEasterEgg, JEEVES_SPIRIT_ENDURES, JEEVES_EVIL_TWIN_IMAGE } from "./jeeves.js";
 import { isFullyScored, storedTriadMatches } from "./review-store.js";
 import { normalizeContentHash } from "./library.js";
 
@@ -292,4 +292,21 @@ test("zsolver is not folded into triad and has no boost fields", () => {
   assert.ok(review.triad.display <= 100);
   const answers = deriveZsolverAnswers({ title: "Lab note", body: "measurement" });
   assert.ok(answers.every((a) => a.value === "unknown" || a.value === "yes" || a.value === "no"));
+});
+
+test("Jeeves evil twin easter egg", () => {
+  const a = detectJeevesEasterEgg("Does Jeeves have an evil twin?");
+  assert.equal(a.id, "evil_twin");
+  assert.equal(a.image, JEEVES_EVIL_TWIN_IMAGE);
+  const b = detectJeevesEasterEgg("Are you Satan?");
+  assert.equal(b.id, "evil_twin");
+  const c = detectJeevesEasterEgg("Is Jeeves the Devil?");
+  assert.equal(c.id, "evil_twin");
+});
+
+test("Jeeves God is real easter egg", () => {
+  const a = detectJeevesEasterEgg("Is God real?");
+  assert.equal(a.id, "spirit_endures");
+  assert.equal(a.answer, JEEVES_SPIRIT_ENDURES);
+  assert.equal(a.image, null);
 });
