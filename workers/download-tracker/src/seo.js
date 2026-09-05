@@ -73,7 +73,7 @@ export function defaultDescription(kind) {
   if (kind === "aziel-library") return "Aziel Library — royal-purple operator collection of work by Aziel Eliab on Aziel Digital Library.";
   if (kind === "runtime") return "aziel-runtime 1.4.0 engine-runtime on the Aziel Digital Library. Prefer /runtime/*. Listed engines run in-process; receipts carry engine_digest. Proxy is not exec. Author Aziel Eliab.";
   if (kind === "software") return "Downloadable software by Aziel Eliab. Product catalog for aziel-runtime, AzielTether, and the Aziel suite. Invoke from /runtime. Author Aziel Eliab.";
-  if (kind === "about") return "About Aziel Eliab, researcher and builder of Aziel Digital Library. Also known as Aziel Elroi Eliab. Primary credit Aziel Eliab. GodLock is one product on that record.";
+  if (kind === "about") return "About Aziel Eliab. What matters is the record: hashed receipts, timed files, and software that can be opened without taking the speaker on faith. Signed Aziel Elroi Eliab. GodLock is one product on that record.";
   if (kind === "scored" || kind === "how-its-scored") return "How Aziel Digital Library scores records: triad SPRE × CLCE × PhysLing, and ZionPattern meaning (75 is intentional suppression confidence; lower is more natural). Author Aziel Eliab.";
   if (kind === "pattern") return "Pattern clusters across Aziel Digital Library domains, subjects, and keywords. Author Aziel Eliab.";
   if (kind === "search") return "Search Aziel Digital Library by Aziel Eliab. Public MASTER across Aziel Library and Corpus.";

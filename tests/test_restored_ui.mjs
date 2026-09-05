@@ -68,9 +68,11 @@ test("OCR page still ships all eight SpectralLock lenses", () => {
 test("Pattern, Software, About, and runtime pages render live copy", () => {
   const about = aboutBody();
   assert.match(about, /About Aziel/);
+  assert.match(about, /Who\? Does not matter/);
+  assert.doesNotMatch(about, /Who does not matter/);
+  assert.match(about, /— Aziel Elroi Eliab/);
   assert.match(about, /— Aziel Eliab/);
   assert.match(about, /I am temporary/);
-  assert.match(about, /researcher and builder/);
   assert.match(about, /Aziel Elroi Eliab/);
   assert.match(about, /Aziel Library/);
   assert.match(about, /href="\/software"/);
