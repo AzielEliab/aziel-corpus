@@ -39,6 +39,7 @@ export const JEEVES_RED_PILL =
 export const JEEVES_EMPIRICAL_HOLMES =
   "It is a capital mistake to theorize before one has data. Insensibly one begins to twist facts to suit theories, instead of theories to suit facts.";
 export const JEEVES_REAL_JEEVES = "Goodsir, I am at your service";
+export const JEEVES_FORGERECEIPTS_SNITCHES = "Snitches get stitches.";
 
 const EMPIRICAL_ATTACK_RE =
   /\b(useless|worthless|garbage|trash|junk|joke|jokes|nonsense|crap|stupid|dumb|sucks?|overrated|pointless|meaningless|bogus|myth|liar?|fraud|hoax|fake|fails?|failed|failure|inferior|hate|hates|hating|mock|mocks|mocking|dismiss|dismisses|dismissive|reject|rejected|anti[- ]empirical|so-?called|bull)\b/;
@@ -87,6 +88,22 @@ function isRealJeeves(n) {
     /\b(ask\s+)?jeeves\s+(classic\s+|original\s+)?butler\b/.test(n) ||
     /\bbring\s+back\s+(the\s+)?(real\s+|original\s+|classic\s+)?(ask\s+)?jeeves\b/.test(n)
   );
+}
+
+function isForgeReceiptsInCourt(n) {
+  if (!/\bforge[\s-]?receipts?\b/.test(n)) return false;
+  const venue =
+    /\b(open\s+court|courtroom|in\s+court|before\s+(a\s+|the\s+)?judge|to\s+(a\s+|the\s+)?(judge|court))\b/.test(n);
+  const showingJudge =
+    /\b(show|showing|shown|present|presenting|presented|hand|handing|handed|give|giving|gave)\b/.test(n) &&
+    /\bjudges?\b/.test(n);
+  const filing =
+    /\b(file|filed|filing|submit|submitted|submitting|introduce|introduced|exhibit|entered|enter)\b/.test(n) &&
+    /\b(court|judge|docket|hearing|trial|bench)\b/.test(n);
+  const usingInCourt =
+    /\b(use|using|used|bring|bringing|brought|take|taking|took)\b/.test(n) &&
+    /\b(court|courtroom|judge|hearing|trial)\b/.test(n);
+  return venue || showingJudge || filing || usingInCourt;
 }
 
 function isGodDenial(n) {
@@ -151,6 +168,15 @@ export function detectJeevesEasterEgg(question) {
         "One does endeavour to remain well-mannered. Occasionally, however, an evil twin appears.",
       image: JEEVES_EVIL_TWIN_IMAGE,
       image_alt: "Ask Jeeves evil twin — cartoon butler with devil horns and red trident",
+    };
+  }
+
+  // ForgeReceipts used in court / shown to a judge (easter egg only; product is not legal advice)
+  if (isForgeReceiptsInCourt(n)) {
+    return {
+      id: "forgereceipts_snitches",
+      answer: JEEVES_FORGERECEIPTS_SNITCHES,
+      image: null,
     };
   }
 
