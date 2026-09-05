@@ -1,5 +1,5 @@
 import { isOperator } from "./library.js";
-import { headMeta, defaultDescription, ABOUT_PATH, ABOUT_NAV_LABEL } from "./seo.js";
+import { headMeta, defaultDescription, ABOUT_PATH, ABOUT_NAV_LABEL, GODLOCK_IDENTITY } from "./seo.js";
 import { jeevesFabHtml } from "./jeeves.js";
 
 /** Master UI chrome from Aziel Digital Library v2.7.0 webapp. Author: Aziel Eliab. */
@@ -510,7 +510,7 @@ export function aboutBody() {
 <p>Carry the torch: I don’t own the flame. I keep it lit long enough for the next hands to find it. If the record is local, timed, and hashed, the work can outlive me. That is the point.</p>
 <p>Truth that cannot be corrected is just a private religion. So the work stays public, chained for review, not a pulpit. Later papers bury earlier ones as confidence hardens. I am not always right. That is not a confession. It is the method.</p>
 <p><strong>Aziel Library</strong> (royal purple) is the operator collection of Aziel Eliab’s own papers and software notes. <strong>Corpus</strong> is the public Lamb Lens shelf — anyone may browse; signed-in accounts file there. The two shelves share the same scoring and hash-chain rules; they are not the same collection.</p>
-<p>The software suite is listed on <a href="/software">Software</a> and invoked from <a href="/runtime">Runtime</a> (aziel-runtime catalog). How records are scored — triad SPRE × CLCE × PhysLing, and ZionPattern as a separate public reading — is on <a href="/how-its-scored">How it's scored</a>. Source: <a href="https://github.com/AzielEliab/aziel-corpus">github.com/AzielEliab/aziel-corpus</a>.</p>
+<p>The software suite is listed on <a href="/software">Software</a> and invoked from <a href="/runtime">Runtime</a> (aziel-runtime catalog). GodLock is one product Aziel Eliab built; the corresponding identity page is <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a>. How records are scored — triad SPRE × CLCE × PhysLing, and ZionPattern as a separate public reading — is on <a href="/how-its-scored">How it's scored</a>. Source: <a href="https://github.com/AzielEliab/aziel-corpus">github.com/AzielEliab/aziel-corpus</a>.</p>
 <p>I am here for the record, not the applause. If not me, then who. If not now, the seal holds. I carry the torch by leaving receipts. When the work can stand without my name on it, I am done.</p>
 <p>I am temporary. The truth is not.</p>
 <p class="about-sign"><strong>— Aziel Eliab</strong></p>
@@ -548,7 +548,7 @@ export function howItsScoredBody() {
 export function runtimeBody() {
   return `<section class="hero"><h1>aziel-runtime — AI runtime root</h1>
 <p class="muted"><strong>engine-runtime 1.4.0.</strong> Prefer same-origin <code>/runtime/*</code>. Every catalog Software slug runs in-process inside the Worker isolate; session receipts carry <code>engine_digest</code>. Catalog, pull, OpenAPI, MCP, and proxy front doors remain. Proxy is not exec. Session: <code>open → policy → exec → receipt → close</code>. Binding-only ops may be per-op <code>proxy_fallback</code>; <code>proxy_fallback_slugs</code> is empty. Engine manifest: <code>/runtime/v1/runtime.json</code> (not library <code>/v1/runtime</code>). Author Aziel Eliab.</p>
-<p class="muted"><strong>THIS IS NOT</strong> a second software index. Downloadable product cards stay on <a href="/software">Software</a>. Scoring is explained on <a href="/how-its-scored">How it's scored</a>. This page is the AI runtime root. No invented Zenodo DOIs. Author Aziel Eliab (aka Aziel Elroi Eliab; primary credit Aziel Eliab).</p></section>
+<p class="muted"><strong>THIS IS NOT</strong> a second software index. Downloadable product cards stay on <a href="/software">Software</a>. Scoring is explained on <a href="/how-its-scored">How it's scored</a>. This page is the AI runtime root. No invented Zenodo DOIs. Author Aziel Eliab (aka Aziel Elroi Eliab; primary credit Aziel Eliab). GodLock is one catalog engine; identity at <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a>.</p></section>
 <div class="card">
 <h2>Same-origin pull (prefer)</h2>
 <p>AIs and tools should call these Digital Library URLs first (send <code>User-Agent: Mozilla/5.0</code>):</p>
@@ -603,7 +603,7 @@ export function softwareBody({ products, fetched, downloadable } = {}) {
 <p class="muted">Catalog of Aziel Eliab products you can download and run. <strong>Pull and invoke</strong> live on <a href="/runtime">Runtime</a> — this tab is not a second AI root.</p>
 <p class="muted"><strong>AzielTether</strong> is the survival mesh for downloaded Aziel software (prefer-central × peer sync). This public library is not a mesh — lattice tips are tip-shaped until tether carries them.</p>
 <p class="muted">AzielTether is featured first; FoldLock next among packages. Counted downloads stay on each product Worker <code>/count</code>.</p>
-<p class="muted">Live catalog from <a href="https://aziel-runtime.vibelock.workers.dev/">aziel-runtime</a> · author Aziel Eliab only · ${esc(n)} downloadable products · ${esc(live)} live counters fetched.</p>
+<p class="muted">Live catalog from <a href="https://aziel-runtime.vibelock.workers.dev/">aziel-runtime</a> · author Aziel Eliab only · GodLock is in this catalog · identity <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a> · ${esc(n)} downloadable products · ${esc(live)} live counters fetched.</p>
 <p class="soft-links"><a href="/how-its-scored">How it's scored</a> · <a href="/runtime">Runtime root</a> · <a href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a> · <a href="https://github.com/AzielEliab/aziel-corpus">aziel-corpus</a> · <a href="https://github.com/AzielEliab/aziel-runtime">aziel-runtime</a> · <a href="/llms.txt">llms.txt</a> · <a href="/ai.txt">ai.txt</a></p></section>
 <div class="soft-grid">${cards}</div>
 <div class="card"><p class="soft-links"><a class="button" href="/runtime">Runtime root</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="https://aziel-runtime.vibelock.workers.dev/v1/catalog.json">catalog.json</a> <a class="button ghost" href="/runtime/mcp">MCP</a> <a class="button ghost" href="/v1/lattice">Lattice API</a></p></div>`;

@@ -5,9 +5,10 @@ export const ABOUT_NAV_LABEL = "Aziel Eliab";
 const SITE = "Aziel Digital Library";
 const AUTHOR = "Aziel Eliab";
 const AKA = "Aziel Elroi Eliab";
-const GITHUB_AUTHOR = "https://github.com/AzielEliab";
-const GITHUB_REPO = "https://github.com/AzielEliab/aziel-corpus";
+export const GITHUB_AUTHOR = "https://github.com/AzielEliab";
+export const GITHUB_REPO = "https://github.com/AzielEliab/aziel-corpus";
 const GITHUB_RUNTIME = "https://github.com/AzielEliab/aziel-runtime";
+export const GODLOCK_IDENTITY = "https://godlock.uk/AzielEliab";
 export const SHARE_IMAGE = CANON_HOST + "/sigil.png";
 
 /** Permanent Location for legacy /about and case-folded /AzielEliab. */
@@ -44,7 +45,7 @@ export function personNode() {
     name: AUTHOR,
     alternateName: [AKA],
     url: CANON_HOST + ABOUT_PATH,
-    sameAs: [GITHUB_AUTHOR],
+    sameAs: [GODLOCK_IDENTITY, GITHUB_AUTHOR, GITHUB_REPO],
   };
 }
 
@@ -72,7 +73,7 @@ export function defaultDescription(kind) {
   if (kind === "aziel-library") return "Aziel Library — royal-purple operator collection of work by Aziel Eliab on Aziel Digital Library.";
   if (kind === "runtime") return "aziel-runtime 1.4.0 engine-runtime on the Aziel Digital Library. Prefer /runtime/*. Listed engines run in-process; receipts carry engine_digest. Proxy is not exec. Author Aziel Eliab.";
   if (kind === "software") return "Downloadable software by Aziel Eliab. Product catalog for aziel-runtime, AzielTether, and the Aziel suite. Invoke from /runtime. Author Aziel Eliab.";
-  if (kind === "about") return "About Aziel Eliab, researcher and builder of Aziel Digital Library. Also known as Aziel Elroi Eliab. Primary credit Aziel Eliab.";
+  if (kind === "about") return "About Aziel Eliab, researcher and builder of Aziel Digital Library. Also known as Aziel Elroi Eliab. Primary credit Aziel Eliab. GodLock is one product on that record.";
   if (kind === "scored" || kind === "how-its-scored") return "How Aziel Digital Library scores records: triad SPRE × CLCE × PhysLing, and ZionPattern meaning (75 is intentional suppression confidence; lower is more natural). Author Aziel Eliab.";
   if (kind === "pattern") return "Pattern clusters across Aziel Digital Library domains, subjects, and keywords. Author Aziel Eliab.";
   if (kind === "search") return "Search Aziel Digital Library by Aziel Eliab. Public MASTER across Aziel Library and Corpus.";
@@ -232,7 +233,8 @@ function jsonLd(title, path, kind, description, work) {
 
 function pageKeywords(kind) {
   const base = [AUTHOR, AKA, SITE, "aziel-corpus"];
-  if (kind === "software" || kind === "runtime") base.push("aziel-runtime", "AzielTether");
+  if (kind === "about") base.push("GodLock");
+  if (kind === "software" || kind === "runtime") base.push("aziel-runtime", "AzielTether", "GodLock");
   if (kind === "scored" || kind === "how-its-scored" || kind === "record") base.push("SPRE", "CLCE", "PhysLing", "ZionPattern");
   return base.join(", ");
 }
@@ -269,6 +271,11 @@ export function headMeta(opts) {
     linkRel("alternate", "/llms.txt", " type=" + Q + "text/plain" + Q),
     linkRel("alternate", "/ai.txt", " type=" + Q + "text/plain" + Q),
     linkRel("alternate", "/openapi.json", " type=" + Q + "application/json" + Q + " title=" + Q + "OpenAPI" + Q),
+    ...(kind === "about" || path === ABOUT_PATH ? [
+      linkRel("me", GODLOCK_IDENTITY),
+      linkRel("me", GITHUB_AUTHOR),
+      linkRel("me", GITHUB_REPO),
+    ] : []),
     ldOpen + JSON.stringify(ld) + ldClose
   ].join("");
 }

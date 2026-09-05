@@ -78,6 +78,11 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(cite.software, /\/software$/);
   assert.match(cite.how_its_scored, /\/how-its-scored$/);
   assert.match(cite.about, /\/AzielEliab$/);
+  assert.equal(cite.godlock, "https://godlock.uk/AzielEliab");
+  assert.ok(cite.sameAs.includes("https://godlock.uk/AzielEliab"));
+  assert.ok(cite.sameAs.includes("https://github.com/AzielEliab"));
+  assert.ok(cite.sameAs.includes("https://github.com/AzielEliab/aziel-corpus"));
+  assert.ok(cite.keywords.includes("GodLock"));
   assert.match(cite.ai, /\/ai\.txt$/);
   assert.match(cite.zsolver, /intentional suppression confidence/);
   assert.doesNotMatch(JSON.stringify(cite), BANNED);
@@ -86,6 +91,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assertPublicIdentity(llms);
   assert.match(llms, /Software hub: https:\/\/www\.azielcorpuslibrary\.net\/software/);
   assert.match(llms, /https:\/\/www\.azielcorpuslibrary\.net\/AzielEliab/);
+  assert.match(llms, /https:\/\/godlock\.uk\/AzielEliab/);
   assert.match(llms, /Runtime catalog: https:\/\/www\.azielcorpuslibrary\.net\/runtime/);
   assert.match(llms, /How it's scored/);
   assert.match(llms, /\/ai\.txt/);
@@ -99,11 +105,14 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(ai, /Allow: \/how-its-scored/);
   assert.match(ai, /Allow: \/AzielEliab/);
   assert.match(ai, /https:\/\/www\.azielcorpuslibrary\.net\/AzielEliab/);
+  assert.match(ai, /https:\/\/godlock\.uk\/AzielEliab/);
   assert.match(ai, /Disallow: \/signup/);
 
   const humans = humansTxt();
   assertPublicIdentity(humans);
   assert.match(humans, /github.com\/AzielEliab/);
+  assert.match(humans, /azielcorpuslibrary\.net\/AzielEliab/);
+  assert.match(humans, /godlock\.uk\/AzielEliab/);
 });
 
 test("crawlResponse serves GET body and HEAD without body", async () => {
