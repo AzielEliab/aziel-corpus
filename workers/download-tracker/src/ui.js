@@ -1,6 +1,16 @@
 import { isOperator } from "./library.js";
 import { headMeta, defaultDescription, ABOUT_PATH, ABOUT_NAV_LABEL, GODLOCK_IDENTITY } from "./seo.js";
 import { jeevesFabHtml } from "./jeeves.js";
+import {
+  RUNTIME_VERSION,
+  RUNTIME_ORIGIN,
+  RUNTIME_KERNEL,
+  RUNTIME_GITHUB,
+  RUNTIME_LIVE_COUNT,
+  RUNTIME_LOCAL_ONLY,
+  RUNTIME_CHIP,
+  AI_CLIENTS,
+} from "./runtime-copy.js";
 
 /** Master UI chrome from Aziel Digital Library v2.7.0 webapp. Author: Aziel Eliab. */
 export const CSS = `
@@ -418,6 +428,7 @@ export function homeBody({ q, lib, sort, domain, subject, keyword, author, rows,
   return `<section class="hero">
 <h1>Search the libraries</h1>
 <p class="muted">Public search across Aziel Library and the corpus. Sign up to post. Author Aziel Eliab. Views ${esc(views)} · Counted downloads ${esc(downloads)}.</p>
+<div class="chips">${chip(RUNTIME_CHIP, "/runtime", false)}</div>
 </section>
 ${browseTools({ action: "/", showLibChips: true, ...state })}
 ${facetBlock(facets, state, "/")}
@@ -512,7 +523,7 @@ export function aboutBody() {
 <p>Carry the torch: I don’t own the flame. I keep it lit long enough for the next hands to find it. If the record is local, timed, and hashed, the work can outlive me. That is the point.</p>
 <p>Truth that cannot be corrected is just a private religion. So the work stays public, chained for review, not a pulpit. Later papers bury earlier ones as confidence hardens. I am not always right. That is not a confession. It is the method.</p>
 <p><strong>Aziel Library</strong> (royal purple) is the operator collection of Aziel Eliab’s own papers and software notes. <strong>Corpus</strong> is the public Lamb Lens shelf — anyone may browse; signed-in accounts file there. The two shelves share the same scoring and hash-chain rules; they are not the same collection.</p>
-<p>The software suite is listed on <a href="/software">Software</a> and invoked from <a href="/runtime">Runtime</a> (aziel-runtime catalog). GodLock is one product Aziel Eliab built; the corresponding identity page is <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a>. How records are scored — triad SPRE × CLCE × PhysLing, and ZionPattern as a separate public reading — is on <a href="/how-its-scored">How it's scored</a>. Source: <a href="https://github.com/AzielEliab/aziel-corpus">github.com/AzielEliab/aziel-corpus</a>.</p>
+<p>The software suite is listed on <a href="/software">Software</a>. The catalog/MCP door lives on <strong>this domain</strong> at <a href="/runtime">/runtime</a> — aziel-runtime ${RUNTIME_VERSION} FragGate (${RUNTIME_LIVE_COUNT} live advisory engines; ${RUNTIME_LOCAL_ONLY} local_only; stubs refuse). The workers.dev origin is an alternate/sameAs, not the first door. GodLock is one product Aziel Eliab built; the corresponding identity page is <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a>. How records are scored — triad SPRE × CLCE × PhysLing, and ZionPattern as a separate public reading — is on <a href="/how-its-scored">How it's scored</a>. Source: <a href="https://github.com/AzielEliab/aziel-corpus">github.com/AzielEliab/aziel-corpus</a>.</p>
 <p>I am here for the record, not the applause. If not me, then who. If not now, the seal holds. I carry the torch by leaving receipts. When the work can stand without my name on it, I am done.</p>
 <p>I am temporary. The truth is not.</p>
 <p class="about-sign"><strong>— Aziel Eliab</strong></p>
@@ -548,41 +559,50 @@ export function howItsScoredBody() {
 }
 
 export function runtimeBody() {
-  return `<section class="hero"><h1>aziel-runtime — AI runtime root</h1>
-<p class="muted"><strong>engine-runtime 1.4.0.</strong> Prefer same-origin <code>/runtime/*</code>. Every catalog Software slug runs in-process inside the Worker isolate; session receipts carry <code>engine_digest</code>. Catalog, pull, OpenAPI, MCP, and proxy front doors remain. Proxy is not exec. Session: <code>open → policy → exec → receipt → close</code>. Binding-only ops may be per-op <code>proxy_fallback</code>; <code>proxy_fallback_slugs</code> is empty. Engine manifest: <code>/runtime/v1/runtime.json</code> (not library <code>/v1/runtime</code>). Author Aziel Eliab.</p>
-<p class="muted"><strong>THIS IS NOT</strong> a second software index. Downloadable product cards stay on <a href="/software">Software</a>. Scoring is explained on <a href="/how-its-scored">How it's scored</a>. This page is the AI runtime root. No invented Zenodo DOIs. Author Aziel Eliab (aka Aziel Elroi Eliab; primary credit Aziel Eliab). GodLock is one catalog engine; identity at <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a>.</p></section>
+  return `<section class="hero"><h1>aziel-runtime — FragGate door ${esc(RUNTIME_VERSION)}</h1>
+<p class="muted"><strong>${esc(RUNTIME_VERSION)} FragGate.</strong> This domain hosts the catalog/MCP door. Prefer same-origin <code>/runtime/*</code>. One door — discover, route, refuse. <strong>${esc(String(RUNTIME_LIVE_COUNT))} live advisory engines</strong>; <strong>${esc(RUNTIME_LOCAL_ONLY)} local_only</strong>; stubs refuse. Discover with <code>fraggate_list</code>, execute with <code>fraggate_call</code>. Kernel: <a href="${esc(RUNTIME_KERNEL)}">github.com/AzielEliab/fraggate</a> (FG-0.1). Engine manifest: <code>/runtime/v1/runtime.json</code> (not library <code>/v1/runtime</code>). Author Aziel Eliab.</p>
+<p class="muted"><strong>THIS IS NOT</strong> a second software index. Downloadable product cards stay on <a href="/software">Software</a>. Scoring is explained on <a href="/how-its-scored">How it's scored</a>. HTTP <code>/p/{slug}/{op}</code> is a proxy and is not exec. Session tools are advanced/internal. Hosted AZAI is protocol mirror + Lamb check, not the blend. Mesh is not claimed. No invented Zenodo DOIs. Author Aziel Eliab (aka Aziel Elroi Eliab; primary credit Aziel Eliab). GodLock is one catalog engine; identity at <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a>.</p></section>
 <div class="card">
-<h2>Same-origin pull (prefer)</h2>
+<h2>FragGate how-to (prefer)</h2>
 <p>AIs and tools should call these Digital Library URLs first (send <code>User-Agent: Mozilla/5.0</code>):</p>
+<ol>
+<li><strong>Discover.</strong> <a href="/runtime/v1/fraggate/list"><code>GET /runtime/v1/fraggate/list</code></a> (MCP <code>fraggate_list</code>). Describe one name with <code>fraggate_describe</code>.</li>
+<li><strong>Route.</strong> <code>POST /runtime/v1/fraggate/call</code> (MCP <code>fraggate_call</code>) with <code>{ name|slug, op, payload, claim? }</code>. DecisionGATE runs before exec.</li>
+<li><strong>Refuse.</strong> Unknown names return <code>FG-HALLUC-TOOL</code>. ${esc(RUNTIME_LOCAL_ONLY)} stays local_only. Stub verbs refuse.</li>
+<li><strong>Show the output</strong> (<code>display.title</code>, <code>display.summary</code>), then take the next input.</li>
+</ol>
+<p>Compatible AI clients: ${esc(AI_CLIENTS)}.</p>
+<p class="soft-links"><a class="button" href="/runtime/v1/fraggate/list">fraggate/list</a> <a class="button ghost" href="/runtime/v1/fraggate">fraggate</a> <a class="button ghost" href="/runtime/mcp">MCP</a> <a class="button ghost" href="/runtime/openapi.json">OpenAPI</a> <a class="button ghost" href="/runtime/v1/skill">skill</a></p>
+</div>
+<div class="card">
+<h2>Same-origin pull (this domain)</h2>
 <ul>
-<li><a href="/runtime/v1/health"><code>/runtime/v1/health</code></a> — origin health (version, engine slugs, digests)</li>
+<li><a href="/runtime/v1/health"><code>/runtime/v1/health</code></a> — live health (version ${esc(RUNTIME_VERSION)}, door=fraggate, ${esc(String(RUNTIME_LIVE_COUNT))} live)</li>
 <li><a href="/runtime/v1/runtime.json"><code>/runtime/v1/runtime.json</code></a> — runtime manifest</li>
 <li><a href="/runtime/v1/skill"><code>/runtime/v1/skill</code></a> — runtime skill markdown</li>
-<li><code>POST /runtime/v1/session/open</code> then <code>POST /runtime/v1/session/{id}/exec</code> — true exec (receipt + <code>engine_digest</code>)</li>
+<li><a href="/runtime/v1/fraggate"><code>/runtime/v1/fraggate</code></a> · <a href="/runtime/v1/fraggate/list"><code>/runtime/v1/fraggate/list</code></a> · <code>POST /runtime/v1/fraggate/call</code></li>
 <li><code>GET /runtime/v1/pull/{slug}</code> — pull descriptor (example <a href="/runtime/v1/pull/aziel-corpus"><code>/runtime/v1/pull/aziel-corpus</code></a>)</li>
 <li><code>GET /runtime/v1/bundle/{slug}</code> — bundle alias of pull</li>
 <li><a href="/runtime/v1/catalog.json"><code>/runtime/v1/catalog.json</code></a> — machine catalog</li>
 <li><a href="/runtime/openapi.json"><code>/runtime/openapi.json</code></a> — combined OpenAPI</li>
-<li><code>POST /runtime/mcp</code> — MCP JSON-RPC (<code>tools/list</code>, <code>tools/call</code>)</li>
-<li>Library alias: <a href="/v1/runtime.json"><code>/v1/runtime.json</code></a> (distinct from library version <a href="/v1/runtime"><code>/v1/runtime</code></a>)</li>
+<li><code>POST /runtime/mcp</code> — MCP JSON-RPC (thin FragGate door)</li>
+<li><a href="/runtime/llms.txt"><code>/runtime/llms.txt</code></a> · <a href="/runtime/cite.json"><code>/runtime/cite.json</code></a> · <a href="/runtime/robots.txt"><code>/runtime/robots.txt</code></a></li>
+<li>Library alias: <a href="/v1/runtime.json"><code>/v1/runtime.json</code></a> (distinct from library package <a href="/v1/runtime"><code>/v1/runtime</code></a>)</li>
+<li class="muted">Advanced/internal: <code>POST /runtime/v1/session/open</code> then <code>POST /runtime/v1/session/{id}/exec</code>. Prefer <code>fraggate_call</code>.</li>
 </ul>
 <p class="soft-links"><a class="button" href="/runtime/v1/runtime.json">runtime.json</a> <a class="button ghost" href="/runtime/v1/skill">skill</a> <a class="button ghost" href="/runtime/v1/health">health</a> <a class="button ghost" href="/runtime/v1/catalog.json">catalog.json</a> <a class="button ghost" href="/runtime/openapi.json">OpenAPI</a></p>
 </div>
 <div class="card">
-<h2>Origin Worker</h2>
-<p>Live aziel-runtime <strong>1.3.0</strong> engine-runtime. Same APIs without the <code>/runtime</code> prefix. Use when calling the Worker directly:</p>
+<h2>Alternate origin (sameAs)</h2>
+<p>Same ${esc(RUNTIME_VERSION)} FragGate Worker without the <code>/runtime</code> prefix. Prefer the library URLs above; keep this origin as alternate/sameAs:</p>
 <ul>
-<li><a href="https://aziel-runtime.vibelock.workers.dev/">https://aziel-runtime.vibelock.workers.dev/</a> — catalog home</li>
-<li><a href="https://aziel-runtime.vibelock.workers.dev/v1/health"><code>/v1/health</code></a></li>
-<li><a href="https://aziel-runtime.vibelock.workers.dev/v1/catalog.json"><code>/v1/catalog.json</code></a></li>
-<li><a href="https://aziel-runtime.vibelock.workers.dev/openapi.json"><code>/openapi.json</code></a></li>
-<li><code>POST https://aziel-runtime.vibelock.workers.dev/mcp</code></li>
-<li><a href="https://aziel-runtime.vibelock.workers.dev/v1/skill"><code>/v1/skill</code></a> · <a href="https://aziel-runtime.vibelock.workers.dev/v1/runtime.json"><code>/v1/runtime.json</code></a> · <code>/v1/pull/{slug}</code></li>
-<li><code>POST /v1/session/open</code> · <code>POST /v1/session/{id}/exec</code></li>
-<li><a href="https://aziel-runtime.vibelock.workers.dev/llms.txt">llms.txt</a> · <a href="https://aziel-runtime.vibelock.workers.dev/cite.json">cite.json</a> · <a href="https://github.com/AzielEliab/aziel-runtime">GitHub</a></li>
+<li><a href="${esc(RUNTIME_ORIGIN)}/">${esc(RUNTIME_ORIGIN)}/</a></li>
+<li><a href="${esc(RUNTIME_ORIGIN)}/v1/fraggate/list"><code>/v1/fraggate/list</code></a> · <a href="${esc(RUNTIME_ORIGIN)}/v1/health"><code>/v1/health</code></a> · <a href="${esc(RUNTIME_ORIGIN)}/openapi.json"><code>/openapi.json</code></a></li>
+<li><code>POST ${esc(RUNTIME_ORIGIN)}/mcp</code></li>
+<li><a href="${esc(RUNTIME_ORIGIN)}/llms.txt">llms.txt</a> · <a href="${esc(RUNTIME_ORIGIN)}/cite.json">cite.json</a> · <a href="${esc(RUNTIME_GITHUB)}">GitHub</a></li>
 </ul>
 <p class="muted">Counted downloads stay on each product Worker <code>/download</code> + <code>/count</code>. The Software tab lists those cards. AzielTether is the survival mesh for downloaded nodes; this HTTPS site is not a mesh.</p>
-<p class="soft-links"><a class="button ghost" href="/software">Software catalog</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="https://aziel-runtime.vibelock.workers.dev/">Open origin</a> <a class="button ghost" href="https://aziel-runtime.vibelock.workers.dev/v1/catalog.json">catalog.json</a> <a class="button ghost" href="/v1/lattice">Lattice API</a> <a class="button ghost" href="https://github.com/AzielEliab/aziel-runtime">GitHub</a></p>
+<p class="soft-links"><a class="button ghost" href="/software">Software catalog</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="${esc(RUNTIME_ORIGIN)}/">Open alternate origin</a> <a class="button ghost" href="/runtime/v1/catalog.json">catalog.json</a> <a class="button ghost" href="/v1/lattice">Lattice API</a> <a class="button ghost" href="${esc(RUNTIME_GITHUB)}">GitHub</a></p>
 </div>`;
 }
 
@@ -602,13 +622,13 @@ export function softwareBody({ products, fetched, downloadable } = {}) {
   const n = Number(downloadable != null ? downloadable : (products || []).length) || 0;
   const live = Number(fetched) || 0;
   return `<section class="hero"><h1>Downloadable software</h1>
-<p class="muted">Catalog of Aziel Eliab products you can download and run. <strong>Pull and invoke</strong> live on <a href="/runtime">Runtime</a> — this tab is not a second AI root.</p>
+<p class="muted">Catalog of Aziel Eliab products you can download and run. <strong>Pull and invoke</strong> live on this domain at <a href="/runtime">${esc(RUNTIME_CHIP)}</a> — this tab is not a second AI root.</p>
 <p class="muted"><strong>AzielTether</strong> is the survival mesh for downloaded Aziel software (prefer-central × peer sync). This public library is not a mesh — lattice tips are tip-shaped until tether carries them.</p>
 <p class="muted">AzielTether is featured first; FoldLock next among packages. Counted downloads stay on each product Worker <code>/count</code>.</p>
-<p class="muted">Live catalog from <a href="https://aziel-runtime.vibelock.workers.dev/">aziel-runtime</a> · author Aziel Eliab only · GodLock is in this catalog · identity <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a> · ${esc(n)} downloadable products · ${esc(live)} live counters fetched.</p>
-<p class="soft-links"><a href="/how-its-scored">How it's scored</a> · <a href="/runtime">Runtime root</a> · <a href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a> · <a href="https://github.com/AzielEliab/aziel-corpus">aziel-corpus</a> · <a href="https://github.com/AzielEliab/aziel-runtime">aziel-runtime</a> · <a href="/llms.txt">llms.txt</a> · <a href="/ai.txt">ai.txt</a></p></section>
+<p class="muted">Live catalog from <a href="/runtime">/runtime</a> (aziel-runtime ${esc(RUNTIME_VERSION)} FragGate) · alternate <a href="${esc(RUNTIME_ORIGIN)}/">workers.dev</a> · author Aziel Eliab only · GodLock is in this catalog · identity <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a> · ${esc(n)} downloadable products · ${esc(live)} live counters fetched.</p>
+<p class="soft-links"><a href="/how-its-scored">How it's scored</a> · <a href="/runtime">Runtime root</a> · <a href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a> · <a href="https://github.com/AzielEliab/aziel-corpus">aziel-corpus</a> · <a href="${esc(RUNTIME_GITHUB)}">aziel-runtime</a> · <a href="/llms.txt">llms.txt</a> · <a href="/ai.txt">ai.txt</a></p></section>
 <div class="soft-grid">${cards}</div>
-<div class="card"><p class="soft-links"><a class="button" href="/runtime">Runtime root</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="https://aziel-runtime.vibelock.workers.dev/v1/catalog.json">catalog.json</a> <a class="button ghost" href="/runtime/mcp">MCP</a> <a class="button ghost" href="/v1/lattice">Lattice API</a></p></div>`;
+<div class="card"><p class="soft-links"><a class="button" href="/runtime">${esc(RUNTIME_CHIP)}</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="/runtime/v1/catalog.json">catalog.json</a> <a class="button ghost" href="/runtime/mcp">MCP</a> <a class="button ghost" href="/v1/lattice">Lattice API</a></p></div>`;
 }
 
 export { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, ocrBody, ocrFormHtml, SPECTRAL_LENSES, blockedAvBody } from "./hosted-pages.js";

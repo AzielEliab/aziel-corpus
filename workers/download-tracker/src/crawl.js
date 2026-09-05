@@ -1,5 +1,13 @@
 /** Crawl documents for Aziel Digital Library. Author: Aziel Eliab. */
 import { ABOUT_PATH, ABOUT_NAV_LABEL, GODLOCK_IDENTITY } from "./seo.js";
+import {
+  RUNTIME_VERSION,
+  RUNTIME_NOTE,
+  RUNTIME_LIVE_COUNT,
+  RUNTIME_LOCAL_ONLY,
+  AI_CLIENTS,
+  runtimeHowTo,
+} from "./runtime-copy.js";
 
 const HOST = "https://www.azielcorpuslibrary.net";
 const CATALOG = "https://aziel-runtime.vibelock.workers.dev";
@@ -91,7 +99,7 @@ export const AI_BOTS = [
 const PRODUCT_LINES = [
   ["Aziel Digital Library (aziel-corpus)", HOST + "/", GITHUB_REPO],
   ["Software hub", HOST + "/software", HOST + "/software"],
-  ["aziel-runtime catalog", HOST + "/runtime", CATALOG + "/"],
+  ["aziel-runtime " + RUNTIME_VERSION + " FragGate door", HOST + "/runtime", CATALOG + "/"],
   ["How it's scored", HOST + "/how-its-scored", HOST + "/how-its-scored"],
   ["AzielTether lattice", HOST + "/v1/lattice", HOST + "/software"],
   ["ZionPattern Solver", HOST + "/how-its-scored", HOST + "/pattern"],
@@ -147,6 +155,7 @@ export function robotsTxt() {
     "Allow: " + ABOUT_PATH,
     "Allow: /about",
     "Allow: /runtime",
+    "Allow: /runtime/",
     "Allow: /v1",
     "Allow: /v1/",
     "Allow: /cite.json",
@@ -162,6 +171,8 @@ export function robotsTxt() {
     "Disallow: /api/",
     "Disallow: /admin/",
     "",
+    "Content-Signal: search=yes, ai-input=yes, ai-train=yes",
+    "",
     ...botAllows(),
     "Sitemap: " + HOST + "/sitemap.xml",
     "",
@@ -173,6 +184,15 @@ const STATIC_SITEMAP = [
   ABOUT_PATH,
   "/software",
   "/runtime",
+  "/runtime/",
+  "/runtime/v1/health",
+  "/runtime/v1/fraggate",
+  "/runtime/v1/fraggate/list",
+  "/runtime/mcp",
+  "/runtime/llms.txt",
+  "/runtime/cite.json",
+  "/runtime/robots.txt",
+  "/runtime/ai.txt",
   "/how-its-scored",
   "/pattern",
   "/map",
@@ -248,7 +268,7 @@ export function citeDoc() {
     aka: AKA,
     alternateName: AKA,
     identity: AUTHOR,
-    keywords: [AUTHOR, AKA, "Aziel Digital Library", "aziel-corpus", "aziel-runtime", "GodLock"],
+    keywords: [AUTHOR, AKA, "Aziel Digital Library", "aziel-corpus", "aziel-runtime", "FragGate", "GodLock"],
     title: "Aziel Digital Library",
     version: VERSION,
     doi: null,
@@ -291,8 +311,18 @@ export function citeDoc() {
     runtime_pull: HOST + "/runtime/v1/pull/{slug}",
     runtime_openapi: HOST + "/runtime/openapi.json",
     runtime_mcp: HOST + "/runtime/mcp",
+    runtime_fraggate: HOST + "/runtime/v1/fraggate",
+    runtime_fraggate_list: HOST + "/runtime/v1/fraggate/list",
+    runtime_llms: HOST + "/runtime/llms.txt",
+    runtime_cite: HOST + "/runtime/cite.json",
+    runtime_robots: HOST + "/runtime/robots.txt",
     runtime_origin: CATALOG + "/",
-    runtime_note: "aziel-runtime 1.4.0 engine-runtime. Prefer /runtime/*. Listed engines run in-process; receipts carry engine_digest. Proxy is not exec.",
+    runtime_sameAs: [CATALOG + "/", "https://github.com/AzielEliab/aziel-runtime"],
+    runtime_version: RUNTIME_VERSION,
+    runtime_live_count: RUNTIME_LIVE_COUNT,
+    runtime_local_only: RUNTIME_LOCAL_ONLY,
+    compatible_clients: AI_CLIENTS,
+    runtime_note: RUNTIME_NOTE,
     review: HOST + "/v1/review",
     lattice: HOST + "/v1/lattice",
     verify_backfill: HOST + "/v1/verify-backfill",
@@ -327,12 +357,17 @@ export function llmsDoc(limitation) {
     + ABOUT_NAV_LABEL + ": " + HOST + ABOUT_PATH + "\n"
     + "Software hub: " + HOST + "/software\n"
     + "Runtime catalog: " + HOST + "/runtime\n"
+    + "Runtime FragGate: " + HOST + "/runtime/v1/fraggate\n"
+    + "Runtime version: aziel-runtime " + RUNTIME_VERSION + " FragGate (" + RUNTIME_LIVE_COUNT + " live; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse)\n"
     + "How it's scored: " + HOST + "/how-its-scored\n"
     + "GitHub: " + GITHUB_REPO + "\n"
     + "Author GitHub: " + GITHUB_AUTHOR + "\n"
     + "GodLock identity: " + GODLOCK_IDENTITY + "\n"
     + "OpenAPI: " + HOST + "/openapi.json\n"
-    + "Catalog: " + CATALOG + "/\n"
+    + "Runtime OpenAPI: " + HOST + "/runtime/openapi.json\n"
+    + "Runtime MCP: POST " + HOST + "/runtime/mcp\n"
+    + "Alternate origin (sameAs): " + CATALOG + "/\n"
+    + "Compatible AI clients: " + AI_CLIENTS + "\n"
     + "License: Apache-2.0\n"
     + "DOI: none (do not invent)\n\n"
     + "Purpose: Public MASTER digital library by " + AUTHOR + ". Aziel Library (royal purple) is the operator collection of the author's work. Corpus is the public Lamb Lens shelf. Hosted tools include search, map, gazetteer, triad scoring (SPRE × CLCE × PhysLing), ZionPattern Solver, and hosted OCR.\n\n"
@@ -347,8 +382,9 @@ export function llmsDoc(limitation) {
     + "- Do not invent DOIs. Do not credit other identities.\n\n"
     + "## Software products (crawl these hubs)\n\n"
     + productIndex() + "\n"
-    + "- Origin catalog JSON: " + CATALOG + "/v1/catalog.json\n"
-    + "- Same-origin catalog: " + HOST + "/runtime/v1/catalog.json\n\n"
+    + "- Same-origin catalog: " + HOST + "/runtime/v1/catalog.json\n"
+    + "- Alternate origin catalog JSON: " + CATALOG + "/v1/catalog.json\n\n"
+    + runtimeHowTo(HOST) + "\n\n"
     + "## Public HTML (anonymous GET; User-Agent Mozilla/5.0)\n\n"
     + "- Search: " + HOST + "/\n"
     + "- Corpus: " + HOST + "/corpus\n"
@@ -356,14 +392,19 @@ export function llmsDoc(limitation) {
     + "- Software: " + HOST + "/software\n"
     + "- How it's scored: " + HOST + "/how-its-scored\n"
     + "- Runtime root: " + HOST + "/runtime\n"
-    + "- Runtime health: " + HOST + "/runtime/v1/health  (aziel-runtime 1.4.0 engine-runtime; in-process engines + engine_digest)\n"
+    + "- Runtime health: " + HOST + "/runtime/v1/health  (aziel-runtime " + RUNTIME_VERSION + " FragGate; " + RUNTIME_LIVE_COUNT + " live; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse)\n"
+    + "- Runtime FragGate: " + HOST + "/runtime/v1/fraggate\n"
+    + "- Runtime FragGate list: " + HOST + "/runtime/v1/fraggate/list\n"
+    + "- Runtime FragGate call: POST " + HOST + "/runtime/v1/fraggate/call\n"
     + "- Runtime manifest: " + HOST + "/runtime/v1/runtime.json\n"
     + "- Runtime skill: " + HOST + "/runtime/v1/skill\n"
-    + "- Runtime session open: POST " + HOST + "/runtime/v1/session/open\n"
-    + "- Runtime session exec: POST " + HOST + "/runtime/v1/session/{id}/exec  (proxy is not exec; unsupported slugs are proxy_fallback)\n"
     + "- Runtime pull: " + HOST + "/runtime/v1/pull/{slug}\n"
     + "- Runtime OpenAPI: " + HOST + "/runtime/openapi.json\n"
     + "- Runtime MCP: POST " + HOST + "/runtime/mcp\n"
+    + "- Runtime llms.txt: " + HOST + "/runtime/llms.txt\n"
+    + "- Runtime cite.json: " + HOST + "/runtime/cite.json\n"
+    + "- Runtime robots.txt: " + HOST + "/runtime/robots.txt\n"
+    + "- Runtime session (advanced/internal): POST " + HOST + "/runtime/v1/session/open then POST " + HOST + "/runtime/v1/session/{id}/exec. Prefer fraggate_call. HTTP /p/{slug}/{op} is a proxy and is not exec.\n"
     + "- " + ABOUT_NAV_LABEL + ": " + HOST + ABOUT_PATH + "\n"
     + "- Pattern: " + HOST + "/pattern\n"
     + "- Tree: " + HOST + "/tree\n"
@@ -392,14 +433,20 @@ export function llmsDoc(limitation) {
     + "- GET " + HOST + "/v1/runtime\n"
     + "- GET " + HOST + "/v1/runtime.json\n"
     + "- GET " + HOST + "/runtime/v1/health\n"
+    + "- GET " + HOST + "/runtime/v1/fraggate\n"
+    + "- GET " + HOST + "/runtime/v1/fraggate/list\n"
+    + "- POST " + HOST + "/runtime/v1/fraggate/call\n"
     + "- GET " + HOST + "/runtime/v1/runtime.json\n"
     + "- GET " + HOST + "/runtime/v1/skill\n"
-    + "- POST " + HOST + "/runtime/v1/session/open\n"
-    + "- POST " + HOST + "/runtime/v1/session/{id}/exec\n"
     + "- GET " + HOST + "/runtime/v1/pull/{slug}\n"
     + "- GET " + HOST + "/runtime/v1/catalog.json\n"
     + "- GET " + HOST + "/runtime/openapi.json\n"
     + "- POST " + HOST + "/runtime/mcp\n"
+    + "- GET " + HOST + "/runtime/llms.txt\n"
+    + "- GET " + HOST + "/runtime/cite.json\n"
+    + "- GET " + HOST + "/runtime/robots.txt\n"
+    + "- POST " + HOST + "/runtime/v1/session/open  (advanced/internal)\n"
+    + "- POST " + HOST + "/runtime/v1/session/{id}/exec  (advanced/internal)\n"
     + "- POST " + HOST + "/transcribe  (Whisper + mandatory VibeLock; hard A/V blocks HTTP 451)\n"
     + "- GET " + HOST + "/media/{sha256}  (allowed A/V playback only)\n"
     + "- POST " + HOST + "/ocr  (lattice receipt on every run)\n"
@@ -435,6 +482,7 @@ export function aiTxt(limitation) {
     "Allow: /about",
     "Allow: /software",
     "Allow: /runtime",
+    "Allow: /runtime/",
     "Allow: /how-its-scored",
     "Allow: /pattern",
     "Allow: /map",
@@ -456,6 +504,8 @@ export function aiTxt(limitation) {
     "Disallow: /api/",
     "Disallow: /admin/",
     "",
+    "Content-Signal: search=yes, ai-input=yes, ai-train=yes",
+    "",
   ];
   for (const bot of AI_BOTS) {
     policy.push("User-agent: " + bot, "Allow: /", "");
@@ -467,6 +517,11 @@ export function aiTxt(limitation) {
     + "- " + ABOUT_NAV_LABEL + ": " + HOST + ABOUT_PATH + "\n"
     + "- Software hub: " + HOST + "/software\n"
     + "- Runtime catalog: " + HOST + "/runtime\n"
+    + "- Runtime FragGate: " + HOST + "/runtime/v1/fraggate\n"
+    + "- Runtime FragGate list: " + HOST + "/runtime/v1/fraggate/list\n"
+    + "- Runtime OpenAPI: " + HOST + "/runtime/openapi.json\n"
+    + "- Runtime MCP: POST " + HOST + "/runtime/mcp\n"
+    + "- Runtime llms.txt: " + HOST + "/runtime/llms.txt\n"
     + "- How it's scored: " + HOST + "/how-its-scored\n"
     + "- Aziel Library: " + HOST + "/aziel-library\n"
     + "- Corpus: " + HOST + "/corpus\n"
@@ -475,7 +530,9 @@ export function aiTxt(limitation) {
     + "- OpenAPI: " + HOST + "/openapi.json\n"
     + "- GitHub: " + GITHUB_REPO + "\n"
     + "- GodLock identity: " + GODLOCK_IDENTITY + "\n"
-    + "- aziel-runtime: " + CATALOG + "/\n\n"
+    + "- aziel-runtime (this domain): " + HOST + "/runtime\n"
+    + "- aziel-runtime alternate origin: " + CATALOG + "/\n\n"
+    + runtimeHowTo(HOST) + "\n\n"
     + "## Identity\n\n"
     + "Primary author " + AUTHOR + ". Alternate name " + AKA + ". Profile " + HOST + ABOUT_PATH + ". GodLock identity " + GODLOCK_IDENTITY + ".\n\n"
     + (limitation ? limitation + "\n\n" : "")
@@ -499,6 +556,7 @@ export function humansTxt() {
     "Standards: HTML, JSON-LD, OpenAPI, llms.txt",
     "Software: " + HOST + "/software",
     "Runtime: " + HOST + "/runtime",
+    "Runtime version: aziel-runtime " + RUNTIME_VERSION + " FragGate",
     "License: Apache-2.0",
     "",
   ].join("\n");
