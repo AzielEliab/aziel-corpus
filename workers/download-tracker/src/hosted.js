@@ -108,6 +108,9 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
   if ((path === "/sigil.png" || path === "/assets/sigil.png") && method === "GET") {
     return assetFromPublic(env, request, "sigil.png", "image/png");
   }
+  if ((path === "/jeeves-kat-williams.gif" || path === "/assets/jeeves-kat-williams.gif") && method === "GET") {
+    return assetFromPublic(env, request, "jeeves-kat-williams.gif", "image/gif");
+  }
   const spectralSample = path.match(/^\/(?:assets\/)?spectral-samples\/([a-z0-9-]+)\.png$/);
   if (spectralSample && method === "GET") {
     return assetFromPublic(env, request, "spectral-samples/" + spectralSample[1] + ".png", "image/png");
