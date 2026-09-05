@@ -90,10 +90,14 @@ export function citeDoc() {
     runtime: HOST + "/runtime",
     runtime_json: HOST + "/runtime/v1/runtime.json",
     runtime_skill: HOST + "/runtime/v1/skill",
+    runtime_health: HOST + "/runtime/v1/health",
+    runtime_session_open: HOST + "/runtime/v1/session/open",
+    runtime_session_exec: HOST + "/runtime/v1/session/{id}/exec",
     runtime_pull: HOST + "/runtime/v1/pull/{slug}",
     runtime_openapi: HOST + "/runtime/openapi.json",
     runtime_mcp: HOST + "/runtime/mcp",
     runtime_origin: CATALOG + "/",
+    runtime_note: "aziel-runtime 1.3.0 engine-runtime. Prefer /runtime/*. Listed engines run in-process; receipts carry engine_digest. Proxy is not exec.",
     review: HOST + "/v1/review",
     lattice: HOST + "/v1/lattice",
     verify_backfill: HOST + "/v1/verify-backfill",
@@ -130,8 +134,11 @@ export function llmsDoc(limitation) {
     + "- Corpus: " + HOST + "/corpus\n"
     + "- Software: " + HOST + "/software\n"
     + "- Runtime root: " + HOST + "/runtime\n"
+    + "- Runtime health: " + HOST + "/runtime/v1/health  (aziel-runtime 1.3.0 engine-runtime; in-process engines + engine_digest)\n"
     + "- Runtime manifest: " + HOST + "/runtime/v1/runtime.json\n"
     + "- Runtime skill: " + HOST + "/runtime/v1/skill\n"
+    + "- Runtime session open: POST " + HOST + "/runtime/v1/session/open\n"
+    + "- Runtime session exec: POST " + HOST + "/runtime/v1/session/{id}/exec  (proxy is not exec; unsupported slugs are proxy_fallback)\n"
     + "- Runtime pull: " + HOST + "/runtime/v1/pull/{slug}\n"
     + "- Runtime OpenAPI: " + HOST + "/runtime/openapi.json\n"
     + "- Runtime MCP: POST " + HOST + "/runtime/mcp\n"
@@ -162,8 +169,11 @@ export function llmsDoc(limitation) {
     + "- GET " + HOST + "/v1/docs/{hash}/download\n"
     + "- GET " + HOST + "/v1/runtime\n"
     + "- GET " + HOST + "/v1/runtime.json\n"
+    + "- GET " + HOST + "/runtime/v1/health\n"
     + "- GET " + HOST + "/runtime/v1/runtime.json\n"
     + "- GET " + HOST + "/runtime/v1/skill\n"
+    + "- POST " + HOST + "/runtime/v1/session/open\n"
+    + "- POST " + HOST + "/runtime/v1/session/{id}/exec\n"
     + "- GET " + HOST + "/runtime/v1/pull/{slug}\n"
     + "- GET " + HOST + "/runtime/v1/catalog.json\n"
     + "- GET " + HOST + "/runtime/openapi.json\n"

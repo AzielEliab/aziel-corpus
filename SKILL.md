@@ -16,7 +16,7 @@ Always send `User-Agent: Mozilla/5.0`.
 ## Call these URLs
 
 - Library: https://www.azielcorpuslibrary.net/
-- Runtime root: https://www.azielcorpuslibrary.net/runtime
+- Runtime root: https://www.azielcorpuslibrary.net/runtime (aziel-runtime 1.3.0 engine-runtime; prefer /runtime/*)
 - Fallback Worker: https://aziel-corpus-download-tracker.vibelock.workers.dev/
 - Worker OpenAPI: https://www.azielcorpuslibrary.net/openapi.json
 - Runtime OpenAPI: https://www.azielcorpuslibrary.net/runtime/openapi.json
@@ -24,6 +24,8 @@ Always send `User-Agent: Mozilla/5.0`.
 - MCP: `POST https://www.azielcorpuslibrary.net/runtime/mcp` (origin `POST https://aziel-runtime.vibelock.workers.dev/mcp`)
 - Runtime skill: `GET https://www.azielcorpuslibrary.net/runtime/v1/skill`
 - Runtime manifest: `GET https://www.azielcorpuslibrary.net/runtime/v1/runtime.json`
+- Runtime health: `GET https://www.azielcorpuslibrary.net/runtime/v1/health`
+- Session: `POST https://www.azielcorpuslibrary.net/runtime/v1/session/open` then `POST .../session/{id}/exec` (proxy is not exec)
 - Pull: `GET https://www.azielcorpuslibrary.net/runtime/v1/pull/{slug}`
 - Library skill: `GET https://www.azielcorpuslibrary.net/v1/skill`
 
@@ -36,10 +38,12 @@ Ops (do **not** increment downloads):
 - `GET /v1/review?record_id=` (triad + ZionPattern Solver secondary score + succession cites)
 - `GET /v1/lattice?record_id=`
 - `GET /v1/runtime`
-- `GET /v1/runtime.json` (aziel-runtime pull/invoke manifest; distinct from `/v1/runtime`)
+- `GET /v1/runtime.json` (aziel-runtime 1.3.0 engine-runtime manifest; distinct from `/v1/runtime`)
 - `GET /runtime` (AI runtime root page; HEAD + GET return 200)
+- `GET /runtime/v1/health`
 - `GET /runtime/v1/skill`
 - `GET /runtime/v1/runtime.json`
+- `POST /runtime/v1/session/open` and `POST /runtime/v1/session/{id}/exec`
 - `GET /runtime/v1/pull/{slug}`
 - `GET /v1/verify-backfill?all=1` (walk every stored Aziel Library + Corpus record)
 - `GET /v1/verify-geo?force=1` / `?status=1` (chunked map pins: paper date × event × geolocation)
