@@ -1,6 +1,6 @@
 /**
  * aziel-runtime hosted as the Digital Library AI runtime root.
- * /runtime is the human + AI page. /runtime/* proxies aziel-runtime 1.3.0.
+ * /runtime is the human + AI page. /runtime/* proxies aziel-runtime 1.4.0.
  * Author: Aziel Eliab.
  */
 import { page, runtimeBody } from "./ui.js";
@@ -8,24 +8,24 @@ import { corsHeaders, json } from "./runtime.js";
 
 export const HOST = "https://www.azielcorpuslibrary.net";
 export const RUNTIME_ORIGIN = "https://aziel-runtime.vibelock.workers.dev";
-export const RUNTIME_VERSION = "1.3.0";
+export const RUNTIME_VERSION = "1.4.0";
 export const ENGINE_SLUGS = ["ark", "azai", "azclce", "decisiongate", "foldlock", "zsolver"];
 const UA = "Mozilla/5.0 AzielDigitalLibrary";
 
 export const RUNTIME_LIMITATION =
-  "THIS IS: aziel-runtime 1.3.0 engine-runtime — the AI runtime root for Aziel Eliab products. Prefer same-origin /runtime/*. Catalog, pull, OpenAPI, MCP, skill, and proxy front doors remain. Listed engines (ark, azai, azclce, decisiongate, foldlock, zsolver) run in-process in the Worker isolate; receipts carry engine_digest and ran_in: aziel-runtime. Proxy is not exec. Session is open → policy → exec → receipt → close. Unsupported slugs are explicit proxy_fallback. Hosted on the Digital Library at /runtime. THIS IS NOT: a second software index. The Software tab stays the product-card catalog. The public library MASTER is not a mesh. No invented Zenodo DOIs. Author Aziel Eliab only.";
+  "THIS IS: aziel-runtime 1.4.0 engine-runtime — the AI runtime root for Aziel Eliab products. Prefer same-origin /runtime/*. Catalog, pull, OpenAPI, MCP, skill, and proxy front doors remain. Listed engines (ark, azai, azclce, decisiongate, foldlock, zsolver) run in-process in the Worker isolate; receipts carry engine_digest and ran_in: aziel-runtime. Proxy is not exec. Session is open → policy → exec → receipt → close. Unsupported slugs are explicit proxy_fallback. Hosted on the Digital Library at /runtime. THIS IS NOT: a second software index. The Software tab stays the product-card catalog. The public library MASTER is not a mesh. No invented Zenodo DOIs. Author Aziel Eliab only.";
 
 export function runtimeSkillMd() {
   return `---
 name: aziel-runtime
-description: Use when an assistant should pull or invoke Aziel Eliab product runtimes from the Digital Library runtime root. Prefer same-origin /runtime/*. Origin is engine-runtime 1.3.0 (in-process engines + engine_digest). Catalog/pull/proxy remain; proxy is not exec.
+description: Use when an assistant should pull or invoke Aziel Eliab product runtimes from the Digital Library runtime root. Prefer same-origin /runtime/*. Origin is engine-runtime 1.4.0 (in-process engines + engine_digest). Catalog/pull/proxy remain; proxy is not exec.
 ---
 
 # aziel-runtime
 
 **AI runtime root** for Aziel Eliab products. Hosted on the Digital Library at ${HOST}/runtime. Origin Worker: ${RUNTIME_ORIGIN}/ (**engine-runtime ${RUNTIME_VERSION}**).
 
-**THIS IS:** 1.3.0 engine-runtime. Prefer same-origin \`/runtime/*\`. Catalog, OpenAPI, MCP, \`/v1/skill\`, \`/v1/runtime.json\`, \`/v1/pull/{slug}\`, and proxy front doors remain. Listed engines (\`${ENGINE_SLUGS.join("`, `")}\`) run inside the Worker isolate; session receipts carry \`engine_digest\` and \`ran_in: aziel-runtime\`. Session is \`open → policy → exec → receipt → close\`.
+**THIS IS:** 1.4.0 engine-runtime. Prefer same-origin \`/runtime/*\`. Catalog, OpenAPI, MCP, \`/v1/skill\`, \`/v1/runtime.json\`, \`/v1/pull/{slug}\`, and proxy front doors remain. Listed engines (\`${ENGINE_SLUGS.join("`, `")}\`) run inside the Worker isolate; session receipts carry \`engine_digest\` and \`ran_in: aziel-runtime\`. Session is \`open → policy → exec → receipt → close\`.
 
 **THIS IS NOT:** a second software index. Downloadable product cards live at ${HOST}/software. Proxy is not exec. Unsupported slugs are explicit \`proxy_fallback\`. The library MASTER search/OCR/map APIs stay on ${HOST}/v1/*. No invented Zenodo DOIs. Author **Aziel Eliab** only.
 
@@ -259,7 +259,7 @@ export async function handleRuntimeRoot(request, url, env, signed) {
       signed,
       path: "/runtime",
       kind: "runtime",
-      description: "aziel-runtime 1.3.0 engine-runtime on the Aziel Digital Library. Prefer /runtime/*. Listed engines run in-process; receipts carry engine_digest. Proxy is not exec. Author Aziel Eliab.",
+      description: "aziel-runtime 1.4.0 engine-runtime on the Aziel Digital Library. Prefer /runtime/*. Listed engines run in-process; receipts carry engine_digest. Proxy is not exec. Author Aziel Eliab.",
     });
   }
 
