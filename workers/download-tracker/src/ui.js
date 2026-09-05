@@ -516,7 +516,7 @@ export function aboutBody() {
 
 export function runtimeBody() {
   return `<section class="hero"><h1>aziel-runtime — AI runtime root</h1>
-<p class="muted"><strong>engine-runtime 1.4.0.</strong> Prefer same-origin <code>/runtime/*</code>. Listed engines (<code>ark</code>, <code>azai</code>, <code>azclce</code>, <code>decisiongate</code>, <code>foldlock</code>, <code>zsolver</code>) run in-process inside the Worker isolate; session receipts carry <code>engine_digest</code>. Catalog, pull, OpenAPI, MCP, and proxy front doors remain. Proxy is not exec. Session: <code>open → policy → exec → receipt → close</code>. Unsupported slugs are <code>proxy_fallback</code>. Author Aziel Eliab.</p>
+<p class="muted"><strong>engine-runtime 1.4.0.</strong> Prefer same-origin <code>/runtime/*</code>. Every catalog Software slug runs in-process inside the Worker isolate; session receipts carry <code>engine_digest</code>. Catalog, pull, OpenAPI, MCP, and proxy front doors remain. Proxy is not exec. Session: <code>open → policy → exec → receipt → close</code>. Binding-only ops may be per-op <code>proxy_fallback</code>; <code>proxy_fallback_slugs</code> is empty. Engine manifest: <code>/runtime/v1/runtime.json</code> (not library <code>/v1/runtime</code>). Author Aziel Eliab.</p>
 <p class="muted"><strong>THIS IS NOT</strong> a second software index. Downloadable product cards stay on <a href="/software">Software</a>. This page is the AI runtime root. No invented Zenodo DOIs.</p></section>
 <div class="card">
 <h2>Same-origin pull (prefer)</h2>
