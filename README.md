@@ -2,6 +2,18 @@
 
 This release makes the library's **core runtime independent of third-party Python packages and live services**. It uses Python's standard library for archival storage, hashing, SQLite/FTS search, ZIP-office extraction, baseline PDF text recovery, deterministic similarity vectors, entity indexing, `.azm` model packages, `.azk` knowledge kits, XLSX export and PDF reporting.
 
+## Websites
+
+Live HTTPS surfaces for this library and the sister engines. Public identity is **Aziel Eliab** only. No DOIs. Forks welcome.
+
+- **Aziel Corpus Library (this site):** [https://www.azielcorpuslibrary.net/](https://www.azielcorpuslibrary.net/)
+- **Aziel Eliab:** [https://www.azielcorpuslibrary.net/AzielEliab](https://www.azielcorpuslibrary.net/AzielEliab)
+- **Software:** [https://www.azielcorpuslibrary.net/software](https://www.azielcorpuslibrary.net/software)
+- **Runtime front door:** [https://www.azielcorpuslibrary.net/runtime](https://www.azielcorpuslibrary.net/runtime)
+- **How it’s scored:** [https://www.azielcorpuslibrary.net/how-its-scored](https://www.azielcorpuslibrary.net/how-its-scored)
+- **GodLock.uk (sister engine):** [https://godlock.uk](https://godlock.uk) — Aziel Eliab tab [https://godlock.uk/AzielEliab](https://godlock.uk/AzielEliab)
+- **aziel-runtime (engines / MCP / OpenAPI):** [https://aziel-runtime.vibelock.workers.dev/](https://aziel-runtime.vibelock.workers.dev/) — repo [https://github.com/AzielEliab/aziel-runtime](https://github.com/AzielEliab/aziel-runtime) — Glama [https://glama.ai/mcp/servers/AzielEliab/aziel-runtime](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)
+
 ## What “self-contained” means
 
 Once Python 3.11+ and this folder are present, the core library does not need GitHub, Hugging Face, cloud APIs, package registries, or a network connection. Original files are always preserved byte-for-byte in content-addressed object storage.
