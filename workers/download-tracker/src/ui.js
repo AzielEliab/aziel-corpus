@@ -516,14 +516,16 @@ export function aboutBody() {
 
 export function runtimeBody() {
   return `<section class="hero"><h1>aziel-runtime — AI runtime root</h1>
-<p class="muted"><strong>Pull and invoke root</strong> for Aziel Eliab product runtimes. Catalog, OpenAPI, MCP, skill, <code>/v1/runtime.json</code>, <code>/v1/pull/{slug}</code>, counted downloads. Same-origin <code>/runtime/*</code> proxies the live Worker. Author Aziel Eliab.</p>
-<p class="muted"><strong>THIS IS NOT</strong> a second software index. Downloadable product cards stay on <a href="/software">Software</a>. This page is the root AIs should pull from.</p></section>
+<p class="muted"><strong>engine-runtime 1.3.0.</strong> Prefer same-origin <code>/runtime/*</code>. Listed engines (<code>ark</code>, <code>azai</code>, <code>azclce</code>, <code>decisiongate</code>, <code>foldlock</code>, <code>zsolver</code>) run in-process inside the Worker isolate; session receipts carry <code>engine_digest</code>. Catalog, pull, OpenAPI, MCP, and proxy front doors remain. Proxy is not exec. Session: <code>open → policy → exec → receipt → close</code>. Unsupported slugs are <code>proxy_fallback</code>. Author Aziel Eliab.</p>
+<p class="muted"><strong>THIS IS NOT</strong> a second software index. Downloadable product cards stay on <a href="/software">Software</a>. This page is the AI runtime root. No invented Zenodo DOIs.</p></section>
 <div class="card">
 <h2>Same-origin pull (prefer)</h2>
 <p>AIs and tools should call these Digital Library URLs first (send <code>User-Agent: Mozilla/5.0</code>):</p>
 <ul>
+<li><a href="/runtime/v1/health"><code>/runtime/v1/health</code></a> — origin health (version, engine slugs, digests)</li>
 <li><a href="/runtime/v1/runtime.json"><code>/runtime/v1/runtime.json</code></a> — runtime manifest</li>
 <li><a href="/runtime/v1/skill"><code>/runtime/v1/skill</code></a> — runtime skill markdown</li>
+<li><code>POST /runtime/v1/session/open</code> then <code>POST /runtime/v1/session/{id}/exec</code> — true exec (receipt + <code>engine_digest</code>)</li>
 <li><code>GET /runtime/v1/pull/{slug}</code> — pull descriptor (example <a href="/runtime/v1/pull/aziel-corpus"><code>/runtime/v1/pull/aziel-corpus</code></a>)</li>
 <li><code>GET /runtime/v1/bundle/{slug}</code> — bundle alias of pull</li>
 <li><a href="/runtime/v1/catalog.json"><code>/runtime/v1/catalog.json</code></a> — machine catalog</li>
@@ -531,17 +533,19 @@ export function runtimeBody() {
 <li><code>POST /runtime/mcp</code> — MCP JSON-RPC (<code>tools/list</code>, <code>tools/call</code>)</li>
 <li>Library alias: <a href="/v1/runtime.json"><code>/v1/runtime.json</code></a> (distinct from library version <a href="/v1/runtime"><code>/v1/runtime</code></a>)</li>
 </ul>
-<p class="soft-links"><a class="button" href="/runtime/v1/runtime.json">runtime.json</a> <a class="button ghost" href="/runtime/v1/skill">skill</a> <a class="button ghost" href="/runtime/v1/catalog.json">catalog.json</a> <a class="button ghost" href="/runtime/openapi.json">OpenAPI</a></p>
+<p class="soft-links"><a class="button" href="/runtime/v1/runtime.json">runtime.json</a> <a class="button ghost" href="/runtime/v1/skill">skill</a> <a class="button ghost" href="/runtime/v1/health">health</a> <a class="button ghost" href="/runtime/v1/catalog.json">catalog.json</a> <a class="button ghost" href="/runtime/openapi.json">OpenAPI</a></p>
 </div>
 <div class="card">
 <h2>Origin Worker</h2>
-<p>Live aziel-runtime. Same APIs without the <code>/runtime</code> prefix. Use when calling the Worker directly:</p>
+<p>Live aziel-runtime <strong>1.3.0</strong> engine-runtime. Same APIs without the <code>/runtime</code> prefix. Use when calling the Worker directly:</p>
 <ul>
 <li><a href="https://aziel-runtime.vibelock.workers.dev/">https://aziel-runtime.vibelock.workers.dev/</a> — catalog home</li>
+<li><a href="https://aziel-runtime.vibelock.workers.dev/v1/health"><code>/v1/health</code></a></li>
 <li><a href="https://aziel-runtime.vibelock.workers.dev/v1/catalog.json"><code>/v1/catalog.json</code></a></li>
 <li><a href="https://aziel-runtime.vibelock.workers.dev/openapi.json"><code>/openapi.json</code></a></li>
 <li><code>POST https://aziel-runtime.vibelock.workers.dev/mcp</code></li>
 <li><a href="https://aziel-runtime.vibelock.workers.dev/v1/skill"><code>/v1/skill</code></a> · <a href="https://aziel-runtime.vibelock.workers.dev/v1/runtime.json"><code>/v1/runtime.json</code></a> · <code>/v1/pull/{slug}</code></li>
+<li><code>POST /v1/session/open</code> · <code>POST /v1/session/{id}/exec</code></li>
 <li><a href="https://aziel-runtime.vibelock.workers.dev/llms.txt">llms.txt</a> · <a href="https://aziel-runtime.vibelock.workers.dev/cite.json">cite.json</a> · <a href="https://github.com/AzielEliab/aziel-runtime">GitHub</a></li>
 </ul>
 <p class="muted">Counted downloads stay on each product Worker <code>/download</code> + <code>/count</code>. The Software tab lists those cards. AzielTether is the survival mesh for downloaded nodes; this HTTPS site is not a mesh.</p>

@@ -31,14 +31,28 @@ test("runtime manifest and skill cite the library /runtime root", () => {
   const man = runtimeManifest();
   assert.equal(man.kind, "runtime_root");
   assert.equal(man.author, "Aziel Eliab");
+  assert.equal(man.identity, "Aziel Eliab");
+  assert.equal(man.role, "engine-runtime");
+  assert.equal(man.version, "1.3.0");
+  assert.equal(man.doi, null);
   assert.match(man.host, /\/runtime$/);
   assert.match(man.skill, /\/runtime\/v1\/skill$/);
   assert.match(man.pull, /\/runtime\/v1\/pull\/\{slug\}$/);
+  assert.match(man.session_open, /\/runtime\/v1\/session\/open$/);
+  assert.match(man.limitation, /1\.3\.0/);
+  assert.match(man.limitation, /engine_digest/);
+  assert.match(man.limitation, /proxy_fallback/);
+  assert.doesNotMatch(man.limitation, /10\.5281\/zenodo/i);
   const skill = runtimeSkillMd();
   assert.match(skill, /name: aziel-runtime/);
   assert.match(skill, /\/runtime\/v1\/runtime\.json/);
+  assert.match(skill, /engine-runtime 1\.3\.0/);
+  assert.match(skill, /engine_digest/);
+  assert.match(skill, /\/runtime\/v1\/session\/open/);
+  assert.match(skill, /proxy_fallback/);
   assert.match(skill, /Author \*\*Aziel Eliab\*\*/);
   assert.doesNotMatch(skill, /Ever Blooming/i);
+  assert.doesNotMatch(skill, /10\.5281\/zenodo/i);
 });
 
 test("pullDescriptor keeps counted download and skill URLs", () => {
@@ -74,7 +88,12 @@ test("GET and HEAD /runtime return 200 HTML without a second software index", as
   assert.match(html, />Runtime</);
   assert.match(html, /src="\/sigil\.png"/);
   assert.match(html, /\/runtime\/v1\/runtime\.json/);
+  assert.match(html, /engine-runtime 1\.3\.0/);
+  assert.match(html, /engine_digest/);
+  assert.match(html, /\/runtime\/v1\/session\/open/);
+  assert.match(html, /proxy_fallback/);
   assert.doesNotMatch(html, /Ever Blooming/i);
+  assert.doesNotMatch(html, /10\.5281\/zenodo/i);
 
   const head = await handleRuntimeRoot(
     new Request("https://www.azielcorpuslibrary.net/runtime", { method: "HEAD" }),
@@ -112,4 +131,7 @@ test("llms.txt cites the runtime root and pull APIs", () => {
   assert.match(txt, /\/runtime\/v1\/runtime\.json/);
   assert.match(txt, /\/runtime\/v1\/skill/);
   assert.match(txt, /\/runtime\/v1\/pull\/\{slug\}/);
+  assert.match(txt, /1\.3\.0 engine-runtime/);
+  assert.match(txt, /\/runtime\/v1\/session\/open/);
+  assert.match(txt, /engine_digest/);
 });
