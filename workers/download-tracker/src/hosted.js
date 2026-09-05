@@ -26,6 +26,7 @@ import {
   recordOcrTextArtifact, recordSpectralOverlayArtifact, listDerivedArtifacts,
 } from "./ocr.js";
 import { normalizeLenses } from "./spectral.js";
+import { RUNTIME_VERSION, RUNTIME_CHIP, RUNTIME_NOTE } from "./runtime-copy.js";
 
 function intelScripts() {
   var c = [104,116,116,112,115,58,47,47,99,100,110,46,106,115,100,101,108,105,118,114,46,110,101,116,47,110,112,109,47,116,101,115,115,101,114,97,99,116,46,106,115,64,53,47,100,105,115,116,47,116,101,115,115,101,114,97,99,116,46,109,105,110,46,106,115];
@@ -563,19 +564,20 @@ async function loadSoftwareCatalog() {
   const cards = [];
   cards.push({
     name: "aziel-runtime",
-    version: "1.4.0",
+    version: RUNTIME_VERSION,
     root: true,
     countLabel: (counts.filter((n) => n != null).reduce((a, b) => a + b, 0) || null) != null
       ? String(counts.filter((n) => n != null).reduce((a, b) => a + b, 0)) + " downloads"
       : null,
-    blurb: "AI runtime root (engine-runtime 1.4.0). Prefer /runtime. Catalog/pull/proxy remain; listed engines run in-process with engine_digest. Software tab stays the download catalog. Author Aziel Eliab.",
+    blurb: RUNTIME_NOTE + " Software tab stays the download catalog. Author Aziel Eliab.",
     links: [
-      { href: "/runtime", label: "Runtime root", primary: true },
-      { href: "https://github.com/AzielEliab/aziel-runtime", label: "GitHub" },
-      { href: "https://aziel-runtime.vibelock.workers.dev/", label: "Origin catalog" },
-      { href: "/runtime/v1/catalog.json", label: "catalog.json" },
+      { href: "/runtime", label: RUNTIME_CHIP, primary: true },
+      { href: "/runtime/v1/fraggate/list", label: "fraggate/list" },
+      { href: "/runtime/mcp", label: "MCP" },
       { href: "/runtime/openapi.json", label: "OpenAPI" },
       { href: "/runtime/v1/runtime.json", label: "runtime.json" },
+      { href: "https://github.com/AzielEliab/aziel-runtime", label: "GitHub" },
+      { href: "https://aziel-runtime.vibelock.workers.dev/", label: "Alternate origin" },
     ],
   });
   const ordered = [...products].sort((a, b) => {
@@ -595,6 +597,7 @@ async function loadSoftwareCatalog() {
     const links = [];
     if (p.download) links.push({ href: p.download, label: "Download", primary: true });
     if (p.github) links.push({ href: p.github, label: "GitHub" });
+    if (slug) links.push({ href: "/runtime/v1/pull/" + encodeURIComponent(slug), label: "Runtime pull" });
     if (slug === "azieltether") {
       links.push({ href: "/v1/lattice", label: "Lattice API" });
       if (workerHome) links.push({ href: workerHome, label: "Worker" });

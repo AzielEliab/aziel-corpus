@@ -118,11 +118,12 @@ test("Pattern, Software, About, and runtime pages render live copy", () => {
   assert.match(runtime, /\/runtime\/openapi\.json/);
   assert.match(runtime, /POST \/runtime\/mcp/);
   assert.match(runtime, /THIS IS NOT<\/strong> a second software index/);
-  assert.match(runtime, /engine-runtime 1\.4\.0/);
-  assert.match(runtime, /engine_digest/);
-  assert.match(runtime, /\/runtime\/v1\/session\/open/);
-  assert.match(runtime, /proxy_fallback/);
+  assert.match(runtime, /1\.6\.2/);
+  assert.match(runtime, /FragGate/);
+  assert.match(runtime, /fraggate_list/);
+  assert.match(runtime, /\/runtime\/v1\/fraggate\/list/);
   assert.match(runtime, /href="https:\/\/godlock\.uk\/AzielEliab"/);
+  assert.doesNotMatch(runtime, /1\.4\.0/);
   assert.doesNotMatch(runtime, /10\.5281\/zenodo/i);
 });
 
@@ -160,6 +161,8 @@ test("Aziel Library is publicly browseable and shelf SHA-dedupes", () => {
   });
   assert.match(home, /href="\/file\/B"/);
   assert.doesNotMatch(home, /href="\/file\/A"/);
+  assert.match(home, /href="\/runtime"/);
+  assert.match(home, /Runtime 1\.6\.2 · FragGate/);
   assert.deepEqual(
     dedupeShelfRows([
       { record_id: "1", content_sha256: "abc" },

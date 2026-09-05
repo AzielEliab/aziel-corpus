@@ -54,6 +54,27 @@ test("JSON-LD types the author as Person with alternateName", () => {
   assert.doesNotMatch(html, BANNED);
 });
 
+test("runtime JSON-LD and discovery links advertise FragGate 1.6.2", () => {
+  const html = headMeta({ title: "aziel-runtime", path: "/runtime", kind: "runtime" });
+  const ld = graphFrom(html);
+  const apps = ld["@graph"].filter((n) => n["@type"] === "SoftwareApplication");
+  const runtimeApp = apps.find((n) => n.name === "aziel-runtime");
+  assert.ok(runtimeApp);
+  assert.equal(runtimeApp.softwareVersion, "1.6.2");
+  assert.equal(runtimeApp.url, "https://www.azielcorpuslibrary.net/runtime");
+  assert.ok(runtimeApp.sameAs.includes("https://aziel-runtime.vibelock.workers.dev/"));
+  const api = ld["@graph"].find((n) => n["@type"] === "WebAPI");
+  assert.ok(api);
+  assert.equal(api.url, "https://www.azielcorpuslibrary.net/runtime/v1/fraggate");
+  assert.match(html, /href="\/runtime\/openapi\.json"/);
+  assert.match(html, /href="\/runtime\/mcp"/);
+  assert.match(html, /href="\/runtime\/llms\.txt"/);
+  assert.match(html, /href="\/runtime\/v1\/fraggate"/);
+  assert.match(defaultDescription("runtime"), /1\.6\.2/);
+  assert.match(defaultDescription("runtime"), /FragGate/);
+  assert.doesNotMatch(defaultDescription("runtime"), /1\.4\.0/);
+});
+
 test("page-specific descriptions and share images", () => {
   assert.match(defaultDescription("about"), /Aziel Eliab/);
   assert.match(defaultDescription("about"), /Aziel Elroi Eliab/);
