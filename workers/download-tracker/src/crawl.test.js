@@ -42,13 +42,26 @@ test("robots.txt allows research surfaces and major AI bots", () => {
     "MistralAI-User",
     "DuckDuckBot",
     "Googlebot",
+    "Google-Extended",
+    "GoogleOther",
+    "Google-CloudVertexBot",
     "OAI-SearchBot",
     "xAI-SearchBot",
+    "cohere-ai",
+    "Diffbot",
+    "AI2Bot",
+    "Timpibot",
+    "Petalbot",
+    "Omgilibot",
+    "FirecrawlAgent",
+    "ImagesiftBot",
   ]) {
     assert.match(txt, new RegExp("User-agent: " + bot));
   }
+  assert.equal(new Set(AI_BOTS).size, AI_BOTS.length);
   for (const bot of AI_BOTS) {
     assert.match(txt, new RegExp("User-agent: " + bot));
+    assert.equal((txt.match(new RegExp("User-agent: " + bot + "\\n", "g")) || []).length, 1);
   }
 });
 
@@ -131,6 +144,19 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
     "DuckDuckBot",
     "OAI-SearchBot",
     "xAI-SearchBot",
+    "GoogleOther",
+    "Google-CloudVertexBot",
+    "cohere-ai",
+    "cohere-training-data-crawler",
+    "Diffbot",
+    "AI2Bot",
+    "AI2Bot-Dolma",
+    "Timpibot",
+    "Petalbot",
+    "Omgili",
+    "Omgilibot",
+    "FirecrawlAgent",
+    "ImagesiftBot",
   ]) {
     assert.match(ai, new RegExp("User-agent: " + bot));
   }

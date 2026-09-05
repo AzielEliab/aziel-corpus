@@ -21,6 +21,8 @@ export const MIME = {
 export const AI_BOTS = [
   "Googlebot",
   "Google-Extended",
+  "GoogleOther",
+  "Google-CloudVertexBot",
   "GPTBot",
   "ChatGPT-User",
   "OAI-SearchBot",
@@ -48,6 +50,17 @@ export const AI_BOTS = [
   "GrokBot",
   "xAI-Bot",
   "xAI-Grok",
+  "cohere-ai",
+  "cohere-training-data-crawler",
+  "Diffbot",
+  "AI2Bot",
+  "AI2Bot-Dolma",
+  "Timpibot",
+  "Petalbot",
+  "Omgili",
+  "Omgilibot",
+  "FirecrawlAgent",
+  "ImagesiftBot",
 ];
 
 const PRODUCT_LINES = [
