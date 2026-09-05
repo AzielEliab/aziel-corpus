@@ -55,13 +55,39 @@ test("robots.txt allows research surfaces and major AI bots", () => {
     "Omgilibot",
     "FirecrawlAgent",
     "ImagesiftBot",
+    "FacebookBot",
+    "facebookexternalhit",
+    "Meta-ExternalAds",
+    "TikTokSpider",
+    "Baiduspider",
+    "Baiduspider-render",
+    "Baiduspider-ai",
+    "YandexBot",
+    "PanguBot",
+    "Kangaroo Bot",
+    "Cotoyogi",
+    "aiHitBot",
+    "webzio-extended",
+    "ICC-Crawler",
+    "DataForSeoBot",
+    "AwarioBot",
+    "AwarioSmartBot",
+    "AwarioRssBot",
+    "Sentibot",
+    "peer39_crawler",
+    "Seekr",
+    "Meltwater",
+    "TurnitinBot",
+    "Factset_spyderbot",
+    "NeevaBot",
   ]) {
     assert.match(txt, new RegExp("User-agent: " + bot));
   }
   assert.equal(new Set(AI_BOTS).size, AI_BOTS.length);
   for (const bot of AI_BOTS) {
-    assert.match(txt, new RegExp("User-agent: " + bot));
-    assert.equal((txt.match(new RegExp("User-agent: " + bot + "\\n", "g")) || []).length, 1);
+    const escaped = bot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    assert.match(txt, new RegExp("User-agent: " + escaped + "\\nAllow: /"));
+    assert.equal((txt.match(new RegExp("User-agent: " + escaped + "\\n", "g")) || []).length, 1);
   }
 });
 
@@ -157,8 +183,38 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
     "Omgilibot",
     "FirecrawlAgent",
     "ImagesiftBot",
+    "FacebookBot",
+    "facebookexternalhit",
+    "Meta-ExternalAds",
+    "TikTokSpider",
+    "Baiduspider",
+    "Baiduspider-render",
+    "Baiduspider-ai",
+    "YandexBot",
+    "PanguBot",
+    "Kangaroo Bot",
+    "Cotoyogi",
+    "aiHitBot",
+    "webzio-extended",
+    "ICC-Crawler",
+    "DataForSeoBot",
+    "AwarioBot",
+    "AwarioSmartBot",
+    "AwarioRssBot",
+    "Sentibot",
+    "peer39_crawler",
+    "Seekr",
+    "Meltwater",
+    "TurnitinBot",
+    "Factset_spyderbot",
+    "NeevaBot",
   ]) {
     assert.match(ai, new RegExp("User-agent: " + bot));
+  }
+  for (const bot of AI_BOTS) {
+    const escaped = bot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    assert.match(ai, new RegExp("User-agent: " + escaped + "\\nAllow: /"));
+    assert.equal((ai.match(new RegExp("User-agent: " + escaped + "\\n", "g")) || []).length, 1);
   }
   assert.match(ai, /Allow: \/how-its-scored/);
   assert.match(ai, /Allow: \/AzielEliab/);
