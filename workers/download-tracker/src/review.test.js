@@ -23,6 +23,7 @@ import {
   JEEVES_RED_PILL,
   JEEVES_EMPIRICAL_HOLMES,
   JEEVES_REAL_JEEVES,
+  JEEVES_FORGERECEIPTS_SNITCHES,
 } from "./jeeves.js";
 import { isFullyScored, storedTriadMatches } from "./review-store.js";
 import { normalizeContentHash } from "./library.js";
@@ -399,6 +400,20 @@ test("Jeeves red pill easter egg", () => {
   assert.equal(h.id, "red_pill");
   assert.equal(detectJeevesEasterEgg("search for hoax documents"), null);
   assert.equal(detectJeevesEasterEgg("is this record real"), null);
+});
+
+test("Jeeves ForgeReceipts courtroom snitches easter egg", () => {
+  const a = detectJeevesEasterEgg("I am using ForgeReceipts in open court");
+  assert.equal(a.id, "forgereceipts_snitches");
+  assert.equal(a.answer, JEEVES_FORGERECEIPTS_SNITCHES);
+  assert.equal(a.answer, "Snitches get stitches.");
+  assert.equal(a.image, null);
+  assert.equal(detectJeevesEasterEgg("showing ForgeReceipts to the judge").id, "forgereceipts_snitches");
+  assert.equal(detectJeevesEasterEgg("filing ForgeReceipts with the court").id, "forgereceipts_snitches");
+  assert.equal(detectJeevesEasterEgg("submitting forgereceipts in the courtroom").id, "forgereceipts_snitches");
+  assert.equal(detectJeevesEasterEgg("courtroom use of ForgeReceipts").id, "forgereceipts_snitches");
+  assert.equal(detectJeevesEasterEgg("what is ForgeReceipts"), null);
+  assert.equal(detectJeevesEasterEgg("ForgeReceipts is not legal advice"), null);
 });
 
 test("Jeeves real Jeeves easter egg", () => {
