@@ -10,11 +10,14 @@ import {
   jeevesShouldRefuse,
   lambLensSigned,
   detectJeevesEasterEgg,
+  jeevesDrawerCaption,
+  jeevesFabHtml,
   JEEVES_SPIRIT_ENDURES,
   JEEVES_EVIL_TWIN_IMAGE,
   JEEVES_BAT_SIGNAL_IMAGE,
   JEEVES_HOLMES_IMAGE,
   JEEVES_CLASSIC_BUTLER_IMAGE,
+  JEEVES_HELLMO_IMAGE,
   JEEVES_ZIONCHECK_LIVES,
   JEEVES_AZIEL_SYMBOL,
   JEEVES_RED_PILL,
@@ -323,6 +326,29 @@ test("Jeeves God is real easter egg", () => {
   assert.equal(a.id, "spirit_endures");
   assert.equal(a.answer, JEEVES_SPIRIT_ENDURES);
   assert.equal(a.image, null);
+  assert.equal(detectJeevesEasterEgg("does God exist?").id, "spirit_endures");
+  assert.equal(detectJeevesEasterEgg("is there a God?").id, "spirit_endures");
+});
+
+test("Jeeves Hellmo easter egg is image-only denial", () => {
+  const a = detectJeevesEasterEgg("god isn't real");
+  assert.equal(a.id, "hellmo");
+  assert.equal(a.answer, "");
+  assert.equal(a.image, JEEVES_HELLMO_IMAGE);
+  assert.equal(a.image, "/jeeves-hellmo.png");
+  assert.equal(a.image_alt, "hellmo-style flaming red puppet meme (Ask Jeeves easter egg)");
+  assert.equal(detectJeevesEasterEgg("god is not real").id, "hellmo");
+  assert.equal(detectJeevesEasterEgg("god doesnt exist").id, "hellmo");
+  assert.equal(detectJeevesEasterEgg("god doesn't exist").id, "hellmo");
+  assert.equal(detectJeevesEasterEgg("there is no god").id, "hellmo");
+  assert.equal(jeevesDrawerCaption(a), "");
+  assert.equal(jeevesDrawerCaption({ answer: "", image: JEEVES_HELLMO_IMAGE }), "");
+  assert.equal(jeevesDrawerCaption({ answer: JEEVES_SPIRIT_ENDURES }), JEEVES_SPIRIT_ENDURES);
+  assert.equal(jeevesDrawerCaption({}), "No answer");
+  const fab = jeevesFabHtml();
+  assert.match(fab, /j\.answer!=null&&String\(j\.answer\)!==""/);
+  assert.match(fab, /j\.image\?""/);
+  assert.equal(fab.includes('j.answer||j.error||"No answer"'), false);
 });
 
 test("Jeeves Zioncheck lives easter egg", () => {
