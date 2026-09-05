@@ -31,7 +31,7 @@ export function defaultDescription(kind) {
   if (kind === "historical") return "Historical geography layers for Aziel Digital Library. Author Aziel Eliab.";
   if (kind === "verify") return "Integrity verification of the hosted Aziel Digital Library MASTER. Author Aziel Eliab.";
   if (kind === "corpus") return "Public corpus of Aziel Digital Library. Search published records. Author Aziel Eliab.";
-  if (kind === "runtime") return "aziel-runtime AI pull/invoke root on the Aziel Digital Library. Catalog, OpenAPI, MCP, skill, runtime.json, pull/{slug}. Author Aziel Eliab.";
+  if (kind === "runtime") return "aziel-runtime 1.3.0 engine-runtime on the Aziel Digital Library. Prefer /runtime/*. Listed engines run in-process; receipts carry engine_digest. Proxy is not exec. Author Aziel Eliab.";
   return "Aziel Digital Library by Aziel Eliab. Search, map, gazetteer, intelligence, and hosted OCR on the public MASTER.";
 }
 
