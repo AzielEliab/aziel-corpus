@@ -26,7 +26,47 @@ export const JEEVES_LIMITATION =
 
 /** Classic Ask Jeeves easter eggs (tongue-in-cheek; not theology). */
 export const JEEVES_EVIL_TWIN_IMAGE = "/jeeves-evil-twin.png";
+export const JEEVES_BAT_SIGNAL_IMAGE = "/jeeves-bat-signal.png";
+export const JEEVES_HOLMES_IMAGE = "/jeeves-holmes.png";
 export const JEEVES_SPIRIT_ENDURES = "Jeeves' Spirit Endures.";
+export const JEEVES_ZIONCHECK_LIVES = "Zioncheck Lives forever - Regardless of the Government that removed him";
+export const JEEVES_AZIEL_SYMBOL =
+  "As a man, I am flesh and blood; I can be ignored, I can be destroyed. But as a symbol, I can be incorruptible. I can be everlasting.";
+export const JEEVES_RED_PILL =
+  "You take the blue pill... the story ends, you wake up in your bed and believe whatever you want to believe. You take the red pill... you stay in Wonderland, and I show you how deep the rabbit-hole goes. Remember: all I'm offering is the truth. Nothing more.";
+export const JEEVES_EMPIRICAL_HOLMES =
+  "It is a capital mistake to theorize before one has data. Insensibly one begins to twist facts to suit theories, instead of theories to suit facts.";
+
+const EMPIRICAL_ATTACK_RE =
+  /\b(useless|worthless|garbage|trash|junk|joke|jokes|nonsense|crap|stupid|dumb|sucks?|overrated|pointless|meaningless|bogus|myth|liar?|fraud|hoax|fake|fails?|failed|failure|inferior|hate|hates|hating|mock|mocks|mocking|dismiss|dismisses|dismissive|reject|rejected|anti[- ]empirical|so-?called|bull)\b/;
+
+function isEmpiricalAttack(n) {
+  if (!/\bempirical\b/.test(n)) return false;
+  return (
+    EMPIRICAL_ATTACK_RE.test(n) ||
+    /\bempirical\s+(doesn't|does not|cannot|can't|won't|wont)\b/.test(n) ||
+    /\b(don't|dont|do not|never)\s+(trust|believe|need|use)\s+empirical\b/.test(n) ||
+    /\bwho\s+needs\s+empirical\b/.test(n) ||
+    /\b(forget|ignore|dump)\s+empirical\b/.test(n)
+  );
+}
+
+function isLibraryHoax(n) {
+  const aboutPlace =
+    /\b(this|the|your)\s+(aziel\s+)?(digital\s+)?(library|corpus|site|software)\b/.test(n) ||
+    /\baziel\s+(digital\s+)?(library|corpus)\b/.test(n) ||
+    /\b(this site|this library|this corpus|this software)\b/.test(n) ||
+    /\bazielcorpuslibrary\b/.test(n);
+  const fakeWords = /\b(hoax|fake|faked|fabricated|not real|isn't real|isnt real|is not real|aint real|ain't real)\b/.test(n);
+  const thisIsFake =
+    /\bthis\s+(isn'?t|aint|ain't|is not)\s+(even\s+)?(a\s+)?(hoax|fake|real|fabricated)\b/.test(n) ||
+    /\bthis\s+is\s+(just\s+)?(a\s+)?(hoax|fake|fabricated)\b/.test(n) ||
+    /\bis\s+this\s+(even\s+)?(a\s+)?(hoax|fake|fabricated)\b/.test(n) ||
+    /\bis\s+this\s+(even\s+)?real\b/.test(n);
+  const aboutARecord = /\b(record|file|document|pdf|title|paper)\b/.test(n) && !aboutPlace;
+  if (aboutARecord) return false;
+  return (aboutPlace && fakeWords) || thisIsFake;
+}
 
 export function detectJeevesEasterEgg(question) {
   const q = String(question || "").trim();
@@ -66,6 +106,57 @@ export function detectJeevesEasterEgg(question) {
       image_alt: "Ask Jeeves evil twin — cartoon butler with devil horns and red trident",
     };
   }
+
+  // Marion Zioncheck death
+  if (
+    /\bzioncheck\b/.test(n) &&
+    /\b(die|died|death|dying|killed|killing|murder|assassinate|assassination|suicide|fell|fallen|window|removed|remove|happened to)\b/.test(n)
+  ) {
+    return {
+      id: "zioncheck_lives",
+      answer: JEEVES_ZIONCHECK_LIVES,
+      image: null,
+    };
+  }
+
+  // Who is Aziel / why did Aziel make this
+  const whoAziel =
+    /\bwho\s+is\s+aziel(\s+eliab)?\b/.test(n) ||
+    /\bwho'?s\s+aziel(\s+eliab)?\b/.test(n) ||
+    /\btell\s+me\s+about\s+aziel(\s+eliab)?\b/.test(n);
+  const whyAzielMade =
+    /\bwhy\s+did\s+aziel(\s+eliab)?\s+(make|create|build|write|start|found|publish)\b/.test(n) ||
+    /\bwhy\s+aziel(\s+eliab)?\s+(made|created|built|wrote|started|founded|published)\b/.test(n) ||
+    /\bwhy\s+was\s+this\s+(library|site|software|corpus)\s+(made|created|built)\b/.test(n) ||
+    /\bwho\s+(made|created|built|wrote|founded)\s+(this\s+)?(library|site|software|corpus|aziel\s+digital)\b/.test(n);
+  if (whoAziel || whyAzielMade) {
+    return {
+      id: "aziel_symbol",
+      answer: JEEVES_AZIEL_SYMBOL,
+      image: JEEVES_BAT_SIGNAL_IMAGE,
+      image_alt: "stylized bat searchlight over a night city (Ask Jeeves easter egg)",
+    };
+  }
+
+  // Library/site/corpus hoax or not real
+  if (isLibraryHoax(n)) {
+    return {
+      id: "red_pill",
+      answer: JEEVES_RED_PILL,
+      image: null,
+    };
+  }
+
+  // Empirical mocked or attacked (not neutral "what is empirical knowledge")
+  if (isEmpiricalAttack(n)) {
+    return {
+      id: "empirical_holmes",
+      answer: JEEVES_EMPIRICAL_HOLMES,
+      image: JEEVES_HOLMES_IMAGE,
+      image_alt: "victorian detective silhouette (Ask Jeeves easter egg)",
+    };
+  }
+
   return null;
 }
 
