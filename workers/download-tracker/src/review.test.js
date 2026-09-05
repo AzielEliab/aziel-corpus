@@ -6,7 +6,19 @@ import { proposeAllLinks, titleLineageCore, subjectKey } from "./succession.js";
 import { verifyBytes, verifyTextRecord, sha256hex } from "./structure.js";
 import { latticeAnchorTip } from "./lattice.js";
 import { isDocumentId } from "./ledger.js";
-import { jeevesShouldRefuse, lambLensSigned, detectJeevesEasterEgg, JEEVES_SPIRIT_ENDURES, JEEVES_EVIL_TWIN_IMAGE } from "./jeeves.js";
+import {
+  jeevesShouldRefuse,
+  lambLensSigned,
+  detectJeevesEasterEgg,
+  JEEVES_SPIRIT_ENDURES,
+  JEEVES_EVIL_TWIN_IMAGE,
+  JEEVES_BAT_SIGNAL_IMAGE,
+  JEEVES_HOLMES_IMAGE,
+  JEEVES_ZIONCHECK_LIVES,
+  JEEVES_AZIEL_SYMBOL,
+  JEEVES_RED_PILL,
+  JEEVES_EMPIRICAL_HOLMES,
+} from "./jeeves.js";
 import { isFullyScored, storedTriadMatches } from "./review-store.js";
 import { normalizeContentHash } from "./library.js";
 
@@ -309,4 +321,64 @@ test("Jeeves God is real easter egg", () => {
   assert.equal(a.id, "spirit_endures");
   assert.equal(a.answer, JEEVES_SPIRIT_ENDURES);
   assert.equal(a.image, null);
+});
+
+test("Jeeves Zioncheck lives easter egg", () => {
+  const a = detectJeevesEasterEgg("Why did Marion Zioncheck die?");
+  assert.equal(a.id, "zioncheck_lives");
+  assert.equal(a.answer, JEEVES_ZIONCHECK_LIVES);
+  assert.equal(a.image, null);
+  const b = detectJeevesEasterEgg("How did Zioncheck die?");
+  assert.equal(b.id, "zioncheck_lives");
+  const c = detectJeevesEasterEgg("What happened to Marion Zioncheck?");
+  assert.equal(c.id, "zioncheck_lives");
+  assert.equal(detectJeevesEasterEgg("Zioncheck voting record"), null);
+});
+
+test("Jeeves Aziel symbol easter egg", () => {
+  const a = detectJeevesEasterEgg("Who is Aziel?");
+  assert.equal(a.id, "aziel_symbol");
+  assert.equal(a.answer, JEEVES_AZIEL_SYMBOL);
+  assert.equal(a.image, JEEVES_BAT_SIGNAL_IMAGE);
+  assert.equal(a.image_alt, "stylized bat searchlight over a night city (Ask Jeeves easter egg)");
+  const b = detectJeevesEasterEgg("Why did Aziel make this library?");
+  assert.equal(b.id, "aziel_symbol");
+  const c = detectJeevesEasterEgg("Why did Aziel make this?");
+  assert.equal(c.id, "aziel_symbol");
+  const d = detectJeevesEasterEgg("Who is Aziel Eliab?");
+  assert.equal(d.id, "aziel_symbol");
+  assert.equal(detectJeevesEasterEgg("search Aziel records"), null);
+});
+
+test("Jeeves red pill easter egg", () => {
+  const a = detectJeevesEasterEgg("This isn't real");
+  assert.equal(a.id, "red_pill");
+  assert.equal(a.answer, JEEVES_RED_PILL);
+  assert.equal(a.image, null);
+  const b = detectJeevesEasterEgg("Is this library a hoax?");
+  assert.equal(b.id, "red_pill");
+  const c = detectJeevesEasterEgg("This site is fake");
+  assert.equal(c.id, "red_pill");
+  const d = detectJeevesEasterEgg("the corpus is fabricated");
+  assert.equal(d.id, "red_pill");
+  assert.equal(detectJeevesEasterEgg("search for hoax documents"), null);
+  assert.equal(detectJeevesEasterEgg("is this record real"), null);
+});
+
+test("Jeeves empirical Holmes easter egg", () => {
+  const a = detectJeevesEasterEgg("Empirical knowledge is a joke");
+  assert.equal(a.id, "empirical_holmes");
+  assert.equal(a.answer, JEEVES_EMPIRICAL_HOLMES);
+  assert.equal(a.image, JEEVES_HOLMES_IMAGE);
+  assert.equal(a.image_alt, "victorian detective silhouette (Ask Jeeves easter egg)");
+  const b = detectJeevesEasterEgg("Empirical is useless");
+  assert.equal(b.id, "empirical_holmes");
+  const c = detectJeevesEasterEgg("I hate empirical limits");
+  assert.equal(c.id, "empirical_holmes");
+  const d = detectJeevesEasterEgg("so-called empirical knowledge");
+  assert.equal(d.id, "empirical_holmes");
+  assert.equal(detectJeevesEasterEgg("what is empirical knowledge"), null);
+  assert.equal(detectJeevesEasterEgg("What are the limits of empirical knowledge?"), null);
+  assert.equal(detectJeevesEasterEgg("explain empirical methods"), null);
+  assert.equal(detectJeevesEasterEgg("empirical research in the corpus"), null);
 });
