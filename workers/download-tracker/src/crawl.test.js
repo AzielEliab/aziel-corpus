@@ -29,7 +29,24 @@ test("robots.txt allows research surfaces and major AI bots", () => {
   }
   assert.match(txt, /Disallow: \/signup/);
   assert.match(txt, /Disallow: \/logout/);
+  assert.match(txt, /Disallow: \/api\//);
+  assert.match(txt, /Disallow: \/admin\//);
+  assert.match(txt, /Allow: \/v1\//);
+  assert.doesNotMatch(txt, /Disallow: \/v1/);
   assert.match(txt, /Sitemap: https:\/\/www\.azielcorpuslibrary\.net\/sitemap\.xml/);
+  for (const bot of [
+    "Claude-SearchBot",
+    "bingbot",
+    "Meta-ExternalAgent",
+    "CCBot",
+    "MistralAI-User",
+    "DuckDuckBot",
+    "Googlebot",
+    "OAI-SearchBot",
+    "xAI-SearchBot",
+  ]) {
+    assert.match(txt, new RegExp("User-agent: " + bot));
+  }
   for (const bot of AI_BOTS) {
     assert.match(txt, new RegExp("User-agent: " + bot));
   }
@@ -99,14 +116,34 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
 
   const ai = aiTxt("LIMIT");
   assertPublicIdentity(ai);
-  for (const bot of ["GPTBot", "Google-Extended", "ClaudeBot", "anthropic-ai", "PerplexityBot", "Bytespider"]) {
+  for (const bot of [
+    "GPTBot",
+    "Google-Extended",
+    "ClaudeBot",
+    "Claude-SearchBot",
+    "anthropic-ai",
+    "PerplexityBot",
+    "Bytespider",
+    "bingbot",
+    "Meta-ExternalAgent",
+    "CCBot",
+    "MistralAI-User",
+    "DuckDuckBot",
+    "OAI-SearchBot",
+    "xAI-SearchBot",
+  ]) {
     assert.match(ai, new RegExp("User-agent: " + bot));
   }
   assert.match(ai, /Allow: \/how-its-scored/);
   assert.match(ai, /Allow: \/AzielEliab/);
+  assert.match(ai, /Allow: \/v1\//);
   assert.match(ai, /https:\/\/www\.azielcorpuslibrary\.net\/AzielEliab/);
   assert.match(ai, /https:\/\/godlock\.uk\/AzielEliab/);
   assert.match(ai, /Disallow: \/signup/);
+  assert.match(ai, /Disallow: \/logout/);
+  assert.match(ai, /Disallow: \/api\//);
+  assert.match(ai, /Disallow: \/admin\//);
+  assert.doesNotMatch(ai, /Disallow: \/v1/);
 
   const humans = humansTxt();
   assertPublicIdentity(humans);
