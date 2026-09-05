@@ -30,6 +30,8 @@ export const JEEVES_BAT_SIGNAL_IMAGE = "/jeeves-bat-signal.png";
 export const JEEVES_HOLMES_IMAGE = "/jeeves-holmes.png";
 export const JEEVES_CLASSIC_BUTLER_IMAGE = "/jeeves-classic-butler.png";
 export const JEEVES_HELLMO_IMAGE = "/jeeves-hellmo.png";
+export const JEEVES_MATRIX_DOUBT_IMAGE = "/jeeves-matrix-doubt.gif";
+export const JEEVES_TRUST_NO_ONE_IMAGE = "/jeeves-trust-no-one-mask.png";
 export const JEEVES_SPIRIT_ENDURES = "Jeeves' Spirit Endures.";
 export const JEEVES_ZIONCHECK_LIVES = "Zioncheck Lives forever - Regardless of the Government that removed him";
 export const JEEVES_AZIEL_SYMBOL =
@@ -40,6 +42,8 @@ export const JEEVES_EMPIRICAL_HOLMES =
   "It is a capital mistake to theorize before one has data. Insensibly one begins to twist facts to suit theories, instead of theories to suit facts.";
 export const JEEVES_REAL_JEEVES = "Goodsir, I am at your service";
 export const JEEVES_FORGERECEIPTS_SNITCHES = "Snitches get stitches.";
+export const JEEVES_ZSOLVER_DOUBT = "Doubt can be a bond as powerful and sustaining as certainty.";
+export const JEEVES_ZSOLVER_TRUST_NO_ONE = "Trust no one.";
 
 const EMPIRICAL_ATTACK_RE =
   /\b(useless|worthless|garbage|trash|junk|joke|jokes|nonsense|crap|stupid|dumb|sucks?|overrated|pointless|meaningless|bogus|myth|liar?|fraud|hoax|fake|fails?|failed|failure|inferior|hate|hates|hating|mock|mocks|mocking|dismiss|dismisses|dismissive|reject|rejected|anti[- ]empirical|so-?called|bull)\b/;
@@ -104,6 +108,51 @@ function isForgeReceiptsInCourt(n) {
     /\b(use|using|used|bring|bringing|brought|take|taking|took)\b/.test(n) &&
     /\b(court|courtroom|judge|hearing|trial)\b/.test(n);
   return venue || showingJudge || filing || usingInCourt;
+}
+
+function mentionsZsolver(n) {
+  return /\b(zion\s*pattern(\s+solver)?|z[- ]?solver|zionpattern)\b/.test(n);
+}
+
+function mentionsZsolverCap(n) {
+  const solver = mentionsZsolver(n);
+  const pct75 = /\b75\s*%|\b75\s*percent\b|\bseventy[- ]five(\s+percent)?\b/.test(n);
+  const floor25 = /\b(25\s*%|25\s*percent|twenty[- ]five(\s+percent)?)\s+floor\b/.test(n);
+  const confidence = /\bconfidence\b/.test(n);
+  const cap = /\bcap\b/.test(n);
+  if (solver && (pct75 || floor25 || cap || confidence)) return true;
+  if (pct75 && (cap || confidence || floor25)) return true;
+  if (floor25) return true;
+  if (/\b(hard\s+cap|confidence\s+cap)\b/.test(n)) return true;
+  return false;
+}
+
+function isZsolverCapAttack(n) {
+  if (!mentionsZsolverCap(n)) return false;
+  if (isZsolverWantMoreThanCap(n)) return false;
+  const attack =
+    /\b(useless|worthless|garbage|trash|junk|joke|jokes|nonsense|crap|stupid|dumb|sucks?|overrated|pointless|meaningless|bogus|myth|liar?|fraud|hoax|fake|fails?|failed|failure|inferior|hate|hates|hating|mock|mocks|mocking|dismiss|dismisses|dismissive|reject|rejected|so-?called|bull|lame|pathetic|arbitrary|ridiculous|laughable)\b/.test(
+      n
+    );
+  return (
+    attack ||
+    /\b(too\s+low|too\s+strict|who\s+needs)\b/.test(n) ||
+    /\b(don't|dont|do not|never)\s+(trust|believe|accept|like)\s+(the\s+)?(75|cap|floor|confidence)\b/.test(n)
+  );
+}
+
+function isZsolverWantMoreThanCap(n) {
+  if (!mentionsZsolver(n) && !mentionsZsolverCap(n)) return false;
+  const hundred = /\b100\s*%|\b100\s*percent\b|\bone\s+hundred(\s+percent)?\b|\bfull\s+certainty\b|\buncapped\b/.test(n);
+  const moreThan75 =
+    /\b(more\s+than|over|above|higher\s+than)\s+(the\s+)?(75|cap|confidence)\b/.test(n) ||
+    /\bmore\s+than\s+75\b/.test(n);
+  const raiseCap = /\b(raise|increase|lift|remove|drop|uncap)\s+(the\s+)?(75\s*)?(confidence\s+)?cap\b/.test(n);
+  const whyNotHundred =
+    /\bwhy\s+(can'?t|cannot|won'?t|wont|not)\b/.test(n) && (hundred || moreThan75 || /\bmore\s+than\s+75\b/.test(n));
+  const whyOnly75 = /\bwhy\s+(only|just)\s+(75|the\s+cap)\b/.test(n);
+  const demand = /\b(want|need|give\s+me|let\s+me\s+have|should\s+be|must\s+be)\b/.test(n) && (hundred || moreThan75);
+  return whyNotHundred || whyOnly75 || demand || moreThan75 || raiseCap;
 }
 
 function isGodDenial(n) {
@@ -237,6 +286,24 @@ export function detectJeevesEasterEgg(question) {
       answer: JEEVES_EMPIRICAL_HOLMES,
       image: JEEVES_HOLMES_IMAGE,
       image_alt: "victorian detective silhouette (Ask Jeeves easter egg)",
+    };
+  }
+
+  // ZionPattern 75% cap: demand >75%/100% before mock/attack. Neutral "what does the cap mean" stays research.
+  if (isZsolverWantMoreThanCap(n)) {
+    return {
+      id: "zsolver_trust_no_one",
+      answer: JEEVES_ZSOLVER_TRUST_NO_ONE,
+      image: JEEVES_TRUST_NO_ONE_IMAGE,
+      image_alt: "theatrical mask easter egg (trust no one)",
+    };
+  }
+  if (isZsolverCapAttack(n)) {
+    return {
+      id: "zsolver_doubt",
+      answer: JEEVES_ZSOLVER_DOUBT,
+      image: JEEVES_MATRIX_DOUBT_IMAGE,
+      image_alt: "matrix-rain figure easter egg (doubt / certainty)",
     };
   }
 
