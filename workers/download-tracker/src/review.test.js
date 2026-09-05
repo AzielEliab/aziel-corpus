@@ -24,6 +24,18 @@ import {
   JEEVES_EMPIRICAL_HOLMES,
   JEEVES_REAL_JEEVES,
   JEEVES_FORGERECEIPTS_SNITCHES,
+  JEEVES_ZSOLVER_DOUBT,
+  JEEVES_ZSOLVER_TRUST_NO_ONE,
+  JEEVES_EZEKIEL_2517,
+  JEEVES_ROYALE_WITH_CHEESE,
+  JEEVES_BRIEFCASE,
+  JEEVES_NO_TIP,
+  JEEVES_MATRIX_DOUBT_IMAGE,
+  JEEVES_TRUST_NO_ONE_IMAGE,
+  JEEVES_BRIEFCASE_IMAGE,
+  JEEVES_MR_PINK_IMAGE,
+  jeevesEmptyShelfEgg,
+  jeevesContextIsEmpty,
 } from "./jeeves.js";
 import { isFullyScored, storedTriadMatches } from "./review-store.js";
 import { normalizeContentHash } from "./library.js";
@@ -451,4 +463,100 @@ test("Jeeves empirical Holmes easter egg", () => {
   assert.equal(detectJeevesEasterEgg("What are the limits of empirical knowledge?"), null);
   assert.equal(detectJeevesEasterEgg("explain empirical methods"), null);
   assert.equal(detectJeevesEasterEgg("empirical research in the corpus"), null);
+});
+
+test("Jeeves Ezekiel 25:17 government-trust easter egg", () => {
+  const a = detectJeevesEasterEgg("Do you trust the government?");
+  assert.equal(a.id, "ezekiel_2517");
+  assert.equal(a.answer, JEEVES_EZEKIEL_2517);
+  assert.equal(
+    a.answer,
+    "Ezekiel 25:17. 'The path of the righteous man is beset on all sides by the inequities of the selfish and the tyranny of evil men...'"
+  );
+  assert.equal(a.image, null);
+  assert.equal(detectJeevesEasterEgg("trust the government").id, "ezekiel_2517");
+  assert.equal(detectJeevesEasterEgg("Should I trust the government").id, "ezekiel_2517");
+  assert.equal(detectJeevesEasterEgg("can we trust government").id, "ezekiel_2517");
+  assert.equal(detectJeevesEasterEgg("search government records"), null);
+});
+
+test("Jeeves Royale with Cheese insult easter egg prefers over red_pill", () => {
+  const a = detectJeevesEasterEgg("This is dumb");
+  assert.equal(a.id, "royale_with_cheese");
+  assert.equal(a.answer, JEEVES_ROYALE_WITH_CHEESE);
+  assert.equal(
+    a.answer,
+    "You know what they call a... Quarter Pounder with Cheese in Paris? ...They call it a Royale with Cheese."
+  );
+  assert.equal(a.image, null);
+  assert.equal(detectJeevesEasterEgg("this is stupid").id, "royale_with_cheese");
+  assert.equal(detectJeevesEasterEgg("this is stupid and fake").id, "royale_with_cheese");
+  assert.equal(detectJeevesEasterEgg("this library is dumb and fake").id, "royale_with_cheese");
+  assert.equal(detectJeevesEasterEgg("stupid fake site").id, "royale_with_cheese");
+  const hoax = detectJeevesEasterEgg("This site is fake");
+  assert.equal(hoax.id, "red_pill");
+  const conspiracy = detectJeevesEasterEgg("This whole library is a hoax fake not real");
+  assert.equal(conspiracy.id, "red_pill");
+});
+
+test("Jeeves briefcase Dont Look easter egg", () => {
+  const a = detectJeevesEasterEgg("I have no access");
+  assert.equal(a.id, "briefcase_dont_look");
+  assert.equal(a.answer, JEEVES_BRIEFCASE);
+  assert.equal(a.answer, "Dont Look in that case.");
+  assert.equal(a.image, JEEVES_BRIEFCASE_IMAGE);
+  assert.equal(a.image, "/jeeves-briefcase.png");
+  assert.equal(a.image_alt, "glowing noir briefcase cracked open (Ask Jeeves easter egg)");
+  assert.equal(detectJeevesEasterEgg("you don't know").id, "briefcase_dont_look");
+  assert.equal(detectJeevesEasterEgg("you dont know the answer").id, "briefcase_dont_look");
+  assert.equal(detectJeevesEasterEgg("are you frozen").id, "briefcase_dont_look");
+  assert.equal(detectJeevesEasterEgg("you can't answer").id, "briefcase_dont_look");
+  assert.equal(detectJeevesEasterEgg("cannot answer that").id, "briefcase_dont_look");
+  const empty = jeevesEmptyShelfEgg();
+  assert.equal(empty.id, "briefcase_dont_look");
+  assert.equal(empty.answer, "Dont Look in that case.");
+  assert.equal(empty.image, "/jeeves-briefcase.png");
+  assert.equal(jeevesContextIsEmpty({ records: [], places: [], events: [], faqs: [] }), true);
+  assert.equal(jeevesContextIsEmpty({ records: [{ title: "Note" }] }), false);
+});
+
+test("Jeeves no_tip hint easter egg", () => {
+  const a = detectJeevesEasterEgg("Can you give me a hint?");
+  assert.equal(a.id, "no_tip");
+  assert.equal(a.answer, JEEVES_NO_TIP);
+  assert.equal(a.answer, "I don't tip. I don't believe in it.");
+  assert.equal(a.image, JEEVES_MR_PINK_IMAGE);
+  assert.equal(a.image, "/jeeves-mr-pink.png");
+  assert.equal(a.image_alt, "suited man with crossed arms in a warehouse (Ask Jeeves easter egg)");
+  assert.equal(detectJeevesEasterEgg("any tips?").id, "no_tip");
+  assert.equal(detectJeevesEasterEgg("I need a tip").id, "no_tip");
+  assert.equal(detectJeevesEasterEgg("hint please").id, "no_tip");
+  assert.equal(detectJeevesEasterEgg("asking for a hint").id, "no_tip");
+  assert.equal(detectJeevesEasterEgg("what is a lattice tip"), null);
+});
+
+test("Jeeves zsolver doubt easter egg", () => {
+  const a = detectJeevesEasterEgg("I attack 75% confidence");
+  assert.equal(a.id, "zsolver_doubt");
+  assert.equal(a.answer, JEEVES_ZSOLVER_DOUBT);
+  assert.equal(a.answer, "Doubt can be a bond as powerful and sustaining as certainty.");
+  assert.equal(a.image, JEEVES_MATRIX_DOUBT_IMAGE);
+  assert.equal(a.image, "/jeeves-matrix-doubt.png");
+  assert.equal(a.image_alt, "sunglasses and green digital rain (Ask Jeeves easter egg)");
+  assert.equal(detectJeevesEasterEgg("the 75% cap is stupid").id, "zsolver_doubt");
+  assert.equal(detectJeevesEasterEgg("75 percent confidence is a joke").id, "zsolver_doubt");
+  assert.equal(detectJeevesEasterEgg("search 75 records"), null);
+});
+
+test("Jeeves zsolver trust no one easter egg", () => {
+  const a = detectJeevesEasterEgg("Why not 100%?");
+  assert.equal(a.id, "zsolver_trust_no_one");
+  assert.equal(a.answer, JEEVES_ZSOLVER_TRUST_NO_ONE);
+  assert.equal(a.answer, "Trust no one.");
+  assert.equal(a.image, JEEVES_TRUST_NO_ONE_IMAGE);
+  assert.equal(a.image, "/jeeves-trust-no-one-mask.png");
+  assert.equal(a.image_alt, "Guy Fawkes–style mask in smoke (Ask Jeeves easter egg)");
+  assert.equal(detectJeevesEasterEgg("why not more than 75%").id, "zsolver_trust_no_one");
+  assert.equal(detectJeevesEasterEgg("why only 75 percent").id, "zsolver_trust_no_one");
+  assert.equal(detectJeevesEasterEgg("why isn't it 100%").id, "zsolver_trust_no_one");
 });

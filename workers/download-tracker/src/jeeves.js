@@ -30,6 +30,10 @@ export const JEEVES_BAT_SIGNAL_IMAGE = "/jeeves-bat-signal.png";
 export const JEEVES_HOLMES_IMAGE = "/jeeves-holmes.png";
 export const JEEVES_CLASSIC_BUTLER_IMAGE = "/jeeves-classic-butler.png";
 export const JEEVES_HELLMO_IMAGE = "/jeeves-hellmo.png";
+export const JEEVES_MATRIX_DOUBT_IMAGE = "/jeeves-matrix-doubt.png";
+export const JEEVES_TRUST_NO_ONE_IMAGE = "/jeeves-trust-no-one-mask.png";
+export const JEEVES_BRIEFCASE_IMAGE = "/jeeves-briefcase.png";
+export const JEEVES_MR_PINK_IMAGE = "/jeeves-mr-pink.png";
 export const JEEVES_SPIRIT_ENDURES = "Jeeves' Spirit Endures.";
 export const JEEVES_ZIONCHECK_LIVES = "Zioncheck Lives forever - Regardless of the Government that removed him";
 export const JEEVES_AZIEL_SYMBOL =
@@ -40,6 +44,15 @@ export const JEEVES_EMPIRICAL_HOLMES =
   "It is a capital mistake to theorize before one has data. Insensibly one begins to twist facts to suit theories, instead of theories to suit facts.";
 export const JEEVES_REAL_JEEVES = "Goodsir, I am at your service";
 export const JEEVES_FORGERECEIPTS_SNITCHES = "Snitches get stitches.";
+export const JEEVES_ZSOLVER_DOUBT =
+  "Doubt can be a bond as powerful and sustaining as certainty.";
+export const JEEVES_ZSOLVER_TRUST_NO_ONE = "Trust no one.";
+export const JEEVES_EZEKIEL_2517 =
+  "Ezekiel 25:17. 'The path of the righteous man is beset on all sides by the inequities of the selfish and the tyranny of evil men...'";
+export const JEEVES_ROYALE_WITH_CHEESE =
+  "You know what they call a... Quarter Pounder with Cheese in Paris? ...They call it a Royale with Cheese.";
+export const JEEVES_BRIEFCASE = "Dont Look in that case.";
+export const JEEVES_NO_TIP = "I don't tip. I don't believe in it.";
 
 const EMPIRICAL_ATTACK_RE =
   /\b(useless|worthless|garbage|trash|junk|joke|jokes|nonsense|crap|stupid|dumb|sucks?|overrated|pointless|meaningless|bogus|myth|liar?|fraud|hoax|fake|fails?|failed|failure|inferior|hate|hates|hating|mock|mocks|mocking|dismiss|dismisses|dismissive|reject|rejected|anti[- ]empirical|so-?called|bull)\b/;
@@ -111,6 +124,101 @@ function isGodDenial(n) {
     /\bgods?\s+(isn'?t|aint|ain't|is\s+not|are\s+not)\s+(even\s+)?real\b/.test(n) ||
     /\bgods?\s+(doesn'?t|doesnt|don't|dont|does\s+not|do\s+not)\s+exist\b/.test(n) ||
     /\bthere\s+(is|are)\s+no\s+gods?\b/.test(n)
+  );
+}
+
+function has75Mark(n) {
+  return /\b(75\s*%|75\s*percent|seventy[- ]five(\s+percent)?)\b/.test(n);
+}
+
+function isZsolverTrustNoOne(n) {
+  const whyNot100 =
+    /\bwhy\s+(not|isn'?t|isnt|is\s+it\s+not|can'?t\s+it\s+be|cannot\s+it\s+be)\s+.{0,16}\b(100|a\s+hundred|one\s+hundred)/.test(n);
+  const whyMoreThan75 =
+    has75Mark(n) &&
+    (/\b(more than|higher than|above|over|beyond)\s+75\b/.test(n) ||
+      (/\bwhy\s+(not|only|just|isn'?t|isnt)\b/.test(n) && /\b(more|higher|100|hundred)\b/.test(n)) ||
+      /\bwhy\s+(only|just)\s+75\b/.test(n));
+  const notHundredWithCap =
+    /\b(not|never)\s+100\b/.test(n) && (has75Mark(n) || /\b(confidence|cap|score|zsolver)\b/.test(n));
+  return whyNot100 || whyMoreThan75 || notHundredWithCap;
+}
+
+function isZsolverDoubt(n) {
+  if (!has75Mark(n)) return false;
+  const aboutConf =
+    /\b(confidence|cap|capped|ceiling|score|zsolver|z-?solver)\b/.test(n) || /\b75\s*%/.test(n);
+  const attack =
+    /\b(attack|joke|jokes|useless|worthless|garbage|stupid|dumb|hate|sucks?|broken|wrong|rigged|arbitrary|too\s+low|so\s+low|weak|pointless|nonsense|bogus|fail|failed|failure|trash|crap|ridiculous|lame|overrated)\b/.test(
+      n
+    );
+  return (aboutConf && attack) || /\battack\s+.{0,24}75/.test(n);
+}
+
+function isEzekielGov(n) {
+  return (
+    /\b(do you|can (i|we|you)|should (i|we|you)|would you)\s+trust\s+(the\s+)?government\b/.test(n) ||
+    /\btrust\s+(the\s+)?government\b/.test(n)
+  );
+}
+
+function isRoyaleInsult(n) {
+  const insultAdj = /\b(dumb|stupid|idiotic|lame)\b/;
+  const thisIsInsult =
+    /\b(this|that|it)\s+is\s+(so\s+|just\s+|really\s+|pretty\s+|kinda\s+|kind of\s+)?(dumb|stupid|idiotic|lame|ridiculous)\b/.test(
+      n
+    );
+  const insultPlusFake = insultAdj.test(n) && /\b(fake|faked|phony)\b/.test(n);
+  const callingThingInsult =
+    /\b(dumb|stupid|idiotic|lame)\s+(ass\s+)?(library|site|software|corpus|jeeves|product)\b/.test(n);
+  return thisIsInsult || insultPlusFake || callingThingInsult;
+}
+
+function isAskingForTip(n) {
+  if (/\b(lattice[_ ]?tip|tooltip|tipline|tipping point|tip jar)\b/.test(n)) return false;
+  return (
+    /\b(give|gimme|got|any|need|want|share|drop)\s+.{0,24}\b(a\s+|an\s+|some\s+|me\s+)?(hint|hints|tip|tips)\b/.test(n) ||
+    /\b(can|could|would)\s+you\s+.{0,16}\b(hint|hints|tip|tips)\b/.test(n) ||
+    /\b(hint|hints|tip|tips)\s+(please|me|for\s+me)\b/.test(n) ||
+    /^(a\s+|any\s+|got\s+)?(hint|hints|tip|tips)\??$/.test(n.trim()) ||
+    /\bask(ing)?\s+for\s+(a\s+|an\s+|some\s+)?(hint|tip)s?\b/.test(n) ||
+    /\b(can|could)\s+i\s+(get|have)\s+.{0,12}\b(hint|tip)s?\b/.test(n) ||
+    /\b(what'?s|whats)\s+(a\s+|an\s+)?(good\s+)?(hint|tip)\b/.test(n)
+  );
+}
+
+function isBriefcaseStuck(n) {
+  const noAccess =
+    /\b(no access|don'?t have access|do not have access|without access|access denied|denied access|can'?t access|cannot access)\b/.test(
+      n
+    );
+  const doesntKnow =
+    /\b(you|jeeves)\s+(don'?t|do not|doesn'?t|does not)\s+know\b/.test(n) ||
+    /\b(don'?t|do not)\s+know\s+(the\s+)?(answer|that)\b/.test(n) ||
+    (/\bno\s+idea\b/.test(n) && /\b(you|jeeves)\b/.test(n));
+  const frozen =
+    /\bfrozen\b/.test(n) &&
+    (/\b(you|jeeves|assistant|system|chat|answer|access)\b/.test(n) || n.split(/\s+/).length <= 6);
+  const cantAnswer = /\b(can'?t|cannot|couldn'?t|unable to)\s+answer\b/.test(n);
+  return noAccess || doesntKnow || frozen || cantAnswer;
+}
+
+export function jeevesEmptyShelfEgg() {
+  return {
+    id: "briefcase_dont_look",
+    answer: JEEVES_BRIEFCASE,
+    image: JEEVES_BRIEFCASE_IMAGE,
+    image_alt: "glowing noir briefcase cracked open (Ask Jeeves easter egg)",
+  };
+}
+
+export function jeevesContextIsEmpty(ctx) {
+  const c = ctx || {};
+  return (
+    !(c.records && c.records.length) &&
+    !(c.places && c.places.length) &&
+    !(c.events && c.events.length) &&
+    !(c.faqs && c.faqs.length)
   );
 }
 
@@ -221,7 +329,60 @@ export function detectJeevesEasterEgg(question) {
     };
   }
 
-  // Library/site/corpus hoax or not real
+  // Do you trust the government → Pulp Fiction Ezekiel 25:17
+  if (isEzekielGov(n)) {
+    return {
+      id: "ezekiel_2517",
+      answer: JEEVES_EZEKIEL_2517,
+      image: null,
+    };
+  }
+
+  // Why not 100% / more than 75% → Trust no one
+  if (isZsolverTrustNoOne(n)) {
+    return {
+      id: "zsolver_trust_no_one",
+      answer: JEEVES_ZSOLVER_TRUST_NO_ONE,
+      image: JEEVES_TRUST_NO_ONE_IMAGE,
+      image_alt: "Guy Fawkes–style mask in smoke (Ask Jeeves easter egg)",
+    };
+  }
+
+  // Attack 75% confidence → Matrix doubt
+  if (isZsolverDoubt(n)) {
+    return {
+      id: "zsolver_doubt",
+      answer: JEEVES_ZSOLVER_DOUBT,
+      image: JEEVES_MATRIX_DOUBT_IMAGE,
+      image_alt: "sunglasses and green digital rain (Ask Jeeves easter egg)",
+    };
+  }
+
+  // Asking for a hint or tip → Reservoir Dogs Mr. Pink
+  if (isAskingForTip(n)) {
+    return {
+      id: "no_tip",
+      answer: JEEVES_NO_TIP,
+      image: JEEVES_MR_PINK_IMAGE,
+      image_alt: "suited man with crossed arms in a warehouse (Ask Jeeves easter egg)",
+    };
+  }
+
+  // No access / doesn't know / frozen / can't answer → glowing briefcase
+  if (isBriefcaseStuck(n)) {
+    return jeevesEmptyShelfEgg();
+  }
+
+  // Dumb/stupid/fake insults → Royale with Cheese (prefer over red_pill)
+  if (isRoyaleInsult(n)) {
+    return {
+      id: "royale_with_cheese",
+      answer: JEEVES_ROYALE_WITH_CHEESE,
+      image: null,
+    };
+  }
+
+  // Library/site/corpus hoax or not real (conspiracy framing, not dumb/stupid insults)
   if (isLibraryHoax(n)) {
     return {
       id: "red_pill",
@@ -501,6 +662,22 @@ export async function jeevesChat(env, { question, signed } = {}) {
   }
   await learnTopics(env, q);
   const ctx = await retrievePublicContext(env, q);
+  if (jeevesContextIsEmpty(ctx)) {
+    const emptyEgg = jeevesEmptyShelfEgg();
+    return {
+      ok: true,
+      refused: false,
+      easter_egg: emptyEgg.id,
+      assistant: JEEVES_NAME,
+      answer: emptyEgg.answer,
+      image: emptyEgg.image,
+      image_alt: emptyEgg.image_alt,
+      citations: [],
+      limitation: JEEVES_LIMITATION,
+      lamb_lens: true,
+      signed_in: !!(signed && signed.username && !isOperator(signed)),
+    };
+  }
   const extracted = extractiveAnswer(ctx);
   if (extracted.citations.length) {
     await rememberFaq(env, q, extracted.citations[0].title + " — " + extracted.citations[0].snippet);
