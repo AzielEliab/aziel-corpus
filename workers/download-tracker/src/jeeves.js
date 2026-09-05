@@ -72,6 +72,12 @@ export const JEEVES_THAT_BINGO = "thats a bingo!";
 export const JEEVES_AZIEL_MASTERPIECE = "I think this just might be my masterpiece";
 export const JEEVES_TUPAC_NOBODY =
   "If the police say nobody shot him, I believe nobody shot him. And if nobody shot him, that's the same nobody that shot Tupac. And if nobody shot Tupac, it's the same nobody that shot MLK. And if nobody shot him, that's the same person that shot Malcolm X too. It's a lot of nobodies out there, and nobody minds if nobody comes up missing.";
+export const JEEVES_RICKY_BOBBY_HANDS_IMAGE = "/jeeves-ricky-bobby-hands.png";
+export const JEEVES_CHEWBACCA_MASKS_IMAGE = "/jeeves-chewbacca-masks.png";
+export const JEEVES_FUCK_SHIT_UP_IMAGE = "/jeeves-step-brothers-suits.png";
+export const JEEVES_RICKY_BOBBY_HANDS = "im not sure what to do with my hands";
+export const JEEVES_CHEWBACCA_MASKS = "chewbacca masks!";
+export const JEEVES_FUCK_SHIT_UP = "were here to fuck shit up";
 const KONAMI_SEQ = ["up", "up", "down", "down", "left", "right", "left", "right", "b", "a"];
 
 const EMPIRICAL_ATTACK_RE =
@@ -285,6 +291,45 @@ function isSitePurpose(n) {
 function isTupacNobody(n) {
   if (!/\b(2pac|tupac|tu-?pac)(\s+amaru)?(\s+shakur)?\b/.test(n)) return false;
   return /\b(who\s+)?(killed|killing|kill|shot|murdered|murder|assassinated|assassination|died|death)\b/.test(n);
+}
+
+function isRickyBobbyHands(n) {
+  if (!/\baziel(\s+eliab)?\b/.test(n)) return false;
+  const lotsOfTime =
+    /\b(this|that|so)\s+much(\s+free)?\s+time\b/.test(n) ||
+    /\bfree\s+time\b/.test(n) ||
+    /\benough\s+time\b/.test(n);
+  const findTime =
+    /\b(find|found|gets?|got|have|has|had)\s+(the\s+)?(time|free time)\b/.test(n) ||
+    /\bwhere\s+(do|does|did|can)\s+aziel(\s+eliab)?\s+(find|get|have)\s+(the\s+)?time\b/.test(n);
+  const howTime = /\bhow\s+(do|does|did)\s+aziel(\s+eliab)?\b/.test(n) && /\btime\b/.test(n);
+  const sleep =
+    /\bsleep/.test(n) && /\b(when|how|where|does|did|do)\b/.test(n);
+  return lotsOfTime || findTime || howTime || sleep;
+}
+
+function isChewbaccaMasks(n) {
+  return (
+    /\bshow(\s+me)?\s+(your|the)\s+face\b/.test(n) ||
+    /\bwhat\s+do\s+you\s+look\s+like\b/.test(n) ||
+    /\bwhat\s+does\s+(jeeves|ask\s+jeeves)\s+look\s+like\b/.test(n) ||
+    /\btake\s+off\s+(the|your)\s+mask\b/.test(n) ||
+    /\breveal\s+(your|the)\s+face\b/.test(n) ||
+    /\b(see|show)\s+(your|jeeves'?s?)\s+face\b/.test(n)
+  );
+}
+
+function isFuckShitUp(n) {
+  const duo =
+    /\baziel(\s+eliab)?\s+and\s+jeeve[s]?\b/.test(n) ||
+    /\bjeeve[s]?\s+and\s+aziel(\s+eliab)?\b/.test(n);
+  if (!duo) return false;
+  return (
+    /\bwhat\s+do\b/.test(n) ||
+    /\bwhat\s+are\b/.test(n) ||
+    /\bhere\s+for\b/.test(n) ||
+    /\bwhat\s+.+?\bdo\b/.test(n)
+  );
 }
 
 function isAskingForTip(n) {
@@ -648,6 +693,16 @@ export function detectJeevesEasterEgg(question, extra) {
     };
   }
 
+  // How does Aziel have this much time / when does Aziel sleep
+  if (isRickyBobbyHands(n)) {
+    return {
+      id: "ricky_bobby_hands",
+      answer: JEEVES_RICKY_BOBBY_HANDS,
+      image: JEEVES_RICKY_BOBBY_HANDS_IMAGE,
+      image_alt: "NASCAR interview hands awkward easter egg",
+    };
+  }
+
   // Who is Aziel / who made this library
   const whoAziel =
     /\bwho\s+is\s+aziel(\s+eliab)?\b/.test(n) ||
@@ -710,6 +765,26 @@ export function detectJeevesEasterEgg(question, extra) {
       answer: JEEVES_TUPAC_NOBODY,
       image: JEEVES_TUPAC_NOBODY_IMAGE,
       image_alt: "comedian mid-rant talk-show stage easter egg",
+    };
+  }
+
+  // Show your face / take off the mask (aimed at Jeeves)
+  if (isChewbaccaMasks(n)) {
+    return {
+      id: "chewbacca_masks",
+      answer: JEEVES_CHEWBACCA_MASKS,
+      image: JEEVES_CHEWBACCA_MASKS_IMAGE,
+      image_alt: "two men in shaggy fur costumes with toy swords easter egg",
+    };
+  }
+
+  // What do Aziel and Jeeves/Jeeve do — before site-purpose and before django profanity
+  if (isFuckShitUp(n)) {
+    return {
+      id: "fuck_shit_up",
+      answer: JEEVES_FUCK_SHIT_UP,
+      image: JEEVES_FUCK_SHIT_UP_IMAGE,
+      image_alt: "two brothers in suits suburban driveway easter egg",
     };
   }
 

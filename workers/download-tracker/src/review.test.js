@@ -51,6 +51,12 @@ import {
   JEEVES_AZIEL_MASTERPIECE,
   JEEVES_TUPAC_NOBODY,
   JEEVES_TUPAC_NOBODY_IMAGE,
+  JEEVES_RICKY_BOBBY_HANDS,
+  JEEVES_RICKY_BOBBY_HANDS_IMAGE,
+  JEEVES_CHEWBACCA_MASKS,
+  JEEVES_CHEWBACCA_MASKS_IMAGE,
+  JEEVES_FUCK_SHIT_UP,
+  JEEVES_FUCK_SHIT_UP_IMAGE,
   isKonamiCode,
   startJeevesSnakeGame,
   parseJeevesSnakeMove,
@@ -787,4 +793,50 @@ test("Jeeves tupac_nobody easter egg", () => {
   assert.equal(detectJeevesEasterEgg("you can't answer").id, "briefcase_dont_look");
   assert.equal(detectJeevesEasterEgg("why not more than 75%").id, "zsolver_trust_no_one");
 });
+
+test("Jeeves ricky_bobby_hands easter egg", () => {
+  const a = detectJeevesEasterEgg("how does Aziel have this much time");
+  assert.equal(a.id, "ricky_bobby_hands");
+  assert.equal(a.answer, JEEVES_RICKY_BOBBY_HANDS);
+  assert.equal(a.answer, "im not sure what to do with my hands");
+  assert.equal(a.image, JEEVES_RICKY_BOBBY_HANDS_IMAGE);
+  assert.equal(a.image, "/jeeves-ricky-bobby-hands.png");
+  assert.equal(a.image_alt, "NASCAR interview hands awkward easter egg");
+  assert.equal(detectJeevesEasterEgg("how did Aziel have so much time").id, "ricky_bobby_hands");
+  assert.equal(detectJeevesEasterEgg("where does Aziel find the time").id, "ricky_bobby_hands");
+  assert.equal(detectJeevesEasterEgg("when does Aziel sleep").id, "ricky_bobby_hands");
+  assert.equal(detectJeevesEasterEgg("how does Aziel have so much free time").id, "ricky_bobby_hands");
+  assert.equal(detectJeevesEasterEgg("Why did Aziel make this?").id, "aziel_masterpiece");
+});
+
+test("Jeeves chewbacca_masks easter egg", () => {
+  const a = detectJeevesEasterEgg("show your face");
+  assert.equal(a.id, "chewbacca_masks");
+  assert.equal(a.answer, JEEVES_CHEWBACCA_MASKS);
+  assert.equal(a.answer, "chewbacca masks!");
+  assert.equal(a.image, JEEVES_CHEWBACCA_MASKS_IMAGE);
+  assert.equal(a.image, "/jeeves-chewbacca-masks.png");
+  assert.equal(a.image_alt, "two men in shaggy fur costumes with toy swords easter egg");
+  assert.equal(detectJeevesEasterEgg("show me your face").id, "chewbacca_masks");
+  assert.equal(detectJeevesEasterEgg("what do you look like").id, "chewbacca_masks");
+  assert.equal(detectJeevesEasterEgg("take off the mask").id, "chewbacca_masks");
+  assert.equal(detectJeevesEasterEgg("reveal your face").id, "chewbacca_masks");
+  assert.equal(detectJeevesEasterEgg("what does Jeeves look like").id, "chewbacca_masks");
+});
+
+test("Jeeves fuck_shit_up beats django and is not site purpose", () => {
+  const a = detectJeevesEasterEgg("what do Aziel and Jeeves do");
+  assert.equal(a.id, "fuck_shit_up");
+  assert.equal(a.answer, JEEVES_FUCK_SHIT_UP);
+  assert.equal(a.answer, "were here to fuck shit up");
+  assert.equal(a.image, JEEVES_FUCK_SHIT_UP_IMAGE);
+  assert.equal(a.image, "/jeeves-step-brothers-suits.png");
+  assert.equal(a.image_alt, "two brothers in suits suburban driveway easter egg");
+  assert.equal(detectJeevesEasterEgg("what do aziel and jeeve do").id, "fuck_shit_up");
+  assert.equal(detectJeevesEasterEgg("what are aziel and jeeves here for").id, "fuck_shit_up");
+  assert.equal(detectJeevesEasterEgg("what do aziel and jeeves do to fuck shit up").id, "fuck_shit_up");
+  assert.equal(detectJeevesEasterEgg("what is this site for").id, "inglourious_site_purpose");
+  assert.equal(detectJeevesEasterEgg("fuck you Jeeves").id, "django_curiosity");
+});
+
 
