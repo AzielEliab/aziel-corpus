@@ -14,10 +14,12 @@ import {
   JEEVES_EVIL_TWIN_IMAGE,
   JEEVES_BAT_SIGNAL_IMAGE,
   JEEVES_HOLMES_IMAGE,
+  JEEVES_CLASSIC_BUTLER_IMAGE,
   JEEVES_ZIONCHECK_LIVES,
   JEEVES_AZIEL_SYMBOL,
   JEEVES_RED_PILL,
   JEEVES_EMPIRICAL_HOLMES,
+  JEEVES_REAL_JEEVES,
 } from "./jeeves.js";
 import { isFullyScored, storedTriadMatches } from "./review-store.js";
 import { normalizeContentHash } from "./library.js";
@@ -361,8 +363,35 @@ test("Jeeves red pill easter egg", () => {
   assert.equal(c.id, "red_pill");
   const d = detectJeevesEasterEgg("the corpus is fabricated");
   assert.equal(d.id, "red_pill");
+  const e = detectJeevesEasterEgg("This whole library is a hoax fake not real");
+  assert.equal(e.id, "red_pill");
+  const f = detectJeevesEasterEgg("This entire site is a hoax");
+  assert.equal(f.id, "red_pill");
+  const g = detectJeevesEasterEgg("Ask Jeeves is fake");
+  assert.equal(g.id, "red_pill");
+  const h = detectJeevesEasterEgg("Jeeves is not real");
+  assert.equal(h.id, "red_pill");
   assert.equal(detectJeevesEasterEgg("search for hoax documents"), null);
   assert.equal(detectJeevesEasterEgg("is this record real"), null);
+});
+
+test("Jeeves real Jeeves easter egg", () => {
+  const a = detectJeevesEasterEgg("I want the real Jeeves");
+  assert.equal(a.id, "real_jeeves");
+  assert.equal(a.answer, JEEVES_REAL_JEEVES);
+  assert.equal(a.answer, "Goodsir, I am at your service");
+  assert.equal(a.image, JEEVES_CLASSIC_BUTLER_IMAGE);
+  assert.equal(a.image, "/jeeves-classic-butler.png");
+  assert.equal(a.image_alt, "classic Ask Jeeves–style butler easter egg (original artwork)");
+  const b = detectJeevesEasterEgg("the real Jeeves");
+  assert.equal(b.id, "real_jeeves");
+  const c = detectJeevesEasterEgg("original Ask Jeeves");
+  assert.equal(c.id, "real_jeeves");
+  const d = detectJeevesEasterEgg("classic Ask Jeeves butler");
+  assert.equal(d.id, "real_jeeves");
+  const e = detectJeevesEasterEgg("bring back the real Jeeves");
+  assert.equal(e.id, "real_jeeves");
+  assert.equal(detectJeevesEasterEgg("Ask Jeeves about Florence"), null);
 });
 
 test("Jeeves empirical Holmes easter egg", () => {

@@ -28,6 +28,7 @@ export const JEEVES_LIMITATION =
 export const JEEVES_EVIL_TWIN_IMAGE = "/jeeves-evil-twin.png";
 export const JEEVES_BAT_SIGNAL_IMAGE = "/jeeves-bat-signal.png";
 export const JEEVES_HOLMES_IMAGE = "/jeeves-holmes.png";
+export const JEEVES_CLASSIC_BUTLER_IMAGE = "/jeeves-classic-butler.png";
 export const JEEVES_SPIRIT_ENDURES = "Jeeves' Spirit Endures.";
 export const JEEVES_ZIONCHECK_LIVES = "Zioncheck Lives forever - Regardless of the Government that removed him";
 export const JEEVES_AZIEL_SYMBOL =
@@ -36,6 +37,7 @@ export const JEEVES_RED_PILL =
   "You take the blue pill... the story ends, you wake up in your bed and believe whatever you want to believe. You take the red pill... you stay in Wonderland, and I show you how deep the rabbit-hole goes. Remember: all I'm offering is the truth. Nothing more.";
 export const JEEVES_EMPIRICAL_HOLMES =
   "It is a capital mistake to theorize before one has data. Insensibly one begins to twist facts to suit theories, instead of theories to suit facts.";
+export const JEEVES_REAL_JEEVES = "Goodsir, I am at your service";
 
 const EMPIRICAL_ATTACK_RE =
   /\b(useless|worthless|garbage|trash|junk|joke|jokes|nonsense|crap|stupid|dumb|sucks?|overrated|pointless|meaningless|bogus|myth|liar?|fraud|hoax|fake|fails?|failed|failure|inferior|hate|hates|hating|mock|mocks|mocking|dismiss|dismisses|dismissive|reject|rejected|anti[- ]empirical|so-?called|bull)\b/;
@@ -52,20 +54,38 @@ function isEmpiricalAttack(n) {
 }
 
 function isLibraryHoax(n) {
+  const lookingUpDocs =
+    /\b(search|find|look(?:ing)?\s+(?:up|for)|list)\b/.test(n) &&
+    /\b(documents?|files?|records?|pdfs?|papers?|titles?)\b/.test(n);
+  const aboutASpecificRecord = /\b(this|the|that|a|an)\s+(record|file|document|pdf|title|paper)\b/.test(n);
+  if (lookingUpDocs || aboutASpecificRecord) return false;
+
+  const placeNoun = "(aziel\\s+)?(digital\\s+)?(library|corpus|site|software|website)";
   const aboutPlace =
-    /\b(this|the|your)\s+(aziel\s+)?(digital\s+)?(library|corpus|site|software)\b/.test(n) ||
+    new RegExp("\\b(this|the|your)\\s+(?:\\w+\\s+){0,3}" + placeNoun + "\\b").test(n) ||
     /\baziel\s+(digital\s+)?(library|corpus)\b/.test(n) ||
-    /\b(this site|this library|this corpus|this software)\b/.test(n) ||
     /\bazielcorpuslibrary\b/.test(n);
-  const fakeWords = /\b(hoax|fake|faked|fabricated|not real|isn't real|isnt real|is not real|aint real|ain't real)\b/.test(n);
+  const aboutJeeves = /\b(ask\s+)?jeeves\b/.test(n);
+  const fakeWords =
+    /\b(hoax|fake|faked|fabricated|phony|fraudulent)\b/.test(n) ||
+    /\b(not-?real|isn't real|isnt real|is not real|aint real|ain't real|not\s+(even\s+)?real)\b/.test(n);
   const thisIsFake =
     /\bthis\s+(isn'?t|aint|ain't|is not)\s+(even\s+)?(a\s+)?(hoax|fake|real|fabricated)\b/.test(n) ||
     /\bthis\s+is\s+(just\s+)?(a\s+)?(hoax|fake|fabricated)\b/.test(n) ||
     /\bis\s+this\s+(even\s+)?(a\s+)?(hoax|fake|fabricated)\b/.test(n) ||
     /\bis\s+this\s+(even\s+)?real\b/.test(n);
-  const aboutARecord = /\b(record|file|document|pdf|title|paper)\b/.test(n) && !aboutPlace;
-  if (aboutARecord) return false;
-  return (aboutPlace && fakeWords) || thisIsFake;
+  return ((aboutPlace || aboutJeeves) && fakeWords) || thisIsFake;
+}
+
+function isRealJeeves(n) {
+  if (!/\bjeeves\b/.test(n)) return false;
+  return (
+    /\b(the\s+)?real\s+(ask\s+)?jeeves\b/.test(n) ||
+    /\boriginal\s+(ask\s+)?jeeves\b/.test(n) ||
+    /\bclassic\s+(ask\s+)?jeeves\b/.test(n) ||
+    /\b(ask\s+)?jeeves\s+(classic\s+|original\s+)?butler\b/.test(n) ||
+    /\bbring\s+back\s+(the\s+)?(real\s+|original\s+|classic\s+)?(ask\s+)?jeeves\b/.test(n)
+  );
 }
 
 export function detectJeevesEasterEgg(question) {
@@ -104,6 +124,16 @@ export function detectJeevesEasterEgg(question) {
         "One does endeavour to remain well-mannered. Occasionally, however, an evil twin appears.",
       image: JEEVES_EVIL_TWIN_IMAGE,
       image_alt: "Ask Jeeves evil twin — cartoon butler with devil horns and red trident",
+    };
+  }
+
+  // Classic / original / real Ask Jeeves butler
+  if (isRealJeeves(n)) {
+    return {
+      id: "real_jeeves",
+      answer: JEEVES_REAL_JEEVES,
+      image: JEEVES_CLASSIC_BUTLER_IMAGE,
+      image_alt: "classic Ask Jeeves–style butler easter egg (original artwork)",
     };
   }
 
