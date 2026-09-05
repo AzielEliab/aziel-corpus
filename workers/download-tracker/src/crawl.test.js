@@ -24,7 +24,7 @@ function assertPublicIdentity(text) {
 test("robots.txt allows research surfaces and major AI bots", () => {
   const txt = robotsTxt();
   assertPublicIdentity(txt);
-  for (const path of ["/ai.txt", "/how-its-scored", "/humans.txt", "/software", "/runtime", "/about"]) {
+  for (const path of ["/ai.txt", "/how-its-scored", "/humans.txt", "/software", "/runtime", "/AzielEliab"]) {
     assert.match(txt, new RegExp("Allow: " + path.replace("/", "\\/")));
   }
   assert.match(txt, /Disallow: \/signup/);
@@ -55,9 +55,10 @@ test("sitemap.xml lists key routes and uses XML mime helper", async () => {
   };
   const xml = await sitemapXml(env);
   assert.match(xml, /<\?xml version="1.0"/);
-  for (const path of ["/", "/about", "/software", "/runtime", "/how-its-scored", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/intelligence", "/aziel-library", "/corpus", "/cite.json", "/llms.txt", "/ai.txt"]) {
+  for (const path of ["/", "/AzielEliab", "/software", "/runtime", "/how-its-scored", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/intelligence", "/aziel-library", "/corpus", "/cite.json", "/llms.txt", "/ai.txt"]) {
     assert.match(xml, new RegExp("<loc>https://www\\.azielcorpuslibrary\\.net" + path.replace("/", "\\/") + "</loc>"));
   }
+  assert.doesNotMatch(xml, /azielcorpuslibrary\.net\/about</);
   assert.match(xml, /\/record\/AZDOC-AZIEL1/);
   assert.match(xml, /<lastmod>2026-08-01<\/lastmod>/);
   assert.match(xml, /<lastmod>2026-07-01<\/lastmod>/);
@@ -76,6 +77,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(cite.github, /AzielEliab\/aziel-corpus/);
   assert.match(cite.software, /\/software$/);
   assert.match(cite.how_its_scored, /\/how-its-scored$/);
+  assert.match(cite.about, /\/AzielEliab$/);
   assert.match(cite.ai, /\/ai\.txt$/);
   assert.match(cite.zsolver, /intentional suppression confidence/);
   assert.doesNotMatch(JSON.stringify(cite), BANNED);
@@ -83,6 +85,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   const llms = llmsDoc("LIMIT");
   assertPublicIdentity(llms);
   assert.match(llms, /Software hub: https:\/\/www\.azielcorpuslibrary\.net\/software/);
+  assert.match(llms, /https:\/\/www\.azielcorpuslibrary\.net\/AzielEliab/);
   assert.match(llms, /Runtime catalog: https:\/\/www\.azielcorpuslibrary\.net\/runtime/);
   assert.match(llms, /How it's scored/);
   assert.match(llms, /\/ai\.txt/);
@@ -94,6 +97,8 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
     assert.match(ai, new RegExp("User-agent: " + bot));
   }
   assert.match(ai, /Allow: \/how-its-scored/);
+  assert.match(ai, /Allow: \/AzielEliab/);
+  assert.match(ai, /https:\/\/www\.azielcorpuslibrary\.net\/AzielEliab/);
   assert.match(ai, /Disallow: \/signup/);
 
   const humans = humansTxt();

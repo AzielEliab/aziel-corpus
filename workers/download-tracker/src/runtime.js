@@ -38,7 +38,7 @@ Always send \`User-Agent: Mozilla/5.0\`.
 ## Call these URLs
 
 - Library: ${HOST}/
-- About: ${HOST}/about
+- Aziel Eliab: ${HOST}/AzielEliab
 - Software hub: ${HOST}/software
 - How it's scored: ${HOST}/how-its-scored
 - Fallback Worker: ${FALLBACK_HOST}/
@@ -150,6 +150,7 @@ function openapi() {
       "/v1/docs/{hash}/download": { get: { summary: "Download the stored file for a kept record whose content_sha256 matches. Does not increment downloads. Duplicates are not deleted.", operationId: "downloadByHash", parameters: [{ name: "hash", in: "path", required: true, schema: { type: "string" } }] } },
       "/v1/runtime": { get: { summary: "Digital Library package discovery (NOT aziel-runtime engine manifest). Use /v1/runtime.json for engine-runtime 1.4.0.", operationId: "runtime" } },
       "/v1/runtime.json": { get: { summary: "aziel-runtime 1.4.0 engine-runtime manifest (proxied). Distinct from /v1/runtime library package discovery.", operationId: "runtimeRoot" } },
+      "/AzielEliab": { get: { summary: "Aziel Eliab — author profile page (HTML). Legacy /about and /aboutme permanently redirect here.", operationId: "azielEliab" } },
       "/runtime": { get: { summary: "aziel-runtime 1.3.0 engine-runtime page. Prefer /runtime/*. In-process engines + engine_digest. Proxy is not exec.", operationId: "runtimePage" } },
       "/runtime/v1/health": { get: { summary: "aziel-runtime 1.3.0 health via same-origin proxy.", operationId: "runtimeProxyHealth" } },
       "/runtime/v1/runtime.json": { get: { summary: "aziel-runtime 1.4.0 engine-runtime manifest via same-origin proxy.", operationId: "runtimeProxyManifest" } },

@@ -21,7 +21,7 @@ const NAV = [
   [">Historical<", "/historical"],
   [">Gazetteer<", "/gazetteer"],
   [">Intelligence<", "/intelligence"],
-  [">About Aziel<", "/about"],
+  [">Aziel Eliab<", "/AzielEliab"],
 ];
 
 function chrome(body, extra) {
