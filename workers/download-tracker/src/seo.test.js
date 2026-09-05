@@ -57,7 +57,9 @@ test("JSON-LD types the author as Person with alternateName", () => {
 test("page-specific descriptions and share images", () => {
   assert.match(defaultDescription("about"), /Aziel Eliab/);
   assert.match(defaultDescription("about"), /Aziel Elroi Eliab/);
+  assert.match(defaultDescription("about"), /What matters is the record/);
   assert.match(defaultDescription("about"), /GodLock/);
+  assert.doesNotMatch(defaultDescription("about"), /researcher and builder/);
   assert.match(defaultDescription("software"), /Software|aziel-runtime/i);
   assert.match(defaultDescription("scored"), /intentional suppression/);
   assert.match(defaultDescription("search"), /Search Aziel Digital Library/);
