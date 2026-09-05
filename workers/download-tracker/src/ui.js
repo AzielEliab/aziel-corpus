@@ -138,6 +138,7 @@ label.showpw{font-size:14px;color:var(--muted);white-space:nowrap;min-height:44p
 .jeeves-log{min-height:80px;max-height:28vh;overflow:auto;margin:8px 0;border:1px solid var(--line);border-radius:10px;padding:8px;background:#16130f}
 .jeeves-msg{margin:0 0 8px;font-size:14px}
 .jeeves-egg-img{display:block;max-width:100%;width:min(280px,100%);height:auto;margin:10px 0 4px;border-radius:12px;border:1px solid var(--line);background:#0f0d0a}
+.jeeves-snake{display:block;margin:8px 0 0;padding:8px;overflow:auto;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.15;white-space:pre;color:#c8f5c0;background:#0b120b;border:1px solid var(--line);border-radius:8px}
 .jeeves-note{margin:6px 0 8px}
 .jeeves-ask,.jeeves-up{display:flex;flex-direction:column;gap:8px;margin:8px 0}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
