@@ -1,5 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { clceScore, spreScore, physLingReview, poisonScan, bayesianPosterior, reviewDocument, triadComposite, triadCoveragePoints } from "./review.js";
 import { deriveZsolverAnswers, localZsolverScore } from "./zsolver.js";
 import { proposeAllLinks, titleLineageCore, subjectKey } from "./succession.js";
@@ -1046,6 +1049,30 @@ test("Jeeves multi-hit easter_eggs cap and primary fields", () => {
   assert.match(fab, /showEgg/);
   assert.match(fab, /j\.answer!=null&&String\(j\.answer\)!==""/);
   assert.match(fab, /j\.image\?""/);
+});
+
+test("Jeeves movie-pack stills are hosted in public/", () => {
+  const pub = join(dirname(fileURLToPath(import.meta.url)), "../public");
+  const files = [
+    "jeeves-godfather-offer.png",
+    "jeeves-scarface-badguy.png",
+    "jeeves-billion-cool.png",
+    "jeeves-facebook-inventors.png",
+    "jeeves-sex-bob-omb.png",
+    "jeeves-high-ground.png",
+    "jeeves-highlander-one.png",
+    "jeeves-frankly-my-dear.png",
+    "jeeves-single-lady.png",
+    "jeeves-contender.png",
+    "jeeves-make-my-day.png",
+    "jeeves-talkin-to-me.png",
+    "jeeves-come-with-me.png",
+    "jeeves-one-more.png",
+    "jeeves-forrest-gump.png",
+  ];
+  for (const name of files) {
+    assert.equal(existsSync(join(pub, name)), true, name);
+  }
 });
 
 
