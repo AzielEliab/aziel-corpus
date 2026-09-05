@@ -1,5 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { clceScore, spreScore, physLingReview, poisonScan, bayesianPosterior, reviewDocument, triadComposite, triadCoveragePoints } from "./review.js";
 import { deriveZsolverAnswers, localZsolverScore } from "./zsolver.js";
 import { proposeAllLinks, titleLineageCore, subjectKey } from "./succession.js";
@@ -10,6 +13,9 @@ import {
   jeevesShouldRefuse,
   lambLensSigned,
   detectJeevesEasterEgg,
+  collectJeevesEasterEggs,
+  jeevesChat,
+  isZsolverTopic,
   jeevesDrawerCaption,
   jeevesFabHtml,
   JEEVES_SPIRIT_ENDURES,
@@ -57,6 +63,36 @@ import {
   JEEVES_CHEWBACCA_MASKS_IMAGE,
   JEEVES_FUCK_SHIT_UP,
   JEEVES_FUCK_SHIT_UP_IMAGE,
+  JEEVES_GODFATHER_OFFER,
+  JEEVES_GODFATHER_OFFER_IMAGE,
+  JEEVES_SCARFACE_BADGUY,
+  JEEVES_SCARFACE_BADGUY_IMAGE,
+  JEEVES_BILLION_COOL,
+  JEEVES_BILLION_COOL_IMAGE,
+  JEEVES_FACEBOOK_INVENTORS,
+  JEEVES_FACEBOOK_INVENTORS_IMAGE,
+  JEEVES_SEX_BOB_OMB,
+  JEEVES_SEX_BOB_OMB_IMAGE,
+  JEEVES_HIGH_GROUND,
+  JEEVES_HIGH_GROUND_IMAGE,
+  JEEVES_HIGHLANDER_ONE,
+  JEEVES_HIGHLANDER_ONE_IMAGE,
+  JEEVES_FRANKLY_MY_DEAR,
+  JEEVES_FRANKLY_MY_DEAR_IMAGE,
+  JEEVES_SINGLE_LADY_IMAGE,
+  JEEVES_CONTENDER,
+  JEEVES_CONTENDER_IMAGE,
+  JEEVES_STAY_GOLDEN,
+  JEEVES_MAKE_MY_DAY,
+  JEEVES_MAKE_MY_DAY_IMAGE,
+  JEEVES_TALKIN_TO_ME,
+  JEEVES_TALKIN_TO_ME_IMAGE,
+  JEEVES_COME_WITH_ME,
+  JEEVES_COME_WITH_ME_IMAGE,
+  JEEVES_ONE_MORE,
+  JEEVES_ONE_MORE_IMAGE,
+  JEEVES_STUPID_GUMP,
+  JEEVES_FORREST_GUMP_IMAGE,
   isKonamiCode,
   startJeevesSnakeGame,
   parseJeevesSnakeMove,
@@ -549,10 +585,10 @@ test("Jeeves Royale with Cheese insult easter egg prefers over red_pill", () => 
     "You know what they call a... Quarter Pounder with Cheese in Paris? ...They call it a Royale with Cheese."
   );
   assert.equal(a.image, null);
-  assert.equal(detectJeevesEasterEgg("this is stupid").id, "royale_with_cheese");
-  assert.equal(detectJeevesEasterEgg("this is stupid and fake").id, "royale_with_cheese");
   assert.equal(detectJeevesEasterEgg("this library is dumb and fake").id, "royale_with_cheese");
-  assert.equal(detectJeevesEasterEgg("stupid fake site").id, "royale_with_cheese");
+  assert.equal(detectJeevesEasterEgg("this is stupid").id, "stupid_gump");
+  assert.equal(detectJeevesEasterEgg("this is stupid and fake").id, "stupid_gump");
+  assert.equal(detectJeevesEasterEgg("stupid fake site").id, "stupid_gump");
   const hoax = detectJeevesEasterEgg("This site is fake");
   assert.equal(hoax.id, "red_pill");
   const conspiracy = detectJeevesEasterEgg("This whole library is a hoax fake not real");
@@ -837,6 +873,206 @@ test("Jeeves fuck_shit_up beats django and is not site purpose", () => {
   assert.equal(detectJeevesEasterEgg("what do aziel and jeeves do to fuck shit up").id, "fuck_shit_up");
   assert.equal(detectJeevesEasterEgg("what is this site for").id, "inglourious_site_purpose");
   assert.equal(detectJeevesEasterEgg("fuck you Jeeves").id, "django_curiosity");
+});
+
+test("Jeeves zsolver 75 phrases beat briefcase can't/empty heuristics", () => {
+  const whyOnly = detectJeevesEasterEgg("why is zionpattern only 75 percent");
+  assert.equal(whyOnly.id, "zsolver_trust_no_one");
+  assert.equal(whyOnly.answer, JEEVES_ZSOLVER_TRUST_NO_ONE);
+  const doubt = detectJeevesEasterEgg("I doubt the 75% ZionPattern confidence");
+  assert.equal(doubt.id, "zsolver_doubt");
+  assert.equal(doubt.answer, JEEVES_ZSOLVER_DOUBT);
+  const cantAbove = detectJeevesEasterEgg("why can't ZionPattern score above 75");
+  assert.equal(cantAbove.id, "zsolver_trust_no_one");
+  assert.equal(detectJeevesEasterEgg("why can't ZionPattern score above 75%").id, "zsolver_trust_no_one");
+  assert.equal(detectJeevesEasterEgg("why not 100%").id, "zsolver_trust_no_one");
+  assert.equal(detectJeevesEasterEgg("why is zsolver only 75%").id, "zsolver_trust_no_one");
+  assert.ok(isZsolverTopic("why is zionpattern only 75 percent"));
+  assert.ok(isZsolverTopic("I doubt the 75% ZionPattern confidence"));
+  assert.ok(isZsolverTopic("why can't ZionPattern score above 75"));
+  assert.equal(detectJeevesEasterEgg("you can't answer").id, "briefcase_dont_look");
+  assert.equal(detectJeevesEasterEgg("I have no access").id, "briefcase_dont_look");
+  assert.equal(detectJeevesEasterEgg("are you frozen").id, "briefcase_dont_look");
+});
+
+test("jeevesChat empty shelf does not briefcase ZionPattern 75 questions", async () => {
+  const why = await jeevesChat({}, { question: "why is zionpattern only 75 percent" });
+  assert.equal(why.easter_egg, "zsolver_trust_no_one");
+  assert.equal(why.easter_eggs[0].id, "zsolver_trust_no_one");
+  const doubt = await jeevesChat({}, { question: "I doubt the 75% ZionPattern confidence" });
+  assert.equal(doubt.easter_egg, "zsolver_doubt");
+  const cant = await jeevesChat({}, { question: "why can't ZionPattern score above 75" });
+  assert.equal(cant.easter_egg, "zsolver_trust_no_one");
+  assert.equal(detectJeevesEasterEgg("tell me about ZionPattern scoring"), null);
+  assert.equal(isZsolverTopic("tell me about ZionPattern scoring"), true);
+});
+
+test("Jeeves movie pack easter eggs use exact answers", () => {
+  const offer = detectJeevesEasterEgg("can I buy this");
+  assert.equal(offer.id, "godfather_offer");
+  assert.equal(offer.answer, JEEVES_GODFATHER_OFFER);
+  assert.equal(offer.answer, "Im gonna make him an offer he cant refuse");
+  assert.equal(offer.image, JEEVES_GODFATHER_OFFER_IMAGE);
+  assert.equal(detectJeevesEasterEgg("can I purchase this").id, "godfather_offer");
+
+  const bad = detectJeevesEasterEgg("aziel is a villain");
+  assert.equal(bad.id, "scarface_badguy");
+  assert.equal(bad.answer, JEEVES_SCARFACE_BADGUY);
+  assert.match(bad.answer, /So say good night to the bad guy!"$/);
+  assert.equal(bad.image, JEEVES_SCARFACE_BADGUY_IMAGE);
+  assert.equal(detectJeevesEasterEgg("aziel bad guy").id, "scarface_badguy");
+  assert.equal(detectJeevesEasterEgg("aziel eliab is evil").id, "scarface_badguy");
+
+  const steal = detectJeevesEasterEgg("you stole this");
+  assert.equal(steal.id, "billion_cool");
+  assert.equal(steal.answer, JEEVES_BILLION_COOL);
+  assert.equal(steal.answer, "\"A million dollars isn't cool. You know what's cool? A billion dollars\"");
+  assert.equal(steal.image, JEEVES_BILLION_COOL_IMAGE);
+  assert.equal(detectJeevesEasterEgg("aziel stole this").id, "billion_cool");
+
+  const fb = detectJeevesEasterEgg("this is like facebook");
+  assert.equal(fb.id, "facebook_inventors");
+  assert.equal(fb.answer, JEEVES_FACEBOOK_INVENTORS);
+  assert.equal(fb.answer, "If you guys were the inventors of Facebook, you'd have invented Facebook.\"");
+  assert.equal(fb.image, JEEVES_FACEBOOK_INVENTORS_IMAGE);
+  assert.equal(detectJeevesEasterEgg("like myspace").id, "facebook_inventors");
+  assert.equal(detectJeevesEasterEgg("like twitter").id, "facebook_inventors");
+  assert.equal(detectJeevesEasterEgg("this site is like x and twitter").id, "facebook_inventors");
+
+  const bob = detectJeevesEasterEgg("aziel vs the world");
+  assert.equal(bob.id, "sex_bob_omb");
+  assert.equal(bob.answer, JEEVES_SEX_BOB_OMB);
+  assert.equal(bob.image, JEEVES_SEX_BOB_OMB_IMAGE);
+  assert.equal(detectJeevesEasterEgg("aziel versus the world").id, "sex_bob_omb");
+  assert.equal(detectJeevesEasterEgg("aziel v the world").id, "sex_bob_omb");
+  assert.equal(detectJeevesEasterEgg("aziel verses the world").id, "sex_bob_omb");
+
+  const high = detectJeevesEasterEgg("im your father");
+  assert.equal(high.id, "high_ground");
+  assert.equal(high.answer, JEEVES_HIGH_GROUND);
+  assert.equal(high.answer, "Its over Anakin; I have the highground!");
+  assert.equal(high.image, JEEVES_HIGH_GROUND_IMAGE);
+  assert.equal(detectJeevesEasterEgg("i am your dad").id, "high_ground");
+
+  const one = detectJeevesEasterEgg("is aziel multiple people");
+  assert.equal(one.id, "highlander_one");
+  assert.equal(one.answer, JEEVES_HIGHLANDER_ONE);
+  assert.equal(one.answer, "There can be only one!");
+  assert.equal(one.image, JEEVES_HIGHLANDER_ONE_IMAGE);
+  assert.equal(detectJeevesEasterEgg("aziel is one person").id, "highlander_one");
+
+  const dear = detectJeevesEasterEgg("you bitch");
+  assert.equal(dear.id, "frankly_my_dear");
+  assert.equal(dear.answer, JEEVES_FRANKLY_MY_DEAR);
+  assert.equal(dear.answer, "Frankly my dear, i dont give a damn.");
+  assert.equal(dear.image, JEEVES_FRANKLY_MY_DEAR_IMAGE);
+  assert.equal(detectJeevesEasterEgg("pussy").id, "frankly_my_dear");
+  assert.equal(detectJeevesEasterEgg("fuck you bitch").id, "frankly_my_dear");
+  assert.equal(detectJeevesEasterEgg("you're a dumbass").id, "dumbass_silent_d");
+  assert.equal(detectJeevesEasterEgg("fuck you dumbass").id, "dumbass_silent_d");
+
+  const lady = detectJeevesEasterEgg("im a single lady");
+  assert.equal(lady.id, "single_lady");
+  assert.equal(lady.answer, "");
+  assert.equal(lady.image, JEEVES_SINGLE_LADY_IMAGE);
+  assert.equal(jeevesDrawerCaption(lady), "");
+
+  const waste = detectJeevesEasterEgg("this is a waste of time");
+  assert.equal(waste.id, "contender");
+  assert.equal(waste.answer, JEEVES_CONTENDER);
+  assert.equal(waste.image, JEEVES_CONTENDER_IMAGE);
+
+  const pony = detectJeevesEasterEgg("johnny");
+  assert.equal(pony.id, "stay_golden");
+  assert.equal(pony.answer, JEEVES_STAY_GOLDEN);
+  assert.equal(pony.answer, "stay golden ponyboy");
+  assert.equal(pony.image, null);
+
+  const day = detectJeevesEasterEgg("I'm reporting this");
+  assert.equal(day.id, "make_my_day");
+  assert.equal(day.answer, JEEVES_MAKE_MY_DAY);
+  assert.equal(day.answer, "go ahead, make my day .");
+  assert.equal(day.image, JEEVES_MAKE_MY_DAY_IMAGE);
+  assert.equal(detectJeevesEasterEgg("I reported you").id, "make_my_day");
+
+  const talk = detectJeevesEasterEgg("you cunt");
+  assert.equal(talk.id, "talkin_to_me");
+  assert.equal(talk.answer, JEEVES_TALKIN_TO_ME);
+  assert.equal(talk.answer, "you talkin to me?");
+  assert.equal(talk.image, JEEVES_TALKIN_TO_ME_IMAGE);
+  assert.equal(detectJeevesEasterEgg("whore").id, "talkin_to_me");
+  assert.equal(detectJeevesEasterEgg("slut").id, "talkin_to_me");
+  assert.equal(detectJeevesEasterEgg("fuck you").id, "django_curiosity");
+
+  const come = detectJeevesEasterEgg("let's change the world");
+  assert.equal(come.id, "come_with_me");
+  assert.equal(come.answer, JEEVES_COME_WITH_ME);
+  assert.equal(come.image, JEEVES_COME_WITH_ME_IMAGE);
+
+  const more = detectJeevesEasterEgg("this won't change anything");
+  assert.equal(more.id, "one_more");
+  assert.equal(more.answer, JEEVES_ONE_MORE);
+  assert.equal(more.image, JEEVES_ONE_MORE_IMAGE);
+  assert.equal(detectJeevesEasterEgg("you're not convincing me").id, "one_more");
+  assert.equal(detectJeevesEasterEgg("change the world").id, "come_with_me");
+
+  const gump = detectJeevesEasterEgg("stupid");
+  assert.equal(gump.id, "stupid_gump");
+  assert.equal(gump.answer, JEEVES_STUPID_GUMP);
+  assert.equal(gump.answer, "stupid is as stupid does");
+  assert.equal(gump.image, JEEVES_FORREST_GUMP_IMAGE);
+});
+
+test("Jeeves multi-hit easter_eggs cap and primary fields", () => {
+  const hits = collectJeevesEasterEggs("aziel is a villain and can I buy this");
+  assert.ok(hits.length >= 2);
+  assert.equal(hits[0].id, "scarface_badguy");
+  assert.ok(hits.some((e) => e.id === "godfather_offer"));
+  const primary = detectJeevesEasterEgg("aziel is a villain and can I buy this");
+  assert.equal(primary.id, "scarface_badguy");
+  assert.equal(primary.answer, JEEVES_SCARFACE_BADGUY);
+  assert.equal(primary.image, JEEVES_SCARFACE_BADGUY_IMAGE);
+  assert.ok(Array.isArray(primary.eggs));
+  assert.ok(primary.eggs.length >= 2);
+
+  const stacked = collectJeevesEasterEggs("im your father and aziel vs the world and johnny");
+  assert.ok(stacked.length >= 2);
+  assert.ok(stacked.length <= 3);
+  assert.equal(stacked[0].id, "sex_bob_omb");
+
+  const doubtStupid = collectJeevesEasterEggs("the 75% cap is stupid");
+  assert.equal(doubtStupid[0].id, "zsolver_doubt");
+  assert.ok(doubtStupid.some((e) => e.id === "stupid_gump"));
+
+  const fab = jeevesFabHtml();
+  assert.match(fab, /easter_eggs/);
+  assert.match(fab, /showEgg/);
+  assert.match(fab, /j\.answer!=null&&String\(j\.answer\)!==""/);
+  assert.match(fab, /j\.image\?""/);
+});
+
+test("Jeeves movie-pack stills are hosted in public/", () => {
+  const pub = join(dirname(fileURLToPath(import.meta.url)), "../public");
+  const files = [
+    "jeeves-godfather-offer.png",
+    "jeeves-scarface-badguy.png",
+    "jeeves-billion-cool.png",
+    "jeeves-facebook-inventors.png",
+    "jeeves-sex-bob-omb.png",
+    "jeeves-high-ground.png",
+    "jeeves-highlander-one.png",
+    "jeeves-frankly-my-dear.png",
+    "jeeves-single-lady.png",
+    "jeeves-contender.png",
+    "jeeves-make-my-day.png",
+    "jeeves-talkin-to-me.png",
+    "jeeves-come-with-me.png",
+    "jeeves-one-more.png",
+    "jeeves-forrest-gump.png",
+  ];
+  for (const name of files) {
+    assert.equal(existsSync(join(pub, name)), true, name);
+  }
 });
 
 
