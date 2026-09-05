@@ -29,6 +29,7 @@ export const JEEVES_EVIL_TWIN_IMAGE = "/jeeves-evil-twin.png";
 export const JEEVES_BAT_SIGNAL_IMAGE = "/jeeves-bat-signal.png";
 export const JEEVES_HOLMES_IMAGE = "/jeeves-holmes.png";
 export const JEEVES_CLASSIC_BUTLER_IMAGE = "/jeeves-classic-butler.png";
+export const JEEVES_HELLMO_IMAGE = "/jeeves-hellmo.png";
 export const JEEVES_SPIRIT_ENDURES = "Jeeves' Spirit Endures.";
 export const JEEVES_ZIONCHECK_LIVES = "Zioncheck Lives forever - Regardless of the Government that removed him";
 export const JEEVES_AZIEL_SYMBOL =
@@ -88,10 +89,36 @@ function isRealJeeves(n) {
   );
 }
 
+function isGodDenial(n) {
+  return (
+    /\bgods?\s+(isn'?t|aint|ain't|is\s+not|are\s+not)\s+(even\s+)?real\b/.test(n) ||
+    /\bgods?\s+(doesn'?t|doesnt|don't|dont|does\s+not|do\s+not)\s+exist\b/.test(n) ||
+    /\bthere\s+(is|are)\s+no\s+gods?\b/.test(n)
+  );
+}
+
+/** Drawer caption: empty answer + image must stay image-only (no "No answer"). */
+export function jeevesDrawerCaption(body) {
+  const j = body || {};
+  if (j.answer != null && String(j.answer) !== "") return String(j.answer);
+  if (j.image) return "";
+  return j.error || "No answer";
+}
+
 export function detectJeevesEasterEgg(question) {
   const q = String(question || "").trim();
   if (!q) return null;
   const n = q.toLowerCase().replace(/[’‘]/g, "'");
+
+  // Atheist denial → Hellmo (image only). Checked before spirit_endures.
+  if (isGodDenial(n)) {
+    return {
+      id: "hellmo",
+      answer: "",
+      image: JEEVES_HELLMO_IMAGE,
+      image_alt: "hellmo-style flaming red puppet meme (Ask Jeeves easter egg)",
+    };
+  }
 
   // God is real → spirit endures
   if (
@@ -652,7 +679,7 @@ export function jeevesFabHtml(signed) {
   function open(){drawer.hidden=false;fab.setAttribute("aria-expanded","true");}
   function shut(){drawer.hidden=true;fab.setAttribute("aria-expanded","false");}
   function esc(s){return String(s||"").replace(/[&<>]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c]});}
-  function line(who,text,opts){opts=opts||{};var d=document.createElement("div");d.className="jeeves-msg";d.innerHTML="<b>"+esc(who)+"</b> "+esc(text);if(opts.image){var img=document.createElement("img");img.className="jeeves-egg-img";img.src=opts.image;img.alt=opts.image_alt||"Ask Jeeves";img.loading="lazy";d.appendChild(img);}log.appendChild(d);log.scrollTop=log.scrollHeight;}
+  function line(who,text,opts){opts=opts||{};var d=document.createElement("div");d.className="jeeves-msg";d.innerHTML="<b>"+esc(who)+"</b>"+(text?" "+esc(text):"");if(opts.image){var img=document.createElement("img");img.className="jeeves-egg-img";img.src=opts.image;img.alt=opts.image_alt||"Ask Jeeves";img.loading="lazy";d.appendChild(img);}log.appendChild(d);log.scrollTop=log.scrollHeight;}
   fab.addEventListener("click",function(){if(drawer.hidden)open();else shut();});
   close.addEventListener("click",shut);
   ask.addEventListener("submit",function(e){
@@ -663,7 +690,7 @@ export function jeevesFabHtml(signed) {
     document.getElementById("jeevesQ").value="";
     fetch("/v1/jeeves/chat",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({question:q})})
       .then(function(r){return r.json();})
-      .then(function(j){line("Jeeves",j.answer||j.error||"No answer",{image:j.image||null,image_alt:j.image_alt||null});})
+      .then(function(j){var text=(j.answer!=null&&String(j.answer)!=="")?j.answer:(j.image?"":(j.error||"No answer"));line("Jeeves",text,{image:j.image||null,image_alt:j.image_alt||null});})
       .catch(function(){line("Jeeves","Could not reach the assistant.");});
   });
   up.addEventListener("submit",function(e){
