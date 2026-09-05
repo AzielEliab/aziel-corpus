@@ -24,6 +24,10 @@ import {
   JEEVES_EMPIRICAL_HOLMES,
   JEEVES_REAL_JEEVES,
   JEEVES_FORGERECEIPTS_SNITCHES,
+  JEEVES_MATRIX_DOUBT_IMAGE,
+  JEEVES_TRUST_NO_ONE_IMAGE,
+  JEEVES_ZSOLVER_DOUBT,
+  JEEVES_ZSOLVER_TRUST_NO_ONE,
 } from "./jeeves.js";
 import { isFullyScored, storedTriadMatches } from "./review-store.js";
 import { normalizeContentHash } from "./library.js";
@@ -433,6 +437,37 @@ test("Jeeves real Jeeves easter egg", () => {
   const e = detectJeevesEasterEgg("bring back the real Jeeves");
   assert.equal(e.id, "real_jeeves");
   assert.equal(detectJeevesEasterEgg("Ask Jeeves about Florence"), null);
+});
+
+test("Jeeves zsolver 75% cap attack is doubt", () => {
+  const a = detectJeevesEasterEgg("The ZionPattern Solver 75% confidence cap is a joke");
+  assert.equal(a.id, "zsolver_doubt");
+  assert.equal(a.answer, JEEVES_ZSOLVER_DOUBT);
+  assert.equal(a.answer, "Doubt can be a bond as powerful and sustaining as certainty.");
+  assert.equal(a.image, JEEVES_MATRIX_DOUBT_IMAGE);
+  assert.equal(a.image, "/jeeves-matrix-doubt.gif");
+  assert.equal(a.image_alt, "matrix-rain figure easter egg (doubt / certainty)");
+  assert.equal(detectJeevesEasterEgg("I hate the hard 75% cap").id, "zsolver_doubt");
+  assert.equal(detectJeevesEasterEgg("so-called 75% confidence").id, "zsolver_doubt");
+  assert.equal(detectJeevesEasterEgg("the 25% floor is useless").id, "zsolver_doubt");
+  assert.equal(detectJeevesEasterEgg("zsolver 75 percent is stupid").id, "zsolver_doubt");
+  assert.equal(detectJeevesEasterEgg("what does the 75% cap mean"), null);
+  assert.equal(detectJeevesEasterEgg("explain the zsolver 75% confidence cap"), null);
+  assert.match(jeevesFabHtml(), /img\.src=opts\.image/);
+});
+
+test("Jeeves zsolver why not 100% is trust no one", () => {
+  const a = detectJeevesEasterEgg("Why can't I have 100% on ZionPattern Solver?");
+  assert.equal(a.id, "zsolver_trust_no_one");
+  assert.equal(a.answer, JEEVES_ZSOLVER_TRUST_NO_ONE);
+  assert.equal(a.answer, "Trust no one.");
+  assert.equal(a.image, JEEVES_TRUST_NO_ONE_IMAGE);
+  assert.equal(a.image, "/jeeves-trust-no-one-mask.png");
+  assert.equal(a.image_alt, "theatrical mask easter egg (trust no one)");
+  assert.equal(detectJeevesEasterEgg("why not 100% zsolver confidence").id, "zsolver_trust_no_one");
+  assert.equal(detectJeevesEasterEgg("why can't I have more than 75% on zsolver").id, "zsolver_trust_no_one");
+  assert.equal(detectJeevesEasterEgg("I want more than 75% confidence").id, "zsolver_trust_no_one");
+  assert.equal(detectJeevesEasterEgg("what does the 75% cap mean"), null);
 });
 
 test("Jeeves empirical Holmes easter egg", () => {
