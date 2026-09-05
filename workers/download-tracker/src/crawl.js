@@ -1,4 +1,6 @@
 /** Crawl documents for Aziel Digital Library. Author: Aziel Eliab. */
+import { ABOUT_PATH, ABOUT_NAV_LABEL } from "./seo.js";
+
 const HOST = "https://www.azielcorpuslibrary.net";
 const CATALOG = "https://aziel-runtime.vibelock.workers.dev";
 const GITHUB_REPO = "https://github.com/AzielEliab/aziel-corpus";
@@ -83,6 +85,7 @@ export function robotsTxt() {
     "Allow: /pattern",
     "Allow: /software",
     "Allow: /how-its-scored",
+    "Allow: " + ABOUT_PATH,
     "Allow: /about",
     "Allow: /runtime",
     "Allow: /v1",
@@ -106,7 +109,7 @@ export function robotsTxt() {
 
 const STATIC_SITEMAP = [
   "/",
-  "/about",
+  ABOUT_PATH,
   "/software",
   "/runtime",
   "/how-its-scored",
@@ -194,7 +197,7 @@ export function citeDoc() {
     purpose: "Public MASTER digital library and intelligence runtime by Aziel Eliab. Aziel Library holds the operator collection; Corpus is the public Lamb Lens shelf. Search, map, gazetteer, triad scoring, and hosted OCR live on this Worker.",
     software: HOST + "/software",
     how_its_scored: HOST + "/how-its-scored",
-    about: HOST + "/about",
+    about: HOST + ABOUT_PATH,
     download: HOST + "/download",
     map: HOST + "/map",
     gazetteer: HOST + "/gazetteer",
@@ -258,7 +261,7 @@ export function llmsDoc(limitation) {
     + "Also known as: " + AKA + "\n"
     + "Primary credit: " + AUTHOR + "\n"
     + "Library: " + HOST + "/\n"
-    + "About: " + HOST + "/about\n"
+    + ABOUT_NAV_LABEL + ": " + HOST + ABOUT_PATH + "\n"
     + "Software hub: " + HOST + "/software\n"
     + "Runtime catalog: " + HOST + "/runtime\n"
     + "How it's scored: " + HOST + "/how-its-scored\n"
@@ -294,7 +297,7 @@ export function llmsDoc(limitation) {
     + "- Runtime pull: " + HOST + "/runtime/v1/pull/{slug}\n"
     + "- Runtime OpenAPI: " + HOST + "/runtime/openapi.json\n"
     + "- Runtime MCP: POST " + HOST + "/runtime/mcp\n"
-    + "- About Aziel: " + HOST + "/about\n"
+    + "- " + ABOUT_NAV_LABEL + ": " + HOST + ABOUT_PATH + "\n"
     + "- Pattern: " + HOST + "/pattern\n"
     + "- Tree: " + HOST + "/tree\n"
     + "- Temporal Map: " + HOST + "/map\n"
@@ -361,6 +364,7 @@ export function aiTxt(limitation) {
     "",
     "User-agent: *",
     "Allow: /",
+    "Allow: " + ABOUT_PATH,
     "Allow: /about",
     "Allow: /software",
     "Allow: /runtime",
@@ -389,7 +393,7 @@ export function aiTxt(limitation) {
     + "Sitemap: " + HOST + "/sitemap.xml\n\n"
     + "## Research surfaces\n\n"
     + "- Library: " + HOST + "/\n"
-    + "- About Aziel: " + HOST + "/about\n"
+    + "- " + ABOUT_NAV_LABEL + ": " + HOST + ABOUT_PATH + "\n"
     + "- Software hub: " + HOST + "/software\n"
     + "- Runtime catalog: " + HOST + "/runtime\n"
     + "- How it's scored: " + HOST + "/how-its-scored\n"

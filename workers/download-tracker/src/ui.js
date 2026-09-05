@@ -1,5 +1,5 @@
 import { isOperator } from "./library.js";
-import { headMeta, defaultDescription } from "./seo.js";
+import { headMeta, defaultDescription, ABOUT_PATH, ABOUT_NAV_LABEL } from "./seo.js";
 import { jeevesFabHtml } from "./jeeves.js";
 
 /** Master UI chrome from Aziel Digital Library v2.7.0 webapp. Author: Aziel Eliab. */
@@ -205,7 +205,7 @@ export function page(title, body, { signed, scripts, path, kind, description, wo
     : `<a href="/login">Log in</a><span class="sep">|</span><a href="/signup">Sign up</a>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)} — Aziel Digital Library</title>${headMeta({ title, path: path || "/", kind, description, work })}<style>${CSS}</style></head><body><div class="wrap">
 <div class="brandrow nav1"><img class="brandmark" src="/sigil.png" width="40" height="40" alt="" decoding="async"><div class="brand">Aziel Digital Library</div><span class="pill">Runtime v2.7.0</span><span class="pill ok">MASTER · WRITABLE</span>${account}</div>
-<nav class="nav2 quiet"><a href="/">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/pattern">Pattern</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/how-its-scored">How it's scored</a><span class="sep">|</span><a href="/runtime">Runtime</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/gazetteer">Gazetteer</a><span class="sep">|</span><a href="/intelligence">Intelligence</a><span class="sep">|</span><a href="/about">About Aziel</a><span class="sep">|</span>${authLinks}</nav>
+<nav class="nav2 quiet"><a href="/">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/pattern">Pattern</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/how-its-scored">How it's scored</a><span class="sep">|</span><a href="/runtime">Runtime</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/gazetteer">Gazetteer</a><span class="sep">|</span><a href="/intelligence">Intelligence</a><span class="sep">|</span><a href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a><span class="sep">|</span>${authLinks}</nav>
 ${body}</div>${jeevesFabHtml()}${(scripts||[]).map((src)=>"<script src=\""+esc(src)+"\" defer></script>").join("")}</body></html>`;
 }
 
@@ -503,7 +503,7 @@ export function patternBody({ total, domains, subjects, keywords, crosses } = {}
 }
 
 export function aboutBody() {
-  return `<section class="hero about-aziel"><h1>About Aziel</h1>
+  return `<section class="hero about-aziel" id="aziel-eliab"><h1>About Aziel</h1>
 <div class="card about-prose">
 <p>Aziel Eliab is a researcher and builder. This library is the public MASTER of that work: hashed receipts, timed files, and software that can be reviewed without asking anyone to take a name on faith. The same person is also known as Aziel Elroi Eliab; primary credit stays Aziel Eliab.</p>
 <p>If not me, then who holds the record when names get stripped and the files get sealed? I didn’t ask for the seat. The work was already sitting there undone. I build receipts so truth has a place to live that isn’t someone else’s story.</p>
@@ -541,7 +541,7 @@ export function howItsScoredBody() {
 </div>
 <div class="card">
 <h2>Where to go next</h2>
-<p class="soft-links"><a class="button" href="/software">Software</a> <a class="button ghost" href="/runtime">Runtime</a> <a class="button ghost" href="/pattern">Pattern</a> <a class="button ghost" href="/about">About Aziel</a> <a class="button ghost" href="/llms.txt">llms.txt</a> <a class="button ghost" href="/cite.json">cite.json</a></p>
+<p class="soft-links"><a class="button" href="/software">Software</a> <a class="button ghost" href="/runtime">Runtime</a> <a class="button ghost" href="/pattern">Pattern</a> <a class="button ghost" href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a> <a class="button ghost" href="/llms.txt">llms.txt</a> <a class="button ghost" href="/cite.json">cite.json</a></p>
 </div>`;
 }
 
@@ -604,7 +604,7 @@ export function softwareBody({ products, fetched, downloadable } = {}) {
 <p class="muted"><strong>AzielTether</strong> is the survival mesh for downloaded Aziel software (prefer-central × peer sync). This public library is not a mesh — lattice tips are tip-shaped until tether carries them.</p>
 <p class="muted">AzielTether is featured first; FoldLock next among packages. Counted downloads stay on each product Worker <code>/count</code>.</p>
 <p class="muted">Live catalog from <a href="https://aziel-runtime.vibelock.workers.dev/">aziel-runtime</a> · author Aziel Eliab only · ${esc(n)} downloadable products · ${esc(live)} live counters fetched.</p>
-<p class="soft-links"><a href="/how-its-scored">How it's scored</a> · <a href="/runtime">Runtime root</a> · <a href="/about">About Aziel</a> · <a href="https://github.com/AzielEliab/aziel-corpus">aziel-corpus</a> · <a href="https://github.com/AzielEliab/aziel-runtime">aziel-runtime</a> · <a href="/llms.txt">llms.txt</a> · <a href="/ai.txt">ai.txt</a></p></section>
+<p class="soft-links"><a href="/how-its-scored">How it's scored</a> · <a href="/runtime">Runtime root</a> · <a href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a> · <a href="https://github.com/AzielEliab/aziel-corpus">aziel-corpus</a> · <a href="https://github.com/AzielEliab/aziel-runtime">aziel-runtime</a> · <a href="/llms.txt">llms.txt</a> · <a href="/ai.txt">ai.txt</a></p></section>
 <div class="soft-grid">${cards}</div>
 <div class="card"><p class="soft-links"><a class="button" href="/runtime">Runtime root</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="https://aziel-runtime.vibelock.workers.dev/v1/catalog.json">catalog.json</a> <a class="button ghost" href="/runtime/mcp">MCP</a> <a class="button ghost" href="/v1/lattice">Lattice API</a></p></div>`;
 }

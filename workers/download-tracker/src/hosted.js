@@ -1,5 +1,5 @@
 import { page, patternBody, softwareBody, aboutBody, howItsScoredBody } from "./ui.js";
-import { recordDescription } from "./seo.js";
+import { recordDescription, ABOUT_PATH, ABOUT_NAV_LABEL, aboutRedirectFrom } from "./seo.js";
 import { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, blockedAvBody } from "./hosted-pages.js";
 import { json, corsHeaders } from "./runtime.js";
 import { receiptForRecord, sha256hex } from "./ledger.js";
@@ -518,8 +518,14 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
   if (path === "/how-its-scored" && read) {
     return pageHtml(page("How it's scored", howItsScoredBody(), { signed, path: "/how-its-scored", kind: "scored" }));
   }
-  if (path === "/about" && read) {
-    return pageHtml(page("About Aziel", aboutBody(), { signed, path: "/about", kind: "about" }));
+  if (read) {
+    const aboutDest = aboutRedirectFrom(path);
+    if (aboutDest) {
+      return new Response(null, { status: 308, headers: { Location: aboutDest + (url.search || ""), ...corsHeaders() } });
+    }
+  }
+  if (path === ABOUT_PATH && read) {
+    return pageHtml(page(ABOUT_NAV_LABEL, aboutBody(), { signed, path: ABOUT_PATH, kind: "about" }));
   }
   return null;
 }

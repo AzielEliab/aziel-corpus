@@ -1,5 +1,7 @@
 /** Crawl/index metadata for hosted MASTER pages. Author: Aziel Eliab. */
 export const CANON_HOST = "https://www.azielcorpuslibrary.net";
+export const ABOUT_PATH = "/AzielEliab";
+export const ABOUT_NAV_LABEL = "Aziel Eliab";
 const SITE = "Aziel Digital Library";
 const AUTHOR = "Aziel Eliab";
 const AKA = "Aziel Elroi Eliab";
@@ -7,6 +9,15 @@ const GITHUB_AUTHOR = "https://github.com/AzielEliab";
 const GITHUB_REPO = "https://github.com/AzielEliab/aziel-corpus";
 const GITHUB_RUNTIME = "https://github.com/AzielEliab/aziel-runtime";
 export const SHARE_IMAGE = CANON_HOST + "/sigil.png";
+
+/** Permanent Location for legacy /about and case-folded /AzielEliab. */
+export function aboutRedirectFrom(path) {
+  const p = String(path || "").replace(/\/+$/, "") || "/";
+  if (p === ABOUT_PATH) return null;
+  if (p === "/about" || p === "/aboutme") return ABOUT_PATH;
+  if (p.toLowerCase() === "/azieleliab") return ABOUT_PATH;
+  return null;
+}
 const Q = String.fromCharCode(34);
 
 function esc(s) {
@@ -29,10 +40,10 @@ function linkRel(rel, href, extra) {
 export function personNode() {
   return {
     "@type": "Person",
-    "@id": CANON_HOST + "/about#aziel-eliab",
+    "@id": CANON_HOST + ABOUT_PATH + "#aziel-eliab",
     name: AUTHOR,
     alternateName: [AKA],
-    url: CANON_HOST + "/about",
+    url: CANON_HOST + ABOUT_PATH,
     sameAs: [GITHUB_AUTHOR],
   };
 }
@@ -43,7 +54,7 @@ export function organizationNode() {
     "@id": CANON_HOST + "/#organization",
     name: SITE,
     url: CANON_HOST + "/",
-    founder: { "@id": CANON_HOST + "/about#aziel-eliab" },
+    founder: { "@id": CANON_HOST + ABOUT_PATH + "#aziel-eliab" },
     sameAs: [GITHUB_REPO],
   };
 }
@@ -108,7 +119,7 @@ function workNode(work, path) {
     },
   };
   if (isAzielAuthored(work)) {
-    node.author = { "@id": CANON_HOST + "/about#aziel-eliab" };
+    node.author = { "@id": CANON_HOST + ABOUT_PATH + "#aziel-eliab" };
   } else if (work.author) {
     node.author = { "@type": "Person", name: String(work.author) };
   }
@@ -188,11 +199,11 @@ function jsonLd(title, path, kind, description, work) {
       codeRepository: GITHUB_RUNTIME,
     });
   }
-  if (kind === "about" || path === "/about") {
+  if (kind === "about" || path === ABOUT_PATH) {
     graph.push({
       "@type": "ProfilePage",
-      name: title || "About Aziel",
-      url: CANON_HOST + "/about",
+      name: title || ABOUT_NAV_LABEL,
+      url: CANON_HOST + ABOUT_PATH,
       mainEntity: { "@id": person["@id"] },
     });
   }
