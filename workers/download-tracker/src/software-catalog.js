@@ -173,13 +173,13 @@ export function mergeSoftwareExtras(products) {
 export function productLinks(product) {
   const slug = String((product && product.slug) || "").toLowerCase();
   const links = [];
-  const workerSet = Boolean(product && (product.worker || product.download || product.worker_home));
+  const workerSet = Boolean(product && (product.worker || product.download));
   if (workerSet && product.download) {
     links.push({ href: product.download, label: "Download", primary: true });
-  } else if (workerSet && product.worker_home) {
+  } else if (slug === "fraggate" && product && product.worker_home) {
     links.push({ href: product.worker_home, label: "Worker", primary: true });
   }
-  if (product && product.worker_home && !links.some((l) => l.href === product.worker_home)) {
+  if (slug === "fraggate" && product && product.worker_home && !links.some((l) => l.href === product.worker_home)) {
     links.push({ href: product.worker_home, label: "Worker" });
   }
   if (product && product.github) links.push({ href: product.github, label: "GitHub" });
