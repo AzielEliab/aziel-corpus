@@ -6,8 +6,9 @@
 import {
   RUNTIME_ORIGIN,
   RUNTIME_VERSION,
-  RUNTIME_NOTE,
   RUNTIME_GITHUB,
+  runtimeChip,
+  runtimeNote,
 } from "./runtime-copy.js";
 import { runtimeUsesPayload } from "./runtime-uses.js";
 
@@ -372,16 +373,15 @@ export async function loadSoftwareCatalog(env, stats) {
   }
 
   const catalogVersion = (catalog && catalog.version) || RUNTIME_VERSION;
-  const runtimeChip = "Runtime " + catalogVersion + " · FragGate";
   const hub = {
     name: "aziel-runtime",
     version: catalogVersion,
     root: true,
     kind: "plain",
     pills: hubPills,
-    blurb: RUNTIME_NOTE.replace(RUNTIME_VERSION, catalogVersion) + " Software hub mirrors this live catalog. Author Aziel Eliab.",
+    blurb: runtimeNote(catalogVersion) + " Software hub mirrors this live catalog. Author Aziel Eliab.",
     links: [
-      { href: "/runtime", label: runtimeChip, primary: true },
+      { href: "/runtime", label: runtimeChip(catalogVersion), primary: true },
       { href: "/runtime/v1/fraggate/list", label: "fraggate/list" },
       { href: "/runtime/mcp", label: "MCP" },
       { href: "/runtime/v1/uses", label: "uses" },

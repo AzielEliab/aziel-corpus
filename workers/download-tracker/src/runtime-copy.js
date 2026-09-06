@@ -47,12 +47,37 @@ export const ENGINE_SLUGS = [
 export const AI_CLIENTS =
   "ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants";
 
-export const RUNTIME_CHIP = "Runtime " + RUNTIME_VERSION + " · FragGate";
+/** Prefer live catalog.version from AZIEL_RUNTIME; fall back to the baked constant. */
+export function resolveRuntimeVersion(version) {
+  const ver = String(version == null ? "" : version).trim();
+  return ver || RUNTIME_VERSION;
+}
 
-export const RUNTIME_DESCRIPTION =
-  "aziel-runtime " + RUNTIME_VERSION + " FragGate door on the Aziel Digital Library. Prefer /runtime/*. "
-  + RUNTIME_LIVE_COUNT + " live advisory engines; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse. "
-  + "Discover with fraggate_list, execute with fraggate_call. Author Aziel Eliab.";
+export function runtimeChip(version) {
+  return "Runtime " + resolveRuntimeVersion(version) + " · FragGate";
+}
+
+export function runtimeDescription(version) {
+  const ver = resolveRuntimeVersion(version);
+  return "aziel-runtime " + ver + " FragGate door on the Aziel Digital Library. Prefer /runtime/*. "
+    + RUNTIME_LIVE_COUNT + " live advisory engines; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse. "
+    + "Discover with fraggate_list, execute with fraggate_call. Author Aziel Eliab.";
+}
+
+export function softwareDescription(version) {
+  const ver = resolveRuntimeVersion(version);
+  return "Downloadable software by Aziel Eliab. Product catalog for aziel-runtime " + ver + " FragGate, AzielTether, and the Aziel suite. Invoke from this domain at /runtime. Author Aziel Eliab.";
+}
+
+export function runtimeNote(version) {
+  const ver = resolveRuntimeVersion(version);
+  return "aziel-runtime " + ver + " FragGate door. Prefer /runtime/*. "
+    + RUNTIME_LIVE_COUNT + " live advisory engines; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse. "
+    + "fraggate_list / fraggate_call. HTTP /p/{slug}/{op} is a proxy and is not exec.";
+}
+
+export const RUNTIME_CHIP = runtimeChip();
+export const RUNTIME_DESCRIPTION = runtimeDescription();
 
 export const RUNTIME_LIMITATION =
   "THIS IS: aziel-runtime " + RUNTIME_VERSION + " FragGate door — the AI catalog/MCP runtime root for Aziel Eliab products, hosted on this domain at /runtime. "
@@ -62,10 +87,7 @@ export const RUNTIME_LIMITATION =
   + "Session tools are advanced/internal. Hosted AZAI is protocol mirror + Lamb check, not the blend. Mesh is not claimed on this public surface. "
   + "THIS IS NOT: a second software index. The Software tab stays the product-card catalog. No invented Zenodo DOIs. Author Aziel Eliab only.";
 
-export const RUNTIME_NOTE =
-  "aziel-runtime " + RUNTIME_VERSION + " FragGate door. Prefer /runtime/*. "
-  + RUNTIME_LIVE_COUNT + " live advisory engines; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse. "
-  + "fraggate_list / fraggate_call. HTTP /p/{slug}/{op} is a proxy and is not exec.";
+export const RUNTIME_NOTE = runtimeNote();
 
 export function runtimeHowTo(host) {
   const h = host || HOST;
