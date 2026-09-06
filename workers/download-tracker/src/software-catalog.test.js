@@ -172,10 +172,10 @@ test("softwareBody renders every card in Plain → Gate → Lock with live-catal
   const idxPlain = html.indexOf("<h2>Software</h2>");
   const idxGate = html.indexOf("<h2>Gate</h2>");
   const idxLock = html.indexOf("<h2>Lock</h2>");
-  const idxAzmail = html.indexOf("AZMail");
-  const idxGateCard = html.indexOf("DecisionGATE");
-  const idxPeace = html.indexOf("PeaceLock");
-  const idxClock = html.indexOf("StaticClock");
+  const idxAzmail = html.indexOf('data-slug="azmail"');
+  const idxGateCard = html.indexOf('data-slug="decisiongate"');
+  const idxPeace = html.indexOf('data-slug="peacelock"');
+  const idxClock = html.indexOf('data-slug="staticclock"');
   assert.ok(idxPlain < idxGate && idxGate < idxLock);
   assert.ok(idxAzmail < idxGateCard && idxClock < idxGateCard);
   assert.ok(idxGateCard < idxPeace);
