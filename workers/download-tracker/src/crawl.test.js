@@ -151,6 +151,8 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   const llms = llmsDoc("LIMIT");
   assertPublicIdentity(llms);
   assert.match(llms, /Software hub: https:\/\/www\.azielcorpuslibrary\.net\/software/);
+  assert.match(llms, /Software hub mirrors the live aziel-runtime catalog/);
+  assert.match(llms, /No hard-coded 27 cap/);
   assert.match(llms, /https:\/\/www\.azielcorpuslibrary\.net\/AzielEliab/);
   assert.match(llms, /https:\/\/godlock\.uk\/AzielEliab/);
   assert.match(llms, /Runtime catalog: https:\/\/www\.azielcorpuslibrary\.net\/runtime/);
@@ -244,6 +246,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(humans, /github.com\/AzielEliab/);
   assert.match(humans, /azielcorpuslibrary\.net\/AzielEliab/);
   assert.match(humans, /godlock\.uk\/AzielEliab/);
+  assert.match(humans, /Software hub mirrors runtime catalog/);
 });
 
 test("crawlResponse serves GET body and HEAD without body", async () => {

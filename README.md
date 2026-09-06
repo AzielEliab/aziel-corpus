@@ -8,7 +8,7 @@ Live HTTPS surfaces for this library and the sister engines. Public identity is 
 
 - **Aziel Corpus Library (this site):** [https://www.azielcorpuslibrary.net/](https://www.azielcorpuslibrary.net/)
 - **Aziel Eliab:** [https://www.azielcorpuslibrary.net/AzielEliab](https://www.azielcorpuslibrary.net/AzielEliab)
-- **Software:** [https://www.azielcorpuslibrary.net/software](https://www.azielcorpuslibrary.net/software)
+- **Software:** [https://www.azielcorpuslibrary.net/software](https://www.azielcorpuslibrary.net/software) — mirrors the live aziel-runtime catalog (`GET /runtime/v1/catalog.json`); no fixed product cap
 - **Runtime front door (this domain):** [https://www.azielcorpuslibrary.net/runtime](https://www.azielcorpuslibrary.net/runtime) — aziel-runtime 1.6.2 FragGate catalog/MCP door
 - **How it’s scored:** [https://www.azielcorpuslibrary.net/how-its-scored](https://www.azielcorpuslibrary.net/how-its-scored)
 - **GodLock.uk (sister engine):** [https://godlock.uk](https://godlock.uk) — Aziel Eliab tab [https://godlock.uk/AzielEliab](https://godlock.uk/AzielEliab)
