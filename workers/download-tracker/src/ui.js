@@ -9,6 +9,7 @@ import {
   RUNTIME_LIVE_COUNT,
   RUNTIME_LOCAL_ONLY,
   RUNTIME_CHIP,
+  runtimeChip,
   AI_CLIENTS,
 } from "./runtime-copy.js";
 
@@ -209,7 +210,7 @@ export function pwField(name = "password") {
   return `<div class="pw-row"><input id="${id}" name="${name}" type="password" required placeholder="password" autocomplete="current-password"><label class="showpw"><input type="checkbox" onclick="var e=document.getElementById('${id}');e.type=this.checked?'text':'password'"> Show password</label></div>`;
 }
 
-export function page(title, body, { signed, scripts, path, kind, description, work } = {}) {
+export function page(title, body, { signed, scripts, path, kind, description, work, runtimeVersion } = {}) {
   const who = signed && signed.username ? String(signed.username) : "";
   const account = signed
     ? `<span class="pill ok">signed in as ${esc(who)}</span>`
@@ -217,7 +218,7 @@ export function page(title, body, { signed, scripts, path, kind, description, wo
   const authLinks = signed
     ? `<a href="/logout">Log out</a>`
     : `<a href="/login">Log in</a><span class="sep">|</span><a href="/signup">Sign up</a>`;
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)} — Aziel Digital Library</title>${headMeta({ title, path: path || "/", kind, description, work })}<style>${CSS}</style></head><body><div class="wrap">
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)} — Aziel Digital Library</title>${headMeta({ title, path: path || "/", kind, description, work, runtimeVersion })}<style>${CSS}</style></head><body><div class="wrap">
 <div class="brandrow nav1"><img class="brandmark" src="/sigil.png" width="40" height="40" alt="" decoding="async"><div class="brand">Aziel Digital Library</div><span class="pill">Runtime v2.7.0</span><span class="pill ok">MASTER · WRITABLE</span>${account}</div>
 <nav class="nav2 quiet"><a href="/">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/pattern">Pattern</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/how-its-scored">How it's scored</a><span class="sep">|</span><a href="/runtime">Runtime</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/gazetteer">Gazetteer</a><span class="sep">|</span><a href="/intelligence">Intelligence</a><span class="sep">|</span><a href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a><span class="sep">|</span>${authLinks}</nav>
 ${body}</div>${jeevesFabHtml()}${(scripts||[]).map((src)=>"<script src=\""+esc(src)+"\" defer></script>").join("")}</body></html>`;
@@ -646,7 +647,7 @@ export function softwareBody(model = {}) {
   const n = Number(model.downloadable != null ? model.downloadable : products.length) || 0;
   const live = Number(model.fetched) || 0;
   const ver = model.catalogVersion || RUNTIME_VERSION;
-  const chip = "Runtime " + ver + " · FragGate";
+  const chip = runtimeChip(ver);
   const extras = Number(model.extras) || 0;
   const counters = [];
   if (model.usesTotal != null) counters.push("this-door uses " + model.usesTotal);

@@ -1,12 +1,13 @@
 /** Crawl/index metadata for hosted MASTER pages. Author: Aziel Eliab. */
 import {
-  RUNTIME_VERSION,
   RUNTIME_ORIGIN,
   RUNTIME_GITHUB,
   RUNTIME_LIVE_COUNT,
   RUNTIME_LOCAL_ONLY,
-  RUNTIME_DESCRIPTION,
   RUNTIME_KERNEL,
+  resolveRuntimeVersion,
+  runtimeDescription,
+  softwareDescription,
 } from "./runtime-copy.js";
 
 export const CANON_HOST = "https://www.azielcorpuslibrary.net";
@@ -70,7 +71,7 @@ export function organizationNode() {
   };
 }
 
-export function defaultDescription(kind) {
+export function defaultDescription(kind, runtimeVersion) {
   if (kind === "map") return "Temporal map of Aziel Digital Library. Event pins from corpus evidence. Author Aziel Eliab.";
   if (kind === "gazetteer") return "World gazetteer for Aziel Digital Library. GeoNames CC BY 4.0 place lookup. Author Aziel Eliab.";
   if (kind === "tree") return "Evidence-based corpus tree for Aziel Digital Library. Author Aziel Eliab.";
@@ -81,8 +82,8 @@ export function defaultDescription(kind) {
   if (kind === "verify") return "Integrity verification of the hosted Aziel Digital Library MASTER. Author Aziel Eliab.";
   if (kind === "corpus") return "Public corpus of Aziel Digital Library. Search published records. Author Aziel Eliab.";
   if (kind === "aziel-library") return "Aziel Library — royal-purple operator collection of work by Aziel Eliab on Aziel Digital Library.";
-  if (kind === "runtime") return RUNTIME_DESCRIPTION;
-  if (kind === "software") return "Downloadable software by Aziel Eliab. Product catalog for aziel-runtime " + RUNTIME_VERSION + " FragGate, AzielTether, and the Aziel suite. Invoke from this domain at /runtime. Author Aziel Eliab.";
+  if (kind === "runtime") return runtimeDescription(runtimeVersion);
+  if (kind === "software") return softwareDescription(runtimeVersion);
   if (kind === "about") return "About Aziel Eliab. What matters is the record: hashed receipts, timed files, and software that can be opened without taking the speaker on faith. Signed Aziel Elroi Eliab. GodLock is one product on that record.";
   if (kind === "scored" || kind === "how-its-scored") return "How Aziel Digital Library scores records: triad SPRE × CLCE × PhysLing, and ZionPattern meaning (75 is intentional suppression confidence; lower is more natural). Author Aziel Eliab.";
   if (kind === "pattern") return "Pattern clusters across Aziel Digital Library domains, subjects, and keywords. Author Aziel Eliab.";
@@ -145,7 +146,7 @@ function isoDate(value) {
   return undefined;
 }
 
-function jsonLd(title, path, kind, description, work) {
+function jsonLd(title, path, kind, description, work, runtimeVersion) {
   const person = personNode();
   const org = organizationNode();
   const website = {
@@ -198,14 +199,15 @@ function jsonLd(title, path, kind, description, work) {
     graph.push({ "@type": "Map", name: "Temporal Map", url: CANON_HOST + "/map", creator: { "@id": person["@id"] } });
   }
   if (kind === "runtime" || path === "/runtime" || kind === "software" || path === "/software" || path === "/") {
+    const ver = resolveRuntimeVersion(runtimeVersion);
     graph.push({
       "@type": "SoftwareApplication",
       name: "aziel-runtime",
-      softwareVersion: RUNTIME_VERSION,
+      softwareVersion: ver,
       applicationCategory: "DeveloperApplication",
       operatingSystem: "Cloudflare Workers",
       url: CANON_HOST + "/runtime",
-      description: RUNTIME_DESCRIPTION,
+      description: runtimeDescription(ver),
       author: { "@id": person["@id"] },
       license: "https://www.apache.org/licenses/LICENSE-2.0",
       codeRepository: GITHUB_RUNTIME,
@@ -216,7 +218,7 @@ function jsonLd(title, path, kind, description, work) {
       name: "aziel-runtime FragGate",
       url: CANON_HOST + "/runtime/v1/fraggate",
       documentation: CANON_HOST + "/runtime",
-      description: "FragGate " + RUNTIME_VERSION + " door. " + RUNTIME_LIVE_COUNT + " live advisory engines; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse. Kernel " + RUNTIME_KERNEL + ".",
+      description: "FragGate " + ver + " door. " + RUNTIME_LIVE_COUNT + " live advisory engines; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse. Kernel " + RUNTIME_KERNEL + ".",
       provider: { "@id": person["@id"] },
       termsOfService: CANON_HOST + "/runtime",
     });
@@ -264,9 +266,10 @@ export function headMeta(opts) {
   const title = opts.title || SITE;
   const path = opts.path || "/";
   const kind = opts.kind || "";
-  const description = opts.description || defaultDescription(kind);
+  const runtimeVersion = opts.runtimeVersion;
+  const description = opts.description || defaultDescription(kind, runtimeVersion);
   const url = CANON_HOST + path;
-  const ld = jsonLd(title, path, kind, description, opts.work);
+  const ld = jsonLd(title, path, kind, description, opts.work, runtimeVersion);
   const ldOpen = "<" + "script type=" + Q + "application/ld+json" + Q + ">";
   const ldClose = "</" + "script>";
   const image = opts.image || SHARE_IMAGE;

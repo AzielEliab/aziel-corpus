@@ -75,6 +75,25 @@ test("runtime JSON-LD and discovery links advertise FragGate 1.6.2", () => {
   assert.doesNotMatch(defaultDescription("runtime"), /1\.4\.0/);
 });
 
+test("software JSON-LD and meta prefer live catalog.version over baked 1.6.2", () => {
+  const html = headMeta({ title: "Software", path: "/software", kind: "software", runtimeVersion: "1.6.7" });
+  const ld = graphFrom(html);
+  const runtimeApp = ld["@graph"].find((n) => n["@type"] === "SoftwareApplication" && n.name === "aziel-runtime");
+  assert.ok(runtimeApp);
+  assert.equal(runtimeApp.softwareVersion, "1.6.7");
+  assert.match(runtimeApp.description, /1\.6\.7/);
+  assert.doesNotMatch(runtimeApp.description, /1\.6\.2/);
+  const api = ld["@graph"].find((n) => n["@type"] === "WebAPI");
+  assert.match(api.description, /FragGate 1\.6\.7/);
+  assert.doesNotMatch(api.description, /1\.6\.2/);
+  assert.match(html, /aziel-runtime 1\.6\.7 FragGate/);
+  assert.doesNotMatch(html, /aziel-runtime 1\.6\.2/);
+  assert.match(defaultDescription("software", "1.6.7"), /aziel-runtime 1\.6\.7 FragGate/);
+  assert.doesNotMatch(defaultDescription("software", "1.6.7"), /1\.6\.2/);
+  assert.match(defaultDescription("software"), /1\.6\.2/);
+  assert.doesNotMatch(html, BANNED);
+});
+
 test("page-specific descriptions and share images", () => {
   assert.match(defaultDescription("about"), /Aziel Eliab/);
   assert.match(defaultDescription("about"), /Aziel Elroi Eliab/);
