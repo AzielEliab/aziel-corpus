@@ -238,6 +238,13 @@ export function usesForSlug(usesDoc, slug) {
   return null;
 }
 
+export function countUrlForProduct(product) {
+  const slug = String((product && product.slug) || "").toLowerCase();
+  const listed = firstText(product && product.count);
+  if (slug === "fraggate") return firstText(listed, FRAGGATE_COUNT);
+  return listed;
+}
+
 export function countPills({ downloads, views, uploads, uses } = {}) {
   const pills = [];
   if (downloads != null) pills.push(String(downloads) + " downloads");
@@ -308,7 +315,7 @@ export async function loadSoftwareCatalog(env, stats) {
     usesDoc = null;
   }
 
-  const counts = await Promise.all(merged.map((p) => fetchCountDoc(p.count)));
+  const counts = await Promise.all(merged.map((p) => fetchCountDoc(countUrlForProduct(p))));
   let fetched = 0;
   const cards = merged.map((p, i) => {
     const slug = String(p.slug || "").toLowerCase();
