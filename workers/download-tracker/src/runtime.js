@@ -12,6 +12,7 @@ import { continueVerifyGeo, geoVerifyStatus, GEO_PIN_NOTE } from "./geo.js";
 import { RUNTIME_VERSION, RUNTIME_NOTE, runtimeHowTo, AI_CLIENTS } from "./runtime-copy.js";
 import { checkLibraryUpdate, LIBRARY_SLUG, LIBRARY_VERSION } from "./update-check.js";
 import { fetchLiveSoftwareCatalog } from "./software-catalog.js";
+import { handleMeshApi } from "./mesh.js";
 const PRODUCT = "aziel-corpus";
 const VERSION = "2.7.0";
 const SPEC = "aziel-digital-library-v2.7.0";
@@ -64,6 +65,7 @@ Always send \`User-Agent: Mozilla/5.0\`.
 - Library skill: \`GET ${HOST}/v1/skill\`
 - Live software catalog: \`GET ${HOST}/v1/software\` (origin ${CATALOG}/v1/software; fallback fraggate/list)
 - Installer update check: \`GET ${HOST}/v1/update/check?slug=aziel-corpus&version=\` (origin ${CATALOG}/v1/update/check)
+- Suite mesh (default off until runtime enable): \`GET ${HOST}/v1/mesh\` · \`GET ${HOST}/runtime/v1/mesh\` (origin ${CATALOG}/v1/mesh)
 
 Ops (do **not** increment downloads):
 
@@ -73,6 +75,8 @@ Ops (do **not** increment downloads):
 - \`GET /v1/skill\`
 - \`GET /v1/review?record_id=\` (triad + ZionPattern Solver secondary score + succession cites)
 - \`GET /v1/lattice?record_id=\`
+- \`GET /v1/mesh\` · \`GET /v1/mesh/status\` · \`GET /v1/mesh/nodes\` (suite mesh; default off until runtime enable)
+- \`GET /runtime/v1/mesh\` (same-origin proxy of runtime mesh)
 - \`POST /v1/score\` (document review preview)
 - \`GET /v1/verify-backfill?all=1\` (walk every stored Aziel Library + Corpus record)
 - \`GET /v1/verify-geo?force=1\` / \`?status=1\` (chunked map pins: paper date × event × geolocation)
@@ -145,6 +149,12 @@ function openapi() {
       "/v1/skill": { get: { summary: "Skill markdown.", operationId: "skill" } },
       "/v1/review": { get: { summary: "Triad composite (SPRE × CLCE × PhysLing geometric mean) plus component scores, Bayesian (unranked), quarantine, document chain tip, and exact-same-subject succession cites when present. Does not increment downloads.", operationId: "review", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
       "/v1/lattice": { get: { summary: "AzielTether lattice anchor tip for a verified record. Public site is not a mesh.", operationId: "lattice", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
+      "/v1/mesh": { get: { summary: "Suite decentralized node mesh status. Default off until aziel-runtime enables it. Proxies /v1/mesh. Author Aziel Eliab.", operationId: "mesh" } },
+      "/v1/mesh/status": { get: { summary: "Suite mesh status alias. Default off until runtime enable. Author Aziel Eliab.", operationId: "meshStatus" } },
+      "/v1/mesh/nodes": { get: { summary: "Live Nodes list for the suite mesh. Empty while default off. Author Aziel Eliab.", operationId: "meshNodes" } },
+      "/runtime/v1/mesh": { get: { summary: "Same-origin proxy of aziel-runtime /v1/mesh. Default off until runtime enable.", operationId: "runtimeProxyMesh" } },
+      "/runtime/v1/mesh/status": { get: { summary: "Same-origin proxy of aziel-runtime /v1/mesh/status. Default off until runtime enable.", operationId: "runtimeProxyMeshStatus" } },
+      "/runtime/v1/mesh/nodes": { get: { summary: "Same-origin proxy of aziel-runtime /v1/mesh/nodes. Live Nodes empty while off.", operationId: "runtimeProxyMeshNodes" } },
       "/v1/score": { post: { summary: "Preview document review (SPRE, CLCE port, PhysLing, poison, triad, Bayesian). Advisory. Does not write.", operationId: "score" } },
       "/v1/verify-backfill": { get: { summary: "Walk stored records: triad, ZionPattern Solver secondary score, and exact-same-subject succession. all=1 walks every remaining doc (chunked). Reports total/scored/skipped/failed. Does not increment downloads.", operationId: "verifyBackfill", parameters: [{ name: "limit", in: "query", schema: { type: "integer", default: 25 } }, { name: "force", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "all", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "record_id", in: "query", schema: { type: "string" } }] } },
       "/v1/verify-geo": { get: { summary: "Chunked geography reindex: date × event × geolocation pins for docs with geospatial anchors (paper time, never upload time). force=1 restarts. status=1 progress. Does not increment downloads.", operationId: "verifyGeo", parameters: [{ name: "force", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "status", in: "query", schema: { type: "string", enum: ["0", "1"] } }] } },
@@ -199,6 +209,8 @@ export async function handleRuntimeApi(request, url, env) {
     if (request.method === "HEAD") return new Response(null, { status: res.status, headers: res.headers });
     return res;
   }
+  const mesh = await handleMeshApi(request, url, env);
+  if (mesh) return mesh;
   if (path === "/v1/software" && (request.method === "GET" || request.method === "HEAD")) {
     const live = await fetchLiveSoftwareCatalog(env);
     const res = json({
@@ -252,6 +264,9 @@ export async function handleRuntimeApi(request, url, env) {
       aziel_runtime_manifest: HOST + "/v1/runtime.json",
       aziel_runtime_manifest_alias: HOST + "/runtime/v1/runtime.json",
       aziel_runtime_origin: "https://aziel-runtime.vibelock.workers.dev/v1/runtime.json",
+      mesh: HOST + "/v1/mesh",
+      runtime_mesh: HOST + "/runtime/v1/mesh",
+      mesh_note: "Suite node mesh. Default off until runtime enable. Author Aziel Eliab.",
     });
   }
   const docsDl = path.match(/^\/v1\/docs\/([^/]+)\/download$/);
@@ -291,6 +306,7 @@ export async function handleRuntimeApi(request, url, env) {
         verify_geo: "GET /v1/verify-geo?force=1 / ?status=1 — chunked paper-date × event × geolocation pins. Never upload time.",
         jeeves: JEEVES_LIMITATION,
         lattice: "aziel.lattice.anchor.v1 for AzielTether; site is not a mesh",
+        mesh: "GET /v1/mesh and /runtime/v1/mesh — suite node mesh; default off until runtime enable. Author Aziel Eliab.",
         transcription: "POST /transcribe — Workers AI Whisper; video has no FFmpeg demux; VibeLock determination is mandatory",
         vibelock: "Mandatory determination on every /transcribe run. Hard blocks porn, nudity, child-sexual content. Not courtroom proof.",
         media_lattice: "Every OCR and transcript run appends a lattice receipt. Transcript success is LATTICE_TRANSCRIPT_VIBELOCK; blocked A/V is LATTICE_AV_BLOCKED (HTTP 451).",

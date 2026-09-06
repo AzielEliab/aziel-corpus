@@ -300,6 +300,8 @@ export function headMeta(opts) {
     linkRel("alternate", "/.well-known/mcp.json", " type=" + Q + "application/json" + Q + " title=" + Q + "MCP discovery" + Q),
     linkRel("alternate", "/mcp.json", " type=" + Q + "application/json" + Q + " title=" + Q + "MCP discovery" + Q),
     linkRel("alternate", "/v1/software", " type=" + Q + "application/json" + Q + " title=" + Q + "Live software catalog" + Q),
+    linkRel("alternate", "/v1/mesh", " type=" + Q + "application/json" + Q + " title=" + Q + "Suite mesh / Live Nodes" + Q),
+    linkRel("alternate", "/runtime/v1/mesh", " type=" + Q + "application/json" + Q + " title=" + Q + "Runtime mesh" + Q),
     linkRel("alternate", "/runtime/llms.txt", " type=" + Q + "text/plain" + Q + " title=" + Q + "Runtime llms.txt" + Q),
     linkRel("alternate", "/runtime/cite.json", " type=" + Q + "application/json" + Q + " title=" + Q + "Runtime cite.json" + Q),
     linkRel("sitemap", "/sitemap.xml"),
