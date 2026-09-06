@@ -159,9 +159,11 @@ test("productLinks tethers download, GitHub, and same-origin FragGate MCP door",
     slug: "azbrowser",
     download: "https://azbrowser-download-tracker.vibelock.workers.dev/download",
     worker: "azbrowser-download-tracker",
+    worker_home: "https://azbrowser-download-tracker.vibelock.workers.dev/",
     github: "https://github.com/AzielEliab/azbrowser",
   });
   assert.equal(azb[0].href, "https://azbrowser-download-tracker.vibelock.workers.dev/download");
+  assert.ok(!azb.some((l) => l.label === "Worker"));
   assert.ok(!azb.some((l) => /fraggate-download-tracker/.test(l.href)));
 });
 
