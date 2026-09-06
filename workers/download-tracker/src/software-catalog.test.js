@@ -4,6 +4,8 @@ import { softwareBody } from "./ui.js";
 import { handleHosted } from "./hosted.js";
 import {
   SOFTWARE_EXTRAS,
+  FRAGGATE_DOWNLOAD,
+  FRAGGATE_WORKER_HOME,
   softwareKind,
   compareSoftware,
   displayName,
@@ -104,6 +106,30 @@ test("mergeSoftwareExtras adds FragGate and EmbryoLock without dropping catalog 
   assert.equal(SOFTWARE_EXTRAS.length, 2);
   const already = mergeSoftwareExtras([{ slug: "fraggate", name: "FragGate", door: true }]);
   assert.equal(already.filter((p) => p.slug === "fraggate").length, 1);
+  const fg = already.find((p) => p.slug === "fraggate");
+  assert.equal(fg.download, FRAGGATE_DOWNLOAD);
+  assert.equal(fg.worker_home, FRAGGATE_WORKER_HOME);
+});
+
+test("mergeSoftwareExtras fills FragGate Worker download when catalog extras omit it", () => {
+  const collected = collectCatalogProducts({
+    extras: [{
+      slug: "fraggate",
+      name: "FragGate",
+      door: "fraggate",
+      worker: null,
+      github: "https://github.com/AzielEliab/fraggate",
+      one_line: "Hashed registry door. Not a Software engine and not a download-tracker.",
+    }],
+  });
+  const merged = mergeSoftwareExtras(collected);
+  const fg = merged.find((p) => p.slug === "fraggate");
+  assert.equal(merged.filter((p) => p.slug === "fraggate").length, 1);
+  assert.equal(fg.download, FRAGGATE_DOWNLOAD);
+  assert.equal(fg.worker, "fraggate-download-tracker");
+  assert.equal(fg.worker_home, FRAGGATE_WORKER_HOME);
+  assert.match(fg.one_line, /Separate FragGate app/);
+  assert.doesNotMatch(fg.one_line, /not a download-tracker/i);
 });
 
 test("productLinks tethers download, GitHub, and same-origin FragGate MCP door", () => {
@@ -123,6 +149,22 @@ test("productLinks tethers download, GitHub, and same-origin FragGate MCP door",
   const door = productLinks({ slug: "embryolock", catalog_only: true, github: "https://github.com/AzielEliab/embryolock" });
   assert.ok(!door.some((l) => l.label === "Download"));
   assert.ok(door.some((l) => l.href === "/runtime/v1/fraggate/describe?slug=embryolock"));
+  const fg = productLinks(SOFTWARE_EXTRAS.find((p) => p.slug === "fraggate"));
+  assert.equal(fg[0].label, "Download");
+  assert.equal(fg[0].primary, true);
+  assert.equal(fg[0].href, FRAGGATE_DOWNLOAD);
+  assert.ok(fg.some((l) => l.label === "Worker" && l.href === FRAGGATE_WORKER_HOME && !l.primary));
+  assert.ok(fg.some((l) => l.label === "GitHub" && l.href === "https://github.com/AzielEliab/fraggate"));
+  const azb = productLinks({
+    slug: "azbrowser",
+    download: "https://azbrowser-download-tracker.vibelock.workers.dev/download",
+    worker: "azbrowser-download-tracker",
+    worker_home: "https://azbrowser-download-tracker.vibelock.workers.dev/",
+    github: "https://github.com/AzielEliab/azbrowser",
+  });
+  assert.equal(azb[0].href, "https://azbrowser-download-tracker.vibelock.workers.dev/download");
+  assert.ok(!azb.some((l) => l.label === "Worker"));
+  assert.ok(!azb.some((l) => /fraggate-download-tracker/.test(l.href)));
 });
 
 test("count and uses helpers surface download, view, upload, and slug uses", () => {
@@ -166,6 +208,9 @@ test("softwareBody renders every card in Plain → Gate → Lock with live-catal
   assert.match(html, /AZMail/);
   assert.match(html, /FragGate/);
   assert.match(html, /EmbryoLock/);
+  assert.match(html, /fraggate-download-tracker\.vibelock\.workers\.dev\/download/);
+  assert.match(html, /Runtime 1\.6\.4 · FragGate/);
+  assert.match(html, /not nested AZBrowser UI/);
   assert.match(html, /<h2>Software<\/h2>/);
   assert.match(html, /<h2>Gate<\/h2>/);
   assert.match(html, /<h2>Lock<\/h2>/);
@@ -219,6 +264,8 @@ test("GET /software uses AZIEL_RUNTIME catalog binding and lists every product",
   assert.match(html, /FragGate/);
   assert.match(html, /EmbryoLock/);
   assert.match(html, /Plain Product 24/);
+  assert.match(html, /fraggate-download-tracker\.vibelock\.workers\.dev\/download/);
+  assert.match(html, /Runtime 1\.6\.4 · FragGate/);
   assert.match(html, /\/runtime\/v1\/fraggate\/describe\?slug=peacelock/);
   assert.match(html, /\/runtime\/mcp/);
   assert.match(html, /mirrors the live aziel-runtime catalog/);
@@ -227,4 +274,7 @@ test("GET /software uses AZIEL_RUNTIME catalog binding and lists every product",
   assert.ok(built.downloadable > 27);
   assert.ok(built.products.some((p) => p.slug === "azmail"));
   assert.ok(built.products.some((p) => p.slug === "embryolock"));
+  const fg = built.products.find((p) => p.slug === "fraggate");
+  assert.ok(fg.links.some((l) => l.primary && l.label === "Download" && l.href === FRAGGATE_DOWNLOAD));
+  assert.ok(fg.links.some((l) => l.label === "GitHub"));
 });

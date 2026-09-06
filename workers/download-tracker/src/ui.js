@@ -646,6 +646,7 @@ export function softwareBody(model = {}) {
   const n = Number(model.downloadable != null ? model.downloadable : products.length) || 0;
   const live = Number(model.fetched) || 0;
   const ver = model.catalogVersion || RUNTIME_VERSION;
+  const chip = "Runtime " + ver + " · FragGate";
   const extras = Number(model.extras) || 0;
   const counters = [];
   if (model.usesTotal != null) counters.push("this-door uses " + model.usesTotal);
@@ -656,9 +657,9 @@ export function softwareBody(model = {}) {
   const hubHtml = hub ? `<div class="soft-grid">${softCard(hub)}</div>` : "";
   return `<section class="hero"><h1>Downloadable software</h1>
 <p class="muted">This hub <strong>mirrors the live aziel-runtime catalog</strong> — <a href="/runtime/v1/catalog.json"><code>GET /runtime/v1/catalog.json</code></a> (service binding <code>AZIEL_RUNTIME</code> when wired; otherwise the workers.dev alternate). When the catalog grows (PeaceLock, AZMail, and later slugs) those products appear automatically. There is no fixed 27-product cap.</p>
-<p class="muted">Catalog of Aziel Eliab products you can download and run. <strong>Pull and invoke</strong> live on this domain at <a href="/runtime">${esc(RUNTIME_CHIP)}</a> — this tab is not a second AI root. Author Aziel Eliab only.</p>
+<p class="muted">Catalog of Aziel Eliab products you can download and run. <strong>Pull and invoke</strong> live on this domain at <a href="/runtime">${esc(chip)}</a> — this tab is not a second AI root. Author Aziel Eliab only.</p>
 <p class="muted"><strong>AzielTether</strong> is the survival mesh for downloaded Aziel software (prefer-central × peer sync). This public library is not a mesh — lattice tips are tip-shaped until tether carries them.</p>
-<p class="muted">Sort: Software (plain) A–Z → Gate A–Z → Lock A–Z. Clock is not Lock — the substring <code>clock</code> is stripped before <code>lock</code> is tested (StaticClock stays Software). Door extras FragGate and EmbryoLock (catalog-only) are listed without dropping catalog engines.</p>
+<p class="muted">Sort: Software (plain) A–Z → Gate A–Z → Lock A–Z. Clock is not Lock — the substring <code>clock</code> is stripped before <code>lock</code> is tested (StaticClock stays Software). Door extras FragGate (separate app Worker, not nested AZBrowser UI) and EmbryoLock (catalog-only) are listed without dropping catalog engines.</p>
 <p class="muted">Each card tethers to Worker <code>/download</code> when a worker is set, GitHub, and the same-origin Runtime MCP door: <a href="/runtime">/runtime</a>, <a href="/runtime/v1/fraggate/list"><code>/runtime/v1/fraggate/list</code></a>, <a href="/runtime/mcp"><code>/runtime/mcp</code></a>, FragGate call with slug. Counters: product <code>/count</code> (downloads / views / uploads), <a href="/runtime/v1/uses"><code>/runtime/v1/uses</code></a>, and library view/download totals when present.</p>
 <p class="muted">Live catalog from <a href="/runtime">/runtime</a> (aziel-runtime ${esc(ver)} FragGate) · alternate <a href="${esc(RUNTIME_ORIGIN)}/">workers.dev</a> · author Aziel Eliab only · GodLock is in this catalog · identity <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a> · ${esc(n)} catalog products · ${esc(extras)} door extras · ${esc(live)} live counters fetched${esc(counterLine)}.</p>
 <p class="soft-links"><a href="/how-its-scored">How it's scored</a> · <a href="/runtime">Runtime root</a> · <a href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a> · <a href="https://github.com/AzielEliab/aziel-corpus">aziel-corpus</a> · <a href="${esc(RUNTIME_GITHUB)}">aziel-runtime</a> · <a href="/llms.txt">llms.txt</a> · <a href="/ai.txt">ai.txt</a></p></section>
@@ -666,7 +667,7 @@ ${hubHtml}
 ${softSection("Software", groups.plain)}
 ${softSection("Gate", groups.gate)}
 ${softSection("Lock", groups.lock)}
-<div class="card"><p class="soft-links"><a class="button" href="/runtime">${esc(RUNTIME_CHIP)}</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="/runtime/v1/catalog.json">catalog.json</a> <a class="button ghost" href="/runtime/mcp">MCP</a> <a class="button ghost" href="/runtime/v1/uses">uses</a> <a class="button ghost" href="/v1/lattice">Lattice API</a></p></div>`;
+<div class="card"><p class="soft-links"><a class="button" href="/runtime">${esc(chip)}</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="/runtime/v1/catalog.json">catalog.json</a> <a class="button ghost" href="/runtime/mcp">MCP</a> <a class="button ghost" href="/runtime/v1/uses">uses</a> <a class="button ghost" href="/v1/lattice">Lattice API</a></p></div>`;
 }
 
 export { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, ocrBody, ocrFormHtml, SPECTRAL_LENSES, blockedAvBody } from "./hosted-pages.js";

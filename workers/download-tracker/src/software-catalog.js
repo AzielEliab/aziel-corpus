@@ -7,12 +7,16 @@ import {
   RUNTIME_ORIGIN,
   RUNTIME_VERSION,
   RUNTIME_NOTE,
-  RUNTIME_CHIP,
   RUNTIME_GITHUB,
 } from "./runtime-copy.js";
 import { runtimeUsesPayload } from "./runtime-uses.js";
 
 const UA = "Mozilla/5.0 AzielDigitalLibrary";
+
+/** Separate FragGate app (not nested AZBrowser UI). Author: Aziel Eliab only. */
+export const FRAGGATE_WORKER_HOME = "https://fraggate-download-tracker.vibelock.workers.dev/";
+export const FRAGGATE_DOWNLOAD = FRAGGATE_WORKER_HOME + "download";
+export const FRAGGATE_COUNT = FRAGGATE_WORKER_HOME + "count";
 
 export const SOFTWARE_EXTRAS = [
   {
@@ -21,7 +25,11 @@ export const SOFTWARE_EXTRAS = [
     version: "FG-0.1",
     door: true,
     github: "https://github.com/AzielEliab/fraggate",
-    one_line: "One door — discover, route, refuse. Hashed registry kernel over the Aziel Eliab catalog. A door, not only an engine.",
+    download: FRAGGATE_DOWNLOAD,
+    worker: "fraggate-download-tracker",
+    worker_home: FRAGGATE_WORKER_HOME,
+    count: FRAGGATE_COUNT,
+    one_line: "One door — discover, route, refuse. Separate FragGate app — not nested AZBrowser UI. Hashed registry kernel over the Aziel Eliab catalog.",
   },
   {
     slug: "embryolock",
@@ -32,6 +40,13 @@ export const SOFTWARE_EXTRAS = [
     one_line: "Catalog-only door. Listed here even before a live engine Worker is published. Author Aziel Eliab.",
   },
 ];
+
+function firstText(...vals) {
+  for (const v of vals) {
+    if (v != null && String(v).trim()) return v;
+  }
+  return "";
+}
 
 const KNOWN_NAMES = {
   ark: "The ARK",
@@ -129,10 +144,28 @@ export function collectCatalogProducts(catalog) {
 
 export function mergeSoftwareExtras(products) {
   const list = Array.isArray(products) ? products.slice() : [];
-  const have = new Set(list.map((p) => String(p.slug || "").toLowerCase()));
+  const index = new Map();
+  list.forEach((p, i) => index.set(String(p.slug || "").toLowerCase(), i));
   for (const door of SOFTWARE_EXTRAS) {
-    if (have.has(door.slug)) continue;
-    list.push(Object.assign({ extra: true }, door));
+    const i = index.get(door.slug);
+    if (i == null) {
+      list.push(Object.assign({ extra: true }, door));
+      index.set(door.slug, list.length - 1);
+      continue;
+    }
+    const prev = list[i] || {};
+    list[i] = Object.assign({}, door, prev, {
+      extra: true,
+      door: prev.door || door.door,
+      github: firstText(prev.github, door.github),
+      download: firstText(prev.download, door.download),
+      worker: firstText(prev.worker, door.worker),
+      worker_home: firstText(prev.worker_home, door.worker_home),
+      count: firstText(prev.count, door.count),
+      one_line: door.one_line || prev.one_line || prev.banner || "",
+      name: prev.name || door.name,
+      version: prev.version || door.version,
+    });
   }
   return list;
 }
@@ -143,6 +176,11 @@ export function productLinks(product) {
   const workerSet = Boolean(product && (product.worker || product.download));
   if (workerSet && product.download) {
     links.push({ href: product.download, label: "Download", primary: true });
+  } else if (slug === "fraggate" && product && product.worker_home) {
+    links.push({ href: product.worker_home, label: "Worker", primary: true });
+  }
+  if (slug === "fraggate" && product && product.worker_home && !links.some((l) => l.href === product.worker_home)) {
+    links.push({ href: product.worker_home, label: "Worker" });
   }
   if (product && product.github) links.push({ href: product.github, label: "GitHub" });
   links.push({ href: "/runtime", label: "Runtime" });
@@ -299,15 +337,17 @@ export async function loadSoftwareCatalog(env, stats) {
     hubPills.push(String(originUses) + " origin uses");
   }
 
+  const catalogVersion = (catalog && catalog.version) || RUNTIME_VERSION;
+  const runtimeChip = "Runtime " + catalogVersion + " · FragGate";
   const hub = {
     name: "aziel-runtime",
-    version: (catalog && catalog.version) || RUNTIME_VERSION,
+    version: catalogVersion,
     root: true,
     kind: "plain",
     pills: hubPills,
-    blurb: RUNTIME_NOTE + " Software hub mirrors this live catalog. Author Aziel Eliab.",
+    blurb: RUNTIME_NOTE.replace(RUNTIME_VERSION, catalogVersion) + " Software hub mirrors this live catalog. Author Aziel Eliab.",
     links: [
-      { href: "/runtime", label: RUNTIME_CHIP, primary: true },
+      { href: "/runtime", label: runtimeChip, primary: true },
       { href: "/runtime/v1/fraggate/list", label: "fraggate/list" },
       { href: "/runtime/mcp", label: "MCP" },
       { href: "/runtime/v1/uses", label: "uses" },
@@ -323,7 +363,7 @@ export async function loadSoftwareCatalog(env, stats) {
     fetched,
     downloadable: collected.length,
     extras: cards.filter((c) => c.extra).length,
-    catalogVersion: (catalog && catalog.version) || RUNTIME_VERSION,
+    catalogVersion,
     usesTotal: localUses,
     originUses: originUses != null && Number.isFinite(originUses) ? originUses : null,
     siteViews: stats && stats.views != null ? Number(stats.views) : null,
