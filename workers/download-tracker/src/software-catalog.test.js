@@ -166,7 +166,7 @@ test("mergeSoftwareExtras fills AZNet Worker download/count when catalog omits t
   assert.equal(az.count, AZNET_COUNT);
   assert.equal(countUrlForProduct({ slug: "aznet", count: null }), AZNET_COUNT);
   assert.equal(softwareKind(az), "plain");
-  assert.match(az.one_line, /Separate app from AZBrowser and FragGate/);
+  assert.match(az.one_line, /Separate software; functional-order pair with AZBrowser/);
   assert.ok(merged.some((p) => p.slug === "azbrowser"));
 });
 
@@ -240,6 +240,10 @@ test("hubSoftwareCopy prefers separate software over separate engine", () => {
   assert.equal(
     hubSoftwareCopy("AZNet is a separate engine (order/token pairing only)."),
     "AZNet is separate software (order/token pairing only).",
+  );
+  assert.equal(
+    hubSoftwareCopy("Separate engine; functional-order pair with AZBrowser."),
+    "Separate software; functional-order pair with AZBrowser.",
   );
   assert.equal(hubSoftwareCopy("Same FragGate door."), "Same FragGate door.");
 });
@@ -423,7 +427,7 @@ test("GET /software uses AZIEL_RUNTIME catalog binding and lists every product",
   }
 });
 
-test("AZNet and FragGate card Worker /count pills; AZBrowser stays a separate engine", async () => {
+test("AZNet and FragGate card Worker /count pills; AZBrowser stays separate software", async () => {
   const catalog = {
     version: "1.6.6",
     products: [{
@@ -508,7 +512,7 @@ test("AZNet and FragGate card Worker /count pills; AZBrowser stays a separate en
     assert.ok(azn.links.some((l) => l.primary && l.href === AZNET_DOWNLOAD));
     assert.ok(azn.links.some((l) => l.label === "Worker" && l.href === AZNET_WORKER_HOME));
     assert.ok(!azn.links.some((l) => /fraggate-download-tracker|azbrowser-download-tracker/.test(l.href)));
-    assert.match(azn.blurb, /Separate app from AZBrowser and FragGate/);
+    assert.match(azn.blurb, /Separate software; functional-order pair with AZBrowser/);
     const html = softwareBody(built);
     assert.match(html, /data-slug="fraggate"/);
     assert.match(html, /data-slug="aznet"/);
@@ -536,7 +540,7 @@ test("loadSoftwareCatalog rewrites live catalog one_lines and adds Worker homepa
         ok: true,
         json: async () => ({
           ok: true,
-          version: "1.6.8",
+          version: "1.6.9",
           products: [
             {
               slug: "azbrowser",
@@ -545,26 +549,40 @@ test("loadSoftwareCatalog rewrites live catalog one_lines and adds Worker homepa
               kind: "software",
               github: "https://github.com/AzielEliab/azbrowser",
               worker: "azbrowser-download-tracker",
+              worker_home: "https://azbrowser-download-tracker.vibelock.workers.dev/",
               download: "https://azbrowser-download-tracker.vibelock.workers.dev/download",
               count: "https://azbrowser-download-tracker.vibelock.workers.dev/count",
             },
             {
+              slug: "aznet",
+              name: "AZNet",
+              one_line: "AZNet (AZN-WP-0.1): silent verification side-net. Hash continuity without hosting. Separate engine; functional-order pair with AZBrowser.",
+              kind: "software",
+              github: "https://github.com/AzielEliab/aznet",
+              worker: "aznet-download-tracker",
+              worker_home: "https://aznet-download-tracker.vibelock.workers.dev/",
+              download: "https://aznet-download-tracker.vibelock.workers.dev/download",
+              count: "https://aznet-download-tracker.vibelock.workers.dev/count",
+            },
+            {
               slug: "azhub",
               name: "AZHub",
-              one_line: "AZHub (AIH-WP-1.0): Blank Key / neutral spatial container. Does not interpret. FragGate only. AZInterface is a separate engine.",
+              one_line: "AZHub (AIH-WP-1.0): Blank Key / neutral spatial container. Does not interpret. FragGate only. AZInterface is sibling software under the same FragGate door.",
               kind: "software",
               github: "https://github.com/AzielEliab/azhub",
               worker: "azhub-download-tracker",
+              worker_home: "https://azhub-download-tracker.vibelock.workers.dev/",
               download: "https://azhub-download-tracker.vibelock.workers.dev/download",
               count: "https://azhub-download-tracker.vibelock.workers.dev/count",
             },
             {
               slug: "azinterface",
               name: "AZInterface",
-              one_line: "AZInterface (AIH-WP-1.0): custodial operating environment. Pre-locked page cycles OFF/integrity/ON/FULL SHUTDOWN/MEMORIAL. FragGate only. AZHub is a separate engine.",
+              one_line: "AZInterface (AIH-WP-1.0): custodial operating environment. Pre-locked page cycles OFF/integrity/ON/FULL SHUTDOWN/MEMORIAL. FragGate only. AZHub is sibling software under the same FragGate door.",
               kind: "software",
               github: "https://github.com/AzielEliab/azinterface",
               worker: "azinterface-download-tracker",
+              worker_home: "https://azinterface-download-tracker.vibelock.workers.dev/",
               download: "https://azinterface-download-tracker.vibelock.workers.dev/download",
               count: "https://azinterface-download-tracker.vibelock.workers.dev/count",
             },
@@ -579,16 +597,18 @@ test("loadSoftwareCatalog rewrites live catalog one_lines and adds Worker homepa
     const azh = built.products.find((p) => p.slug === "azhub");
     const azi = built.products.find((p) => p.slug === "azinterface");
     const azb = built.products.find((p) => p.slug === "azbrowser");
+    const azn = built.products.find((p) => p.slug === "aznet");
     assert.ok(azh);
     assert.ok(azi);
+    assert.ok(azn);
     assert.equal(azh.kind, "plain");
     assert.equal(azi.kind, "plain");
-    assert.match(azh.blurb, /AZInterface is separate software/);
-    assert.match(azi.blurb, /AZHub is separate software/);
+    assert.equal(azn.kind, "plain");
+    assert.match(azh.blurb, /AZInterface is sibling software under the same FragGate door/);
+    assert.match(azi.blurb, /AZHub is sibling software under the same FragGate door/);
     assert.match(azb.blurb, /AZNet is separate software/);
-    assert.ok(!/separate engine/i.test(azh.blurb));
-    assert.ok(!/separate engine/i.test(azi.blurb));
-    assert.ok(!/separate engine/i.test(azb.blurb));
+    assert.match(azn.blurb, /Separate software; functional-order pair with AZBrowser/);
+    assert.ok(!/separate engine/i.test(azh.blurb + azi.blurb + azb.blurb + azn.blurb));
     assert.ok(azh.links.some((l) => l.primary && l.href === "https://azhub-download-tracker.vibelock.workers.dev/download"));
     assert.ok(azh.links.some((l) => l.label === "Worker" && l.href === "https://azhub-download-tracker.vibelock.workers.dev/"));
     assert.ok(azi.links.some((l) => l.primary && l.href === "https://azinterface-download-tracker.vibelock.workers.dev/download"));
@@ -600,7 +620,8 @@ test("loadSoftwareCatalog rewrites live catalog one_lines and adds Worker homepa
     const idxAzb = html.indexOf('data-slug="azbrowser"');
     const idxAzh = html.indexOf('data-slug="azhub"');
     const idxAzi = html.indexOf('data-slug="azinterface"');
-    assert.ok(idxAzb < idxAzh && idxAzh < idxAzi);
+    const idxAzn = html.indexOf('data-slug="aznet"');
+    assert.ok(idxAzb < idxAzh && idxAzh < idxAzi && idxAzi < idxAzn);
     assert.match(html, /azhub-download-tracker\.vibelock\.workers\.dev\/["']/);
     assert.match(html, /azinterface-download-tracker\.vibelock\.workers\.dev\/["']/);
   } finally {
