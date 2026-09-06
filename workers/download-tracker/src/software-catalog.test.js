@@ -22,6 +22,7 @@ import {
   countUrlForProduct,
   countPills,
   loadSoftwareCatalog,
+  hubSoftwareCopy,
 } from "./software-catalog.js";
 
 const HOST = "https://www.azielcorpuslibrary.net";
@@ -211,6 +212,36 @@ test("productLinks tethers download, GitHub, and same-origin FragGate MCP door",
   assert.ok(azn.some((l) => l.label === "GitHub" && l.href === "https://github.com/AzielEliab/aznet"));
   assert.ok(!azn.some((l) => /fraggate-download-tracker/.test(l.href)));
   assert.ok(!azn.some((l) => /azbrowser-download-tracker/.test(l.href)));
+  const azh = productLinks({
+    slug: "azhub",
+    download: "https://azhub-download-tracker.vibelock.workers.dev/download",
+    worker: "azhub-download-tracker",
+    github: "https://github.com/AzielEliab/azhub",
+  });
+  assert.equal(azh[0].href, "https://azhub-download-tracker.vibelock.workers.dev/download");
+  assert.ok(azh.some((l) => l.label === "Worker" && l.href === "https://azhub-download-tracker.vibelock.workers.dev/" && !l.primary));
+  assert.ok(!azh.some((l) => /azinterface-download-tracker/.test(l.href)));
+  const azi = productLinks({
+    slug: "azinterface",
+    download: "https://azinterface-download-tracker.vibelock.workers.dev/download",
+    worker: "azinterface-download-tracker",
+    github: "https://github.com/AzielEliab/azinterface",
+  });
+  assert.equal(azi[0].href, "https://azinterface-download-tracker.vibelock.workers.dev/download");
+  assert.ok(azi.some((l) => l.label === "Worker" && l.href === "https://azinterface-download-tracker.vibelock.workers.dev/" && !l.primary));
+  assert.ok(!azi.some((l) => /azhub-download-tracker/.test(l.href)));
+});
+
+test("hubSoftwareCopy prefers separate software over separate engine", () => {
+  assert.equal(
+    hubSoftwareCopy("AZInterface is a separate engine."),
+    "AZInterface is separate software.",
+  );
+  assert.equal(
+    hubSoftwareCopy("AZNet is a separate engine (order/token pairing only)."),
+    "AZNet is separate software (order/token pairing only).",
+  );
+  assert.equal(hubSoftwareCopy("Same FragGate door."), "Same FragGate door.");
 });
 
 test("count and uses helpers surface download, view, upload, and slug uses", () => {
@@ -492,6 +523,86 @@ test("AZNet and FragGate card Worker /count pills; AZBrowser stays a separate en
     const idxAzn = html.indexOf('data-slug="aznet"');
     const idxFg = html.indexOf('data-slug="fraggate"');
     assert.ok(idxAzb < idxAzn && idxAzn < idxFg);
+  } finally {
+    globalThis.fetch = origFetch;
+  }
+});
+
+test("loadSoftwareCatalog rewrites live catalog one_lines and adds Worker homepage", async () => {
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    if (String(url).includes("/v1/catalog.json")) {
+      return {
+        ok: true,
+        json: async () => ({
+          ok: true,
+          version: "1.6.8",
+          products: [
+            {
+              slug: "azbrowser",
+              name: "AZBrowser",
+              one_line: "AZBrowser (AZB-1.0): Lamb Lens ethical research browser. Cite; refuse harvest; no invented visits. FragGate only. AZNet is a separate engine (order/token pairing only).",
+              kind: "software",
+              github: "https://github.com/AzielEliab/azbrowser",
+              worker: "azbrowser-download-tracker",
+              download: "https://azbrowser-download-tracker.vibelock.workers.dev/download",
+              count: "https://azbrowser-download-tracker.vibelock.workers.dev/count",
+            },
+            {
+              slug: "azhub",
+              name: "AZHub",
+              one_line: "AZHub (AIH-WP-1.0): Blank Key / neutral spatial container. Does not interpret. FragGate only. AZInterface is a separate engine.",
+              kind: "software",
+              github: "https://github.com/AzielEliab/azhub",
+              worker: "azhub-download-tracker",
+              download: "https://azhub-download-tracker.vibelock.workers.dev/download",
+              count: "https://azhub-download-tracker.vibelock.workers.dev/count",
+            },
+            {
+              slug: "azinterface",
+              name: "AZInterface",
+              one_line: "AZInterface (AIH-WP-1.0): custodial operating environment. Pre-locked page cycles OFF/integrity/ON/FULL SHUTDOWN/MEMORIAL. FragGate only. AZHub is a separate engine.",
+              kind: "software",
+              github: "https://github.com/AzielEliab/azinterface",
+              worker: "azinterface-download-tracker",
+              download: "https://azinterface-download-tracker.vibelock.workers.dev/download",
+              count: "https://azinterface-download-tracker.vibelock.workers.dev/count",
+            },
+          ],
+        }),
+      };
+    }
+    throw new Error(`unexpected fetch ${url}`);
+  };
+  try {
+    const built = await loadSoftwareCatalog();
+    const azh = built.products.find((p) => p.slug === "azhub");
+    const azi = built.products.find((p) => p.slug === "azinterface");
+    const azb = built.products.find((p) => p.slug === "azbrowser");
+    assert.ok(azh);
+    assert.ok(azi);
+    assert.equal(azh.kind, "plain");
+    assert.equal(azi.kind, "plain");
+    assert.match(azh.blurb, /AZInterface is separate software/);
+    assert.match(azi.blurb, /AZHub is separate software/);
+    assert.match(azb.blurb, /AZNet is separate software/);
+    assert.ok(!/separate engine/i.test(azh.blurb));
+    assert.ok(!/separate engine/i.test(azi.blurb));
+    assert.ok(!/separate engine/i.test(azb.blurb));
+    assert.ok(azh.links.some((l) => l.primary && l.href === "https://azhub-download-tracker.vibelock.workers.dev/download"));
+    assert.ok(azh.links.some((l) => l.label === "Worker" && l.href === "https://azhub-download-tracker.vibelock.workers.dev/"));
+    assert.ok(azi.links.some((l) => l.primary && l.href === "https://azinterface-download-tracker.vibelock.workers.dev/download"));
+    assert.ok(azi.links.some((l) => l.label === "Worker" && l.href === "https://azinterface-download-tracker.vibelock.workers.dev/"));
+    assert.ok(!azb.links.some((l) => l.label === "Worker"));
+    assert.ok(!azh.links.some((l) => /azinterface-download-tracker/.test(l.href)));
+    assert.ok(!azi.links.some((l) => /azhub-download-tracker/.test(l.href)));
+    const html = softwareBody(built);
+    const idxAzb = html.indexOf('data-slug="azbrowser"');
+    const idxAzh = html.indexOf('data-slug="azhub"');
+    const idxAzi = html.indexOf('data-slug="azinterface"');
+    assert.ok(idxAzb < idxAzh && idxAzh < idxAzi);
+    assert.match(html, /azhub-download-tracker\.vibelock\.workers\.dev\/["']/);
+    assert.match(html, /azinterface-download-tracker\.vibelock\.workers\.dev\/["']/);
   } finally {
     globalThis.fetch = origFetch;
   }

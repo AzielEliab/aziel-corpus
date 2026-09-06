@@ -189,10 +189,38 @@ export function mergeSoftwareExtras(products) {
   return list;
 }
 
+/** Hub cards say "separate software" + the same FragGate door. Never nest products. */
+export function hubSoftwareCopy(text) {
+  return String(text || "")
+    .replace(/\ba separate engine\b/gi, "separate software")
+    .replace(/\bseparate engine\b/gi, "separate software");
+}
+
 function extraWorkerHome(product) {
   const slug = String((product && product.slug) || "").toLowerCase();
-  if (!product || !product.worker_home) return "";
-  if (slug === "fraggate" || slug === "aznet" || product.extra) return product.worker_home;
+  if (!(slug === "fraggate" || slug === "aznet" || slug === "azhub" || slug === "azinterface" || (product && product.extra))) {
+    return "";
+  }
+  const listed = firstText(product && product.worker_home);
+  if (listed) return listed.endsWith("/") ? listed : listed + "/";
+  const download = firstText(product && product.download);
+  if (download) {
+    try {
+      const u = new URL(download);
+      if (/\.workers\.dev$/i.test(u.hostname)) return u.origin + "/";
+    } catch {
+      /* ignore */
+    }
+  }
+  const worker = firstText(product && product.worker);
+  if (/^https?:\/\//i.test(worker)) {
+    try {
+      return new URL(worker).origin + "/";
+    } catch {
+      /* ignore */
+    }
+  }
+  if (/^[a-z0-9-]+$/i.test(worker)) return "https://" + worker + ".vibelock.workers.dev/";
   return "";
 }
 
@@ -320,7 +348,7 @@ function toCard(product, { pills, countHint } = {}) {
     extra: Boolean(product && product.extra),
     pills: pills || [],
     countLabel: countHint || "",
-    blurb: (product && (product.one_line || product.banner)) || "",
+    blurb: hubSoftwareCopy((product && (product.one_line || product.banner)) || ""),
     links: productLinks(product),
   };
 }
