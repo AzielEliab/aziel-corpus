@@ -21,6 +21,12 @@ import {
   RUNTIME_LIMITATION,
   runtimeHowTo,
 } from "./runtime-copy.js";
+import {
+  RUNTIME_VIA,
+  noteRuntimeUse,
+  runtimeUsesPayload,
+  runtimeUsesResponse,
+} from "./runtime-uses.js";
 
 export {
   HOST,
@@ -64,6 +70,7 @@ ${runtimeHowTo(HOST)}
 - FragGate list: \`GET ${HOST}/runtime/v1/fraggate/list\`
 - FragGate call: \`POST ${HOST}/runtime/v1/fraggate/call\`
 - Health: \`GET ${HOST}/runtime/v1/health\`
+- Uses (this door): \`GET ${HOST}/runtime/v1/uses\`
 - Manifest: \`GET ${HOST}/runtime/v1/runtime.json\`
 - Skill: \`GET ${HOST}/runtime/v1/skill\`
 - Pull: \`GET ${HOST}/runtime/v1/pull/{slug}\`
@@ -150,6 +157,7 @@ export function runtimeManifest(via = "library") {
     session_exec: HOST + "/runtime/v1/session/{id}/exec",
     session_note: "advanced/internal — prefer fraggate_call",
     health: HOST + "/runtime/v1/health",
+    uses: HOST + "/runtime/v1/uses",
     llms: HOST + "/runtime/llms.txt",
     library_llms: HOST + "/llms.txt",
     cite: HOST + "/runtime/cite.json",
@@ -247,6 +255,7 @@ function dropHopHeaders(headers) {
     out.set(k, v);
   }
   if (!out.get("User-Agent")) out.set("User-Agent", UA);
+  out.set("X-Aziel-Runtime-Via", RUNTIME_VIA);
   return out;
 }
 
@@ -299,7 +308,7 @@ async function proxyOrigin(request, destPathAndQuery, env) {
   return fetch(dest.toString(), init);
 }
 
-export async function handleRuntimeRoot(request, url, env, signed) {
+export async function handleRuntimeRoot(request, url, env, signed, ctx) {
   const path = url.pathname.replace(/\/+$/, "") || "/";
   const method = request.method;
 
@@ -312,6 +321,10 @@ export async function handleRuntimeRoot(request, url, env, signed) {
     });
   }
 
+  if (path === "/runtime/v1/uses" && (method === "GET" || method === "HEAD")) {
+    return respondMaybeHead(request, runtimeUsesResponse(await runtimeUsesPayload(env)));
+  }
+
   if (path === "/v1/runtime.json" && (method === "GET" || method === "HEAD")) {
     return proxyOrFallback(request, "/v1/runtime.json", env);
   }
@@ -319,6 +332,7 @@ export async function handleRuntimeRoot(request, url, env, signed) {
   const dest = destFromRuntimePath(url.pathname, url.search);
   if (!dest) return null;
   if (method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders() });
+  await noteRuntimeUse(env, ctx, method, path);
   return proxyOrFallback(request, dest, env);
 }
 

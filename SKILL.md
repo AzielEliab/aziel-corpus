@@ -27,6 +27,7 @@ Always send `User-Agent: Mozilla/5.0`.
 - Runtime skill: `GET https://www.azielcorpuslibrary.net/runtime/v1/skill`
 - Runtime manifest: `GET https://www.azielcorpuslibrary.net/runtime/v1/runtime.json`
 - Runtime health: `GET https://www.azielcorpuslibrary.net/runtime/v1/health`
+- Runtime uses (this door): `GET https://www.azielcorpuslibrary.net/runtime/v1/uses`
 - Pull: `GET https://www.azielcorpuslibrary.net/runtime/v1/pull/{slug}`
 - Session (advanced/internal): `POST https://www.azielcorpuslibrary.net/runtime/v1/session/open` then `POST .../session/{id}/exec`. Prefer fraggate_call.
 - Library skill: `GET https://www.azielcorpuslibrary.net/v1/skill`
@@ -43,6 +44,7 @@ Ops (do **not** increment downloads):
 - `GET /v1/runtime.json` (aziel-runtime 1.6.2 FragGate manifest; distinct from `/v1/runtime`)
 - `GET /runtime` (FragGate door page; HEAD + GET return 200)
 - `GET /runtime/v1/health`
+- `GET /runtime/v1/uses` (this door's API use log; does not increment)
 - `GET /runtime/v1/fraggate` and `GET /runtime/v1/fraggate/list`
 - `POST /runtime/v1/fraggate/call`
 - `GET /runtime/v1/skill`

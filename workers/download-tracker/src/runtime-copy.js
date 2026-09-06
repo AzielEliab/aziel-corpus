@@ -91,6 +91,7 @@ export function runtimeHowTo(host) {
     "- FragGate list: " + h + "/runtime/v1/fraggate/list",
     "- FragGate call: POST " + h + "/runtime/v1/fraggate/call",
     "- Health: " + h + "/runtime/v1/health",
+    "- Uses (this door): " + h + "/runtime/v1/uses",
     "- Manifest: " + h + "/runtime/v1/runtime.json",
     "- Skill: " + h + "/runtime/v1/skill",
     "- OpenAPI: " + h + "/runtime/openapi.json",

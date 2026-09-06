@@ -55,6 +55,7 @@ Always send \`User-Agent: Mozilla/5.0\`.
 - Runtime skill: \`GET ${HOST}/runtime/v1/skill\`
 - Runtime manifest: \`GET ${HOST}/runtime/v1/runtime.json\` or \`GET ${HOST}/v1/runtime.json\`
 - Runtime health: \`GET ${HOST}/runtime/v1/health\`
+- Runtime uses (this door): \`GET ${HOST}/runtime/v1/uses\`
 - Pull: \`GET ${HOST}/runtime/v1/pull/{slug}\`
 - Session (advanced/internal): \`POST ${HOST}/runtime/v1/session/open\` then \`POST ${HOST}/runtime/v1/session/{id}/exec\`. Prefer fraggate_call. HTTP /p/{slug}/{op} is a proxy and is not exec.
 - Compatible AI clients: ${AI_CLIENTS}
@@ -160,6 +161,7 @@ function openapi() {
       "/AzielEliab": { get: { summary: "Aziel Eliab — author profile page (HTML). Corresponds with https://godlock.uk/AzielEliab. Legacy /about and /aboutme permanently redirect here.", operationId: "azielEliab" } },
       "/runtime": { get: { summary: "aziel-runtime " + RUNTIME_VERSION + " FragGate door on this domain. Prefer /runtime/*. " + RUNTIME_NOTE, operationId: "runtimePage" } },
       "/runtime/v1/health": { get: { summary: "aziel-runtime " + RUNTIME_VERSION + " FragGate health via same-origin proxy.", operationId: "runtimeProxyHealth" } },
+      "/runtime/v1/uses": { get: { summary: "Local API use log for this /runtime door. Does not increment.", operationId: "runtimeUses" } },
       "/runtime/v1/fraggate": { get: { summary: "FragGate door summary (registry digest, live/stub/local_only counts).", operationId: "runtimeFraggate" } },
       "/runtime/v1/fraggate/list": { get: { summary: "Hashed FragGate registry. Discover names. Do not invent tools.", operationId: "runtimeFraggateList" } },
       "/runtime/v1/fraggate/call": { post: { summary: "CallEnvelope → DecisionGATE → handler or refuse.", operationId: "runtimeFraggateCall" } },
