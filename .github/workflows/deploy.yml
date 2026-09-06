@@ -1,0 +1,23 @@
+# Deploy www.azielcorpuslibrary.net (aziel-corpus-download-tracker) on push to main.
+# Requires repo secret CLOUDFLARE_API_TOKEN. Account is the Aziel Eliab Workers account.
+name: Deploy Worker
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    name: Deploy Worker
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ac575a9b822bea2bed97d0ab73aed238
+          workingDirectory: workers/download-tracker
+          command: deploy

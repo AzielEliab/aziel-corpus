@@ -68,6 +68,9 @@ test("runtime JSON-LD and discovery links advertise FragGate 1.6.2", () => {
   assert.equal(api.url, "https://www.azielcorpuslibrary.net/runtime/v1/fraggate");
   assert.match(html, /href="\/runtime\/openapi\.json"/);
   assert.match(html, /href="\/runtime\/mcp"/);
+  assert.match(html, /href="\/\.well-known\/mcp\.json"/);
+  assert.match(html, /href="\/v1\/software"/);
+  assert.match(html, /href="\/sitemap-index\.xml"/);
   assert.match(html, /href="\/runtime\/llms\.txt"/);
   assert.match(html, /href="\/runtime\/v1\/fraggate"/);
   assert.match(defaultDescription("runtime"), /1\.6\.2/);
@@ -164,5 +167,8 @@ test("OpenAPI identity URLs include /AzielEliab and GodLock", async () => {
   assert.equal(spec.info.contact.url, "https://www.azielcorpuslibrary.net/AzielEliab");
   assert.match(spec.info.description, /godlock\.uk\/AzielEliab/);
   assert.match(spec.paths["/AzielEliab"].get.summary, /godlock\.uk\/AzielEliab/);
+  assert.ok(spec.paths["/v1/software"]);
+  assert.ok(spec.paths["/v1/update/check"]);
+  assert.ok(spec.paths["/.well-known/mcp.json"]);
   assert.doesNotMatch(JSON.stringify(spec), BANNED);
 });
