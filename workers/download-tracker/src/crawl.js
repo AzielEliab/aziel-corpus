@@ -156,6 +156,7 @@ export function robotsTxt() {
     "Allow: /about",
     "Allow: /runtime",
     "Allow: /runtime/",
+    "Allow: /runtime/v1/uses",
     "Allow: /v1",
     "Allow: /v1/",
     "Allow: /cite.json",
@@ -186,6 +187,7 @@ const STATIC_SITEMAP = [
   "/runtime",
   "/runtime/",
   "/runtime/v1/health",
+  "/runtime/v1/uses",
   "/runtime/v1/fraggate",
   "/runtime/v1/fraggate/list",
   "/runtime/mcp",
@@ -306,6 +308,7 @@ export function citeDoc() {
     runtime_json: HOST + "/runtime/v1/runtime.json",
     runtime_skill: HOST + "/runtime/v1/skill",
     runtime_health: HOST + "/runtime/v1/health",
+    runtime_uses: HOST + "/runtime/v1/uses",
     runtime_session_open: HOST + "/runtime/v1/session/open",
     runtime_session_exec: HOST + "/runtime/v1/session/{id}/exec",
     runtime_pull: HOST + "/runtime/v1/pull/{slug}",
@@ -366,6 +369,7 @@ export function llmsDoc(limitation) {
     + "OpenAPI: " + HOST + "/openapi.json\n"
     + "Runtime OpenAPI: " + HOST + "/runtime/openapi.json\n"
     + "Runtime MCP: POST " + HOST + "/runtime/mcp\n"
+    + "Runtime uses (this door): " + HOST + "/runtime/v1/uses\n"
     + "Alternate origin (sameAs): " + CATALOG + "/\n"
     + "Compatible AI clients: " + AI_CLIENTS + "\n"
     + "License: Apache-2.0\n"
@@ -393,6 +397,7 @@ export function llmsDoc(limitation) {
     + "- How it's scored: " + HOST + "/how-its-scored\n"
     + "- Runtime root: " + HOST + "/runtime\n"
     + "- Runtime health: " + HOST + "/runtime/v1/health  (aziel-runtime " + RUNTIME_VERSION + " FragGate; " + RUNTIME_LIVE_COUNT + " live; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse)\n"
+    + "- Runtime uses (this door): " + HOST + "/runtime/v1/uses\n"
     + "- Runtime FragGate: " + HOST + "/runtime/v1/fraggate\n"
     + "- Runtime FragGate list: " + HOST + "/runtime/v1/fraggate/list\n"
     + "- Runtime FragGate call: POST " + HOST + "/runtime/v1/fraggate/call\n"
@@ -433,6 +438,7 @@ export function llmsDoc(limitation) {
     + "- GET " + HOST + "/v1/runtime\n"
     + "- GET " + HOST + "/v1/runtime.json\n"
     + "- GET " + HOST + "/runtime/v1/health\n"
+    + "- GET " + HOST + "/runtime/v1/uses\n"
     + "- GET " + HOST + "/runtime/v1/fraggate\n"
     + "- GET " + HOST + "/runtime/v1/fraggate/list\n"
     + "- POST " + HOST + "/runtime/v1/fraggate/call\n"
@@ -483,6 +489,7 @@ export function aiTxt(limitation) {
     "Allow: /software",
     "Allow: /runtime",
     "Allow: /runtime/",
+    "Allow: /runtime/v1/uses",
     "Allow: /how-its-scored",
     "Allow: /pattern",
     "Allow: /map",
@@ -521,6 +528,7 @@ export function aiTxt(limitation) {
     + "- Runtime FragGate list: " + HOST + "/runtime/v1/fraggate/list\n"
     + "- Runtime OpenAPI: " + HOST + "/runtime/openapi.json\n"
     + "- Runtime MCP: POST " + HOST + "/runtime/mcp\n"
+    + "- Runtime uses (this door): " + HOST + "/runtime/v1/uses\n"
     + "- Runtime llms.txt: " + HOST + "/runtime/llms.txt\n"
     + "- How it's scored: " + HOST + "/how-its-scored\n"
     + "- Aziel Library: " + HOST + "/aziel-library\n"
