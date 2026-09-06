@@ -12,6 +12,7 @@ import {
   runtimeChip,
   AI_CLIENTS,
 } from "./runtime-copy.js";
+import { meshOffDoc, meshRefreshScript, meshStatusHtml } from "./mesh.js";
 
 /** Master UI chrome from Aziel Digital Library v2.7.0 webapp. Author: Aziel Eliab. */
 export const CSS = `
@@ -219,9 +220,9 @@ export function page(title, body, { signed, scripts, path, kind, description, wo
     ? `<a href="/logout">Log out</a>`
     : `<a href="/login">Log in</a><span class="sep">|</span><a href="/signup">Sign up</a>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)} — Aziel Digital Library</title>${headMeta({ title, path: path || "/", kind, description, work, runtimeVersion })}<style>${CSS}</style></head><body><div class="wrap">
-<div class="brandrow nav1"><img class="brandmark" src="/sigil.png" width="40" height="40" alt="" decoding="async"><div class="brand">Aziel Digital Library</div><span class="pill">Runtime v2.7.0</span><span class="pill ok">MASTER · WRITABLE</span>${account}</div>
+<div class="brandrow nav1"><img class="brandmark" src="/sigil.png" width="40" height="40" alt="" decoding="async"><div class="brand">Aziel Digital Library</div><span class="pill">Runtime v2.7.0</span><span class="pill ok">MASTER · WRITABLE</span>${account}${meshStatusHtml(meshOffDoc())}</div>
 <nav class="nav2 quiet"><a href="/">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/pattern">Pattern</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/how-its-scored">How it's scored</a><span class="sep">|</span><a href="/runtime">Runtime</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/gazetteer">Gazetteer</a><span class="sep">|</span><a href="/intelligence">Intelligence</a><span class="sep">|</span><a href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a><span class="sep">|</span>${authLinks}</nav>
-${body}</div>${jeevesFabHtml()}${(scripts||[]).map((src)=>"<script src=\""+esc(src)+"\" defer></script>").join("")}</body></html>`;
+${body}</div>${jeevesFabHtml()}${(scripts||[]).map((src)=>"<script src=\""+esc(src)+"\" defer></script>").join("")}${meshRefreshScript()}</body></html>`;
 }
 
 function esc(s) {
@@ -566,7 +567,7 @@ export function howItsScoredBody() {
 export function runtimeBody() {
   return `<section class="hero"><h1>aziel-runtime — FragGate door ${esc(RUNTIME_VERSION)}</h1>
 <p class="muted"><strong>${esc(RUNTIME_VERSION)} FragGate.</strong> This domain hosts the catalog/MCP door. Prefer same-origin <code>/runtime/*</code>. One door — discover, route, refuse. <strong>${esc(String(RUNTIME_LIVE_COUNT))} live advisory engines</strong>; <strong>${esc(RUNTIME_LOCAL_ONLY)} local_only</strong>; stubs refuse. Discover with <code>fraggate_list</code>, execute with <code>fraggate_call</code>. Kernel: <a href="${esc(RUNTIME_KERNEL)}">github.com/AzielEliab/fraggate</a> (FG-0.1). Engine manifest: <code>/runtime/v1/runtime.json</code> (not library <code>/v1/runtime</code>). Author Aziel Eliab.</p>
-<p class="muted"><strong>THIS IS NOT</strong> a second software index. Downloadable product cards stay on <a href="/software">Software</a>. Scoring is explained on <a href="/how-its-scored">How it's scored</a>. HTTP <code>/p/{slug}/{op}</code> is a proxy and is not exec. Session tools are advanced/internal. Hosted AZAI is protocol mirror + Lamb check, not the blend. Mesh is not claimed. No invented Zenodo DOIs. Author Aziel Eliab (aka Aziel Elroi Eliab; primary credit Aziel Eliab). GodLock is one catalog engine; identity at <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a>.</p></section>
+<p class="muted"><strong>THIS IS NOT</strong> a second software index. Downloadable product cards stay on <a href="/software">Software</a>. Scoring is explained on <a href="/how-its-scored">How it's scored</a>. HTTP <code>/p/{slug}/{op}</code> is a proxy and is not exec. Session tools are advanced/internal. Hosted AZAI is protocol mirror + Lamb check, not the blend. Suite mesh default off until runtime enable — <a href="/v1/mesh"><code>/v1/mesh</code></a> · <a href="/runtime/v1/mesh"><code>/runtime/v1/mesh</code></a>. This public HTTPS surface is not itself a mesh. No invented Zenodo DOIs. Author Aziel Eliab (aka Aziel Elroi Eliab; primary credit Aziel Eliab). GodLock is one catalog engine; identity at <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a>.</p></section>
 <div class="card">
 <h2>FragGate how-to (prefer)</h2>
 <p>AIs and tools should call these Digital Library URLs first (send <code>User-Agent: Mozilla/5.0</code>):</p>
@@ -584,6 +585,7 @@ export function runtimeBody() {
 <ul>
 <li><a href="/runtime/v1/health"><code>/runtime/v1/health</code></a> — live health (version ${esc(RUNTIME_VERSION)}, door=fraggate, ${esc(String(RUNTIME_LIVE_COUNT))} live)</li>
 <li><a href="/runtime/v1/uses"><code>/runtime/v1/uses</code></a> — local API use log for this door (does not increment)</li>
+<li><a href="/runtime/v1/mesh"><code>/runtime/v1/mesh</code></a> · <a href="/v1/mesh"><code>/v1/mesh</code></a> — suite Live Nodes / mesh status (default off until runtime enable)</li>
 <li><a href="/runtime/v1/runtime.json"><code>/runtime/v1/runtime.json</code></a> — runtime manifest</li>
 <li><a href="/runtime/v1/skill"><code>/runtime/v1/skill</code></a> — runtime skill markdown</li>
 <li><a href="/runtime/v1/fraggate"><code>/runtime/v1/fraggate</code></a> · <a href="/runtime/v1/fraggate/list"><code>/runtime/v1/fraggate/list</code></a> · <code>POST /runtime/v1/fraggate/call</code></li>
@@ -607,7 +609,7 @@ export function runtimeBody() {
 <li><code>POST ${esc(RUNTIME_ORIGIN)}/mcp</code></li>
 <li><a href="${esc(RUNTIME_ORIGIN)}/llms.txt">llms.txt</a> · <a href="${esc(RUNTIME_ORIGIN)}/cite.json">cite.json</a> · <a href="${esc(RUNTIME_GITHUB)}">GitHub</a></li>
 </ul>
-<p class="muted">Counted downloads stay on each product Worker <code>/download</code> + <code>/count</code>. The Software tab lists those cards. AzielTether is the survival mesh for downloaded nodes; this HTTPS site is not a mesh.</p>
+<p class="muted">Counted downloads stay on each product Worker <code>/download</code> + <code>/count</code>. The Software tab lists those cards. AzielTether is the survival mesh for downloaded nodes. Suite mesh stays <strong>off</strong> until runtime enable — Live Nodes via <a href="/v1/mesh"><code>/v1/mesh</code></a>.</p>
 <p class="soft-links"><a class="button ghost" href="/software">Software catalog</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="${esc(RUNTIME_ORIGIN)}/">Open alternate origin</a> <a class="button ghost" href="/runtime/v1/catalog.json">catalog.json</a> <a class="button ghost" href="/v1/lattice">Lattice API</a> <a class="button ghost" href="${esc(RUNTIME_GITHUB)}">GitHub</a></p>
 </div>`;
 }
@@ -659,7 +661,7 @@ export function softwareBody(model = {}) {
   return `<section class="hero"><h1>Downloadable software</h1>
 <p class="muted">This hub <strong>mirrors the live aziel-runtime catalog</strong> — <a href="/runtime/v1/software"><code>GET /runtime/v1/software</code></a> per request (fallback <a href="/runtime/v1/fraggate/list"><code>fraggate/list</code></a>; service binding <code>AZIEL_RUNTIME</code> when wired; otherwise the workers.dev alternate). When the catalog grows (PeaceLock, AZMail, and later slugs) those products appear automatically. There is no fixed 27-product cap.</p>
 <p class="muted">Catalog of Aziel Eliab products you can download and run. <strong>Pull and invoke</strong> live on this domain at <a href="/runtime">${esc(chip)}</a> — this tab is not a second AI root. Author Aziel Eliab only.</p>
-<p class="muted"><strong>AzielTether</strong> is the survival mesh for downloaded Aziel software (prefer-central × peer sync). This public library is not a mesh — lattice tips are tip-shaped until tether carries them.</p>
+<p class="muted"><strong>AzielTether</strong> is the survival mesh for downloaded Aziel software (prefer-central × peer sync). Lattice tips stay tip-shaped until tether carries them. Suite Live Nodes / mesh status is default off until runtime enable — <a href="/v1/mesh"><code>/v1/mesh</code></a>.</p>
 <p class="muted">Sort: Software (plain) A–Z → Gate A–Z → Lock A–Z. Clock is not Lock — the substring <code>clock</code> is stripped before <code>lock</code> is tested (StaticClock stays Software). Door extras AZNet and FragGate (separate app Workers — not nested AZBrowser UI) and EmbryoLock (catalog-only) are listed without dropping catalog engines until runtime catalogs them.</p>
 <p class="muted">Each card tethers to Worker <code>/download</code> when a worker is set, GitHub, and the same-origin Runtime MCP door: <a href="/runtime">/runtime</a>, <a href="/runtime/v1/fraggate/list"><code>/runtime/v1/fraggate/list</code></a>, <a href="/runtime/mcp"><code>/runtime/mcp</code></a>, FragGate call with slug. Counters: product <code>/count</code> (downloads / views / uploads), <a href="/runtime/v1/uses"><code>/runtime/v1/uses</code></a>, and library view/download totals when present.</p>
 <p class="muted">Live catalog from <a href="/runtime">/runtime</a> (aziel-runtime ${esc(ver)} FragGate) · alternate <a href="${esc(RUNTIME_ORIGIN)}/">workers.dev</a> · author Aziel Eliab only · GodLock is in this catalog · identity <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a> · ${esc(n)} catalog products · ${esc(extras)} door extras · ${esc(live)} live counters fetched${esc(counterLine)}.</p>
@@ -668,7 +670,7 @@ ${hubHtml}
 ${softSection("Software", groups.plain)}
 ${softSection("Gate", groups.gate)}
 ${softSection("Lock", groups.lock)}
-<div class="card"><p class="soft-links"><a class="button" href="/runtime">${esc(chip)}</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="/runtime/v1/software">/v1/software</a> <a class="button ghost" href="/runtime/mcp">MCP</a> <a class="button ghost" href="/runtime/v1/uses">uses</a> <a class="button ghost" href="/v1/lattice">Lattice API</a></p></div>`;
+<div class="card"><p class="soft-links"><a class="button" href="/runtime">${esc(chip)}</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="/runtime/v1/software">/v1/software</a> <a class="button ghost" href="/runtime/mcp">MCP</a> <a class="button ghost" href="/runtime/v1/uses">uses</a> <a class="button ghost" href="/v1/mesh">Live Nodes</a> <a class="button ghost" href="/v1/lattice">Lattice API</a></p></div>`;
 }
 
 export { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, ocrBody, ocrFormHtml, SPECTRAL_LENSES, blockedAvBody } from "./hosted-pages.js";
