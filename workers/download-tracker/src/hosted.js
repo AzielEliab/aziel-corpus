@@ -514,7 +514,7 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
   }
   if (path === "/software" && read) {
     const catalog = await loadSoftwareCatalog(env, stats);
-    return pageHtml(page("Software", softwareBody(catalog), { signed, path: "/software", kind: "software" }));
+    return pageHtml(page("Software", softwareBody(catalog), { signed, path: "/software", kind: "software", runtimeVersion: catalog.catalogVersion }));
   }
   if (path === "/how-its-scored" && read) {
     return pageHtml(page("How it's scored", howItsScoredBody(), { signed, path: "/how-its-scored", kind: "scored" }));
