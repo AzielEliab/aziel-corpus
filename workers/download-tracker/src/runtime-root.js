@@ -27,6 +27,7 @@ import {
   runtimeUsesPayload,
   runtimeUsesResponse,
 } from "./runtime-uses.js";
+import { meshOffDoc, proxyMeshRequest } from "./mesh.js";
 
 export {
   HOST,
@@ -76,6 +77,7 @@ ${runtimeHowTo(HOST)}
 - Pull: \`GET ${HOST}/runtime/v1/pull/{slug}\`
 - Bundle: \`GET ${HOST}/runtime/v1/bundle/{slug}\`
 - Catalog: \`GET ${HOST}/runtime/v1/catalog.json\`
+- Suite mesh (default off until runtime enable): \`GET ${HOST}/runtime/v1/mesh\` · \`GET ${HOST}/v1/mesh\`
 - OpenAPI: \`GET ${HOST}/runtime/openapi.json\`
 - MCP: \`POST ${HOST}/runtime/mcp\`
 - Runtime llms.txt: ${HOST}/runtime/llms.txt
@@ -158,6 +160,10 @@ export function runtimeManifest(via = "library") {
     session_note: "advanced/internal — prefer fraggate_call",
     health: HOST + "/runtime/v1/health",
     uses: HOST + "/runtime/v1/uses",
+    mesh: HOST + "/runtime/v1/mesh",
+    mesh_library: HOST + "/v1/mesh",
+    mesh_origin: RUNTIME_ORIGIN + "/v1/mesh",
+    mesh_note: "Suite node mesh. Default off until runtime enable. Author Aziel Eliab.",
     llms: HOST + "/runtime/llms.txt",
     library_llms: HOST + "/llms.txt",
     cite: HOST + "/runtime/cite.json",
@@ -181,6 +187,7 @@ export function fallbackKind(destPath) {
   const path = String(destPath || "").split("?")[0].replace(/\/+$/, "") || "/";
   if (path === "/v1/runtime.json") return "runtime.json";
   if (path === "/v1/skill") return "skill";
+  if (path === "/v1/mesh" || path.startsWith("/v1/mesh/")) return "mesh";
   const pull = path.match(/^\/v1\/pull\/([^/]+)$/);
   if (pull) return { kind: "pull", slug: decodeURIComponent(pull[1]) };
   const bundle = path.match(/^\/v1\/bundle\/([^/]+)$/);
@@ -278,6 +285,7 @@ async function cancelBody(res) {
 }
 
 async function fallbackResponse(request, kind) {
+  if (kind === "mesh") return respondMaybeHead(request, json(meshOffDoc({ source: "library-default-off" })));
   if (kind === "runtime.json") return respondMaybeHead(request, json(runtimeManifest("library-fallback")));
   if (kind === "skill") {
     return respondMaybeHead(request, new Response(runtimeSkillMd(), {
@@ -332,6 +340,10 @@ export async function handleRuntimeRoot(request, url, env, signed, ctx) {
   const dest = destFromRuntimePath(url.pathname, url.search);
   if (!dest) return null;
   if (method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders() });
+  if (fallbackKind(dest) === "mesh") {
+    await noteRuntimeUse(env, ctx, method, path);
+    return proxyMeshRequest(request, dest, env);
+  }
   await noteRuntimeUse(env, ctx, method, path);
   return proxyOrFallback(request, dest, env);
 }

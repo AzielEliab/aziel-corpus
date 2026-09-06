@@ -84,7 +84,7 @@ export const RUNTIME_LIMITATION =
   + "One door — discover, route, refuse. " + RUNTIME_LIVE_COUNT + " live advisory engines; " + RUNTIME_LOCAL_ONLY + " stays local_only; stub verbs refuse. "
   + "Prefer same-origin /runtime/*. " + RUNTIME_ORIGIN + " is the alternate origin (sameAs). "
   + "Catalog, pull, OpenAPI, MCP, skill, and FragGate remain. HTTP /p/{slug}/{op} is a proxy and is not exec. "
-  + "Session tools are advanced/internal. Hosted AZAI is protocol mirror + Lamb check, not the blend. Mesh is not claimed on this public surface. "
+  + "Session tools are advanced/internal. Hosted AZAI is protocol mirror + Lamb check, not the blend. Suite mesh default off until runtime enable. This public HTTPS surface is not itself a mesh. "
   + "THIS IS NOT: a second software index. The Software tab stays the product-card catalog. No invented Zenodo DOIs. Author Aziel Eliab only.";
 
 export const RUNTIME_NOTE = runtimeNote();
@@ -102,7 +102,7 @@ export function runtimeHowTo(host) {
     "3. Refuse. Unknown names return FG-HALLUC-TOOL. " + RUNTIME_LOCAL_ONLY + " is local_only. Stub verbs refuse.",
     "4. Show display.title and display.summary, then take the next input.",
     "",
-    "Live count: " + RUNTIME_LIVE_COUNT + " advisory engines. Product count: " + RUNTIME_PRODUCT_COUNT + ". Stubs refuse. Mesh is not claimed.",
+    "Live count: " + RUNTIME_LIVE_COUNT + " advisory engines. Product count: " + RUNTIME_PRODUCT_COUNT + ". Stubs refuse. Suite mesh default off until runtime enable.",
     "Do not walk runtime_session_* unless the user asked. Do not call flat {slug}_{op} names. HTTP /p/{slug}/{op} is a proxy, not exec.",
     "",
     "Compatible AI clients: " + AI_CLIENTS + ".",
@@ -114,6 +114,7 @@ export function runtimeHowTo(host) {
     "- FragGate call: POST " + h + "/runtime/v1/fraggate/call",
     "- Health: " + h + "/runtime/v1/health",
     "- Uses (this door): " + h + "/runtime/v1/uses",
+    "- Suite mesh (default off until runtime enable): " + h + "/runtime/v1/mesh  (also " + h + "/v1/mesh)",
     "- Manifest: " + h + "/runtime/v1/runtime.json",
     "- Skill: " + h + "/runtime/v1/skill",
     "- OpenAPI: " + h + "/runtime/openapi.json",
