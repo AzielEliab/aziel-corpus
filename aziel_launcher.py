@@ -177,6 +177,11 @@ def main() -> int:
         return 3
 
     print(message)
+    try:
+        from aziel_library.update_check import report_update
+        print(report_update(APP_VERSION))
+    except Exception:
+        pass
     if args.mode=='master':
         vault.mkdir(parents=True, exist_ok=True)
     elif not (vault/'library.sqlite3').exists():

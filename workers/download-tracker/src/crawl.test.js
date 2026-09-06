@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import {
   robotsTxt,
   sitemapXml,
+  sitemapIndexXml,
+  mcpDiscovery,
   citeDoc,
   llmsDoc,
   aiTxt,
@@ -35,6 +37,10 @@ test("robots.txt allows research surfaces and major AI bots", () => {
   assert.match(txt, /Allow: \/v1\//);
   assert.doesNotMatch(txt, /Disallow: \/v1/);
   assert.match(txt, /Sitemap: https:\/\/www\.azielcorpuslibrary\.net\/sitemap\.xml/);
+  assert.match(txt, /Sitemap: https:\/\/www\.azielcorpuslibrary\.net\/sitemap-index\.xml/);
+  for (const path of ["/v1/software", "/v1/update/check", "/mcp.json", "/.well-known/mcp.json", "/runtime/v1/software"]) {
+    assert.match(txt, new RegExp("Allow: " + path.replace("/", "\\/")));
+  }
   for (const bot of [
     "Claude-SearchBot",
     "bingbot",
@@ -112,7 +118,7 @@ test("sitemap.xml lists key routes and uses XML mime helper", async () => {
   };
   const xml = await sitemapXml(env);
   assert.match(xml, /<\?xml version="1.0"/);
-  for (const path of ["/", "/AzielEliab", "/software", "/runtime", "/runtime/", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/uses", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/intelligence", "/aziel-library", "/corpus", "/cite.json", "/llms.txt", "/ai.txt"]) {
+  for (const path of ["/", "/AzielEliab", "/software", "/v1/software", "/v1/update/check", "/sitemap-index.xml", "/mcp.json", "/.well-known/mcp.json", "/runtime", "/runtime/", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/software", "/runtime/v1/uses", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/intelligence", "/aziel-library", "/corpus", "/cite.json", "/llms.txt", "/ai.txt"]) {
     assert.match(xml, new RegExp("<loc>https://www\\.azielcorpuslibrary\\.net" + path.replace("/", "\\/") + "</loc>"));
   }
   assert.doesNotMatch(xml, /azielcorpuslibrary\.net\/about</);
@@ -143,6 +149,9 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.ok(cite.keywords.includes("FragGate"));
   assert.match(cite.runtime_note, /1\.6\.2/);
   assert.match(cite.runtime_fraggate_list, /\/runtime\/v1\/fraggate\/list$/);
+  assert.match(cite.software_live, /\/v1\/software$/);
+  assert.match(cite.update_check, /\/v1\/update\/check$/);
+  assert.match(cite.mcp_discovery, /\/\.well-known\/mcp\.json$/);
   assert.match(cite.runtime_uses, /\/runtime\/v1\/uses$/);
   assert.match(cite.ai, /\/ai\.txt$/);
   assert.match(cite.zsolver, /intentional suppression confidence/);
@@ -152,6 +161,9 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assertPublicIdentity(llms);
   assert.match(llms, /Software hub: https:\/\/www\.azielcorpuslibrary\.net\/software/);
   assert.match(llms, /Software hub mirrors the live aziel-runtime catalog/);
+  assert.match(llms, /\/v1\/software/);
+  assert.match(llms, /fraggate\/list/);
+  assert.match(llms, /\/\.well-known\/mcp\.json/);
   assert.match(llms, /No hard-coded 27 cap/);
   assert.match(llms, /https:\/\/www\.azielcorpuslibrary\.net\/AzielEliab/);
   assert.match(llms, /https:\/\/godlock\.uk\/AzielEliab/);
@@ -246,7 +258,17 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(humans, /github.com\/AzielEliab/);
   assert.match(humans, /azielcorpuslibrary\.net\/AzielEliab/);
   assert.match(humans, /godlock\.uk\/AzielEliab/);
-  assert.match(humans, /Software hub mirrors runtime catalog/);
+  assert.match(humans, /Software hub mirrors runtime \/v1\/software/);
+
+  const index = sitemapIndexXml();
+  assert.match(index, /<sitemapindex /);
+  assert.match(index, /azielcorpuslibrary\.net\/sitemap\.xml/);
+  assert.match(index, /aziel-runtime\.vibelock\.workers\.dev\/sitemap-index\.xml/);
+  const mcp = mcpDiscovery();
+  assert.equal(mcp.author, "Aziel Eliab");
+  assert.match(mcp.url, /\/runtime\/mcp$/);
+  assert.equal(mcp.mcpServers["aziel-runtime"].url, "https://www.azielcorpuslibrary.net/runtime/mcp");
+  assert.match(mcp.software, /\/v1\/software$/);
 });
 
 test("crawlResponse serves GET body and HEAD without body", async () => {

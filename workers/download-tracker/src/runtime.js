@@ -10,6 +10,8 @@ import { handleJeevesApi, JEEVES_LIMITATION } from "./jeeves.js";
 import { receiptForMediaRun, isMediaRunId } from "./media.js";
 import { continueVerifyGeo, geoVerifyStatus, GEO_PIN_NOTE } from "./geo.js";
 import { RUNTIME_VERSION, RUNTIME_NOTE, runtimeHowTo, AI_CLIENTS } from "./runtime-copy.js";
+import { checkLibraryUpdate, LIBRARY_SLUG, LIBRARY_VERSION } from "./update-check.js";
+import { fetchLiveSoftwareCatalog } from "./software-catalog.js";
 const PRODUCT = "aziel-corpus";
 const VERSION = "2.7.0";
 const SPEC = "aziel-digital-library-v2.7.0";
@@ -60,6 +62,8 @@ Always send \`User-Agent: Mozilla/5.0\`.
 - Session (advanced/internal): \`POST ${HOST}/runtime/v1/session/open\` then \`POST ${HOST}/runtime/v1/session/{id}/exec\`. Prefer fraggate_call. HTTP /p/{slug}/{op} is a proxy and is not exec.
 - Compatible AI clients: ${AI_CLIENTS}
 - Library skill: \`GET ${HOST}/v1/skill\`
+- Live software catalog: \`GET ${HOST}/v1/software\` (origin ${CATALOG}/v1/software; fallback fraggate/list)
+- Installer update check: \`GET ${HOST}/v1/update/check?slug=aziel-corpus&version=\` (origin ${CATALOG}/v1/update/check)
 
 Ops (do **not** increment downloads):
 
@@ -170,9 +174,14 @@ function openapi() {
       "/runtime/v1/session/open": { post: { summary: "Advanced/internal. Open an aziel-runtime session (same-origin proxy). Prefer fraggate_call.", operationId: "runtimeProxySessionOpen" } },
       "/runtime/v1/session/{id}/exec": { post: { summary: "Advanced/internal session exec via same-origin proxy. Prefer fraggate_call. HTTP /p is not exec.", operationId: "runtimeProxySessionExec" } },
       "/runtime/v1/pull/{slug}": { get: { summary: "Pull descriptor for one product slug via same-origin proxy.", operationId: "runtimeProxyPull" } },
+      "/v1/software": { get: { summary: "Live aziel-runtime software catalog (GET /v1/software, fallback fraggate/list). Per request. Author Aziel Eliab.", operationId: "liveSoftwareCatalog" } },
+      "/v1/update/check": { get: { summary: "Installer update check. Prefers runtime /v1/update/check. Does not increment downloads.", operationId: "updateCheck", parameters: [{ name: "slug", in: "query", schema: { type: "string", default: "aziel-corpus" } }, { name: "version", in: "query", schema: { type: "string" } }] } },
+      "/runtime/v1/software": { get: { summary: "Live aziel-runtime /v1/software via same-origin proxy.", operationId: "runtimeProxySoftware" } },
       "/runtime/v1/catalog.json": { get: { summary: "Live aziel-runtime catalog via same-origin proxy.", operationId: "runtimeProxyCatalog" } },
       "/runtime/openapi.json": { get: { summary: "Combined aziel-runtime OpenAPI via same-origin proxy.", operationId: "runtimeProxyOpenapi" } },
       "/runtime/mcp": { post: { summary: "aziel-runtime MCP JSON-RPC (thin FragGate door) via same-origin proxy.", operationId: "runtimeProxyMcp" } },
+      "/.well-known/mcp.json": { get: { summary: "MCP server discovery (public, no OAuth).", operationId: "wellKnownMcp" } },
+      "/mcp.json": { get: { summary: "MCP server discovery alias.", operationId: "mcpDiscovery" } },
       "/runtime/llms.txt": { get: { summary: "Runtime llms.txt via same-origin proxy.", operationId: "runtimeLlms" } },
       "/runtime/cite.json": { get: { summary: "Runtime cite.json via same-origin proxy.", operationId: "runtimeCite" } },
       "/runtime/robots.txt": { get: { summary: "Runtime robots.txt via same-origin proxy.", operationId: "runtimeRobots" } },
@@ -187,6 +196,37 @@ export async function handleRuntimeApi(request, url, env) {
   }
   if (path === "/openapi.json" && (request.method === "GET" || request.method === "HEAD")) {
     const res = json(openapi());
+    if (request.method === "HEAD") return new Response(null, { status: res.status, headers: res.headers });
+    return res;
+  }
+  if (path === "/v1/software" && (request.method === "GET" || request.method === "HEAD")) {
+    const live = await fetchLiveSoftwareCatalog(env);
+    const res = json({
+      ok: true,
+      source: live.source,
+      origin: CATALOG + "/v1/software",
+      fallback: CATALOG + "/v1/fraggate/list",
+      version: (live.catalog && live.catalog.version) || RUNTIME_VERSION,
+      author: "Aziel Eliab",
+      ...live.catalog,
+    });
+    if (request.method === "HEAD") return new Response(null, { status: res.status, headers: res.headers });
+    return res;
+  }
+  if (path === "/v1/update/check" && (request.method === "GET" || request.method === "HEAD" || request.method === "POST")) {
+    let slug = url.searchParams.get("slug") || url.searchParams.get("product") || LIBRARY_SLUG;
+    let version = url.searchParams.get("version") || url.searchParams.get("current") || LIBRARY_VERSION;
+    if (request.method === "POST") {
+      try {
+        const body = await request.json();
+        slug = (body && (body.slug || body.product)) || slug;
+        version = (body && (body.version || body.current)) || version;
+      } catch {
+        /* query params stand */
+      }
+    }
+    const doc = await checkLibraryUpdate(env, { slug, version });
+    const res = json(doc);
     if (request.method === "HEAD") return new Response(null, { status: res.status, headers: res.headers });
     return res;
   }
