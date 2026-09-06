@@ -133,8 +133,12 @@ label.showpw{font-size:14px;color:var(--muted);white-space:nowrap;min-height:44p
 .pattern-card:hover{border-color:var(--gold);color:var(--ink)}
 .pattern-card .metric{font-size:28px;font-weight:800;color:var(--gold);margin:0 0 6px}
 .soft-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:12px 0}
+.soft-section{margin:22px 0 8px}
+.soft-section h2{margin:0 0 8px;font-size:18px;letter-spacing:-.02em;color:var(--ink)}
 .soft-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
 .soft-card.featured{border-color:var(--royal);box-shadow:inset 3px 0 0 var(--royal)}
+.soft-card.door{border-color:var(--gold)}
+.soft-card.catalog-only{border-style:dashed}
 .soft-card h3{margin:0 0 8px;font-size:20px}
 .soft-card p{margin:0 0 12px}
 .soft-card .soft-meta{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
@@ -607,29 +611,62 @@ export function runtimeBody() {
 </div>`;
 }
 
-function softCard(p) {
-  const cls = p.root ? "soft-card root" : p.featured ? "soft-card featured" : "soft-card";
-  const tag = p.root ? `<span class="lib-tag aziel">AI root</span> ` : p.featured ? `<span class="lib-tag aziel">Featured</span> ` : "";
-  const countPill = p.countLabel
-    ? `<span class="pill${/\d/.test(String(p.countLabel)) && !/live on Worker/i.test(String(p.countLabel)) ? " ok" : ""}">${esc(p.countLabel)}</span>`
-    : "";
-  const ver = p.version ? `<span class="pill">v${esc(p.version)}</span>` : "";
-  const links = (p.links || []).map((l) => `<a class="${l.primary ? "button" : "button ghost"}" href="${esc(l.href)}">${esc(l.label)}</a>`).join("");
-  return `<article class="${cls}">${tag}<h3>${esc(p.name)}</h3><div class="soft-meta">${ver}${countPill}</div><p>${esc(p.blurb)}</p><p class="soft-links">${links}</p></article>`;
+function pillClass(label) {
+  return /\d/.test(String(label)) && !/live on Worker/i.test(String(label)) ? "pill ok" : "pill";
 }
 
-export function softwareBody({ products, fetched, downloadable } = {}) {
-  const cards = (products || []).map(softCard).join("");
-  const n = Number(downloadable != null ? downloadable : (products || []).length) || 0;
-  const live = Number(fetched) || 0;
+function softCard(p) {
+  const cls = ["soft-card"];
+  if (p.root) cls.push("root");
+  if (p.door) cls.push("door");
+  if (p.catalog_only) cls.push("catalog-only");
+  if (p.featured) cls.push("featured");
+  const tagLabel = p.root ? "AI root" : p.door ? "Door" : p.catalog_only ? "Catalog-only" : p.kind === "gate" ? "Gate" : p.kind === "lock" ? "Lock" : "Software";
+  const tag = `<span class="lib-tag ${p.root || p.door ? "aziel" : "corpus"}">${tagLabel}</span> `;
+  const pills = (p.pills && p.pills.length ? p.pills : (p.countLabel ? [p.countLabel] : []))
+    .map((label) => `<span class="${pillClass(label)}">${esc(label)}</span>`).join("");
+  const ver = p.version ? `<span class="pill">v${esc(p.version)}</span>` : "";
+  const links = (p.links || []).map((l) => `<a class="${l.primary ? "button" : "button ghost"}" href="${esc(l.href)}">${esc(l.label)}</a>`).join("");
+  return `<article class="${cls.join(" ")}" data-slug="${esc(p.slug || "")}" data-kind="${esc(p.kind || "")}">${tag}<h3>${esc(p.name)}</h3><div class="soft-meta">${ver}${pills}</div><p>${esc(p.blurb)}</p><p class="soft-links">${links}</p></article>`;
+}
+
+function softSection(title, rows) {
+  if (!rows.length) return "";
+  return `<section class="soft-section"><h2>${esc(title)}</h2><div class="soft-grid">${rows.map(softCard).join("")}</div></section>`;
+}
+
+export function softwareBody(model = {}) {
+  const products = model.products || [];
+  const hub = model.hub;
+  const groups = { plain: [], gate: [], lock: [] };
+  for (const p of products) {
+    const k = p.kind && groups[p.kind] ? p.kind : "plain";
+    groups[k].push(p);
+  }
+  const n = Number(model.downloadable != null ? model.downloadable : products.length) || 0;
+  const live = Number(model.fetched) || 0;
+  const ver = model.catalogVersion || RUNTIME_VERSION;
+  const extras = Number(model.extras) || 0;
+  const counters = [];
+  if (model.usesTotal != null) counters.push("this-door uses " + model.usesTotal);
+  if (model.originUses != null) counters.push("origin uses " + model.originUses);
+  if (model.siteViews != null) counters.push("library views " + model.siteViews);
+  if (model.siteDownloads != null) counters.push("library downloads " + model.siteDownloads);
+  const counterLine = counters.length ? " · " + counters.join(" · ") : "";
+  const hubHtml = hub ? `<div class="soft-grid">${softCard(hub)}</div>` : "";
   return `<section class="hero"><h1>Downloadable software</h1>
-<p class="muted">Catalog of Aziel Eliab products you can download and run. <strong>Pull and invoke</strong> live on this domain at <a href="/runtime">${esc(RUNTIME_CHIP)}</a> — this tab is not a second AI root.</p>
+<p class="muted">This hub <strong>mirrors the live aziel-runtime catalog</strong> — <a href="/runtime/v1/catalog.json"><code>GET /runtime/v1/catalog.json</code></a> (service binding <code>AZIEL_RUNTIME</code> when wired; otherwise the workers.dev alternate). When the catalog grows (PeaceLock, AZMail, and later slugs) those products appear automatically. There is no fixed 27-product cap.</p>
+<p class="muted">Catalog of Aziel Eliab products you can download and run. <strong>Pull and invoke</strong> live on this domain at <a href="/runtime">${esc(RUNTIME_CHIP)}</a> — this tab is not a second AI root. Author Aziel Eliab only.</p>
 <p class="muted"><strong>AzielTether</strong> is the survival mesh for downloaded Aziel software (prefer-central × peer sync). This public library is not a mesh — lattice tips are tip-shaped until tether carries them.</p>
-<p class="muted">AzielTether is featured first; FoldLock next among packages. Counted downloads stay on each product Worker <code>/count</code>.</p>
-<p class="muted">Live catalog from <a href="/runtime">/runtime</a> (aziel-runtime ${esc(RUNTIME_VERSION)} FragGate) · alternate <a href="${esc(RUNTIME_ORIGIN)}/">workers.dev</a> · author Aziel Eliab only · GodLock is in this catalog · identity <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a> · ${esc(n)} downloadable products · ${esc(live)} live counters fetched.</p>
+<p class="muted">Sort: Software (plain) A–Z → Gate A–Z → Lock A–Z. Clock is not Lock — the substring <code>clock</code> is stripped before <code>lock</code> is tested (StaticClock stays Software). Door extras FragGate and EmbryoLock (catalog-only) are listed without dropping catalog engines.</p>
+<p class="muted">Each card tethers to Worker <code>/download</code> when a worker is set, GitHub, and the same-origin Runtime MCP door: <a href="/runtime">/runtime</a>, <a href="/runtime/v1/fraggate/list"><code>/runtime/v1/fraggate/list</code></a>, <a href="/runtime/mcp"><code>/runtime/mcp</code></a>, FragGate call with slug. Counters: product <code>/count</code> (downloads / views / uploads), <a href="/runtime/v1/uses"><code>/runtime/v1/uses</code></a>, and library view/download totals when present.</p>
+<p class="muted">Live catalog from <a href="/runtime">/runtime</a> (aziel-runtime ${esc(ver)} FragGate) · alternate <a href="${esc(RUNTIME_ORIGIN)}/">workers.dev</a> · author Aziel Eliab only · GodLock is in this catalog · identity <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a> · ${esc(n)} catalog products · ${esc(extras)} door extras · ${esc(live)} live counters fetched${esc(counterLine)}.</p>
 <p class="soft-links"><a href="/how-its-scored">How it's scored</a> · <a href="/runtime">Runtime root</a> · <a href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a> · <a href="https://github.com/AzielEliab/aziel-corpus">aziel-corpus</a> · <a href="${esc(RUNTIME_GITHUB)}">aziel-runtime</a> · <a href="/llms.txt">llms.txt</a> · <a href="/ai.txt">ai.txt</a></p></section>
-<div class="soft-grid">${cards}</div>
-<div class="card"><p class="soft-links"><a class="button" href="/runtime">${esc(RUNTIME_CHIP)}</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="/runtime/v1/catalog.json">catalog.json</a> <a class="button ghost" href="/runtime/mcp">MCP</a> <a class="button ghost" href="/v1/lattice">Lattice API</a></p></div>`;
+${hubHtml}
+${softSection("Software", groups.plain)}
+${softSection("Gate", groups.gate)}
+${softSection("Lock", groups.lock)}
+<div class="card"><p class="soft-links"><a class="button" href="/runtime">${esc(RUNTIME_CHIP)}</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="/runtime/v1/catalog.json">catalog.json</a> <a class="button ghost" href="/runtime/mcp">MCP</a> <a class="button ghost" href="/runtime/v1/uses">uses</a> <a class="button ghost" href="/v1/lattice">Lattice API</a></p></div>`;
 }
 
 export { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, ocrBody, ocrFormHtml, SPECTRAL_LENSES, blockedAvBody } from "./hosted-pages.js";
