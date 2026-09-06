@@ -6,6 +6,7 @@ import {
   SOFTWARE_EXTRAS,
   FRAGGATE_DOWNLOAD,
   FRAGGATE_WORKER_HOME,
+  FRAGGATE_COUNT,
   softwareKind,
   compareSoftware,
   displayName,
@@ -15,6 +16,7 @@ import {
   parseCountPayload,
   pathMentionsSlug,
   usesForSlug,
+  countUrlForProduct,
   countPills,
   loadSoftwareCatalog,
 } from "./software-catalog.js";
@@ -109,6 +111,8 @@ test("mergeSoftwareExtras adds FragGate and EmbryoLock without dropping catalog 
   const fg = already.find((p) => p.slug === "fraggate");
   assert.equal(fg.download, FRAGGATE_DOWNLOAD);
   assert.equal(fg.worker_home, FRAGGATE_WORKER_HOME);
+  assert.equal(fg.count, FRAGGATE_COUNT);
+  assert.equal(countUrlForProduct(fg), FRAGGATE_COUNT);
 });
 
 test("mergeSoftwareExtras fills FragGate Worker download when catalog extras omit it", () => {
@@ -128,6 +132,8 @@ test("mergeSoftwareExtras fills FragGate Worker download when catalog extras omi
   assert.equal(fg.download, FRAGGATE_DOWNLOAD);
   assert.equal(fg.worker, "fraggate-download-tracker");
   assert.equal(fg.worker_home, FRAGGATE_WORKER_HOME);
+  assert.equal(fg.count, FRAGGATE_COUNT);
+  assert.equal(countUrlForProduct({ slug: "fraggate", count: null }), FRAGGATE_COUNT);
   assert.match(fg.one_line, /Separate FragGate app/);
   assert.doesNotMatch(fg.one_line, /not a download-tracker/i);
 });
@@ -169,12 +175,20 @@ test("productLinks tethers download, GitHub, and same-origin FragGate MCP door",
 
 test("count and uses helpers surface download, view, upload, and slug uses", () => {
   assert.deepEqual(parseCountPayload({ views: 10, downloads: 4, uploads: 2 }), { downloads: 4, views: 10, uploads: 2 });
+  assert.deepEqual(parseCountPayload({ project: "fraggate", views: 8, downloads: 1, total: 1 }), { downloads: 1, views: 8, uploads: null });
   assert.equal(pathMentionsSlug("/p/foldlock/health", "foldlock"), true);
   assert.equal(pathMentionsSlug("/p/godlock/health", "foldlock"), false);
   assert.equal(usesForSlug({ by_path: { "/p/foldlock/health": 3, "/runtime/v1/pull/foldlock": 1 } }, "foldlock"), 4);
   assert.equal(usesForSlug({ by_op: { "codelock.health": 2 } }, "codelock"), 2);
   assert.equal(usesForSlug({ origin: { by_path: { "/p/codelock/health": 5 } } }, "codelock"), 5);
+  assert.equal(usesForSlug({ by_op: { "azbrowser.ethical_search": 3, "azbrowser.pull": 1 } }, "azbrowser"), 4);
+  assert.equal(usesForSlug({
+    by_path: {},
+    origin: { by_op: { "azbrowser.ethical_search": 2, "foldlock.health": 9 } },
+  }, "azbrowser"), 2);
+  assert.equal(usesForSlug({ by_path: { "/runtime/v1/fraggate/list": 4 } }, "fraggate"), 4);
   assert.deepEqual(countPills({ downloads: 4, views: 10, uses: 3 }), ["4 downloads", "10 views", "3 uses"]);
+  assert.equal(countUrlForProduct({ slug: "azbrowser", count: "https://azbrowser-download-tracker.vibelock.workers.dev/count" }), "https://azbrowser-download-tracker.vibelock.workers.dev/count");
 });
 
 test("softwareBody renders every card in Plain → Gate → Lock with live-catalog copy", () => {
@@ -233,6 +247,17 @@ test("softwareBody renders every card in Plain → Gate → Lock with live-catal
 
 test("GET /software uses AZIEL_RUNTIME catalog binding and lists every product", async () => {
   const catalog = mockCatalog();
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init) => {
+    const href = String(url);
+    if (href === FRAGGATE_COUNT) {
+      return new Response(JSON.stringify({ project: "fraggate", views: 2, downloads: 0, total: 0 }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    return origFetch(url, init);
+  };
   const env = stubEnv({
     async fetch(request) {
       const url = new URL(request.url);
@@ -240,7 +265,11 @@ test("GET /software uses AZIEL_RUNTIME catalog binding and lists every product",
         return new Response(JSON.stringify(catalog), { status: 200, headers: { "Content-Type": "application/json" } });
       }
       if (url.pathname.endsWith("/uses")) {
-        return new Response(JSON.stringify({ uses: 7, by_path: { "/p/foldlock/health": 2 } }), {
+        return new Response(JSON.stringify({
+          uses: 7,
+          by_path: { "/p/foldlock/health": 2 },
+          by_op: { "azbrowser.ethical_search": 3, "azbrowser.pull": 1, "fraggate.list": 6 },
+        }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         });
@@ -256,25 +285,114 @@ test("GET /software uses AZIEL_RUNTIME catalog binding and lists every product",
     null,
     { views: 99, downloads: 11 },
   );
-  assert.ok(res);
-  assert.equal(res.status, 200);
-  const html = await res.text();
-  assert.match(html, /PeaceLock/);
-  assert.match(html, /AZMail/);
-  assert.match(html, /FragGate/);
-  assert.match(html, /EmbryoLock/);
-  assert.match(html, /Plain Product 24/);
-  assert.match(html, /fraggate-download-tracker\.vibelock\.workers\.dev\/download/);
-  assert.match(html, /Runtime 1\.6\.4 · FragGate/);
-  assert.match(html, /\/runtime\/v1\/fraggate\/describe\?slug=peacelock/);
-  assert.match(html, /\/runtime\/mcp/);
-  assert.match(html, /mirrors the live aziel-runtime catalog/);
-  assert.doesNotMatch(html, BANNED);
-  const built = await loadSoftwareCatalog(env, { views: 99, downloads: 11 });
-  assert.ok(built.downloadable > 27);
-  assert.ok(built.products.some((p) => p.slug === "azmail"));
-  assert.ok(built.products.some((p) => p.slug === "embryolock"));
-  const fg = built.products.find((p) => p.slug === "fraggate");
-  assert.ok(fg.links.some((l) => l.primary && l.label === "Download" && l.href === FRAGGATE_DOWNLOAD));
-  assert.ok(fg.links.some((l) => l.label === "GitHub"));
+  try {
+    assert.ok(res);
+    assert.equal(res.status, 200);
+    const html = await res.text();
+    assert.match(html, /PeaceLock/);
+    assert.match(html, /AZMail/);
+    assert.match(html, /FragGate/);
+    assert.match(html, /EmbryoLock/);
+    assert.match(html, /Plain Product 24/);
+    assert.match(html, /fraggate-download-tracker\.vibelock\.workers\.dev\/download/);
+    assert.match(html, /Runtime 1\.6\.4 · FragGate/);
+    assert.match(html, /\/runtime\/v1\/fraggate\/describe\?slug=peacelock/);
+    assert.match(html, /\/runtime\/mcp/);
+    assert.match(html, /mirrors the live aziel-runtime catalog/);
+    assert.doesNotMatch(html, BANNED);
+    const built = await loadSoftwareCatalog(env, { views: 99, downloads: 11 });
+    assert.ok(built.downloadable > 27);
+    assert.ok(built.products.some((p) => p.slug === "azmail"));
+    assert.ok(built.products.some((p) => p.slug === "embryolock"));
+    const fg = built.products.find((p) => p.slug === "fraggate");
+    assert.ok(fg.links.some((l) => l.primary && l.label === "Download" && l.href === FRAGGATE_DOWNLOAD));
+    assert.ok(fg.links.some((l) => l.label === "Worker" && l.href === FRAGGATE_WORKER_HOME));
+    assert.ok(fg.links.some((l) => l.label === "GitHub"));
+    assert.ok(fg.pills.includes("0 downloads"));
+    assert.ok(fg.pills.includes("2 views"));
+  } finally {
+    globalThis.fetch = origFetch;
+  }
+});
+
+test("FragGate cards Worker /count pills; AZBrowser uses by_op like other engines", async () => {
+  const catalog = {
+    version: "1.6.6",
+    products: [{
+      slug: "azbrowser",
+      name: "AZBrowser",
+      version: "0.1.0",
+      download: "https://azbrowser-download-tracker.vibelock.workers.dev/download",
+      worker: "azbrowser-download-tracker",
+      worker_home: "https://azbrowser-download-tracker.vibelock.workers.dev/",
+      count: "https://azbrowser-download-tracker.vibelock.workers.dev/count",
+      github: "https://github.com/AzielEliab/azbrowser",
+      one_line: "AZBrowser / AZNet Phase 1. FragGate only.",
+    }],
+    extras: [{
+      slug: "fraggate",
+      name: "FragGate",
+      door: "fraggate",
+      worker: null,
+      github: "https://github.com/AzielEliab/fraggate",
+      one_line: "Hashed registry door. Not a download-tracker.",
+    }],
+  };
+  const env = stubEnv({
+    async fetch(request) {
+      const url = new URL(request.url);
+      if (url.pathname.endsWith("/catalog.json")) {
+        return new Response(JSON.stringify(catalog), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      if (url.pathname.endsWith("/uses")) {
+        return new Response(JSON.stringify({
+          uses: 40,
+          by_path: { "/v1/fraggate/list": 5 },
+          by_op: { "azbrowser.ethical_search": 3, "azbrowser.pull": 1, "fraggate.call": 9 },
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      return new Response("no", { status: 404 });
+    },
+  });
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init) => {
+    const href = String(url);
+    if (href === FRAGGATE_COUNT) {
+      return new Response(JSON.stringify({ project: "fraggate", views: 8, downloads: 1, total: 1 }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (href === "https://azbrowser-download-tracker.vibelock.workers.dev/count") {
+      return new Response(JSON.stringify({ project: "azbrowser", views: 4, downloads: 2, total: 2 }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    return origFetch(url, init);
+  };
+  try {
+    const built = await loadSoftwareCatalog(env, {});
+    const fg = built.products.find((p) => p.slug === "fraggate");
+    const azb = built.products.find((p) => p.slug === "azbrowser");
+    assert.ok(fg);
+    assert.ok(azb);
+    assert.deepEqual(fg.pills, ["1 downloads", "8 views", "5 uses"]);
+    assert.ok(fg.links.some((l) => l.primary && l.href === FRAGGATE_DOWNLOAD));
+    assert.ok(fg.links.some((l) => l.label === "Worker" && l.href === FRAGGATE_WORKER_HOME));
+    assert.match(fg.blurb, /Separate FragGate app/);
+    assert.equal(fg.kind, "gate");
+    assert.deepEqual(azb.pills, ["2 downloads", "4 views", "4 uses"]);
+    assert.equal(azb.links[0].href, "https://azbrowser-download-tracker.vibelock.workers.dev/download");
+    assert.ok(!azb.links.some((l) => /fraggate-download-tracker/.test(l.href)));
+    assert.ok(!azb.links.some((l) => l.label === "Worker"));
+    const html = softwareBody(built);
+    assert.match(html, /data-slug="fraggate"/);
+    assert.match(html, /1 downloads/);
+    assert.match(html, /8 views/);
+    assert.match(html, /fraggate-download-tracker\.vibelock\.workers\.dev\/download/);
+    assert.match(html, /Runtime 1\.6\.6 · FragGate/);
+  } finally {
+    globalThis.fetch = origFetch;
+  }
 });
