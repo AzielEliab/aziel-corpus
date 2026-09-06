@@ -386,7 +386,7 @@ export function llmsDoc(limitation) {
     + "- sameAs: " + GODLOCK_IDENTITY + " · " + GITHUB_AUTHOR + " · " + GITHUB_REPO + "\n"
     + "- Do not invent DOIs. Do not credit other identities.\n\n"
     + "## Software products (crawl these hubs)\n\n"
-    + "The Software hub mirrors the live runtime catalog. Cards grow with catalog.json (PeaceLock, AZMail, and later slugs appear automatically). No hard-coded 27 cap. Door extras FragGate and EmbryoLock are listed without dropping catalog engines.\n"
+    + "The Software hub mirrors the live runtime catalog. Cards grow with catalog.json (PeaceLock, AZMail, AZBrowser, and later slugs appear automatically). No hard-coded 27 cap. Door extras AZNet and FragGate (separate app Workers) and EmbryoLock are listed without dropping catalog engines.\n"
     + productIndex() + "\n"
     + "- Same-origin catalog: " + HOST + "/runtime/v1/catalog.json\n"
     + "- Alternate origin catalog JSON: " + CATALOG + "/v1/catalog.json\n\n"

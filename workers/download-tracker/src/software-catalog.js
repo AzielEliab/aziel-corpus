@@ -18,7 +18,23 @@ export const FRAGGATE_WORKER_HOME = "https://fraggate-download-tracker.vibelock.
 export const FRAGGATE_DOWNLOAD = FRAGGATE_WORKER_HOME + "download";
 export const FRAGGATE_COUNT = FRAGGATE_WORKER_HOME + "count";
 
+/** Separate AZNet app (not nested AZBrowser UI). Listed until runtime catalogs it. Author: Aziel Eliab only. */
+export const AZNET_WORKER_HOME = "https://aznet-download-tracker.vibelock.workers.dev/";
+export const AZNET_DOWNLOAD = AZNET_WORKER_HOME + "download";
+export const AZNET_COUNT = AZNET_WORKER_HOME + "count";
+
 export const SOFTWARE_EXTRAS = [
+  {
+    slug: "aznet",
+    name: "AZNet",
+    version: "0.1.0",
+    github: "https://github.com/AzielEliab/aznet",
+    download: AZNET_DOWNLOAD,
+    worker: "aznet-download-tracker",
+    worker_home: AZNET_WORKER_HOME,
+    count: AZNET_COUNT,
+    one_line: "AZNet (AZN-WP-0.1): silent verification side-net. Hashes only. Separate app from AZBrowser and FragGate — pairing is order/token only, not a shared Phase-1 UI. AZNet + AZBrowser required. FragGate unlocks access. StaticClock stamps time. Author Aziel Eliab.",
+  },
   {
     slug: "fraggate",
     name: "FragGate",
@@ -56,6 +72,8 @@ const KNOWN_NAMES = {
   "aziel-corpus": "Aziel Digital Library",
   azieltether: "AzielTether",
   azmail: "AZMail",
+  aznet: "AZNet",
+  azbrowser: "AZBrowser",
   azos: "AZ-OS",
   decisiongate: "DecisionGATE",
   embryolock: "EmbryoLock",
@@ -170,17 +188,25 @@ export function mergeSoftwareExtras(products) {
   return list;
 }
 
+function extraWorkerHome(product) {
+  const slug = String((product && product.slug) || "").toLowerCase();
+  if (!product || !product.worker_home) return "";
+  if (slug === "fraggate" || slug === "aznet" || product.extra) return product.worker_home;
+  return "";
+}
+
 export function productLinks(product) {
   const slug = String((product && product.slug) || "").toLowerCase();
   const links = [];
   const workerSet = Boolean(product && (product.worker || product.download));
+  const extraHome = extraWorkerHome(product);
   if (workerSet && product.download) {
     links.push({ href: product.download, label: "Download", primary: true });
-  } else if (slug === "fraggate" && product && product.worker_home) {
-    links.push({ href: product.worker_home, label: "Worker", primary: true });
+  } else if (extraHome) {
+    links.push({ href: extraHome, label: "Worker", primary: true });
   }
-  if (slug === "fraggate" && product && product.worker_home && !links.some((l) => l.href === product.worker_home)) {
-    links.push({ href: product.worker_home, label: "Worker" });
+  if (extraHome && !links.some((l) => l.href === extraHome)) {
+    links.push({ href: extraHome, label: "Worker" });
   }
   if (product && product.github) links.push({ href: product.github, label: "GitHub" });
   links.push({ href: "/runtime", label: "Runtime" });
@@ -242,6 +268,7 @@ export function countUrlForProduct(product) {
   const slug = String((product && product.slug) || "").toLowerCase();
   const listed = firstText(product && product.count);
   if (slug === "fraggate") return firstText(listed, FRAGGATE_COUNT);
+  if (slug === "aznet") return firstText(listed, AZNET_COUNT);
   return listed;
 }
 
