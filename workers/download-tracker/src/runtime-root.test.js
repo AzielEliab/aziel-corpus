@@ -30,6 +30,8 @@ test("fallbackKind recognizes pull/skill/bundle/runtime.json", () => {
   assert.equal(fallbackKind("/v1/skill"), "skill");
   assert.deepEqual(fallbackKind("/v1/pull/aziel-corpus"), { kind: "pull", slug: "aziel-corpus" });
   assert.deepEqual(fallbackKind("/v1/bundle/foldlock"), { kind: "bundle", slug: "foldlock" });
+  assert.equal(fallbackKind("/v1/mesh"), "mesh");
+  assert.equal(fallbackKind("/v1/mesh/nodes"), "mesh");
   assert.equal(fallbackKind("/openapi.json"), null);
 });
 

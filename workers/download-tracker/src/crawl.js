@@ -100,6 +100,7 @@ const PRODUCT_LINES = [
   ["Aziel Digital Library (aziel-corpus)", HOST + "/", GITHUB_REPO],
   ["Software hub", HOST + "/software", HOST + "/software"],
   ["aziel-runtime " + RUNTIME_VERSION + " FragGate door", HOST + "/runtime", CATALOG + "/"],
+  ["Suite mesh / Live Nodes (default off)", HOST + "/v1/mesh", HOST + "/runtime/v1/mesh"],
   ["How it's scored", HOST + "/how-its-scored", HOST + "/how-its-scored"],
   ["AzielTether lattice", HOST + "/v1/lattice", HOST + "/software"],
   ["ZionPattern Solver", HOST + "/how-its-scored", HOST + "/pattern"],
@@ -166,6 +167,9 @@ export function robotsTxt() {
     "Allow: /openapi.json",
     "Allow: /v1/software",
     "Allow: /v1/update/check",
+    "Allow: /v1/mesh",
+    "Allow: /v1/mesh/",
+    "Allow: /runtime/v1/mesh",
     "Allow: /sitemap-index.xml",
     "Allow: /mcp.json",
     "Allow: /.well-known/mcp.json",
@@ -193,6 +197,10 @@ const STATIC_SITEMAP = [
   "/software",
   "/v1/software",
   "/v1/update/check",
+  "/v1/mesh",
+  "/v1/mesh/status",
+  "/v1/mesh/nodes",
+  "/runtime/v1/mesh",
   "/sitemap-index.xml",
   "/mcp.json",
   "/.well-known/mcp.json",
@@ -273,6 +281,10 @@ export function mcpDiscovery() {
     skill: HOST + "/runtime/v1/skill",
     software: HOST + "/v1/software",
     software_origin: CATALOG + "/v1/software",
+    mesh: HOST + "/v1/mesh",
+    runtime_mesh: HOST + "/runtime/v1/mesh",
+    mesh_origin: CATALOG + "/v1/mesh",
+    mesh_note: "Suite node mesh. Default off until runtime enable. Author Aziel Eliab.",
     fraggate_list: HOST + "/runtime/v1/fraggate/list",
     cite: HOST + "/cite.json",
     llms: HOST + "/llms.txt",
@@ -378,6 +390,10 @@ export function citeDoc() {
     software_origin: CATALOG + "/v1/software",
     update_check: HOST + "/v1/update/check",
     update_check_origin: CATALOG + "/v1/update/check",
+    mesh: HOST + "/v1/mesh",
+    runtime_mesh: HOST + "/runtime/v1/mesh",
+    mesh_origin: CATALOG + "/v1/mesh",
+    mesh_note: "Suite node mesh. Default off until runtime enable. Live Nodes empty while off. Author Aziel Eliab.",
     mcp_discovery: HOST + "/.well-known/mcp.json",
     sitemap_index: HOST + "/sitemap-index.xml",
     runtime_fraggate_list: HOST + "/runtime/v1/fraggate/list",
@@ -436,6 +452,9 @@ export function llmsDoc(limitation) {
     + "Runtime OpenAPI: " + HOST + "/runtime/openapi.json\n"
     + "Runtime MCP: POST " + HOST + "/runtime/mcp\n"
     + "Runtime uses (this door): " + HOST + "/runtime/v1/uses\n"
+    + "Suite mesh (default off until runtime enable): " + HOST + "/v1/mesh\n"
+    + "Runtime mesh: " + HOST + "/runtime/v1/mesh\n"
+    + "Live Nodes: " + HOST + "/v1/mesh/nodes\n"
     + "Alternate origin (sameAs): " + CATALOG + "/\n"
     + "Compatible AI clients: " + AI_CLIENTS + "\n"
     + "License: Apache-2.0\n"
@@ -469,6 +488,8 @@ export function llmsDoc(limitation) {
     + "- Runtime root: " + HOST + "/runtime\n"
     + "- Runtime health: " + HOST + "/runtime/v1/health  (aziel-runtime " + RUNTIME_VERSION + " FragGate; " + RUNTIME_LIVE_COUNT + " live; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse)\n"
     + "- Runtime uses (this door): " + HOST + "/runtime/v1/uses\n"
+    + "- Suite mesh / Live Nodes (default off until runtime enable): " + HOST + "/v1/mesh\n"
+    + "- Runtime mesh: " + HOST + "/runtime/v1/mesh\n"
     + "- Runtime FragGate: " + HOST + "/runtime/v1/fraggate\n"
     + "- Runtime FragGate list: " + HOST + "/runtime/v1/fraggate/list\n"
     + "- Runtime FragGate call: POST " + HOST + "/runtime/v1/fraggate/call\n"
@@ -497,6 +518,10 @@ export function llmsDoc(limitation) {
     + "- GET " + HOST + "/v1/example\n"
     + "- GET " + HOST + "/v1/review?record_id=\n"
     + "- GET " + HOST + "/v1/lattice?record_id=\n"
+    + "- GET " + HOST + "/v1/mesh\n"
+    + "- GET " + HOST + "/v1/mesh/status\n"
+    + "- GET " + HOST + "/v1/mesh/nodes\n"
+    + "- GET " + HOST + "/runtime/v1/mesh\n"
     + "- GET " + HOST + "/v1/verify-backfill\n"
     + "- GET " + HOST + "/v1/verify-geo?force=1\n"
     + "- GET " + HOST + "/v1/verify-geo?status=1\n"
@@ -585,6 +610,9 @@ export function aiTxt(limitation) {
     "Allow: /v1/",
     "Allow: /v1/software",
     "Allow: /v1/update/check",
+    "Allow: /v1/mesh",
+    "Allow: /v1/mesh/",
+    "Allow: /runtime/v1/mesh",
     "Allow: /sitemap-index.xml",
     "Allow: /mcp.json",
     "Allow: /.well-known/mcp.json",
@@ -608,6 +636,8 @@ export function aiTxt(limitation) {
     + "- " + ABOUT_NAV_LABEL + ": " + HOST + ABOUT_PATH + "\n"
     + "- Software hub: " + HOST + "/software\n"
     + "- Live software catalog: " + HOST + "/v1/software\n"
+    + "- Suite mesh / Live Nodes (default off): " + HOST + "/v1/mesh\n"
+    + "- Runtime mesh: " + HOST + "/runtime/v1/mesh\n"
     + "- MCP discovery: " + HOST + "/.well-known/mcp.json\n"
     + "- Runtime catalog: " + HOST + "/runtime\n"
     + "- Runtime FragGate: " + HOST + "/runtime/v1/fraggate\n"
@@ -650,6 +680,8 @@ export function humansTxt() {
     "Standards: HTML, JSON-LD, OpenAPI, llms.txt",
     "Software: " + HOST + "/software",
     "Software hub mirrors runtime /v1/software (fallback fraggate/list): " + HOST + "/v1/software",
+    "Suite mesh (default off until runtime enable): " + HOST + "/v1/mesh",
+    "Runtime mesh: " + HOST + "/runtime/v1/mesh",
     "Runtime: " + HOST + "/runtime",
     "Runtime version: aziel-runtime " + RUNTIME_VERSION + " FragGate",
     "License: Apache-2.0",

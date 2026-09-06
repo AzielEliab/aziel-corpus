@@ -47,6 +47,7 @@ export function shouldCountRuntimeUse(method, pathname) {
   if (path === "/runtime/v1/uses") return false;
   if (isRuntimeSeoStatic(path)) return false;
   if (m === "GET" && (path === "/runtime/v1/health" || path === "/runtime/v1/ready")) return false;
+  if (m === "GET" && (path === "/runtime/v1/mesh" || path.startsWith("/runtime/v1/mesh/"))) return false;
   if (path.startsWith("/runtime/v1/fraggate")) return true;
   if (path === "/runtime/mcp" || path.startsWith("/runtime/mcp/")) return true;
   if (path.startsWith("/runtime/v1/session")) return true;

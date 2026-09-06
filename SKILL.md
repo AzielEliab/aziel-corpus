@@ -31,6 +31,7 @@ Always send `User-Agent: Mozilla/5.0`.
 - Pull: `GET https://www.azielcorpuslibrary.net/runtime/v1/pull/{slug}`
 - Session (advanced/internal): `POST https://www.azielcorpuslibrary.net/runtime/v1/session/open` then `POST .../session/{id}/exec`. Prefer fraggate_call.
 - Library skill: `GET https://www.azielcorpuslibrary.net/v1/skill`
+- Suite mesh (default off until runtime enable): `GET https://www.azielcorpuslibrary.net/v1/mesh` · `GET https://www.azielcorpuslibrary.net/runtime/v1/mesh`
 
 Ops (do **not** increment downloads):
 
