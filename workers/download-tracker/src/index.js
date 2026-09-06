@@ -3,7 +3,7 @@ import { handleRuntimeRoot } from "./runtime-root.js";
 import { handleAuth, getSession } from "./auth.js";
 import { page, homeBody } from "./ui.js";
 import { handleHosted } from "./hosted.js";
-import { robotsTxt, sitemapXml, citeDoc, llmsDoc, aiTxt, humansTxt, isReadMethod, crawlResponse, MIME } from "./crawl.js";
+import { robotsTxt, sitemapXml, sitemapIndexXml, citeDoc, llmsDoc, aiTxt, humansTxt, mcpDiscovery, isReadMethod, crawlResponse, MIME } from "./crawl.js";
 import { searchRecords, listFacets, parseBrowseParams, serveFile, serveFileByHash, normalizeContentHash } from "./library.js";
 import { reviewAndStore, continueFullBackfill } from "./review-store.js";
 import { continueVerifyGeo } from "./geo.js";
@@ -224,11 +224,20 @@ function installScript() {
 # Aziel Digital Library v${VERSION} counted zip install.
 set -euo pipefail
 HOST="${HOST}"
+RUNTIME="\${AZIEL_RUNTIME_HOST:-${CATALOG}}"
 ASSET="${DEFAULT_ASSET}"
 LEGACY="${LEGACY_ASSET}"
 WORKDIR="\${AZIEL_LIBRARY_HOME:-\$HOME/aziel-digital-library}"
 mkdir -p "\$WORKDIR"
 cd "\$WORKDIR"
+echo "Checking updates via \${RUNTIME}/v1/update/check (User-Agent Mozilla/5.0)…"
+UPDATE_JSON="\$(curl -fsSL -A 'Mozilla/5.0' "\${RUNTIME}/v1/update/check?slug=aziel-corpus&version=${VERSION}" || true)"
+if [ -z "\$UPDATE_JSON" ]; then
+  UPDATE_JSON="\$(curl -fsSL -A 'Mozilla/5.0' "\${HOST}/v1/update/check?slug=aziel-corpus&version=${VERSION}" || true)"
+fi
+if [ -n "\$UPDATE_JSON" ]; then
+  echo "\$UPDATE_JSON"
+fi
 echo "Downloading counted zip from \${HOST}/download (User-Agent Mozilla/5.0)…"
 if ! curl -fsSL -A 'Mozilla/5.0' "\${HOST}/download?asset=\${ASSET}" -o "\${ASSET}"; then
   echo "Canonical host failed; trying workers.dev fallback…"
@@ -524,6 +533,12 @@ export default {
     if (isReadMethod(request.method) && crawlPath === "/sitemap.xml") {
       const xml = await sitemapXml(env);
       return crawlResponse(request, xml, MIME.xml, { "Last-Modified": new Date().toUTCString(), ...corsHeaders() });
+    }
+    if (isReadMethod(request.method) && crawlPath === "/sitemap-index.xml") {
+      return crawlResponse(request, sitemapIndexXml(), MIME.xml, { "Last-Modified": new Date().toUTCString(), ...corsHeaders() });
+    }
+    if (isReadMethod(request.method) && (crawlPath === "/mcp.json" || crawlPath === "/.well-known/mcp.json")) {
+      return crawlResponse(request, JSON.stringify(mcpDiscovery(), null, 2), MIME.json, corsHeaders());
     }
     if (isReadMethod(request.method) && crawlPath === "/cite.json") {
       return crawlResponse(request, JSON.stringify(citeDoc(), null, 2), MIME.json, corsHeaders());

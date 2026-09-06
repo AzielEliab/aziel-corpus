@@ -15,7 +15,7 @@ const GITHUB_REPO = "https://github.com/AzielEliab/aziel-corpus";
 const GITHUB_AUTHOR = "https://github.com/AzielEliab";
 const DEFAULT_ASSET = "aziel-digital-library-2.7.0.zip";
 const VERSION = "2.7.0";
-const SITE_LASTMOD = "2026-09-05";
+const SITE_LASTMOD = "2026-09-06";
 const AUTHOR = "Aziel Eliab";
 const AKA = "Aziel Elroi Eliab";
 const RECORD_SITEMAP_CAP = 400;
@@ -164,6 +164,12 @@ export function robotsTxt() {
     "Allow: /ai.txt",
     "Allow: /humans.txt",
     "Allow: /openapi.json",
+    "Allow: /v1/software",
+    "Allow: /v1/update/check",
+    "Allow: /sitemap-index.xml",
+    "Allow: /mcp.json",
+    "Allow: /.well-known/mcp.json",
+    "Allow: /runtime/v1/software",
     "Allow: /assets",
     "Allow: /assets/",
     "Allow: /login",
@@ -176,6 +182,7 @@ export function robotsTxt() {
     "",
     ...botAllows(),
     "Sitemap: " + HOST + "/sitemap.xml",
+    "Sitemap: " + HOST + "/sitemap-index.xml",
     "",
   ].join("\n");
 }
@@ -184,6 +191,11 @@ const STATIC_SITEMAP = [
   "/",
   ABOUT_PATH,
   "/software",
+  "/v1/software",
+  "/v1/update/check",
+  "/sitemap-index.xml",
+  "/mcp.json",
+  "/.well-known/mcp.json",
   "/runtime",
   "/runtime/",
   "/runtime/v1/health",
@@ -225,6 +237,7 @@ const STATIC_SITEMAP = [
   "/v1/runtime.json",
   "/runtime/v1/runtime.json",
   "/runtime/v1/skill",
+  "/runtime/v1/software",
   "/runtime/v1/catalog.json",
   "/runtime/openapi.json",
   "/openapi.json",
@@ -233,6 +246,51 @@ const STATIC_SITEMAP = [
 
 function sitemapUrl(loc, lastmod) {
   return "  <url><loc>" + loc + "</loc><lastmod>" + lastmod + "</lastmod></url>";
+}
+
+export function sitemapIndexXml() {
+  const locs = [
+    HOST + "/sitemap.xml",
+    CATALOG + "/sitemap.xml",
+    CATALOG + "/sitemap-index.xml",
+    "https://godlock.uk/sitemap.xml",
+  ];
+  return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n"
+    + locs.map((loc) => "  <sitemap><loc>" + loc + "</loc><lastmod>" + SITE_LASTMOD + "</lastmod></sitemap>").join("\n")
+    + "\n</sitemapindex>\n";
+}
+
+export function mcpDiscovery() {
+  return {
+    name: "aziel-runtime",
+    title: "Aziel Eliab Runtime",
+    description: "FragGate door over Aziel Eliab software. Public, no OAuth. Author Aziel Eliab only.",
+    author: AUTHOR,
+    url: HOST + "/runtime/mcp",
+    transport: "http",
+    openapi: HOST + "/runtime/openapi.json",
+    library_openapi: HOST + "/openapi.json",
+    skill: HOST + "/runtime/v1/skill",
+    software: HOST + "/v1/software",
+    software_origin: CATALOG + "/v1/software",
+    fraggate_list: HOST + "/runtime/v1/fraggate/list",
+    cite: HOST + "/cite.json",
+    llms: HOST + "/llms.txt",
+    sameAs: [CATALOG + "/mcp", CATALOG + "/openapi.json"],
+    mcpServers: {
+      "aziel-runtime": {
+        url: HOST + "/runtime/mcp",
+        type: "http",
+      },
+    },
+    servers: [
+      {
+        name: "aziel-runtime",
+        url: HOST + "/runtime/mcp",
+        transport: "http",
+      },
+    ],
+  };
 }
 
 export async function sitemapXml(env) {
@@ -315,6 +373,13 @@ export function citeDoc() {
     runtime_openapi: HOST + "/runtime/openapi.json",
     runtime_mcp: HOST + "/runtime/mcp",
     runtime_fraggate: HOST + "/runtime/v1/fraggate",
+    runtime_software: HOST + "/runtime/v1/software",
+    software_live: HOST + "/v1/software",
+    software_origin: CATALOG + "/v1/software",
+    update_check: HOST + "/v1/update/check",
+    update_check_origin: CATALOG + "/v1/update/check",
+    mcp_discovery: HOST + "/.well-known/mcp.json",
+    sitemap_index: HOST + "/sitemap-index.xml",
     runtime_fraggate_list: HOST + "/runtime/v1/fraggate/list",
     runtime_llms: HOST + "/runtime/llms.txt",
     runtime_cite: HOST + "/runtime/cite.json",
@@ -359,7 +424,7 @@ export function llmsDoc(limitation) {
     + "Library: " + HOST + "/\n"
     + ABOUT_NAV_LABEL + ": " + HOST + ABOUT_PATH + "\n"
     + "Software hub: " + HOST + "/software\n"
-    + "Software hub mirrors the live aziel-runtime catalog (GET " + HOST + "/runtime/v1/catalog.json). No fixed product cap.\n"
+    + "Software hub mirrors the live aziel-runtime catalog per request (GET " + CATALOG + "/v1/software, fallback " + CATALOG + "/v1/fraggate/list; same-origin " + HOST + "/v1/software). No fixed product cap.\n"
     + "Runtime catalog: " + HOST + "/runtime\n"
     + "Runtime FragGate: " + HOST + "/runtime/v1/fraggate\n"
     + "Runtime version: aziel-runtime " + RUNTIME_VERSION + " FragGate (" + RUNTIME_LIVE_COUNT + " live; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse)\n"
@@ -386,10 +451,14 @@ export function llmsDoc(limitation) {
     + "- sameAs: " + GODLOCK_IDENTITY + " · " + GITHUB_AUTHOR + " · " + GITHUB_REPO + "\n"
     + "- Do not invent DOIs. Do not credit other identities.\n\n"
     + "## Software products (crawl these hubs)\n\n"
-    + "The Software hub mirrors the live runtime catalog. Cards grow with catalog.json (PeaceLock, AZMail, AZBrowser, and later slugs appear automatically). No hard-coded 27 cap. Door extras AZNet and FragGate (separate app Workers) and EmbryoLock are listed without dropping catalog engines.\n"
+    + "The Software hub mirrors the live runtime catalog. Cards grow with GET /v1/software (fallback fraggate/list). PeaceLock, AZMail, AZBrowser, and later slugs appear automatically. No hard-coded 27 cap. Door extras AZNet and FragGate (separate app Workers) and EmbryoLock are listed without dropping catalog engines.\n"
     + productIndex() + "\n"
+    + "- Same-origin live software: " + HOST + "/v1/software\n"
     + "- Same-origin catalog: " + HOST + "/runtime/v1/catalog.json\n"
-    + "- Alternate origin catalog JSON: " + CATALOG + "/v1/catalog.json\n\n"
+    + "- Alternate origin software: " + CATALOG + "/v1/software\n"
+    + "- Alternate origin fraggate/list: " + CATALOG + "/v1/fraggate/list\n"
+    + "- Alternate origin catalog JSON: " + CATALOG + "/v1/catalog.json\n"
+    + "- MCP discovery: " + HOST + "/.well-known/mcp.json\n\n"
     + runtimeHowTo(HOST) + "\n\n"
     + "## Public HTML (anonymous GET; User-Agent Mozilla/5.0)\n\n"
     + "- Search: " + HOST + "/\n"
@@ -447,7 +516,13 @@ export function llmsDoc(limitation) {
     + "- GET " + HOST + "/runtime/v1/runtime.json\n"
     + "- GET " + HOST + "/runtime/v1/skill\n"
     + "- GET " + HOST + "/runtime/v1/pull/{slug}\n"
+    + "- GET " + HOST + "/v1/software\n"
+    + "- GET " + HOST + "/v1/update/check?slug=aziel-corpus&version=" + VERSION + "\n"
+    + "- GET " + HOST + "/runtime/v1/software\n"
     + "- GET " + HOST + "/runtime/v1/catalog.json\n"
+    + "- GET " + HOST + "/.well-known/mcp.json\n"
+    + "- GET " + HOST + "/mcp.json\n"
+    + "- GET " + HOST + "/sitemap-index.xml\n"
     + "- GET " + HOST + "/runtime/openapi.json\n"
     + "- POST " + HOST + "/runtime/mcp\n"
     + "- GET " + HOST + "/runtime/llms.txt\n"
@@ -508,6 +583,12 @@ export function aiTxt(limitation) {
     "Allow: /openapi.json",
     "Allow: /v1",
     "Allow: /v1/",
+    "Allow: /v1/software",
+    "Allow: /v1/update/check",
+    "Allow: /sitemap-index.xml",
+    "Allow: /mcp.json",
+    "Allow: /.well-known/mcp.json",
+    "Allow: /runtime/v1/software",
     "Disallow: /signup",
     "Disallow: /logout",
     "Disallow: /api/",
@@ -520,11 +601,14 @@ export function aiTxt(limitation) {
     policy.push("User-agent: " + bot, "Allow: /", "");
   }
   return policy.join("\n")
-    + "Sitemap: " + HOST + "/sitemap.xml\n\n"
+    + "Sitemap: " + HOST + "/sitemap.xml\n"
+    + "Sitemap: " + HOST + "/sitemap-index.xml\n\n"
     + "## Research surfaces\n\n"
     + "- Library: " + HOST + "/\n"
     + "- " + ABOUT_NAV_LABEL + ": " + HOST + ABOUT_PATH + "\n"
     + "- Software hub: " + HOST + "/software\n"
+    + "- Live software catalog: " + HOST + "/v1/software\n"
+    + "- MCP discovery: " + HOST + "/.well-known/mcp.json\n"
     + "- Runtime catalog: " + HOST + "/runtime\n"
     + "- Runtime FragGate: " + HOST + "/runtime/v1/fraggate\n"
     + "- Runtime FragGate list: " + HOST + "/runtime/v1/fraggate/list\n"
@@ -565,7 +649,7 @@ export function humansTxt() {
     "Name: Aziel Digital Library",
     "Standards: HTML, JSON-LD, OpenAPI, llms.txt",
     "Software: " + HOST + "/software",
-    "Software hub mirrors runtime catalog: " + HOST + "/runtime/v1/catalog.json",
+    "Software hub mirrors runtime /v1/software (fallback fraggate/list): " + HOST + "/v1/software",
     "Runtime: " + HOST + "/runtime",
     "Runtime version: aziel-runtime " + RUNTIME_VERSION + " FragGate",
     "License: Apache-2.0",

@@ -1,6 +1,8 @@
 /**
  * /software hub: live aziel-runtime catalog + door extras.
- * Mirrors GET /v1/catalog.json (prefer AZIEL_RUNTIME). No fixed product cap.
+ * Per request: GET /v1/software, fallback GET /v1/fraggate/list
+ * (then catalog.json only to enrich Worker/download metadata).
+ * Prefer AZIEL_RUNTIME service binding. No fixed product cap.
  * Author: Aziel Eliab only.
  */
 import {
@@ -318,6 +320,10 @@ export function countPills({ downloads, views, uploads, uses } = {}) {
   return pills;
 }
 
+export const SOFTWARE_LIVE_PATH = "/v1/software";
+export const FRAGGATE_LIST_PATH = "/v1/fraggate/list";
+export const CATALOG_JSON_PATH = "/v1/catalog.json";
+
 export async function runtimeGet(env, destPath) {
   const dest = new URL(destPath, RUNTIME_ORIGIN + "/");
   const headers = { "User-Agent": UA, Accept: "application/json" };
@@ -330,6 +336,113 @@ export async function runtimeGet(env, destPath) {
     }
   }
   return fetch(dest.toString(), { method: "GET", headers });
+}
+
+export async function fetchRuntimeJson(env, destPath) {
+  try {
+    const res = await runtimeGet(env, destPath);
+    if (!res || !res.ok) return null;
+    const doc = await res.json();
+    if (!doc || typeof doc !== "object" || doc.error) return null;
+    return doc;
+  } catch {
+    return null;
+  }
+}
+
+/** Normalize /v1/software, fraggate/list, or catalog.json into a products catalog. */
+export function normalizeSoftwareDoc(doc) {
+  if (!doc || typeof doc !== "object") return { products: [] };
+  if (Array.isArray(doc.products) || doc.engines || doc.engine_slugs || doc.true_engine_slugs || doc.extras) {
+    return doc;
+  }
+  if (Array.isArray(doc.software)) {
+    return Object.assign({}, doc, { products: doc.software });
+  }
+  if (Array.isArray(doc.entries)) {
+    return {
+      version: doc.version || doc.catalog_version || "",
+      kernel_version: doc.kernel_version || "",
+      products: doc.entries.map((e) => ({
+        slug: e && e.slug,
+        name: e && e.name,
+        one_line: firstText(e && e.one_line, e && e.description, e && e.banner),
+        version: (e && e.version) || "",
+        github: (e && e.github) || "",
+        download: (e && e.download) || "",
+        worker: (e && e.worker) || "",
+        worker_home: (e && e.worker_home) || "",
+        count: (e && e.count) || "",
+        catalog_only: Boolean((e && e.local_not_hosted) || (e && e.status === "stub") || (e && e.catalog_only)),
+        status: (e && e.status) || "",
+      })),
+      extras: doc.extras,
+    };
+  }
+  return { products: [] };
+}
+
+export function catalogHasProducts(doc) {
+  return collectCatalogProducts(normalizeSoftwareDoc(doc)).length > 0;
+}
+
+function mergeCatalogDocs(primary, enrich) {
+  const a = collectCatalogProducts(normalizeSoftwareDoc(primary));
+  const b = collectCatalogProducts(normalizeSoftwareDoc(enrich));
+  const bySlug = new Map();
+  for (const p of a) bySlug.set(String(p.slug || "").toLowerCase(), p);
+  for (const p of b) {
+    const slug = String(p.slug || "").toLowerCase();
+    if (!slug) continue;
+    const prev = bySlug.get(slug) || {};
+    bySlug.set(slug, Object.assign({}, prev, p, {
+      slug,
+      name: firstText(prev.name, p.name),
+      one_line: firstText(prev.one_line, p.one_line, prev.banner, p.banner),
+      github: firstText(prev.github, p.github),
+      download: firstText(prev.download, p.download),
+      worker: firstText(prev.worker, p.worker),
+      worker_home: firstText(prev.worker_home, p.worker_home),
+      count: firstText(prev.count, p.count),
+      version: firstText(prev.version, p.version),
+    }));
+  }
+  const extras = []
+    .concat((primary && primary.extras) || [])
+    .concat((enrich && enrich.extras) || []);
+  return {
+    version: firstText(primary && primary.version, enrich && enrich.version),
+    products: [...bySlug.values()],
+    extras,
+    engines: Object.assign({}, (enrich && enrich.engines) || {}, (primary && primary.engines) || {}),
+    engine_slugs: [].concat((primary && primary.engine_slugs) || [], (enrich && enrich.engine_slugs) || []),
+    true_engine_slugs: [].concat((primary && primary.true_engine_slugs) || [], (enrich && enrich.true_engine_slugs) || []),
+  };
+}
+
+/** Live catalog: /v1/software first, then fraggate/list. catalog.json only enriches metadata. */
+export async function fetchLiveSoftwareCatalog(env) {
+  const software = await fetchRuntimeJson(env, SOFTWARE_LIVE_PATH);
+  if (catalogHasProducts(software)) {
+    const enrich = await fetchRuntimeJson(env, CATALOG_JSON_PATH);
+    const catalog = catalogHasProducts(enrich)
+      ? mergeCatalogDocs(normalizeSoftwareDoc(software), enrich)
+      : normalizeSoftwareDoc(software);
+    return { catalog, source: "software" };
+  }
+  const list = await fetchRuntimeJson(env, FRAGGATE_LIST_PATH);
+  if (catalogHasProducts(list)) {
+    const enrich = await fetchRuntimeJson(env, CATALOG_JSON_PATH);
+    const catalog = catalogHasProducts(enrich)
+      ? mergeCatalogDocs(normalizeSoftwareDoc(list), enrich)
+      : normalizeSoftwareDoc(list);
+    return { catalog, source: "fraggate/list" };
+  }
+  const fallback = await fetchRuntimeJson(env, CATALOG_JSON_PATH);
+  if (catalogHasProducts(fallback)) {
+    return { catalog: normalizeSoftwareDoc(fallback), source: "catalog.json" };
+  }
+  return { catalog: { products: [] }, source: "empty" };
 }
 
 async function fetchCountDoc(url) {
@@ -362,15 +475,10 @@ function toCard(product, { pills, countHint } = {}) {
 }
 
 export async function loadSoftwareCatalog(env, stats) {
-  let catalog = null;
-  try {
-    const res = await runtimeGet(env, "/v1/catalog.json");
-    if (res && res.ok) catalog = await res.json();
-  } catch {
-    catalog = null;
-  }
+  const live = await fetchLiveSoftwareCatalog(env);
+  const catalog = live.catalog || {};
 
-  const collected = collectCatalogProducts(catalog || {});
+  const collected = collectCatalogProducts(catalog);
   const merged = mergeSoftwareExtras(collected);
   let usesDoc = null;
   try {
@@ -421,6 +529,7 @@ export async function loadSoftwareCatalog(env, stats) {
       { href: "/runtime/v1/fraggate/list", label: "fraggate/list" },
       { href: "/runtime/mcp", label: "MCP" },
       { href: "/runtime/v1/uses", label: "uses" },
+      { href: "/runtime/v1/software", label: "/v1/software" },
       { href: "/runtime/v1/catalog.json", label: "catalog.json" },
       { href: "/runtime/openapi.json", label: "OpenAPI" },
       { href: RUNTIME_GITHUB, label: "GitHub" },
@@ -434,6 +543,7 @@ export async function loadSoftwareCatalog(env, stats) {
     downloadable: collected.length,
     extras: cards.filter((c) => c.extra).length,
     catalogVersion,
+    source: live.source,
     usesTotal: localUses,
     originUses: originUses != null && Number.isFinite(originUses) ? originUses : null,
     siteViews: stats && stats.views != null ? Number(stats.views) : null,

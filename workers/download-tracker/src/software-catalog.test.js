@@ -23,6 +23,8 @@ import {
   countPills,
   loadSoftwareCatalog,
   hubSoftwareCopy,
+  normalizeSoftwareDoc,
+  fetchLiveSoftwareCatalog,
 } from "./software-catalog.js";
 
 const HOST = "https://www.azielcorpuslibrary.net";
@@ -293,6 +295,9 @@ test("softwareBody renders every card in Plain → Gate → Lock with live-catal
     siteDownloads: 5,
   });
   assert.match(html, /mirrors the live aziel-runtime catalog/);
+  assert.match(html, /\/runtime\/v1\/software/);
+  assert.match(html, /fallback/);
+  assert.match(html, /fraggate\/list/);
   assert.match(html, /no fixed 27-product cap/i);
   assert.match(html, /31 catalog products/);
   assert.match(html, /PeaceLock/);
@@ -398,6 +403,8 @@ test("GET /software uses AZIEL_RUNTIME catalog binding and lists every product",
     assert.match(html, /\/runtime\/v1\/fraggate\/describe\?slug=peacelock/);
     assert.match(html, /\/runtime\/mcp/);
     assert.match(html, /mirrors the live aziel-runtime catalog/);
+    assert.match(html, /\/runtime\/v1\/software/);
+    assert.match(res.headers.get("cache-control") || "", /no-store/);
     assert.doesNotMatch(html, BANNED);
     const built = await loadSoftwareCatalog(env, { views: 99, downloads: 11 });
     assert.equal(built.catalogVersion, "1.6.4");
@@ -627,4 +634,70 @@ test("loadSoftwareCatalog rewrites live catalog one_lines and adds Worker homepa
   } finally {
     globalThis.fetch = origFetch;
   }
+});
+
+test("normalizeSoftwareDoc accepts /v1/software and fraggate/list shapes", () => {
+  const fromSoftware = normalizeSoftwareDoc({
+    version: "1.6.11",
+    software: [{ slug: "azmail", name: "AZMail", one_line: "Mail door." }],
+  });
+  assert.equal(fromSoftware.products[0].slug, "azmail");
+  const fromList = normalizeSoftwareDoc({
+    kernel_version: "FG-0.1",
+    entries: [
+      { slug: "decisiongate", name: "DecisionGATE", description: "Five gates." },
+      { slug: "embryolock", name: "EmbryoLock", status: "stub", local_not_hosted: true, description: "Name only." },
+    ],
+  });
+  assert.equal(fromList.products.length, 2);
+  assert.equal(fromList.products[0].one_line, "Five gates.");
+  assert.equal(fromList.products[1].catalog_only, true);
+});
+
+test("fetchLiveSoftwareCatalog prefers /v1/software then fraggate/list", async () => {
+  const envSoftware = stubEnv({
+    async fetch(request) {
+      const url = new URL(request.url);
+      if (url.pathname.endsWith("/software")) {
+        return new Response(JSON.stringify({
+          version: "1.6.11",
+          products: [{ slug: "azbrowser", name: "AZBrowser", one_line: "Lamb Lens." }],
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      if (url.pathname.endsWith("/catalog.json")) {
+        return new Response(JSON.stringify({
+          version: "1.6.11",
+          products: [{
+            slug: "azbrowser",
+            name: "AZBrowser",
+            download: "https://azbrowser-download-tracker.vibelock.workers.dev/download",
+          }],
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      return new Response("no", { status: 404 });
+    },
+  });
+  const live = await fetchLiveSoftwareCatalog(envSoftware);
+  assert.equal(live.source, "software");
+  assert.ok(live.catalog.products.some((p) => p.slug === "azbrowser" && /download/.test(p.download)));
+
+  const envList = stubEnv({
+    async fetch(request) {
+      const url = new URL(request.url);
+      if (url.pathname.endsWith("/fraggate/list")) {
+        return new Response(JSON.stringify({
+          ok: true,
+          entries: [
+            { slug: "peacelock", name: "PeaceLock", description: "Chosen silence." },
+            { slug: "aznet", name: "AZNet", description: "Separate software; functional-order pair with AZBrowser." },
+          ],
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      return new Response(JSON.stringify({ error: "not found" }), { status: 404 });
+    },
+  });
+  const listed = await fetchLiveSoftwareCatalog(envList);
+  assert.equal(listed.source, "fraggate/list");
+  assert.ok(listed.catalog.products.some((p) => p.slug === "peacelock"));
+  assert.ok(listed.catalog.products.some((p) => p.slug === "aznet"));
 });
