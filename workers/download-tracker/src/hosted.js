@@ -26,7 +26,7 @@ import {
   recordOcrTextArtifact, recordSpectralOverlayArtifact, listDerivedArtifacts,
 } from "./ocr.js";
 import { normalizeLenses } from "./spectral.js";
-import { RUNTIME_VERSION, RUNTIME_CHIP, RUNTIME_NOTE } from "./runtime-copy.js";
+import { loadSoftwareCatalog } from "./software-catalog.js";
 
 function intelScripts() {
   var c = [104,116,116,112,115,58,47,47,99,100,110,46,106,115,100,101,108,105,118,114,46,110,101,116,47,110,112,109,47,116,101,115,115,101,114,97,99,116,46,106,115,64,53,47,100,105,115,116,47,116,101,115,115,101,114,97,99,116,46,109,105,110,46,106,115];
@@ -513,7 +513,7 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     return pageHtml(page("Pattern", patternBody(clusters), { signed, path: "/pattern", kind: "pattern" }));
   }
   if (path === "/software" && read) {
-    const catalog = await loadSoftwareCatalog();
+    const catalog = await loadSoftwareCatalog(env, stats);
     return pageHtml(page("Software", softwareBody(catalog), { signed, path: "/software", kind: "software" }));
   }
   if (path === "/how-its-scored" && read) {
@@ -531,86 +531,3 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
   return null;
 }
 
-const CATALOG_URL = "https://aziel-runtime.vibelock.workers.dev/v1/catalog.json";
-const FEATURED = new Set(["azieltether", "foldlock"]);
-
-async function fetchCount(url) {
-  if (!url) return null;
-  try {
-    const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 AzielDigitalLibrary" } });
-    if (!res.ok) return null;
-    const j = await res.json();
-    const n = j && (j.downloads != null ? j.downloads : j.total != null ? j.total : j.count);
-    const num = Number(n);
-    return Number.isFinite(num) ? num : null;
-  } catch {
-    return null;
-  }
-}
-
-async function loadSoftwareCatalog() {
-  let products = [];
-  try {
-    const res = await fetch(CATALOG_URL, { headers: { "User-Agent": "Mozilla/5.0 AzielDigitalLibrary" } });
-    if (res.ok) {
-      const j = await res.json();
-      products = Array.isArray(j.products) ? j.products : [];
-    }
-  } catch {
-    products = [];
-  }
-  const counts = await Promise.all(products.map((p) => fetchCount(p.count)));
-  let fetched = 0;
-  const cards = [];
-  cards.push({
-    name: "aziel-runtime",
-    version: RUNTIME_VERSION,
-    root: true,
-    countLabel: (counts.filter((n) => n != null).reduce((a, b) => a + b, 0) || null) != null
-      ? String(counts.filter((n) => n != null).reduce((a, b) => a + b, 0)) + " downloads"
-      : null,
-    blurb: RUNTIME_NOTE + " Software tab stays the download catalog. Author Aziel Eliab.",
-    links: [
-      { href: "/runtime", label: RUNTIME_CHIP, primary: true },
-      { href: "/runtime/v1/fraggate/list", label: "fraggate/list" },
-      { href: "/runtime/mcp", label: "MCP" },
-      { href: "/runtime/openapi.json", label: "OpenAPI" },
-      { href: "/runtime/v1/runtime.json", label: "runtime.json" },
-      { href: "https://github.com/AzielEliab/aziel-runtime", label: "GitHub" },
-      { href: "https://aziel-runtime.vibelock.workers.dev/", label: "Alternate origin" },
-    ],
-  });
-  const ordered = [...products].sort((a, b) => {
-    const fa = FEATURED.has(String(a.slug || "").toLowerCase()) ? 0 : 1;
-    const fb = FEATURED.has(String(b.slug || "").toLowerCase()) ? 0 : 1;
-    if (fa !== fb) return fa - fb;
-    if (String(a.slug).toLowerCase() === "azieltether") return -1;
-    if (String(b.slug).toLowerCase() === "azieltether") return 1;
-    return String(a.name || "").localeCompare(String(b.name || ""));
-  });
-  ordered.forEach((p, i) => {
-    const slug = String(p.slug || "").toLowerCase();
-    const n = counts[products.indexOf(p)];
-    if (n != null) fetched += 1;
-    const countLabel = n != null ? String(n) + " downloads" : (p.count ? "downloads live on Worker" : "");
-    const workerHome = p.download ? String(p.download).replace(/\/download\/?$/, "/") : "";
-    const links = [];
-    if (p.download) links.push({ href: p.download, label: "Download", primary: true });
-    if (p.github) links.push({ href: p.github, label: "GitHub" });
-    if (slug) links.push({ href: "/runtime/v1/pull/" + encodeURIComponent(slug), label: "Runtime pull" });
-    if (slug === "azieltether") {
-      links.push({ href: "/v1/lattice", label: "Lattice API" });
-      if (workerHome) links.push({ href: workerHome, label: "Worker" });
-      links.push({ href: "https://aziel-runtime.vibelock.workers.dev/p/azieltether", label: "Catalog card" });
-    }
-    cards.push({
-      name: p.name || p.slug,
-      version: p.version || "",
-      featured: FEATURED.has(slug),
-      countLabel,
-      blurb: p.one_line || p.banner || "",
-      links,
-    });
-  });
-  return { products: cards, fetched, downloadable: products.length };
-}

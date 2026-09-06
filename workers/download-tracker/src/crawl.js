@@ -359,6 +359,7 @@ export function llmsDoc(limitation) {
     + "Library: " + HOST + "/\n"
     + ABOUT_NAV_LABEL + ": " + HOST + ABOUT_PATH + "\n"
     + "Software hub: " + HOST + "/software\n"
+    + "Software hub mirrors the live aziel-runtime catalog (GET " + HOST + "/runtime/v1/catalog.json). No fixed product cap.\n"
     + "Runtime catalog: " + HOST + "/runtime\n"
     + "Runtime FragGate: " + HOST + "/runtime/v1/fraggate\n"
     + "Runtime version: aziel-runtime " + RUNTIME_VERSION + " FragGate (" + RUNTIME_LIVE_COUNT + " live; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse)\n"
@@ -385,6 +386,7 @@ export function llmsDoc(limitation) {
     + "- sameAs: " + GODLOCK_IDENTITY + " · " + GITHUB_AUTHOR + " · " + GITHUB_REPO + "\n"
     + "- Do not invent DOIs. Do not credit other identities.\n\n"
     + "## Software products (crawl these hubs)\n\n"
+    + "The Software hub mirrors the live runtime catalog. Cards grow with catalog.json (PeaceLock, AZMail, and later slugs appear automatically). No hard-coded 27 cap. Door extras FragGate and EmbryoLock are listed without dropping catalog engines.\n"
     + productIndex() + "\n"
     + "- Same-origin catalog: " + HOST + "/runtime/v1/catalog.json\n"
     + "- Alternate origin catalog JSON: " + CATALOG + "/v1/catalog.json\n\n"
@@ -563,6 +565,7 @@ export function humansTxt() {
     "Name: Aziel Digital Library",
     "Standards: HTML, JSON-LD, OpenAPI, llms.txt",
     "Software: " + HOST + "/software",
+    "Software hub mirrors runtime catalog: " + HOST + "/runtime/v1/catalog.json",
     "Runtime: " + HOST + "/runtime",
     "Runtime version: aziel-runtime " + RUNTIME_VERSION + " FragGate",
     "License: Apache-2.0",
