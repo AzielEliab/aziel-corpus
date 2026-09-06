@@ -297,8 +297,13 @@ export function headMeta(opts) {
     linkRel("alternate", "/openapi.json", " type=" + Q + "application/json" + Q + " title=" + Q + "OpenAPI" + Q),
     linkRel("alternate", "/runtime/openapi.json", " type=" + Q + "application/json" + Q + " title=" + Q + "Runtime OpenAPI" + Q),
     linkRel("alternate", "/runtime/mcp", " type=" + Q + "application/json" + Q + " title=" + Q + "Runtime MCP" + Q),
+    linkRel("alternate", "/.well-known/mcp.json", " type=" + Q + "application/json" + Q + " title=" + Q + "MCP discovery" + Q),
+    linkRel("alternate", "/mcp.json", " type=" + Q + "application/json" + Q + " title=" + Q + "MCP discovery" + Q),
+    linkRel("alternate", "/v1/software", " type=" + Q + "application/json" + Q + " title=" + Q + "Live software catalog" + Q),
     linkRel("alternate", "/runtime/llms.txt", " type=" + Q + "text/plain" + Q + " title=" + Q + "Runtime llms.txt" + Q),
     linkRel("alternate", "/runtime/cite.json", " type=" + Q + "application/json" + Q + " title=" + Q + "Runtime cite.json" + Q),
+    linkRel("sitemap", "/sitemap.xml"),
+    linkRel("sitemap", "/sitemap-index.xml"),
     linkRel("service", "/runtime/v1/fraggate", " title=" + Q + "FragGate" + Q),
     ...(kind === "about" || path === ABOUT_PATH ? [
       linkRel("me", GODLOCK_IDENTITY),

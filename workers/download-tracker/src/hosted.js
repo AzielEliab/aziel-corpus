@@ -52,6 +52,7 @@ async function receiptForAny(env, id) {
 function html(pageBody, extra) {
   extra = extra || {};
   const headers = { "Content-Type": "text/html; charset=utf-8", ...corsHeaders() };
+  if (extra.cacheControl) headers["Cache-Control"] = extra.cacheControl;
   const status = extra.status || 200;
   if (extra.head) return new Response(null, { status, headers });
   return new Response(pageBody, { status, headers });
@@ -514,7 +515,7 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
   }
   if (path === "/software" && read) {
     const catalog = await loadSoftwareCatalog(env, stats);
-    return pageHtml(page("Software", softwareBody(catalog), { signed, path: "/software", kind: "software", runtimeVersion: catalog.catalogVersion }));
+    return pageHtml(page("Software", softwareBody(catalog), { signed, path: "/software", kind: "software", runtimeVersion: catalog.catalogVersion }), { cacheControl: "private, no-store" });
   }
   if (path === "/how-its-scored" && read) {
     return pageHtml(page("How it's scored", howItsScoredBody(), { signed, path: "/how-its-scored", kind: "scored" }));

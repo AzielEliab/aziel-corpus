@@ -657,7 +657,7 @@ export function softwareBody(model = {}) {
   const counterLine = counters.length ? " · " + counters.join(" · ") : "";
   const hubHtml = hub ? `<div class="soft-grid">${softCard(hub)}</div>` : "";
   return `<section class="hero"><h1>Downloadable software</h1>
-<p class="muted">This hub <strong>mirrors the live aziel-runtime catalog</strong> — <a href="/runtime/v1/catalog.json"><code>GET /runtime/v1/catalog.json</code></a> (service binding <code>AZIEL_RUNTIME</code> when wired; otherwise the workers.dev alternate). When the catalog grows (PeaceLock, AZMail, and later slugs) those products appear automatically. There is no fixed 27-product cap.</p>
+<p class="muted">This hub <strong>mirrors the live aziel-runtime catalog</strong> — <a href="/runtime/v1/software"><code>GET /runtime/v1/software</code></a> per request (fallback <a href="/runtime/v1/fraggate/list"><code>fraggate/list</code></a>; service binding <code>AZIEL_RUNTIME</code> when wired; otherwise the workers.dev alternate). When the catalog grows (PeaceLock, AZMail, and later slugs) those products appear automatically. There is no fixed 27-product cap.</p>
 <p class="muted">Catalog of Aziel Eliab products you can download and run. <strong>Pull and invoke</strong> live on this domain at <a href="/runtime">${esc(chip)}</a> — this tab is not a second AI root. Author Aziel Eliab only.</p>
 <p class="muted"><strong>AzielTether</strong> is the survival mesh for downloaded Aziel software (prefer-central × peer sync). This public library is not a mesh — lattice tips are tip-shaped until tether carries them.</p>
 <p class="muted">Sort: Software (plain) A–Z → Gate A–Z → Lock A–Z. Clock is not Lock — the substring <code>clock</code> is stripped before <code>lock</code> is tested (StaticClock stays Software). Door extras AZNet and FragGate (separate app Workers — not nested AZBrowser UI) and EmbryoLock (catalog-only) are listed without dropping catalog engines until runtime catalogs them.</p>
@@ -668,7 +668,7 @@ ${hubHtml}
 ${softSection("Software", groups.plain)}
 ${softSection("Gate", groups.gate)}
 ${softSection("Lock", groups.lock)}
-<div class="card"><p class="soft-links"><a class="button" href="/runtime">${esc(chip)}</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="/runtime/v1/catalog.json">catalog.json</a> <a class="button ghost" href="/runtime/mcp">MCP</a> <a class="button ghost" href="/runtime/v1/uses">uses</a> <a class="button ghost" href="/v1/lattice">Lattice API</a></p></div>`;
+<div class="card"><p class="soft-links"><a class="button" href="/runtime">${esc(chip)}</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="/runtime/v1/software">/v1/software</a> <a class="button ghost" href="/runtime/mcp">MCP</a> <a class="button ghost" href="/runtime/v1/uses">uses</a> <a class="button ghost" href="/v1/lattice">Lattice API</a></p></div>`;
 }
 
 export { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, ocrBody, ocrFormHtml, SPECTRAL_LENSES, blockedAvBody } from "./hosted-pages.js";
