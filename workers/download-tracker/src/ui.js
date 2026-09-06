@@ -578,6 +578,7 @@ export function runtimeBody() {
 <h2>Same-origin pull (this domain)</h2>
 <ul>
 <li><a href="/runtime/v1/health"><code>/runtime/v1/health</code></a> — live health (version ${esc(RUNTIME_VERSION)}, door=fraggate, ${esc(String(RUNTIME_LIVE_COUNT))} live)</li>
+<li><a href="/runtime/v1/uses"><code>/runtime/v1/uses</code></a> — local API use log for this door (does not increment)</li>
 <li><a href="/runtime/v1/runtime.json"><code>/runtime/v1/runtime.json</code></a> — runtime manifest</li>
 <li><a href="/runtime/v1/skill"><code>/runtime/v1/skill</code></a> — runtime skill markdown</li>
 <li><a href="/runtime/v1/fraggate"><code>/runtime/v1/fraggate</code></a> · <a href="/runtime/v1/fraggate/list"><code>/runtime/v1/fraggate/list</code></a> · <code>POST /runtime/v1/fraggate/call</code></li>

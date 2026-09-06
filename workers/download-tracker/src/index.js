@@ -403,7 +403,7 @@ export default {
     const hostedPathEarly = url.pathname.replace(/\/+$/, "") || "/";
     if (hostedPathEarly === "/runtime" || hostedPathEarly === "/v1/runtime.json" || url.pathname.startsWith("/runtime/")) {
       const signedRuntime = hostedPathEarly === "/runtime" ? await getSession(env, request) : null;
-      const runtimeRoot = await handleRuntimeRoot(request, url, env, signedRuntime);
+      const runtimeRoot = await handleRuntimeRoot(request, url, env, signedRuntime, ctx);
       if (runtimeRoot) return runtimeRoot;
     }
 

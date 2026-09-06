@@ -24,7 +24,7 @@ function assertPublicIdentity(text) {
 test("robots.txt allows research surfaces and major AI bots", () => {
   const txt = robotsTxt();
   assertPublicIdentity(txt);
-  for (const path of ["/ai.txt", "/how-its-scored", "/humans.txt", "/software", "/runtime", "/AzielEliab"]) {
+  for (const path of ["/ai.txt", "/how-its-scored", "/humans.txt", "/software", "/runtime", "/runtime/v1/uses", "/AzielEliab"]) {
     assert.match(txt, new RegExp("Allow: " + path.replace("/", "\\/")));
   }
   assert.match(txt, /Content-Signal: search=yes, ai-input=yes, ai-train=yes/);
@@ -112,7 +112,7 @@ test("sitemap.xml lists key routes and uses XML mime helper", async () => {
   };
   const xml = await sitemapXml(env);
   assert.match(xml, /<\?xml version="1.0"/);
-  for (const path of ["/", "/AzielEliab", "/software", "/runtime", "/runtime/", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/intelligence", "/aziel-library", "/corpus", "/cite.json", "/llms.txt", "/ai.txt"]) {
+  for (const path of ["/", "/AzielEliab", "/software", "/runtime", "/runtime/", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/uses", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/intelligence", "/aziel-library", "/corpus", "/cite.json", "/llms.txt", "/ai.txt"]) {
     assert.match(xml, new RegExp("<loc>https://www\\.azielcorpuslibrary\\.net" + path.replace("/", "\\/") + "</loc>"));
   }
   assert.doesNotMatch(xml, /azielcorpuslibrary\.net\/about</);
@@ -143,6 +143,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.ok(cite.keywords.includes("FragGate"));
   assert.match(cite.runtime_note, /1\.6\.2/);
   assert.match(cite.runtime_fraggate_list, /\/runtime\/v1\/fraggate\/list$/);
+  assert.match(cite.runtime_uses, /\/runtime\/v1\/uses$/);
   assert.match(cite.ai, /\/ai\.txt$/);
   assert.match(cite.zsolver, /intentional suppression confidence/);
   assert.doesNotMatch(JSON.stringify(cite), BANNED);
@@ -160,6 +161,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(llms, /FragGate/);
   assert.match(llms, /fraggate_list/);
   assert.match(llms, /\/runtime\/v1\/fraggate\/list/);
+  assert.match(llms, /\/runtime\/v1\/uses/);
   assert.match(llms, /ChatGPT, Grok, Venice, Claude, Cursor, Glama/);
   assert.doesNotMatch(llms, /1\.4\.0 engine-runtime/);
 
