@@ -155,6 +155,10 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(cite.runtime_uses, /\/runtime\/v1\/uses$/);
   assert.match(cite.ai, /\/ai\.txt$/);
   assert.match(cite.zsolver, /intentional suppression confidence/);
+  assert.equal(cite.azcoherence.slug, "azcoherence");
+  assert.equal(cite.azcoherence_slug, "azcoherence");
+  assert.ok(cite.keywords.includes("azcoherence"));
+  assert.equal(cite.azclce.peer, "azcoherence");
   assert.doesNotMatch(JSON.stringify(cite), BANNED);
 
   const llms = llmsDoc("LIMIT");
@@ -179,6 +183,10 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(llms, /\/runtime\/v1\/fraggate\/list/);
   assert.match(llms, /\/runtime\/v1\/uses/);
   assert.match(llms, /ChatGPT, Grok, Venice, Claude, Cursor, Glama/);
+  assert.match(llms, /azcoherence/);
+  assert.match(llms, /AZCoherence/);
+  assert.match(llms, /azcoherence-download-tracker\.vibelock\.workers\.dev/);
+  assert.match(llms, /github\.com\/AzielEliab\/AZCoherence/);
   assert.doesNotMatch(llms, /1\.4\.0 engine-runtime/);
 
   const ai = aiTxt("LIMIT");
@@ -261,6 +269,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(humans, /azielcorpuslibrary\.net\/AzielEliab/);
   assert.match(humans, /godlock\.uk\/AzielEliab/);
   assert.match(humans, /Software hub mirrors runtime \/v1\/software/);
+  assert.match(humans, /azcoherence/);
 
   const index = sitemapIndexXml();
   assert.match(index, /<sitemapindex /);

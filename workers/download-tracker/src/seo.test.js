@@ -157,6 +157,8 @@ test("chrome page for how-its-scored does not leak the quiet triad boost", () =>
   assert.match(html, /href="\/how-its-scored"/);
   assert.match(html, /SPRE × CLCE × PhysLing|geometric mean/);
   assert.match(html, /intentional suppression confidence/);
+  assert.match(html, /AZCoherence/);
+  assert.match(html, /azcoherence/);
   assert.match(html, /Person/);
   assert.match(html, /Aziel Elroi Eliab/);
   assert.doesNotMatch(html, BANNED);
