@@ -14,6 +14,11 @@ import {
   AI_CLIENTS,
 } from "./runtime-copy.js";
 import { meshOffDoc, meshRefreshScript, meshStatusHtml } from "./mesh.js";
+import {
+  AZCOHERENCE,
+  AZCOHERENCE_WORKER_HOME,
+  AZCOHERENCE_GITHUB,
+} from "./azcoherence.js";
 
 /** Master UI chrome from Aziel Digital Library v2.7.0 webapp. Author: Aziel Eliab. */
 export const CSS = `
@@ -581,6 +586,12 @@ export function howItsScoredBody() {
 </ul>
 <p>Equal one-third weight. Display is <code>round(combined × 100)</code>. Component scores stay stored for audit. The unranked Bayesian peer number is <em>not</em> inside this mean and never sorts the shelf.</p>
 <p class="muted">See a record page, or <code>GET /v1/review?record_id=</code>, for the live triad and lights.</p>
+</div>
+<div class="card">
+<h2>AZCoherence — second-pass triad coherence</h2>
+<p><strong>AZCoherence</strong> (AZC-0.1, slug <code>azcoherence</code>) is Softwares Plain / scoring-review. After the primary triad, it reviews primary vs alternate → PASS / FLAG / NEUTRALIZE / REFUSE. Peer <strong>AZ-CLCE</strong> detects R/D/P inconsistency. This second pass is not inside the triad geometric mean. Never invents evidence. Confidence ≠ truth. Not AKM-TRIAD fabric. FragGate is the single door. Author Aziel Eliab.</p>
+<p class="soft-links"><a class="button" href="${esc(AZCOHERENCE_WORKER_HOME)}">Worker</a> <a class="button ghost" href="${esc(AZCOHERENCE_GITHUB)}">GitHub</a> <a class="button ghost" href="/runtime/v1/fraggate/describe?slug=azcoherence">FragGate describe</a> <a class="button ghost" href="/software">Software</a></p>
+<p class="muted">${esc(AZCOHERENCE.dual_surface)} Compatible AI clients: ${esc(AI_CLIENTS)}.</p>
 </div>
 <div class="card">
 <h2>ZionPattern Solver — honest reading</h2>
