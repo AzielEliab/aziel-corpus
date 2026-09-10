@@ -30,6 +30,23 @@ import {
 const HOST = "https://www.azielcorpuslibrary.net";
 const BANNED = /Collin Horton|GodLock\.AZ|\+25|quiet (Aziel|triad|boost)|10\.5281\/zenodo/i;
 
+function blockLiveRuntime(origFetch, extra) {
+  return async (url, init) => {
+    const href = String(url);
+    if (typeof extra === "function") {
+      const hit = await extra(href, url, init);
+      if (hit) return hit;
+    }
+    if (/aziel-runtime\.vibelock\.workers\.dev/i.test(href)) {
+      return new Response(JSON.stringify({ error: "blocked live runtime" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    return origFetch(url, init);
+  };
+}
+
 function stubEnv(runtime) {
   const stmt = {
     bind() { return this; },
@@ -333,8 +350,7 @@ test("softwareBody renders every card in Plain → Gate → Lock with live-catal
 test("GET /software uses AZIEL_RUNTIME catalog binding and lists every product", async () => {
   const catalog = mockCatalog();
   const origFetch = globalThis.fetch;
-  globalThis.fetch = async (url, init) => {
-    const href = String(url);
+  globalThis.fetch = blockLiveRuntime(origFetch, (href) => {
     if (href === FRAGGATE_COUNT) {
       return new Response(JSON.stringify({ project: "fraggate", views: 2, downloads: 0, total: 0 }), {
         status: 200,
@@ -347,12 +363,12 @@ test("GET /software uses AZIEL_RUNTIME catalog binding and lists every product",
         headers: { "Content-Type": "application/json" },
       });
     }
-    return origFetch(url, init);
-  };
+    return null;
+  });
   const env = stubEnv({
     async fetch(request) {
       const url = new URL(request.url);
-      if (url.pathname.endsWith("/catalog.json")) {
+      if (url.pathname.endsWith("/software") || url.pathname.endsWith("/catalog.json")) {
         return new Response(JSON.stringify(catalog), { status: 200, headers: { "Content-Type": "application/json" } });
       }
       if (url.pathname.endsWith("/uses")) {
@@ -406,7 +422,7 @@ test("GET /software uses AZIEL_RUNTIME catalog binding and lists every product",
     assert.match(html, /\/runtime\/mcp/);
     assert.match(html, /<h1>Downloadable software<\/h1>\s*<\/section>\s*<section class="soft-section"><h2>Software<\/h2>/);
     assert.match(html, /\/runtime\/v1\/software/);
-    assert.match(res.headers.get("cache-control") || "", /no-store/);
+    assert.match(res.headers.get("cache-control") || "", /s-maxage=120|no-store/);
     assert.doesNotMatch(html, BANNED);
     const built = await loadSoftwareCatalog(env, { views: 99, downloads: 11 });
     assert.equal(built.catalogVersion, "1.6.4");
@@ -477,8 +493,7 @@ test("AZNet and FragGate card Worker /count pills; AZBrowser stays separate soft
     },
   });
   const origFetch = globalThis.fetch;
-  globalThis.fetch = async (url, init) => {
-    const href = String(url);
+  globalThis.fetch = blockLiveRuntime(origFetch, (href) => {
     if (href === FRAGGATE_COUNT) {
       return new Response(JSON.stringify({ project: "fraggate", views: 8, downloads: 1, total: 1 }), {
         status: 200,
@@ -497,8 +512,8 @@ test("AZNet and FragGate card Worker /count pills; AZBrowser stays separate soft
         headers: { "Content-Type": "application/json" },
       });
     }
-    return origFetch(url, init);
-  };
+    return null;
+  });
   try {
     const built = await loadSoftwareCatalog(env, {});
     const fg = built.products.find((p) => p.slug === "fraggate");
@@ -547,7 +562,8 @@ test("AZNet and FragGate card Worker /count pills; AZBrowser stays separate soft
 test("loadSoftwareCatalog rewrites live catalog one_lines and adds Worker homepage", async () => {
   const origFetch = globalThis.fetch;
   globalThis.fetch = async (url) => {
-    if (String(url).includes("/v1/catalog.json")) {
+    const href = String(url);
+    if (href.includes("/v1/catalog.json") || href.includes("/v1/software")) {
       return {
         ok: true,
         json: async () => ({
@@ -660,6 +676,8 @@ test("normalizeSoftwareDoc accepts /v1/software and fraggate/list shapes", () =>
 });
 
 test("fetchLiveSoftwareCatalog prefers /v1/software then fraggate/list", async () => {
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = blockLiveRuntime(origFetch);
   const envSoftware = stubEnv({
     async fetch(request) {
       const url = new URL(request.url);
@@ -682,27 +700,31 @@ test("fetchLiveSoftwareCatalog prefers /v1/software then fraggate/list", async (
       return new Response("no", { status: 404 });
     },
   });
-  const live = await fetchLiveSoftwareCatalog(envSoftware);
-  assert.equal(live.source, "software");
-  assert.ok(live.catalog.products.some((p) => p.slug === "azbrowser" && /download/.test(p.download)));
+  try {
+    const live = await fetchLiveSoftwareCatalog(envSoftware);
+    assert.equal(live.source, "software");
+    assert.ok(live.catalog.products.some((p) => p.slug === "azbrowser" && /download/.test(p.download)));
 
-  const envList = stubEnv({
-    async fetch(request) {
-      const url = new URL(request.url);
-      if (url.pathname.endsWith("/fraggate/list")) {
-        return new Response(JSON.stringify({
-          ok: true,
-          entries: [
-            { slug: "peacelock", name: "PeaceLock", description: "Chosen silence." },
-            { slug: "aznet", name: "AZNet", description: "Separate software; functional-order pair with AZBrowser." },
-          ],
-        }), { status: 200, headers: { "Content-Type": "application/json" } });
-      }
-      return new Response(JSON.stringify({ error: "not found" }), { status: 404 });
-    },
-  });
-  const listed = await fetchLiveSoftwareCatalog(envList);
-  assert.equal(listed.source, "fraggate/list");
-  assert.ok(listed.catalog.products.some((p) => p.slug === "peacelock"));
-  assert.ok(listed.catalog.products.some((p) => p.slug === "aznet"));
+    const envList = stubEnv({
+      async fetch(request) {
+        const url = new URL(request.url);
+        if (url.pathname.endsWith("/fraggate/list")) {
+          return new Response(JSON.stringify({
+            ok: true,
+            entries: [
+              { slug: "peacelock", name: "PeaceLock", description: "Chosen silence." },
+              { slug: "aznet", name: "AZNet", description: "Separate software; functional-order pair with AZBrowser." },
+            ],
+          }), { status: 200, headers: { "Content-Type": "application/json" } });
+        }
+        return new Response(JSON.stringify({ error: "not found" }), { status: 404 });
+      },
+    });
+    const listed = await fetchLiveSoftwareCatalog(envList);
+    assert.equal(listed.source, "fraggate/list");
+    assert.ok(listed.catalog.products.some((p) => p.slug === "peacelock"));
+    assert.ok(listed.catalog.products.some((p) => p.slug === "aznet"));
+  } finally {
+    globalThis.fetch = origFetch;
+  }
 });
