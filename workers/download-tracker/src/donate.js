@@ -3,13 +3,13 @@
  * Static island. Does not touch KV, D1, or Durable Objects.
  * Library is a shelf. Donate is a door, not a catalog item.
  * Rails are operator Exodus addresses pasted at publish.
- * QR encodes the payment URI, not a website.
+ * QR encodes the payment URI, not a website. Solid black-on-white PNG <img>.
  * Identity in chrome: Aziel Eliab. Door signature: — Aziel.
  * Author: Aziel Eliab only. No legal name. No home. No custody-case copy.
  */
 import { page } from "./ui.js";
 import { corsHeaders } from "./runtime.js";
-import { donateQrSvg } from "./donate-qr.js";
+import { donateQrPng } from "./donate-qr.js";
 
 export const DONATE_PATH = "/donate";
 export const DONATE_SPEC = "AZL-DONATE-1.0";
@@ -24,6 +24,7 @@ export const DONATE_NETWORKS = [
   { id: "xrp", ticker: "XRP", label: "XRP", scheme: "xrp", address: "rLc3jZJbgEU1wBGwTFtgyq8bpayQE15K7b", note: "No destination tag required." },
   { id: "dogecoin", ticker: "DOGE", label: "Dogecoin", scheme: "dogecoin", address: "DQ4go4iLPfNXDWim4KptTh3565sFCVrCyp" },
   { id: "solana", ticker: "SOL", label: "Solana", scheme: "solana", address: "6BZNXxEvcZf1CgkWYojKoWUPCxCcNLbDKYRPfaN465gj" },
+  { id: "tron", ticker: "TRX", label: "TRON", scheme: "tron", address: "TJXb1YhZ9pAYsEW6UKUAzxFUzH6Tzcacyy" },
 ];
 
 function esc(s) {
@@ -45,9 +46,9 @@ export function publishedNetworks(networks = DONATE_NETWORKS) {
 function railCard(n) {
   const addr = String(n.address || "").trim();
   const uri = walletUri(n);
-  const qr = donateQrSvg(uri);
+  const qr = donateQrPng(uri);
   const qrBox = qr
-    ? `<figure class="donate-qr" data-uri="${esc(uri)}"><div class="donate-qr-mark" role="img" aria-label="${esc(n.label)} payment URI">${qr}</div><figcaption class="sr-only">${esc(uri)}</figcaption></figure>`
+    ? `<figure class="donate-qr" data-uri="${esc(uri)}"><img src="${esc(qr)}" width="180" height="180" alt="${esc(n.label)} payment URI" decoding="async"><figcaption class="sr-only">${esc(uri)}</figcaption></figure>`
     : "";
   const extra = n.note ? `<p class="donate-extra">${esc(n.note)}</p>` : "";
   return (

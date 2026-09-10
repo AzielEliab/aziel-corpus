@@ -14,7 +14,7 @@ Custom domains: www.azielcorpuslibrary.net and azielcorpuslibrary.net
 - GET /download?hash=SHA-256 and GET /v1/docs/{hash}/download: serve the kept file for that content hash (duplicates are not deleted)
 - GET /v1/runtime: package/runtime version 2.7.0 for catalog discovery
 - GET /software: live product cards from aziel-runtime `GET /v1/catalog.json` (prefer service binding AZIEL_RUNTIME). Mirrors the runtime catalog; no hard-coded 27 cap. Door extras AZNet, FragGate, and EmbryoLock. Sort Software A–Z → Gate A–Z → Lock A–Z (Clock is not Lock). AZNet is Plain. Stats on this tab read packed `library:index:v1` (no `KV.list()`).
-- GET /donate: AZL-DONATE-1.0 static Donate door + chrome strip. Exodus rails (BTC/ETH/LTC/XRP/DOGE/SOL). Copy, open-in-wallet, payment-URI QR. Does not touch KV. Not a catalog item.
+- GET /donate: AZL-DONATE-1.0 static Donate door + chrome strip. Exodus rails (BTC/ETH/LTC/XRP/DOGE/SOL/TRX). Copy, open-in-wallet, solid black-on-white PNG payment-URI QR. Does not touch KV. Not a catalog item.
 - GET /v1/library-index: packed shelf cards (`library:index:v1`). One KV get + Cache-Control. No PDF bodies.
 - GET /v1/search: filters packed `library:index:v1` in memory (one KV get). AZDOC cards: id, title, shelf, content_sha256, chain_tip. ChainLock library-sync client. `Cache-Control: public, s-maxage=120, stale-while-revalidate=3600`.
 - GET /v1/health: standby / tunnel-primary failover fields (`role=standby`, `index_sha256`). See `docs/TUN-WP-0.1.md` and `docs/RL-WP-0.1-library.md`.

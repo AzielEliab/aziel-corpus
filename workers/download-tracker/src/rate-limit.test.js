@@ -34,6 +34,7 @@ test("visitor id is SHA-256 of the connecting IP and is not the raw IP", () => {
 
 test("browse, search, records, and SEO docs are never content-rationed", () => {
   assert.equal(isRateExemptPath("/donate"), true);
+  assert.equal(isRateExemptPath("/assets/donate/btc.png"), true);
   assert.equal(isRateExemptPath("/v1/health"), true);
   assert.equal(isRateExemptPath("/"), true);
   assert.equal(isRateExemptPath("/v1/search"), true);
