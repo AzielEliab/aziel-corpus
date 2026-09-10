@@ -1,8 +1,9 @@
 # Deploy www.azielcorpuslibrary.net (aziel-corpus-download-tracker) on push to main.
-# Primary deploy is Cursor/wrangler (GitBaby OAuth). GitHub Actions is optional backup
-# and runs only when repo secret CLOUDFLARE_API_TOKEN is set. Skip (do not fail)
-# when the secret is absent so missing-token runs do not send failure emails.
-# Identity: Aziel Eliab. Do not invent tokens.
+# Primary deploy is Cursor/wrangler OAuth (Aziel Eliab). GitHub Actions is optional backup.
+# Job always runs. CLOUDFLARE_API_TOKEN is mapped to env (job-level `if: secrets.*`
+# is invalid on GitHub and fails the workflow file in 0s). Unset token: skip notice,
+# exit 0, workflow SUCCESS. Set token: checkout + wrangler-action deploy.
+# Identity: Aziel Eliab. Do not invent tokens. Do not deploy from this change.
 # Account is the Aziel Eliab Workers account (accountId ac575a9b822bea2bed97d0ab73aed238).
 name: Deploy Worker
 
@@ -13,13 +14,21 @@ on:
 
 jobs:
   deploy:
-    if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     name: Deploy Worker
+    env:
+      HAS_CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
+      - name: Skip notice when token unset
+        if: ${{ env.HAS_CF_TOKEN == '' }}
+        run: |
+          echo "Skipping Actions deploy: CLOUDFLARE_API_TOKEN unset."
+          echo "Primary deploy is Cursor/wrangler OAuth (Aziel Eliab)."
       - uses: actions/checkout@v4
+        if: ${{ env.HAS_CF_TOKEN != '' }}
       - name: Deploy
+        if: ${{ env.HAS_CF_TOKEN != '' }}
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
