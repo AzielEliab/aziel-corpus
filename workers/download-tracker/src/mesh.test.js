@@ -2,21 +2,32 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   AUTHOR,
+  EXAMPLE_BEARER,
+  MESH_BAD_BEARER,
+  MESH_METHOD,
+  MESH_NEED_BEARER,
   MESH_NOTE,
+  MESH_OFF,
   QNS_CD,
   QNS_CD_SPEC,
+  collectDeclaredBearers,
   destMeshPath,
   decorateMeshDoc,
   handleMeshApi,
   isMeshEnabled,
   isMeshLibraryPath,
   isMeshRuntimePath,
+  isMeshStatusReadPath,
   liveNodesCount,
   liveNodesLabel,
   meshOffDoc,
   meshRefreshScript,
+  meshRefuseDoc,
+  meshRefuseHttpStatus,
   meshStatusHtml,
   proxyMeshRequest,
+  sanitizeBearer,
+  synthesizeMeshRefuse,
 } from "./mesh.js";
 import { handleRuntimeApi } from "./runtime.js";
 import { fallbackKind, handleRuntimeRoot, runtimeManifest, runtimeSkillMd } from "./runtime-root.js";
@@ -211,7 +222,46 @@ test("GET /v1/mesh/nodes and /runtime/v1/mesh stay off when origin 404s", async 
   assert.equal(runtimeBody.qns_cd.public_proxy, false);
 });
 
-test("POST mesh enable refuses while runtime mesh is off", async () => {
+test("Worker-shaped enable refuse helpers stay off; identity Aziel Eliab only", () => {
+  assert.equal(sanitizeBearer("suite-presence"), "suite-presence");
+  assert.equal(sanitizeBearer("login"), "");
+  assert.equal(sanitizeBearer("account-heal"), "");
+  assert.deepEqual(collectDeclaredBearers({}), { accepted: [], rejected: [], raw: [] });
+  assert.deepEqual(collectDeclaredBearers({ bearer: "login" }).rejected, ["login"]);
+  assert.equal(isMeshStatusReadPath("/v1/mesh"), true);
+  assert.equal(isMeshStatusReadPath("/v1/mesh/enable"), false);
+
+  const need = synthesizeMeshRefuse("POST", "/v1/mesh/enable", {});
+  assert.equal(need.code, MESH_NEED_BEARER);
+  assert.equal(need.ok, false);
+  assert.equal(need.enabled, false);
+  assert.equal(need.radios, "off");
+  assert.equal(need.author, "Aziel Eliab");
+  assert.equal(need.identity, "Aziel Eliab");
+  assert.equal(need.example_bearer, EXAMPLE_BEARER);
+  assert.equal(meshRefuseHttpStatus(need), 400);
+  assert.doesNotMatch(JSON.stringify(need), BANNED);
+
+  const bad = synthesizeMeshRefuse("POST", "/v1/mesh/enable", { bearer: "login" });
+  assert.equal(bad.code, MESH_BAD_BEARER);
+  assert.deepEqual(bad.refused_bearers, ["login"]);
+  assert.equal(bad.enabled, false);
+
+  const declared = synthesizeMeshRefuse("POST", "/v1/mesh/enable", { bearer: "suite-presence" });
+  assert.equal(declared.code, MESH_OFF);
+  assert.equal(declared.enabled, false);
+  assert.equal(isMeshEnabled(declared), false);
+
+  const method = synthesizeMeshRefuse("GET", "/v1/mesh/enable", {});
+  assert.equal(method.code, MESH_METHOD);
+  assert.equal(meshRefuseHttpStatus(method), 405);
+
+  const refuse = meshRefuseDoc(MESH_NEED_BEARER, "x", { enabled: true, radios: "operator" });
+  assert.equal(refuse.enabled, false);
+  assert.equal(refuse.radios, "off");
+});
+
+test("POST mesh enable synthesizes MESH-NEED-BEARER when origin has no mesh", async () => {
   const env = {
     AZIEL_RUNTIME: {
       fetch: async () => new Response(JSON.stringify({ error: "not found" }), { status: 404 }),
@@ -222,10 +272,158 @@ test("POST mesh enable refuses while runtime mesh is off", async () => {
     "/v1/mesh/enable",
     env,
   );
-  assert.equal(res.status, 409);
+  assert.equal(res.status, 400);
+  const body = await res.json();
+  assert.equal(body.ok, false);
+  assert.equal(body.code, MESH_NEED_BEARER);
+  assert.equal(body.enabled, false);
+  assert.equal(body.radios, "off");
+  assert.equal(body.author, "Aziel Eliab");
+  assert.equal(body.identity, "Aziel Eliab");
+  assert.match(body.message, /GET \/v1\/mesh never enables/);
+  assert.equal(body.error, undefined);
+});
+
+test("POST /runtime/v1/mesh/enable passes through Worker MESH-* refuse codes", async () => {
+  const env = {
+    AZIEL_RUNTIME: {
+      fetch: async (request) => {
+        const dest = new URL(request.url);
+        assert.equal(dest.pathname, "/v1/mesh/enable");
+        let payload = {};
+        try { payload = await request.json(); } catch { payload = {}; }
+        if (payload.bearer === "login") {
+          return new Response(JSON.stringify({
+            ok: false,
+            code: MESH_BAD_BEARER,
+            author: "Aziel Eliab",
+            identity: "Aziel Eliab",
+            message: "Bearer refused. Login / account / recover / gate / IP / publish / phoenix / heal names are not suite bearers. This is not a login mesh.",
+            op: "enable",
+            mesh_enabled: false,
+            refused_bearers: ["login"],
+            example_bearer: EXAMPLE_BEARER,
+          }), { status: 400, headers: { "Content-Type": "application/json" } });
+        }
+        return new Response(JSON.stringify({
+          ok: false,
+          code: MESH_NEED_BEARER,
+          author: "Aziel Eliab",
+          identity: "Aziel Eliab",
+          kernel: "mesh",
+          mesh_default: "off",
+          message: "LIVE only after the operator declares ≥1 bearer. Pass { bearer: \"suite-presence\" }. Empty enable is refused. GET /v1/mesh never enables.",
+          enabled: false,
+          radios: "off",
+          mesh_enabled: false,
+          op: "enable",
+          example_bearer: EXAMPLE_BEARER,
+        }), { status: 400, headers: { "Content-Type": "application/json" } });
+      },
+    },
+  };
+
+  const empty = await handleRuntimeRoot(
+    req("/runtime/v1/mesh/enable", "POST", { headers: { "Content-Type": "application/json" }, body: "{}" }),
+    new URL(HOST + "/runtime/v1/mesh/enable"),
+    env,
+    null,
+    {},
+  );
+  assert.equal(empty.status, 400);
+  const emptyBody = await empty.json();
+  assert.equal(emptyBody.code, MESH_NEED_BEARER);
+  assert.equal(emptyBody.ok, false);
+  assert.equal(emptyBody.enabled, false);
+  assert.equal(emptyBody.radios, "off");
+  assert.equal(emptyBody.author, "Aziel Eliab");
+  assert.equal(emptyBody.identity, "Aziel Eliab");
+  assert.match(emptyBody.host, /\/v1\/mesh$/);
+  assert.match(emptyBody.runtime, /\/runtime\/v1\/mesh$/);
+  assert.doesNotMatch(JSON.stringify(emptyBody), /library-default-off/);
+  assert.doesNotMatch(JSON.stringify(emptyBody), /mesh default off until runtime enable/);
+
+  const bad = await handleRuntimeRoot(
+    req("/runtime/v1/mesh/enable", "POST", { headers: { "Content-Type": "application/json" }, body: "{\"bearer\":\"login\"}" }),
+    new URL(HOST + "/runtime/v1/mesh/enable"),
+    env,
+    null,
+    {},
+  );
+  assert.equal(bad.status, 400);
+  const badBody = await bad.json();
+  assert.equal(badBody.code, MESH_BAD_BEARER);
+  assert.deepEqual(badBody.refused_bearers, ["login"]);
+  assert.equal(badBody.enabled, false);
+});
+
+test("GET mesh enable is MESH-METHOD and never enables", async () => {
+  const env = {
+    AZIEL_RUNTIME: {
+      fetch: async () => new Response(JSON.stringify({
+        ok: false,
+        code: MESH_METHOD,
+        message: "POST /v1/mesh/enable.",
+        hint: "POST /v1/mesh/enable",
+        author: "Aziel Eliab",
+        identity: "Aziel Eliab",
+      }), { status: 405, headers: { "Content-Type": "application/json" } }),
+    },
+  };
+  const res = await handleMeshApi(req("/v1/mesh/enable"), new URL(HOST + "/v1/mesh/enable"), env);
+  assert.equal(res.status, 405);
+  const body = await res.json();
+  assert.equal(body.code, MESH_METHOD);
+  assert.equal(body.ok, false);
+  assert.notEqual(body.enabled, true);
+  assert.equal(isMeshEnabled(body), false);
+
+  const down = await proxyMeshRequest(
+    req("/v1/mesh/enable"),
+    "/v1/mesh/enable",
+    { AZIEL_RUNTIME: { fetch: async () => { throw new Error("down"); } } },
+  );
+  assert.equal(down.status, 405);
+  const downBody = await down.json();
+  assert.equal(downBody.code, MESH_METHOD);
+  assert.equal(downBody.enabled, false);
+});
+
+test("GET /v1/mesh still never enables when origin is down", async () => {
+  const env = {
+    AZIEL_RUNTIME: {
+      fetch: async () => { throw new Error("down"); },
+    },
+  };
+  const res = await handleMeshApi(req("/v1/mesh"), new URL(HOST + "/v1/mesh"), env);
+  assert.equal(res.status, 200);
   const body = await res.json();
   assert.equal(body.enabled, false);
-  assert.match(body.error, /default off until runtime enable/);
+  assert.equal(body.mesh, "off");
+  assert.equal(body.source, "library-default-off");
+  assert.equal(body.author, "Aziel Eliab");
+});
+
+test("overlay does not locally enable a declared bearer", async () => {
+  const env = {
+    AZIEL_RUNTIME: {
+      fetch: async () => new Response(JSON.stringify({ error: "not found" }), { status: 404 }),
+    },
+  };
+  const res = await proxyMeshRequest(
+    req("/v1/mesh/enable", "POST", {
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bearer: "suite-presence" }),
+    }),
+    "/v1/mesh/enable",
+    env,
+  );
+  assert.equal(res.status, 400);
+  const body = await res.json();
+  assert.equal(body.code, MESH_OFF);
+  assert.equal(body.enabled, false);
+  assert.equal(body.radios, "off");
+  assert.equal(isMeshEnabled(body), false);
 });
 
 test("OpenAPI, MCP, llms, cite, robots, sitemap cite mesh paths", async () => {
