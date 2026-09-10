@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { headMeta, defaultDescription, recordDescription, personNode, SHARE_IMAGE, ABOUT_PATH, aboutRedirectFrom } from "./seo.js";
+import { headMeta, defaultDescription, documentTitle, recordDescription, personNode, SHARE_IMAGE, ABOUT_PATH, aboutRedirectFrom } from "./seo.js";
 import { handleRuntimeApi } from "./runtime.js";
 import { page, howItsScoredBody } from "./ui.js";
 
@@ -32,6 +32,7 @@ test("JSON-LD types the author as Person with alternateName", () => {
   assert.ok(types.includes("Person"));
   assert.ok(types.includes("Organization"));
   assert.ok(types.includes("WebSite"));
+  assert.ok(types.includes("AboutPage"));
   assert.ok(types.includes("ProfilePage"));
   const who = ld["@graph"].find((n) => n["@type"] === "Person");
   assert.equal(who.name, "Aziel Eliab");
@@ -44,6 +45,9 @@ test("JSON-LD types the author as Person with alternateName", () => {
   assert.match(html, /rel="me" href="https:\/\/godlock\.uk\/AzielEliab"/);
   assert.match(html, /keywords" content="Aziel Eliab, Aziel Elroi Eliab, Aziel Digital Library/);
   assert.match(html, /GodLock/);
+  const aboutPage = ld["@graph"].find((n) => n["@type"] === "AboutPage");
+  assert.equal(aboutPage.url, "https://www.azielcorpuslibrary.net/AzielEliab");
+  assert.equal(aboutPage.mainEntity["@id"], "https://www.azielcorpuslibrary.net/AzielEliab#aziel-eliab");
   const profile = ld["@graph"].find((n) => n["@type"] === "ProfilePage");
   assert.equal(profile.url, "https://www.azielcorpuslibrary.net/AzielEliab");
   const org = ld["@graph"].find((n) => n["@type"] === "Organization");
@@ -76,6 +80,50 @@ test("runtime JSON-LD and discovery links advertise FragGate 1.6.2", () => {
   assert.match(defaultDescription("runtime"), /1\.6\.2/);
   assert.match(defaultDescription("runtime"), /FragGate/);
   assert.doesNotMatch(defaultDescription("runtime"), /1\.4\.0/);
+});
+
+test("priority pages have unique titles, canonicals, OG/Twitter, and page-type JSON-LD", () => {
+  const home = headMeta({ title: "Corpus Search", path: "/", kind: "search" });
+  const software = headMeta({ title: "Software", path: "/software", kind: "software", runtimeVersion: "1.6.7" });
+  const about = headMeta({ title: "Aziel Eliab", path: ABOUT_PATH, kind: "about" });
+
+  assert.equal(documentTitle("search", "Corpus Search"), "Aziel Digital Library — Public MASTER by Aziel Eliab");
+  assert.equal(documentTitle("software", "Software"), "Softwares — Aziel Eliab catalog | Aziel Digital Library");
+  assert.equal(documentTitle("about", "Aziel Eliab"), "About Aziel Eliab | Aziel Digital Library");
+  assert.notEqual(documentTitle("search"), documentTitle("software"));
+  assert.notEqual(documentTitle("software"), documentTitle("about"));
+  assert.notEqual(documentTitle("search"), documentTitle("about"));
+
+  assert.match(home, /rel="canonical" href="https:\/\/www\.azielcorpuslibrary\.net\/"/);
+  assert.match(software, /rel="canonical" href="https:\/\/www\.azielcorpuslibrary\.net\/software"/);
+  assert.match(about, /rel="canonical" href="https:\/\/www\.azielcorpuslibrary\.net\/AzielEliab"/);
+  assert.match(home, /og:title" content="Aziel Digital Library — Public MASTER by Aziel Eliab"/);
+  assert.match(software, /og:title" content="Softwares — Aziel Eliab catalog \| Aziel Digital Library"/);
+  assert.match(about, /og:title" content="About Aziel Eliab \| Aziel Digital Library"/);
+  assert.match(about, /og:type" content="profile"/);
+  assert.match(home, /og:locale" content="en_US"/);
+  assert.match(software, /twitter:image:alt"/);
+  assert.match(home, /rel="author" href="https:\/\/www\.azielcorpuslibrary\.net\/AzielEliab"/);
+
+  const homeLd = graphFrom(home);
+  const softLd = graphFrom(software);
+  const aboutLd = graphFrom(about);
+  assert.ok(homeLd["@graph"].some((n) => n["@type"] === "WebSite"));
+  assert.ok(homeLd["@graph"].some((n) => n["@type"] === "CollectionPage" && n.url === "https://www.azielcorpuslibrary.net/"));
+  assert.ok(homeLd["@graph"].some((n) => n["@type"] === "Person"));
+  const softPage = softLd["@graph"].find((n) => n["@type"] === "CollectionPage");
+  assert.equal(softPage.name, "Softwares");
+  assert.equal(softPage.url, "https://www.azielcorpuslibrary.net/software");
+  assert.ok(softLd["@graph"].some((n) => n["@type"] === "Person"));
+  assert.ok(aboutLd["@graph"].some((n) => n["@type"] === "AboutPage"));
+  assert.ok(aboutLd["@graph"].some((n) => n["@type"] === "Person"));
+  assert.ok(softLd["@graph"].some((n) => n["@type"] === "BreadcrumbList"));
+  assert.ok(aboutLd["@graph"].some((n) => n["@type"] === "BreadcrumbList"));
+  assert.doesNotMatch(software, BANNED);
+  assert.doesNotMatch(software, /triad \+25|quiet triad|collection score/i);
+  assert.doesNotMatch(defaultDescription("software"), /triad|\+25|quiet/i);
+  assert.doesNotMatch(home, BANNED);
+  assert.doesNotMatch(about, BANNED);
 });
 
 test("software JSON-LD and meta prefer live catalog.version over baked 1.6.2", () => {
@@ -111,7 +159,8 @@ test("page-specific descriptions and share images", () => {
   assert.doesNotMatch(defaultDescription("about"), /researcher and builder/);
   assert.match(defaultDescription("software"), /Software|aziel-runtime/i);
   assert.match(defaultDescription("scored"), /intentional suppression/);
-  assert.match(defaultDescription("search"), /Search Aziel Digital Library/);
+  assert.match(defaultDescription("search"), /Aziel Digital Library by Aziel Eliab/);
+  assert.match(defaultDescription("search"), /public MASTER/);
   const about = headMeta({ title: "Aziel Eliab", path: ABOUT_PATH, kind: "about" });
   const record = headMeta({
     title: "The Cockroach Doctrine",

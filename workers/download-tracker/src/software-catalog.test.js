@@ -447,6 +447,11 @@ test("GET /software uses AZIEL_RUNTIME catalog binding and lists every product",
     assert.match(html, /\/runtime\/v1\/software/);
     assert.match(res.headers.get("cache-control") || "", /s-maxage=120|no-store/);
     assert.doesNotMatch(html, BANNED);
+    assert.match(html, /<title>Softwares — Aziel Eliab catalog \| Aziel Digital Library<\/title>/);
+    assert.match(html, /<h1>Downloadable software<\/h1>/);
+    const softPage = ld["@graph"].find((n) => n["@type"] === "CollectionPage");
+    assert.equal(softPage.name, "Softwares");
+    assert.doesNotMatch(html, /triad \+25|quiet triad|collection score/i);
     const built = await loadSoftwareCatalog(env, { views: 99, downloads: 11 });
     assert.equal(built.catalogVersion, "1.6.4");
     assert.equal(built.hub.version, "1.6.4");

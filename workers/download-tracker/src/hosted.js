@@ -54,6 +54,9 @@ function html(pageBody, extra) {
   extra = extra || {};
   const headers = { "Content-Type": "text/html; charset=utf-8", ...corsHeaders() };
   headers["Cache-Control"] = extra.cacheControl || HTML_CACHE_CONTROL;
+  if (!String(headers["Cache-Control"] || "").includes("no-store")) {
+    headers["X-Robots-Tag"] = "index, follow, max-image-preview:large";
+  }
   const status = extra.status || 200;
   if (extra.head) return new Response(null, { status, headers });
   return new Response(pageBody, { status, headers });
@@ -525,7 +528,14 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
   if (read) {
     const aboutDest = aboutRedirectFrom(path);
     if (aboutDest) {
-      return new Response(null, { status: 308, headers: { Location: aboutDest + (url.search || ""), ...corsHeaders() } });
+      return new Response(null, {
+        status: 301,
+        headers: {
+          Location: aboutDest + (url.search || ""),
+          "Cache-Control": "public, s-maxage=86400",
+          ...corsHeaders(),
+        },
+      });
     }
   }
   if (path === ABOUT_PATH && read) {

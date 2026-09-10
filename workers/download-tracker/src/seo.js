@@ -22,6 +22,23 @@ export const GITHUB_REPO = "https://github.com/AzielEliab/aziel-corpus";
 const GITHUB_RUNTIME = RUNTIME_GITHUB;
 export const GODLOCK_IDENTITY = "https://godlock.uk/AzielEliab";
 export const SHARE_IMAGE = CANON_HOST + "/sigil.png";
+export const SITE_DESCRIPTION = "Aziel Digital Library by Aziel Eliab. Search the public MASTER across Aziel Library and Corpus. Temporal map, gazetteer, intelligence, and hosted OCR.";
+
+/** Unique <title> / OG / Twitter strings. Visible H1s stay in page bodies. */
+export function documentTitle(kind, title) {
+  if (kind === "search") return SITE + " — Public MASTER by " + AUTHOR;
+  if (kind === "software") return "Softwares — " + AUTHOR + " catalog | " + SITE;
+  if (kind === "about") return "About " + AUTHOR + " | " + SITE;
+  const t = String(title || "").trim();
+  if (t && t !== SITE) return t + " — " + SITE;
+  return SITE + " — Public MASTER by " + AUTHOR;
+}
+
+function ogType(kind) {
+  if (kind === "record") return "article";
+  if (kind === "about") return "profile";
+  return "website";
+}
 
 /** Permanent Location for legacy /about and case-folded /AzielEliab. */
 export function aboutRedirectFrom(path) {
@@ -57,6 +74,7 @@ export function personNode() {
     name: AUTHOR,
     alternateName: [AKA],
     url: CANON_HOST + ABOUT_PATH,
+    description: "Author of Aziel Digital Library. Identity Aziel Eliab only.",
     sameAs: [GODLOCK_IDENTITY, GITHUB_AUTHOR, GITHUB_REPO],
   };
 }
@@ -89,7 +107,7 @@ export function defaultDescription(kind, runtimeVersion) {
   if (kind === "scored" || kind === "how-its-scored") return "How Aziel Digital Library scores records: triad SPRE × CLCE × PhysLing, AZCoherence second-pass triad coherence (peer AZ-CLCE; not AKM-TRIAD), and ZionPattern meaning (75 is intentional suppression confidence; lower is more natural). Author Aziel Eliab.";
   if (kind === "pattern") return "Pattern clusters across Aziel Digital Library domains, subjects, and keywords. Author Aziel Eliab.";
   if (kind === "donate") return "AZL-DONATE-1.0. Donate to Aziel Digital Library. Static door. Exodus rails. No Worker KV. Not a catalog item. Author Aziel Eliab.";
-  if (kind === "search") return "Search Aziel Digital Library by Aziel Eliab. Public MASTER across Aziel Library and Corpus.";
+  if (kind === "search") return SITE_DESCRIPTION + " Author Aziel Eliab.";
   if (kind === "record") return "Public record in Aziel Digital Library. Author Aziel Eliab.";
   return "Aziel Digital Library by Aziel Eliab. Search, map, gazetteer, intelligence, and hosted OCR on the public MASTER.";
 }
@@ -148,6 +166,18 @@ function isoDate(value) {
   return undefined;
 }
 
+function breadcrumbNode(items) {
+  return {
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((item, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: item.name,
+      item: item.item,
+    })),
+  };
+}
+
 function jsonLd(title, path, kind, description, work, runtimeVersion) {
   const person = personNode();
   const org = organizationNode();
@@ -156,7 +186,7 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
     "@id": CANON_HOST + "/#website",
     name: SITE,
     url: CANON_HOST + "/",
-    description,
+    description: SITE_DESCRIPTION,
     author: { "@id": person["@id"] },
     publisher: { "@id": org["@id"] },
     sameAs: [GITHUB_REPO],
@@ -197,6 +227,18 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
       license: "https://www.apache.org/licenses/LICENSE-2.0",
     });
   }
+  if (kind === "search" || path === "/") {
+    graph.push({
+      "@type": "CollectionPage",
+      "@id": CANON_HOST + "/#homepage",
+      name: SITE,
+      url: CANON_HOST + "/",
+      description: defaultDescription("search"),
+      isPartOf: { "@id": CANON_HOST + "/#website" },
+      author: { "@id": person["@id"] },
+      mainEntity: { "@id": CANON_HOST + "/#website" },
+    });
+  }
   if (kind === "map" || path === "/map") {
     graph.push({ "@type": "Map", name: "Temporal Map", url: CANON_HOST + "/map", creator: { "@id": person["@id"] } });
   }
@@ -230,11 +272,27 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
   }
   if (kind === "about" || path === ABOUT_PATH) {
     graph.push({
+      "@type": "AboutPage",
+      "@id": CANON_HOST + ABOUT_PATH + "#about",
+      name: "About " + AUTHOR,
+      url: CANON_HOST + ABOUT_PATH,
+      description,
+      isPartOf: { "@id": CANON_HOST + "/#website" },
+      author: { "@id": person["@id"] },
+      mainEntity: { "@id": person["@id"] },
+    });
+    graph.push({
       "@type": "ProfilePage",
       name: title || ABOUT_NAV_LABEL,
       url: CANON_HOST + ABOUT_PATH,
+      description,
+      isPartOf: { "@id": CANON_HOST + "/#website" },
       mainEntity: { "@id": person["@id"] },
     });
+    graph.push(breadcrumbNode([
+      { name: SITE, item: CANON_HOST + "/" },
+      { name: "About " + AUTHOR, item: CANON_HOST + ABOUT_PATH },
+    ]));
   }
   if (kind === "scored" || kind === "how-its-scored" || path === "/how-its-scored") {
     graph.push({
@@ -248,11 +306,19 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
   if (kind === "software" || path === "/software") {
     graph.push({
       "@type": "CollectionPage",
-      name: "Software",
+      "@id": CANON_HOST + "/software#softwares",
+      name: "Softwares",
+      alternateName: "Software",
       url: CANON_HOST + "/software",
       description,
+      isPartOf: { "@id": CANON_HOST + "/#website" },
       author: { "@id": person["@id"] },
+      mainEntity: { "@id": CANON_HOST + "/#website" },
     });
+    graph.push(breadcrumbNode([
+      { name: SITE, item: CANON_HOST + "/" },
+      { name: "Softwares", item: CANON_HOST + "/software" },
+    ]));
   }
   const workLd = workNode(work, path);
   if (workLd) graph.push(workLd);
@@ -273,11 +339,13 @@ export function headMeta(opts) {
   const kind = opts.kind || "";
   const runtimeVersion = opts.runtimeVersion;
   const description = opts.description || defaultDescription(kind, runtimeVersion);
+  const seoTitle = documentTitle(kind, title);
   const url = CANON_HOST + path;
   const ld = jsonLd(title, path, kind, description, opts.work, runtimeVersion);
   const ldOpen = "<" + "script type=" + Q + "application/ld+json" + Q + ">";
   const ldClose = "</" + "script>";
   const image = opts.image || SHARE_IMAGE;
+  const imageAlt = SITE + " sigil. Author " + AUTHOR + ".";
   return [
     meta("description", description),
     meta("keywords", pageKeywords(kind)),
@@ -285,17 +353,20 @@ export function headMeta(opts) {
     meta("googlebot", "index,follow"),
     meta("author", AUTHOR),
     linkRel("canonical", url),
-    prop("og:title", title + " — " + SITE),
+    linkRel("author", CANON_HOST + ABOUT_PATH),
+    prop("og:title", seoTitle),
     prop("og:description", description),
-    prop("og:type", kind === "record" ? "article" : "website"),
+    prop("og:type", ogType(kind)),
     prop("og:url", url),
     prop("og:site_name", SITE),
+    prop("og:locale", "en_US"),
     prop("og:image", image),
-    prop("og:image:alt", SITE + " sigil. Author " + AUTHOR + "."),
+    prop("og:image:alt", imageAlt),
     meta("twitter:card", "summary"),
-    meta("twitter:title", title + " — " + SITE),
+    meta("twitter:title", seoTitle),
     meta("twitter:description", description),
     meta("twitter:image", image),
+    meta("twitter:image:alt", imageAlt),
     linkRel("alternate", "/cite.json", " type=" + Q + "application/json" + Q),
     linkRel("alternate", "/llms.txt", " type=" + Q + "text/plain" + Q),
     linkRel("alternate", "/ai.txt", " type=" + Q + "text/plain" + Q),
