@@ -186,7 +186,7 @@ test("GET /v1/mesh proxies a runtime-enabled mesh", async () => {
 test("GET /v1/mesh/nodes and /runtime/v1/mesh stay off when origin 404s", async () => {
   const env = {
     AZIEL_RUNTIME: {
-      fetch: async () => { throw new Error("unreachable"); },
+      fetch: async () => new Response(JSON.stringify({ error: "not found" }), { status: 404 }),
     },
   };
   const nodes = await handleMeshApi(req("/v1/mesh/nodes"), new URL(HOST + "/v1/mesh/nodes"), env);
@@ -194,6 +194,7 @@ test("GET /v1/mesh/nodes and /runtime/v1/mesh stay off when origin 404s", async 
   const nodeBody = await nodes.json();
   assert.equal(nodeBody.enabled, false);
   assert.deepEqual(nodeBody.nodes, []);
+  assert.equal(nodeBody.qns_cd_spec, "QNS-CD-1.0");
 
   const runtime = await handleRuntimeRoot(
     req("/runtime/v1/mesh"),
@@ -206,6 +207,8 @@ test("GET /v1/mesh/nodes and /runtime/v1/mesh stay off when origin 404s", async 
   const runtimeBody = await runtime.json();
   assert.equal(runtimeBody.enabled, false);
   assert.equal(runtimeBody.source, "library-default-off");
+  assert.equal(runtimeBody.qns_cd_spec, "QNS-CD-1.0");
+  assert.equal(runtimeBody.qns_cd.public_proxy, false);
 });
 
 test("POST mesh enable refuses while runtime mesh is off", async () => {
