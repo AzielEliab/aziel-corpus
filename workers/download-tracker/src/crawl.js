@@ -447,7 +447,7 @@ export function llmsDoc(limitation) {
     + "Library: " + HOST + "/\n"
     + ABOUT_NAV_LABEL + ": " + HOST + ABOUT_PATH + "\n"
     + "Software hub: " + HOST + "/software\n"
-    + "Donate (static, no KV): " + HOST + "/donate\n"
+    + "Donate AZL-DONATE-1.0 (static, no KV): " + HOST + "/donate\n"
     + "Packed library index: " + HOST + "/v1/library-index\n"
     + "Software hub mirrors the live aziel-runtime catalog per request (GET " + CATALOG + "/v1/software, fallback " + CATALOG + "/v1/fraggate/list; same-origin " + HOST + "/v1/software). No fixed product cap.\n"
     + "Runtime catalog: " + HOST + "/runtime\n"

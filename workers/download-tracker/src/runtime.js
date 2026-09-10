@@ -156,7 +156,7 @@ function openapi() {
     paths: {
       "/v1/health": { get: { summary: "Liveness + TUN-WP-0.1 standby/failover fields. Does not increment downloads. Does not KV.list().", operationId: "health" } },
       "/v1/library-index": { get: { summary: "Packed library:index:v1 shelf cards (no PDF bodies). One KV get. Author Aziel Eliab.", operationId: "libraryIndex" } },
-      "/donate": { get: { summary: "Static donation tab. Does not touch KV.", operationId: "donate" } },
+      "/donate": { get: { summary: "AZL-DONATE-1.0 static Donate door. Exodus rails. Does not touch KV. Not a catalog item.", operationId: "donate" } },
       "/v1/search": { get: { summary: "Filter packed library:index:v1 in memory (one KV get). AZDOC cards only — no PDF bodies. ChainLock library-sync client. Author Aziel Eliab.", operationId: "search", parameters: [{ name: "q", in: "query", schema: { type: "string" } }, { name: "lib", in: "query", schema: { type: "string", enum: ["all", "aziel", "corpus"] } }, { name: "sort", in: "query", schema: { type: "string", enum: ["newest", "oldest", "alpha", "title", "author", "domain"] } }, { name: "author", in: "query", schema: { type: "string" } }, { name: "domain", in: "query", schema: { type: "string" } }, { name: "subject", in: "query", schema: { type: "string" } }, { name: "keyword", in: "query", schema: { type: "string" } }] } },
       "/v1/example": { get: { summary: "Sample search payload.", operationId: "example" } },
       "/v1/skill": { get: { summary: "Skill markdown.", operationId: "skill" } },
