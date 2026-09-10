@@ -58,6 +58,7 @@ test("black/gold theme and royal purple Aziel Library text are in CSS", () => {
   assert.match(CSS, /\.about-aziel/);
   assert.match(CSS, /\.donate-aziel\{color:var\(--royal\)/);
   assert.match(CSS, /\.donate-rails\{display:grid/);
+  assert.match(CSS, /\.donate-pair\{display:flex/);
   assert.match(CSS, /\.donate-qr\{[^}]*width:180px/);
   assert.match(CSS, /\.donate-qr\{[^}]*background:#fff/);
   assert.doesNotMatch(CSS, /qrline/);
