@@ -9,6 +9,7 @@ import {
   RUNTIME_ORIGIN,
   RUNTIME_VERSION,
   RUNTIME_GITHUB,
+  LIBRARY_DOWNLOAD,
   softwareChip,
   softwareHubBlurb,
 } from "./runtime-copy.js";
@@ -105,6 +106,13 @@ const KNOWN_NAMES = {
 
 const KIND_RANK = { plain: 0, gate: 1, lock: 2 };
 
+/** Kernel / suite rollup — never Softwares-tab products[]. extras[] only. */
+export const KERNEL_EXTRA_SLUGS = new Set(["fraggate", "mesh"]);
+
+export function isKernelExtraSlug(slug) {
+  return KERNEL_EXTRA_SLUGS.has(String(slug || "").toLowerCase());
+}
+
 export function softwareKind(product) {
   const slug = String((product && (product.slug || product.name)) || "").toLowerCase();
   const name = String((product && product.name) || "").toLowerCase();
@@ -139,7 +147,7 @@ export function collectCatalogProducts(catalog) {
     const slug = String(raw.slug || "").toLowerCase();
     if (!slug) return;
     const prev = bySlug.get(slug) || {};
-    bySlug.set(slug, Object.assign({}, prev, raw, { slug }));
+    bySlug.set(slug, mapSoftwareProduct(Object.assign({}, prev, raw, { slug })));
   }
   const products = catalog && Array.isArray(catalog.products) ? catalog.products : [];
   for (const p of products) add(p);
@@ -166,14 +174,92 @@ export function collectCatalogProducts(catalog) {
     if (slug == null) continue;
     add({ slug: String(slug) });
   }
+  return [...bySlug.values()].filter((p) => !isKernelExtraSlug(p.slug));
+}
+
+function addExtraItem(bySlug, raw, extraBits) {
+  if (raw == null) return;
+  if (typeof raw === "string") {
+    const slug = raw.toLowerCase();
+    if (!slug) return;
+    const prev = bySlug.get(slug) || { slug, extra: true };
+    bySlug.set(slug, Object.assign({}, prev, extraBits || {}, { slug, extra: true }));
+    return;
+  }
+  if (typeof raw !== "object") return;
+  const slug = String(raw.slug || raw.name || "").toLowerCase();
+  if (!slug) return;
+  const prev = bySlug.get(slug) || {};
+  bySlug.set(slug, Object.assign({}, prev, raw, extraBits || {}, { slug, extra: true }));
+}
+
+/** extras[] + top-level fraggate/mesh. Never fold these into Softwares-tab products[]. */
+export function collectCatalogExtras(catalog) {
+  const bySlug = new Map();
   const extras = catalog && (catalog.extras || catalog.doors || catalog.catalog_only);
   if (Array.isArray(extras)) {
-    for (const item of extras) {
-      if (typeof item === "string") add({ slug: item, extra: true });
-      else if (item && typeof item === "object") add(Object.assign({}, item, { extra: true }));
+    for (const item of extras) addExtraItem(bySlug, item);
+  }
+  if (catalog && catalog.fraggate != null) {
+    if (typeof catalog.fraggate === "string") {
+      addExtraItem(bySlug, {
+        slug: "fraggate",
+        name: "FragGate",
+        kind: "kernel",
+        status: null,
+        path: catalog.fraggate,
+      });
+    } else {
+      addExtraItem(bySlug, Object.assign({ slug: "fraggate", name: "FragGate", kind: "kernel" }, catalog.fraggate));
+    }
+  }
+  if (catalog && catalog.mesh != null) {
+    if (typeof catalog.mesh === "string") {
+      addExtraItem(bySlug, {
+        slug: "mesh",
+        name: "Quantum Node Mesh",
+        kind: "kernel",
+        status: catalog.mesh,
+      });
+    } else {
+      addExtraItem(bySlug, Object.assign({ slug: "mesh", name: "Quantum Node Mesh", kind: "kernel" }, catalog.mesh));
     }
   }
   return [...bySlug.values()];
+}
+
+export function mapSoftwareProduct(raw) {
+  if (!raw || typeof raw !== "object") return raw;
+  const slug = String(raw.slug || "").toLowerCase();
+  const download = firstText(raw.download, raw.download_url);
+  let downloadUrl = firstText(raw.download_url, raw.download);
+  if (slug === "aziel-corpus") {
+    downloadUrl = firstText(raw.download_url, raw.download, LIBRARY_DOWNLOAD);
+  }
+  return Object.assign({}, raw, {
+    slug,
+    download: slug === "aziel-corpus" ? firstText(download, LIBRARY_DOWNLOAD) : download,
+    download_url: downloadUrl,
+  });
+}
+
+/** Softwares-tab products[] plus kernel extras[] only. */
+export function softwareTabCatalog(catalog) {
+  const norm = normalizeSoftwareDoc(catalog);
+  const products = collectCatalogProducts(norm).map(mapSoftwareProduct);
+  const extras = collectCatalogExtras(norm);
+  return {
+    version: firstText(norm.version, catalog && catalog.version),
+    products,
+    extras,
+    software: products,
+    engines: norm.engines,
+    engine_slugs: norm.engine_slugs,
+    true_engine_slugs: norm.true_engine_slugs,
+    live_count: Number(norm.live_count || products.length) || products.length,
+    framing: norm.framing || "",
+    sort_law: norm.sort_law || "",
+  };
 }
 
 export function mergeSoftwareExtras(products) {
@@ -338,6 +424,8 @@ export const SOFTWARE_LIVE_PATH = "/v1/software";
 export const FRAGGATE_LIST_PATH = "/v1/fraggate/list";
 export const CATALOG_JSON_PATH = "/v1/catalog.json";
 export const SOFTWARE_CRAWL_TIMEOUT_MS = 4000;
+/** Softwares HTML: fail fast. Packed catalog cache is the SSR source of truth. */
+export const SOFTWARE_HTML_TIMEOUT_MS = 800;
 
 function withTimeout(promise, ms) {
   const limit = Number(ms) || 0;
@@ -378,7 +466,7 @@ export async function runtimeGet(env, destPath) {
   if (env && env.AZIEL_RUNTIME && typeof env.AZIEL_RUNTIME.fetch === "function") {
     try {
       const res = await env.AZIEL_RUNTIME.fetch(new Request(dest.toString(), { method: "GET", headers }));
-      if (res && res.ok) return res;
+      if (res) return res;
     } catch {
       /* fall through to origin */
     }
@@ -400,34 +488,35 @@ export async function fetchRuntimeJson(env, destPath) {
 
 /** Normalize /v1/software, fraggate/list, or catalog.json into a products catalog. */
 export function normalizeSoftwareDoc(doc) {
-  if (!doc || typeof doc !== "object") return { products: [] };
-  if (Array.isArray(doc.products) || doc.engines || doc.engine_slugs || doc.true_engine_slugs || doc.extras) {
-    return doc;
+  if (!doc || typeof doc !== "object") return { products: [], extras: [] };
+  let products = [];
+  if (Array.isArray(doc.software) && doc.software.length) {
+    products = doc.software.map(mapSoftwareProduct);
+  } else if (Array.isArray(doc.products) && doc.products.length) {
+    products = doc.products.map(mapSoftwareProduct);
+  } else if (Array.isArray(doc.entries)) {
+    products = doc.entries.map((e) => mapSoftwareProduct({
+      slug: e && e.slug,
+      name: e && e.name,
+      one_line: firstText(e && e.one_line, e && e.description, e && e.banner),
+      version: (e && e.version) || "",
+      github: (e && e.github) || "",
+      download: firstText(e && e.download, e && e.download_url),
+      download_url: firstText(e && e.download_url, e && e.download),
+      worker: (e && e.worker) || "",
+      worker_home: (e && e.worker_home) || "",
+      count: (e && e.count) || "",
+      catalog_only: Boolean((e && e.local_not_hosted) || (e && e.status === "stub") || (e && e.catalog_only)),
+      status: (e && e.status) || "",
+    }));
   }
-  if (Array.isArray(doc.software)) {
-    return Object.assign({}, doc, { products: doc.software });
-  }
-  if (Array.isArray(doc.entries)) {
-    return {
-      version: doc.version || doc.catalog_version || "",
-      kernel_version: doc.kernel_version || "",
-      products: doc.entries.map((e) => ({
-        slug: e && e.slug,
-        name: e && e.name,
-        one_line: firstText(e && e.one_line, e && e.description, e && e.banner),
-        version: (e && e.version) || "",
-        github: (e && e.github) || "",
-        download: (e && e.download) || "",
-        worker: (e && e.worker) || "",
-        worker_home: (e && e.worker_home) || "",
-        count: (e && e.count) || "",
-        catalog_only: Boolean((e && e.local_not_hosted) || (e && e.status === "stub") || (e && e.catalog_only)),
-        status: (e && e.status) || "",
-      })),
-      extras: doc.extras,
-    };
-  }
-  return { products: [] };
+  products = products.filter((p) => p && p.slug && !isKernelExtraSlug(p.slug));
+  const extras = collectCatalogExtras(doc);
+  return Object.assign({}, doc, {
+    products,
+    extras,
+    version: firstText(doc.version, doc.catalog_version),
+  });
 }
 
 export function catalogHasProducts(doc) {
@@ -435,36 +524,43 @@ export function catalogHasProducts(doc) {
 }
 
 function mergeCatalogDocs(primary, enrich) {
-  const a = collectCatalogProducts(normalizeSoftwareDoc(primary));
-  const b = collectCatalogProducts(normalizeSoftwareDoc(enrich));
+  const aDoc = normalizeSoftwareDoc(primary);
+  const bDoc = normalizeSoftwareDoc(enrich);
+  const a = collectCatalogProducts(aDoc);
+  const b = collectCatalogProducts(bDoc);
   const bySlug = new Map();
   for (const p of a) bySlug.set(String(p.slug || "").toLowerCase(), p);
   for (const p of b) {
     const slug = String(p.slug || "").toLowerCase();
-    if (!slug) continue;
+    if (!slug || isKernelExtraSlug(slug)) continue;
     const prev = bySlug.get(slug) || {};
-    bySlug.set(slug, Object.assign({}, prev, p, {
+    bySlug.set(slug, mapSoftwareProduct(Object.assign({}, prev, p, {
       slug,
       name: firstText(prev.name, p.name),
       one_line: firstText(prev.one_line, p.one_line, prev.banner, p.banner),
       github: firstText(prev.github, p.github),
-      download: firstText(prev.download, p.download),
+      download: firstText(prev.download, prev.download_url, p.download, p.download_url),
+      download_url: firstText(prev.download_url, p.download_url, prev.download, p.download),
       worker: firstText(prev.worker, p.worker),
       worker_home: firstText(prev.worker_home, p.worker_home),
       count: firstText(prev.count, p.count),
       version: firstText(prev.version, p.version),
-    }));
+    })));
   }
-  const extras = []
-    .concat((primary && primary.extras) || [])
-    .concat((enrich && enrich.extras) || []);
+  const extraBy = new Map();
+  for (const item of [].concat(aDoc.extras || [], bDoc.extras || [])) {
+    addExtraItem(extraBy, item);
+  }
   return {
-    version: firstText(primary && primary.version, enrich && enrich.version),
-    products: [...bySlug.values()],
-    extras,
+    version: firstText(aDoc.version, bDoc.version),
+    products: [...bySlug.values()].filter((p) => !isKernelExtraSlug(p.slug)),
+    extras: [...extraBy.values()],
     engines: Object.assign({}, (enrich && enrich.engines) || {}, (primary && primary.engines) || {}),
     engine_slugs: [].concat((primary && primary.engine_slugs) || [], (enrich && enrich.engine_slugs) || []),
     true_engine_slugs: [].concat((primary && primary.true_engine_slugs) || [], (enrich && enrich.true_engine_slugs) || []),
+    framing: firstText(aDoc.framing, bDoc.framing),
+    sort_law: firstText(aDoc.sort_law, bDoc.sort_law),
+    live_count: aDoc.live_count || bDoc.live_count || bySlug.size,
   };
 }
 
@@ -547,7 +643,7 @@ export async function loadSoftwareCatalog(env, stats, opts = {}) {
   const live = await fetchLiveSoftwareCatalog(env, {
     skipEnrich: light || Boolean(opts.skipEnrich),
     preferCache: light || Boolean(opts.preferCache),
-    timeoutMs: opts.timeoutMs != null ? opts.timeoutMs : (light ? SOFTWARE_CRAWL_TIMEOUT_MS : 0),
+    timeoutMs: opts.timeoutMs != null ? opts.timeoutMs : (light ? SOFTWARE_HTML_TIMEOUT_MS : 0),
   });
   const catalog = live.catalog || {};
 

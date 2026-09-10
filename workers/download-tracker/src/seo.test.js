@@ -58,15 +58,18 @@ test("JSON-LD types the author as Person with alternateName", () => {
   assert.doesNotMatch(html, BANNED);
 });
 
-test("runtime JSON-LD and discovery links advertise FragGate 1.6.2", () => {
-  const html = headMeta({ title: "aziel-runtime", path: "/runtime", kind: "runtime" });
+test("runtime JSON-LD and discovery links advertise Aziel Runtime 1.9.0 abstract", () => {
+  const html = headMeta({ title: "Aziel Runtime", path: "/runtime", kind: "runtime" });
   const ld = graphFrom(html);
   const apps = ld["@graph"].filter((n) => n["@type"] === "SoftwareApplication");
   const runtimeApp = apps.find((n) => n.name === "aziel-runtime");
   assert.ok(runtimeApp);
-  assert.equal(runtimeApp.softwareVersion, "1.6.2");
+  assert.equal(runtimeApp.softwareVersion, "1.9.0");
   assert.equal(runtimeApp.url, "https://www.azielcorpuslibrary.net/runtime");
   assert.ok(runtimeApp.sameAs.includes("https://aziel-runtime.vibelock.workers.dev/"));
+  assert.match(runtimeApp.description, /not merely an API orchestrator/);
+  assert.match(runtimeApp.description, /37 live/);
+  assert.doesNotMatch(runtimeApp.description, /aziel-runtime 1\.9\.0 FragGate/);
   const api = ld["@graph"].find((n) => n["@type"] === "WebAPI");
   assert.ok(api);
   assert.equal(api.url, "https://www.azielcorpuslibrary.net/runtime/v1/fraggate");
@@ -77,9 +80,13 @@ test("runtime JSON-LD and discovery links advertise FragGate 1.6.2", () => {
   assert.match(html, /href="\/sitemap-index\.xml"/);
   assert.match(html, /href="\/runtime\/llms\.txt"/);
   assert.match(html, /href="\/runtime\/v1\/fraggate"/);
-  assert.match(defaultDescription("runtime"), /1\.6\.2/);
-  assert.match(defaultDescription("runtime"), /FragGate/);
-  assert.doesNotMatch(defaultDescription("runtime"), /1\.4\.0/);
+  assert.match(html, /node-meshed MCP Softwares suite/);
+  assert.match(defaultDescription("runtime"), /not merely an API orchestrator/);
+  assert.match(defaultDescription("runtime"), /37 live/);
+  assert.match(defaultDescription("runtime"), /FragGate is the single door/);
+  assert.doesNotMatch(defaultDescription("runtime"), /aziel-runtime 1\.9\.0 FragGate/);
+  assert.doesNotMatch(defaultDescription("runtime"), /1\.6\.2/);
+  assert.doesNotMatch(defaultDescription("runtime"), /26 live/);
 });
 
 test("priority pages have unique titles, canonicals, OG/Twitter, and page-type JSON-LD", () => {
@@ -225,6 +232,7 @@ test("OpenAPI identity URLs include /AzielEliab and GodLock", async () => {
   assert.match(spec.info.description, /godlock\.uk\/AzielEliab/);
   assert.match(spec.paths["/AzielEliab"].get.summary, /godlock\.uk\/AzielEliab/);
   assert.ok(spec.paths["/v1/software"]);
+  assert.ok(spec.paths["/v1/download"]);
   assert.ok(spec.paths["/v1/update/check"]);
   assert.ok(spec.paths["/.well-known/mcp.json"]);
   assert.doesNotMatch(JSON.stringify(spec), BANNED);

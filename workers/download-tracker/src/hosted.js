@@ -26,7 +26,7 @@ import {
   recordOcrTextArtifact, recordSpectralOverlayArtifact, listDerivedArtifacts,
 } from "./ocr.js";
 import { normalizeLenses } from "./spectral.js";
-import { loadSoftwareCatalog } from "./software-catalog.js";
+import { loadSoftwareCatalog, SOFTWARE_HTML_TIMEOUT_MS } from "./software-catalog.js";
 import { isSeoBot } from "./rate-limit.js";
 import {
   HTML_CACHE_CONTROL,
@@ -531,19 +531,52 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     const bot = isSeoBot(request);
     const cacheControl = signed ? "private, no-store" : SOFTWARE_HTML_CACHE_CONTROL;
     if (head) return html("", { cacheControl, head: true });
+    const render = async (opts) => {
+      const catalog = await loadSoftwareCatalog(env, stats, opts);
+      return page("Software", softwareBody(catalog), { signed, path: "/software", kind: "software", runtimeVersion: catalog.catalogVersion });
+    };
+    const cacheUrl = htmlCacheUrl(request) + (bot ? ":bot" : ":full");
     if (!signed) {
-      const cacheUrl = htmlCacheUrl(request) + (bot ? ":bot" : ":full");
       const cached = await cacheMatchText(cacheUrl);
-      if (cached) return html(cached, { cacheControl });
-      const catalog = await loadSoftwareCatalog(env, stats, { light: bot });
-      const body = page("Software", softwareBody(catalog), { signed, path: "/software", kind: "software", runtimeVersion: catalog.catalogVersion });
-      const put = cachePutText(cacheUrl, body, undefined, { cacheControl });
-      if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(put);
-      else await put;
-      return html(body, { cacheControl });
+      if (cached) {
+        if (ctx && typeof ctx.waitUntil === "function") {
+          ctx.waitUntil((async () => {
+            try {
+              const fresh = await render({
+                light: bot,
+                preferCache: false,
+                skipEnrich: bot,
+                timeoutMs: bot ? SOFTWARE_HTML_TIMEOUT_MS : 4000,
+              });
+              await cachePutText(cacheUrl, fresh, undefined, { cacheControl });
+            } catch { /* refresh optional */ }
+          })());
+        }
+        return html(cached, { cacheControl });
+      }
     }
-    const catalog = await loadSoftwareCatalog(env, stats);
-    return pageHtml(page("Software", softwareBody(catalog), { signed, path: "/software", kind: "software", runtimeVersion: catalog.catalogVersion }), { cacheControl });
+    const body = await render({
+      light: true,
+      preferCache: true,
+      skipEnrich: true,
+      timeoutMs: SOFTWARE_HTML_TIMEOUT_MS,
+    });
+    if (!signed) {
+      const put = cachePutText(cacheUrl, body, undefined, { cacheControl });
+      if (ctx && typeof ctx.waitUntil === "function") {
+        ctx.waitUntil((async () => {
+          try {
+            await put;
+            if (bot) return;
+            const full = await render({ light: false, preferCache: false, timeoutMs: 4000 });
+            await cachePutText(cacheUrl, full, undefined, { cacheControl });
+          } catch { /* packed cache is enough for TTFB */ }
+        })());
+      } else {
+        await put;
+      }
+    }
+    return html(body, { cacheControl });
   }
   if (path === "/how-its-scored" && read) {
     return pageHtml(page("How it's scored", howItsScoredBody(), { signed, path: "/how-its-scored", kind: "scored" }));

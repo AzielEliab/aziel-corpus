@@ -10,9 +10,10 @@ import { latticeAnchorTip, LATTICE_NOTE } from "./lattice.js";
 import { handleJeevesApi, JEEVES_LIMITATION } from "./jeeves.js";
 import { receiptForMediaRun, isMediaRunId } from "./media.js";
 import { continueVerifyGeo, geoVerifyStatus, GEO_PIN_NOTE } from "./geo.js";
-import { RUNTIME_VERSION, RUNTIME_NOTE, runtimeHowTo, AI_CLIENTS } from "./runtime-copy.js";
+import { RUNTIME_VERSION, RUNTIME_NOTE, runtimeHowTo, AI_CLIENTS, LIBRARY_DOWNLOAD, LIBRARY_V1_DOWNLOAD } from "./runtime-copy.js";
 import { checkLibraryUpdate, LIBRARY_SLUG, LIBRARY_VERSION } from "./update-check.js";
-import { fetchLiveSoftwareCatalog } from "./software-catalog.js";
+import { fetchLiveSoftwareCatalog, softwareTabCatalog } from "./software-catalog.js";
+import { handleV1Download, serveSoftwareAsset, LIBRARY_INSTALL } from "./software-download.js";
 import { handleMeshApi, MESH_NOTE, QNS_CD_SPEC } from "./mesh.js";
 import {
   LIBRARY_INDEX_KEY,
@@ -181,18 +182,19 @@ function openapi() {
       "/receipt/{id}": { get: { summary: "Receipt for an AZDOC- record or AZRUN- media lattice entry.", operationId: "receipt", parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }] } },
       "/ledger/{id}": { get: { summary: "Alias of /receipt/{id} for media lattice and document receipts.", operationId: "ledger", parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }] } },
       "/file/{record_id}": { get: { summary: "Download any stored record (text or file). HTTP 200. Quarantined poison docs stay downloadable with X-Aziel-Quarantine. Ledger-linked. A 64-hex SHA-256 also resolves the kept matching file.", operationId: "file" } },
-      "/download": { get: { summary: "Counted zip (asset=), counted record download (record=AZDOC-…), or counted content-hash download (hash=SHA-256). HTTP 200, no silent 302.", operationId: "download", parameters: [{ name: "asset", in: "query", schema: { type: "string" } }, { name: "record", in: "query", schema: { type: "string" } }, { name: "hash", in: "query", schema: { type: "string" } }, { name: "sha256", in: "query", schema: { type: "string" } }] } },
+      "/download": { get: { summary: "Counted Softwares zip (asset=), counted record download (record=AZDOC-…), or counted content-hash download (hash=SHA-256). Streams the hosted zip. Honest 200 JSON if the asset is missing. HTTP 200, no silent 302.", operationId: "download", parameters: [{ name: "asset", in: "query", schema: { type: "string" } }, { name: "record", in: "query", schema: { type: "string" } }, { name: "hash", in: "query", schema: { type: "string" } }, { name: "sha256", in: "query", schema: { type: "string" } }] } },
+      "/v1/download": { get: { summary: "Softwares download descriptor (2xx). Aligns catalog download_url with GET /download. Does not increment. Author Aziel Eliab.", operationId: "softwareDownload" } },
       "/v1/docs/{hash}/download": { get: { summary: "Download the stored file for a kept record whose content_sha256 matches. Does not increment downloads. Duplicates are not deleted.", operationId: "downloadByHash", parameters: [{ name: "hash", in: "path", required: true, schema: { type: "string" } }] } },
-      "/v1/runtime": { get: { summary: "Digital Library package discovery (NOT aziel-runtime engine manifest). Use /v1/runtime.json or /runtime/v1/runtime.json for aziel-runtime " + RUNTIME_VERSION + " FragGate.", operationId: "runtime" } },
-      "/v1/runtime.json": { get: { summary: "aziel-runtime " + RUNTIME_VERSION + " FragGate manifest (proxied). Distinct from /v1/runtime library package discovery.", operationId: "runtimeRoot" } },
+      "/v1/runtime": { get: { summary: "Digital Library package discovery (NOT the Aziel Runtime engine manifest). Use /v1/runtime.json or /runtime/v1/runtime.json for Aziel Runtime " + RUNTIME_VERSION + ".", operationId: "runtime" } },
+      "/v1/runtime.json": { get: { summary: "Aziel Runtime " + RUNTIME_VERSION + " manifest (proxied). Distinct from /v1/runtime library package discovery.", operationId: "runtimeRoot" } },
       "/AzielEliab": { get: { summary: "Aziel Eliab — author profile page (HTML). Corresponds with https://godlock.uk/AzielEliab. Legacy /about and /aboutme permanently redirect here.", operationId: "azielEliab" } },
-      "/runtime": { get: { summary: "aziel-runtime " + RUNTIME_VERSION + " FragGate door on this domain. Prefer /runtime/*. " + RUNTIME_NOTE, operationId: "runtimePage" } },
-      "/runtime/v1/health": { get: { summary: "aziel-runtime " + RUNTIME_VERSION + " FragGate health via same-origin proxy.", operationId: "runtimeProxyHealth" } },
+      "/runtime": { get: { summary: "Aziel Runtime " + RUNTIME_VERSION + " on this domain. Prefer /runtime/*. " + RUNTIME_NOTE, operationId: "runtimePage" } },
+      "/runtime/v1/health": { get: { summary: "Aziel Runtime " + RUNTIME_VERSION + " health via same-origin proxy.", operationId: "runtimeProxyHealth" } },
       "/runtime/v1/uses": { get: { summary: "Local API use log for this /runtime door. Does not increment.", operationId: "runtimeUses" } },
       "/runtime/v1/fraggate": { get: { summary: "FragGate door summary (registry digest, live/stub/local_only counts).", operationId: "runtimeFraggate" } },
       "/runtime/v1/fraggate/list": { get: { summary: "Hashed FragGate registry. Discover names. Do not invent tools.", operationId: "runtimeFraggateList" } },
       "/runtime/v1/fraggate/call": { post: { summary: "CallEnvelope → DecisionGATE → handler or refuse.", operationId: "runtimeFraggateCall" } },
-      "/runtime/v1/runtime.json": { get: { summary: "aziel-runtime " + RUNTIME_VERSION + " FragGate manifest via same-origin proxy.", operationId: "runtimeProxyManifest" } },
+      "/runtime/v1/runtime.json": { get: { summary: "Aziel Runtime " + RUNTIME_VERSION + " manifest via same-origin proxy.", operationId: "runtimeProxyManifest" } },
       "/runtime/v1/skill": { get: { summary: "aziel-runtime skill markdown via same-origin proxy.", operationId: "runtimeProxySkill" } },
       "/runtime/v1/session/open": { post: { summary: "Advanced/internal. Open an aziel-runtime session (same-origin proxy). Prefer fraggate_call.", operationId: "runtimeProxySessionOpen" } },
       "/runtime/v1/session/{id}/exec": { post: { summary: "Advanced/internal session exec via same-origin proxy. Prefer fraggate_call. HTTP /p is not exec.", operationId: "runtimeProxySessionExec" } },
@@ -224,17 +226,38 @@ export async function handleRuntimeApi(request, url, env) {
   }
   const mesh = await handleMeshApi(request, url, env);
   if (mesh) return mesh;
+  if (path === "/v1/download" && (request.method === "GET" || request.method === "HEAD" || request.method === "OPTIONS")) {
+    const described = handleV1Download(request, url);
+    if (described) return described;
+    return serveSoftwareAsset(request, env, url.searchParams.get("asset"));
+  }
   if (path === "/v1/software" && (request.method === "GET" || request.method === "HEAD")) {
-    const live = await fetchLiveSoftwareCatalog(env);
+    const live = await fetchLiveSoftwareCatalog(env, { preferCache: true, timeoutMs: 2500 });
+    const tab = softwareTabCatalog(live.catalog);
+    const corpus = tab.products.find((p) => p.slug === "aziel-corpus");
     const res = json({
       ok: true,
       source: live.source,
       origin: CATALOG + "/v1/software",
       fallback: CATALOG + "/v1/fraggate/list",
-      version: (live.catalog && live.catalog.version) || RUNTIME_VERSION,
+      version: tab.version || (live.catalog && live.catalog.version) || RUNTIME_VERSION,
       author: "Aziel Eliab",
-      ...live.catalog,
+      identity: "Aziel Eliab",
+      count: tab.products.length,
+      live_count: tab.live_count || tab.products.length,
+      framing: tab.framing || "",
+      sort_law: tab.sort_law || "",
+      products: tab.products,
+      extras: tab.extras,
+      software: tab.products,
+      download_url: (corpus && (corpus.download_url || corpus.download)) || LIBRARY_DOWNLOAD,
+      v1_download: LIBRARY_V1_DOWNLOAD,
+      install: LIBRARY_INSTALL,
+      engines: tab.engines,
+      engine_slugs: tab.engine_slugs,
+      true_engine_slugs: tab.true_engine_slugs,
     });
+    res.headers.set("Cache-Control", "public, s-maxage=120, stale-while-revalidate=3600");
     if (request.method === "HEAD") return new Response(null, { status: res.status, headers: res.headers });
     return res;
   }
@@ -273,7 +296,7 @@ export async function handleRuntimeApi(request, url, env) {
       // Disambiguation: this is NOT aziel-runtime's machine manifest.
       is_aziel_runtime_manifest: false,
       role: "digital-library-package",
-      note: "Digital Library package discovery only. Engine manifest is GET /v1/runtime.json or GET /runtime/v1/runtime.json (aziel-runtime " + RUNTIME_VERSION + " FragGate).",
+      note: "Digital Library package discovery only. Engine manifest is GET /v1/runtime.json or GET /runtime/v1/runtime.json (Aziel Runtime " + RUNTIME_VERSION + ").",
       aziel_runtime_manifest: HOST + "/v1/runtime.json",
       aziel_runtime_manifest_alias: HOST + "/runtime/v1/runtime.json",
       aziel_runtime_origin: "https://aziel-runtime.vibelock.workers.dev/v1/runtime.json",

@@ -14,6 +14,8 @@ import {
   compareSoftware,
   displayName,
   collectCatalogProducts,
+  collectCatalogExtras,
+  softwareTabCatalog,
   mergeSoftwareExtras,
   productLinks,
   parseCountPayload,
@@ -31,6 +33,7 @@ import {
   AZCOHERENCE_WORKER_HOME,
   AZCOHERENCE_COUNT,
 } from "./azcoherence.js";
+import { handleRuntimeApi } from "./runtime.js";
 
 const HOST = "https://www.azielcorpuslibrary.net";
 const BANNED = /Collin Horton|GodLock\.AZ|\+25|quiet (Aziel|triad|boost)|10\.5281\/zenodo/i;
@@ -853,6 +856,124 @@ test("fetchLiveSoftwareCatalog prefers /v1/software then fraggate/list", async (
     assert.equal(listed.source, "fraggate/list");
     assert.ok(listed.catalog.products.some((p) => p.slug === "peacelock"));
     assert.ok(listed.catalog.products.some((p) => p.slug === "aznet"));
+    assert.ok(!listed.catalog.products.some((p) => p.slug === "mesh"));
+  } finally {
+    globalThis.fetch = origFetch;
+  }
+});
+
+test("1.9.0 software[] plus catalog extras keep fraggate/mesh out of products[]", () => {
+  const live = {
+    version: "1.9.0",
+    software: [
+      { slug: "aziel-corpus", name: "Aziel Digital Library", download_url: "https://www.azielcorpuslibrary.net/download" },
+      { slug: "peacelock", name: "PeaceLock" },
+      { slug: "azcoherence", name: "AZCoherence" },
+    ],
+    fraggate: "https://aziel-runtime.vibelock.workers.dev/v1/fraggate",
+    mesh: { status: "https://aziel-runtime.vibelock.workers.dev/v1/mesh/status", path: "/v1/mesh" },
+  };
+  const enrich = {
+    version: "1.9.0",
+    products: [{ slug: "peacelock", name: "PeaceLock", download: "https://peacelock.example/download" }],
+    extras: [
+      { slug: "fraggate", name: "FragGate", status: null },
+      { slug: "mesh", name: "Quantum Node Mesh", status: "https://aziel-runtime.vibelock.workers.dev/v1/mesh/status" },
+    ],
+  };
+  const tab = softwareTabCatalog(Object.assign({}, normalizeSoftwareDoc(live), {
+    extras: collectCatalogExtras(live).concat(collectCatalogExtras(enrich)),
+  }));
+  assert.ok(tab.products.every((p) => p.slug !== "fraggate" && p.slug !== "mesh"));
+  assert.ok(tab.products.some((p) => p.slug === "aziel-corpus" && p.download_url.endsWith("/download")));
+  assert.ok(tab.extras.some((e) => e.slug === "fraggate" && (e.status == null || e.status === "")));
+  assert.ok(tab.extras.some((e) => e.slug === "mesh" && /mesh\/status/.test(String(e.status || e.path || ""))));
+  const collected = collectCatalogProducts({
+    products: live.software.concat(enrich.extras),
+    extras: enrich.extras,
+  });
+  assert.ok(!collected.some((p) => p.slug === "fraggate" || p.slug === "mesh"));
+});
+
+test("GET /v1/software products[] is Softwares-tab only; extras[] holds fraggate and mesh", async () => {
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = blockLiveRuntime(origFetch);
+  const env = stubEnv({
+    async fetch(request) {
+      const url = new URL(request.url);
+      if (url.pathname.endsWith("/software")) {
+        return new Response(JSON.stringify({
+          version: "1.9.0",
+          live_count: 37,
+          software: [
+            { slug: "aziel-corpus", name: "Aziel Digital Library", download_url: "https://www.azielcorpuslibrary.net/download" },
+            { slug: "peacelock", name: "PeaceLock" },
+          ],
+          fraggate: "https://aziel-runtime.vibelock.workers.dev/v1/fraggate",
+          mesh: { status: "https://aziel-runtime.vibelock.workers.dev/v1/mesh/status" },
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      if (url.pathname.endsWith("/catalog.json")) {
+        return new Response(JSON.stringify({
+          version: "1.9.0",
+          products: [{ slug: "peacelock", name: "PeaceLock" }],
+          extras: [
+            { slug: "fraggate", name: "FragGate", status: null },
+            { slug: "mesh", name: "Quantum Node Mesh", status: "https://aziel-runtime.vibelock.workers.dev/v1/mesh/status" },
+          ],
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      return new Response("no", { status: 404 });
+    },
+  });
+  try {
+    const res = await handleRuntimeApi(
+      new Request(HOST + "/v1/software", { headers: { Accept: "application/json" } }),
+      new URL(HOST + "/v1/software"),
+      env
+    );
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.ok, true);
+    assert.ok(!body.products.some((p) => p.slug === "fraggate"));
+    assert.ok(!body.products.some((p) => p.slug === "mesh"));
+    assert.ok(body.extras.some((e) => e.slug === "fraggate"));
+    assert.ok(body.extras.some((e) => e.slug === "mesh"));
+    assert.equal(body.download_url, "https://www.azielcorpuslibrary.net/download");
+    assert.match(body.v1_download, /\/v1\/download$/);
+    const fg = body.extras.find((e) => e.slug === "fraggate");
+    assert.ok(fg.status == null || fg.status === "");
+    const mesh = body.extras.find((e) => e.slug === "mesh");
+    assert.match(String(mesh.status), /mesh\/status/);
+  } finally {
+    globalThis.fetch = origFetch;
+  }
+});
+
+test("GET /software HTML prefers packed catalog and does not wait on a hanging origin", async () => {
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = blockLiveRuntime(origFetch);
+  const env = stubEnv({
+    async fetch() {
+      return new Promise(() => {});
+    },
+  });
+  const started = Date.now();
+  const res = await handleHosted(
+    new Request(HOST + "/software", { headers: { Accept: "text/html" } }),
+    new URL(HOST + "/software"),
+    env,
+    {},
+    null,
+    null,
+  );
+  try {
+    assert.ok(res);
+    assert.equal(res.status, 200);
+    assert.ok(Date.now() - started < 2000, "Softwares HTML must not block SSR on a slow upstream");
+    const html = await res.text();
+    assert.match(html, /<h1>Downloadable software<\/h1>/);
+    assert.match(html, /FragGate/);
   } finally {
     globalThis.fetch = origFetch;
   }
