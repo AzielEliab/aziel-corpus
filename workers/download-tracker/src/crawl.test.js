@@ -52,6 +52,9 @@ test("robots.txt allows research surfaces and major AI bots", () => {
     "Google-Extended",
     "GoogleOther",
     "Google-CloudVertexBot",
+    "Google-InspectionTool",
+    "Storebot-Google",
+    "DuplexWeb-Google",
     "OAI-SearchBot",
     "xAI-SearchBot",
     "cohere-ai",
@@ -175,8 +178,11 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   const llms = llmsDoc("LIMIT");
   assertPublicIdentity(llms);
   assert.match(llms, /## Priority pages \(index first\)/);
+  assert.match(llms, /## Softwares \(HTML hub — crawl this\)/);
+  assert.match(llms, /## About Aziel Eliab \(HTML — crawl this\)/);
   assert.match(llms, /Softwares: https:\/\/www\.azielcorpuslibrary\.net\/software/);
   assert.match(llms, /About Aziel Eliab: https:\/\/www\.azielcorpuslibrary\.net\/AzielEliab/);
+  assert.match(robotsTxt(), /Priority pages: \/  \/software  \/AzielEliab/);
   assert.match(llms, /Software hub: https:\/\/www\.azielcorpuslibrary\.net\/software/);
   assert.match(llms, /Donate AZL-DONATE-1\.0 \(static, no KV\): https:\/\/www\.azielcorpuslibrary\.net\/donate/);
   assert.match(llms, /\/v1\/library-index/);

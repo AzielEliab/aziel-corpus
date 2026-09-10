@@ -465,7 +465,9 @@ export default {
     const signed = await getSession(env, request);
     let hostedStats = null;
     const hostedPath = url.pathname.replace(/\/+$/, "") || "/";
-    if (hostedPath === "/health" || hostedPath === "/software") hostedStats = await collectStats(env);
+    if (hostedPath === "/health" || (hostedPath === "/software" && !isSeoBot(request))) {
+      hostedStats = await collectStats(env);
+    }
     const hosted = await handleHosted(request, url, env, ctx, signed, hostedStats);
     if (hosted) return attachVid(hosted);
 

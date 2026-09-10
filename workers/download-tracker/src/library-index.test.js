@@ -5,6 +5,8 @@ import {
   KV_CACHE_TTL,
   SEARCH_CACHE_CONTROL,
   HTML_CACHE_CONTROL,
+  SOFTWARE_HTML_CACHE_CONTROL,
+  SEO_CACHE_CONTROL,
   cacheMatchText,
   cachePutText,
   htmlCacheUrl,
@@ -255,6 +257,8 @@ test("GET /v1/search filters packed index even when D1 is bound", async () => {
 
 test("public HTML cache helpers share crawler and human Cache-Control", async () => {
   assert.match(HTML_CACHE_CONTROL, /s-maxage=120/);
+  assert.match(SOFTWARE_HTML_CACHE_CONTROL, /s-maxage=3600/);
+  assert.equal(SOFTWARE_HTML_CACHE_CONTROL, SEO_CACHE_CONTROL);
   const cache = memoryCache();
   const req = new Request("https://www.azielcorpuslibrary.net/?q=Florence");
   const url = htmlCacheUrl(req);
