@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { CSS, page, donateStripHtml, aboutBody, howItsScoredBody, patternBody, softwareBody, runtimeBody, azielLibraryBody, homeBody } from "../workers/download-tracker/src/ui.js";
+import { CSS, page, donateStripHtml, aboutBody, howItsScoredBody, patternBody, softwareBody, runtimeBody, azielLibraryBody, homeBody, corpusBody } from "../workers/download-tracker/src/ui.js";
 import { ocrPageBody, mapBody, SPECTRAL_LENSES } from "../workers/download-tracker/src/hosted-pages.js";
 import { dedupeShelfRows } from "../workers/download-tracker/src/library.js";
 
@@ -58,6 +58,68 @@ test("black/gold theme and royal purple Aziel Library text are in CSS", () => {
   assert.match(CSS, /\.checkrow\{/);
   assert.match(CSS, /input\[type=checkbox\].*width:auto/);
   assert.match(CSS, /\.lens-grid\{/);
+});
+
+test("file and library cards grow with the page instead of a clipped overflow shelf", () => {
+  const shelfRules = [...CSS.matchAll(/\.shelf\{[^}]+\}/g)].map((m) => m[0]);
+  assert.ok(shelfRules.length >= 1, "shelf rules should exist");
+  for (const rule of shelfRules) {
+    assert.match(rule, /max-height:none/);
+    assert.match(rule, /overflow:visible/);
+    assert.doesNotMatch(rule, /overflow-y:auto/);
+    assert.doesNotMatch(rule, /overflow:auto/);
+    assert.doesNotMatch(rule, /max-height:min\(/);
+    assert.doesNotMatch(rule, /58vh/);
+  }
+  assert.doesNotMatch(CSS, /\.shelf\{[^}]*max-height:min\(58vh,520px\)/);
+  assert.match(CSS, /\.doc\{[^}]*overflow:visible/);
+  assert.match(CSS, /\.mini-chips\{[^}]*flex-wrap:wrap/);
+  assert.match(CSS, /\.mini-chips\{[^}]*overflow:visible/);
+  assert.match(CSS, /\.doc\.doc-aziel\{border-color:var\(--royal\)/);
+  assert.match(CSS, /\.lib-tag\.aziel\{background:var\(--royal\)/);
+  assert.match(CSS, /\.soft-grid\{display:grid;grid-template-columns:repeat\(auto-fit,minmax\(240px,1fr\)\)/);
+  assert.match(CSS, /\.soft-card\{background:var\(--card\);border:1px solid var\(--line\);border-radius:16px;padding:18px\}/);
+
+  const azielRow = {
+    record_id: "AZDOC-cockroach",
+    title: "The Cockroach Doctrine: A Resilience Doctrine for Remaining Operational Under Repeated Asymmetric Disruption",
+    library: "aziel",
+    author: "Aziel Eliab",
+    domain: "research,philosophy",
+    subjects: "philosophy,doctrine,asymmetric disruption,cockroach doctrine,resilience",
+    keywords: "asymmetric disruption,Aziel Eliab,August 2026",
+    triad_combined: 0.58,
+    filename: "The-Cockroach-Doctrine.pdf",
+    created_utc: "2026-08-04T12:00:00Z",
+    content_sha256: "a".repeat(64),
+    snippet: "A public note for remaining operational under repeated asymmetric disruption.",
+  };
+  const corpusRow = {
+    record_id: "AZDOC-smoke",
+    title: "AZBot anonymous Corpus smoke",
+    library: "corpus",
+    author: "anonymous",
+    triad_combined: 0.56,
+    zsolver_score: 0.4,
+    filename: "text record",
+    created_utc: "2026-09-04T03:37:00Z",
+    content_sha256: "b".repeat(64),
+    snippet: "Peace → Clarity → Service. Safe public note for anonymous Corpus ingest test.",
+  };
+  const home = homeBody({ rows: [azielRow, corpusRow], views: 1, downloads: 1, host: "https://www.azielcorpuslibrary.net" });
+  const aziel = azielLibraryBody({ signed: null, rows: [azielRow] });
+  const corpus = corpusBody({ signed: null, rows: [corpusRow] });
+  for (const html of [home, aziel, corpus]) {
+    assert.match(html, /class="shelf"/);
+    assert.match(html, /Download/);
+    assert.match(html, /By hash/);
+  }
+  assert.match(home, /doc doc-aziel/);
+  assert.match(aziel, /doc doc-aziel/);
+  assert.match(aziel, /The Cockroach Doctrine/);
+  assert.match(corpus, /AZBot anonymous Corpus smoke/);
+  assert.match(corpus, /class="doc"/);
+  assert.doesNotMatch(corpus, /doc-aziel/);
 });
 
 test("OCR page still ships all eight SpectralLock lenses", () => {
