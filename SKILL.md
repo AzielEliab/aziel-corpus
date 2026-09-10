@@ -31,7 +31,7 @@ Always send `User-Agent: Mozilla/5.0`.
 - Pull: `GET https://www.azielcorpuslibrary.net/runtime/v1/pull/{slug}`
 - Session (advanced/internal): `POST https://www.azielcorpuslibrary.net/runtime/v1/session/open` then `POST .../session/{id}/exec`. Prefer fraggate_call.
 - Library skill: `GET https://www.azielcorpuslibrary.net/v1/skill`
-- Suite mesh (default off until runtime enable): `GET https://www.azielcorpuslibrary.net/v1/mesh` · `GET https://www.azielcorpuslibrary.net/runtime/v1/mesh`
+- Suite mesh (default off until runtime enable): `GET https://www.azielcorpuslibrary.net/v1/mesh` · `GET https://www.azielcorpuslibrary.net/runtime/v1/mesh` — Live Nodes payload includes the **QNS-CD-1.0** cross-map (photon QNS1 packet transfer). Local `qnsd` is coded in https://github.com/AzielEliab/qnm-node. Runtime cites + catalog field live in https://github.com/AzielEliab/aziel-runtime. AZInterface has pair custody. Hub cite only — not a Softwares-tab product. No public `qnsd` proxy. No Node Gate. Mesh stays default OFF.
 
 Ops (do **not** increment downloads):
 
