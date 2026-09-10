@@ -44,6 +44,8 @@ test("restored nav2 keeps every public tab and drops Health/Verify from chrome",
   assert.match(html, /class="donate-strip"/);
   assert.match(donateStripHtml(), /Donate/);
   assert.match(donateStripHtml(), /no Worker KV/);
+  assert.match(donateStripHtml(), /Nothing is free/);
+  assert.match(donateStripHtml(), /donate-aziel/);
   assert.doesNotMatch(donateStripHtml(), /bc1[a-z0-9]+/i);
   assert.doesNotMatch(donateStripHtml(), /0x[a-f0-9]{40}/i);
 });
@@ -54,6 +56,8 @@ test("black/gold theme and royal purple Aziel Library text are in CSS", () => {
   assert.match(CSS, /--royal:#6b3fa0/);
   assert.match(CSS, /html,body\{[^}]*overflow:auto/);
   assert.match(CSS, /\.about-aziel/);
+  assert.match(CSS, /\.donate-aziel\{color:var\(--royal\)/);
+  assert.match(CSS, /\.donate-rails\{display:grid/);
   assert.match(CSS, /\.doc\.doc-aziel/);
   assert.match(CSS, /\.checkrow\{/);
   assert.match(CSS, /input\[type=checkbox\].*width:auto/);
