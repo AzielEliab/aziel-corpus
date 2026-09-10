@@ -27,6 +27,7 @@ import {
 } from "./ocr.js";
 import { normalizeLenses } from "./spectral.js";
 import { loadSoftwareCatalog } from "./software-catalog.js";
+import { HTML_CACHE_CONTROL } from "./library-index.js";
 
 function intelScripts() {
   var c = [104,116,116,112,115,58,47,47,99,100,110,46,106,115,100,101,108,105,118,114,46,110,101,116,47,110,112,109,47,116,101,115,115,101,114,97,99,116,46,106,115,64,53,47,100,105,115,116,47,116,101,115,115,101,114,97,99,116,46,109,105,110,46,106,115];
@@ -52,7 +53,7 @@ async function receiptForAny(env, id) {
 function html(pageBody, extra) {
   extra = extra || {};
   const headers = { "Content-Type": "text/html; charset=utf-8", ...corsHeaders() };
-  if (extra.cacheControl) headers["Cache-Control"] = extra.cacheControl;
+  headers["Cache-Control"] = extra.cacheControl || HTML_CACHE_CONTROL;
   const status = extra.status || 200;
   if (extra.head) return new Response(null, { status, headers });
   return new Response(pageBody, { status, headers });
@@ -102,7 +103,8 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
   const method = request.method;
   const head = method === "HEAD";
   const read = method === "GET" || head;
-  const pageHtml = (pageBody, extra) => html(pageBody, Object.assign({}, extra, { head }));
+  const pageHtml = (pageBody, extra) =>
+    html(pageBody, Object.assign({ cacheControl: signed ? "private, no-store" : HTML_CACHE_CONTROL }, extra, { head }));
   await ensureSchema(env);
 
   if ((path === "/assets/world_110m.geojson" || path === "/world_110m.geojson") && read) {
@@ -515,7 +517,7 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
   }
   if (path === "/software" && read) {
     const catalog = await loadSoftwareCatalog(env, stats);
-    return pageHtml(page("Software", softwareBody(catalog), { signed, path: "/software", kind: "software", runtimeVersion: catalog.catalogVersion }), { cacheControl: "private, no-store" });
+    return pageHtml(page("Software", softwareBody(catalog), { signed, path: "/software", kind: "software", runtimeVersion: catalog.catalogVersion }), { cacheControl: signed ? "private, no-store" : HTML_CACHE_CONTROL });
   }
   if (path === "/how-its-scored" && read) {
     return pageHtml(page("How it's scored", howItsScoredBody(), { signed, path: "/how-its-scored", kind: "scored" }));

@@ -26,7 +26,7 @@ function assertPublicIdentity(text) {
 test("robots.txt allows research surfaces and major AI bots", () => {
   const txt = robotsTxt();
   assertPublicIdentity(txt);
-  for (const path of ["/ai.txt", "/how-its-scored", "/humans.txt", "/software", "/runtime", "/runtime/v1/uses", "/AzielEliab"]) {
+  for (const path of ["/ai.txt", "/how-its-scored", "/humans.txt", "/software", "/donate", "/runtime", "/runtime/v1/uses", "/AzielEliab"]) {
     assert.match(txt, new RegExp("Allow: " + path.replace("/", "\\/")));
   }
   assert.match(txt, /Content-Signal: search=yes, ai-input=yes, ai-train=yes/);
@@ -118,7 +118,7 @@ test("sitemap.xml lists key routes and uses XML mime helper", async () => {
   };
   const xml = await sitemapXml(env);
   assert.match(xml, /<\?xml version="1.0"/);
-  for (const path of ["/", "/AzielEliab", "/software", "/v1/software", "/v1/update/check", "/sitemap-index.xml", "/mcp.json", "/.well-known/mcp.json", "/runtime", "/runtime/", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/software", "/runtime/v1/uses", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/intelligence", "/aziel-library", "/corpus", "/cite.json", "/llms.txt", "/ai.txt"]) {
+  for (const path of ["/", "/AzielEliab", "/software", "/donate", "/v1/software", "/v1/library-index", "/v1/update/check", "/sitemap-index.xml", "/mcp.json", "/.well-known/mcp.json", "/runtime", "/runtime/", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/software", "/runtime/v1/uses", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/intelligence", "/aziel-library", "/corpus", "/cite.json", "/llms.txt", "/ai.txt"]) {
     assert.match(xml, new RegExp("<loc>https://www\\.azielcorpuslibrary\\.net" + path.replace("/", "\\/") + "</loc>"));
   }
   assert.doesNotMatch(xml, /azielcorpuslibrary\.net\/about</);
@@ -160,6 +160,8 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   const llms = llmsDoc("LIMIT");
   assertPublicIdentity(llms);
   assert.match(llms, /Software hub: https:\/\/www\.azielcorpuslibrary\.net\/software/);
+  assert.match(llms, /Donate \(static, no KV\): https:\/\/www\.azielcorpuslibrary\.net\/donate/);
+  assert.match(llms, /\/v1\/library-index/);
   assert.match(llms, /Software hub mirrors the live aziel-runtime catalog/);
   assert.match(llms, /\/v1\/software/);
   assert.match(llms, /fraggate\/list/);
@@ -283,4 +285,26 @@ test("crawlResponse serves GET body and HEAD without body", async () => {
   assert.equal(head.status, 200);
   assert.equal(head.headers.get("content-type"), MIME.xml);
   assert.equal(await head.text(), "");
+});
+
+test("Worker SEO documents are 200 with long public cache and never empty for Googlebot", async () => {
+  const { default: worker } = await import("./index.js");
+  const { SEO_CACHE_CONTROL } = await import("./library-index.js");
+  const env = {
+    DOWNLOADS: { async get() { return null; }, async put() {}, async list() { throw new Error("no list"); } },
+  };
+  for (const path of ["/robots.txt", "/llms.txt", "/cite.json", "/ai.txt", "/humans.txt", "/sitemap-index.xml"]) {
+    const res = await worker.fetch(
+      new Request("https://www.azielcorpuslibrary.net" + path, { headers: { "User-Agent": "Googlebot/2.1" } }),
+      env,
+      {}
+    );
+    assert.equal(res.status, 200, path);
+    assert.match(res.headers.get("cache-control") || "", /s-maxage=3600/);
+    const body = await res.text();
+    assert.ok(body.length > 20, path + " must not be thin/empty");
+    if (path !== "/sitemap-index.xml") assert.match(body, /Aziel Eliab/);
+    else assert.match(body, /azielcorpuslibrary\.net/);
+  }
+  assert.match(SEO_CACHE_CONTROL, /s-maxage=3600/);
 });

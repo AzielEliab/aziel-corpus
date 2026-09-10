@@ -13,7 +13,12 @@ Custom domains: www.azielcorpuslibrary.net and azielcorpuslibrary.net
 - GET /download?record=AZDOC-…: counted + ledger-linked document download
 - GET /download?hash=SHA-256 and GET /v1/docs/{hash}/download: serve the kept file for that content hash (duplicates are not deleted)
 - GET /v1/runtime: package/runtime version 2.7.0 for catalog discovery
-- GET /software: live product cards from aziel-runtime `GET /v1/catalog.json` (prefer service binding AZIEL_RUNTIME). Mirrors the runtime catalog; no hard-coded 27 cap. Door extras AZNet, FragGate, and EmbryoLock. Sort Software A–Z → Gate A–Z → Lock A–Z (Clock is not Lock). AZNet is Plain.
+- GET /software: live product cards from aziel-runtime `GET /v1/catalog.json` (prefer service binding AZIEL_RUNTIME). Mirrors the runtime catalog; no hard-coded 27 cap. Door extras AZNet, FragGate, and EmbryoLock. Sort Software A–Z → Gate A–Z → Lock A–Z (Clock is not Lock). AZNet is Plain. Stats on this tab read packed `library:index:v1` (no `KV.list()`).
+- GET /donate: static donation tab + chrome strip (RL-WP-0.1-library). Does not touch KV.
+- GET /v1/library-index: packed shelf cards (`library:index:v1`). One KV get + Cache-Control. No PDF bodies.
+- GET /v1/search: filters packed `library:index:v1` in memory (one KV get). AZDOC cards: id, title, shelf, content_sha256, chain_tip. ChainLock library-sync client. `Cache-Control: public, s-maxage=120, stale-while-revalidate=3600`.
+- GET /v1/health: standby / tunnel-primary failover fields (`role=standby`, `index_sha256`). See `docs/TUN-WP-0.1.md` and `docs/RL-WP-0.1-library.md`.
+- Public read paths: uncapped for normal humans and SEO crawlers. Cost cut is packed `library:index:v1` + Cache-Control (no `KV.list()`). Soft 429 only on extreme write/walk API fan-out. Operator token uncapped. Not a Node Gate. Not a VPN.
 - GET/HEAD /runtime: aziel-runtime 1.6.2 FragGate door (not a second software index). 26 live advisory engines; VeilLock local_only; stubs refuse. Prefer /runtime/*.
 - GET/HEAD /runtime/*: same-origin proxy to aziel-runtime (service binding AZIEL_RUNTIME, else workers.dev alternate). Fallbacks for /v1/skill, /v1/runtime.json, /v1/pull/{slug}
 - GET /runtime/v1/health: proxied origin health (version 1.6.2, door=fraggate)

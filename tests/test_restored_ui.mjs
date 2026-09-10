@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { CSS, page, aboutBody, howItsScoredBody, patternBody, softwareBody, runtimeBody, azielLibraryBody, homeBody } from "../workers/download-tracker/src/ui.js";
+import { CSS, page, donateStripHtml, aboutBody, howItsScoredBody, patternBody, softwareBody, runtimeBody, azielLibraryBody, homeBody } from "../workers/download-tracker/src/ui.js";
 import { ocrPageBody, mapBody, SPECTRAL_LENSES } from "../workers/download-tracker/src/hosted-pages.js";
 import { dedupeShelfRows } from "../workers/download-tracker/src/library.js";
 
@@ -15,6 +15,7 @@ const NAV = [
   [">Pattern<", "/pattern"],
   [">Software<", "/software"],
   [">How it's scored<", "/how-its-scored"],
+  [">Donate<", "/donate"],
   [">Runtime<", "/runtime"],
   [">Tree<", "/tree"],
   [">Map<", "/map"],
@@ -40,6 +41,11 @@ test("restored nav2 keeps every public tab and drops Health/Verify from chrome",
   assert.doesNotMatch(html, /href="\/verify"/);
   assert.doesNotMatch(html, /Ever Blooming/i);
   assert.doesNotMatch(html, /10\.5281\/zenodo/i);
+  assert.match(html, /class="donate-strip"/);
+  assert.match(donateStripHtml(), /Donate/);
+  assert.match(donateStripHtml(), /no Worker KV/);
+  assert.doesNotMatch(donateStripHtml(), /bc1[a-z0-9]+/i);
+  assert.doesNotMatch(donateStripHtml(), /0x[a-f0-9]{40}/i);
 });
 
 test("black/gold theme and royal purple Aziel Library text are in CSS", () => {
