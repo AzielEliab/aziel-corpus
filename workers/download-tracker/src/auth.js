@@ -4,6 +4,7 @@ import { page, pwField, azielLibraryBody, corpusBody } from "./ui.js";
 import { isOperator, ingestRecord, searchRecords, listFacets, parseBrowseParams, asFile } from "./library.js";
 import { extractEventsForRecord } from "./geo.js";
 import { ocrIngestHint } from "./ocr.js";
+import { refreshPackedIndex } from "./library-index.js";
 
 
 function formMeta(form) {
@@ -73,10 +74,12 @@ async function afterIngest(env, rec, ctx) {
       ctx.waitUntil((async () => {
         await ocrIngestHint(env, rec);
         await extractEventsForRecord(env, rec.id);
+        await refreshPackedIndex(env);
       })().catch(() => {}));
     } else if (rec && rec.id) {
       if (rec.ocrHint) await ocrIngestHint(env, rec);
       await extractEventsForRecord(env, rec.id);
+      try { await refreshPackedIndex(env); } catch { /* packed index */ }
     }
   } catch {
   }

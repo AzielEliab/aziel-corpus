@@ -15,6 +15,7 @@ const NAV = [
   [">Pattern<", "/pattern"],
   [">Software<", "/software"],
   [">How it's scored<", "/how-its-scored"],
+  [">Donate<", "/donate"],
   [">Runtime<", "/runtime"],
   [">Tree<", "/tree"],
   [">Map<", "/map"],

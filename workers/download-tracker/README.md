@@ -13,7 +13,11 @@ Custom domains: www.azielcorpuslibrary.net and azielcorpuslibrary.net
 - GET /download?record=AZDOC-…: counted + ledger-linked document download
 - GET /download?hash=SHA-256 and GET /v1/docs/{hash}/download: serve the kept file for that content hash (duplicates are not deleted)
 - GET /v1/runtime: package/runtime version 2.7.0 for catalog discovery
-- GET /software: live product cards from aziel-runtime `GET /v1/catalog.json` (prefer service binding AZIEL_RUNTIME). Mirrors the runtime catalog; no hard-coded 27 cap. Door extras AZNet, FragGate, and EmbryoLock. Sort Software A–Z → Gate A–Z → Lock A–Z (Clock is not Lock). AZNet is Plain.
+- GET /software: live product cards from aziel-runtime `GET /v1/catalog.json` (prefer service binding AZIEL_RUNTIME). Mirrors the runtime catalog; no hard-coded 27 cap. Door extras AZNet, FragGate, and EmbryoLock. Sort Software A–Z → Gate A–Z → Lock A–Z (Clock is not Lock). AZNet is Plain. Stats on this tab read packed `library:index:v1` (no `KV.list()`).
+- GET /donate: static donation tab (RL-WP-0.1). Does not touch KV.
+- GET /v1/library-index: packed shelf cards (`library:index:v1`). One KV get + Cache-Control. No PDF bodies.
+- GET /v1/health: standby / tunnel-primary failover fields (`role=standby`, `index_sha256`). See `docs/TUN-WP-0.1.md` and `docs/RL-WP-0.1.md`.
+- Public read paths: per-visitor rate bucket (operator token uncapped). Soft 429 returns the last cached catalog. Not a Node Gate. Not a VPN.
 - GET/HEAD /runtime: aziel-runtime 1.6.2 FragGate door (not a second software index). 26 live advisory engines; VeilLock local_only; stubs refuse. Prefer /runtime/*.
 - GET/HEAD /runtime/*: same-origin proxy to aziel-runtime (service binding AZIEL_RUNTIME, else workers.dev alternate). Fallbacks for /v1/skill, /v1/runtime.json, /v1/pull/{slug}
 - GET /runtime/v1/health: proxied origin health (version 1.6.2, door=fraggate)

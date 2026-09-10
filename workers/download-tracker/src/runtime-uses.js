@@ -12,6 +12,7 @@ export const RUNTIME_USES_PREFIX = "runtime_uses|";
 export const RUNTIME_USES_TOTAL = RUNTIME_USES_PREFIX + "total";
 export const RUNTIME_USES_RECENT = RUNTIME_USES_PREFIX + "recent";
 export const RUNTIME_USES_PATH_PREFIX = RUNTIME_USES_PREFIX + "path|";
+export const RUNTIME_USES_INDEX = RUNTIME_USES_PREFIX + "index";
 export const RUNTIME_USES_RECENT_CAP = 32;
 export const AUTHOR = "Aziel Eliab";
 
@@ -97,6 +98,10 @@ export async function recordRuntimeUse(env, { method, path } = {}) {
       path: libraryPath,
     });
     await kv.put(RUNTIME_USES_RECENT, JSON.stringify(recent.slice(0, RUNTIME_USES_RECENT_CAP)));
+    const packed = await readJson(kv, RUNTIME_USES_INDEX, { uses: 0, by_path: {} });
+    const byPath = packed && packed.by_path && typeof packed.by_path === "object" ? packed.by_path : {};
+    byPath[libraryPath] = pathCount;
+    await kv.put(RUNTIME_USES_INDEX, JSON.stringify({ uses: total, by_path: byPath, ts: new Date().toISOString() }));
     return { uses: total, path: libraryPath, path_count: pathCount };
   } catch {
     return null;
@@ -114,22 +119,10 @@ export async function noteRuntimeUse(env, ctx, method, path) {
 }
 
 async function listPathCounts(kv) {
-  const byPath = {};
-  if (!kv || typeof kv.list !== "function") return byPath;
-  let cursor;
-  do {
-    const page = await kv.list(cursor ? { prefix: RUNTIME_USES_PATH_PREFIX, cursor } : { prefix: RUNTIME_USES_PATH_PREFIX });
-    const keys = page && Array.isArray(page.keys) ? page.keys : [];
-    for (const item of keys) {
-      const name = item && item.name ? item.name : "";
-      if (!name.startsWith(RUNTIME_USES_PATH_PREFIX)) continue;
-      const path = name.slice(RUNTIME_USES_PATH_PREFIX.length);
-      if (!path) continue;
-      byPath[path] = await readInt(kv, name);
-    }
-    cursor = page && page.list_complete ? undefined : page && page.cursor;
-  } while (cursor);
-  return byPath;
+  if (!kv) return {};
+  const packed = await readJson(kv, RUNTIME_USES_INDEX, null);
+  if (packed && packed.by_path && typeof packed.by_path === "object") return packed.by_path;
+  return {};
 }
 
 async function fetchOriginUses(env) {
