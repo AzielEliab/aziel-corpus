@@ -9,6 +9,7 @@ import {
   runtimeHowTo,
 } from "./runtime-copy.js";
 import { MESH_NOTE, QNS_CD_SPEC } from "./mesh.js";
+import { AZCOHERENCE, AZCLCE_NAME, AZCLCE_SLUG, AZCLCE_GITHUB, AZCLCE_WORKER_HOME, azcoherenceLlmsBlock } from "./azcoherence.js";
 
 const HOST = "https://www.azielcorpuslibrary.net";
 const CATALOG = "https://aziel-runtime.vibelock.workers.dev";
@@ -105,6 +106,7 @@ const PRODUCT_LINES = [
   ["How it's scored", HOST + "/how-its-scored", HOST + "/how-its-scored"],
   ["AzielTether lattice", HOST + "/v1/lattice", HOST + "/software"],
   ["ZionPattern Solver", HOST + "/how-its-scored", HOST + "/pattern"],
+  ["AZCoherence (azcoherence, AZC-0.1)", HOST + "/software", "https://azcoherence-download-tracker.vibelock.workers.dev/"],
 ];
 
 function isoDay(value, fallback) {
@@ -346,7 +348,7 @@ export function citeDoc() {
     aka: AKA,
     alternateName: AKA,
     identity: AUTHOR,
-    keywords: [AUTHOR, AKA, "Aziel Digital Library", "aziel-corpus", "aziel-runtime", "FragGate", "GodLock"],
+    keywords: [AUTHOR, AKA, "Aziel Digital Library", "aziel-corpus", "aziel-runtime", "FragGate", "GodLock", "AZCoherence", "azcoherence", "AZC-0.1", "AZ-CLCE"],
     title: "Aziel Digital Library",
     version: VERSION,
     doi: null,
@@ -428,9 +430,20 @@ export function citeDoc() {
     download_record: HOST + "/download?record=",
     download_hash: HOST + "/download?hash=",
     docs_download: HOST + "/v1/docs/{hash}/download",
-    triad: "TRIAD_V1 geometric mean of SPRE, CLCE, and PhysLing — primary visible score. See " + HOST + "/how-its-scored",
+    triad: "TRIAD_V1 geometric mean of SPRE, CLCE, and PhysLing — primary visible score. AZCoherence (azcoherence) is a second-pass scoring-review (peer AZ-CLCE; not AKM-TRIAD; not inside this mean). See " + HOST + "/how-its-scored",
     succession: "Exact-same-subject paper cites: Supersedes / Superseded by on the record page and GET /v1/review. Uncertain matches are not chained.",
     zsolver: "ZionPattern Solver secondary public score on every record. Separate from triad. 75 means intentional suppression confidence; lower is more natural. Hard 75 ceiling / 25 uncertainty floor. Provisional. Does not solve cases. A superseding document that proves a pattern break with first-hand / primary materials force-rescores the succession chain; narrative and second-source materials never trigger that rescore.",
+    azcoherence: AZCOHERENCE,
+    azcoherence_slug: AZCOHERENCE.slug,
+    azclce: {
+      slug: AZCLCE_SLUG,
+      name: AZCLCE_NAME,
+      peer: AZCOHERENCE.slug,
+      peer_name: AZCOHERENCE.name,
+      github: AZCLCE_GITHUB,
+      worker: AZCLCE_WORKER_HOME,
+      note: "AZ-CLCE detects R/D/P inconsistency. Peer AZCoherence reviews primary vs alternate → PASS/FLAG/NEUTRALIZE/REFUSE. Not AKM-TRIAD. FragGate only.",
+    },
     how_to_cite: "Eliab, Aziel. (2026). Aziel Digital Library v2.7.0 [Software]. Apache-2.0. " + HOST + "/",
   };
 }
@@ -480,7 +493,8 @@ export function llmsDoc(limitation) {
     + "- sameAs: " + GODLOCK_IDENTITY + " · " + GITHUB_AUTHOR + " · " + GITHUB_REPO + "\n"
     + "- Do not invent DOIs. Do not credit other identities.\n\n"
     + "## Software products (crawl these hubs)\n\n"
-    + "The Software hub mirrors the live runtime catalog. Cards grow with GET /v1/software (fallback fraggate/list). PeaceLock, AZMail, AZBrowser, and later slugs appear automatically. No hard-coded 27 cap. Door extras AZNet and FragGate (separate app Workers) and EmbryoLock are listed without dropping catalog engines.\n"
+    + "The Software hub mirrors the live runtime catalog. Cards grow with GET /v1/software (fallback fraggate/list). PeaceLock, AZMail, AZBrowser, and later slugs appear automatically. No hard-coded 27 cap. Door extras AZNet and FragGate (separate app Workers) and EmbryoLock are listed without dropping catalog engines. AZCoherence (azcoherence) is a Softwares extra / peer-map fallback (Plain, scoring-review) so cite surfaces stay mapped if the live catalog is thin. Not a second door.\n"
+    + azcoherenceLlmsBlock() + "\n"
     + productIndex() + "\n"
     + "- Same-origin live software: " + HOST + "/v1/software\n"
     + "- Same-origin catalog: " + HOST + "/runtime/v1/catalog.json\n"
@@ -647,6 +661,7 @@ export function aiTxt(limitation) {
     + "- Library: " + HOST + "/\n"
     + "- " + ABOUT_NAV_LABEL + ": " + HOST + ABOUT_PATH + "\n"
     + "- Software hub: " + HOST + "/software\n"
+    + "- AZCoherence (azcoherence, AZC-0.1): " + HOST + "/software · https://azcoherence-download-tracker.vibelock.workers.dev/ · " + HOST + "/runtime/v1/fraggate/describe?slug=azcoherence\n"
     + "- Live software catalog: " + HOST + "/v1/software\n"
     + "- Suite mesh / Live Nodes (default off): " + HOST + "/v1/mesh\n"
     + "- Runtime mesh: " + HOST + "/runtime/v1/mesh\n"
@@ -693,6 +708,7 @@ export function humansTxt() {
     "Software: " + HOST + "/software",
     "Donate: " + HOST + "/donate",
     "Software hub mirrors runtime /v1/software (fallback fraggate/list): " + HOST + "/v1/software",
+    "AZCoherence (azcoherence, AZC-0.1) Softwares Plain / scoring-review: " + HOST + "/software · https://azcoherence-download-tracker.vibelock.workers.dev/ · https://github.com/AzielEliab/AZCoherence",
     "Suite mesh (default off until runtime enable): " + HOST + "/v1/mesh",
     "Runtime mesh: " + HOST + "/runtime/v1/mesh",
     "Runtime: " + HOST + "/runtime",
