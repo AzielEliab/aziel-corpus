@@ -36,6 +36,22 @@ body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;lin
 .donate-strip{margin:0 0 22px;padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:var(--paper);color:var(--muted);font-size:14px}
 .donate-strip p{margin:0}
 .donate-strip a{font-weight:700}
+.donate-aziel{color:var(--royal);font-weight:700}
+.donate-door h1{color:var(--gold)}
+.donate-prose p{margin:0 0 14px}
+.donate-sign{color:var(--gold);font-weight:800;letter-spacing:-.01em}
+.donate-rails{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin:18px 0}
+.donate-rail{margin:0}
+.donate-rail h3{margin:0 0 10px;color:var(--gold)}
+.donate-ticker{margin:0 0 4px;color:var(--gold);font-size:12px;font-weight:750;letter-spacing:.04em}
+.donate-addr{display:block;word-break:break-all;font-size:13px;line-height:1.45;color:var(--ink);background:#16130f;padding:10px 12px;border-radius:10px;border:1px solid var(--line)}
+.donate-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.donate-actions .button,.donate-actions a.button{width:auto}
+.donate-qr{margin:0 0 10px;width:148px;max-width:100%;padding:8px;border:1px solid var(--line);border-radius:12px;background:#12100c}
+.donate-qr-mark,.donate-qr svg{display:block;width:100%;height:auto}
+.donate-qr .qrline{fill:none;stroke:var(--gold);stroke-width:1}
+.donate-extra,.donate-net{margin:8px 0 0;color:var(--muted);font-size:14px}
+.donate-meta p{margin:0 0 10px}
 .nav2 a,.quiet a{color:var(--gold);text-decoration:none;font-size:15px;padding:10px 11px;min-height:44px;display:inline-flex;align-items:center;border-radius:10px}
 .nav2 a:hover{background:#2a241c;color:var(--ink)}
 .nav2 .sep{color:#5a4e3e;padding:0 2px}
@@ -214,9 +230,9 @@ export function pwField(name = "password") {
   return `<div class="pw-row"><input id="${id}" name="${name}" type="password" required placeholder="password" autocomplete="current-password"><label class="showpw"><input type="checkbox" onclick="var e=document.getElementById('${id}');e.type=this.checked?'text':'password'"> Show password</label></div>`;
 }
 
-/** Static Donate strip on library chrome. No KV, D1, or invented wallets. RL-WP-0.1-library. */
+/** Static Donate strip on library chrome. No KV, D1, or addresses. AZL-DONATE-1.0 / RL-WP-0.1-library. */
 export function donateStripHtml() {
-  return `<aside class="donate-strip" aria-label="Donate"><p>Optional support for the library cycle cap. Static strip on this origin — no Worker KV. <a href="/donate">Donate</a>. Author Aziel Eliab.</p></aside>`;
+  return `<aside class="donate-strip" aria-label="Donate"><p>Nothing is free. Static Donate door on this origin — no Worker KV. <a href="/donate">Donate</a>. Author <span class="donate-aziel">Aziel Eliab</span>.</p></aside>`;
 }
 
 export function page(title, body, { signed, scripts, path, kind, description, work, runtimeVersion } = {}) {

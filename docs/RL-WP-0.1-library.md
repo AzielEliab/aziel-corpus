@@ -123,8 +123,8 @@ They lose the Worker paying ~191 KV ops per catalog request. They do **not** los
 Static island on `azielcorpuslibrary.net` only for this paper.
 
 - No KV. No D1. No Durable Objects.
-- Networks the operator already controls. Paste addresses at publish. This paper does not invent them.
-- Copy plus optional public-plane tx note.
+- Networks the operator already controls. Published door is **AZL-DONATE-1.0** (Exodus rails pasted at publish). This paper does not invent wallets.
+- Copy, open-in-wallet, optional payment-URI QR. Not a Software catalog item.
 - No legal name. No home. No case narrative.
 
 The strip / `/donate` tab funds the cycle cap. It does not replace Steps 1–4.

@@ -1,62 +1,119 @@
 /**
- * RL-WP-0.1 donation tab. Static island. Does not touch KV, D1, or Durable Objects.
- * Addresses are operator paste at publish — this module does not invent wallets.
+ * AZL-DONATE-1.0 — canonical Donate door on the library origin.
+ * Static island. Does not touch KV, D1, or Durable Objects.
+ * Library is a shelf. Donate is a door, not a catalog item.
+ * Rails are operator Exodus addresses pasted at publish.
+ * QR encodes the payment URI, not a website.
+ * Identity in chrome: Aziel Eliab. Door signature: — Aziel.
  * Author: Aziel Eliab only. No legal name. No home. No custody-case copy.
  */
 import { page } from "./ui.js";
 import { corsHeaders } from "./runtime.js";
+import { donateQrSvg } from "./donate-qr.js";
 
 export const DONATE_PATH = "/donate";
+export const DONATE_SPEC = "AZL-DONATE-1.0";
 export const AUTHOR = "Aziel Eliab";
+export const DONATE_SISTER = "https://www.azieleliab.com/donate";
 
-/** Operator pastes at publish. Empty strings stay unpublished. Do not invent addresses. */
+/** Published Exodus rails. Empty address stays unpublished. Do not invent wallets. */
 export const DONATE_NETWORKS = [
-  { id: "bitcoin", label: "Bitcoin", address: "" },
-  { id: "lightning", label: "Lightning", address: "" },
-  { id: "ethereum", label: "Ethereum", address: "" },
-  { id: "solana", label: "Solana", address: "" },
+  { id: "bitcoin", ticker: "BTC", label: "Bitcoin", scheme: "bitcoin", address: "bc1q8cg7hmgmu7x9yaja8j249np0vt84d4y8duugr7" },
+  { id: "ethereum", ticker: "ETH", label: "Ethereum", scheme: "ethereum", address: "0x29b386022e3968cf8dBFCE59569b49680184B23b" },
+  { id: "litecoin", ticker: "LTC", label: "Litecoin", scheme: "litecoin", address: "LWuqPjMCFtLHvoBaQL4m8QtnxbXSDftVNs" },
+  { id: "xrp", ticker: "XRP", label: "XRP", scheme: "xrp", address: "rLc3jZJbgEU1wBGwTFtgyq8bpayQE15K7b", note: "No destination tag required." },
+  { id: "dogecoin", ticker: "DOGE", label: "Dogecoin", scheme: "dogecoin", address: "DQ4go4iLPfNXDWim4KptTh3565sFCVrCyp" },
+  { id: "solana", ticker: "SOL", label: "Solana", scheme: "solana", address: "6BZNXxEvcZf1CgkWYojKoWUPCxCcNLbDKYRPfaN465gj" },
 ];
 
 function esc(s) {
   return String(s || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
 
+export function walletUri(network) {
+  if (!network) return "";
+  const addr = String(network.address || "").trim();
+  const scheme = String(network.scheme || network.id || "").trim();
+  if (!addr || !scheme) return "";
+  return scheme + ":" + addr;
+}
+
 export function publishedNetworks(networks = DONATE_NETWORKS) {
   return (networks || []).filter((n) => n && String(n.address || "").trim());
 }
 
+function railCard(n) {
+  const addr = String(n.address || "").trim();
+  const uri = walletUri(n);
+  const qr = donateQrSvg(uri);
+  const qrBox = qr
+    ? `<figure class="donate-qr" data-uri="${esc(uri)}"><div class="donate-qr-mark" role="img" aria-label="${esc(n.label)} payment URI">${qr}</div><figcaption class="sr-only">${esc(uri)}</figcaption></figure>`
+    : "";
+  const extra = n.note ? `<p class="donate-extra">${esc(n.note)}</p>` : "";
+  return (
+    `<article class="card donate-rail" data-network="${esc(n.id)}">` +
+    `<p class="donate-ticker">${esc(n.ticker || n.id)}</p>` +
+    `<h3>${esc(n.label)}</h3>` +
+    `<code class="donate-addr">${esc(addr)}</code>` +
+    `<p class="donate-actions">` +
+    `<button type="button" class="button" data-copy="${esc(addr)}">Copy</button>` +
+    `<a class="button ghost" href="${esc(uri)}">Open in wallet</a>` +
+    `</p>` +
+    qrBox +
+    extra +
+    `<p class="donate-net">Send only on this network.</p>` +
+    `</article>`
+  );
+}
+
 export function donateBody(networks = DONATE_NETWORKS) {
   const published = publishedNetworks(networks);
-  const cards = published.length
-    ? published
-        .map((n) => {
-          const addr = String(n.address || "").trim();
-          return (
-            `<div class="card"><h3>${esc(n.label)}</h3>` +
-            `<p><code class="donate-addr">${esc(addr)}</code></p>` +
-            `<p><button type="button" class="button ghost" data-copy="${esc(addr)}">Copy</button></p></div>`
-          );
-        })
-        .join("")
-    : `<div class="card"><p class="muted">Donation addresses are pasted by the operator at publish time. This page does not invent wallet addresses. Author Aziel Eliab.</p></div>`;
-  return `<section class="hero"><h1>Donate</h1>
-<p class="muted">Optional public-plane support for the library cycle cap. Static tab — no Worker KV, no D1, no Durable Objects. Receipt note is optional and stays on this page.</p>
-<p>Networks the operator already controls: Bitcoin, Lightning, Ethereum, Solana. Identity Aziel Eliab only.</p>
-</section>
-${cards}
-<div class="card">
-<h3>Optional receipt note</h3>
-<p class="muted">If a donor sends date, network, and tx hash, they can keep a one-line note here. It is not stored on this Worker.</p>
-<label class="facet-label" for="donate-note">Note</label>
-<textarea id="donate-note" maxlength="400" placeholder="date · network · tx hash (optional)"></textarea>
+  const rails = published.length
+    ? `<div class="donate-rails">${published.map(railCard).join("")}</div>`
+    : `<div class="card"><p class="muted">Donation addresses are pasted by the operator at publish time. This page does not invent wallet addresses. Author <span class="donate-aziel">Aziel Eliab</span>.</p></div>`;
+  return `<section class="hero donate-door">
+<p class="pill">${esc(DONATE_SPEC)}</p>
+<h1>Donate</h1>
+<div class="card donate-prose">
+<p>Nothing is free.</p>
+<p>This work has no corporate backer. No grant. No product that unlocks when you pay. Compute, hosting, and time have a cost. If a door stays open it is because the bill was paid.</p>
+<p>Donations keep the work in contact with what does not need a sponsor. They do not buy a vote, a feature, a name on a wall, or a quieter question.</p>
+<p>You do not owe this. If the work is useful, you already know what to do.</p>
+<p>Send only on the correct network. Double-check the address before you send. Wrong chain is a loss. There is no refund desk.</p>
+<p>The software remains free to run and fork. Payment is not a key.</p>
+<p class="donate-sign">— Aziel</p>
 </div>
-<p class="muted">Not a Node Gate. Not a VPN. Not untraceable-origin hosting. Author Aziel Eliab.</p>
+</section>
+${rails}
+<div class="card donate-meta">
+<p>Static door. No Worker KV. Not a catalog item. The library is a shelf. Identity <span class="donate-aziel">Aziel Eliab</span>.</p>
+<p class="muted">Same rails: <a href="${esc(DONATE_SISTER)}">azieleliab.com/donate</a>.</p>
+</div>
 <script>
 (function(){
   document.querySelectorAll("[data-copy]").forEach(function(btn){
     btn.addEventListener("click", function(){
       var t = btn.getAttribute("data-copy") || "";
-      if (navigator.clipboard && t) navigator.clipboard.writeText(t);
+      if (!t) return;
+      var done = function(){
+        var prev = btn.getAttribute("data-label") || btn.textContent;
+        if (!btn.getAttribute("data-label")) btn.setAttribute("data-label", prev);
+        btn.textContent = "Copied";
+        setTimeout(function(){ btn.textContent = btn.getAttribute("data-label") || "Copy"; }, 1600);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(t).then(done).catch(function(){
+          try {
+            var ta = document.createElement("textarea");
+            ta.value = t;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand("copy");
+            document.body.removeChild(ta);
+            done();
+          } catch (e) {}
+        });
+      }
     });
   });
 })();

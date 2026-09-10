@@ -160,7 +160,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   const llms = llmsDoc("LIMIT");
   assertPublicIdentity(llms);
   assert.match(llms, /Software hub: https:\/\/www\.azielcorpuslibrary\.net\/software/);
-  assert.match(llms, /Donate \(static, no KV\): https:\/\/www\.azielcorpuslibrary\.net\/donate/);
+  assert.match(llms, /Donate AZL-DONATE-1\.0 \(static, no KV\): https:\/\/www\.azielcorpuslibrary\.net\/donate/);
   assert.match(llms, /\/v1\/library-index/);
   assert.match(llms, /Software hub mirrors the live aziel-runtime catalog/);
   assert.match(llms, /\/v1\/software/);
