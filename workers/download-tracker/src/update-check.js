@@ -2,13 +2,13 @@
  * Library installer update check. Prefers live runtime /v1/update/check.
  * Author: Aziel Eliab only.
  */
-import { RUNTIME_ORIGIN } from "./runtime-copy.js";
+import { RUNTIME_ORIGIN, LIBRARY_DOWNLOAD } from "./runtime-copy.js";
 import { fetchRuntimeJson, CATALOG_JSON_PATH, SOFTWARE_LIVE_PATH } from "./software-catalog.js";
 
 export const LIBRARY_SLUG = "aziel-corpus";
 export const LIBRARY_VERSION = "2.7.0";
 export const LIBRARY_NAME = "Aziel Digital Library";
-export const LIBRARY_DOWNLOAD = "https://www.azielcorpuslibrary.net/download";
+export { LIBRARY_DOWNLOAD };
 export const LIBRARY_INSTALL = "https://www.azielcorpuslibrary.net/install.sh";
 export const RUNTIME_UPDATE_PATH = "/v1/update/check";
 
@@ -42,7 +42,11 @@ export function compareVersions(a, b) {
 
 function productFromCatalog(catalog, slug) {
   const want = String(slug || "").toLowerCase();
-  const products = catalog && Array.isArray(catalog.products) ? catalog.products : [];
+  const products = catalog && Array.isArray(catalog.products)
+    ? catalog.products
+    : catalog && Array.isArray(catalog.software)
+      ? catalog.software
+      : [];
   return products.find((p) => String((p && p.slug) || "").toLowerCase() === want) || null;
 }
 
@@ -96,7 +100,7 @@ export async function checkLibraryUpdate(env, { slug, version } = {}) {
   if (fromLive) return fromLive;
 
   const software = await fetchRuntimeJson(env, SOFTWARE_LIVE_PATH);
-  const catalog = software && Array.isArray(software.products)
+  const catalog = software && (Array.isArray(software.products) || Array.isArray(software.software))
     ? software
     : await fetchRuntimeJson(env, CATALOG_JSON_PATH);
   const product = productFromCatalog(catalog, wantSlug);
@@ -105,8 +109,8 @@ export async function checkLibraryUpdate(env, { slug, version } = {}) {
       slug: wantSlug,
       current,
       latest: firstText(product.version, product.package, current),
-      source: software && Array.isArray(software.products) ? "runtime:/v1/software" : "runtime:/v1/catalog.json",
-      download: firstText(product.download, LIBRARY_DOWNLOAD),
+      source: software && (Array.isArray(software.products) || Array.isArray(software.software)) ? "runtime:/v1/software" : "runtime:/v1/catalog.json",
+      download: firstText(product.download, product.download_url, LIBRARY_DOWNLOAD),
       install: firstText(product.install, LIBRARY_INSTALL),
       name: firstText(product.name, LIBRARY_NAME),
     });

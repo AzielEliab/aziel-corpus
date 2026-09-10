@@ -38,7 +38,7 @@ test("robots.txt allows research surfaces and major AI bots", () => {
   assert.doesNotMatch(txt, /Disallow: \/v1/);
   assert.match(txt, /Sitemap: https:\/\/www\.azielcorpuslibrary\.net\/sitemap\.xml/);
   assert.match(txt, /Sitemap: https:\/\/www\.azielcorpuslibrary\.net\/sitemap-index\.xml/);
-  for (const path of ["/v1/software", "/v1/update/check", "/mcp.json", "/.well-known/mcp.json", "/runtime/v1/software"]) {
+  for (const path of ["/v1/software", "/v1/download", "/v1/update/check", "/mcp.json", "/.well-known/mcp.json", "/runtime/v1/software"]) {
     assert.match(txt, new RegExp("Allow: " + path.replace("/", "\\/")));
   }
   for (const bot of [
@@ -122,7 +122,7 @@ test("sitemap.xml lists key routes and uses XML mime helper", async () => {
   };
   const xml = await sitemapXml(env);
   assert.match(xml, /<\?xml version="1.0"/);
-  for (const path of ["/", "/AzielEliab", "/software", "/donate", "/v1/software", "/v1/library-index", "/v1/update/check", "/sitemap-index.xml", "/mcp.json", "/.well-known/mcp.json", "/runtime", "/runtime/", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/software", "/runtime/v1/uses", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/intelligence", "/aziel-library", "/corpus", "/cite.json", "/llms.txt", "/ai.txt"]) {
+  for (const path of ["/", "/AzielEliab", "/software", "/donate", "/v1/software", "/v1/download", "/v1/library-index", "/v1/update/check", "/sitemap-index.xml", "/mcp.json", "/.well-known/mcp.json", "/runtime", "/runtime/", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/software", "/runtime/v1/uses", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/intelligence", "/aziel-library", "/corpus", "/cite.json", "/llms.txt", "/ai.txt"]) {
     assert.match(xml, new RegExp("<loc>https://www\\.azielcorpuslibrary\\.net" + path.replace("/", "\\/") + "</loc>"));
   }
   assert.doesNotMatch(xml, /azielcorpuslibrary\.net\/about</);
@@ -161,7 +161,9 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.ok(cite.sameAs.includes("https://github.com/AzielEliab/aziel-corpus"));
   assert.ok(cite.keywords.includes("GodLock"));
   assert.ok(cite.keywords.includes("FragGate"));
-  assert.match(cite.runtime_note, /1\.6\.2/);
+  assert.match(cite.runtime_note, /1\.9\.0/);
+  assert.match(cite.runtime_note, /not an API aggregator/);
+  assert.doesNotMatch(cite.runtime_note, /1\.6\.2 FragGate/);
   assert.match(cite.runtime_fraggate_list, /\/runtime\/v1\/fraggate\/list$/);
   assert.match(cite.software_live, /\/v1\/software$/);
   assert.match(cite.update_check, /\/v1\/update\/check$/);

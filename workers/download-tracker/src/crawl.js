@@ -105,7 +105,7 @@ export const AI_BOTS = [
 const PRODUCT_LINES = [
   ["Aziel Digital Library (aziel-corpus)", HOST + "/", GITHUB_REPO],
   ["Software hub", HOST + "/software", HOST + "/software"],
-  ["aziel-runtime " + RUNTIME_VERSION + " FragGate door", HOST + "/runtime", CATALOG + "/"],
+  ["Aziel Runtime " + RUNTIME_VERSION, HOST + "/runtime", CATALOG + "/"],
   ["Suite mesh / Live Nodes (default off)", HOST + "/v1/mesh", HOST + "/runtime/v1/mesh"],
   ["How it's scored", HOST + "/how-its-scored", HOST + "/how-its-scored"],
   ["AzielTether lattice", HOST + "/v1/lattice", HOST + "/software"],
@@ -176,6 +176,7 @@ export function robotsTxt() {
     "Allow: /humans.txt",
     "Allow: /openapi.json",
     "Allow: /v1/software",
+    "Allow: /v1/download",
     "Allow: /v1/library-index",
     "Allow: /v1/update/check",
     "Allow: /v1/mesh",
@@ -208,6 +209,7 @@ const STATIC_SITEMAP = [
   "/software",
   "/donate",
   "/v1/software",
+  "/v1/download",
   "/v1/library-index",
   "/v1/update/check",
   "/v1/mesh",
@@ -270,6 +272,7 @@ const SITEMAP_HINTS = {
   "/software": { changefreq: "weekly", priority: "0.9" },
   [ABOUT_PATH]: { changefreq: "monthly", priority: "0.9" },
   "/v1/software": { changefreq: "weekly", priority: "0.8" },
+  "/v1/download": { changefreq: "weekly", priority: "0.7" },
   "/runtime": { changefreq: "weekly", priority: "0.8" },
   "/cite.json": { changefreq: "weekly", priority: "0.7" },
   "/llms.txt": { changefreq: "weekly", priority: "0.7" },
@@ -522,7 +525,7 @@ export function llmsDoc(limitation) {
     + "Software hub mirrors the live aziel-runtime catalog per request (GET " + CATALOG + "/v1/software, fallback " + CATALOG + "/v1/fraggate/list; same-origin " + HOST + "/v1/software). No fixed product cap.\n"
     + "Runtime catalog: " + HOST + "/runtime\n"
     + "Runtime FragGate: " + HOST + "/runtime/v1/fraggate\n"
-    + "Runtime version: aziel-runtime " + RUNTIME_VERSION + " FragGate (" + RUNTIME_LIVE_COUNT + " live; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse)\n"
+    + "Runtime version: Aziel Runtime " + RUNTIME_VERSION + " (" + RUNTIME_LIVE_COUNT + " live; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse). Node-meshed MCP Softwares suite — not an API aggregator. FragGate is the single door.\n"
     + "How it's scored: " + HOST + "/how-its-scored\n"
     + "GitHub: " + GITHUB_REPO + "\n"
     + "Author GitHub: " + GITHUB_AUTHOR + "\n"
@@ -588,7 +591,8 @@ export function llmsDoc(limitation) {
     + "- Software: " + HOST + "/software\n"
     + "- How it's scored: " + HOST + "/how-its-scored\n"
     + "- Runtime root: " + HOST + "/runtime\n"
-    + "- Runtime health: " + HOST + "/runtime/v1/health  (aziel-runtime " + RUNTIME_VERSION + " FragGate; " + RUNTIME_LIVE_COUNT + " live; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse)\n"
+    + "- Runtime health: " + HOST + "/runtime/v1/health  (Aziel Runtime " + RUNTIME_VERSION + "; " + RUNTIME_LIVE_COUNT + " live; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse)\n"
+    + "- Softwares download: " + HOST + "/download  ·  " + HOST + "/v1/download\n"
     + "- Runtime uses (this door): " + HOST + "/runtime/v1/uses\n"
     + "- Suite mesh / Live Nodes (default off until runtime enable): " + HOST + "/v1/mesh\n"
     + "- Runtime mesh: " + HOST + "/runtime/v1/mesh\n"
@@ -714,6 +718,7 @@ export function aiTxt(limitation) {
     "Allow: /v1",
     "Allow: /v1/",
     "Allow: /v1/software",
+    "Allow: /v1/download",
     "Allow: /v1/library-index",
     "Allow: /v1/update/check",
     "Allow: /v1/mesh",
@@ -796,7 +801,8 @@ export function humansTxt() {
     "Suite mesh (default off until runtime enable): " + HOST + "/v1/mesh",
     "Runtime mesh: " + HOST + "/runtime/v1/mesh",
     "Runtime: " + HOST + "/runtime",
-    "Runtime version: aziel-runtime " + RUNTIME_VERSION + " FragGate",
+    "Runtime version: Aziel Runtime " + RUNTIME_VERSION,
+    "Softwares download: " + HOST + "/download · " + HOST + "/v1/download",
     "License: Apache-2.0",
     "",
   ].join("\n");
