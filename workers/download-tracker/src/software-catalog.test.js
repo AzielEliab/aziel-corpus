@@ -30,6 +30,23 @@ import {
 const HOST = "https://www.azielcorpuslibrary.net";
 const BANNED = /Collin Horton|GodLock\.AZ|\+25|quiet (Aziel|triad|boost)|10\.5281\/zenodo/i;
 
+function blockLiveRuntime(origFetch, extra) {
+  return async (url, init) => {
+    const href = String(url);
+    if (typeof extra === "function") {
+      const hit = await extra(href, url, init);
+      if (hit) return hit;
+    }
+    if (/aziel-runtime\.vibelock\.workers\.dev/i.test(href)) {
+      return new Response(JSON.stringify({ error: "blocked live runtime" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    return origFetch(url, init);
+  };
+}
+
 function stubEnv(runtime) {
   const stmt = {
     bind() { return this; },
@@ -294,12 +311,9 @@ test("softwareBody renders every card in Plain → Gate → Lock with live-catal
     siteViews: 12,
     siteDownloads: 5,
   });
-  assert.match(html, /mirrors the live aziel-runtime catalog/);
+  assert.match(html, /<h1>Downloadable software<\/h1>\s*<\/section>\s*<section class="soft-section"><h2>Software<\/h2>/);
   assert.match(html, /\/runtime\/v1\/software/);
-  assert.match(html, /fallback/);
   assert.match(html, /fraggate\/list/);
-  assert.match(html, /no fixed 27-product cap/i);
-  assert.match(html, /31 catalog products/);
   assert.match(html, /PeaceLock/);
   assert.match(html, /AZMail/);
   assert.match(html, /FragGate/);
@@ -307,12 +321,10 @@ test("softwareBody renders every card in Plain → Gate → Lock with live-catal
   assert.match(html, /EmbryoLock/);
   assert.match(html, /fraggate-download-tracker\.vibelock\.workers\.dev\/download/);
   assert.match(html, /aznet-download-tracker\.vibelock\.workers\.dev\/download/);
-  assert.match(html, /separate app Workers/);
-  assert.match(html, /Runtime 1\.6\.4 · FragGate/);
-  assert.match(html, /not nested AZBrowser UI/);
   assert.match(html, /<h2>Software<\/h2>/);
   assert.match(html, /<h2>Gate<\/h2>/);
   assert.match(html, /<h2>Lock<\/h2>/);
+  const idxH1 = html.indexOf("<h1>Downloadable software</h1>");
   const idxPlain = html.indexOf("<h2>Software</h2>");
   const idxGate = html.indexOf("<h2>Gate</h2>");
   const idxLock = html.indexOf("<h2>Lock</h2>");
@@ -321,10 +333,14 @@ test("softwareBody renders every card in Plain → Gate → Lock with live-catal
   const idxGateCard = html.indexOf('data-slug="decisiongate"');
   const idxPeace = html.indexOf('data-slug="peacelock"');
   const idxClock = html.indexOf('data-slug="staticclock"');
-  assert.ok(idxPlain < idxGate && idxGate < idxLock);
+  assert.ok(idxH1 < idxPlain && idxPlain < idxGate && idxGate < idxLock);
   assert.ok(idxAzmail < idxAznet && idxAznet < idxGateCard && idxClock < idxGateCard);
   assert.ok(idxGateCard < idxPeace);
-  assert.match(html, /library views 12/);
+  assert.doesNotMatch(html, /mirrors the live aziel-runtime catalog/);
+  assert.doesNotMatch(html, /no fixed 27-product cap/i);
+  assert.doesNotMatch(html, /31 catalog products/);
+  assert.doesNotMatch(html, /Runtime \d+\.\d+\.\d+ · FragGate/);
+  assert.doesNotMatch(html, /aziel-runtime \d+\.\d+\.\d+ FragGate/);
   assert.doesNotMatch(html, /Featured first/);
   assert.doesNotMatch(html, BANNED);
   const articleCount = (html.match(/<article class="soft-card/g) || []).length;
@@ -334,8 +350,7 @@ test("softwareBody renders every card in Plain → Gate → Lock with live-catal
 test("GET /software uses AZIEL_RUNTIME catalog binding and lists every product", async () => {
   const catalog = mockCatalog();
   const origFetch = globalThis.fetch;
-  globalThis.fetch = async (url, init) => {
-    const href = String(url);
+  globalThis.fetch = blockLiveRuntime(origFetch, (href) => {
     if (href === FRAGGATE_COUNT) {
       return new Response(JSON.stringify({ project: "fraggate", views: 2, downloads: 0, total: 0 }), {
         status: 200,
@@ -348,12 +363,12 @@ test("GET /software uses AZIEL_RUNTIME catalog binding and lists every product",
         headers: { "Content-Type": "application/json" },
       });
     }
-    return origFetch(url, init);
-  };
+    return null;
+  });
   const env = stubEnv({
     async fetch(request) {
       const url = new URL(request.url);
-      if (url.pathname.endsWith("/catalog.json")) {
+      if (url.pathname.endsWith("/software") || url.pathname.endsWith("/catalog.json")) {
         return new Response(JSON.stringify(catalog), { status: 200, headers: { "Content-Type": "application/json" } });
       }
       if (url.pathname.endsWith("/uses")) {
@@ -389,8 +404,10 @@ test("GET /software uses AZIEL_RUNTIME catalog binding and lists every product",
     assert.match(html, /Plain Product 24/);
     assert.match(html, /fraggate-download-tracker\.vibelock\.workers\.dev\/download/);
     assert.match(html, /aznet-download-tracker\.vibelock\.workers\.dev\/download/);
-    assert.match(html, /Runtime 1\.6\.4 · FragGate/);
-    assert.match(html, /aziel-runtime 1\.6\.4 FragGate/);
+    assert.match(html, /aziel-runtime/);
+    assert.doesNotMatch(html, /Runtime 1\.6\.4 · FragGate/);
+    assert.doesNotMatch(html, /aziel-runtime 1\.6\.4 FragGate/);
+    assert.doesNotMatch(html, /aziel-runtime \d+\.\d+\.\d+ FragGate/);
     assert.doesNotMatch(html, /aziel-runtime 1\.6\.2/);
     assert.doesNotMatch(html, /softwareVersion":"1\.6\.2"/);
     const ldMatch = html.match(/<script type="application\/ld\+json">([^<]+)<\/script>/);
@@ -398,20 +415,22 @@ test("GET /software uses AZIEL_RUNTIME catalog binding and lists every product",
     const ld = JSON.parse(ldMatch[1]);
     const runtimeApp = ld["@graph"].find((n) => n["@type"] === "SoftwareApplication" && n.name === "aziel-runtime");
     assert.equal(runtimeApp.softwareVersion, "1.6.4");
-    assert.match(runtimeApp.description, /1\.6\.4/);
+    assert.match(runtimeApp.description, /aziel-runtime/);
+    assert.doesNotMatch(runtimeApp.description, /aziel-runtime 1\.6\.4 FragGate/);
     assert.doesNotMatch(runtimeApp.description, /1\.6\.2/);
     assert.match(html, /\/runtime\/v1\/fraggate\/describe\?slug=peacelock/);
     assert.match(html, /\/runtime\/mcp/);
-    assert.match(html, /mirrors the live aziel-runtime catalog/);
+    assert.match(html, /<h1>Downloadable software<\/h1>\s*<\/section>\s*<section class="soft-section"><h2>Software<\/h2>/);
     assert.match(html, /\/runtime\/v1\/software/);
-    assert.match(res.headers.get("cache-control") || "", /no-store/);
+    assert.match(res.headers.get("cache-control") || "", /s-maxage=120|no-store/);
     assert.doesNotMatch(html, BANNED);
     const built = await loadSoftwareCatalog(env, { views: 99, downloads: 11 });
     assert.equal(built.catalogVersion, "1.6.4");
     assert.equal(built.hub.version, "1.6.4");
-    assert.match(built.hub.blurb, /aziel-runtime 1\.6\.4 FragGate/);
+    assert.match(built.hub.blurb, /aziel-runtime/);
+    assert.doesNotMatch(built.hub.blurb, /aziel-runtime 1\.6\.4 FragGate/);
     assert.doesNotMatch(built.hub.blurb, /1\.6\.2/);
-    assert.ok(built.hub.links.some((l) => l.primary && l.label === "Runtime 1.6.4 · FragGate"));
+    assert.ok(built.hub.links.some((l) => l.primary && l.label === "aziel-runtime"));
     assert.ok(built.downloadable > 27);
     assert.ok(built.products.some((p) => p.slug === "azmail"));
     assert.ok(built.products.some((p) => p.slug === "embryolock"));
@@ -474,8 +493,7 @@ test("AZNet and FragGate card Worker /count pills; AZBrowser stays separate soft
     },
   });
   const origFetch = globalThis.fetch;
-  globalThis.fetch = async (url, init) => {
-    const href = String(url);
+  globalThis.fetch = blockLiveRuntime(origFetch, (href) => {
     if (href === FRAGGATE_COUNT) {
       return new Response(JSON.stringify({ project: "fraggate", views: 8, downloads: 1, total: 1 }), {
         status: 200,
@@ -494,8 +512,8 @@ test("AZNet and FragGate card Worker /count pills; AZBrowser stays separate soft
         headers: { "Content-Type": "application/json" },
       });
     }
-    return origFetch(url, init);
-  };
+    return null;
+  });
   try {
     const built = await loadSoftwareCatalog(env, {});
     const fg = built.products.find((p) => p.slug === "fraggate");
@@ -529,7 +547,9 @@ test("AZNet and FragGate card Worker /count pills; AZBrowser stays separate soft
     assert.match(html, /3 views/);
     assert.match(html, /fraggate-download-tracker\.vibelock\.workers\.dev\/download/);
     assert.match(html, /aznet-download-tracker\.vibelock\.workers\.dev\/download/);
-    assert.match(html, /Runtime 1\.6\.6 · FragGate/);
+    assert.match(html, /aziel-runtime/);
+    assert.doesNotMatch(html, /Runtime 1\.6\.6 · FragGate/);
+    assert.doesNotMatch(html, /aziel-runtime 1\.6\.6 FragGate/);
     const idxAzb = html.indexOf('data-slug="azbrowser"');
     const idxAzn = html.indexOf('data-slug="aznet"');
     const idxFg = html.indexOf('data-slug="fraggate"');
@@ -542,7 +562,8 @@ test("AZNet and FragGate card Worker /count pills; AZBrowser stays separate soft
 test("loadSoftwareCatalog rewrites live catalog one_lines and adds Worker homepage", async () => {
   const origFetch = globalThis.fetch;
   globalThis.fetch = async (url) => {
-    if (String(url).includes("/v1/catalog.json")) {
+    const href = String(url);
+    if (href.includes("/v1/catalog.json") || href.includes("/v1/software")) {
       return {
         ok: true,
         json: async () => ({
@@ -655,6 +676,8 @@ test("normalizeSoftwareDoc accepts /v1/software and fraggate/list shapes", () =>
 });
 
 test("fetchLiveSoftwareCatalog prefers /v1/software then fraggate/list", async () => {
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = blockLiveRuntime(origFetch);
   const envSoftware = stubEnv({
     async fetch(request) {
       const url = new URL(request.url);
@@ -677,27 +700,31 @@ test("fetchLiveSoftwareCatalog prefers /v1/software then fraggate/list", async (
       return new Response("no", { status: 404 });
     },
   });
-  const live = await fetchLiveSoftwareCatalog(envSoftware);
-  assert.equal(live.source, "software");
-  assert.ok(live.catalog.products.some((p) => p.slug === "azbrowser" && /download/.test(p.download)));
+  try {
+    const live = await fetchLiveSoftwareCatalog(envSoftware);
+    assert.equal(live.source, "software");
+    assert.ok(live.catalog.products.some((p) => p.slug === "azbrowser" && /download/.test(p.download)));
 
-  const envList = stubEnv({
-    async fetch(request) {
-      const url = new URL(request.url);
-      if (url.pathname.endsWith("/fraggate/list")) {
-        return new Response(JSON.stringify({
-          ok: true,
-          entries: [
-            { slug: "peacelock", name: "PeaceLock", description: "Chosen silence." },
-            { slug: "aznet", name: "AZNet", description: "Separate software; functional-order pair with AZBrowser." },
-          ],
-        }), { status: 200, headers: { "Content-Type": "application/json" } });
-      }
-      return new Response(JSON.stringify({ error: "not found" }), { status: 404 });
-    },
-  });
-  const listed = await fetchLiveSoftwareCatalog(envList);
-  assert.equal(listed.source, "fraggate/list");
-  assert.ok(listed.catalog.products.some((p) => p.slug === "peacelock"));
-  assert.ok(listed.catalog.products.some((p) => p.slug === "aznet"));
+    const envList = stubEnv({
+      async fetch(request) {
+        const url = new URL(request.url);
+        if (url.pathname.endsWith("/fraggate/list")) {
+          return new Response(JSON.stringify({
+            ok: true,
+            entries: [
+              { slug: "peacelock", name: "PeaceLock", description: "Chosen silence." },
+              { slug: "aznet", name: "AZNet", description: "Separate software; functional-order pair with AZBrowser." },
+            ],
+          }), { status: 200, headers: { "Content-Type": "application/json" } });
+        }
+        return new Response(JSON.stringify({ error: "not found" }), { status: 404 });
+      },
+    });
+    const listed = await fetchLiveSoftwareCatalog(envList);
+    assert.equal(listed.source, "fraggate/list");
+    assert.ok(listed.catalog.products.some((p) => p.slug === "peacelock"));
+    assert.ok(listed.catalog.products.some((p) => p.slug === "aznet"));
+  } finally {
+    globalThis.fetch = origFetch;
+  }
 });
