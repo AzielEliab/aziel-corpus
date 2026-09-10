@@ -9,6 +9,9 @@ import {
   RUNTIME_LIVE_COUNT,
   RUNTIME_LOCAL_ONLY,
   RUNTIME_CHIP,
+  RUNTIME_ABSTRACT,
+  RUNTIME_TITLE,
+  RUNTIME_CHANGELOG,
   runtimeChip,
   softwareChip,
   AI_CLIENTS,
@@ -564,7 +567,7 @@ export function aboutBody() {
 <p>Carry the torch: I don’t own the flame. I keep it lit long enough for the next hands to find it. If the record is local, timed, and hashed, the work can outlive me. That is the point.</p>
 <p>Truth that cannot be corrected is just a private religion. So the work stays public, chained for review, not a pulpit. Later papers bury earlier ones as confidence hardens. I am not always right. That is not a confession. It is the method.</p>
 <p><strong>Aziel Library</strong> (royal purple) is the operator collection of Aziel Eliab’s own papers and software notes. <strong>Corpus</strong> is the public Lamb Lens shelf — anyone may browse; signed-in accounts file there. The two shelves share the same scoring and hash-chain rules; they are not the same collection.</p>
-<p>The software suite is listed on <a href="/software">Software</a>. The catalog/MCP door lives on <strong>this domain</strong> at <a href="/runtime">/runtime</a> — aziel-runtime ${RUNTIME_VERSION} FragGate (${RUNTIME_LIVE_COUNT} live advisory engines; ${RUNTIME_LOCAL_ONLY} local_only; stubs refuse). The workers.dev origin is an alternate/sameAs, not the first door. GodLock is one product Aziel Eliab built; the corresponding identity page is <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a>. How records are scored — triad SPRE × CLCE × PhysLing, and ZionPattern as a separate public reading — is on <a href="/how-its-scored">How it's scored</a>. Source: <a href="https://github.com/AzielEliab/aziel-corpus">github.com/AzielEliab/aziel-corpus</a>.</p>
+<p>The software suite is listed on <a href="/software">Software</a>. The catalog/MCP door lives on <strong>this domain</strong> at <a href="/runtime">/runtime</a> — Aziel Runtime, a node-meshed MCP Softwares suite for digital forensics and auditing (${RUNTIME_LIVE_COUNT} live advisory engines; ${RUNTIME_LOCAL_ONLY} local_only; stubs refuse). Not an API aggregator. The workers.dev origin is an alternate/sameAs, not the first door. GodLock is one product Aziel Eliab built; the corresponding identity page is <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a>. How records are scored — triad SPRE × CLCE × PhysLing, and ZionPattern as a separate public reading — is on <a href="/how-its-scored">How it's scored</a>. Source: <a href="https://github.com/AzielEliab/aziel-corpus">github.com/AzielEliab/aziel-corpus</a>.</p>
 <p>I am here for the record, not the applause. If not me, then who. If not now, the seal holds. I carry the torch by leaving receipts. When the work can stand without my name on it, I am done.</p>
 <p>I am temporary. The truth is not.</p>
 <p class="about-sign"><strong>— Aziel Eliab</strong></p>
@@ -606,9 +609,15 @@ export function howItsScoredBody() {
 }
 
 export function runtimeBody() {
-  return `<section class="hero"><h1>aziel-runtime — FragGate door ${esc(RUNTIME_VERSION)}</h1>
-<p class="muted"><strong>${esc(RUNTIME_VERSION)} FragGate.</strong> This domain hosts the catalog/MCP door. Prefer same-origin <code>/runtime/*</code>. One door — discover, route, refuse. <strong>${esc(String(RUNTIME_LIVE_COUNT))} live advisory engines</strong>; <strong>${esc(RUNTIME_LOCAL_ONLY)} local_only</strong>; stubs refuse. Discover with <code>fraggate_list</code>, execute with <code>fraggate_call</code>. Kernel: <a href="${esc(RUNTIME_KERNEL)}">github.com/AzielEliab/fraggate</a> (FG-0.1). Engine manifest: <code>/runtime/v1/runtime.json</code> (not library <code>/v1/runtime</code>). Author Aziel Eliab.</p>
-<p class="muted"><strong>THIS IS NOT</strong> a second software index. Downloadable product cards stay on <a href="/software">Software</a>. Scoring is explained on <a href="/how-its-scored">How it's scored</a>. HTTP <code>/p/{slug}/{op}</code> is a proxy and is not exec. Session tools are advanced/internal. Hosted AZAI is protocol mirror + Lamb check, not the blend. Suite mesh default off until runtime enable — <a href="/v1/mesh"><code>/v1/mesh</code></a> · <a href="/runtime/v1/mesh"><code>/runtime/v1/mesh</code></a>. This public HTTPS surface is not itself a mesh. No invented Zenodo DOIs. Author Aziel Eliab (aka Aziel Elroi Eliab; primary credit Aziel Eliab). GodLock is one catalog engine; identity at <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a>.</p></section>
+  const changelog = RUNTIME_CHANGELOG.map((line) => `<li>${esc(line)}</li>`).join("");
+  return `<section class="hero"><h1>${esc(RUNTIME_TITLE)}</h1>
+<p>${esc(RUNTIME_ABSTRACT)}</p>
+<p class="muted"><strong>THIS IS NOT</strong> an API aggregator or a second software index. Downloadable product cards stay on <a href="/software">Software</a>. Scoring is explained on <a href="/how-its-scored">How it's scored</a>. HTTP <code>/p/{slug}/{op}</code> is a proxy and is not exec. Session tools are advanced/internal. Hosted AZAI is protocol mirror + Lamb check, not the blend. Suite mesh default off until runtime enable — <a href="/v1/mesh"><code>/v1/mesh</code></a> · <a href="/runtime/v1/mesh"><code>/runtime/v1/mesh</code></a>. GET <code>/v1/mesh</code> never enables. This public HTTPS surface is not itself a mesh. No invented Zenodo DOIs. Author Aziel Eliab (aka Aziel Elroi Eliab; primary credit Aziel Eliab). GodLock is one catalog engine; identity at <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a>.</p></section>
+<div class="card">
+<h2>Version ${esc(RUNTIME_VERSION)}</h2>
+<p>Engine count must match live <a href="/runtime/v1/health"><code>/runtime/v1/health</code></a>: <strong>${esc(String(RUNTIME_LIVE_COUNT))} live advisory engines</strong>; <strong>${esc(RUNTIME_LOCAL_ONLY)} local_only</strong>; stubs refuse. Prefer same-origin <code>/runtime/*</code>. One door — discover, route, refuse. Kernel: <a href="${esc(RUNTIME_KERNEL)}">github.com/AzielEliab/fraggate</a> (FG-0.1). Engine manifest: <code>/runtime/v1/runtime.json</code> (not library <code>/v1/runtime</code>). Author Aziel Eliab.</p>
+<ul>${changelog}</ul>
+</div>
 <div class="card">
 <h2>FragGate how-to (prefer)</h2>
 <p>AIs and tools should call these Digital Library URLs first (send <code>User-Agent: Mozilla/5.0</code>):</p>
@@ -624,7 +633,7 @@ export function runtimeBody() {
 <div class="card">
 <h2>Same-origin pull (this domain)</h2>
 <ul>
-<li><a href="/runtime/v1/health"><code>/runtime/v1/health</code></a> — live health (version ${esc(RUNTIME_VERSION)}, door=fraggate, ${esc(String(RUNTIME_LIVE_COUNT))} live)</li>
+<li><a href="/runtime/v1/health"><code>/runtime/v1/health</code></a> — live health (version ${esc(RUNTIME_VERSION)}, door=fraggate, ${esc(String(RUNTIME_LIVE_COUNT))} live engines)</li>
 <li><a href="/runtime/v1/uses"><code>/runtime/v1/uses</code></a> — local API use log for this door (does not increment)</li>
 <li><a href="/runtime/v1/mesh"><code>/runtime/v1/mesh</code></a> · <a href="/v1/mesh"><code>/v1/mesh</code></a> — suite Live Nodes / mesh status (default off until runtime enable)</li>
 <li><a href="/runtime/v1/runtime.json"><code>/runtime/v1/runtime.json</code></a> — runtime manifest</li>
@@ -643,7 +652,7 @@ export function runtimeBody() {
 </div>
 <div class="card">
 <h2>Alternate origin (sameAs)</h2>
-<p>Same ${esc(RUNTIME_VERSION)} FragGate Worker without the <code>/runtime</code> prefix. Prefer the library URLs above; keep this origin as alternate/sameAs:</p>
+<p>Same Aziel Runtime ${esc(RUNTIME_VERSION)} Worker without the <code>/runtime</code> prefix. Prefer the library URLs above; keep this origin as alternate/sameAs:</p>
 <ul>
 <li><a href="${esc(RUNTIME_ORIGIN)}/">${esc(RUNTIME_ORIGIN)}/</a></li>
 <li><a href="${esc(RUNTIME_ORIGIN)}/v1/fraggate/list"><code>/v1/fraggate/list</code></a> · <a href="${esc(RUNTIME_ORIGIN)}/v1/health"><code>/v1/health</code></a> · <a href="${esc(RUNTIME_ORIGIN)}/openapi.json"><code>/openapi.json</code></a></li>
