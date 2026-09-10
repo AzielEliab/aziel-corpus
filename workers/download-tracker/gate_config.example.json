@@ -1,0 +1,5 @@
+{
+  "operator_header": "X-Aziel-Operator-Token",
+  "note": "Set OPERATOR_TOKEN (or GATE_TOKEN) as a Wrangler secret. Do not commit the token. No public IP allowlist.",
+  "author": "Aziel Eliab"
+}

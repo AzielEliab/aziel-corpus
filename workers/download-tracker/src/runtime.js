@@ -1,5 +1,6 @@
 /**
- * Aziel Digital Library hosted runtime. /v1 never touches DOWNLOADS KV.
+ * Aziel Digital Library hosted runtime. /v1 does not increment download counters.
+ * Packed library:index:v1 may be read (one get, never list) for health / failover.
  * Author: Aziel Eliab.
  */
 import { searchRecords, serveFileByHash, normalizeContentHash, dedupeShelfRows } from "./library.js";
@@ -13,6 +14,13 @@ import { RUNTIME_VERSION, RUNTIME_NOTE, runtimeHowTo, AI_CLIENTS } from "./runti
 import { checkLibraryUpdate, LIBRARY_SLUG, LIBRARY_VERSION } from "./update-check.js";
 import { fetchLiveSoftwareCatalog } from "./software-catalog.js";
 import { handleMeshApi } from "./mesh.js";
+import {
+  LIBRARY_INDEX_KEY,
+  PUBLIC_CACHE_CONTROL,
+  libraryHealthFields,
+  readPackedIndex,
+  searchPackedRecords,
+} from "./library-index.js";
 const PRODUCT = "aziel-corpus";
 const VERSION = "2.7.0";
 const SPEC = "aziel-digital-library-v2.7.0";
@@ -119,7 +127,7 @@ export function corsHeaders() {
   return {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Accept, MCP-Protocol-Version, mcp-session-id",
+    "Access-Control-Allow-Headers": "Content-Type, Accept, MCP-Protocol-Version, mcp-session-id, Authorization, X-Aziel-Operator-Token",
   };
 }
 
@@ -143,7 +151,9 @@ function openapi() {
     },
     servers: [{ url: HOST }, { url: FALLBACK_HOST }],
     paths: {
-      "/v1/health": { get: { summary: "Liveness. Does not increment downloads.", operationId: "health" } },
+      "/v1/health": { get: { summary: "Liveness + TUN-WP-0.1 standby/failover fields. Does not increment downloads. Does not KV.list().", operationId: "health" } },
+      "/v1/library-index": { get: { summary: "Packed library:index:v1 shelf cards (no PDF bodies). One KV get. Author Aziel Eliab.", operationId: "libraryIndex" } },
+      "/donate": { get: { summary: "Static donation tab. Does not touch KV.", operationId: "donate" } },
       "/v1/search": { get: { summary: "Search published records in both libraries.", operationId: "search", parameters: [{ name: "q", in: "query", schema: { type: "string" } }, { name: "lib", in: "query", schema: { type: "string", enum: ["all", "aziel", "corpus"] } }, { name: "sort", in: "query", schema: { type: "string", enum: ["newest", "oldest", "alpha", "title", "author", "domain"] } }, { name: "author", in: "query", schema: { type: "string" } }, { name: "domain", in: "query", schema: { type: "string" } }, { name: "subject", in: "query", schema: { type: "string" } }, { name: "keyword", in: "query", schema: { type: "string" } }] } },
       "/v1/example": { get: { summary: "Sample search payload.", operationId: "example" } },
       "/v1/skill": { get: { summary: "Skill markdown.", operationId: "skill" } },
@@ -275,9 +285,25 @@ export async function handleRuntimeApi(request, url, env) {
     if (!hash) return json({ error: "content hash required" }, 400);
     return serveFileByHash(env, hash);
   }
+  if (path === "/v1/library-index" && (request.method === "GET" || request.method === "HEAD")) {
+    const packed = await readPackedIndex(env);
+    const body = {
+      ok: true,
+      key: LIBRARY_INDEX_KEY,
+      ...packed,
+      limitation: LIMITATION,
+    };
+    const res = json(body);
+    res.headers.set("Cache-Control", PUBLIC_CACHE_CONTROL);
+    if (request.method === "HEAD") return new Response(null, { status: res.status, headers: res.headers });
+    return res;
+  }
   if (path === "/v1" || path === "/v1/health") {
-    if (request.method !== "GET") return json({ error: "GET only" }, 405);
-    return json({
+    if (request.method !== "GET" && request.method !== "HEAD") return json({ error: "GET only" }, 405);
+    let packed = null;
+    try { packed = await readPackedIndex(env); } catch { packed = null; }
+    const tun = libraryHealthFields(packed, env);
+    const res = json({
       ok: true,
       product: PRODUCT,
       name: "Aziel Digital Library",
@@ -291,6 +317,7 @@ export async function handleRuntimeApi(request, url, env) {
       catalog: CATALOG,
       runtime_root: HOST + "/runtime",
       protocol: PROTOCOL,
+      ...tun,
       review: {
         spre: "Source Provenance Reliability Engine (no guilt verdict)",
         clce: "AZ-CLCE Jaccard port + optional live /v1/score",
@@ -312,6 +339,9 @@ export async function handleRuntimeApi(request, url, env) {
         media_lattice: "Every OCR and transcript run appends a lattice receipt. Transcript success is LATTICE_TRANSCRIPT_VIBELOCK; blocked A/V is LATTICE_AV_BLOCKED (HTTP 451).",
       },
     });
+    res.headers.set("Cache-Control", "public, max-age=15");
+    if (request.method === "HEAD") return new Response(null, { status: res.status, headers: res.headers });
+    return res;
   }
   if (path === "/v1/skill" && request.method === "GET") {
     return new Response(SKILL, {
@@ -330,8 +360,16 @@ export async function handleRuntimeApi(request, url, env) {
     const domain = (url.searchParams.get("domain") || "").trim();
     const subject = (url.searchParams.get("subject") || "").trim();
     const keyword = (url.searchParams.get("keyword") || "").trim();
-    const rows = dedupeShelfRows(await searchRecords(env, { q, library: lib, sort, author, domain, subject, keyword, limit: 50 }));
-    return json({ ok: true, q, lib, sort, author, domain, subject, keyword, results: rows, bayesian_unranked: true, limitation: LIMITATION });
+    let rows = [];
+    if (env && env.DB) {
+      rows = dedupeShelfRows(await searchRecords(env, { q, library: lib, sort, author, domain, subject, keyword, limit: 50 }));
+    } else {
+      const packed = await readPackedIndex(env);
+      rows = searchPackedRecords(packed, { q, library: lib, sort, author, domain, subject, keyword, limit: 50 });
+    }
+    const res = json({ ok: true, q, lib, sort, author, domain, subject, keyword, results: rows, bayesian_unranked: true, packed_failover: !env || !env.DB, limitation: LIMITATION });
+    res.headers.set("Cache-Control", PUBLIC_CACHE_CONTROL);
+    return res;
   }
   if (path === "/v1/review" && request.method === "GET") {
     const recordId = (url.searchParams.get("record_id") || url.searchParams.get("id") || "").trim();

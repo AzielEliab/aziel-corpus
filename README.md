@@ -9,6 +9,8 @@ Live HTTPS surfaces for this library and the sister engines. Public identity is 
 - **Aziel Corpus Library (this site):** [https://www.azielcorpuslibrary.net/](https://www.azielcorpuslibrary.net/)
 - **Aziel Eliab:** [https://www.azielcorpuslibrary.net/AzielEliab](https://www.azielcorpuslibrary.net/AzielEliab)
 - **Software:** [https://www.azielcorpuslibrary.net/software](https://www.azielcorpuslibrary.net/software) — mirrors the live aziel-runtime catalog (`GET /runtime/v1/catalog.json`); no fixed product cap
+- **Donate:** [https://www.azielcorpuslibrary.net/donate](https://www.azielcorpuslibrary.net/donate) — static tab (RL-WP-0.1). Does not touch KV. Addresses are pasted at publish.
+- **Packed index / tunnel standby:** `GET /v1/library-index` and `GET /v1/health` (`role=standby`). Design notes: `docs/TUN-WP-0.1.md`, `docs/RL-WP-0.1.md`. Worker is standby catalog of truth; cloudflared may be primary later. Not a VPN.
 - **Runtime front door (this domain):** [https://www.azielcorpuslibrary.net/runtime](https://www.azielcorpuslibrary.net/runtime) — aziel-runtime 1.6.2 FragGate catalog/MCP door
 - **How it’s scored:** [https://www.azielcorpuslibrary.net/how-its-scored](https://www.azielcorpuslibrary.net/how-its-scored)
 - **GodLock.uk (sister engine):** [https://godlock.uk](https://godlock.uk) — Aziel Eliab tab [https://godlock.uk/AzielEliab](https://godlock.uk/AzielEliab)

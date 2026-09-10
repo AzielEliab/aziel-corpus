@@ -8,6 +8,9 @@ import { searchRecords, listFacets, parseBrowseParams, serveFile, serveFileByHas
 import { reviewAndStore, continueFullBackfill } from "./review-store.js";
 import { continueVerifyGeo } from "./geo.js";
 import { verifyBytes, sha256hex } from "./structure.js";
+import { collectStats, notePackedIncrement, patchPackedStats, refreshPackedIndex, tryTunnelFirst } from "./library-index.js";
+import { enforceRateLimit, rememberCatalog } from "./rate-limit.js";
+import { handleDonate, DONATE_PATH } from "./donate.js";
 
 /**
  * Aziel Digital Library v2.7.0 public MASTER (Cloudflare Worker).
@@ -17,7 +20,7 @@ import { verifyBytes, sha256hex } from "./structure.js";
  * GET  /install.sh  one-click install script
  *
  * KV binding DOWNLOADS. Isolated: Worker aziel-corpus-download-tracker, KV AZIEL_DIGITAL_LIBRARY_DOWNLOADS.
- * /v1 does not increment.
+ * Hot path reads packed library:index:v1 (no KV.list()). /v1 does not increment.
  * Author: Aziel Eliab.
  */
 
@@ -108,24 +111,23 @@ async function increment(env, dims) {
   await env.DOWNLOADS.put(key, String(n));
   const tot = parseInt((await env.DOWNLOADS.get(totalKey())) || "0", 10) + 1;
   await env.DOWNLOADS.put(totalKey(), String(tot));
+  try {
+    await notePackedIncrement(env, { downloads: tot, dims, count: n });
+  } catch {
+    /* packed index is standby; counters above still wrote */
+  }
   return tot;
 }
 
 async function incrementViews(env) {
   const n = parseInt((await env.DOWNLOADS.get(viewsKey())) || "0", 10) + 1;
   await env.DOWNLOADS.put(viewsKey(), String(n));
+  try {
+    await notePackedIncrement(env, { views: n });
+  } catch {
+    /* packed index is standby */
+  }
   return n;
-}
-
-async function listAllKeys(env) {
-  const keys = [];
-  let cursor;
-  do {
-    const page = await env.DOWNLOADS.list(cursor ? { cursor } : {});
-    keys.push(...page.keys);
-    cursor = page.list_complete ? undefined : page.cursor;
-  } while (cursor);
-  return keys;
 }
 
 async function githubStats(env) {
@@ -171,52 +173,13 @@ async function githubStats(env) {
   return out;
 }
 
-async function collectStats(env) {
-  const keys = await listAllKeys(env);
-  let summed = 0;
-  const by_repo = {};
-  const by_branch = {};
-  const by_fork = { "0": 0, "1": 0 };
-  const breakdown = [];
-
-  for (const k of keys) {
-    const name = k.name;
-    if (name === viewsKey() || name === totalKey() || name === githubCacheKey()) continue;
-    const n = parseInt((await env.DOWNLOADS.get(name)) || "0", 10);
-    if (!Number.isFinite(n) || n <= 0) continue;
-    const parts = name.split("|");
-    if (parts.length < 5) continue;
-    const [project, owner, repo, branch, fork] = parts;
-    summed += n;
-    const repoId = `${owner}/${repo}`;
-    by_repo[repoId] = (by_repo[repoId] || 0) + n;
-    by_branch[branch] = (by_branch[branch] || 0) + n;
-    const forkFlag = fork === "1" ? "1" : "0";
-    by_fork[forkFlag] = (by_fork[forkFlag] || 0) + n;
-    breakdown.push({ project, owner, repo, branch, fork: forkFlag, count: n });
+async function refreshGithubIntoIndex(env) {
+  try {
+    const github = await githubStats(env);
+    await patchPackedStats(env, { github });
+  } catch {
+    /* cron optional */
   }
-
-  const downloadsDirect = parseInt((await env.DOWNLOADS.get(totalKey())) || "0", 10);
-  const downloads = Number.isFinite(downloadsDirect) && downloadsDirect > 0 ? downloadsDirect : summed;
-  const views = parseInt((await env.DOWNLOADS.get(viewsKey())) || "0", 10) || 0;
-  const github = await githubStats(env);
-  return {
-    project: PROJECT,
-    views,
-    downloads,
-    total: downloads,
-    by_repo,
-    by_branch,
-    by_fork,
-    breakdown,
-    github: {
-      stars: github.stars || 0,
-      forks: github.forks || 0,
-      watchers: github.watchers || 0,
-      release_download_count: github.release_download_count || 0,
-    },
-    note: "Forks identified by GitHub owner/repo. Key layout: project|owner|repo|branch|fork. Views are separate from downloads. /v1 does not increment.",
-  };
 }
 
 function installScript() {
@@ -343,6 +306,13 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
+function withRateCookie(res, limited) {
+  if (!res || !limited || !limited.setCookie) return res;
+  const headers = new Headers(res.headers);
+  if (!headers.has("Set-Cookie")) headers.append("Set-Cookie", limited.setCookie);
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+}
+
 function workCardsHtml() { return ""; }
 
 async function indexHtml(env, request) {
@@ -385,6 +355,8 @@ ${LIMITATION}
 export default {
   async scheduled(event, env, ctx) {
     const walk = async () => {
+      await refreshPackedIndex(env).catch(() => null);
+      await refreshGithubIntoIndex(env).catch(() => null);
       await continueFullBackfill(env, { ms: 12000, all: false }).catch(() => null);
       await continueVerifyGeo(env, { ms: 12000, force: false }).catch(() => null);
     };
@@ -399,9 +371,25 @@ export default {
       })());
     }
     const url = new URL(request.url);
+    const earlyPath = url.pathname.replace(/\/+$/, "") || "/";
 
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeaders() });
+    }
+
+    if (earlyPath === DONATE_PATH && isReadMethod(request.method)) {
+      return handleDonate(request);
+    }
+
+    let signedEarly = null;
+    try { signedEarly = await getSession(env, request); } catch { signedEarly = null; }
+    const limited = await enforceRateLimit(request, env, { path: earlyPath, signed: signedEarly });
+    if (limited && limited.response) return limited.response;
+    const attachVid = (res) => withRateCookie(res, limited);
+
+    if (isReadMethod(request.method)) {
+      const tunneled = await tryTunnelFirst(request, env);
+      if (tunneled) return tunneled;
     }
 
     if (request.method === "PUT" || request.method === "PATCH" || request.method === "DELETE") {
@@ -413,20 +401,20 @@ export default {
     if (hostedPathEarly === "/runtime" || hostedPathEarly === "/v1/runtime.json" || url.pathname.startsWith("/runtime/")) {
       const signedRuntime = hostedPathEarly === "/runtime" ? await getSession(env, request) : null;
       const runtimeRoot = await handleRuntimeRoot(request, url, env, signedRuntime, ctx);
-      if (runtimeRoot) return runtimeRoot;
+      if (runtimeRoot) return attachVid(runtimeRoot);
     }
 
     const runtime = await handleRuntimeApi(request, url, env);
-    if (runtime) return runtime;
+    if (runtime) return attachVid(runtime);
 
     const authed = await handleAuth(request, url, env, ctx);
-    if (authed) return authed;
+    if (authed) return attachVid(authed);
 
     const fileMatch = url.pathname.match(/^\/file\/([^/]+)\/?$/);
     if (fileMatch && request.method === "GET") {
       const id = decodeURIComponent(fileMatch[1]);
-      if (normalizeContentHash(id)) return serveFileByHash(env, id);
-      return serveFile(env, id);
+      if (normalizeContentHash(id)) return attachVid(await serveFileByHash(env, id));
+      return attachVid(await serveFile(env, id));
     }
 
     if ((url.pathname === "/install.sh" || url.pathname === "/install.sh/") && request.method === "GET") {
@@ -445,7 +433,7 @@ export default {
         return crawlResponse(request, "", "text/html; charset=utf-8", corsHeaders());
       }
       await incrementViews(env);
-      return crawlResponse(request, await indexHtml(env, request), "text/html; charset=utf-8", corsHeaders());
+      return attachVid(crawlResponse(request, await indexHtml(env, request), "text/html; charset=utf-8", corsHeaders()));
     }
 
     const signed = await getSession(env, request);
@@ -453,7 +441,7 @@ export default {
     const hostedPath = url.pathname.replace(/\/+$/, "") || "/";
     if (hostedPath === "/health" || hostedPath === "/software") hostedStats = await collectStats(env);
     const hosted = await handleHosted(request, url, env, ctx, signed, hostedStats);
-    if (hosted) return hosted;
+    if (hosted) return attachVid(hosted);
 
     if (url.pathname === "/search" && request.method === "GET") {
       const q = url.searchParams.get("q") || "";
@@ -462,11 +450,17 @@ export default {
 
     if (url.pathname === "/count" && request.method === "GET") {
       const stats = await collectStats(env);
-      return json({ project: PROJECT, views: stats.views || 0, downloads: stats.downloads || 0, total: stats.total || 0 });
+      try { await rememberCatalog({ ok: true, source: "count", stats, author: "Aziel Eliab" }); } catch { /* cache */ }
+      const res = json({ project: PROJECT, views: stats.views || 0, downloads: stats.downloads || 0, total: stats.total || 0, kv_list_hot_path: false });
+      res.headers.set("Cache-Control", "public, s-maxage=300, stale-while-revalidate=3600");
+      return attachVid(res);
     }
 
     if (url.pathname === "/stats" && request.method === "GET") {
-      return json(await collectStats(env));
+      const stats = await collectStats(env);
+      const res = json(stats);
+      res.headers.set("Cache-Control", "public, s-maxage=300, stale-while-revalidate=3600");
+      return attachVid(res);
     }
 
     if (url.pathname === "/event" && request.method === "POST") {
