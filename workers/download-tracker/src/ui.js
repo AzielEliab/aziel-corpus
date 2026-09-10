@@ -40,15 +40,20 @@ body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;lin
 .donate-door h1{color:var(--gold)}
 .donate-prose p{margin:0 0 14px}
 .donate-sign{color:var(--gold);font-weight:800;letter-spacing:-.01em}
-.donate-rails{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin:18px 0}
+.donate-rails{display:grid;grid-template-columns:1fr;gap:14px;margin:18px 0}
 .donate-rail{margin:0}
 .donate-rail h3{margin:0 0 10px;color:var(--gold)}
 .donate-ticker{margin:0 0 4px;color:var(--gold);font-size:12px;font-weight:750;letter-spacing:.04em}
-.donate-addr{display:block;word-break:break-all;font-size:13px;line-height:1.45;color:var(--ink);background:#16130f;padding:10px 12px;border-radius:10px;border:1px solid var(--line)}
+.donate-pair{display:flex;flex-wrap:nowrap;gap:14px;align-items:flex-start;margin:0 0 4px}
+.donate-addr{display:block;flex:1 1 auto;min-width:0;word-break:break-all;font-size:13px;line-height:1.45;color:var(--ink);background:#16130f;padding:10px 12px;border-radius:10px;border:1px solid var(--line)}
 .donate-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
 .donate-actions .button,.donate-actions a.button{width:auto}
-.donate-qr{margin:0 0 10px;width:180px;max-width:100%;padding:10px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.donate-qr{margin:0;flex:0 0 180px;width:180px;max-width:100%;padding:10px;border:1px solid var(--line);border-radius:12px;background:#fff}
 .donate-qr img{display:block;width:180px;max-width:100%;height:auto;background:#fff}
+@media (max-width:720px){
+  .donate-pair{flex-wrap:wrap}
+  .donate-qr{flex:0 0 auto}
+}
 .donate-extra,.donate-net{margin:8px 0 0;color:var(--muted);font-size:14px}
 .donate-meta p{margin:0 0 10px}
 .nav2 a,.quiet a{color:var(--gold);text-decoration:none;font-size:15px;padding:10px 11px;min-height:44px;display:inline-flex;align-items:center;border-radius:10px}

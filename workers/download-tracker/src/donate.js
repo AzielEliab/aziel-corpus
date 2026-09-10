@@ -55,12 +55,14 @@ function railCard(n) {
     `<article class="card donate-rail" data-network="${esc(n.id)}">` +
     `<p class="donate-ticker">${esc(n.ticker || n.id)}</p>` +
     `<h3>${esc(n.label)}</h3>` +
+    `<div class="donate-pair">` +
     `<code class="donate-addr">${esc(addr)}</code>` +
+    qrBox +
+    `</div>` +
     `<p class="donate-actions">` +
     `<button type="button" class="button" data-copy="${esc(addr)}">Copy</button>` +
     `<a class="button ghost" href="${esc(uri)}">Open in wallet</a>` +
     `</p>` +
-    qrBox +
     extra +
     `<p class="donate-net">Send only on this network.</p>` +
     `</article>`
