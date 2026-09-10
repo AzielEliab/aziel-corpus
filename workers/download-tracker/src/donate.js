@@ -21,7 +21,8 @@ export const DONATE_NETWORKS = [
   { id: "bitcoin", ticker: "BTC", label: "Bitcoin", scheme: "bitcoin", address: "bc1q8cg7hmgmu7x9yaja8j249np0vt84d4y8duugr7" },
   { id: "ethereum", ticker: "ETH", label: "Ethereum", scheme: "ethereum", address: "0x29b386022e3968cf8dBFCE59569b49680184B23b" },
   { id: "litecoin", ticker: "LTC", label: "Litecoin", scheme: "litecoin", address: "LWuqPjMCFtLHvoBaQL4m8QtnxbXSDftVNs" },
-  { id: "xrp", ticker: "XRP", label: "XRP", scheme: "xrp", address: "rLc3jZJbgEU1wBGwTFtgyq8bpayQE15K7b", note: "No destination tag required." },
+  { id: "xrp",
+    schemeAlt: "ripple", ticker: "XRP", label: "XRP", scheme: "xrp", address: "rLc3jZJbgEU1wBGwTFtgyq8bpayQE15K7b", note: "No destination tag required." },
   { id: "dogecoin", ticker: "DOGE", label: "Dogecoin", scheme: "dogecoin", address: "DQ4go4iLPfNXDWim4KptTh3565sFCVrCyp" },
   { id: "solana", ticker: "SOL", label: "Solana", scheme: "solana", address: "6BZNXxEvcZf1CgkWYojKoWUPCxCcNLbDKYRPfaN465gj" },
   { id: "tron", ticker: "TRX", label: "TRON", scheme: "tron", address: "TJXb1YhZ9pAYsEW6UKUAzxFUzH6Tzcacyy" },
@@ -61,7 +62,7 @@ function railCard(n) {
     `</div>` +
     `<p class="donate-actions">` +
     `<button type="button" class="button" data-copy="${esc(addr)}">Copy</button>` +
-    `<a class="button ghost" href="${esc(uri)}">Open in wallet</a>` +
+    `<a class="button ghost" href="${esc(uri)}" data-open-wallet data-wallet-uri="${esc(uri)}" data-copy-addr="${esc(addr)}" rel="noopener noreferrer">Open in wallet</a>` +
     `</p>` +
     extra +
     `<p class="donate-net">Send only on this network.</p>` +
@@ -88,6 +89,7 @@ export function donateBody(networks = DONATE_NETWORKS) {
 </div>
 </section>
 ${rails}
+<p class="wallet-hint">Open in wallet uses the standard payment URI your OS routes to an installed wallet (Exodus, MetaMask, Trust, Phantom, Coinbase, and peers). If Safari says the link is invalid, scan the QR inside your wallet — that path works for every wallet.</p>
 <div class="card donate-meta">
 <p>Static door. No Worker KV. Not a catalog item. The library is a shelf. Identity <span class="donate-aziel">Aziel Eliab</span>.</p>
 <p class="muted">Same rails: <a href="${esc(DONATE_SISTER)}">azieleliab.com/donate</a>.</p>
@@ -119,6 +121,65 @@ ${rails}
       }
     });
   });
+})();
+(function(){
+  function copyText(t, done){
+    if(!t){ if(done)done(); return; }
+    var ok=function(){ if(done)done(); };
+    var fail=function(){
+      try{
+        var ta=document.createElement("textarea");
+        ta.value=t; ta.setAttribute("readonly","");
+        ta.style.position="fixed"; ta.style.left="-9999px";
+        document.body.appendChild(ta); ta.select();
+        document.execCommand("copy"); document.body.removeChild(ta); ok();
+      }catch(e){}
+    };
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(t).then(ok).catch(fail);
+    } else fail();
+  }
+  function flash(el, msg){
+    var prev=el.getAttribute("data-label")||el.textContent;
+    if(!el.getAttribute("data-label")) el.setAttribute("data-label", prev);
+    el.textContent=msg;
+    setTimeout(function(){ el.textContent=el.getAttribute("data-label")||prev; }, 2400);
+  }
+  /* Safari (iOS + desktop) often has no handler for coin schemes → "link not valid". */
+  function safariLike(){
+    var ua=navigator.userAgent||"";
+    var iOS=/iPhone|iPad|iPod/.test(ua)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+    var safari=/Safari/.test(ua)&&!/Chrome|Chromium|CriOS|FxiOS|EdgiOS|Edg\/|OPR\/|Android/.test(ua);
+    return iOS||safari;
+  }
+  document.addEventListener("click", function(e){
+    var a=e.target.closest("[data-open-wallet]");
+    if(!a) return;
+    var uri=a.getAttribute("data-wallet-uri")||a.getAttribute("href")||"";
+    var addr=a.getAttribute("data-copy-addr")||"";
+    /* Seed clipboard with bare address — every wallet Send accepts paste. */
+    copyText(addr);
+    if(safariLike()){
+      e.preventDefault();
+      flash(a, "Address copied — scan QR in your wallet");
+      return;
+    }
+    /* Optional alt scheme (e.g. ripple: alongside xrp:). */
+    var alt=a.getAttribute("data-wallet-uri-alt")||"";
+    if(alt && alt!==uri){
+      try{
+        var fr=document.createElement("iframe");
+        fr.style.display="none";
+        fr.src=alt;
+        document.body.appendChild(fr);
+        setTimeout(function(){ try{document.body.removeChild(fr);}catch(e){} }, 1500);
+      }catch(e){}
+    }
+    /* Chrome/Firefox/Android: href navigates so Trust/MetaMask/Exodus/Phantom/Coinbase/etc. can claim it. */
+    setTimeout(function(){
+      if(!document.hidden) flash(a, "Scan QR if wallet did not open");
+    }, 1600);
+  }, true);
 })();
 </script>`;
 }
