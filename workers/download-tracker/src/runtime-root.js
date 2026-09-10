@@ -27,7 +27,7 @@ import {
   runtimeUsesPayload,
   runtimeUsesResponse,
 } from "./runtime-uses.js";
-import { meshOffDoc, proxyMeshRequest } from "./mesh.js";
+import { MESH_NOTE, QNS_CD_SPEC, meshOffDoc, proxyMeshRequest } from "./mesh.js";
 
 export {
   HOST,
@@ -77,7 +77,7 @@ ${runtimeHowTo(HOST)}
 - Pull: \`GET ${HOST}/runtime/v1/pull/{slug}\`
 - Bundle: \`GET ${HOST}/runtime/v1/bundle/{slug}\`
 - Catalog: \`GET ${HOST}/runtime/v1/catalog.json\`
-- Suite mesh (default off until runtime enable): \`GET ${HOST}/runtime/v1/mesh\` · \`GET ${HOST}/v1/mesh\`
+- Suite mesh (default off until runtime enable): \`GET ${HOST}/runtime/v1/mesh\` · \`GET ${HOST}/v1/mesh\` — QNS-CD-1.0 photon QNS1 cross-map (hub cite; local qnsd in qnm-node; no public proxy)
 - OpenAPI: \`GET ${HOST}/runtime/openapi.json\`
 - MCP: \`POST ${HOST}/runtime/mcp\`
 - Runtime llms.txt: ${HOST}/runtime/llms.txt
@@ -163,7 +163,8 @@ export function runtimeManifest(via = "library") {
     mesh: HOST + "/runtime/v1/mesh",
     mesh_library: HOST + "/v1/mesh",
     mesh_origin: RUNTIME_ORIGIN + "/v1/mesh",
-    mesh_note: "Suite node mesh. Default off until runtime enable. Author Aziel Eliab.",
+    mesh_note: MESH_NOTE,
+    qns_cd_spec: QNS_CD_SPEC,
     llms: HOST + "/runtime/llms.txt",
     library_llms: HOST + "/llms.txt",
     cite: HOST + "/runtime/cite.json",
