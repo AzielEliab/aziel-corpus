@@ -10,10 +10,13 @@ export const LIBRARY_INDEX_KEY = "library:index:v1";
 export const KV_CACHE_TTL = 3600;
 export const MAX_HOT_KV_OPS = 8;
 export const PUBLIC_CACHE_CONTROL = "public, s-maxage=300, stale-while-revalidate=3600";
-/** RL-WP-0.1-library: search responses use a shorter shared-cache TTL than other public JSON. */
+/** RL-WP-0.1-library: search / public HTML share this TTL so crawlers and humans hit one cache. */
 export const SEARCH_CACHE_CONTROL = "public, s-maxage=120, stale-while-revalidate=3600";
+export const HTML_CACHE_CONTROL = SEARCH_CACHE_CONTROL;
+export const SEO_CACHE_CONTROL = "public, s-maxage=3600, stale-while-revalidate=86400";
 export const AUTHOR = "Aziel Eliab";
 export const INDEX_CACHE_URL = "https://azielcorpuslibrary.net/__cache/library-index-v1";
+export const HTML_CACHE_PREFIX = "https://azielcorpuslibrary.net/__cache/html";
 
 const PROJECT = "aziel-corpus";
 
@@ -120,6 +123,47 @@ export async function cacheMatchJson(url, cache) {
     return await hit.json();
   } catch {
     return null;
+  }
+}
+
+export function htmlCacheUrl(request) {
+  try {
+    const u = new URL(request && request.url ? request.url : String(request || "/"));
+    return HTML_CACHE_PREFIX + u.pathname + u.search;
+  } catch {
+    return HTML_CACHE_PREFIX + "/";
+  }
+}
+
+export async function cacheMatchText(url, cache) {
+  const store = cache || (await defaultCache());
+  if (!store || typeof store.match !== "function") return null;
+  try {
+    const hit = await store.match(new Request(url, { method: "GET" }));
+    if (!hit) return null;
+    return await hit.text();
+  } catch {
+    return null;
+  }
+}
+
+export async function cachePutText(url, body, cache, { cacheControl = HTML_CACHE_CONTROL, contentType = "text/html; charset=utf-8" } = {}) {
+  const store = cache || (await defaultCache());
+  if (!store || typeof store.put !== "function") return false;
+  try {
+    await store.put(
+      new Request(url, { method: "GET" }),
+      new Response(String(body || ""), {
+        status: 200,
+        headers: {
+          "Content-Type": contentType,
+          "Cache-Control": cacheControl,
+        },
+      })
+    );
+    return true;
+  } catch {
+    return false;
   }
 }
 

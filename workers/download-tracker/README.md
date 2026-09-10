@@ -18,7 +18,7 @@ Custom domains: www.azielcorpuslibrary.net and azielcorpuslibrary.net
 - GET /v1/library-index: packed shelf cards (`library:index:v1`). One KV get + Cache-Control. No PDF bodies.
 - GET /v1/search: filters packed `library:index:v1` in memory (one KV get). AZDOC cards: id, title, shelf, content_sha256, chain_tip. ChainLock library-sync client. `Cache-Control: public, s-maxage=120, stale-while-revalidate=3600`.
 - GET /v1/health: standby / tunnel-primary failover fields (`role=standby`, `index_sha256`). See `docs/TUN-WP-0.1.md` and `docs/RL-WP-0.1-library.md`.
-- Public read paths: library-scope visitor bucket — 30 search/min, 120 record views/hour, 800/day (operator token uncapped). Soft 429 returns the last cached search page. Not a Node Gate. Not a VPN. Not runtime-scope 60/600/5000.
+- Public read paths: uncapped for normal humans and SEO crawlers. Cost cut is packed `library:index:v1` + Cache-Control (no `KV.list()`). Soft 429 only on extreme write/walk API fan-out. Operator token uncapped. Not a Node Gate. Not a VPN.
 - GET/HEAD /runtime: aziel-runtime 1.6.2 FragGate door (not a second software index). 26 live advisory engines; VeilLock local_only; stubs refuse. Prefer /runtime/*.
 - GET/HEAD /runtime/*: same-origin proxy to aziel-runtime (service binding AZIEL_RUNTIME, else workers.dev alternate). Fallbacks for /v1/skill, /v1/runtime.json, /v1/pull/{slug}
 - GET /runtime/v1/health: proxied origin health (version 1.6.2, door=fraggate)

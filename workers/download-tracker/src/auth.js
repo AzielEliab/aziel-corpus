@@ -4,7 +4,7 @@ import { page, pwField, azielLibraryBody, corpusBody } from "./ui.js";
 import { isOperator, ingestRecord, searchRecords, listFacets, parseBrowseParams, asFile } from "./library.js";
 import { extractEventsForRecord } from "./geo.js";
 import { ocrIngestHint } from "./ocr.js";
-import { refreshPackedIndex } from "./library-index.js";
+import { refreshPackedIndex, HTML_CACHE_CONTROL } from "./library-index.js";
 
 
 function formMeta(form) {
@@ -50,6 +50,9 @@ function verifyMaster(password, rec) {
 }
 function html(pageBody, { status = 200, signed, extraHeaders, head } = {}) {
   const headers = { "Content-Type": "text/html; charset=utf-8", ...corsHeaders(), ...(extraHeaders || {}) };
+  if (!headers["Cache-Control"]) {
+    headers["Cache-Control"] = signed ? "private, no-store" : HTML_CACHE_CONTROL;
+  }
   if (head) return new Response(null, { status, headers });
   return new Response(pageBody, { status, headers });
 }

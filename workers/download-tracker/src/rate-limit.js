@@ -1,12 +1,13 @@
 /**
- * RL-WP-0.1-library visitor rate buckets on azielcorpuslibrary.net only.
- * Identify visitor as SHA-256(CF-Connecting-IP). Cookie cannot evade.
- * 30 search/min, 120 record views/hour, 800 library requests/day.
- * Operator token / signed operator skips the bucket. No public IP allowlist UI.
- * Soft exceed: HTTP 429 + last cached search page. Author: Aziel Eliab only.
+ * RL-WP-0.1-library cost gate — not a human or SEO throttle.
+ * Packed index + cache cut KV. Soft bucket only on expensive API fan-out.
+ * Never 403/429 Googlebot, GPTBot, bingbot, Claude, or the AI Allow list.
+ * Humans keep full HTML / search / cards. Operator token uncapped.
+ * Author: Aziel Eliab only.
  */
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { isOperator } from "./library.js";
+import { AI_BOTS } from "./crawl.js";
 import {
   PUBLIC_CACHE_CONTROL,
   cacheMatchJson,
@@ -29,11 +30,10 @@ export const OPERATOR_HEADER = "X-Aziel-Operator-Token";
 export const CATALOG_CACHE_URL = "https://azielcorpuslibrary.net/__cache/last-catalog";
 export const BUCKET_CACHE_PREFIX = "https://azielcorpuslibrary.net/__cache/rl/";
 
-/** RL-WP-0.1-library buckets. Do not copy runtime-scope 60/600/5000 here. */
+/** Extreme-abuse cap on write/walk APIs only. Browse, search, and cards are never bucketed. */
 export const LIMITS = {
-  day: 800,
-  search_per_minute: 30,
-  record_per_hour: 120,
+  fanout_per_minute: 200,
+  fanout_per_hour: 2000,
 };
 
 export const RETRY_AFTER = 30;
@@ -90,10 +90,7 @@ export function connectingIp(request) {
 
 export function visitorIdFrom(request, cookieVid) {
   const ip = connectingIp(request) || "unknown";
-  const cookie = cookieVid || readVisitorCookie(request) || "";
-  // IP is the stable cap so minting or dropping aziel_vid cannot evade the bucket.
-  // Cookie is mixed in only as a suffix after a delimiter that still includes IP.
-  void cookie;
+  void cookieVid;
   return sha256hex("ip|" + ip);
 }
 
@@ -117,7 +114,22 @@ export function isOperatorRequest(request, env, signed) {
   return safeEq(token, expected);
 }
 
-const EXEMPT_PATHS = new Set([
+export function userAgentOf(request) {
+  if (!request || !request.headers) return "";
+  return String(request.headers.get("User-Agent") || "");
+}
+
+export function isSeoBot(requestOrUa) {
+  const ua = typeof requestOrUa === "string" ? requestOrUa : userAgentOf(requestOrUa);
+  if (!ua) return false;
+  const lower = ua.toLowerCase();
+  for (const bot of AI_BOTS) {
+    if (bot && lower.includes(String(bot).toLowerCase())) return true;
+  }
+  return false;
+}
+
+const SEO_PATHS = new Set([
   "/donate",
   "/robots.txt",
   "/sitemap.xml",
@@ -130,25 +142,32 @@ const EXEMPT_PATHS = new Set([
   "/v1/health",
   "/health",
   "/favicon.ico",
+  "/openapi.json",
 ]);
 
 export function isRateExemptPath(pathname) {
   const path = String(pathname || "").replace(/\/+$/, "") || "/";
-  if (EXEMPT_PATHS.has(path)) return true;
+  if (SEO_PATHS.has(path)) return true;
   if (path.startsWith("/assets/")) return true;
   if (path.startsWith("/spectral-samples/")) return true;
+  return !isFanoutPath(path, "GET");
+}
+
+export function isFanoutPath(pathname, method = "GET") {
+  const path = String(pathname || "").replace(/\/+$/, "") || "/";
+  const verb = String(method || "GET").toUpperCase();
+  if (path === "/event" && verb === "POST") return true;
+  if (path === "/v1/verify-backfill" || path === "/v1/verify-geo") return true;
+  if (path === "/v1/score" && verb === "POST") return true;
+  if (path.startsWith("/v1/jeeves/") && verb === "POST") return true;
+  if ((path === "/ocr" || path === "/transcribe") && verb === "POST") return true;
+  if (path.startsWith("/runtime/v1/session") && verb === "POST") return true;
+  if (path.startsWith("/v1/session") && verb === "POST") return true;
   return false;
 }
 
 export function pathClass(pathname) {
-  const path = String(pathname || "").replace(/\/+$/, "") || "/";
-  if (path === "/" || path === "/v1/search" || path === "/search" || path === "/aziel-library" || path === "/corpus") {
-    return "search";
-  }
-  if (path.startsWith("/record/") || path.startsWith("/file/") || path.startsWith("/download")) {
-    return "record";
-  }
-  return "read";
+  return isFanoutPath(pathname, "POST") || isFanoutPath(pathname, "GET") ? "fanout" : "content";
 }
 
 function windowStart(nowMs, sizeMs) {
@@ -157,11 +176,8 @@ function windowStart(nowMs, sizeMs) {
 
 export function emptyWindows(nowMs = Date.now()) {
   return {
-    minute: { start: windowStart(nowMs, 60 * 1000), n: 0 },
-    hour: { start: windowStart(nowMs, 60 * 60 * 1000), n: 0 },
-    day: { start: windowStart(nowMs, 24 * 60 * 60 * 1000), n: 0 },
-    search_minute: { start: windowStart(nowMs, 60 * 1000), n: 0 },
-    record_hour: { start: windowStart(nowMs, 60 * 60 * 1000), n: 0 },
+    fanout_minute: { start: windowStart(nowMs, 60 * 1000), n: 0 },
+    fanout_hour: { start: windowStart(nowMs, 60 * 60 * 1000), n: 0 },
   };
 }
 
@@ -171,30 +187,23 @@ function roll(win, nowMs, sizeMs) {
   return { start: win.start, n: Number(win.n) || 0 };
 }
 
-export function bumpWindows(windows, nowMs, klass) {
+export function bumpWindows(windows, nowMs) {
   const next = {
-    minute: roll(windows && windows.minute, nowMs, 60 * 1000),
-    hour: roll(windows && windows.hour, nowMs, 60 * 60 * 1000),
-    day: roll(windows && windows.day, nowMs, 24 * 60 * 60 * 1000),
-    search_minute: roll(windows && windows.search_minute, nowMs, 60 * 1000),
-    record_hour: roll(windows && windows.record_hour, nowMs, 60 * 60 * 1000),
+    fanout_minute: roll(windows && windows.fanout_minute, nowMs, 60 * 1000),
+    fanout_hour: roll(windows && windows.fanout_hour, nowMs, 60 * 60 * 1000),
   };
-  next.minute.n += 1;
-  next.hour.n += 1;
-  next.day.n += 1;
-  if (klass === "search") next.search_minute.n += 1;
-  if (klass === "record") next.record_hour.n += 1;
+  next.fanout_minute.n += 1;
+  next.fanout_hour.n += 1;
   return next;
 }
 
 export function overLimit(windows, limits = LIMITS) {
-  if ((windows.search_minute && windows.search_minute.n) > limits.search_per_minute) {
-    return { class: "rate-soft", window: "search_minute" };
+  if ((windows.fanout_minute && windows.fanout_minute.n) > limits.fanout_per_minute) {
+    return { class: "rate-soft", window: "fanout_minute" };
   }
-  if ((windows.record_hour && windows.record_hour.n) > limits.record_per_hour) {
-    return { class: "rate-soft", window: "record_hour" };
+  if ((windows.fanout_hour && windows.fanout_hour.n) > limits.fanout_per_hour) {
+    return { class: "rate-soft", window: "fanout_hour" };
   }
-  if ((windows.day && windows.day.n) > limits.day) return { class: "rate-soft", window: "day" };
   return null;
 }
 
@@ -244,20 +253,16 @@ export async function lastCachedCatalog(env, cache) {
   }
 }
 
-export async function checkVisitorRate(request, env, { signed, path, nowMs, cache } = {}) {
+export async function checkVisitorRate(request, env, { signed, path, nowMs, cache, method } = {}) {
   const pathname = path || (request && request.url ? new URL(request.url).pathname : "/");
-  if (isRateExemptPath(pathname)) return { ok: true, exempt: true };
+  const verb = method || (request && request.method) || "GET";
+  if (isSeoBot(request)) return { ok: true, seo: true };
   if (isOperatorRequest(request, env, signed)) return { ok: true, operator: true };
-  let cookieVid = readVisitorCookie(request);
-  let setCookie = "";
-  if (!cookieVid) {
-    cookieVid = newVisitorId();
-    setCookie = visitorCookieHeader(cookieVid);
-  }
-  const id = visitorIdFrom(request, cookieVid);
+  if (!isFanoutPath(pathname, verb)) return { ok: true, content: true };
+  const id = visitorIdFrom(request, "");
   const now = nowMs != null ? nowMs : Date.now();
   const store = cache || (await defaultCache());
-  const windows = bumpWindows(await loadBucket(id, store), now, pathClass(pathname));
+  const windows = bumpWindows(await loadBucket(id, store), now);
   await saveBucket(id, windows, store);
   const hit = overLimit(windows);
   if (hit) {
@@ -267,10 +272,9 @@ export async function checkVisitorRate(request, env, { signed, path, nowMs, cach
       window: hit.window,
       retryAfter: RETRY_AFTER,
       visitor: id,
-      setCookie,
     };
   }
-  return { ok: true, visitor: id, setCookie };
+  return { ok: true, visitor: id, fanout: true };
 }
 
 export async function rateLimitedResponse(request, env, decision, { cache } = {}) {
@@ -282,15 +286,14 @@ export async function rateLimitedResponse(request, env, decision, { cache } = {}
     "X-Aziel-Rate": "rate-soft",
     ...corsHeaders(),
   };
-  if (decision && decision.setCookie) headers["Set-Cookie"] = decision.setCookie;
   if (accept.includes("text/html")) {
     headers["Content-Type"] = "text/html; charset=utf-8";
     const n = catalog && Array.isArray(catalog.records) ? catalog.records.length : 0;
     const body =
       "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>Slow down — Aziel Digital Library</title></head><body>" +
-      "<h1>Rate limit</h1><p>Soft visitor cap (RL-WP-0.1 library scope). Retry after " +
+      "<h1>Rate limit</h1><p>Soft cap on expensive API fan-out only. Search, cards, and crawlers stay open. Retry after " +
       RETRY_AFTER +
-      " seconds. The last packed catalog still runs (" +
+      " seconds. Packed catalog still runs (" +
       n +
       " cards). Author Aziel Eliab. Not a Node Gate.</p>" +
       "<p><a href=\"/donate\">Donate</a> · <a href=\"/\">Search</a></p></body></html>";
@@ -306,7 +309,7 @@ export async function rateLimitedResponse(request, env, decision, { cache } = {}
         retry_after: RETRY_AFTER,
         catalog,
         author: AUTHOR,
-        note: "Visitor bucket only. Operator token is uncapped. No public IP allowlist. Author Aziel Eliab.",
+        note: "Fan-out bucket only. HTML, search, and SEO bots are never blocked. Operator token is uncapped. Author Aziel Eliab.",
       },
       null,
       2

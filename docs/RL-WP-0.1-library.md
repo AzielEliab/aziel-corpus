@@ -16,9 +16,18 @@ Origin: https://www.azielcorpuslibrary.net
 
 Evidence window (doctrine): Cloudflare billable usage, 2–9 September 2026 (8 of 30 cycle days).
 
+## Priority (Aziel Eliab)
+
+Cost savings come from **packing and caching**, not from rationing readers.
+
+- Packed `library:index:v1` + no `KV.list()` on the hot path is the primary cut (non-negotiable).
+- Public HTML, `/v1/search`, cards, sitemap, robots, llms, and cite stay **uncapped** for normal humans and SEO crawlers (Googlebot, GPTBot, Claude, bingbot, Perplexity, and the AI Allow list).
+- Soft 429 + last packed catalog applies only to **extreme write/walk API fan-out**. Never thin/empty pages for SEO bots. Never a 30/120/800 content ceiling.
+- Operator token remains uncapped. UI process and on-site info stay the same.
+
 ## 0. Sentence
 
-This plan is for the library. Not godlock.uk. Not the software tabs. Not local ChainLock. Visitors can still search and open cards. Bots cannot walk every AZDOC key. The operator is uncapped.
+This plan is for the library. Not godlock.uk. Not the software tabs. Not local ChainLock. Visitors can still search and open every card. KV.list walks leave the hot path. The operator is uncapped.
 
 ## 1. Scope
 
@@ -91,15 +100,7 @@ D1 already serves 5.44 billion row reads inside the free included band. If searc
 
 **Step 3 — Cap KV work per library request.** At most 8 KV operations per invocation (index + one card + receipts). Over that: return packed hits and truncated. Do not walk the namespace.
 
-**Step 4 — Per-visitor bucket on this hostname only.** Visitor id = SHA-256 of `CF-Connecting-IP` (cookie cannot evade). Host match: `azielcorpuslibrary.net` only.
-
-Default:
-
-- 30 search requests / minute
-- 120 record views / hour
-- 800 library requests / day
-
-Soft exceed: 429, `Retry-After: 30`, body is the last cached search page so the shelf still appears up. Hard isolate: SweepGate poison / scraper only. Quarantine. No merge into ChainLock STM.
+**Step 4 — No content rationing.** Browse, search, record HTML, and SEO documents are never visitor-bucketed. Soft 429 + last packed catalog applies only to extreme abuse on write/walk APIs (`POST /event`, verify-backfill, verify-geo, Jeeves/OCR/transcribe POSTs). SEO Allow-list User-Agents are never 403/429. Ceilings on that fan-out path are high (200/min, 2000/hour) so researchers are not mistaken for scrapers.
 
 **Step 5 — Operator exclude.** Secret header (`X-Aziel-Operator-Token` / Bearer) or signed operator session. Token lives in server-side `gate_config.json` / Wrangler secrets. Operator sync, ingest, and verify skip the bucket. Same token must not appear in the library UI.
 
@@ -107,15 +108,15 @@ Soft exceed: 429, `Retry-After: 30`, body is the last cached search page so the 
 
 **Step 7 — Measure on this origin.** Success: KV reads per library request from ~191 toward 1–2. `/v1/search` stays up. `library-sync --query Q` still returns AZDOC cards. Offline `library.jsonl` unchanged.
 
-## 7. What a limited visitor still gets
+## 7. What readers and crawlers get
 
-- search within quota
-- last cached result page when soft-limited
-- record cards they already opened
+- full HTML search, cards, and nav (same UI)
+- `/v1/search` over one packed index (no per-key walk)
+- sitemap, robots, llms, cite — 200, long public cache
 - PDF links as they exist today (no new PDF pull into KV)
 - ChainLock local shelf if they synced earlier
 
-They lose unbounded crawl of every AZDOC key.
+They lose the Worker paying ~191 KV ops per catalog request. They do **not** lose how much library content they may read.
 
 ## 8. Donation strip on the library
 
