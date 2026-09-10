@@ -26,6 +26,11 @@ import {
   normalizeSoftwareDoc,
   fetchLiveSoftwareCatalog,
 } from "./software-catalog.js";
+import {
+  AZCOHERENCE_DOWNLOAD,
+  AZCOHERENCE_WORKER_HOME,
+  AZCOHERENCE_COUNT,
+} from "./azcoherence.js";
 
 const HOST = "https://www.azielcorpuslibrary.net";
 const BANNED = /Collin Horton|GodLock\.AZ|\+25|quiet (Aziel|triad|boost)|10\.5281\/zenodo/i;
@@ -123,7 +128,7 @@ test("collectCatalogProducts merges products, engines, and slug lists with no 27
   assert.equal(displayName({ slug: "aznet" }), "AZNet");
 });
 
-test("mergeSoftwareExtras adds AZNet, FragGate, and EmbryoLock without dropping catalog items", () => {
+test("mergeSoftwareExtras adds AZNet, FragGate, EmbryoLock, and AZCoherence without dropping catalog items", () => {
   const catalog = collectCatalogProducts({
     products: [{ slug: "peacelock", name: "PeaceLock" }, { slug: "foldlock", name: "FoldLock" }],
   });
@@ -133,7 +138,8 @@ test("mergeSoftwareExtras adds AZNet, FragGate, and EmbryoLock without dropping 
   assert.ok(merged.some((p) => p.slug === "aznet" && p.worker_home === AZNET_WORKER_HOME));
   assert.ok(merged.some((p) => p.slug === "fraggate" && p.door));
   assert.ok(merged.some((p) => p.slug === "embryolock" && p.catalog_only));
-  assert.equal(SOFTWARE_EXTRAS.length, 3);
+  assert.equal(SOFTWARE_EXTRAS.length, 4);
+  assert.ok(merged.some((p) => p.slug === "azcoherence"));
   const already = mergeSoftwareExtras([{ slug: "fraggate", name: "FragGate", door: true }]);
   assert.equal(already.filter((p) => p.slug === "fraggate").length, 1);
   const fg = already.find((p) => p.slug === "fraggate");
@@ -231,6 +237,13 @@ test("productLinks tethers download, GitHub, and same-origin FragGate MCP door",
   assert.ok(azn.some((l) => l.label === "GitHub" && l.href === "https://github.com/AzielEliab/aznet"));
   assert.ok(!azn.some((l) => /fraggate-download-tracker/.test(l.href)));
   assert.ok(!azn.some((l) => /azbrowser-download-tracker/.test(l.href)));
+  const azc = productLinks(SOFTWARE_EXTRAS.find((p) => p.slug === "azcoherence"));
+  assert.equal(azc[0].label, "Download");
+  assert.equal(azc[0].primary, true);
+  assert.equal(azc[0].href, AZCOHERENCE_DOWNLOAD);
+  assert.ok(azc.some((l) => l.label === "Worker" && l.href === AZCOHERENCE_WORKER_HOME && !l.primary));
+  assert.ok(azc.some((l) => l.label === "GitHub" && l.href === "https://github.com/AzielEliab/AZCoherence"));
+  assert.ok(azc.some((l) => /fraggate\/describe\?slug=azcoherence/.test(l.href)));
   const azh = productLinks({
     slug: "azhub",
     download: "https://azhub-download-tracker.vibelock.workers.dev/download",
@@ -304,7 +317,7 @@ test("softwareBody renders every card in Plain → Gate → Lock with live-catal
     hub: { name: "aziel-runtime", root: true, blurb: "door", links: [{ href: "/runtime", label: "Runtime", primary: true }] },
     products,
     downloadable: 31,
-    extras: 3,
+    extras: 4,
     fetched: 0,
     catalogVersion: "1.6.4",
     usesTotal: 8,
@@ -319,8 +332,10 @@ test("softwareBody renders every card in Plain → Gate → Lock with live-catal
   assert.match(html, /FragGate/);
   assert.match(html, /AZNet/);
   assert.match(html, /EmbryoLock/);
+  assert.match(html, /AZCoherence/);
   assert.match(html, /fraggate-download-tracker\.vibelock\.workers\.dev\/download/);
   assert.match(html, /aznet-download-tracker\.vibelock\.workers\.dev\/download/);
+  assert.match(html, /azcoherence-download-tracker\.vibelock\.workers\.dev\/download/);
   assert.match(html, /<h2>Software<\/h2>/);
   assert.match(html, /<h2>Gate<\/h2>/);
   assert.match(html, /<h2>Lock<\/h2>/);
@@ -344,7 +359,7 @@ test("softwareBody renders every card in Plain → Gate → Lock with live-catal
   assert.doesNotMatch(html, /Featured first/);
   assert.doesNotMatch(html, BANNED);
   const articleCount = (html.match(/<article class="soft-card/g) || []).length;
-  assert.ok(articleCount >= 34, "hub + 31 catalog-ish + extras including AZNet");
+  assert.ok(articleCount >= 35, "hub + 31 catalog-ish + extras including AZNet and AZCoherence");
 });
 
 test("GET /software uses AZIEL_RUNTIME catalog binding and lists every product", async () => {
@@ -359,6 +374,12 @@ test("GET /software uses AZIEL_RUNTIME catalog binding and lists every product",
     }
     if (href === AZNET_COUNT) {
       return new Response(JSON.stringify({ project: "aznet", views: 3, downloads: 1, total: 1 }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (href === AZCOHERENCE_COUNT) {
+      return new Response(JSON.stringify({ project: "azcoherence", views: 5, downloads: 1, total: 1 }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
@@ -401,9 +422,11 @@ test("GET /software uses AZIEL_RUNTIME catalog binding and lists every product",
     assert.match(html, /FragGate/);
     assert.match(html, /AZNet/);
     assert.match(html, /EmbryoLock/);
+    assert.match(html, /AZCoherence/);
     assert.match(html, /Plain Product 24/);
     assert.match(html, /fraggate-download-tracker\.vibelock\.workers\.dev\/download/);
     assert.match(html, /aznet-download-tracker\.vibelock\.workers\.dev\/download/);
+    assert.match(html, /azcoherence-download-tracker\.vibelock\.workers\.dev\/download/);
     assert.match(html, /aziel-runtime/);
     assert.doesNotMatch(html, /Runtime 1\.6\.4 · FragGate/);
     assert.doesNotMatch(html, /aziel-runtime 1\.6\.4 FragGate/);
@@ -435,6 +458,13 @@ test("GET /software uses AZIEL_RUNTIME catalog binding and lists every product",
     assert.ok(built.products.some((p) => p.slug === "azmail"));
     assert.ok(built.products.some((p) => p.slug === "embryolock"));
     assert.ok(built.products.some((p) => p.slug === "aznet"));
+    assert.ok(built.products.some((p) => p.slug === "azcoherence"));
+    const azc = built.products.find((p) => p.slug === "azcoherence");
+    assert.equal(azc.kind, "plain");
+    assert.ok(azc.links.some((l) => l.primary && l.label === "Download" && l.href === AZCOHERENCE_DOWNLOAD));
+    assert.ok(azc.links.some((l) => l.label === "Worker" && l.href === AZCOHERENCE_WORKER_HOME));
+    assert.ok(azc.pills.includes("1 downloads"));
+    assert.ok(azc.pills.includes("5 views"));
     const fg = built.products.find((p) => p.slug === "fraggate");
     assert.ok(fg.links.some((l) => l.primary && l.label === "Download" && l.href === FRAGGATE_DOWNLOAD));
     assert.ok(fg.links.some((l) => l.label === "Worker" && l.href === FRAGGATE_WORKER_HOME));
@@ -508,6 +538,12 @@ test("AZNet and FragGate card Worker /count pills; AZBrowser stays separate soft
     }
     if (href === AZNET_COUNT) {
       return new Response(JSON.stringify({ project: "aznet", views: 3, downloads: 1, total: 1 }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (href === AZCOHERENCE_COUNT) {
+      return new Response(JSON.stringify({ project: "azcoherence", views: 5, downloads: 1, total: 1 }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });

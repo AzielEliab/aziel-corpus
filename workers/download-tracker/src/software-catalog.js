@@ -13,6 +13,11 @@ import {
   softwareHubBlurb,
 } from "./runtime-copy.js";
 import { runtimeUsesPayload } from "./runtime-uses.js";
+import {
+  AZCOHERENCE_SOFTWARE_EXTRA,
+  AZCOHERENCE_SLUG,
+  AZCOHERENCE_COUNT,
+} from "./azcoherence.js";
 
 const UA = "Mozilla/5.0 AzielDigitalLibrary";
 
@@ -58,6 +63,7 @@ export const SOFTWARE_EXTRAS = [
     github: "https://github.com/AzielEliab/embryolock",
     one_line: "Catalog-only door. Listed here even before a live engine Worker is published. Author Aziel Eliab.",
   },
+  Object.assign({}, AZCOHERENCE_SOFTWARE_EXTRA),
 ];
 
 function firstText(...vals) {
@@ -72,6 +78,7 @@ const KNOWN_NAMES = {
   azai: "AZAI",
   azbot: "AZBot",
   azclce: "AZ-CLCE",
+  azcoherence: "AZCoherence",
   "aziel-corpus": "Aziel Digital Library",
   azieltether: "AzielTether",
   azmail: "AZMail",
@@ -208,7 +215,7 @@ function aznetBrowserCatalogLine(slug, prev, door) {
 
 function extraWorkerHome(product) {
   const slug = String((product && product.slug) || "").toLowerCase();
-  if (!(slug === "fraggate" || slug === "aznet" || slug === "azhub" || slug === "azinterface" || (product && product.extra))) {
+  if (!(slug === "fraggate" || slug === "aznet" || slug === "azhub" || slug === "azinterface" || slug === AZCOHERENCE_SLUG || (product && product.extra))) {
     return "";
   }
   const listed = firstText(product && product.worker_home);
@@ -308,6 +315,7 @@ export function countUrlForProduct(product) {
   const listed = firstText(product && product.count);
   if (slug === "fraggate") return firstText(listed, FRAGGATE_COUNT);
   if (slug === "aznet") return firstText(listed, AZNET_COUNT);
+  if (slug === AZCOHERENCE_SLUG) return firstText(listed, AZCOHERENCE_COUNT);
   return listed;
 }
 

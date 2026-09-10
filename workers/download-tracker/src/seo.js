@@ -86,7 +86,7 @@ export function defaultDescription(kind, runtimeVersion) {
   if (kind === "runtime") return runtimeDescription(runtimeVersion);
   if (kind === "software") return softwareDescription(runtimeVersion);
   if (kind === "about") return "About Aziel Eliab. What matters is the record: hashed receipts, timed files, and software that can be opened without taking the speaker on faith. Signed Aziel Elroi Eliab. GodLock is one product on that record.";
-  if (kind === "scored" || kind === "how-its-scored") return "How Aziel Digital Library scores records: triad SPRE × CLCE × PhysLing, and ZionPattern meaning (75 is intentional suppression confidence; lower is more natural). Author Aziel Eliab.";
+  if (kind === "scored" || kind === "how-its-scored") return "How Aziel Digital Library scores records: triad SPRE × CLCE × PhysLing, AZCoherence second-pass triad coherence (peer AZ-CLCE; not AKM-TRIAD), and ZionPattern meaning (75 is intentional suppression confidence; lower is more natural). Author Aziel Eliab.";
   if (kind === "pattern") return "Pattern clusters across Aziel Digital Library domains, subjects, and keywords. Author Aziel Eliab.";
   if (kind === "donate") return "AZL-DONATE-1.0. Donate to Aziel Digital Library. Static door. Exodus rails. No Worker KV. Not a catalog item. Author Aziel Eliab.";
   if (kind === "search") return "Search Aziel Digital Library by Aziel Eliab. Public MASTER across Aziel Library and Corpus.";
@@ -262,8 +262,8 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
 function pageKeywords(kind) {
   const base = [AUTHOR, AKA, SITE, "aziel-corpus"];
   if (kind === "about") base.push("GodLock");
-  if (kind === "software" || kind === "runtime") base.push("aziel-runtime", "FragGate", "AzielTether", "GodLock");
-  if (kind === "scored" || kind === "how-its-scored" || kind === "record") base.push("SPRE", "CLCE", "PhysLing", "ZionPattern");
+  if (kind === "software" || kind === "runtime") base.push("aziel-runtime", "FragGate", "AzielTether", "GodLock", "AZCoherence", "azcoherence");
+  if (kind === "scored" || kind === "how-its-scored" || kind === "record") base.push("SPRE", "CLCE", "PhysLing", "ZionPattern", "AZCoherence", "azcoherence", "AZ-CLCE");
   return base.join(", ");
 }
 
