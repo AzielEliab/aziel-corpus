@@ -72,14 +72,14 @@ input[type=file]{width:100%;min-height:44px;padding:10px;background:#16130f;colo
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 8px}
 .chip{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 16px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink);text-decoration:none;font-weight:650}
 .chip.on{background:var(--gold);color:#14110a;border-color:var(--gold)}
-.doc{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 20px 16px;margin:14px 0}
+.doc{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 20px 16px;margin:14px 0;overflow:visible;min-width:0;max-width:100%}
 .doc.doc-aziel{border-color:var(--royal);box-shadow:inset 3px 0 0 var(--royal)}
-.doc h3{margin:8px 0 6px;font-size:20px;letter-spacing:-.02em}
-.doc h3 a{color:var(--ink);text-decoration:none}
+.doc h3{margin:8px 0 6px;font-size:20px;letter-spacing:-.02em;overflow:visible;overflow-wrap:anywhere;word-break:break-word}
+.doc h3 a{color:var(--ink);text-decoration:none;overflow-wrap:anywhere}
 .doc h3 a:hover{color:var(--gold)}
-.doc .meta{color:var(--muted);font-size:14px;margin:0 0 8px}
-.doc p{margin:8px 0 12px}
-.doc .byline{margin:0 0 8px;font-weight:650}
+.doc .meta{color:var(--muted);font-size:14px;margin:0 0 8px;overflow-wrap:anywhere;word-break:break-word}
+.doc p{margin:8px 0 12px;overflow-wrap:anywhere;word-break:break-word}
+.doc .byline{margin:0 0 8px;font-weight:650;min-width:0;max-width:100%}
 .lib-tag{display:inline-block;font-size:12px;font-weight:750;padding:4px 10px;border-radius:999px;letter-spacing:.02em}
 .lib-tag.aziel{background:var(--royal);color:#f3e9ff;border:1px solid var(--royal-deep)}
 .lib-tag.corpus{background:#2a241c;color:var(--gold);border:1px solid var(--line)}
@@ -101,8 +101,8 @@ label.showpw{font-size:14px;color:var(--muted);white-space:nowrap;min-height:44p
 .facet{margin:10px 0}
 .facet-label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin:0 0 4px;letter-spacing:.02em}
 .facet .chips{margin:0}
-.mini-chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
-.mini-chip{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink);text-decoration:none;font-size:13px;font-weight:600}
+.mini-chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;min-width:0;max-width:100%;overflow:visible}
+.mini-chip{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink);text-decoration:none;font-size:13px;font-weight:600;max-width:100%;overflow-wrap:anywhere;word-break:break-word}
 .mini-chip.on{background:var(--gold);color:#14110a;border-color:var(--gold)}
 .q-badge{display:inline-block;font-size:12px;font-weight:750;padding:4px 10px;border-radius:999px;margin-left:6px}
 .q-badge.go{background:#14261c;color:var(--yes)}
@@ -114,13 +114,12 @@ label.showpw{font-size:14px;color:var(--muted);white-space:nowrap;min-height:44p
 .light.go .lamp{background:#2f9e44}
 .light.slow .lamp{background:#f0c14b}
 .light.stop .lamp{background:#c92a2a}
-.shelf{display:block;max-height:none;overflow:visible}
+.shelf{display:grid;grid-template-columns:minmax(0,1fr);gap:0;width:100%;min-width:0;max-height:none;overflow:visible;border:0;padding:0;background:transparent}
 @media (min-width:721px){
   .tools{position:sticky;top:0}
-  .shelf{display:block;max-height:min(58vh,520px);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;border:1px solid var(--line);border-radius:12px;padding:8px;background:var(--card)}
 }
 .meta-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:10px 0}
-.triad{display:flex;gap:16px;align-items:center;margin:10px 0 4px}
+.triad{display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin:10px 0 4px;min-width:0;max-width:100%}
 .triad .metric{font-size:42px;line-height:1;color:var(--gold)}
 .triad-card{border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--paper);margin:12px 0}
 .q-banner{background:#2a1414;color:var(--no);border:1px solid #8a2b2b;border-radius:12px;padding:12px 14px;margin:10px 0;font-weight:650}
@@ -177,7 +176,7 @@ label.showpw{font-size:14px;color:var(--muted);white-space:nowrap;min-height:44p
   .tools-grid{grid-template-columns:1fr}
   .tools select,.tools input,.tools .search{width:100%;min-height:44px}
   .tools button{width:100%}
-  .shelf{display:block;max-height:none;overflow:visible;border:0;padding:0;background:transparent}
+  .shelf{display:grid;grid-template-columns:minmax(0,1fr);max-height:none;overflow:visible;border:0;padding:0;background:transparent}
   .chips,.mini-chips,.checkrow,.lens-grid,.ocr-form,.ocr-form button{width:100%}
   .lights{grid-template-columns:1fr}
   .q-badge{display:block;margin:8px 0 0;width:fit-content}
