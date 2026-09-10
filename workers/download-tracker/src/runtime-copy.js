@@ -57,6 +57,11 @@ export function runtimeChip(version) {
   return "Runtime " + resolveRuntimeVersion(version) + " · FragGate";
 }
 
+/** Software-tab chip. Do not mash version + FragGate into catalog copy. */
+export function softwareChip() {
+  return "aziel-runtime";
+}
+
 export function runtimeDescription(version) {
   const ver = resolveRuntimeVersion(version);
   return "aziel-runtime " + ver + " FragGate door on the Aziel Digital Library. Prefer /runtime/*. "
@@ -64,9 +69,16 @@ export function runtimeDescription(version) {
     + "Discover with fraggate_list, execute with fraggate_call. Author Aziel Eliab.";
 }
 
-export function softwareDescription(version) {
-  const ver = resolveRuntimeVersion(version);
-  return "Downloadable software by Aziel Eliab. Product catalog for aziel-runtime " + ver + " FragGate, AzielTether, and the Aziel suite. Invoke from this domain at /runtime. Author Aziel Eliab.";
+/** Software-tab catalog blurb. Name the runtime; do not mash version + FragGate. */
+export function softwareDescription(_version) {
+  return "Downloadable software by Aziel Eliab. Product catalog for aziel-runtime, AzielTether, and the Aziel suite. Invoke from this domain at /runtime. Author Aziel Eliab.";
+}
+
+/** Hub card on /software. FragGate is the door product, not a version mash. */
+export function softwareHubBlurb(_version) {
+  return "aziel-runtime on the Aziel Digital Library. Prefer /runtime/*. "
+    + RUNTIME_LIVE_COUNT + " live advisory engines; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse. "
+    + "Discover with fraggate_list, execute with fraggate_call. Software hub mirrors this live catalog. Author Aziel Eliab.";
 }
 
 export function runtimeNote(version) {
