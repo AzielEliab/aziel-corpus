@@ -5,9 +5,8 @@ import { page, homeBody } from "./ui.js";
 import { handleHosted } from "./hosted.js";
 import { robotsTxt, sitemapXml, sitemapIndexXml, citeDoc, llmsDoc, aiTxt, humansTxt, mcpDiscovery, isReadMethod, crawlResponse, MIME } from "./crawl.js";
 import { searchRecords, listFacets, parseBrowseParams, serveFile, serveFileByHash, normalizeContentHash } from "./library.js";
-import { reviewAndStore, continueFullBackfill } from "./review-store.js";
+import { continueFullBackfill } from "./review-store.js";
 import { continueVerifyGeo } from "./geo.js";
-import { verifyBytes, sha256hex } from "./structure.js";
 import {
   collectStats,
   notePackedIncrement,
@@ -23,6 +22,7 @@ import {
 import { enforceRateLimit, rememberCatalog, isSeoBot } from "./rate-limit.js";
 import { handleDonate, DONATE_PATH } from "./donate.js";
 import { handleDonateQr, isDonateQrPath } from "./donate-qr.js";
+import { serveSoftwareAsset, DEFAULT_ASSET as SOFTWARE_DEFAULT_ASSET } from "./software-download.js";
 
 /**
  * Aziel Digital Library v2.7.0 public MASTER (Cloudflare Worker).
@@ -40,7 +40,6 @@ const PROJECT = "aziel-corpus";
 const VERSION = "2.7.0";
 const DEFAULT_ASSET = "aziel-digital-library-2.7.0.zip";
 const LEGACY_ASSET = "aziel-digital-library-2.6.2.zip";
-const ALLOWED_ASSETS = new Set([DEFAULT_ASSET, LEGACY_ASSET]);
 const DEFAULT_OWNER = "AzielEliab";
 const DEFAULT_REPO = "aziel-corpus";
 const DEFAULT_BRANCH = "main";
@@ -236,75 +235,8 @@ echo "Aziel Digital Library. Author Aziel Eliab. Not a 26-card index."
 `;
 }
 
-function contentTypeFor(asset) {
-  const a = String(asset || "").toLowerCase();
-  if (a.endsWith(".zip")) return "application/zip";
-  if (a.endsWith(".pdf")) return "application/pdf";
-  if (a.endsWith(".gif")) return "image/gif";
-  if (a.endsWith(".png")) return "image/png";
-  if (a.endsWith(".tar.gz") || a.endsWith(".tgz") || a.endsWith(".gz")) return "application/gzip";
-  return "application/octet-stream";
-}
-
-function safeAsset(raw) {
-  const name = String(raw || "").split("/").pop().split("\\").pop();
-  if (ALLOWED_ASSETS.has(name)) return name;
-  return null;
-}
-
-async function serveAsset(request, env, asset, { head = false } = {}) {
-  const name = safeAsset(asset);
-  if (!name) {
-    return json({ error: "unknown asset", asset, allowed: [...ALLOWED_ASSETS] }, 404);
-  }
-  if (!env.ASSETS) {
-    return json({ error: "assets binding missing" }, 500);
-  }
-  let served = name;
-  let assetUrl = new URL("/" + served, request.url);
-  let assetRes = await env.ASSETS.fetch(new Request(assetUrl, { method: "GET" }));
-  if (!assetRes.ok && served === DEFAULT_ASSET) {
-    served = LEGACY_ASSET;
-    assetUrl = new URL("/" + served, request.url);
-    assetRes = await env.ASSETS.fetch(new Request(assetUrl, { method: "GET" }));
-  }
-  if (!assetRes.ok) {
-    return json({ error: "asset not hosted", asset: name, status: assetRes.status }, 404);
-  }
-  const bytes = await assetRes.arrayBuffer();
-  const structure = verifyBytes(bytes, { filename: served, contentType: contentTypeFor(served) });
-  const digest = structure.sha256 || sha256hex(new Uint8Array(bytes));
-  if (env.DB && !head) {
-    try {
-      await reviewAndStore(env, {
-        recordId: "ASSET-" + served.replace(/[^A-Za-z0-9._-]+/g, "_").slice(0, 80),
-        library: "package",
-        title: served,
-        body: "Aziel Digital Library counted zip. Author Aziel Eliab.",
-        filename: served,
-        contentType: contentTypeFor(served),
-        sha256: digest,
-        author: "Aziel Eliab",
-        bytes,
-        createdBy: "download",
-        event: "download_verify",
-        liveClce: false,
-      });
-    } catch { /* ledger optional on zip */ }
-  }
-  const headers = new Headers();
-  headers.set("Content-Type", contentTypeFor(served));
-  headers.set("Content-Disposition", 'attachment; filename="' + served.replaceAll('"', "") + '"');
-  headers.set("Cache-Control", "private, no-store");
-  headers.set("Content-Length", String(bytes.byteLength));
-  headers.set("X-Aziel-SHA256", digest);
-  headers.set("X-Aziel-Structure", structure.ok ? "VERIFIED" : "FAILED");
-  headers.set("X-Aziel-Files", String((structure.files || []).length));
-  for (const [k, v] of Object.entries(corsHeaders())) headers.set(k, v);
-  if (head) {
-    return new Response(null, { status: 200, headers });
-  }
-  return new Response(bytes, { status: 200, headers });
+async function serveAsset(request, env, asset, { head = false, onCounted } = {}) {
+  return serveSoftwareAsset(request, env, asset || SOFTWARE_DEFAULT_ASSET, { head, onCounted });
 }
 
 function escapeHtml(s) {
@@ -465,7 +397,7 @@ export default {
     const signed = await getSession(env, request);
     let hostedStats = null;
     const hostedPath = url.pathname.replace(/\/+$/, "") || "/";
-    if (hostedPath === "/health" || (hostedPath === "/software" && !isSeoBot(request))) {
+    if (hostedPath === "/health") {
       hostedStats = await collectStats(env);
     }
     const hosted = await handleHosted(request, url, env, ctx, signed, hostedStats);
@@ -514,10 +446,12 @@ export default {
 
     if (url.pathname === "/go" && (request.method === "GET" || request.method === "HEAD")) {
       const dims = parseDims(url.searchParams);
-      const asset = dims.asset || DEFAULT_ASSET;
+      const asset = dims.asset || DEFAULT_ASSET || SOFTWARE_DEFAULT_ASSET;
       dims.asset = asset;
-      if (request.method === "GET") await increment(env, dims);
-      return serveAsset(request, env, asset, { head: request.method === "HEAD" });
+      return serveAsset(request, env, asset, {
+        head: request.method === "HEAD",
+        onCounted: request.method === "GET" ? () => increment(env, dims) : null,
+      });
     }
 
     if ((url.pathname === "/download" || url.pathname.startsWith("/download/")) && (request.method === "GET" || request.method === "HEAD")) {
@@ -541,10 +475,12 @@ export default {
       if (!dims.asset && pathTail) {
         dims.asset = pathTail;
       }
-      const asset = dims.asset || DEFAULT_ASSET;
+      const asset = dims.asset || DEFAULT_ASSET || SOFTWARE_DEFAULT_ASSET;
       dims.asset = asset;
-      if (request.method === "GET") await increment(env, dims);
-      return serveAsset(request, env, asset, { head: request.method === "HEAD" });
+      return serveAsset(request, env, asset, {
+        head: request.method === "HEAD",
+        onCounted: request.method === "GET" ? () => increment(env, dims) : null,
+      });
     }
 
     // gitbaby-seo-routes

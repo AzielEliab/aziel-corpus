@@ -1,6 +1,6 @@
 /**
  * aziel-runtime hosted as the Digital Library AI runtime root.
- * /runtime is the human + AI page. /runtime/* proxies aziel-runtime 1.6.2 FragGate.
+ * /runtime is the human + AI page. /runtime/* proxies live aziel-runtime (1.9.0).
  * Author: Aziel Eliab.
  */
 import { page, runtimeBody } from "./ui.js";
@@ -19,6 +19,8 @@ import {
   AI_CLIENTS,
   RUNTIME_DESCRIPTION,
   RUNTIME_LIMITATION,
+  RUNTIME_ABSTRACT,
+  RUNTIME_TITLE,
   runtimeHowTo,
 } from "./runtime-copy.js";
 import {
@@ -41,24 +43,27 @@ const UA = "Mozilla/5.0 AzielDigitalLibrary";
 
 export function runtimeSkillMd() {
   return `---
-name: aziel-runtime
+name: Aziel Runtime
 description: >-
-  One door — discover, route, refuse. FragGate ${RUNTIME_VERSION} on the Digital Library
-  at /runtime. ${RUNTIME_LIVE_COUNT} live advisory engines; ${RUNTIME_LOCAL_ONLY} local_only;
-  stubs refuse. Prefer same-origin /runtime/*. ${RUNTIME_ORIGIN} is alternate/sameAs.
+  ${RUNTIME_ABSTRACT}
+  One door — discover, route, refuse. ${RUNTIME_LIVE_COUNT} live advisory engines;
+  ${RUNTIME_LOCAL_ONLY} local_only; stubs refuse. Prefer same-origin /runtime/*.
+  ${RUNTIME_ORIGIN} is alternate/sameAs. GET /v1/mesh never enables.
 ---
 
-# aziel-runtime
+# ${RUNTIME_TITLE}
 
-**FragGate door ${RUNTIME_VERSION}** for Aziel Eliab products. Hosted on this domain at ${HOST}/runtime.
-Alternate origin (sameAs): ${RUNTIME_ORIGIN}/. Kernel: ${RUNTIME_KERNEL} (FG-0.1).
+${RUNTIME_ABSTRACT}
 
-**THIS IS:** ${RUNTIME_VERSION} FragGate. One door — discover, route, refuse. Prefer same-origin \`/runtime/*\`.
+## Version ${RUNTIME_VERSION}
+
+**THIS IS:** Aziel Runtime ${RUNTIME_VERSION} on the Digital Library at ${HOST}/runtime.
+Not an API aggregator. One door — discover, route, refuse. Prefer same-origin \`/runtime/*\`.
 ${RUNTIME_LIVE_COUNT} live advisory engines; ${RUNTIME_LOCAL_ONLY} stays local_only; stub verbs refuse.
 Catalog slugs (\`${ENGINE_SLUGS.join("`, `")}\`) are true engines. HTTP \`/p/{slug}/{op}\` is a proxy and is not exec.
 Do **not** treat \`${HOST}/v1/runtime\` as the engine manifest (that is Digital Library package discovery).
 Engine manifest: \`${HOST}/runtime/v1/runtime.json\` or \`${HOST}/v1/runtime.json\`.
-Author **Aziel Eliab** only.
+GET /v1/mesh never enables. Author **Aziel Eliab** only.
 
 Always send \`User-Agent: Mozilla/5.0\`.
 
@@ -322,7 +327,7 @@ export async function handleRuntimeRoot(request, url, env, signed, ctx) {
   const method = request.method;
 
   if (path === "/runtime" && (method === "GET" || method === "HEAD")) {
-    return htmlPage(request, "aziel-runtime", runtimeBody(), {
+    return htmlPage(request, "Aziel Runtime", runtimeBody(), {
       signed,
       path: "/runtime",
       kind: "runtime",

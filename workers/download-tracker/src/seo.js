@@ -5,6 +5,7 @@ import {
   RUNTIME_LIVE_COUNT,
   RUNTIME_LOCAL_ONLY,
   RUNTIME_KERNEL,
+  RUNTIME_TITLE,
   resolveRuntimeVersion,
   runtimeDescription,
   softwareDescription,
@@ -28,6 +29,7 @@ export const SITE_DESCRIPTION = "Aziel Digital Library by Aziel Eliab. Search th
 export function documentTitle(kind, title) {
   if (kind === "search") return SITE + " — Public MASTER by " + AUTHOR;
   if (kind === "software") return "Softwares — " + AUTHOR + " catalog | " + SITE;
+  if (kind === "runtime") return RUNTIME_TITLE;
   if (kind === "about") return "About " + AUTHOR + " | " + SITE;
   const t = String(title || "").trim();
   if (t && t !== SITE) return t + " — " + SITE;

@@ -193,8 +193,10 @@ test("Pattern, Software, About, and runtime pages render live copy", () => {
   assert.match(runtime, /\/runtime\/v1\/pull\//);
   assert.match(runtime, /\/runtime\/openapi\.json/);
   assert.match(runtime, /POST \/runtime\/mcp/);
-  assert.match(runtime, /THIS IS NOT<\/strong> a second software index/);
-  assert.match(runtime, /1\.6\.2/);
+  assert.match(runtime, /THIS IS NOT<\/strong> an API aggregator or a second software index/);
+  assert.match(runtime, /1\.9\.0/);
+  assert.match(runtime, /37 live/);
+  assert.match(runtime, /not merely an API orchestrator/);
   assert.match(runtime, /FragGate/);
   assert.match(runtime, /fraggate_list/);
   assert.match(runtime, /\/runtime\/v1\/fraggate\/list/);
@@ -238,7 +240,8 @@ test("Aziel Library is publicly browseable and shelf SHA-dedupes", () => {
   assert.match(home, /href="\/file\/B"/);
   assert.doesNotMatch(home, /href="\/file\/A"/);
   assert.match(home, /href="\/runtime"/);
-  assert.match(home, /Runtime 1\.6\.2 · FragGate/);
+  assert.match(home, /Runtime 1\.9\.0/);
+  assert.doesNotMatch(home, /Runtime 1\.9\.0 · FragGate/);
   assert.deepEqual(
     dedupeShelfRows([
       { record_id: "1", content_sha256: "abc" },
