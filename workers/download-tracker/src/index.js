@@ -22,6 +22,7 @@ import {
 } from "./library-index.js";
 import { enforceRateLimit, rememberCatalog, isSeoBot } from "./rate-limit.js";
 import { handleDonate, DONATE_PATH } from "./donate.js";
+import { handleDonateQr, isDonateQrPath } from "./donate-qr.js";
 
 /**
  * Aziel Digital Library v2.7.0 public MASTER (Cloudflare Worker).
@@ -385,6 +386,9 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders() });
     }
 
+    if (isDonateQrPath(earlyPath) && isReadMethod(request.method)) {
+      return handleDonateQr(request, env);
+    }
     if (earlyPath === DONATE_PATH && isReadMethod(request.method)) {
       return handleDonate(request);
     }
