@@ -286,3 +286,25 @@ test("crawlResponse serves GET body and HEAD without body", async () => {
   assert.equal(head.headers.get("content-type"), MIME.xml);
   assert.equal(await head.text(), "");
 });
+
+test("Worker SEO documents are 200 with long public cache and never empty for Googlebot", async () => {
+  const { default: worker } = await import("./index.js");
+  const { SEO_CACHE_CONTROL } = await import("./library-index.js");
+  const env = {
+    DOWNLOADS: { async get() { return null; }, async put() {}, async list() { throw new Error("no list"); } },
+  };
+  for (const path of ["/robots.txt", "/llms.txt", "/cite.json", "/ai.txt", "/humans.txt", "/sitemap-index.xml"]) {
+    const res = await worker.fetch(
+      new Request("https://www.azielcorpuslibrary.net" + path, { headers: { "User-Agent": "Googlebot/2.1" } }),
+      env,
+      {}
+    );
+    assert.equal(res.status, 200, path);
+    assert.match(res.headers.get("cache-control") || "", /s-maxage=3600/);
+    const body = await res.text();
+    assert.ok(body.length > 20, path + " must not be thin/empty");
+    if (path !== "/sitemap-index.xml") assert.match(body, /Aziel Eliab/);
+    else assert.match(body, /azielcorpuslibrary\.net/);
+  }
+  assert.match(SEO_CACHE_CONTROL, /s-maxage=3600/);
+});

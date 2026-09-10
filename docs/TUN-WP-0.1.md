@@ -82,21 +82,15 @@ Health: `GET /v1/health` → `{ ok, role: "standby" | "tunnel-front", topology: 
 
 Optional `TUNNEL_ORIGIN`: GET/HEAD tries the tunnel for 800ms, then serves the Worker packed path. Unset → Worker is the full standby path today.
 
-## 6. Rate limit at two places
+## 6. Rate limit — abuse only, not readers
 
-Edge (Cloudflare Rate Limiting / WAF custom rule, server-side only):
+Humans and SEO crawlers are **not** capped on browse, search, cards, or SEO documents. Cost cut is packed index + Cache-Control.
 
-- 30 search req/min / visitor
-- 120 record views/hour
-- bot score / known scraper isolate
-
-Tunnel frontend (same numbers, hashed `CF-Connecting-IP`). Soft 429 returns last cached search.
-
-Worker failover keeps the same bucket so a down tunnel does not become a free KV scrape.
+Soft 429 + last packed catalog is reserved for extreme write/walk API fan-out. Googlebot, GPTBot, Claude, bingbot, Perplexity, and the rest of the AI Allow list never receive 403/429 or thin pages.
 
 Operator exclude: secret header or Access service token in `gate_config.json` only. Never a button.
 
-See [RL-WP-0.1-library](RL-WP-0.1-library.md) for the 30 / 120 / 800 library buckets.
+See [RL-WP-0.1-library](RL-WP-0.1-library.md).
 
 ## 7. Origin-IP and operator safety
 

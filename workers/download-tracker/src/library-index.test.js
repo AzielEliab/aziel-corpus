@@ -4,6 +4,10 @@ import {
   LIBRARY_INDEX_KEY,
   KV_CACHE_TTL,
   SEARCH_CACHE_CONTROL,
+  HTML_CACHE_CONTROL,
+  cacheMatchText,
+  cachePutText,
+  htmlCacheUrl,
   collectStats,
   createKvBudget,
   emptyPackedIndex,
@@ -247,6 +251,16 @@ test("GET /v1/search filters packed index even when D1 is bound", async () => {
   assert.equal(kv.calls.get.length, 1);
   assert.equal(kv.calls.get[0].key, LIBRARY_INDEX_KEY);
   assert.doesNotMatch(JSON.stringify(body), BANNED);
+});
+
+test("public HTML cache helpers share crawler and human Cache-Control", async () => {
+  assert.match(HTML_CACHE_CONTROL, /s-maxage=120/);
+  const cache = memoryCache();
+  const req = new Request("https://www.azielcorpuslibrary.net/?q=Florence");
+  const url = htmlCacheUrl(req);
+  await cachePutText(url, "<html>packed search</html>", cache);
+  const hit = await cacheMatchText(url, cache);
+  assert.match(hit, /packed search/);
 });
 
 test("writePackedIndex then collectStats still never lists", async () => {

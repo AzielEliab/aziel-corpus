@@ -8,8 +8,19 @@ import { searchRecords, listFacets, parseBrowseParams, serveFile, serveFileByHas
 import { reviewAndStore, continueFullBackfill } from "./review-store.js";
 import { continueVerifyGeo } from "./geo.js";
 import { verifyBytes, sha256hex } from "./structure.js";
-import { collectStats, notePackedIncrement, patchPackedStats, refreshPackedIndex, tryTunnelFirst } from "./library-index.js";
-import { enforceRateLimit, rememberCatalog } from "./rate-limit.js";
+import {
+  collectStats,
+  notePackedIncrement,
+  patchPackedStats,
+  refreshPackedIndex,
+  tryTunnelFirst,
+  HTML_CACHE_CONTROL,
+  SEO_CACHE_CONTROL,
+  cacheMatchText,
+  cachePutText,
+  htmlCacheUrl,
+} from "./library-index.js";
+import { enforceRateLimit, rememberCatalog, isSeoBot } from "./rate-limit.js";
 import { handleDonate, DONATE_PATH } from "./donate.js";
 
 /**
@@ -120,13 +131,10 @@ async function increment(env, dims) {
 }
 
 async function incrementViews(env) {
+  if (!env || !env.DOWNLOADS || typeof env.DOWNLOADS.get !== "function") return 0;
   const n = parseInt((await env.DOWNLOADS.get(viewsKey())) || "0", 10) + 1;
   await env.DOWNLOADS.put(viewsKey(), String(n));
-  try {
-    await notePackedIncrement(env, { views: n });
-  } catch {
-    /* packed index is standby */
-  }
+  // Packed views refresh on cron. Do not rewrite library:index:v1 on every page view.
   return n;
 }
 
@@ -429,11 +437,25 @@ export default {
     }
 
     if (url.pathname === "/" && isReadMethod(request.method)) {
+      const htmlHeaders = { "Cache-Control": HTML_CACHE_CONTROL, ...corsHeaders() };
       if (request.method === "HEAD") {
-        return crawlResponse(request, "", "text/html; charset=utf-8", corsHeaders());
+        return crawlResponse(request, "", "text/html; charset=utf-8", htmlHeaders);
       }
-      await incrementViews(env);
-      return attachVid(crawlResponse(request, await indexHtml(env, request), "text/html; charset=utf-8", corsHeaders()));
+      const cacheUrl = htmlCacheUrl(request);
+      if (!signedEarly) {
+        const cached = await cacheMatchText(cacheUrl);
+        if (cached) {
+          return attachVid(crawlResponse(request, cached, "text/html; charset=utf-8", htmlHeaders));
+        }
+      }
+      if (!isSeoBot(request)) {
+        const bump = incrementViews(env).catch(() => null);
+        if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(bump);
+        else await bump;
+      }
+      const html = await indexHtml(env, request);
+      if (!signedEarly) await cachePutText(cacheUrl, html);
+      return attachVid(crawlResponse(request, html, "text/html; charset=utf-8", htmlHeaders));
     }
 
     const signed = await getSession(env, request);
@@ -522,29 +544,29 @@ export default {
     // gitbaby-seo-routes
     const crawlPath = url.pathname.replace(/\/+$/, "") || "/";
     if (isReadMethod(request.method) && crawlPath === "/robots.txt") {
-      return crawlResponse(request, robotsTxt(), MIME.plain, corsHeaders());
+      return crawlResponse(request, robotsTxt(), MIME.plain, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
     }
     if (isReadMethod(request.method) && crawlPath === "/sitemap.xml") {
       const xml = await sitemapXml(env);
-      return crawlResponse(request, xml, MIME.xml, { "Last-Modified": new Date().toUTCString(), ...corsHeaders() });
+      return crawlResponse(request, xml, MIME.xml, { "Cache-Control": SEO_CACHE_CONTROL, "Last-Modified": new Date().toUTCString(), ...corsHeaders() });
     }
     if (isReadMethod(request.method) && crawlPath === "/sitemap-index.xml") {
-      return crawlResponse(request, sitemapIndexXml(), MIME.xml, { "Last-Modified": new Date().toUTCString(), ...corsHeaders() });
+      return crawlResponse(request, sitemapIndexXml(), MIME.xml, { "Cache-Control": SEO_CACHE_CONTROL, "Last-Modified": new Date().toUTCString(), ...corsHeaders() });
     }
     if (isReadMethod(request.method) && (crawlPath === "/mcp.json" || crawlPath === "/.well-known/mcp.json")) {
-      return crawlResponse(request, JSON.stringify(mcpDiscovery(), null, 2), MIME.json, corsHeaders());
+      return crawlResponse(request, JSON.stringify(mcpDiscovery(), null, 2), MIME.json, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
     }
     if (isReadMethod(request.method) && crawlPath === "/cite.json") {
-      return crawlResponse(request, JSON.stringify(citeDoc(), null, 2), MIME.json, corsHeaders());
+      return crawlResponse(request, JSON.stringify(citeDoc(), null, 2), MIME.json, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
     }
     if (isReadMethod(request.method) && crawlPath === "/llms.txt") {
-      return crawlResponse(request, llmsDoc(LIMITATION), MIME.plain, corsHeaders());
+      return crawlResponse(request, llmsDoc(LIMITATION), MIME.plain, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
     }
     if (isReadMethod(request.method) && crawlPath === "/ai.txt") {
-      return crawlResponse(request, aiTxt(LIMITATION), MIME.plain, corsHeaders());
+      return crawlResponse(request, aiTxt(LIMITATION), MIME.plain, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
     }
     if (isReadMethod(request.method) && crawlPath === "/humans.txt") {
-      return crawlResponse(request, humansTxt(), MIME.plain, corsHeaders());
+      return crawlResponse(request, humansTxt(), MIME.plain, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
     }
     // /gitbaby-seo-routes
     if (request.method === "POST") {
