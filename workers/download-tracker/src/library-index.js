@@ -10,6 +10,8 @@ export const LIBRARY_INDEX_KEY = "library:index:v1";
 export const KV_CACHE_TTL = 3600;
 export const MAX_HOT_KV_OPS = 8;
 export const PUBLIC_CACHE_CONTROL = "public, s-maxage=300, stale-while-revalidate=3600";
+/** RL-WP-0.1-library: search responses use a shorter shared-cache TTL than other public JSON. */
+export const SEARCH_CACHE_CONTROL = "public, s-maxage=120, stale-while-revalidate=3600";
 export const AUTHOR = "Aziel Eliab";
 export const INDEX_CACHE_URL = "https://azielcorpuslibrary.net/__cache/library-index-v1";
 
@@ -194,23 +196,58 @@ export async function collectStats(env, opts) {
   return statsFromPacked(packed);
 }
 
+export function shelfOf(row) {
+  const raw = String((row && (row.shelf || row.library)) || "corpus").toLowerCase();
+  return raw === "aziel" ? "aziel" : "corpus";
+}
+
 export function cardFromRecord(row) {
   if (!row || typeof row !== "object") return null;
-  const id = String(row.record_id || "").trim();
+  const id = String(row.record_id || row.id || "").trim();
   if (!id) return null;
+  const shelf = shelfOf(row);
+  const updated = String(row.updated || row.updated_utc || row.ts || row.created_utc || "");
   return {
+    id,
     record_id: id,
     title: String(row.title || id),
+    shelf,
+    library: shelf,
     author: String(row.author || ""),
-    library: String(row.library || "corpus"),
     content_sha256: String(row.content_sha256 || ""),
     chain_tip: String(row.chain_tip || ""),
-    created_utc: String(row.created_utc || ""),
+    updated,
+    ts: updated,
+    created_utc: String(row.created_utc || updated),
     domain: String(row.domain || ""),
     subjects: String(row.subjects || ""),
     keywords: String(row.keywords || ""),
     filename: String(row.filename || ""),
     href: "/record/" + id,
+  };
+}
+
+/** Public /v1/search card. AZDOC id, title, shelf, content_sha256, chain_tip, updated. No PDF body. */
+export function publicSearchCard(row) {
+  const card = cardFromRecord(row);
+  if (!card) return null;
+  return {
+    id: card.id,
+    record_id: card.record_id,
+    title: card.title,
+    shelf: card.shelf,
+    library: card.library,
+    content_sha256: card.content_sha256,
+    chain_tip: card.chain_tip,
+    updated: card.updated,
+    ts: card.ts,
+    created_utc: card.created_utc,
+    author: card.author,
+    domain: card.domain,
+    subjects: card.subjects,
+    keywords: card.keywords,
+    filename: card.filename,
+    href: card.href,
   };
 }
 
@@ -244,7 +281,7 @@ export function searchPackedRecords(doc, { q, library, sort, author, domain, sub
   const keywordF = String(keyword || "").trim().toLowerCase();
   let rows = Array.isArray(doc && doc.records) ? doc.records.slice() : [];
   if (lib === "aziel" || lib === "corpus") {
-    rows = rows.filter((r) => String(r.library || "").toLowerCase() === lib);
+    rows = rows.filter((r) => shelfOf(r) === lib);
   }
   if (query) {
     rows = rows.filter((r) => {

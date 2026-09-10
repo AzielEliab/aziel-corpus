@@ -3,7 +3,7 @@
  * Packed library:index:v1 may be read (one get, never list) for health / failover.
  * Author: Aziel Eliab.
  */
-import { searchRecords, serveFileByHash, normalizeContentHash, dedupeShelfRows } from "./library.js";
+import { serveFileByHash, normalizeContentHash } from "./library.js";
 import { receiptForRecord, documentChain } from "./ledger.js";
 import { loadRecordReview, runReviewBundle, backfillReviews, continueFullBackfill, fullBackfillStatus } from "./review-store.js";
 import { latticeAnchorTip, LATTICE_NOTE } from "./lattice.js";
@@ -17,8 +17,11 @@ import { handleMeshApi } from "./mesh.js";
 import {
   LIBRARY_INDEX_KEY,
   PUBLIC_CACHE_CONTROL,
+  SEARCH_CACHE_CONTROL,
   libraryHealthFields,
+  publicSearchCard,
   readPackedIndex,
+  refreshPackedIndex,
   searchPackedRecords,
 } from "./library-index.js";
 const PRODUCT = "aziel-corpus";
@@ -154,7 +157,7 @@ function openapi() {
       "/v1/health": { get: { summary: "Liveness + TUN-WP-0.1 standby/failover fields. Does not increment downloads. Does not KV.list().", operationId: "health" } },
       "/v1/library-index": { get: { summary: "Packed library:index:v1 shelf cards (no PDF bodies). One KV get. Author Aziel Eliab.", operationId: "libraryIndex" } },
       "/donate": { get: { summary: "Static donation tab. Does not touch KV.", operationId: "donate" } },
-      "/v1/search": { get: { summary: "Search published records in both libraries.", operationId: "search", parameters: [{ name: "q", in: "query", schema: { type: "string" } }, { name: "lib", in: "query", schema: { type: "string", enum: ["all", "aziel", "corpus"] } }, { name: "sort", in: "query", schema: { type: "string", enum: ["newest", "oldest", "alpha", "title", "author", "domain"] } }, { name: "author", in: "query", schema: { type: "string" } }, { name: "domain", in: "query", schema: { type: "string" } }, { name: "subject", in: "query", schema: { type: "string" } }, { name: "keyword", in: "query", schema: { type: "string" } }] } },
+      "/v1/search": { get: { summary: "Filter packed library:index:v1 in memory (one KV get). AZDOC cards only — no PDF bodies. ChainLock library-sync client. Author Aziel Eliab.", operationId: "search", parameters: [{ name: "q", in: "query", schema: { type: "string" } }, { name: "lib", in: "query", schema: { type: "string", enum: ["all", "aziel", "corpus"] } }, { name: "sort", in: "query", schema: { type: "string", enum: ["newest", "oldest", "alpha", "title", "author", "domain"] } }, { name: "author", in: "query", schema: { type: "string" } }, { name: "domain", in: "query", schema: { type: "string" } }, { name: "subject", in: "query", schema: { type: "string" } }, { name: "keyword", in: "query", schema: { type: "string" } }] } },
       "/v1/example": { get: { summary: "Sample search payload.", operationId: "example" } },
       "/v1/skill": { get: { summary: "Skill markdown.", operationId: "skill" } },
       "/v1/review": { get: { summary: "Triad composite (SPRE × CLCE × PhysLing geometric mean) plus component scores, Bayesian (unranked), quarantine, document chain tip, and exact-same-subject succession cites when present. Does not increment downloads.", operationId: "review", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
@@ -360,15 +363,32 @@ export async function handleRuntimeApi(request, url, env) {
     const domain = (url.searchParams.get("domain") || "").trim();
     const subject = (url.searchParams.get("subject") || "").trim();
     const keyword = (url.searchParams.get("keyword") || "").trim();
-    let rows = [];
-    if (env && env.DB) {
-      rows = dedupeShelfRows(await searchRecords(env, { q, library: lib, sort, author, domain, subject, keyword, limit: 50 }));
-    } else {
-      const packed = await readPackedIndex(env);
-      rows = searchPackedRecords(packed, { q, library: lib, sort, author, domain, subject, keyword, limit: 50 });
+    let packed = await readPackedIndex(env);
+    if (!Array.isArray(packed.records) || packed.records.length === 0) {
+      try {
+        packed = await refreshPackedIndex(env);
+      } catch {
+        /* stay empty; still no KV.list() */
+      }
     }
-    const res = json({ ok: true, q, lib, sort, author, domain, subject, keyword, results: rows, bayesian_unranked: true, packed_failover: !env || !env.DB, limitation: LIMITATION });
-    res.headers.set("Cache-Control", PUBLIC_CACHE_CONTROL);
+    const rows = searchPackedRecords(packed, { q, library: lib, sort, author, domain, subject, keyword, limit: 50 }).map(publicSearchCard).filter(Boolean);
+    const res = json({
+      ok: true,
+      q,
+      lib,
+      sort,
+      author,
+      domain,
+      subject,
+      keyword,
+      results: rows,
+      source: "packed",
+      index_key: LIBRARY_INDEX_KEY,
+      kv_list_hot_path: false,
+      bayesian_unranked: true,
+      limitation: LIMITATION,
+    });
+    res.headers.set("Cache-Control", SEARCH_CACHE_CONTROL);
     return res;
   }
   if (path === "/v1/review" && request.method === "GET") {
