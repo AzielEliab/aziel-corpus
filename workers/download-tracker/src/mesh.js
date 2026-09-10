@@ -1,9 +1,12 @@
 /**
  * Suite decentralized node mesh — library proxy + default-off status.
  * Public HTTPS is not itself a mesh. Mesh stays off until aziel-runtime enables it.
- * Identity: Aziel Eliab only.
+ * QNS-CD-1.0 is a hub cite / Worker mesh cross-map only (photon QNS1 packet transfer).
+ * Local qnsd lives in AzielEliab/qnm-node. Runtime cites + catalog field live in
+ * AzielEliab/aziel-runtime. AZInterface has pair custody. Not a Softwares-tab product.
+ * No Node Gate. No public qnsd proxy. Identity: Aziel Eliab only.
  */
-import { HOST, RUNTIME_ORIGIN } from "./runtime-copy.js";
+import { HOST, RUNTIME_ORIGIN, RUNTIME_GITHUB } from "./runtime-copy.js";
 
 function corsHeaders() {
   return {
@@ -16,9 +19,47 @@ function corsHeaders() {
 const UA = "Mozilla/5.0 AzielDigitalLibrary";
 
 export const AUTHOR = "Aziel Eliab";
+export const QNS_CD_SPEC = "QNS-CD-1.0";
+const QNM_NODE = "https://github.com/AzielEliab/qnm-node";
+const AZINTERFACE = "https://github.com/AzielEliab/azinterface";
+
+/** Hub cite / Worker mesh cross-map. Not a Softwares-tab product. No public qnsd. */
+export const QNS_CD = Object.freeze({
+  spec: QNS_CD_SPEC,
+  name: "photon QNS1 packet transfer",
+  kind: "hub-cite",
+  softwares_tab: false,
+  public_proxy: false,
+  node_gate: false,
+  default: "off",
+  qnsd: "local",
+  qnsd_coded_in: QNM_NODE,
+  runtime_cites: RUNTIME_GITHUB,
+  runtime_catalog: RUNTIME_ORIGIN + "/v1/software",
+  runtime_mesh: RUNTIME_ORIGIN + "/v1/mesh",
+  pair_custody: AZINTERFACE,
+  designs: Object.freeze({
+    qnm_wp: RUNTIME_GITHUB + "/blob/main/docs/designs/QNM-WP-1.0.md",
+    node_ops: RUNTIME_GITHUB + "/blob/main/docs/designs/NODE-OPS-1.0.md",
+    node_mesh: RUNTIME_GITHUB + "/blob/main/docs/NODE_MESH.md",
+    qnm_build: QNM_NODE + "/blob/main/docs/QNM-BUILD-1.0.md",
+    qnm_node_wp: QNM_NODE + "/blob/main/docs/QNM-WP-1.0.md",
+    qnm_node_ops: QNM_NODE + "/blob/main/docs/NODE-OPS-1.0.md",
+  }),
+  author: AUTHOR,
+  identity: AUTHOR,
+  note:
+    "QNS-CD-1.0 photon QNS1 packet transfer. Local qnsd is coded in AzielEliab/qnm-node. "
+    + "Runtime cites + catalog field live in AzielEliab/aziel-runtime. "
+    + "AZInterface has pair custody. Hub cite / Worker mesh cross-map only — not a Softwares-tab product. "
+    + "No public qnsd proxy. No Node Gate. Mesh default OFF. Author Aziel Eliab only.",
+});
+
 export const MESH_NOTE =
   "Suite decentralized node mesh. Default off until aziel-runtime enables it. "
-  + "This public HTTPS library is not itself a mesh. Identity Aziel Eliab only.";
+  + "This public HTTPS library is not itself a mesh. "
+  + "QNS-CD-1.0 photon QNS1 packet transfer (local qnsd in qnm-node; runtime cite only; no public proxy; no Node Gate). "
+  + "Identity Aziel Eliab only.";
 
 export function isMeshLibraryPath(pathname) {
   const path = String(pathname || "").split("?")[0].replace(/\/+$/, "") || "/";
@@ -77,6 +118,8 @@ export function meshOffDoc(extra = {}) {
     note: MESH_NOTE,
     source: extra.source || "library-default-off",
     ...extra,
+    qns_cd_spec: QNS_CD_SPEC,
+    qns_cd: QNS_CD,
   };
 }
 
@@ -100,6 +143,8 @@ export function decorateMeshDoc(doc, extra = {}) {
     origin: RUNTIME_ORIGIN + "/v1/mesh",
     note: doc.note || MESH_NOTE,
     source: extra.source || doc.source || "runtime",
+    qns_cd_spec: QNS_CD_SPEC,
+    qns_cd: QNS_CD,
   };
 }
 

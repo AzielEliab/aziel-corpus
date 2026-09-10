@@ -114,7 +114,7 @@ export function runtimeHowTo(host) {
     "- FragGate call: POST " + h + "/runtime/v1/fraggate/call",
     "- Health: " + h + "/runtime/v1/health",
     "- Uses (this door): " + h + "/runtime/v1/uses",
-    "- Suite mesh (default off until runtime enable): " + h + "/runtime/v1/mesh  (also " + h + "/v1/mesh)",
+    "- Suite mesh (default off until runtime enable): " + h + "/runtime/v1/mesh  (also " + h + "/v1/mesh). QNS-CD-1.0 photon QNS1 cross-map (hub cite only; local qnsd in qnm-node; no public proxy; no Node Gate).",
     "- Manifest: " + h + "/runtime/v1/runtime.json",
     "- Skill: " + h + "/runtime/v1/skill",
     "- OpenAPI: " + h + "/runtime/openapi.json",

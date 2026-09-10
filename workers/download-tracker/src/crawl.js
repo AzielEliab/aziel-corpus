@@ -8,6 +8,7 @@ import {
   AI_CLIENTS,
   runtimeHowTo,
 } from "./runtime-copy.js";
+import { MESH_NOTE, QNS_CD_SPEC } from "./mesh.js";
 
 const HOST = "https://www.azielcorpuslibrary.net";
 const CATALOG = "https://aziel-runtime.vibelock.workers.dev";
@@ -288,7 +289,8 @@ export function mcpDiscovery() {
     mesh: HOST + "/v1/mesh",
     runtime_mesh: HOST + "/runtime/v1/mesh",
     mesh_origin: CATALOG + "/v1/mesh",
-    mesh_note: "Suite node mesh. Default off until runtime enable. Author Aziel Eliab.",
+    mesh_note: MESH_NOTE,
+    qns_cd_spec: QNS_CD_SPEC,
     fraggate_list: HOST + "/runtime/v1/fraggate/list",
     cite: HOST + "/cite.json",
     llms: HOST + "/llms.txt",
@@ -397,7 +399,8 @@ export function citeDoc() {
     mesh: HOST + "/v1/mesh",
     runtime_mesh: HOST + "/runtime/v1/mesh",
     mesh_origin: CATALOG + "/v1/mesh",
-    mesh_note: "Suite node mesh. Default off until runtime enable. Live Nodes empty while off. Author Aziel Eliab.",
+    mesh_note: MESH_NOTE,
+    qns_cd_spec: QNS_CD_SPEC,
     mcp_discovery: HOST + "/.well-known/mcp.json",
     sitemap_index: HOST + "/sitemap-index.xml",
     runtime_fraggate_list: HOST + "/runtime/v1/fraggate/list",
@@ -461,6 +464,7 @@ export function llmsDoc(limitation) {
     + "Suite mesh (default off until runtime enable): " + HOST + "/v1/mesh\n"
     + "Runtime mesh: " + HOST + "/runtime/v1/mesh\n"
     + "Live Nodes: " + HOST + "/v1/mesh/nodes\n"
+    + "QNS-CD-1.0 cross-map (photon QNS1; hub cite only; local qnsd in qnm-node; no public proxy): " + HOST + "/v1/mesh\n"
     + "Alternate origin (sameAs): " + CATALOG + "/\n"
     + "Compatible AI clients: " + AI_CLIENTS + "\n"
     + "License: Apache-2.0\n"
