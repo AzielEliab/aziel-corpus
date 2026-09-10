@@ -1,5 +1,9 @@
 # Deploy www.azielcorpuslibrary.net (aziel-corpus-download-tracker) on push to main.
-# Requires repo secret CLOUDFLARE_API_TOKEN. Account is the Aziel Eliab Workers account.
+# Primary deploy is Cursor/wrangler (GitBaby OAuth). GitHub Actions is optional backup
+# and runs only when repo secret CLOUDFLARE_API_TOKEN is set. Skip (do not fail)
+# when the secret is absent so missing-token runs do not send failure emails.
+# Identity: Aziel Eliab. Do not invent tokens.
+# Account is the Aziel Eliab Workers account (accountId ac575a9b822bea2bed97d0ab73aed238).
 name: Deploy Worker
 
 on:
@@ -9,6 +13,7 @@ on:
 
 jobs:
   deploy:
+    if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     name: Deploy Worker
