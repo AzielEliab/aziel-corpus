@@ -93,6 +93,10 @@ test("AZL-DONATE-1.0 publishes Exodus rails as a static PNG-QR door", () => {
     assert.match(html, new RegExp('data-uri="' + uri.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + '"'));
     assert.match(html, new RegExp('src="' + png.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + '"'));
     assert.match(html, new RegExp(`<img src="${png.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}" width="180" height="180"`));
+    const pair = html.match(new RegExp('data-network="' + id + '"[\\s\\S]*?</article>'));
+    assert.ok(pair, "rail card " + id);
+    assert.match(pair[0], /donate-pair/);
+    assert.match(pair[0], new RegExp('donate-addr">' + addr.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + '[\\s\\S]*donate-qr'));
     const bytes = readFileSync(join(PNG_DIR, QR_FILES[id]));
     assert.equal(bytes[0], 0x89);
     assert.equal(bytes[1], 0x50);
