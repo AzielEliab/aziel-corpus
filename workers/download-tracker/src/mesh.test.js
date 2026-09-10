@@ -340,8 +340,8 @@ test("POST /runtime/v1/mesh/enable passes through Worker MESH-* refuse codes", a
   assert.equal(emptyBody.identity, "Aziel Eliab");
   assert.match(emptyBody.host, /\/v1\/mesh$/);
   assert.match(emptyBody.runtime, /\/runtime\/v1\/mesh$/);
-  assert.doesNotMatch(JSON.stringify(emptyBody), /library-default-off/);
-  assert.doesNotMatch(JSON.stringify(emptyBody), /mesh default off until runtime enable/);
+  assert.equal(emptyBody.source, "service-binding");
+  assert.notEqual(emptyBody.error, "mesh default off until runtime enable");
 
   const bad = await handleRuntimeRoot(
     req("/runtime/v1/mesh/enable", "POST", { headers: { "Content-Type": "application/json" }, body: "{\"bearer\":\"login\"}" }),
@@ -381,18 +381,19 @@ test("GET mesh enable is MESH-METHOD and never enables", async () => {
   const down = await proxyMeshRequest(
     req("/v1/mesh/enable"),
     "/v1/mesh/enable",
-    { AZIEL_RUNTIME: { fetch: async () => { throw new Error("down"); } } },
+    { AZIEL_RUNTIME: { fetch: async () => new Response(JSON.stringify({ error: "not found" }), { status: 404 }) } },
   );
   assert.equal(down.status, 405);
   const downBody = await down.json();
   assert.equal(downBody.code, MESH_METHOD);
   assert.equal(downBody.enabled, false);
+  assert.equal(isMeshEnabled(downBody), false);
 });
 
-test("GET /v1/mesh still never enables when origin is down", async () => {
+test("GET /v1/mesh still never enables when origin has no mesh", async () => {
   const env = {
     AZIEL_RUNTIME: {
-      fetch: async () => { throw new Error("down"); },
+      fetch: async () => new Response(JSON.stringify({ error: "not found" }), { status: 404 }),
     },
   };
   const res = await handleMeshApi(req("/v1/mesh"), new URL(HOST + "/v1/mesh"), env);

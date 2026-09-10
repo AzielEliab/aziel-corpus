@@ -284,6 +284,12 @@ export function citeMeshEnvelope(doc, extra = {}) {
     qns_cd: doc.qns_cd && typeof doc.qns_cd === "object" ? doc.qns_cd : QNS_CD,
     qns_cd_spec: QNS_CD_SPEC,
   };
+  if (doc.ok === false) {
+    cited.enabled = false;
+    cited.mesh_enabled = false;
+    cited.mesh = "off";
+    if (cited.radios == null) cited.radios = "off";
+  }
   if (cited.enabled === true && !isMeshEnabled(doc)) cited.enabled = false;
   return cited;
 }
@@ -472,14 +478,21 @@ async function cancelBody(res) {
   }
 }
 
-async function fetchRuntimeMesh(request, destPathAndQuery, env) {
+async function fetchRuntimeMesh(request, destPathAndQuery, env, bodyText) {
   const dest = new URL(destPathAndQuery, RUNTIME_ORIGIN + "/");
+  const method = String(request.method || "GET").toUpperCase();
   const init = {
-    method: request.method,
+    method,
     headers: dropHopHeaders(request.headers),
     redirect: "manual",
   };
-  if (request.method !== "GET" && request.method !== "HEAD") init.body = request.body;
+  if (method !== "GET" && method !== "HEAD") {
+    if (bodyText != null) init.body = bodyText;
+    else if (request.body) {
+      init.body = request.body;
+      init.duplex = "half";
+    }
+  }
   if (env && env.AZIEL_RUNTIME && typeof env.AZIEL_RUNTIME.fetch === "function") {
     try {
       const bound = await env.AZIEL_RUNTIME.fetch(new Request(dest.toString(), init));
@@ -499,17 +512,32 @@ function looksLikeMeshDoc(doc) {
   return false;
 }
 
-async function peekJsonBody(request) {
+async function readJsonPayload(request) {
   const method = String(request.method || "GET").toUpperCase();
-  if (method === "GET" || method === "HEAD" || method === "OPTIONS") return {};
-  try {
-    const text = await request.clone().text();
-    if (!text) return {};
-    const parsed = JSON.parse(text);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
-  } catch {
-    return {};
+  if (method === "GET" || method === "HEAD" || method === "OPTIONS") {
+    return { payload: {}, bodyText: null };
   }
+  let bodyText = "";
+  try {
+    bodyText = await request.text();
+  } catch {
+    return { payload: {}, bodyText: "" };
+  }
+  if (!bodyText) return { payload: {}, bodyText: "" };
+  try {
+    const parsed = JSON.parse(bodyText);
+    const payload = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+    return { payload, bodyText };
+  } catch {
+    return { payload: {}, bodyText };
+  }
+}
+
+function requestWithBody(request, bodyText) {
+  const method = String(request.method || "GET").toUpperCase();
+  const init = { method, headers: request.headers };
+  if (bodyText != null && method !== "GET" && method !== "HEAD") init.body = bodyText;
+  return new Request(request.url, init);
 }
 
 function originSource(env) {
@@ -524,11 +552,12 @@ export async function proxyMeshRequest(request, destPathAndQuery, env) {
   const method = String(request.method || "GET").toUpperCase();
   const destPath = meshPathOnly(destPathAndQuery);
   const statusRead = isMeshStatusReadPath(destPath);
-  const payload = await peekJsonBody(request);
+  const { payload, bodyText } = await readJsonPayload(request);
+  const outbound = requestWithBody(request, bodyText);
 
   let res;
   try {
-    res = await fetchRuntimeMesh(request, destPathAndQuery, env);
+    res = await fetchRuntimeMesh(outbound, destPathAndQuery, env, bodyText);
   } catch {
     if (statusRead && (method === "GET" || method === "HEAD")) {
       return respondMaybeHead(request, meshJson(meshOffDoc({ source: "library-default-off" })));
