@@ -152,6 +152,7 @@ export function robotsTxt() {
     "Allow: /aziel-library",
     "Allow: /pattern",
     "Allow: /software",
+    "Allow: /donate",
     "Allow: /how-its-scored",
     "Allow: " + ABOUT_PATH,
     "Allow: /about",
@@ -166,6 +167,7 @@ export function robotsTxt() {
     "Allow: /humans.txt",
     "Allow: /openapi.json",
     "Allow: /v1/software",
+    "Allow: /v1/library-index",
     "Allow: /v1/update/check",
     "Allow: /v1/mesh",
     "Allow: /v1/mesh/",
@@ -195,7 +197,9 @@ const STATIC_SITEMAP = [
   "/",
   ABOUT_PATH,
   "/software",
+  "/donate",
   "/v1/software",
+  "/v1/library-index",
   "/v1/update/check",
   "/v1/mesh",
   "/v1/mesh/status",
@@ -440,6 +444,8 @@ export function llmsDoc(limitation) {
     + "Library: " + HOST + "/\n"
     + ABOUT_NAV_LABEL + ": " + HOST + ABOUT_PATH + "\n"
     + "Software hub: " + HOST + "/software\n"
+    + "Donate (static, no KV): " + HOST + "/donate\n"
+    + "Packed library index: " + HOST + "/v1/library-index\n"
     + "Software hub mirrors the live aziel-runtime catalog per request (GET " + CATALOG + "/v1/software, fallback " + CATALOG + "/v1/fraggate/list; same-origin " + HOST + "/v1/software). No fixed product cap.\n"
     + "Runtime catalog: " + HOST + "/runtime\n"
     + "Runtime FragGate: " + HOST + "/runtime/v1/fraggate\n"
@@ -589,6 +595,7 @@ export function aiTxt(limitation) {
     "Allow: " + ABOUT_PATH,
     "Allow: /about",
     "Allow: /software",
+    "Allow: /donate",
     "Allow: /runtime",
     "Allow: /runtime/",
     "Allow: /runtime/v1/uses",
@@ -609,6 +616,7 @@ export function aiTxt(limitation) {
     "Allow: /v1",
     "Allow: /v1/",
     "Allow: /v1/software",
+    "Allow: /v1/library-index",
     "Allow: /v1/update/check",
     "Allow: /v1/mesh",
     "Allow: /v1/mesh/",
@@ -679,6 +687,7 @@ export function humansTxt() {
     "Name: Aziel Digital Library",
     "Standards: HTML, JSON-LD, OpenAPI, llms.txt",
     "Software: " + HOST + "/software",
+    "Donate: " + HOST + "/donate",
     "Software hub mirrors runtime /v1/software (fallback fraggate/list): " + HOST + "/v1/software",
     "Suite mesh (default off until runtime enable): " + HOST + "/v1/mesh",
     "Runtime mesh: " + HOST + "/runtime/v1/mesh",
