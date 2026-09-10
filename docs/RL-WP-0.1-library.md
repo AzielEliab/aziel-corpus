@@ -124,7 +124,7 @@ Static island on `azielcorpuslibrary.net` only for this paper.
 
 - No KV. No D1. No Durable Objects.
 - Networks the operator already controls. Published door is **AZL-DONATE-1.0** (Exodus rails pasted at publish). This paper does not invent wallets.
-- Copy, open-in-wallet, optional payment-URI QR. Not a Software catalog item.
+- Copy, open-in-wallet, solid black-on-white PNG payment-URI QR. Not a Software catalog item.
 - No legal name. No home. No case narrative.
 
 The strip / `/donate` tab funds the cycle cap. It does not replace Steps 1–4.

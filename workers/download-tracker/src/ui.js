@@ -47,9 +47,8 @@ body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;lin
 .donate-addr{display:block;word-break:break-all;font-size:13px;line-height:1.45;color:var(--ink);background:#16130f;padding:10px 12px;border-radius:10px;border:1px solid var(--line)}
 .donate-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
 .donate-actions .button,.donate-actions a.button{width:auto}
-.donate-qr{margin:0 0 10px;width:148px;max-width:100%;padding:8px;border:1px solid var(--line);border-radius:12px;background:#12100c}
-.donate-qr-mark,.donate-qr svg{display:block;width:100%;height:auto}
-.donate-qr .qrline{fill:none;stroke:var(--gold);stroke-width:1}
+.donate-qr{margin:0 0 10px;width:180px;max-width:100%;padding:10px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.donate-qr img{display:block;width:180px;max-width:100%;height:auto;background:#fff}
 .donate-extra,.donate-net{margin:8px 0 0;color:var(--muted);font-size:14px}
 .donate-meta p{margin:0 0 10px}
 .nav2 a,.quiet a{color:var(--gold);text-decoration:none;font-size:15px;padding:10px 11px;min-height:44px;display:inline-flex;align-items:center;border-radius:10px}
