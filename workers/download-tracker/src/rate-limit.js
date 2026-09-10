@@ -1,8 +1,9 @@
 /**
- * RL-WP-0.1 library-scope visitor rate buckets.
- * Identify visitor as SHA-256(CF-Connecting-IP + optional cookie).
+ * RL-WP-0.1-library visitor rate buckets on azielcorpuslibrary.net only.
+ * Identify visitor as SHA-256(CF-Connecting-IP). Cookie cannot evade.
+ * 30 search/min, 120 record views/hour, 800 library requests/day.
  * Operator token / signed operator skips the bucket. No public IP allowlist UI.
- * Soft exceed: HTTP 429 + last cached catalog. Author: Aziel Eliab only.
+ * Soft exceed: HTTP 429 + last cached search page. Author: Aziel Eliab only.
  */
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { isOperator } from "./library.js";
@@ -28,10 +29,9 @@ export const OPERATOR_HEADER = "X-Aziel-Operator-Token";
 export const CATALOG_CACHE_URL = "https://azielcorpuslibrary.net/__cache/last-catalog";
 export const BUCKET_CACHE_PREFIX = "https://azielcorpuslibrary.net/__cache/rl/";
 
+/** RL-WP-0.1-library buckets. Do not copy runtime-scope 60/600/5000 here. */
 export const LIMITS = {
-  minute: 60,
-  hour: 600,
-  day: 5000,
+  day: 800,
   search_per_minute: 30,
   record_per_hour: 120,
 };
@@ -188,15 +188,13 @@ export function bumpWindows(windows, nowMs, klass) {
 }
 
 export function overLimit(windows, limits = LIMITS) {
-  if ((windows.minute && windows.minute.n) > limits.minute) return { class: "rate-soft", window: "minute" };
-  if ((windows.hour && windows.hour.n) > limits.hour) return { class: "rate-soft", window: "hour" };
-  if ((windows.day && windows.day.n) > limits.day) return { class: "rate-soft", window: "day" };
   if ((windows.search_minute && windows.search_minute.n) > limits.search_per_minute) {
     return { class: "rate-soft", window: "search_minute" };
   }
   if ((windows.record_hour && windows.record_hour.n) > limits.record_per_hour) {
     return { class: "rate-soft", window: "record_hour" };
   }
+  if ((windows.day && windows.day.n) > limits.day) return { class: "rate-soft", window: "day" };
   return null;
 }
 
@@ -290,7 +288,7 @@ export async function rateLimitedResponse(request, env, decision, { cache } = {}
     const n = catalog && Array.isArray(catalog.records) ? catalog.records.length : 0;
     const body =
       "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>Slow down — Aziel Digital Library</title></head><body>" +
-      "<h1>Rate limit</h1><p>Soft visitor cap (RL-WP-0.1). Retry after " +
+      "<h1>Rate limit</h1><p>Soft visitor cap (RL-WP-0.1 library scope). Retry after " +
       RETRY_AFTER +
       " seconds. The last packed catalog still runs (" +
       n +

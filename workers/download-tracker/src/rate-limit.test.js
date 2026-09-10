@@ -37,17 +37,25 @@ test("donate and health are rate-exempt", () => {
   assert.equal(pathClass("/record/AZDOC-1"), "record");
 });
 
-test("soft bucket trips at 61 requests per minute", () => {
+test("record window is 120 views per hour (RL-WP-0.1-library)", () => {
   let w = emptyWindows(1_000);
-  for (let i = 0; i < LIMITS.minute; i++) w = bumpWindows(w, 1_000, "read");
+  for (let i = 0; i < LIMITS.record_per_hour; i++) w = bumpWindows(w, 1_000, "record");
+  assert.equal(overLimit(w), null);
+  w = bumpWindows(w, 1_000, "record");
+  assert.equal(overLimit(w).window, "record_hour");
+});
+
+test("soft bucket trips at 801 library requests per day (RL-WP-0.1-library)", () => {
+  let w = emptyWindows(1_000);
+  for (let i = 0; i < LIMITS.day; i++) w = bumpWindows(w, 1_000, "read");
   assert.equal(overLimit(w), null);
   w = bumpWindows(w, 1_000, "read");
   const hit = overLimit(w);
   assert.equal(hit.class, "rate-soft");
-  assert.equal(hit.window, "minute");
+  assert.equal(hit.window, "day");
 });
 
-test("search window is 30 per minute (TUN-WP-0.1)", () => {
+test("search window is 30 per minute (RL-WP-0.1-library)", () => {
   let w = emptyWindows(1_000);
   for (let i = 0; i < 30; i++) w = bumpWindows(w, 1_000, "search");
   assert.equal(overLimit(w), null);

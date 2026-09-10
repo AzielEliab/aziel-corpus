@@ -31,7 +31,10 @@ body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;lin
 .brand{font-size:23px;font-weight:800;letter-spacing:-.02em;line-height:1.2;color:var(--ink)}
 .nav1,.nav2,.top,.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .nav1{margin-bottom:6px}
-.nav2{margin:8px 0 28px;gap:2px 0}
+.nav2{margin:8px 0 12px;gap:2px 0}
+.donate-strip{margin:0 0 22px;padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:var(--paper);color:var(--muted);font-size:14px}
+.donate-strip p{margin:0}
+.donate-strip a{font-weight:700}
 .nav2 a,.quiet a{color:var(--gold);text-decoration:none;font-size:15px;padding:10px 11px;min-height:44px;display:inline-flex;align-items:center;border-radius:10px}
 .nav2 a:hover{background:#2a241c;color:var(--ink)}
 .nav2 .sep{color:#5a4e3e;padding:0 2px}
@@ -211,6 +214,11 @@ export function pwField(name = "password") {
   return `<div class="pw-row"><input id="${id}" name="${name}" type="password" required placeholder="password" autocomplete="current-password"><label class="showpw"><input type="checkbox" onclick="var e=document.getElementById('${id}');e.type=this.checked?'text':'password'"> Show password</label></div>`;
 }
 
+/** Static Donate strip on library chrome. No KV, D1, or invented wallets. RL-WP-0.1-library. */
+export function donateStripHtml() {
+  return `<aside class="donate-strip" aria-label="Donate"><p>Optional support for the library cycle cap. Static strip on this origin — no Worker KV. <a href="/donate">Donate</a>. Author Aziel Eliab.</p></aside>`;
+}
+
 export function page(title, body, { signed, scripts, path, kind, description, work, runtimeVersion } = {}) {
   const who = signed && signed.username ? String(signed.username) : "";
   const account = signed
@@ -222,6 +230,7 @@ export function page(title, body, { signed, scripts, path, kind, description, wo
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)} — Aziel Digital Library</title>${headMeta({ title, path: path || "/", kind, description, work, runtimeVersion })}<style>${CSS}</style></head><body><div class="wrap">
 <div class="brandrow nav1"><img class="brandmark" src="/sigil.png" width="40" height="40" alt="" decoding="async"><div class="brand">Aziel Digital Library</div><span class="pill">Runtime v2.7.0</span><span class="pill ok">MASTER · WRITABLE</span>${account}${meshStatusHtml(meshOffDoc())}</div>
 <nav class="nav2 quiet"><a href="/">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/pattern">Pattern</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/how-its-scored">How it's scored</a><span class="sep">|</span><a href="/donate">Donate</a><span class="sep">|</span><a href="/runtime">Runtime</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/gazetteer">Gazetteer</a><span class="sep">|</span><a href="/intelligence">Intelligence</a><span class="sep">|</span><a href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a><span class="sep">|</span>${authLinks}</nav>
+${donateStripHtml()}
 ${body}</div>${jeevesFabHtml()}${(scripts||[]).map((src)=>"<script src=\""+esc(src)+"\" defer></script>").join("")}${meshRefreshScript()}</body></html>`;
 }
 

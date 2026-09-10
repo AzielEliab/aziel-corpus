@@ -34,6 +34,8 @@ test("handleDonate never reads env and stays Aziel Eliab only", async () => {
   const html = await res.text();
   assert.match(html, /Donate/);
   assert.match(html, /href="\/donate"/);
+  assert.match(html, /donate-strip/);
+  assert.match(html, /cycle cap/);
   assert.match(html, /Aziel Eliab/);
   assert.match(html, /royal|#6b3fa0|Aziel Library/);
   assert.doesNotMatch(html, BANNED);

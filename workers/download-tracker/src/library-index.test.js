@@ -3,9 +3,11 @@ import assert from "node:assert/strict";
 import {
   LIBRARY_INDEX_KEY,
   KV_CACHE_TTL,
+  SEARCH_CACHE_CONTROL,
   collectStats,
   createKvBudget,
   emptyPackedIndex,
+  publicSearchCard,
   readPackedIndex,
   refreshPackedIndex,
   searchPackedRecords,
@@ -117,6 +119,8 @@ test("refreshPackedIndex loads D1 cards and writes library:index:v1 without list
   assert.equal(kv.calls.list, 0);
   assert.ok(kv.store.has(LIBRARY_INDEX_KEY));
   assert.equal(doc.records[0].record_id, "AZDOC-A");
+  assert.equal(doc.records[0].id, "AZDOC-A");
+  assert.equal(doc.records[0].shelf, "aziel");
   assert.equal(doc.records[0].href, "/record/AZDOC-A");
   assert.equal(doc.records[0].author, "Aziel Eliab");
   assert.ok(!("body" in doc.records[0]));
@@ -132,6 +136,11 @@ test("searchPackedRecords filters the packed shelf without KV", () => {
   const hits = searchPackedRecords(doc, { q: "Florence", library: "all", limit: 10 });
   assert.equal(hits.length, 1);
   assert.equal(hits[0].record_id, "AZDOC-1");
+  assert.equal(hits[0].shelf, "corpus");
+  const card = publicSearchCard(hits[0]);
+  assert.equal(card.id, "AZDOC-1");
+  assert.equal(card.shelf, "corpus");
+  assert.ok(!("body" in card));
 });
 
 test("GET /v1/health is failover-ready standby and does not list KV", async () => {
@@ -189,6 +198,55 @@ test("libraryHealthFields stay Aziel Eliab only", () => {
   assert.equal(fields.role, "standby");
   assert.match(fields.note, /Aziel Eliab/);
   assert.doesNotMatch(fields.note, BANNED);
+});
+
+test("GET /v1/search filters packed index even when D1 is bound", async () => {
+  const packed = sealPackedIndex({
+    records: [
+      cardFromRecord({
+        record_id: "AZDOC-1",
+        title: "Florence notes",
+        library: "corpus",
+        author: "Aziel Eliab",
+        content_sha256: "abc",
+        chain_tip: "tip-1",
+        created_utc: "2026-01-02",
+      }),
+    ],
+  });
+  const kv = throwingListKv(new Map([[LIBRARY_INDEX_KEY, JSON.stringify(packed)]]));
+  const env = {
+    DOWNLOADS: kv,
+    DB: {
+      prepare() {
+        throw new Error("D1 must not be the /v1/search hot path");
+      },
+    },
+  };
+  const res = await handleRuntimeApi(
+    new Request("https://www.azielcorpuslibrary.net/v1/search?q=Florence"),
+    new URL("https://www.azielcorpuslibrary.net/v1/search?q=Florence"),
+    env
+  );
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get("cache-control") || "", /s-maxage=120/);
+  assert.match(res.headers.get("cache-control") || "", /stale-while-revalidate=3600/);
+  assert.equal(SEARCH_CACHE_CONTROL.includes("s-maxage=120"), true);
+  const body = await res.json();
+  assert.equal(body.source, "packed");
+  assert.equal(body.index_key, LIBRARY_INDEX_KEY);
+  assert.equal(body.kv_list_hot_path, false);
+  assert.equal(body.results.length, 1);
+  assert.equal(body.results[0].id, "AZDOC-1");
+  assert.equal(body.results[0].record_id, "AZDOC-1");
+  assert.equal(body.results[0].shelf, "corpus");
+  assert.equal(body.results[0].content_sha256, "abc");
+  assert.equal(body.results[0].chain_tip, "tip-1");
+  assert.ok(!("body" in body.results[0]));
+  assert.equal(kv.calls.list, 0);
+  assert.equal(kv.calls.get.length, 1);
+  assert.equal(kv.calls.get[0].key, LIBRARY_INDEX_KEY);
+  assert.doesNotMatch(JSON.stringify(body), BANNED);
 });
 
 test("writePackedIndex then collectStats still never lists", async () => {
