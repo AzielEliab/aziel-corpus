@@ -132,7 +132,7 @@ export function handleDonate(request) {
   const method = String((request && request.method) || "GET").toUpperCase();
   const headers = {
     "Content-Type": "text/html; charset=utf-8",
-    "Cache-Control": "public, max-age=86400",
+    "Cache-Control": "no-store, max-age=0, must-revalidate",
     ...corsHeaders(),
   };
   if (method === "HEAD") return new Response(null, { status: 200, headers });
