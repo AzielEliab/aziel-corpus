@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import {
   AUTHOR,
   MESH_NOTE,
+  QNS_CD,
+  QNS_CD_SPEC,
   destMeshPath,
   decorateMeshDoc,
   handleMeshApi,
@@ -61,11 +63,54 @@ test("mesh default off until runtime enable; identity Aziel Eliab only", () => {
   assert.match(off.origin, /aziel-runtime\.vibelock\.workers\.dev\/v1\/mesh$/);
   assert.match(MESH_NOTE, /Default off until aziel-runtime enables it/);
   assert.match(MESH_NOTE, /not itself a mesh/);
+  assert.match(MESH_NOTE, /QNS-CD-1\.0/);
+  assert.match(MESH_NOTE, /no public proxy/);
+  assert.match(MESH_NOTE, /no Node Gate/);
   assert.match(MESH_NOTE, /Aziel Eliab only/);
   assert.doesNotMatch(MESH_NOTE, BANNED);
   assert.equal(isMeshEnabled(off), false);
   assert.equal(liveNodesCount(off), 0);
   assert.equal(liveNodesLabel(off), "Live Nodes · off");
+});
+
+test("QNS-CD-1.0 cross-map is on Live Nodes payloads; not a Softwares-tab product", () => {
+  assert.equal(QNS_CD_SPEC, "QNS-CD-1.0");
+  assert.equal(QNS_CD.spec, "QNS-CD-1.0");
+  assert.equal(QNS_CD.name, "photon QNS1 packet transfer");
+  assert.equal(QNS_CD.kind, "hub-cite");
+  assert.equal(QNS_CD.softwares_tab, false);
+  assert.equal(QNS_CD.public_proxy, false);
+  assert.equal(QNS_CD.node_gate, false);
+  assert.equal(QNS_CD.default, "off");
+  assert.equal(QNS_CD.qnsd, "local");
+  assert.equal(QNS_CD.qnsd_coded_in, "https://github.com/AzielEliab/qnm-node");
+  assert.equal(QNS_CD.runtime_cites, "https://github.com/AzielEliab/aziel-runtime");
+  assert.equal(QNS_CD.pair_custody, "https://github.com/AzielEliab/azinterface");
+  assert.match(QNS_CD.runtime_catalog, /\/v1\/software$/);
+  assert.match(QNS_CD.runtime_mesh, /\/v1\/mesh$/);
+  assert.match(QNS_CD.designs.qnm_wp, /QNM-WP-1\.0/);
+  assert.match(QNS_CD.designs.node_mesh, /NODE_MESH/);
+  assert.match(QNS_CD.note, /not a Softwares-tab product/);
+  assert.equal(QNS_CD.author, "Aziel Eliab");
+  assert.equal(QNS_CD.identity, "Aziel Eliab");
+
+  const off = meshOffDoc();
+  assert.equal(off.qns_cd_spec, "QNS-CD-1.0");
+  assert.equal(off.qns_cd.spec, "QNS-CD-1.0");
+  assert.equal(off.enabled, false);
+  assert.equal(off.mesh, "off");
+
+  const on = decorateMeshDoc({
+    enabled: true,
+    mesh: "on",
+    live_nodes: 2,
+    nodes: [{ id: "a" }, { id: "b" }],
+  });
+  assert.equal(on.enabled, true);
+  assert.equal(on.qns_cd_spec, "QNS-CD-1.0");
+  assert.equal(on.qns_cd.public_proxy, false);
+  assert.equal(on.qns_cd.node_gate, false);
+  assert.equal(on.default, "off");
 });
 
 test("decorateMeshDoc turns on only when runtime enables", () => {
@@ -103,6 +148,10 @@ test("GET /v1/mesh is default off when runtime has no mesh", async () => {
   assert.equal(body.source, "library-default-off");
   assert.equal(body.author, "Aziel Eliab");
   assert.equal(body.identity, "Aziel Eliab");
+  assert.equal(body.qns_cd_spec, "QNS-CD-1.0");
+  assert.equal(body.qns_cd.spec, "QNS-CD-1.0");
+  assert.equal(body.qns_cd.softwares_tab, false);
+  assert.equal(body.qns_cd.public_proxy, false);
 });
 
 test("GET /v1/mesh proxies a runtime-enabled mesh", async () => {
@@ -130,6 +179,8 @@ test("GET /v1/mesh proxies a runtime-enabled mesh", async () => {
   assert.equal(body.author, "Aziel Eliab");
   assert.match(body.host, /\/v1\/mesh$/);
   assert.match(body.runtime, /\/runtime\/v1\/mesh$/);
+  assert.equal(body.qns_cd_spec, "QNS-CD-1.0");
+  assert.equal(body.qns_cd.qnsd, "local");
 });
 
 test("GET /v1/mesh/nodes and /runtime/v1/mesh stay off when origin 404s", async () => {
@@ -193,12 +244,15 @@ test("OpenAPI, MCP, llms, cite, robots, sitemap cite mesh paths", async () => {
   assert.match(cite.mesh, /\/v1\/mesh$/);
   assert.match(cite.runtime_mesh, /\/runtime\/v1\/mesh$/);
   assert.match(cite.mesh_origin, /\/v1\/mesh$/);
+  assert.equal(cite.qns_cd_spec, "QNS-CD-1.0");
+  assert.match(cite.mesh_note, /QNS-CD-1\.0/);
 
   const llms = llmsDoc("LIMIT");
   assert.match(llms, /\/v1\/mesh/);
   assert.match(llms, /\/runtime\/v1\/mesh/);
   assert.match(llms, /default off/);
   assert.match(llms, /Live Nodes/);
+  assert.match(llms, /QNS-CD-1\.0/);
 
   const robots = robotsTxt();
   assert.match(robots, /Allow: \/v1\/mesh/);
@@ -214,6 +268,7 @@ test("runtime skill and manifest cite mesh; GET mesh does not increment uses", (
   const skill = runtimeSkillMd();
   assert.match(skill, /\/runtime\/v1\/mesh/);
   assert.match(skill, /default off/);
+  assert.match(skill, /QNS-CD-1\.0/);
   assert.match(skill, /Aziel Eliab/);
   const man = runtimeManifest();
   assert.match(man.mesh, /\/runtime\/v1\/mesh$/);
