@@ -5,6 +5,8 @@
  * Local qnsd lives in AzielEliab/qnm-node. Runtime cites + catalog field live in
  * AzielEliab/aziel-runtime. AZInterface has pair custody. Not a Softwares-tab product.
  * No Node Gate. No public qnsd proxy. Identity: Aziel Eliab only.
+ * Host overlay must not rewrite Worker MESH-* refuse codes into a 409
+ * library-default-off body. GET never enables. Overlay never enables radios.
  */
 import { HOST, RUNTIME_ORIGIN, RUNTIME_GITHUB } from "./runtime-copy.js";
 
@@ -78,6 +80,292 @@ export function destMeshPath(pathname, search) {
   const trimmed = rest.replace(/\/+$/, "") || "/";
   if (trimmed !== "/v1/mesh" && !trimmed.startsWith("/v1/mesh/")) return null;
   return trimmed + (search || "");
+}
+
+/** Align host overlay refuses with aziel-runtime Worker codes. Radios stay OFF here. */
+export const MESH_SPEC = "QNM-BUILD-1.0";
+export const MESH_COMPANION = "AIH-WP-1.1";
+export const MESH_NAME = "Quantum Node Mesh";
+export const EXAMPLE_BEARER = "suite-presence";
+export const MESH_NEED_BEARER = "MESH-NEED-BEARER";
+export const MESH_BAD_BEARER = "MESH-BAD-BEARER";
+export const MESH_OFF = "MESH-OFF";
+export const MESH_METHOD = "MESH-METHOD";
+export const MESH_NOT_FOUND = "MESH-NOT-FOUND";
+export const MESH_OK = "MESH-OK";
+
+const BEARER_RE = /^[a-z][a-z0-9-]{1,39}$/;
+const FORBIDDEN_BEARER_TOKENS = Object.freeze([
+  "login",
+  "recover",
+  "recovery",
+  "account",
+  "resurrection",
+  "resurrect",
+  "gate",
+  "ip",
+  "ip-panel",
+  "ippanel",
+  "publish",
+  "phoenix",
+  "heal",
+  "controller",
+  "password",
+  "session",
+  "restore",
+]);
+
+const POST_MESH_OPS = Object.freeze({
+  "/v1/mesh/enable": "enable",
+  "/v1/mesh/disable": "disable",
+  "/v1/mesh/join": "join",
+  "/v1/mesh/heartbeat": "heartbeat",
+  "/v1/mesh/leave": "leave",
+  "/v1/mesh/broadcast": "broadcast",
+});
+
+const NEED_BEARER_MESSAGE =
+  "LIVE only after the operator declares ≥1 bearer. Pass { bearer: \"suite-presence\" }. Empty enable is refused. GET /v1/mesh never enables.";
+const BAD_BEARER_MESSAGE =
+  "Bearer refused. Login / account / recover / gate / IP / publish / phoenix / heal names are not suite bearers. This is not a login mesh.";
+const OFF_MESSAGE =
+  "QNM radios are off. Default OFF. Declare ≥1 bearer with enable first. Site pings do not enable.";
+
+export function meshPathOnly(pathname) {
+  return String(pathname || "").split("?")[0].replace(/\/+$/, "") || "/";
+}
+
+export function isMeshStatusReadPath(pathname) {
+  const path = meshPathOnly(pathname);
+  return path === "/v1/mesh" || path === "/v1/mesh/status" || path === "/v1/mesh/nodes";
+}
+
+export function meshOpFromPath(pathname) {
+  const path = meshPathOnly(pathname);
+  if (path === "/v1/mesh" || path === "/v1/mesh/status") return "status";
+  if (path === "/v1/mesh/nodes") return "nodes";
+  return POST_MESH_OPS[path] || "";
+}
+
+export function looksLikeMeshCode(doc) {
+  if (!doc || typeof doc !== "object") return false;
+  return /^MESH-[A-Z0-9-]+$/.test(String(doc.code || ""));
+}
+
+export function meshRefuseHttpStatus(doc) {
+  if (!doc || typeof doc !== "object") return 400;
+  if (doc.ok === true) return 200;
+  const code = String(doc.code || "");
+  if (code === MESH_METHOD) return 405;
+  if (code === MESH_NOT_FOUND) return 404;
+  return 400;
+}
+
+export function sanitizeBearer(raw) {
+  const s = String(raw || "").trim().toLowerCase();
+  if (!BEARER_RE.test(s)) return "";
+  const parts = s.split("-").filter(Boolean);
+  for (const tok of FORBIDDEN_BEARER_TOKENS) {
+    if (s === tok || parts.includes(tok)) return "";
+  }
+  return s;
+}
+
+export function collectDeclaredBearers(src) {
+  const raw = [];
+  if (src && src.bearer != null && src.bearer !== "") raw.push(src.bearer);
+  if (src && Array.isArray(src.bearers)) raw.push(...src.bearers);
+  const accepted = [];
+  const rejected = [];
+  for (const item of raw) {
+    const clean = sanitizeBearer(item);
+    if (clean) {
+      if (!accepted.includes(clean)) accepted.push(clean);
+    } else {
+      rejected.push(String(item == null ? "" : item).trim());
+    }
+  }
+  return { accepted, rejected, raw };
+}
+
+function radiosOffFields() {
+  return {
+    enabled: false,
+    radios: "off",
+    mesh_enabled: false,
+    bearers: [],
+    rollup: { live: 0, locked: 0, isolated: 0 },
+    live_nodes: 0,
+    locked_nodes: 0,
+    isolated_nodes: 0,
+    products_present: [],
+    products: [],
+    nodes: [],
+    mesh: "off",
+    default: "off",
+  };
+}
+
+function qnmFrame() {
+  return {
+    spec: MESH_SPEC,
+    companion: MESH_COMPANION,
+    name: MESH_NAME,
+    qnm_s: false,
+    qnm_s_note: "Views, MCP, and downloads do not enter QNM-S.",
+    scores: false,
+    leaderboard: false,
+    phoenix_lock: "local wait — no controller hunt",
+    local_node: "qnm-node/",
+    local_node_note:
+      "Full node process is local qnm-node/ (boot/chain/apg/bearers/outbox/phoenix/score/memorial/tethers). "
+      + "Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). "
+      + "Parent will roll that package. This runtime is suite rollup + operator enable only.",
+    host_note:
+      "azieleliab.com hosts published software/runtime — not login-recovery, not Node Gate/IP panel, not upload proxy.",
+    qns_cd: QNS_CD,
+  };
+}
+
+function libraryMeshCites(extra = {}) {
+  return {
+    author: AUTHOR,
+    identity: AUTHOR,
+    host: HOST + "/v1/mesh",
+    runtime: HOST + "/runtime/v1/mesh",
+    origin: RUNTIME_ORIGIN + "/v1/mesh",
+    source: extra.source || "library-default-off",
+    qns_cd_spec: QNS_CD_SPEC,
+  };
+}
+
+/** Worker-shaped refuse. Overlay never turns radios on. */
+export function meshRefuseDoc(code, message, extra = {}) {
+  const source = extra.source || "library-default-off";
+  const rest = { ...extra };
+  delete rest.source;
+  delete rest.enabled;
+  delete rest.radios;
+  delete rest.mesh_enabled;
+  delete rest.ok;
+  return {
+    ok: false,
+    code,
+    author: AUTHOR,
+    identity: AUTHOR,
+    kernel: "mesh",
+    mesh_default: "off",
+    message,
+    ...qnmFrame(),
+    ...radiosOffFields(),
+    ...libraryMeshCites({ source }),
+    ...rest,
+    enabled: false,
+    radios: "off",
+    mesh_enabled: false,
+    mesh: "off",
+    author: AUTHOR,
+    identity: AUTHOR,
+    qns_cd_spec: QNS_CD_SPEC,
+    qns_cd: QNS_CD,
+  };
+}
+
+/** Cite host paths on a Worker envelope. Does not enable radios. */
+export function citeMeshEnvelope(doc, extra = {}) {
+  if (!doc || typeof doc !== "object") {
+    return meshRefuseDoc(MESH_OFF, OFF_MESSAGE, extra);
+  }
+  const cited = {
+    ...doc,
+    ...libraryMeshCites({ source: extra.source || doc.source || "origin-fetch" }),
+    author: AUTHOR,
+    identity: AUTHOR,
+    qns_cd: doc.qns_cd && typeof doc.qns_cd === "object" ? doc.qns_cd : QNS_CD,
+    qns_cd_spec: QNS_CD_SPEC,
+  };
+  if (cited.enabled === true && !isMeshEnabled(doc)) cited.enabled = false;
+  return cited;
+}
+
+export function synthesizeMeshRefuse(method, destPath, payload, extra = {}) {
+  const m = String(method || "GET").toUpperCase();
+  const path = meshPathOnly(destPath);
+  const op = meshOpFromPath(path);
+  const src = payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {};
+  const source = extra.source || "library-default-off";
+
+  if (isMeshStatusReadPath(path) && (m === "GET" || m === "HEAD")) {
+    return meshOffDoc({ source });
+  }
+
+  if (POST_MESH_OPS[path]) {
+    if (m !== "POST") {
+      return meshRefuseDoc(MESH_METHOD, "POST " + path + ".", {
+        source,
+        op,
+        hint: "POST " + path,
+      });
+    }
+    if (op === "enable") {
+      const { accepted, rejected, raw } = collectDeclaredBearers(src);
+      if (!raw.length) {
+        return meshRefuseDoc(MESH_NEED_BEARER, NEED_BEARER_MESSAGE, {
+          source,
+          op: "enable",
+          example_bearer: EXAMPLE_BEARER,
+        });
+      }
+      if (rejected.length) {
+        return meshRefuseDoc(MESH_BAD_BEARER, BAD_BEARER_MESSAGE, {
+          source,
+          op: "enable",
+          refused_bearers: rejected.slice(0, 8),
+          example_bearer: EXAMPLE_BEARER,
+        });
+      }
+      return meshRefuseDoc(MESH_OFF, OFF_MESSAGE, {
+        source,
+        op: "enable",
+        declared_bearers: accepted.slice(0, 8),
+        example_bearer: EXAMPLE_BEARER,
+        note: "Host overlay does not enable radios. GET /v1/mesh never enables. Identity Aziel Eliab only.",
+      });
+    }
+    if (op === "disable" || op === "leave") {
+      return {
+        ok: true,
+        code: MESH_OK,
+        author: AUTHOR,
+        identity: AUTHOR,
+        kernel: "mesh",
+        mesh_default: "off",
+        ...qnmFrame(),
+        ...radiosOffFields(),
+        ...libraryMeshCites({ source }),
+        op,
+        note: op === "disable"
+          ? "Radios/bearers OFF. Tethers drop clean — no implicit heal, no account resurrection, no wipe internals."
+          : "Presence dropped clean. No implicit heal.",
+        qns_cd: QNS_CD,
+      };
+    }
+    return meshRefuseDoc(MESH_OFF, OFF_MESSAGE, { source, op });
+  }
+
+  if (path === "/v1/mesh" || path === "/v1/mesh/status") {
+    return meshRefuseDoc(MESH_METHOD, "GET /v1/mesh or GET /v1/mesh/status. GET never enables radios.", {
+      source,
+      hint: "GET /v1/mesh/status",
+    });
+  }
+  if (path === "/v1/mesh/nodes") {
+    return meshRefuseDoc(MESH_METHOD, "GET /v1/mesh/nodes.", { source, hint: "GET /v1/mesh/nodes" });
+  }
+  return meshRefuseDoc(MESH_NOT_FOUND, "Unknown mesh path.", {
+    source,
+    hint: "GET /v1/mesh /status /nodes  POST /v1/mesh/enable|disable|join|heartbeat|leave|broadcast",
+  });
 }
 
 export function isMeshEnabled(doc) {
@@ -211,44 +499,73 @@ function looksLikeMeshDoc(doc) {
   return false;
 }
 
+async function peekJsonBody(request) {
+  const method = String(request.method || "GET").toUpperCase();
+  if (method === "GET" || method === "HEAD" || method === "OPTIONS") return {};
+  try {
+    const text = await request.clone().text();
+    if (!text) return {};
+    const parsed = JSON.parse(text);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function originSource(env) {
+  return env && env.AZIEL_RUNTIME ? "service-binding" : "origin-fetch";
+}
+
+function respondMeshEnvelope(request, doc, status) {
+  return respondMaybeHead(request, meshJson(doc, status == null ? meshRefuseHttpStatus(doc) : status));
+}
+
 export async function proxyMeshRequest(request, destPathAndQuery, env) {
   const method = String(request.method || "GET").toUpperCase();
+  const destPath = meshPathOnly(destPathAndQuery);
+  const statusRead = isMeshStatusReadPath(destPath);
+  const payload = await peekJsonBody(request);
+
   let res;
   try {
     res = await fetchRuntimeMesh(request, destPathAndQuery, env);
   } catch {
-    if (method === "GET" || method === "HEAD") {
+    if (statusRead && (method === "GET" || method === "HEAD")) {
       return respondMaybeHead(request, meshJson(meshOffDoc({ source: "library-default-off" })));
     }
-    return meshJson({ ...meshOffDoc({ source: "library-default-off" }), error: "mesh default off until runtime enable" }, 409);
+    return respondMeshEnvelope(request, synthesizeMeshRefuse(method, destPath, payload, { source: "library-default-off" }));
   }
 
-  if (res && res.ok && (method === "GET" || method === "HEAD")) {
+  let doc = null;
+  if (res) {
     try {
-      const doc = await res.json();
-      if (looksLikeMeshDoc(doc)) {
-        return respondMaybeHead(request, meshJson(decorateMeshDoc(doc, { source: env && env.AZIEL_RUNTIME ? "service-binding" : "origin-fetch" })));
-      }
+      doc = await res.json();
     } catch {
-      /* treat as off */
+      doc = null;
+    }
+  }
+
+  if (looksLikeMeshCode(doc)) {
+    const source = originSource(env);
+    if (statusRead && (method === "GET" || method === "HEAD") && doc.ok !== false) {
+      return respondMaybeHead(request, meshJson(decorateMeshDoc(doc, { source })));
+    }
+    return respondMeshEnvelope(request, citeMeshEnvelope(doc, { source }), res.status || meshRefuseHttpStatus(doc));
+  }
+
+  if (statusRead && (method === "GET" || method === "HEAD")) {
+    if (res && res.ok && looksLikeMeshDoc(doc)) {
+      return respondMaybeHead(request, meshJson(decorateMeshDoc(doc, { source: originSource(env) })));
     }
     return respondMaybeHead(request, meshJson(meshOffDoc({ source: "library-default-off" })));
   }
 
-  if (res && res.ok) {
-    const headers = new Headers(res.headers);
-    for (const [k, v] of Object.entries(corsHeaders())) {
-      if (!headers.has(k)) headers.set(k, v);
-    }
-    headers.set("Cache-Control", "no-store");
-    return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+  if (res && res.ok && doc && typeof doc === "object") {
+    return respondMeshEnvelope(request, citeMeshEnvelope(doc, { source: originSource(env) }), res.status);
   }
 
   await cancelBody(res);
-  if (method === "GET" || method === "HEAD") {
-    return respondMaybeHead(request, meshJson(meshOffDoc({ source: "library-default-off" })));
-  }
-  return meshJson({ ...meshOffDoc({ source: "library-default-off" }), error: "mesh default off until runtime enable" }, 409);
+  return respondMeshEnvelope(request, synthesizeMeshRefuse(method, destPath, payload, { source: "library-default-off" }));
 }
 
 export async function handleMeshApi(request, url, env) {
