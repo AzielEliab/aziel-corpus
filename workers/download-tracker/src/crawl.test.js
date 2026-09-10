@@ -26,7 +26,7 @@ function assertPublicIdentity(text) {
 test("robots.txt allows research surfaces and major AI bots", () => {
   const txt = robotsTxt();
   assertPublicIdentity(txt);
-  for (const path of ["/ai.txt", "/how-its-scored", "/humans.txt", "/software", "/donate", "/runtime", "/runtime/v1/uses", "/AzielEliab"]) {
+  for (const path of ["/ai.txt", "/how-its-scored", "/humans.txt", "/software", "/donate", "/runtime", "/runtime/v1/uses", "/AzielEliab", "/aboutme"]) {
     assert.match(txt, new RegExp("Allow: " + path.replace("/", "\\/")));
   }
   assert.match(txt, /Content-Signal: search=yes, ai-input=yes, ai-train=yes/);
@@ -87,6 +87,7 @@ test("robots.txt allows research surfaces and major AI bots", () => {
     "TurnitinBot",
     "Factset_spyderbot",
     "NeevaBot",
+    "DuckAssist",
   ]) {
     assert.match(txt, new RegExp("User-agent: " + bot));
   }
@@ -125,6 +126,9 @@ test("sitemap.xml lists key routes and uses XML mime helper", async () => {
   assert.match(xml, /\/record\/AZDOC-AZIEL1/);
   assert.match(xml, /<lastmod>2026-08-01<\/lastmod>/);
   assert.match(xml, /<lastmod>2026-07-01<\/lastmod>/);
+  assert.match(xml, /<loc>https:\/\/www\.azielcorpuslibrary\.net\/<\/loc><lastmod>[^<]+<\/lastmod><changefreq>daily<\/changefreq><priority>1\.0<\/priority>/);
+  assert.match(xml, /<loc>https:\/\/www\.azielcorpuslibrary\.net\/software<\/loc><lastmod>[^<]+<\/lastmod><changefreq>weekly<\/changefreq><priority>0\.9<\/priority>/);
+  assert.match(xml, /<loc>https:\/\/www\.azielcorpuslibrary\.net\/AzielEliab<\/loc><lastmod>[^<]+<\/lastmod><changefreq>monthly<\/changefreq><priority>0\.9<\/priority>/);
   assert.doesNotMatch(xml, BANNED);
   assert.equal(MIME.xml, "application/xml; charset=utf-8");
   assert.equal(MIME.plain, "text/plain; charset=utf-8");
@@ -141,6 +145,13 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(cite.software, /\/software$/);
   assert.match(cite.how_its_scored, /\/how-its-scored$/);
   assert.match(cite.about, /\/AzielEliab$/);
+  assert.equal(cite.priority_pages.home.url, "https://www.azielcorpuslibrary.net/");
+  assert.equal(cite.priority_pages.software.url, "https://www.azielcorpuslibrary.net/software");
+  assert.equal(cite.priority_pages.software.title, "Softwares");
+  assert.equal(cite.priority_pages.about.url, "https://www.azielcorpuslibrary.net/AzielEliab");
+  assert.ok(cite.priority_pages.software.related.includes("https://www.azielcorpuslibrary.net/v1/software"));
+  assert.equal(cite.software_hub, "https://www.azielcorpuslibrary.net/software");
+  assert.equal(cite.aziel_eliab, "https://www.azielcorpuslibrary.net/AzielEliab");
   assert.equal(cite.godlock, "https://godlock.uk/AzielEliab");
   assert.ok(cite.sameAs.includes("https://godlock.uk/AzielEliab"));
   assert.ok(cite.sameAs.includes("https://github.com/AzielEliab"));
@@ -163,6 +174,9 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
 
   const llms = llmsDoc("LIMIT");
   assertPublicIdentity(llms);
+  assert.match(llms, /## Priority pages \(index first\)/);
+  assert.match(llms, /Softwares: https:\/\/www\.azielcorpuslibrary\.net\/software/);
+  assert.match(llms, /About Aziel Eliab: https:\/\/www\.azielcorpuslibrary\.net\/AzielEliab/);
   assert.match(llms, /Software hub: https:\/\/www\.azielcorpuslibrary\.net\/software/);
   assert.match(llms, /Donate AZL-DONATE-1\.0 \(static, no KV\): https:\/\/www\.azielcorpuslibrary\.net\/donate/);
   assert.match(llms, /\/v1\/library-index/);
@@ -192,6 +206,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   const ai = aiTxt("LIMIT");
   assertPublicIdentity(ai);
   for (const bot of [
+    "DuckAssist",
     "GPTBot",
     "Google-Extended",
     "ClaudeBot",
@@ -253,7 +268,10 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
     assert.equal((ai.match(new RegExp("User-agent: " + escaped + "\\n", "g")) || []).length, 1);
   }
   assert.match(ai, /Allow: \/how-its-scored/);
+  assert.match(ai, /## Priority pages \(index first\)/);
+  assert.match(ai, /Softwares: https:\/\/www\.azielcorpuslibrary\.net\/software/);
   assert.match(ai, /Allow: \/AzielEliab/);
+  assert.match(ai, /Allow: \/aboutme/);
   assert.match(ai, /Allow: \/v1\//);
   assert.match(ai, /https:\/\/www\.azielcorpuslibrary\.net\/AzielEliab/);
   assert.match(ai, /https:\/\/godlock\.uk\/AzielEliab/);

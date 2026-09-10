@@ -51,7 +51,7 @@ test("GET /about permanently redirects to /AzielEliab", async () => {
   const url = new URL(HOST + "/about");
   const res = await handleHosted(req("/about"), url, stubEnv(), {}, null, null);
   assert.ok(res, "handleHosted should redirect /about");
-  assert.equal(res.status, 308);
+  assert.equal(res.status, 301);
   assert.equal(res.headers.get("location"), ABOUT_PATH);
   assert.equal(await res.text(), "");
 });
@@ -61,14 +61,14 @@ test("GET /aboutme and case-folded /azieleliab redirect to /AzielEliab", async (
     const url = new URL(HOST + path);
     const res = await handleHosted(req(path), url, stubEnv(), {}, null, null);
     assert.ok(res, "handleHosted should redirect " + path);
-    assert.equal(res.status, 308, path);
+    assert.equal(res.status, 301, path);
     assert.equal(res.headers.get("location"), ABOUT_PATH, path);
   }
 });
 
 test("HEAD /about is a permanent redirect and HEAD /AzielEliab is HTML without a body", async () => {
   const about = await handleHosted(req("/about", "HEAD"), new URL(HOST + "/about"), stubEnv(), {}, null, null);
-  assert.equal(about.status, 308);
+  assert.equal(about.status, 301);
   assert.equal(about.headers.get("location"), ABOUT_PATH);
 
   const page = await handleHosted(req(ABOUT_PATH, "HEAD"), new URL(HOST + ABOUT_PATH), stubEnv(), {}, null, null);

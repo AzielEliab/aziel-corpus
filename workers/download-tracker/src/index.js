@@ -441,7 +441,7 @@ export default {
     }
 
     if (url.pathname === "/" && isReadMethod(request.method)) {
-      const htmlHeaders = { "Cache-Control": HTML_CACHE_CONTROL, ...corsHeaders() };
+      const htmlHeaders = { "Cache-Control": HTML_CACHE_CONTROL, "X-Robots-Tag": "index, follow, max-image-preview:large", ...corsHeaders() };
       if (request.method === "HEAD") {
         return crawlResponse(request, "", "text/html; charset=utf-8", htmlHeaders);
       }
