@@ -445,8 +445,13 @@ test("GET /software uses AZIEL_RUNTIME catalog binding and lists every product",
     assert.match(html, /\/runtime\/mcp/);
     assert.match(html, /<h1>Downloadable software<\/h1>\s*<\/section>\s*<section class="soft-section"><h2>Software<\/h2>/);
     assert.match(html, /\/runtime\/v1\/software/);
-    assert.match(res.headers.get("cache-control") || "", /s-maxage=120|no-store/);
+    assert.match(res.headers.get("cache-control") || "", /s-maxage=3600|no-store/);
     assert.doesNotMatch(html, BANNED);
+    assert.match(html, /<title>Softwares — Aziel Eliab catalog \| Aziel Digital Library<\/title>/);
+    assert.match(html, /<h1>Downloadable software<\/h1>/);
+    const softPage = ld["@graph"].find((n) => n["@type"] === "CollectionPage");
+    assert.equal(softPage.name, "Softwares");
+    assert.doesNotMatch(html, /triad \+25|quiet triad|collection score/i);
     const built = await loadSoftwareCatalog(env, { views: 99, downloads: 11 });
     assert.equal(built.catalogVersion, "1.6.4");
     assert.equal(built.hub.version, "1.6.4");
@@ -478,6 +483,94 @@ test("GET /software uses AZIEL_RUNTIME catalog binding and lists every product",
     assert.ok(azn.pills.includes("1 downloads"));
     assert.ok(azn.pills.includes("3 views"));
     assert.ok(!azn.links.some((l) => /fraggate-download-tracker|azbrowser-download-tracker/.test(l.href)));
+  } finally {
+    globalThis.fetch = origFetch;
+  }
+});
+
+test("Googlebot /software is a light crawl path: all cards, unique SEO, no count fan-out", async () => {
+  const catalog = mockCatalog();
+  let countHits = 0;
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = blockLiveRuntime(origFetch, (href) => {
+    if (/\/count(?:\?|$)/.test(href) || href === FRAGGATE_COUNT || href === AZNET_COUNT || href === AZCOHERENCE_COUNT) {
+      countHits += 1;
+      return new Promise(() => {});
+    }
+    return null;
+  });
+  const env = stubEnv({
+    async fetch(request) {
+      const url = new URL(request.url);
+      if (url.pathname.endsWith("/software") || url.pathname.endsWith("/catalog.json")) {
+        return new Response(JSON.stringify(catalog), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      if (url.pathname.endsWith("/uses")) {
+        return new Promise(() => {});
+      }
+      return new Response("no", { status: 404 });
+    },
+  });
+  const started = Date.now();
+  const res = await handleHosted(
+    new Request(HOST + "/software", { headers: { Accept: "text/html", "User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)" } }),
+    new URL(HOST + "/software"),
+    env,
+    {},
+    null,
+    { views: 99, downloads: 11 },
+  );
+  try {
+    assert.ok(res);
+    assert.equal(res.status, 200);
+    assert.ok(Date.now() - started < 2000, "Googlebot Softwares HTML must not wait on count fan-out");
+    assert.equal(countHits, 0);
+    assert.match(res.headers.get("cache-control") || "", /s-maxage=3600/);
+    assert.match(res.headers.get("x-robots-tag") || "", /index/);
+    const html = await res.text();
+    assert.match(html, /<title>Softwares — Aziel Eliab catalog \| Aziel Digital Library<\/title>/);
+    assert.match(html, /<h1>Downloadable software<\/h1>/);
+    assert.match(html, /PeaceLock/);
+    assert.match(html, /AZCoherence/);
+    assert.match(html, /Plain Product 24/);
+    const ld = JSON.parse(html.match(/<script type="application\/ld\+json">([^<]+)<\/script>/)[1]);
+    const pageLd = ld["@graph"].find((n) => n["@type"] === "CollectionPage");
+    assert.equal(pageLd.name, "Softwares");
+    assert.doesNotMatch(html, BANNED);
+    const light = await loadSoftwareCatalog(env, { views: 99, downloads: 11 }, { light: true });
+    assert.ok(light.products.some((p) => p.slug === "peacelock"));
+    assert.ok(light.products.some((p) => p.slug === "azcoherence"));
+    assert.equal(light.products.find((p) => p.slug === "fraggate").pills.length, 0);
+  } finally {
+    globalThis.fetch = origFetch;
+  }
+});
+
+test("empty Softwares catalog still ships unique title, description, and CollectionPage JSON-LD", async () => {
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = blockLiveRuntime(origFetch);
+  const env = stubEnv({
+    async fetch() {
+      return new Response(JSON.stringify({ products: [] }), { status: 200, headers: { "Content-Type": "application/json" } });
+    },
+  });
+  const res = await handleHosted(
+    new Request(HOST + "/software", { headers: { Accept: "text/html", "User-Agent": "Googlebot/2.1" } }),
+    new URL(HOST + "/software"),
+    env,
+    {},
+    null,
+    null,
+  );
+  try {
+    const html = await res.text();
+    assert.match(html, /<title>Softwares — Aziel Eliab catalog \| Aziel Digital Library<\/title>/);
+    assert.match(html, /Downloadable software by Aziel Eliab/);
+    const ld = JSON.parse(html.match(/<script type="application\/ld\+json">([^<]+)<\/script>/)[1]);
+    assert.ok(ld["@graph"].some((n) => n["@type"] === "CollectionPage" && n.name === "Softwares"));
+    assert.ok(ld["@graph"].some((n) => n["@type"] === "Person" && n.name === "Aziel Eliab"));
+    assert.match(html, /AZCoherence|FragGate|EmbryoLock/);
+    assert.doesNotMatch(html, BANNED);
   } finally {
     globalThis.fetch = origFetch;
   }
