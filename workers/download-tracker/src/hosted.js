@@ -27,7 +27,15 @@ import {
 } from "./ocr.js";
 import { normalizeLenses } from "./spectral.js";
 import { loadSoftwareCatalog } from "./software-catalog.js";
-import { HTML_CACHE_CONTROL } from "./library-index.js";
+import { isSeoBot } from "./rate-limit.js";
+import {
+  HTML_CACHE_CONTROL,
+  SOFTWARE_HTML_CACHE_CONTROL,
+  SEO_CACHE_CONTROL,
+  htmlCacheUrl,
+  cacheMatchText,
+  cachePutText,
+} from "./library-index.js";
 
 function intelScripts() {
   var c = [104,116,116,112,115,58,47,47,99,100,110,46,106,115,100,101,108,105,118,114,46,110,101,116,47,110,112,109,47,116,101,115,115,101,114,97,99,116,46,106,115,64,53,47,100,105,115,116,47,116,101,115,115,101,114,97,99,116,46,109,105,110,46,106,115];
@@ -54,6 +62,9 @@ function html(pageBody, extra) {
   extra = extra || {};
   const headers = { "Content-Type": "text/html; charset=utf-8", ...corsHeaders() };
   headers["Cache-Control"] = extra.cacheControl || HTML_CACHE_CONTROL;
+  if (!String(headers["Cache-Control"] || "").includes("no-store")) {
+    headers["X-Robots-Tag"] = "index, follow, max-image-preview:large";
+  }
   const status = extra.status || 200;
   if (extra.head) return new Response(null, { status, headers });
   return new Response(pageBody, { status, headers });
@@ -105,7 +116,8 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
   const read = method === "GET" || head;
   const pageHtml = (pageBody, extra) =>
     html(pageBody, Object.assign({ cacheControl: signed ? "private, no-store" : HTML_CACHE_CONTROL }, extra, { head }));
-  await ensureSchema(env);
+  const staticPriority = path === "/software" || path === ABOUT_PATH || path === "/how-its-scored";
+  if (!staticPriority) await ensureSchema(env);
 
   if ((path === "/assets/world_110m.geojson" || path === "/world_110m.geojson") && read) {
     return assetFromPublic(env, request, "world_110m.geojson", "application/geo+json");
@@ -516,8 +528,22 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     return pageHtml(page("Pattern", patternBody(clusters), { signed, path: "/pattern", kind: "pattern" }));
   }
   if (path === "/software" && read) {
+    const bot = isSeoBot(request);
+    const cacheControl = signed ? "private, no-store" : SOFTWARE_HTML_CACHE_CONTROL;
+    if (head) return html("", { cacheControl, head: true });
+    if (!signed) {
+      const cacheUrl = htmlCacheUrl(request) + (bot ? ":bot" : ":full");
+      const cached = await cacheMatchText(cacheUrl);
+      if (cached) return html(cached, { cacheControl });
+      const catalog = await loadSoftwareCatalog(env, stats, { light: bot });
+      const body = page("Software", softwareBody(catalog), { signed, path: "/software", kind: "software", runtimeVersion: catalog.catalogVersion });
+      const put = cachePutText(cacheUrl, body, undefined, { cacheControl });
+      if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(put);
+      else await put;
+      return html(body, { cacheControl });
+    }
     const catalog = await loadSoftwareCatalog(env, stats);
-    return pageHtml(page("Software", softwareBody(catalog), { signed, path: "/software", kind: "software", runtimeVersion: catalog.catalogVersion }), { cacheControl: signed ? "private, no-store" : HTML_CACHE_CONTROL });
+    return pageHtml(page("Software", softwareBody(catalog), { signed, path: "/software", kind: "software", runtimeVersion: catalog.catalogVersion }), { cacheControl });
   }
   if (path === "/how-its-scored" && read) {
     return pageHtml(page("How it's scored", howItsScoredBody(), { signed, path: "/how-its-scored", kind: "scored" }));
@@ -525,11 +551,18 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
   if (read) {
     const aboutDest = aboutRedirectFrom(path);
     if (aboutDest) {
-      return new Response(null, { status: 308, headers: { Location: aboutDest + (url.search || ""), ...corsHeaders() } });
+      return new Response(null, {
+        status: 301,
+        headers: {
+          Location: aboutDest + (url.search || ""),
+          "Cache-Control": "public, s-maxage=86400",
+          ...corsHeaders(),
+        },
+      });
     }
   }
   if (path === ABOUT_PATH && read) {
-    return pageHtml(page(ABOUT_NAV_LABEL, aboutBody(), { signed, path: ABOUT_PATH, kind: "about" }));
+    return pageHtml(page(ABOUT_NAV_LABEL, aboutBody(), { signed, path: ABOUT_PATH, kind: "about" }), { cacheControl: signed ? "private, no-store" : SEO_CACHE_CONTROL });
   }
   return null;
 }

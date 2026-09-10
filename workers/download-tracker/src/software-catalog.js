@@ -18,6 +18,12 @@ import {
   AZCOHERENCE_SLUG,
   AZCOHERENCE_COUNT,
 } from "./azcoherence.js";
+import {
+  SOFTWARE_CATALOG_CACHE_URL,
+  SEO_CACHE_CONTROL,
+  cacheMatchJson,
+  cachePutJson,
+} from "./library-index.js";
 
 const UA = "Mozilla/5.0 AzielDigitalLibrary";
 
@@ -331,6 +337,40 @@ export function countPills({ downloads, views, uploads, uses } = {}) {
 export const SOFTWARE_LIVE_PATH = "/v1/software";
 export const FRAGGATE_LIST_PATH = "/v1/fraggate/list";
 export const CATALOG_JSON_PATH = "/v1/catalog.json";
+export const SOFTWARE_CRAWL_TIMEOUT_MS = 4000;
+
+function withTimeout(promise, ms) {
+  const limit = Number(ms) || 0;
+  if (limit <= 0) return promise;
+  let timer;
+  return Promise.race([
+    Promise.resolve(promise).finally(() => { if (timer) clearTimeout(timer); }),
+    new Promise((resolve) => {
+      timer = setTimeout(() => resolve(null), limit);
+    }),
+  ]);
+}
+
+async function readCachedSoftwareCatalog() {
+  try {
+    const hit = await cacheMatchJson(SOFTWARE_CATALOG_CACHE_URL);
+    if (hit && catalogHasProducts(hit.catalog || hit)) {
+      return hit.catalog ? hit : { catalog: hit, source: "cache" };
+    }
+  } catch {
+    /* node tests / empty cache */
+  }
+  return null;
+}
+
+async function writeCachedSoftwareCatalog(live) {
+  if (!live || !catalogHasProducts(live.catalog)) return;
+  try {
+    await cachePutJson(SOFTWARE_CATALOG_CACHE_URL, live, undefined, { cacheControl: SEO_CACHE_CONTROL });
+  } catch {
+    /* cache is optional */
+  }
+}
 
 export async function runtimeGet(env, destPath) {
   const dest = new URL(destPath, RUNTIME_ORIGIN + "/");
@@ -429,28 +469,48 @@ function mergeCatalogDocs(primary, enrich) {
 }
 
 /** Live catalog: /v1/software first, then fraggate/list. catalog.json only enriches metadata. */
-export async function fetchLiveSoftwareCatalog(env) {
-  const software = await fetchRuntimeJson(env, SOFTWARE_LIVE_PATH);
-  if (catalogHasProducts(software)) {
-    const enrich = await fetchRuntimeJson(env, CATALOG_JSON_PATH);
-    const catalog = catalogHasProducts(enrich)
-      ? mergeCatalogDocs(normalizeSoftwareDoc(software), enrich)
-      : normalizeSoftwareDoc(software);
-    return { catalog, source: "software" };
+export async function fetchLiveSoftwareCatalog(env, opts = {}) {
+  const skipEnrich = Boolean(opts.skipEnrich);
+  const timeoutMs = Number(opts.timeoutMs) || 0;
+  if (opts.preferCache) {
+    const cached = await readCachedSoftwareCatalog();
+    if (cached) return cached;
   }
-  const list = await fetchRuntimeJson(env, FRAGGATE_LIST_PATH);
-  if (catalogHasProducts(list)) {
-    const enrich = await fetchRuntimeJson(env, CATALOG_JSON_PATH);
-    const catalog = catalogHasProducts(enrich)
-      ? mergeCatalogDocs(normalizeSoftwareDoc(list), enrich)
-      : normalizeSoftwareDoc(list);
-    return { catalog, source: "fraggate/list" };
+
+  const run = async () => {
+    const software = await fetchRuntimeJson(env, SOFTWARE_LIVE_PATH);
+    if (catalogHasProducts(software)) {
+      if (skipEnrich) return { catalog: normalizeSoftwareDoc(software), source: "software" };
+      const enrich = await fetchRuntimeJson(env, CATALOG_JSON_PATH);
+      const catalog = catalogHasProducts(enrich)
+        ? mergeCatalogDocs(normalizeSoftwareDoc(software), enrich)
+        : normalizeSoftwareDoc(software);
+      return { catalog, source: "software" };
+    }
+    const list = await fetchRuntimeJson(env, FRAGGATE_LIST_PATH);
+    if (catalogHasProducts(list)) {
+      if (skipEnrich) return { catalog: normalizeSoftwareDoc(list), source: "fraggate/list" };
+      const enrich = await fetchRuntimeJson(env, CATALOG_JSON_PATH);
+      const catalog = catalogHasProducts(enrich)
+        ? mergeCatalogDocs(normalizeSoftwareDoc(list), enrich)
+        : normalizeSoftwareDoc(list);
+      return { catalog, source: "fraggate/list" };
+    }
+    const fallback = await fetchRuntimeJson(env, CATALOG_JSON_PATH);
+    if (catalogHasProducts(fallback)) {
+      return { catalog: normalizeSoftwareDoc(fallback), source: "catalog.json" };
+    }
+    return { catalog: { products: [] }, source: "empty" };
+  };
+
+  const live = await withTimeout(run(), timeoutMs);
+  if (live && catalogHasProducts(live.catalog)) {
+    await writeCachedSoftwareCatalog(live);
+    return live;
   }
-  const fallback = await fetchRuntimeJson(env, CATALOG_JSON_PATH);
-  if (catalogHasProducts(fallback)) {
-    return { catalog: normalizeSoftwareDoc(fallback), source: "catalog.json" };
-  }
-  return { catalog: { products: [] }, source: "empty" };
+  const stale = await readCachedSoftwareCatalog();
+  if (stale) return Object.assign({}, stale, { source: String(stale.source || "cache") + "+stale" });
+  return live || { catalog: { products: [] }, source: "empty" };
 }
 
 async function fetchCountDoc(url) {
@@ -482,20 +542,29 @@ function toCard(product, { pills, countHint } = {}) {
   };
 }
 
-export async function loadSoftwareCatalog(env, stats) {
-  const live = await fetchLiveSoftwareCatalog(env);
+export async function loadSoftwareCatalog(env, stats, opts = {}) {
+  const light = Boolean(opts.light);
+  const live = await fetchLiveSoftwareCatalog(env, {
+    skipEnrich: light || Boolean(opts.skipEnrich),
+    preferCache: light || Boolean(opts.preferCache),
+    timeoutMs: opts.timeoutMs != null ? opts.timeoutMs : (light ? SOFTWARE_CRAWL_TIMEOUT_MS : 0),
+  });
   const catalog = live.catalog || {};
 
   const collected = collectCatalogProducts(catalog);
   const merged = mergeSoftwareExtras(collected);
   let usesDoc = null;
-  try {
-    usesDoc = env ? await runtimeUsesPayload(env) : null;
-  } catch {
-    usesDoc = null;
+  if (!light) {
+    try {
+      usesDoc = env ? await runtimeUsesPayload(env) : null;
+    } catch {
+      usesDoc = null;
+    }
   }
 
-  const counts = await Promise.all(merged.map((p) => fetchCountDoc(countUrlForProduct(p))));
+  const counts = light
+    ? merged.map(() => ({ downloads: null, views: null, uploads: null }))
+    : await Promise.all(merged.map((p) => fetchCountDoc(countUrlForProduct(p))));
   let fetched = 0;
   const cards = merged.map((p, i) => {
     const slug = String(p.slug || "").toLowerCase();

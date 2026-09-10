@@ -14,6 +14,9 @@ export const PUBLIC_CACHE_CONTROL = "public, s-maxage=300, stale-while-revalidat
 export const SEARCH_CACHE_CONTROL = "public, s-maxage=120, stale-while-revalidate=3600";
 export const HTML_CACHE_CONTROL = SEARCH_CACHE_CONTROL;
 export const SEO_CACHE_CONTROL = "public, s-maxage=3600, stale-while-revalidate=86400";
+/** Softwares HTML: longer edge TTL so Googlebot does not rebuild the live catalog on every crawl. */
+export const SOFTWARE_HTML_CACHE_CONTROL = SEO_CACHE_CONTROL;
+export const SOFTWARE_CATALOG_CACHE_URL = "https://azielcorpuslibrary.net/__cache/software-catalog-v1";
 export const AUTHOR = "Aziel Eliab";
 export const INDEX_CACHE_URL = "https://azielcorpuslibrary.net/__cache/library-index-v1";
 export const HTML_CACHE_PREFIX = "https://azielcorpuslibrary.net/__cache/html";

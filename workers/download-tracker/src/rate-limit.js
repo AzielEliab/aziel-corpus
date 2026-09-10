@@ -130,6 +130,9 @@ export function isSeoBot(requestOrUa) {
 }
 
 const SEO_PATHS = new Set([
+  "/",
+  "/software",
+  "/AzielEliab",
   "/donate",
   "/robots.txt",
   "/sitemap.xml",

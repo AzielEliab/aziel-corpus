@@ -441,7 +441,7 @@ export default {
     }
 
     if (url.pathname === "/" && isReadMethod(request.method)) {
-      const htmlHeaders = { "Cache-Control": HTML_CACHE_CONTROL, ...corsHeaders() };
+      const htmlHeaders = { "Cache-Control": HTML_CACHE_CONTROL, "X-Robots-Tag": "index, follow, max-image-preview:large", ...corsHeaders() };
       if (request.method === "HEAD") {
         return crawlResponse(request, "", "text/html; charset=utf-8", htmlHeaders);
       }
@@ -465,7 +465,9 @@ export default {
     const signed = await getSession(env, request);
     let hostedStats = null;
     const hostedPath = url.pathname.replace(/\/+$/, "") || "/";
-    if (hostedPath === "/health" || hostedPath === "/software") hostedStats = await collectStats(env);
+    if (hostedPath === "/health" || (hostedPath === "/software" && !isSeoBot(request))) {
+      hostedStats = await collectStats(env);
+    }
     const hosted = await handleHosted(request, url, env, ctx, signed, hostedStats);
     if (hosted) return attachVid(hosted);
 
