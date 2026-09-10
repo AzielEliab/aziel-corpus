@@ -54,6 +54,7 @@ body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;lin
   .donate-pair{flex-wrap:wrap}
   .donate-qr{flex:0 0 auto}
 }
+.wallet-hint{margin:12px 0 14px;color:var(--muted);font-size:14px;line-height:1.45}
 .donate-extra,.donate-net{margin:8px 0 0;color:var(--muted);font-size:14px}
 .donate-meta p{margin:0 0 10px}
 .nav2 a,.quiet a{color:var(--gold);text-decoration:none;font-size:15px;padding:10px 11px;min-height:44px;display:inline-flex;align-items:center;border-radius:10px}
