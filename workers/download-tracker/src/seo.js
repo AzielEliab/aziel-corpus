@@ -8,6 +8,7 @@ import {
   resolveRuntimeVersion,
   runtimeDescription,
   softwareDescription,
+  softwareHubBlurb,
 } from "./runtime-copy.js";
 
 export const CANON_HOST = "https://www.azielcorpuslibrary.net";
@@ -201,6 +202,7 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
   }
   if (kind === "runtime" || path === "/runtime" || kind === "software" || path === "/software" || path === "/") {
     const ver = resolveRuntimeVersion(runtimeVersion);
+    const softwarePage = kind === "software" || path === "/software";
     graph.push({
       "@type": "SoftwareApplication",
       name: "aziel-runtime",
@@ -208,7 +210,7 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
       applicationCategory: "DeveloperApplication",
       operatingSystem: "Cloudflare Workers",
       url: CANON_HOST + "/runtime",
-      description: runtimeDescription(ver),
+      description: softwarePage ? softwareHubBlurb(ver) : runtimeDescription(ver),
       author: { "@id": person["@id"] },
       license: "https://www.apache.org/licenses/LICENSE-2.0",
       codeRepository: GITHUB_RUNTIME,
@@ -216,10 +218,12 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
     });
     graph.push({
       "@type": "WebAPI",
-      name: "aziel-runtime FragGate",
+      name: softwarePage ? "FragGate" : "aziel-runtime FragGate",
       url: CANON_HOST + "/runtime/v1/fraggate",
       documentation: CANON_HOST + "/runtime",
-      description: "FragGate " + ver + " door. " + RUNTIME_LIVE_COUNT + " live advisory engines; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse. Kernel " + RUNTIME_KERNEL + ".",
+      description: softwarePage
+        ? "FragGate door. " + RUNTIME_LIVE_COUNT + " live advisory engines; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse. Kernel " + RUNTIME_KERNEL + "."
+        : "FragGate " + ver + " door. " + RUNTIME_LIVE_COUNT + " live advisory engines; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse. Kernel " + RUNTIME_KERNEL + ".",
       provider: { "@id": person["@id"] },
       termsOfService: CANON_HOST + "/runtime",
     });

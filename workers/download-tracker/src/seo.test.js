@@ -84,16 +84,22 @@ test("software JSON-LD and meta prefer live catalog.version over baked 1.6.2", (
   const runtimeApp = ld["@graph"].find((n) => n["@type"] === "SoftwareApplication" && n.name === "aziel-runtime");
   assert.ok(runtimeApp);
   assert.equal(runtimeApp.softwareVersion, "1.6.7");
-  assert.match(runtimeApp.description, /1\.6\.7/);
+  assert.match(runtimeApp.description, /aziel-runtime/);
+  assert.doesNotMatch(runtimeApp.description, /aziel-runtime 1\.6\.7 FragGate/);
   assert.doesNotMatch(runtimeApp.description, /1\.6\.2/);
   const api = ld["@graph"].find((n) => n["@type"] === "WebAPI");
-  assert.match(api.description, /FragGate 1\.6\.7/);
+  assert.equal(api.name, "FragGate");
+  assert.match(api.description, /FragGate door/);
+  assert.doesNotMatch(api.description, /FragGate 1\.6\.7/);
   assert.doesNotMatch(api.description, /1\.6\.2/);
-  assert.match(html, /aziel-runtime 1\.6\.7 FragGate/);
+  assert.match(html, /aziel-runtime/);
+  assert.doesNotMatch(html, /aziel-runtime 1\.6\.7 FragGate/);
+  assert.doesNotMatch(html, /aziel-runtime \d+\.\d+\.\d+ FragGate/);
   assert.doesNotMatch(html, /aziel-runtime 1\.6\.2/);
-  assert.match(defaultDescription("software", "1.6.7"), /aziel-runtime 1\.6\.7 FragGate/);
-  assert.doesNotMatch(defaultDescription("software", "1.6.7"), /1\.6\.2/);
-  assert.match(defaultDescription("software"), /1\.6\.2/);
+  assert.match(defaultDescription("software", "1.6.7"), /aziel-runtime/);
+  assert.doesNotMatch(defaultDescription("software", "1.6.7"), /FragGate/);
+  assert.doesNotMatch(defaultDescription("software", "1.6.7"), /1\.6\.7/);
+  assert.doesNotMatch(defaultDescription("software"), /1\.6\.2/);
   assert.doesNotMatch(html, BANNED);
 });
 
