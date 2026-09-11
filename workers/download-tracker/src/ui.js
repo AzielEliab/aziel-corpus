@@ -283,10 +283,10 @@ export function ecosystemBlockHtml() {
 export function brandCountPills({ views, downloads } = {}) {
   const pills = [];
   if (views != null && views !== "") {
-    pills.push(`<a class="pill" href="/v1/stats" id="views">${esc(views)}<span>views</span></a>`);
+    pills.push(`<a class="pill" href="/stats" id="views">${esc(views)}<span>views</span></a>`);
   }
   if (downloads != null && downloads !== "") {
-    pills.push(`<a class="pill" href="/v1/stats" id="downloads">${esc(downloads)}<span>downloads</span></a>`);
+    pills.push(`<a class="pill" href="/stats" id="downloads">${esc(downloads)}<span>downloads</span></a>`);
   }
   pills.push(meshStatusHtml(meshOffDoc()));
   return pills.join("");
