@@ -20,6 +20,8 @@ export const ABOUT_NAV_LABEL = "Aziel Eliab";
 export const HUB_ORIGIN = "https://www.azieleliab.com";
 /** Shared public Person @id. Do not invent a corpus-local competing Person @id. */
 export const HUB_PERSON_ID = "https://www.azieleliab.com/#aziel";
+/** Parent Aziel Runtime @id. Do not invent a corpus-local Runtime identity. */
+export const HUB_RUNTIME_ID = "https://www.azieleliab.com/runtime#runtime";
 export const WEBSITE_ID = CANON_HOST + "/#website";
 export const WEBSITE_NAME = "Aziel Corpus Library";
 const SITE = "Aziel Digital Library";
@@ -89,6 +91,19 @@ function linkRel(rel, href, extra) {
 /** Person / publisher / creator references. Exact shared hub @id. */
 export function personRef() {
   return { "@id": HUB_PERSON_ID };
+}
+
+export function runtimeRef() {
+  return { "@id": HUB_RUNTIME_ID };
+}
+
+/** Hub named-tool @id. Never an MCP operation entity. */
+export function hubToolId(slug) {
+  return "https://www.azieleliab.com/runtime#" + String(slug || "").trim();
+}
+
+export function toolRef(slug) {
+  return { "@id": hubToolId(slug) };
 }
 
 /**
@@ -280,26 +295,30 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
     const softwarePage = kind === "software" || path === "/software";
     graph.push({
       "@type": "SoftwareApplication",
+      "@id": HUB_RUNTIME_ID,
       name: "aziel-runtime",
+      alternateName: ["Aziel Runtime"],
       softwareVersion: ver,
       applicationCategory: "DeveloperApplication",
       operatingSystem: "Cloudflare Workers",
-      url: CANON_HOST + "/runtime",
+      url: HUB_ORIGIN + "/runtime",
       description: softwarePage ? softwareHubBlurb(ver) : runtimeDescription(ver),
       author: who,
       publisher: who,
       license: "https://www.apache.org/licenses/LICENSE-2.0",
       codeRepository: GITHUB_RUNTIME,
-      sameAs: [RUNTIME_ORIGIN + "/", GITHUB_RUNTIME, RUNTIME_GLAMA, RUNTIME_DOCS],
+      sameAs: [CANON_HOST + "/runtime", RUNTIME_ORIGIN + "/", GITHUB_RUNTIME, RUNTIME_GLAMA, RUNTIME_DOCS],
     });
     graph.push({
       "@type": "WebAPI",
+      "@id": hubToolId("fraggate"),
       name: softwarePage ? "FragGate" : "aziel-runtime FragGate",
       url: CANON_HOST + "/runtime/v1/fraggate",
       documentation: CANON_HOST + "/runtime",
       description: softwarePage
         ? "FragGate door. " + RUNTIME_LIVE_COUNT + " live advisory engines; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse. Kernel " + RUNTIME_KERNEL + "."
         : "FragGate " + ver + " door. " + RUNTIME_LIVE_COUNT + " live advisory engines; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse. Kernel " + RUNTIME_KERNEL + ".",
+      isPartOf: runtimeRef(),
       provider: who,
       termsOfService: CANON_HOST + "/runtime",
     });

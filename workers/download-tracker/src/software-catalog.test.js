@@ -454,6 +454,8 @@ test("GET /software uses AZIEL_RUNTIME catalog binding and lists every product",
     assert.ok(ldMatch, "json-ld missing");
     const ld = JSON.parse(ldMatch[1]);
     const runtimeApp = ld["@graph"].find((n) => n["@type"] === "SoftwareApplication" && n.name === "aziel-runtime");
+    assert.equal(runtimeApp["@id"], "https://www.azieleliab.com/runtime#runtime");
+    assert.deepEqual(runtimeApp.author, { "@id": "https://www.azieleliab.com/#aziel" });
     assert.equal(runtimeApp.softwareVersion, "1.6.4");
     assert.match(runtimeApp.description, /aziel-runtime/);
     assert.doesNotMatch(runtimeApp.description, /aziel-runtime 1\.6\.4 FragGate/);
@@ -603,6 +605,12 @@ test("empty Softwares catalog still ships unique title, description, and Collect
     const site = ld["@graph"].find((n) => n["@type"] === "WebSite");
     assert.equal(site.name, "Aziel Corpus Library");
     assert.deepEqual(site.publisher, { "@id": "https://www.azieleliab.com/#aziel" });
+    const runtimeApp = ld["@graph"].find((n) => n["@type"] === "SoftwareApplication" && n.name === "aziel-runtime");
+    assert.equal(runtimeApp["@id"], "https://www.azieleliab.com/runtime#runtime");
+    assert.deepEqual(runtimeApp.author, { "@id": "https://www.azieleliab.com/#aziel" });
+    const api = ld["@graph"].find((n) => n["@type"] === "WebAPI");
+    assert.equal(api["@id"], "https://www.azieleliab.com/runtime#fraggate");
+    assert.deepEqual(api.isPartOf, { "@id": "https://www.azieleliab.com/runtime#runtime" });
     assert.match(html, /AZCoherence|FragGate|EmbryoLock/);
     assert.doesNotMatch(html, BANNED);
   } finally {

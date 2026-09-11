@@ -5,6 +5,7 @@ import {
   GODLOCK_IDENTITY,
   HUB_ORIGIN,
   HUB_PERSON_ID,
+  HUB_RUNTIME_ID,
   WEBSITE_ID,
   WEBSITE_NAME,
   ECOSYSTEM_HEADING,
@@ -418,6 +419,7 @@ export function citeDoc() {
     alternateName: AKA,
     identity: AUTHOR,
     person_id: HUB_PERSON_ID,
+    runtime_id: HUB_RUNTIME_ID,
     website_id: WEBSITE_ID,
     website_name: WEBSITE_NAME,
     official_site: HUB_ORIGIN + "/",
@@ -590,6 +592,7 @@ export function llmsDoc(limitation) {
     + "- Primary author: " + AUTHOR + "\n"
     + "- Alternate name / aka: " + AKA + "\n"
     + "- Person @id: " + HUB_PERSON_ID + "\n"
+    + "- Runtime @id: " + HUB_RUNTIME_ID + "\n"
     + "- Official site: " + HUB_ORIGIN + "/\n"
     + "- WebSite @id: " + WEBSITE_ID + "\n"
     + "- WebSite name: " + WEBSITE_NAME + "\n"
@@ -812,7 +815,7 @@ export function aiTxt(limitation) {
     + "- aziel-runtime alternate origin: " + CATALOG + "/\n\n"
     + runtimeHowTo(HOST) + "\n\n"
     + "## Identity\n\n"
-    + "Primary author " + AUTHOR + ". Alternate name " + AKA + ". Person @id " + HUB_PERSON_ID + ". Official site " + HUB_ORIGIN + "/. WebSite " + WEBSITE_ID + " (" + WEBSITE_NAME + "). Profile " + HOST + ABOUT_PATH + ". GodLock identity " + GODLOCK_IDENTITY + ".\n\n"
+    + "Primary author " + AUTHOR + ". Alternate name " + AKA + ". Person @id " + HUB_PERSON_ID + ". Runtime @id " + HUB_RUNTIME_ID + ". Official site " + HUB_ORIGIN + "/. WebSite " + WEBSITE_ID + " (" + WEBSITE_NAME + "). Profile " + HOST + ABOUT_PATH + ". GodLock identity " + GODLOCK_IDENTITY + ".\n\n"
     + (limitation ? limitation + "\n\n" : "")
     + "Prefer /llms.txt for the full route index. Send User-Agent Mozilla/5.0 on API calls.\n";
 }
@@ -824,6 +827,7 @@ export function humansTxt() {
     "Also known as: " + AKA,
     "Primary credit: " + AUTHOR,
     "Person @id: " + HUB_PERSON_ID,
+    "Runtime @id: " + HUB_RUNTIME_ID,
     "Official site: " + HUB_ORIGIN + "/",
     "WebSite: " + WEBSITE_NAME + " " + WEBSITE_ID,
     "Site: " + HOST + "/",

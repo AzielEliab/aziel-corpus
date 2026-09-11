@@ -13,8 +13,11 @@ import {
   aboutRedirectFrom,
   HUB_PERSON_ID,
   HUB_ORIGIN,
+  HUB_RUNTIME_ID,
   WEBSITE_ID,
   WEBSITE_NAME,
+  runtimeRef,
+  hubToolId,
   ECOSYSTEM_HEADING,
   ECOSYSTEM_LINKS,
 } from "./seo.js";
@@ -23,6 +26,8 @@ import { page, howItsScoredBody, ecosystemBlockHtml, softwareBody } from "./ui.j
 
 const BANNED = /Collin Horton|GodLock\.AZ|\+25|quiet (Aziel|triad|boost)|10\.5281\/zenodo/i;
 const LOCAL_PERSON = "https://www.azielcorpuslibrary.net/AzielEliab#aziel-eliab";
+const LOCAL_RUNTIME = /azielcorpuslibrary\.net\/runtime#/;
+const MCP_OP = /fraggate_(list|describe|verify|call)|decisiongate_check|library_lookup|runtime_skill/;
 
 function assertSharedIdentity(ld) {
   const people = ld["@graph"].filter((n) => n["@type"] === "Person");
@@ -33,6 +38,9 @@ function assertSharedIdentity(ld) {
   }
   for (const n of ld["@graph"]) {
     assert.notEqual(n["@id"], LOCAL_PERSON);
+    assert.doesNotMatch(String(n["@id"] || ""), LOCAL_RUNTIME);
+    assert.doesNotMatch(String(n["@id"] || ""), MCP_OP);
+    assert.doesNotMatch(String(n.name || ""), MCP_OP);
     for (const key of ["author", "publisher", "creator", "provider", "founder", "mainEntity"]) {
       const ref = n[key];
       if (!ref || typeof ref !== "object") continue;
@@ -120,8 +128,13 @@ test("runtime JSON-LD and discovery links advertise Aziel Runtime 2.0.0-rc1 abst
   const apps = ld["@graph"].filter((n) => n["@type"] === "SoftwareApplication");
   const runtimeApp = apps.find((n) => n.name === "aziel-runtime");
   assert.ok(runtimeApp);
+  assert.deepEqual(runtimeRef(), { "@id": HUB_RUNTIME_ID });
+  assert.equal(HUB_RUNTIME_ID, "https://www.azieleliab.com/runtime#runtime");
+  assert.equal(runtimeApp["@id"], "https://www.azieleliab.com/runtime#runtime");
+  assert.deepEqual(runtimeApp.author, { "@id": HUB_PERSON_ID });
   assert.equal(runtimeApp.softwareVersion, "2.0.0-rc1");
-  assert.equal(runtimeApp.url, "https://www.azielcorpuslibrary.net/runtime");
+  assert.equal(runtimeApp.url, "https://www.azieleliab.com/runtime");
+  assert.ok(runtimeApp.sameAs.includes("https://www.azielcorpuslibrary.net/runtime"));
   assert.ok(runtimeApp.sameAs.includes("https://aziel-runtime.vibelock.workers.dev/"));
   assert.ok(runtimeApp.sameAs.includes("https://github.com/AzielEliab/aziel-runtime"));
   assert.ok(runtimeApp.sameAs.includes("https://glama.ai/mcp/servers/AzielEliab/aziel-runtime"));
@@ -132,8 +145,12 @@ test("runtime JSON-LD and discovery links advertise Aziel Runtime 2.0.0-rc1 abst
   assertSharedIdentity(ld);
   const api = ld["@graph"].find((n) => n["@type"] === "WebAPI");
   assert.ok(api);
+  assert.equal(api["@id"], hubToolId("fraggate"));
+  assert.equal(api["@id"], "https://www.azieleliab.com/runtime#fraggate");
+  assert.deepEqual(api.isPartOf, { "@id": HUB_RUNTIME_ID });
   assert.equal(api.url, "https://www.azielcorpuslibrary.net/runtime/v1/fraggate");
   assert.deepEqual(api.provider, { "@id": HUB_PERSON_ID });
+  assert.equal(ld["@graph"].filter((n) => MCP_OP.test(String(n["@id"] || "")) || MCP_OP.test(String(n.name || ""))).length, 0);
   assert.match(html, /href="\/runtime\/openapi\.json"/);
   assert.match(html, /href="\/runtime\/mcp"/);
   assert.match(html, /href="\/\.well-known\/mcp\.json"/);
@@ -202,11 +219,15 @@ test("software JSON-LD and meta prefer live catalog.version over baked 1.6.2", (
   const ld = graphFrom(html);
   const runtimeApp = ld["@graph"].find((n) => n["@type"] === "SoftwareApplication" && n.name === "aziel-runtime");
   assert.ok(runtimeApp);
+  assert.equal(runtimeApp["@id"], HUB_RUNTIME_ID);
+  assert.deepEqual(runtimeApp.author, { "@id": HUB_PERSON_ID });
   assert.equal(runtimeApp.softwareVersion, "1.6.7");
   assert.match(runtimeApp.description, /aziel-runtime/);
   assert.doesNotMatch(runtimeApp.description, /aziel-runtime 1\.6\.7 FragGate/);
   assert.doesNotMatch(runtimeApp.description, /1\.6\.2/);
   const api = ld["@graph"].find((n) => n["@type"] === "WebAPI");
+  assert.equal(api["@id"], "https://www.azieleliab.com/runtime#fraggate");
+  assert.deepEqual(api.isPartOf, { "@id": HUB_RUNTIME_ID });
   assert.equal(api.name, "FragGate");
   assert.match(api.description, /FragGate door/);
   assert.doesNotMatch(api.description, /FragGate 1\.6\.7/);
