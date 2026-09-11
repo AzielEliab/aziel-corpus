@@ -14,6 +14,8 @@ import {
   RUNTIME_CHANGELOG,
   runtimeChip,
   softwareChip,
+  resolveRuntimeVersion,
+  runtimeDistributionLinks,
   AI_CLIENTS,
 } from "./runtime-copy.js";
 import { meshOffDoc, meshRefreshScript, meshStatusHtml } from "./mesh.js";
@@ -178,7 +180,8 @@ label.showpw{font-size:14px;color:var(--muted);white-space:nowrap;min-height:44p
 .soft-card .soft-meta{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
 .soft-card .soft-meta .pill{font-variant-numeric:tabular-nums}
 .soft-card.root{border-color:var(--gold);box-shadow:inset 3px 0 0 var(--gold)}
-.soft-card .soft-links{display:flex;flex-wrap:wrap;gap:8px;margin:0}
+.soft-card .soft-links,.runtime-dist{display:flex;flex-wrap:wrap;gap:8px;margin:0}
+.runtime-dist{margin:12px 0 0}
 .jeeves-fab{position:fixed;right:16px;bottom:16px;z-index:40;width:auto;min-width:120px;max-width:calc(100vw - 32px);box-shadow:0 8px 24px #00000066;touch-action:manipulation;pointer-events:auto;background:var(--gold);color:#14110a}
 .jeeves-drawer{position:fixed;right:12px;bottom:72px;z-index:39;width:min(380px,calc(100vw - 24px));max-height:70vh;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 12px 32px #00000066;touch-action:pan-y;pointer-events:auto}
 .jeeves-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -608,14 +611,22 @@ export function howItsScoredBody() {
 </div>`;
 }
 
-export function runtimeBody() {
+export function runtimeDistributionButtons() {
+  return runtimeDistributionLinks().map((l) => (
+    `<a class="${l.primary ? "button" : "button ghost"}" href="${esc(l.href)}" rel="noopener noreferrer">${esc(l.label)}</a>`
+  )).join(" ");
+}
+
+export function runtimeBody(version) {
+  const ver = resolveRuntimeVersion(version);
   const changelog = RUNTIME_CHANGELOG.map((line) => `<li>${esc(line)}</li>`).join("");
   return `<section class="hero"><h1>${esc(RUNTIME_TITLE)}</h1>
 <p>${esc(RUNTIME_ABSTRACT)}</p>
-<p class="muted"><strong>THIS IS NOT</strong> an API aggregator or a second software index. Downloadable product cards stay on <a href="/software">Software</a>. Scoring is explained on <a href="/how-its-scored">How it's scored</a>. HTTP <code>/p/{slug}/{op}</code> is a proxy and is not exec. Session tools are advanced/internal. Hosted AZAI is protocol mirror + Lamb check, not the blend. Suite mesh default off until runtime enable — <a href="/v1/mesh"><code>/v1/mesh</code></a> · <a href="/runtime/v1/mesh"><code>/runtime/v1/mesh</code></a>. GET <code>/v1/mesh</code> never enables. This public HTTPS surface is not itself a mesh. No invented Zenodo DOIs. Author Aziel Eliab (aka Aziel Elroi Eliab; primary credit Aziel Eliab). GodLock is one catalog engine; identity at <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a>.</p></section>
+<p class="runtime-dist">${runtimeDistributionButtons()}</p>
+<p class="muted"><strong>THIS IS NOT</strong> an API aggregator or a second software index. Softwares stay heading then list on <a href="/software">Softwares</a>. Scoring is explained on <a href="/how-its-scored">How it's scored</a>. HTTP <code>/p/{slug}/{op}</code> is a proxy and is not exec. Session tools are advanced/internal. Hosted AZAI is protocol mirror + Lamb check, not the blend. Suite mesh default off until runtime enable — <a href="/v1/mesh"><code>/v1/mesh</code></a> · <a href="/runtime/v1/mesh"><code>/runtime/v1/mesh</code></a>. GET <code>/v1/mesh</code> never enables. This public HTTPS surface is not itself a mesh. Remain-OFF untouched. No invented Zenodo DOIs. Author Aziel Eliab (aka Aziel Elroi Eliab; primary credit Aziel Eliab). GodLock is one catalog engine; identity at <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a>.</p></section>
 <div class="card">
-<h2>Version ${esc(RUNTIME_VERSION)}</h2>
-<p>Engine count must match live <a href="/runtime/v1/health"><code>/runtime/v1/health</code></a>: <strong>${esc(String(RUNTIME_LIVE_COUNT))} live advisory engines</strong>; <strong>${esc(RUNTIME_LOCAL_ONLY)} local_only</strong>; stubs refuse. Prefer same-origin <code>/runtime/*</code>. One door — discover, route, refuse. Kernel: <a href="${esc(RUNTIME_KERNEL)}">github.com/AzielEliab/fraggate</a> (FG-0.1). Engine manifest: <code>/runtime/v1/runtime.json</code> (not library <code>/v1/runtime</code>). Author Aziel Eliab.</p>
+<h2>Version ${esc(ver)}</h2>
+<p>Cite live <a href="/runtime/v1/health"><code>/runtime/v1/health</code></a> (fallback ${esc(RUNTIME_VERSION)}). Engine count must match: <strong>${esc(String(RUNTIME_LIVE_COUNT))} live advisory engines</strong>; <strong>${esc(RUNTIME_LOCAL_ONLY)} local_only</strong>; stubs refuse. Prefer same-origin <code>/runtime/*</code>. One door — discover, route, refuse. Kernel: <a href="${esc(RUNTIME_KERNEL)}">github.com/AzielEliab/fraggate</a> (FG-0.1). Engine manifest: <code>/runtime/v1/runtime.json</code> (not library <code>/v1/runtime</code>). Author Aziel Eliab.</p>
 <ul>${changelog}</ul>
 </div>
 <div class="card">
@@ -633,7 +644,7 @@ export function runtimeBody() {
 <div class="card">
 <h2>Same-origin pull (this domain)</h2>
 <ul>
-<li><a href="/runtime/v1/health"><code>/runtime/v1/health</code></a> — live health (version ${esc(RUNTIME_VERSION)}, door=fraggate, ${esc(String(RUNTIME_LIVE_COUNT))} live engines)</li>
+<li><a href="/runtime/v1/health"><code>/runtime/v1/health</code></a> — live health (version ${esc(ver)}, door=fraggate, ${esc(String(RUNTIME_LIVE_COUNT))} live engines)</li>
 <li><a href="/runtime/v1/uses"><code>/runtime/v1/uses</code></a> — local API use log for this door (does not increment)</li>
 <li><a href="/runtime/v1/mesh"><code>/runtime/v1/mesh</code></a> · <a href="/v1/mesh"><code>/v1/mesh</code></a> — suite Live Nodes / mesh status (default off until runtime enable)</li>
 <li><a href="/runtime/v1/runtime.json"><code>/runtime/v1/runtime.json</code></a> — runtime manifest</li>
@@ -652,7 +663,7 @@ export function runtimeBody() {
 </div>
 <div class="card">
 <h2>Alternate origin (sameAs)</h2>
-<p>Same Aziel Runtime ${esc(RUNTIME_VERSION)} Worker without the <code>/runtime</code> prefix. Prefer the library URLs above; keep this origin as alternate/sameAs:</p>
+<p>Same Aziel Runtime ${esc(ver)} Worker without the <code>/runtime</code> prefix. Prefer the library URLs above; keep this origin as alternate/sameAs:</p>
 <ul>
 <li><a href="${esc(RUNTIME_ORIGIN)}/">${esc(RUNTIME_ORIGIN)}/</a></li>
 <li><a href="${esc(RUNTIME_ORIGIN)}/v1/fraggate/list"><code>/v1/fraggate/list</code></a> · <a href="${esc(RUNTIME_ORIGIN)}/v1/health"><code>/v1/health</code></a> · <a href="${esc(RUNTIME_ORIGIN)}/openapi.json"><code>/openapi.json</code></a></li>
@@ -698,11 +709,12 @@ export function softwareBody(model = {}) {
   }
   if (hub) groups.plain.unshift(hub);
   const chip = softwareChip();
-  return `<section class="hero"><h1>Downloadable software</h1></section>
+  return `<section class="hero"><h1>Softwares</h1></section>
 ${softSection("Software", groups.plain)}
 ${softSection("Gate", groups.gate)}
 ${softSection("Lock", groups.lock)}
-<div class="card"><p class="soft-links"><a class="button" href="/runtime">${esc(chip)}</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="/runtime/v1/software">/v1/software</a> <a class="button ghost" href="/runtime/mcp">MCP</a> <a class="button ghost" href="/runtime/v1/uses">uses</a> <a class="button ghost" href="/v1/mesh">Live Nodes</a> <a class="button ghost" href="/v1/lattice">Lattice API</a> <a class="button ghost" href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a> <a class="button ghost" href="https://github.com/AzielEliab/aziel-corpus">aziel-corpus</a> <a class="button ghost" href="${esc(RUNTIME_GITHUB)}">aziel-runtime</a></p></div>`;
+<div class="card"><p class="soft-links runtime-dist">${runtimeDistributionButtons()}</p>
+<p class="soft-links"><a class="button" href="/runtime">${esc(chip)}</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="/runtime/v1/software">/v1/software</a> <a class="button ghost" href="/runtime/mcp">MCP</a> <a class="button ghost" href="/runtime/v1/uses">uses</a> <a class="button ghost" href="/v1/mesh">Live Nodes</a> <a class="button ghost" href="/v1/lattice">Lattice API</a> <a class="button ghost" href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a> <a class="button ghost" href="https://github.com/AzielEliab/aziel-corpus">aziel-corpus</a> <a class="button ghost" href="${esc(RUNTIME_GITHUB)}">aziel-runtime</a></p></div>`;
 }
 
 export { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, ocrBody, ocrFormHtml, SPECTRAL_LENSES, blockedAvBody } from "./hosted-pages.js";

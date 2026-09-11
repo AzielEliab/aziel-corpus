@@ -41,7 +41,7 @@ test("runtime manifest and skill cite the library /runtime root", () => {
   assert.equal(man.author, "Aziel Eliab");
   assert.equal(man.identity, "Aziel Eliab");
   assert.equal(man.role, "engine-runtime");
-  assert.equal(man.version, "1.9.0");
+  assert.equal(man.version, "2.0.0-rc1");
   assert.equal(man.door, "fraggate");
   assert.equal(man.live_count, 37);
   assert.equal(man.doi, null);
@@ -51,7 +51,7 @@ test("runtime manifest and skill cite the library /runtime root", () => {
   assert.match(man.fraggate_list, /\/runtime\/v1\/fraggate\/list$/);
   assert.match(man.uses, /\/runtime\/v1\/uses$/);
   assert.match(man.session_open, /\/runtime\/v1\/session\/open$/);
-  assert.match(man.limitation, /1\.9\.0/);
+  assert.match(man.limitation, /2\.0\.0-rc1/);
   assert.match(man.limitation, /not an API aggregator/i);
   assert.match(man.limitation, /FragGate/);
   assert.doesNotMatch(man.limitation, /1\.4\.0/);
@@ -59,7 +59,7 @@ test("runtime manifest and skill cite the library /runtime root", () => {
   const skill = runtimeSkillMd();
   assert.match(skill, /name: Aziel Runtime/);
   assert.match(skill, /\/runtime\/v1\/runtime\.json/);
-  assert.match(skill, /1\.9\.0/);
+  assert.match(skill, /2\.0\.0-rc1/);
   assert.match(skill, /not merely an API orchestrator/);
   assert.match(skill, /37 live/);
   assert.match(skill, /FragGate/);
@@ -91,10 +91,18 @@ test("pullDescriptor keeps counted download and skill URLs", () => {
 });
 
 test("GET and HEAD /runtime return 200 HTML without a second software index", async () => {
+  const env = {
+    AZIEL_RUNTIME: {
+      fetch: async () => new Response(JSON.stringify({ ok: true, version: "2.0.0-rc1" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    },
+  };
   const get = await handleRuntimeRoot(
     new Request("https://www.azielcorpuslibrary.net/runtime", { headers: { Accept: "text/html" } }),
     new URL("https://www.azielcorpuslibrary.net/runtime"),
-    {},
+    env,
     null
   );
   assert.equal(get.status, 200);
@@ -104,9 +112,18 @@ test("GET and HEAD /runtime return 200 HTML without a second software index", as
   assert.match(html, />Runtime</);
   assert.match(html, /src="\/sigil\.png"/);
   assert.match(html, /\/runtime\/v1\/runtime\.json/);
-  assert.match(html, /1\.9\.0/);
+  assert.match(html, /2\.0\.0-rc1/);
   assert.match(html, /not merely an API orchestrator/);
   assert.match(html, /37 live/);
+  assert.match(html, />Official Runtime</);
+  assert.match(html, /href="https:\/\/aziel-runtime\.vibelock\.workers\.dev\/"/);
+  assert.match(html, />Source on GitHub</);
+  assert.match(html, /href="https:\/\/github\.com\/AzielEliab\/aziel-runtime"/);
+  assert.match(html, />Try\/Deploy on Glama</);
+  assert.match(html, /href="https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime"/);
+  assert.match(html, />Documentation</);
+  assert.match(html, /href="https:\/\/github\.com\/AzielEliab\/aziel-runtime\/tree\/main\/docs\/2\.0"/);
+  assert.doesNotMatch(html, /glama\.ai\/mcp\/servers\/[0-9a-f]{8,}/i);
   assert.doesNotMatch(html, /aziel-runtime — FragGate door 1\.6\.2/);
   assert.match(html, /FragGate/);
   assert.match(html, /fraggate_list/);
@@ -121,12 +138,33 @@ test("GET and HEAD /runtime return 200 HTML without a second software index", as
   const head = await handleRuntimeRoot(
     new Request("https://www.azielcorpuslibrary.net/runtime", { method: "HEAD" }),
     new URL("https://www.azielcorpuslibrary.net/runtime"),
-    {},
+    env,
     null
   );
   assert.equal(head.status, 200);
   assert.match(head.headers.get("content-type"), /text\/html/);
   assert.equal(await head.text(), "");
+});
+
+test("GET /runtime HTML cites the live health version when the binding answers", async () => {
+  const env = {
+    AZIEL_RUNTIME: {
+      fetch: async () => new Response(JSON.stringify({ ok: true, version: "2.0.0-rc1" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    },
+  };
+  const res = await handleRuntimeRoot(
+    new Request("https://www.azielcorpuslibrary.net/runtime", { headers: { Accept: "text/html" } }),
+    new URL("https://www.azielcorpuslibrary.net/runtime"),
+    env,
+    null
+  );
+  const html = await res.text();
+  assert.match(html, /<h2>Version 2\.0\.0-rc1<\/h2>/);
+  assert.match(html, /not merely an API orchestrator/);
+  assert.doesNotMatch(html, /aziel-runtime 2\.0\.0-rc1 FragGate/);
 });
 
 test("missing origin /v1/runtime.json falls back to a library manifest", async () => {
@@ -156,7 +194,7 @@ test("llms.txt cites the runtime root and pull APIs", () => {
   assert.match(txt, /\/runtime\/v1\/runtime\.json/);
   assert.match(txt, /\/runtime\/v1\/skill/);
   assert.match(txt, /\/runtime\/v1\/pull\/\{slug\}/);
-  assert.match(txt, /1\.9\.0/);
+  assert.match(txt, /2\.0\.0-rc1/);
   assert.match(txt, /not an API aggregator/);
   assert.match(txt, /FragGate/);
   assert.match(txt, /fraggate_list/);
