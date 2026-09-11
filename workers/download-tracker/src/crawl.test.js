@@ -157,6 +157,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.equal(cite.aziel_eliab, "https://www.azielcorpuslibrary.net/AzielEliab");
   assert.equal(cite.godlock, "https://godlock.uk/AzielEliab");
   assert.equal(cite.person_id, "https://www.azieleliab.com/#aziel");
+  assert.equal(cite.runtime_id, "https://www.azieleliab.com/runtime#runtime");
   assert.equal(cite.website_id, "https://www.azielcorpuslibrary.net/#website");
   assert.equal(cite.website_name, "Aziel Corpus Library");
   assert.equal(cite.official_site, "https://www.azieleliab.com/");
@@ -207,6 +208,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(llms, /No hard-coded 27 cap/);
   assert.match(llms, /https:\/\/www\.azielcorpuslibrary\.net\/AzielEliab/);
   assert.match(llms, /Person @id: https:\/\/www\.azieleliab\.com\/#aziel/);
+  assert.match(llms, /Runtime @id: https:\/\/www\.azieleliab\.com\/runtime#runtime/);
   assert.match(llms, /Official site: https:\/\/www\.azieleliab\.com\//);
   assert.match(llms, /WebSite @id: https:\/\/www\.azielcorpuslibrary\.net\/#website/);
   assert.match(llms, /WebSite name: Aziel Corpus Library/);
@@ -318,6 +320,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   const humans = humansTxt();
   assertPublicIdentity(humans);
   assert.match(humans, /Person @id: https:\/\/www\.azieleliab\.com\/#aziel/);
+  assert.match(humans, /Runtime @id: https:\/\/www\.azieleliab\.com\/runtime#runtime/);
   assert.match(humans, /Official site: https:\/\/www\.azieleliab\.com\//);
   assert.match(humans, /WebSite: Aziel Corpus Library https:\/\/www\.azielcorpuslibrary\.net\/#website/);
   assert.match(humans, /github.com\/AzielEliab/);
