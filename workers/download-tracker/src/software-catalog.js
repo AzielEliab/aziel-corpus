@@ -8,10 +8,11 @@
 import {
   RUNTIME_ORIGIN,
   RUNTIME_VERSION,
-  RUNTIME_GITHUB,
   LIBRARY_DOWNLOAD,
   softwareChip,
   softwareHubBlurb,
+  resolveRuntimeVersion,
+  runtimeDistributionLinks,
 } from "./runtime-copy.js";
 import { runtimeUsesPayload } from "./runtime-uses.js";
 import {
@@ -486,6 +487,21 @@ export async function fetchRuntimeJson(env, destPath) {
   }
 }
 
+/** Cite live health/catalog.version; bake 2.0.0-rc1 when origin is quiet. */
+export async function fetchLiveRuntimeVersion(env, opts = {}) {
+  const timeoutMs = opts.timeoutMs != null ? Number(opts.timeoutMs) : 800;
+  const run = async () => {
+    for (const dest of ["/v1/health", "/v1/runtime.json", "/v1/software"]) {
+      const doc = await fetchRuntimeJson(env, dest);
+      const ver = firstText(doc && doc.version);
+      if (ver) return ver;
+    }
+    return "";
+  };
+  const live = await withTimeout(run(), timeoutMs);
+  return resolveRuntimeVersion(live);
+}
+
 /** Normalize /v1/software, fraggate/list, or catalog.json into a products catalog. */
 export function normalizeSoftwareDoc(doc) {
   if (!doc || typeof doc !== "object") return { products: [], extras: [] };
@@ -705,7 +721,7 @@ export async function loadSoftwareCatalog(env, stats, opts = {}) {
       { href: "/runtime/v1/software", label: "/v1/software" },
       { href: "/runtime/v1/catalog.json", label: "catalog.json" },
       { href: "/runtime/openapi.json", label: "OpenAPI" },
-      { href: RUNTIME_GITHUB, label: "GitHub" },
+      ...runtimeDistributionLinks().map((l) => Object.assign({}, l, { primary: false })),
     ],
   };
 

@@ -6,10 +6,17 @@
 
 export const HOST = "https://www.azielcorpuslibrary.net";
 export const RUNTIME_ORIGIN = "https://aziel-runtime.vibelock.workers.dev";
-export const RUNTIME_VERSION = "1.9.0";
+export const RUNTIME_VERSION = "2.0.0-rc1";
 export const RUNTIME_DOOR = "fraggate";
 export const RUNTIME_KERNEL = "https://github.com/AzielEliab/fraggate";
 export const RUNTIME_GITHUB = "https://github.com/AzielEliab/aziel-runtime";
+/** Official 2.0 certification pack. Coordinator deploys; hub cites only. */
+export const RUNTIME_DOCS = RUNTIME_GITHUB + "/tree/main/docs/2.0";
+/**
+ * Published Glama listing uses the GitHub owner/repo path.
+ * Do not invent a Glama server UUID.
+ */
+export const RUNTIME_GLAMA = "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime";
 export const RUNTIME_LIVE_COUNT = 37;
 export const RUNTIME_PRODUCT_COUNT = 37;
 export const RUNTIME_LOCAL_ONLY = "VeilLock";
@@ -80,6 +87,8 @@ export const RUNTIME_ABSTRACT =
   + "attribution, and post-hoc auditability matter as much as the result itself.";
 
 export const RUNTIME_CHANGELOG = [
+  "2.0.0-rc1 — certification-point freeze (docs/2.0/). No intentional behavioral breaks from 1.9.3. Remain-OFF untouched. GET /v1/mesh never enables.",
+  "1.9.3 — remaining AZRT-1.9-GAPS-CLOSE: isolate AZ-OS session VFS; isolate-safe jeeves; binding-gated media-run; published attestation path.",
   "1.9.0 — AZRT-1.9-CLOSE-1.0: AZMail isolate mailbox; AZChat LIVE+bound; isolate hash store; OpenAPI proxy-path parity; remain-OFF untouched.",
   "1.7.10 — Durable QNM Live Nodes. suite-presence is operator-enabled. GET /v1/mesh never enables.",
   "1.7.9 — AZCoherence cross-map (peers azclce / AZInterface / AKM-TRIAD fabric neighbor).",
@@ -113,14 +122,25 @@ export function runtimeDescription(_version) {
 
 /** Software-tab catalog blurb. Name the runtime; do not mash version + FragGate. */
 export function softwareDescription(_version) {
-  return "Downloadable software by Aziel Eliab. Product catalog for aziel-runtime, AzielTether, and the Aziel suite. Invoke from this domain at /runtime. Author Aziel Eliab.";
+  return RUNTIME_ABSTRACT
+    + " Softwares catalog for aziel-runtime on this domain (heading then list). Author Aziel Eliab.";
+}
+
+/** Official Runtime / GitHub / Glama / docs — honest hrefs only. */
+export function runtimeDistributionLinks() {
+  return [
+    { href: RUNTIME_ORIGIN + "/", label: "Official Runtime", primary: true },
+    { href: RUNTIME_GITHUB, label: "Source on GitHub" },
+    { href: RUNTIME_GLAMA, label: "Try/Deploy on Glama" },
+    { href: RUNTIME_DOCS, label: "Documentation" },
+  ];
 }
 
 /** Hub card on /software. FragGate is the door product, not a version mash. */
 export function softwareHubBlurb(_version) {
-  return "aziel-runtime on the Aziel Digital Library. Node-meshed MCP Softwares suite for digital forensics and auditing — not an API aggregator. "
+  return RUNTIME_ABSTRACT + " Softwares catalog for aziel-runtime on the Aziel Digital Library — heading then list. "
     + RUNTIME_LIVE_COUNT + " live advisory engines; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse. "
-    + "Discover with fraggate_list, execute with fraggate_call. Software hub mirrors this live catalog. Author Aziel Eliab.";
+    + "Discover with fraggate_list, execute with fraggate_call. Author Aziel Eliab.";
 }
 
 export function runtimeNote(version) {
@@ -184,7 +204,9 @@ export function runtimeHowTo(host) {
     "- Runtime cite.json: " + h + "/runtime/cite.json",
     "- Runtime robots.txt: " + h + "/runtime/robots.txt",
     "- Softwares download: " + h + "/download  ·  " + h + "/v1/download",
-    "- Alternate origin: " + RUNTIME_ORIGIN + "/",
-    "- GitHub: " + RUNTIME_GITHUB,
+    "- Official Runtime: " + RUNTIME_ORIGIN + "/",
+    "- Source on GitHub: " + RUNTIME_GITHUB,
+    "- Try/Deploy on Glama: " + RUNTIME_GLAMA,
+    "- Documentation: " + RUNTIME_DOCS,
   ].join("\n");
 }
