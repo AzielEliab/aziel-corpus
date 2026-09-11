@@ -48,6 +48,14 @@ test("restored nav2 keeps every public tab and drops Health/Verify from chrome",
   assert.match(donateStripHtml(), /donate-aziel/);
   assert.doesNotMatch(donateStripHtml(), /bc1[a-z0-9]+/i);
   assert.doesNotMatch(donateStripHtml(), /0x[a-f0-9]{40}/i);
+  assert.match(html, /Part of the Aziel Eliab ecosystem/);
+  assert.match(html, />Official site</);
+  assert.match(html, /href="https:\/\/www\.azieleliab\.com\/"/);
+  assert.match(html, />Aziel Corpus Library</);
+  assert.match(html, />Aziel Runtime on GitHub</);
+  assert.match(html, /class="runtime-muted"[^>]*href="https:\/\/aziel-runtime\.vibelock\.workers\.dev\/"[^>]*>Aziel Runtime</);
+  assert.match(html, />Try on Glama</);
+  assert.match(html, /class="ecosystem"/);
 });
 
 test("black/gold theme and royal purple Aziel Library text are in CSS", () => {
@@ -87,6 +95,8 @@ test("file and library cards grow with the page instead of a clipped overflow sh
   assert.match(CSS, /\.lib-tag\.aziel\{background:var\(--royal\)/);
   assert.match(CSS, /\.soft-grid\{display:grid;grid-template-columns:repeat\(auto-fit,minmax\(240px,1fr\)\)/);
   assert.match(CSS, /\.soft-card\{background:var\(--card\);border:1px solid var\(--line\);border-radius:16px;padding:18px\}/);
+  assert.match(CSS, /\.ecosystem\{/);
+  assert.match(CSS, /\.ecosystem-list\{/);
 
   const azielRow = {
     record_id: "AZDOC-cockroach",
