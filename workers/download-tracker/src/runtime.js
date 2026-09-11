@@ -19,6 +19,7 @@ import {
   LIBRARY_INDEX_KEY,
   PUBLIC_CACHE_CONTROL,
   SEARCH_CACHE_CONTROL,
+  collectStats,
   libraryHealthFields,
   publicSearchCard,
   readPackedIndex,
@@ -82,6 +83,7 @@ Always send \`User-Agent: Mozilla/5.0\`.
 Ops (do **not** increment downloads):
 
 - \`GET /v1/health\`
+- \`GET /v1/stats\` (packed views + counted downloads; does not increment)
 - \`GET /v1/search?q=\`
 - \`GET /v1/example\`
 - \`GET /v1/skill\`
@@ -156,6 +158,8 @@ function openapi() {
     servers: [{ url: HOST }, { url: FALLBACK_HOST }],
     paths: {
       "/v1/health": { get: { summary: "Liveness + TUN-WP-0.1 standby/failover fields. Does not increment downloads. Does not KV.list().", operationId: "health" } },
+      "/v1/stats": { get: { summary: "Alias of /stats. Packed views and counted downloads. Does not increment. Does not KV.list(). Author Aziel Eliab.", operationId: "stats" } },
+      "/stats": { get: { summary: "Packed views and counted downloads. Does not increment. Does not KV.list(). Author Aziel Eliab.", operationId: "libraryStats" } },
       "/v1/library-index": { get: { summary: "Packed library:index:v1 shelf cards (no PDF bodies). One KV get. Author Aziel Eliab.", operationId: "libraryIndex" } },
       "/donate": { get: { summary: "AZL-DONATE-1.0 static Donate door. Exodus rails. Does not touch KV. Not a catalog item.", operationId: "donate" } },
       "/v1/search": { get: { summary: "Filter packed library:index:v1 in memory (one KV get). AZDOC cards only — no PDF bodies. ChainLock library-sync client. Author Aziel Eliab.", operationId: "search", parameters: [{ name: "q", in: "query", schema: { type: "string" } }, { name: "lib", in: "query", schema: { type: "string", enum: ["all", "aziel", "corpus"] } }, { name: "sort", in: "query", schema: { type: "string", enum: ["newest", "oldest", "alpha", "title", "author", "domain"] } }, { name: "author", in: "query", schema: { type: "string" } }, { name: "domain", in: "query", schema: { type: "string" } }, { name: "subject", in: "query", schema: { type: "string" } }, { name: "keyword", in: "query", schema: { type: "string" } }] } },
@@ -311,6 +315,18 @@ export async function handleRuntimeApi(request, url, env) {
     const hash = normalizeContentHash(decodeURIComponent(docsDl[1]));
     if (!hash) return json({ error: "content hash required" }, 400);
     return serveFileByHash(env, hash);
+  }
+  if (path === "/v1/stats" && (request.method === "GET" || request.method === "HEAD")) {
+    const stats = await collectStats(env);
+    const res = json({
+      ok: true,
+      author: "Aziel Eliab",
+      identity: "Aziel Eliab",
+      ...stats,
+    });
+    res.headers.set("Cache-Control", PUBLIC_CACHE_CONTROL);
+    if (request.method === "HEAD") return new Response(null, { status: res.status, headers: res.headers });
+    return res;
   }
   if (path === "/v1/library-index" && (request.method === "GET" || request.method === "HEAD")) {
     const packed = await readPackedIndex(env);
