@@ -11,7 +11,6 @@ import {
   resolveRuntimeVersion,
   runtimeDescription,
   softwareDescription,
-  softwareHubBlurb,
 } from "./runtime-copy.js";
 
 export const CANON_HOST = "https://www.azielcorpuslibrary.net";
@@ -256,7 +255,7 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
       applicationCategory: "DeveloperApplication",
       operatingSystem: "Cloudflare Workers",
       url: CANON_HOST + "/runtime",
-      description: softwarePage ? softwareHubBlurb(ver) : runtimeDescription(ver),
+      description: softwarePage ? softwareDescription(ver) : runtimeDescription(ver),
       author: { "@id": person["@id"] },
       license: "https://www.apache.org/licenses/LICENSE-2.0",
       codeRepository: GITHUB_RUNTIME,
