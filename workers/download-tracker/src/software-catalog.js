@@ -721,7 +721,7 @@ export async function loadSoftwareCatalog(env, stats, opts = {}) {
       { href: "/runtime/v1/software", label: "/v1/software" },
       { href: "/runtime/v1/catalog.json", label: "catalog.json" },
       { href: "/runtime/openapi.json", label: "OpenAPI" },
-      ...runtimeDistributionLinks().map((l) => Object.assign({}, l, { primary: false })),
+      ...runtimeDistributionLinks(),
     ],
   };
 

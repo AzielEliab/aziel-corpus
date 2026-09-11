@@ -180,8 +180,10 @@ label.showpw{font-size:14px;color:var(--muted);white-space:nowrap;min-height:44p
 .soft-card .soft-meta{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
 .soft-card .soft-meta .pill{font-variant-numeric:tabular-nums}
 .soft-card.root{border-color:var(--gold);box-shadow:inset 3px 0 0 var(--gold)}
-.soft-card .soft-links,.runtime-dist{display:flex;flex-wrap:wrap;gap:8px;margin:0}
+.soft-card .soft-links,.runtime-dist{display:flex;flex-wrap:wrap;gap:8px;margin:0;align-items:center}
 .runtime-dist{margin:12px 0 0}
+a.runtime-muted{color:var(--muted);font-size:14px;font-weight:550;text-decoration:underline;text-underline-offset:3px;min-height:auto;padding:4px 0;display:inline;background:transparent;border:0}
+a.runtime-muted:hover{color:var(--ink)}
 .jeeves-fab{position:fixed;right:16px;bottom:16px;z-index:40;width:auto;min-width:120px;max-width:calc(100vw - 32px);box-shadow:0 8px 24px #00000066;touch-action:manipulation;pointer-events:auto;background:var(--gold);color:#14110a}
 .jeeves-drawer{position:fixed;right:12px;bottom:72px;z-index:39;width:min(380px,calc(100vw - 24px));max-height:70vh;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 12px 32px #00000066;touch-action:pan-y;pointer-events:auto}
 .jeeves-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -611,10 +613,15 @@ export function howItsScoredBody() {
 </div>`;
 }
 
+function distributionAnchor(l) {
+  if (l.muted) {
+    return `<a class="runtime-muted" href="${esc(l.href)}" rel="noopener noreferrer">${esc(l.label)}</a>`;
+  }
+  return `<a class="${l.primary ? "button" : "button ghost"}" href="${esc(l.href)}" rel="noopener noreferrer">${esc(l.label)}</a>`;
+}
+
 export function runtimeDistributionButtons() {
-  return runtimeDistributionLinks().map((l) => (
-    `<a class="${l.primary ? "button" : "button ghost"}" href="${esc(l.href)}" rel="noopener noreferrer">${esc(l.label)}</a>`
-  )).join(" ");
+  return runtimeDistributionLinks().map(distributionAnchor).join(" ");
 }
 
 export function runtimeBody(version) {
@@ -671,7 +678,7 @@ export function runtimeBody(version) {
 <li><a href="${esc(RUNTIME_ORIGIN)}/llms.txt">llms.txt</a> · <a href="${esc(RUNTIME_ORIGIN)}/cite.json">cite.json</a> · <a href="${esc(RUNTIME_GITHUB)}">GitHub</a></li>
 </ul>
 <p class="muted">Counted downloads stay on each product Worker <code>/download</code> + <code>/count</code>. The Software tab lists those cards. AzielTether is the survival mesh for downloaded nodes. Suite mesh stays <strong>off</strong> until runtime enable — Live Nodes via <a href="/v1/mesh"><code>/v1/mesh</code></a>.</p>
-<p class="soft-links"><a class="button ghost" href="/software">Software catalog</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="${esc(RUNTIME_ORIGIN)}/">Open alternate origin</a> <a class="button ghost" href="/runtime/v1/catalog.json">catalog.json</a> <a class="button ghost" href="/v1/lattice">Lattice API</a> <a class="button ghost" href="${esc(RUNTIME_GITHUB)}">GitHub</a></p>
+<p class="soft-links"><a class="button ghost" href="/software">Software catalog</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="runtime-muted" href="${esc(RUNTIME_ORIGIN)}/">Open alternate origin</a> <a class="button ghost" href="/runtime/v1/catalog.json">catalog.json</a> <a class="button ghost" href="/v1/lattice">Lattice API</a> <a class="button ghost" href="${esc(RUNTIME_GITHUB)}">GitHub</a></p>
 </div>`;
 }
 
@@ -690,7 +697,10 @@ function softCard(p) {
   const pills = (p.pills && p.pills.length ? p.pills : (p.countLabel ? [p.countLabel] : []))
     .map((label) => `<span class="${pillClass(label)}">${esc(label)}</span>`).join("");
   const ver = p.version ? `<span class="pill">v${esc(p.version)}</span>` : "";
-  const links = (p.links || []).map((l) => `<a class="${l.primary ? "button" : "button ghost"}" href="${esc(l.href)}">${esc(l.label)}</a>`).join("");
+  const links = (p.links || []).map((l) => {
+    if (l.muted) return `<a class="runtime-muted" href="${esc(l.href)}" rel="noopener noreferrer">${esc(l.label)}</a>`;
+    return `<a class="${l.primary ? "button" : "button ghost"}" href="${esc(l.href)}">${esc(l.label)}</a>`;
+  }).join("");
   return `<article class="${cls.join(" ")}" data-slug="${esc(p.slug || "")}" data-kind="${esc(p.kind || "")}">${tag}<h3>${esc(p.name)}</h3><div class="soft-meta">${ver}${pills}</div><p>${esc(p.blurb)}</p><p class="soft-links">${links}</p></article>`;
 }
 
