@@ -17,6 +17,11 @@ import {
 export const CANON_HOST = "https://www.azielcorpuslibrary.net";
 export const ABOUT_PATH = "/AzielEliab";
 export const ABOUT_NAV_LABEL = "Aziel Eliab";
+export const HUB_ORIGIN = "https://www.azieleliab.com";
+/** Shared public Person @id. Do not invent a corpus-local competing Person @id. */
+export const HUB_PERSON_ID = "https://www.azieleliab.com/#aziel";
+export const WEBSITE_ID = CANON_HOST + "/#website";
+export const WEBSITE_NAME = "Aziel Corpus Library";
 const SITE = "Aziel Digital Library";
 const AUTHOR = "Aziel Eliab";
 const AKA = "Aziel Elroi Eliab";
@@ -26,6 +31,16 @@ const GITHUB_RUNTIME = RUNTIME_GITHUB;
 export const GODLOCK_IDENTITY = "https://godlock.uk/AzielEliab";
 export const SHARE_IMAGE = CANON_HOST + "/sigil.png";
 export const SITE_DESCRIPTION = "Aziel Digital Library by Aziel Eliab. Search the public MASTER across Aziel Library and Corpus. Temporal map, gazetteer, intelligence, and hosted OCR.";
+
+/** Visible ecosystem block (footer/nav). Not Softwares H1→list. */
+export const ECOSYSTEM_HEADING = "Part of the Aziel Eliab ecosystem";
+export const ECOSYSTEM_LINKS = Object.freeze([
+  Object.freeze({ href: HUB_ORIGIN + "/", label: "Official site" }),
+  Object.freeze({ href: CANON_HOST + "/", label: "Aziel Corpus Library" }),
+  Object.freeze({ href: RUNTIME_GITHUB, label: "Aziel Runtime on GitHub" }),
+  Object.freeze({ href: RUNTIME_ORIGIN + "/", label: "Aziel Runtime", muted: true }),
+  Object.freeze({ href: RUNTIME_GLAMA, label: "Try on Glama", primary: true }),
+]);
 
 /** Unique <title> / OG / Twitter strings. Visible H1s stay in page bodies. */
 export function documentTitle(kind, title) {
@@ -71,15 +86,24 @@ function linkRel(rel, href, extra) {
   return "<link rel=" + Q + rel + Q + " href=" + Q + esc(href) + Q + extra + ">";
 }
 
+/** Person / publisher / creator references. Exact shared hub @id. */
+export function personRef() {
+  return { "@id": HUB_PERSON_ID };
+}
+
+/**
+ * Local Person stub for /AzielEliab (and graph completeness).
+ * Same hub @id only — never a competing corpus-local Person @id.
+ */
 export function personNode() {
   return {
     "@type": "Person",
-    "@id": CANON_HOST + ABOUT_PATH + "#aziel-eliab",
+    "@id": HUB_PERSON_ID,
     name: AUTHOR,
     alternateName: [AKA],
-    url: CANON_HOST + ABOUT_PATH,
+    url: HUB_ORIGIN + "/",
     description: "Author of Aziel Digital Library. Identity Aziel Eliab only.",
-    sameAs: [GODLOCK_IDENTITY, GITHUB_AUTHOR, GITHUB_REPO],
+    sameAs: [HUB_ORIGIN + "/", GODLOCK_IDENTITY, GITHUB_AUTHOR, GITHUB_REPO, CANON_HOST + ABOUT_PATH],
   };
 }
 
@@ -89,8 +113,29 @@ export function organizationNode() {
     "@id": CANON_HOST + "/#organization",
     name: SITE,
     url: CANON_HOST + "/",
-    founder: { "@id": CANON_HOST + ABOUT_PATH + "#aziel-eliab" },
+    founder: personRef(),
     sameAs: [GITHUB_REPO],
+  };
+}
+
+export function websiteNode() {
+  return {
+    "@type": "WebSite",
+    "@id": WEBSITE_ID,
+    name: WEBSITE_NAME,
+    url: CANON_HOST + "/",
+    description: SITE_DESCRIPTION,
+    author: personRef(),
+    publisher: personRef(),
+    sameAs: [GITHUB_REPO],
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: CANON_HOST + "/?q={search_term_string}",
+      },
+      "query-input": "required name=search_term_string",
+    },
   };
 }
 
@@ -155,7 +200,7 @@ function workNode(work, path) {
     },
   };
   if (isAzielAuthored(work)) {
-    node.author = { "@id": CANON_HOST + ABOUT_PATH + "#aziel-eliab" };
+    node.author = personRef();
   } else if (work.author) {
     node.author = { "@type": "Person", name: String(work.author) };
   }
@@ -183,34 +228,18 @@ function breadcrumbNode(items) {
 }
 
 function jsonLd(title, path, kind, description, work, runtimeVersion) {
+  const who = personRef();
   const person = personNode();
   const org = organizationNode();
-  const website = {
-    "@type": "WebSite",
-    "@id": CANON_HOST + "/#website",
-    name: SITE,
-    url: CANON_HOST + "/",
-    description: SITE_DESCRIPTION,
-    author: { "@id": person["@id"] },
-    publisher: { "@id": org["@id"] },
-    sameAs: [GITHUB_REPO],
-    potentialAction: {
-      "@type": "SearchAction",
-      target: {
-        "@type": "EntryPoint",
-        urlTemplate: CANON_HOST + "/?q={search_term_string}",
-      },
-      "query-input": "required name=search_term_string",
-    },
-  };
+  const website = websiteNode();
   const software = {
     "@type": "SoftwareApplication",
     name: SITE,
     applicationCategory: "DigitalLibrary",
     operatingSystem: "Web",
     url: CANON_HOST + "/",
-    author: { "@id": person["@id"] },
-    publisher: { "@id": org["@id"] },
+    author: who,
+    publisher: who,
     license: "https://www.apache.org/licenses/LICENSE-2.0",
     codeRepository: GITHUB_REPO,
   };
@@ -218,8 +247,8 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
     "@type": "DigitalLibrary",
     name: SITE,
     url: CANON_HOST + "/",
-    creator: { "@id": person["@id"] },
-    publisher: { "@id": org["@id"] },
+    creator: who,
+    publisher: who,
   };
   const graph = [website, software, library, person, org];
   if (kind === "corpus" || kind === "search" || path === "/" || path === "/corpus") {
@@ -227,7 +256,7 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
       "@type": "Dataset",
       name: SITE + " corpus",
       url: CANON_HOST + (path || "/"),
-      creator: { "@id": person["@id"] },
+      creator: who,
       license: "https://www.apache.org/licenses/LICENSE-2.0",
     });
   }
@@ -238,13 +267,13 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
       name: SITE,
       url: CANON_HOST + "/",
       description: defaultDescription("search"),
-      isPartOf: { "@id": CANON_HOST + "/#website" },
-      author: { "@id": person["@id"] },
-      mainEntity: { "@id": CANON_HOST + "/#website" },
+      isPartOf: { "@id": WEBSITE_ID },
+      author: who,
+      mainEntity: { "@id": WEBSITE_ID },
     });
   }
   if (kind === "map" || path === "/map") {
-    graph.push({ "@type": "Map", name: "Temporal Map", url: CANON_HOST + "/map", creator: { "@id": person["@id"] } });
+    graph.push({ "@type": "Map", name: "Temporal Map", url: CANON_HOST + "/map", creator: who });
   }
   if (kind === "runtime" || path === "/runtime" || kind === "software" || path === "/software" || path === "/") {
     const ver = resolveRuntimeVersion(runtimeVersion);
@@ -257,7 +286,8 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
       operatingSystem: "Cloudflare Workers",
       url: CANON_HOST + "/runtime",
       description: softwarePage ? softwareHubBlurb(ver) : runtimeDescription(ver),
-      author: { "@id": person["@id"] },
+      author: who,
+      publisher: who,
       license: "https://www.apache.org/licenses/LICENSE-2.0",
       codeRepository: GITHUB_RUNTIME,
       sameAs: [RUNTIME_ORIGIN + "/", GITHUB_RUNTIME, RUNTIME_GLAMA, RUNTIME_DOCS],
@@ -270,7 +300,7 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
       description: softwarePage
         ? "FragGate door. " + RUNTIME_LIVE_COUNT + " live advisory engines; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse. Kernel " + RUNTIME_KERNEL + "."
         : "FragGate " + ver + " door. " + RUNTIME_LIVE_COUNT + " live advisory engines; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse. Kernel " + RUNTIME_KERNEL + ".",
-      provider: { "@id": person["@id"] },
+      provider: who,
       termsOfService: CANON_HOST + "/runtime",
     });
   }
@@ -281,17 +311,17 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
       name: "About " + AUTHOR,
       url: CANON_HOST + ABOUT_PATH,
       description,
-      isPartOf: { "@id": CANON_HOST + "/#website" },
-      author: { "@id": person["@id"] },
-      mainEntity: { "@id": person["@id"] },
+      isPartOf: { "@id": WEBSITE_ID },
+      author: who,
+      mainEntity: who,
     });
     graph.push({
       "@type": "ProfilePage",
       name: title || ABOUT_NAV_LABEL,
       url: CANON_HOST + ABOUT_PATH,
       description,
-      isPartOf: { "@id": CANON_HOST + "/#website" },
-      mainEntity: { "@id": person["@id"] },
+      isPartOf: { "@id": WEBSITE_ID },
+      mainEntity: who,
     });
     graph.push(breadcrumbNode([
       { name: SITE, item: CANON_HOST + "/" },
@@ -304,7 +334,7 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
       name: "How it's scored",
       url: CANON_HOST + "/how-its-scored",
       description,
-      author: { "@id": person["@id"] },
+      author: who,
     });
   }
   if (kind === "software" || path === "/software") {
@@ -315,9 +345,9 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
       alternateName: "Software",
       url: CANON_HOST + "/software",
       description,
-      isPartOf: { "@id": CANON_HOST + "/#website" },
-      author: { "@id": person["@id"] },
-      mainEntity: { "@id": CANON_HOST + "/#website" },
+      isPartOf: { "@id": WEBSITE_ID },
+      author: who,
+      mainEntity: { "@id": WEBSITE_ID },
     });
     graph.push(breadcrumbNode([
       { name: SITE, item: CANON_HOST + "/" },
@@ -388,6 +418,8 @@ export function headMeta(opts) {
     linkRel("sitemap", "/sitemap-index.xml"),
     linkRel("service", "/runtime/v1/fraggate", " title=" + Q + "FragGate" + Q),
     ...(kind === "about" || path === ABOUT_PATH ? [
+      linkRel("me", HUB_ORIGIN + "/"),
+      linkRel("me", HUB_PERSON_ID),
       linkRel("me", GODLOCK_IDENTITY),
       linkRel("me", GITHUB_AUTHOR),
       linkRel("me", GITHUB_REPO),

@@ -40,7 +40,11 @@ test("GET /AzielEliab serves the About HTML at the canonical path", async () => 
   assert.match(html, new RegExp('href="' + ABOUT_PATH.replace("/", "\\/") + '"'));
   assert.match(html, new RegExp(">" + ABOUT_NAV_LABEL + "<"));
   assert.match(html, /id="aziel-eliab"/);
-  assert.match(html, /azielcorpuslibrary\.net\/AzielEliab#aziel-eliab/);
+  assert.match(html, /https:\/\/www\.azieleliab\.com\/#aziel/);
+  assert.doesNotMatch(html, /azielcorpuslibrary\.net\/AzielEliab#aziel-eliab/);
+  assert.match(html, /Part of the Aziel Eliab ecosystem/);
+  assert.match(html, />Official site</);
+  assert.match(html, />Try on Glama</);
   assert.match(html, /href="https:\/\/godlock\.uk\/AzielEliab"/);
   assert.match(html, /godlock\.uk\/AzielEliab/);
   assert.doesNotMatch(html, /href="\/about"/);
