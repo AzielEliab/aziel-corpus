@@ -27,6 +27,7 @@ import {
   hubSoftwareCopy,
   normalizeSoftwareDoc,
   fetchLiveSoftwareCatalog,
+  fetchLiveRuntimeVersion,
 } from "./software-catalog.js";
 import {
   AZCOHERENCE_DOWNLOAD,
@@ -327,7 +328,7 @@ test("softwareBody renders every card in Plain → Gate → Lock with live-catal
     siteViews: 12,
     siteDownloads: 5,
   });
-  assert.match(html, /<h1>Downloadable software<\/h1>\s*<\/section>\s*<section class="soft-section"><h2>Software<\/h2>/);
+  assert.match(html, /<h1>Softwares<\/h1>\s*<\/section>\s*<section class="soft-section"><h2>Software<\/h2>/);
   assert.match(html, /\/runtime\/v1\/software/);
   assert.match(html, /fraggate\/list/);
   assert.match(html, /PeaceLock/);
@@ -342,7 +343,7 @@ test("softwareBody renders every card in Plain → Gate → Lock with live-catal
   assert.match(html, /<h2>Software<\/h2>/);
   assert.match(html, /<h2>Gate<\/h2>/);
   assert.match(html, /<h2>Lock<\/h2>/);
-  const idxH1 = html.indexOf("<h1>Downloadable software</h1>");
+  const idxH1 = html.indexOf("<h1>Softwares</h1>");
   const idxPlain = html.indexOf("<h2>Software</h2>");
   const idxGate = html.indexOf("<h2>Gate</h2>");
   const idxLock = html.indexOf("<h2>Lock</h2>");
@@ -361,6 +362,15 @@ test("softwareBody renders every card in Plain → Gate → Lock with live-catal
   assert.doesNotMatch(html, /aziel-runtime \d+\.\d+\.\d+ FragGate/);
   assert.doesNotMatch(html, /Featured first/);
   assert.doesNotMatch(html, BANNED);
+  assert.match(html, /Official Runtime/);
+  assert.match(html, /https:\/\/aziel-runtime\.vibelock\.workers\.dev\//);
+  assert.match(html, /Source on GitHub/);
+  assert.match(html, /https:\/\/github\.com\/AzielEliab\/aziel-runtime/);
+  assert.match(html, /Try\/Deploy on Glama/);
+  assert.match(html, /https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime/);
+  assert.match(html, /Documentation/);
+  assert.match(html, /https:\/\/github\.com\/AzielEliab\/aziel-runtime\/tree\/main\/docs\/2\.0/);
+  assert.doesNotMatch(html, /glama\.ai\/mcp\/servers\/[0-9a-f]{8,}/i);
   const articleCount = (html.match(/<article class="soft-card/g) || []).length;
   assert.ok(articleCount >= 35, "hub + 31 catalog-ish + extras including AZNet and AZCoherence");
 });
@@ -446,12 +456,12 @@ test("GET /software uses AZIEL_RUNTIME catalog binding and lists every product",
     assert.doesNotMatch(runtimeApp.description, /1\.6\.2/);
     assert.match(html, /\/runtime\/v1\/fraggate\/describe\?slug=peacelock/);
     assert.match(html, /\/runtime\/mcp/);
-    assert.match(html, /<h1>Downloadable software<\/h1>\s*<\/section>\s*<section class="soft-section"><h2>Software<\/h2>/);
+    assert.match(html, /<h1>Softwares<\/h1>\s*<\/section>\s*<section class="soft-section"><h2>Software<\/h2>/);
     assert.match(html, /\/runtime\/v1\/software/);
     assert.match(res.headers.get("cache-control") || "", /s-maxage=3600|no-store/);
     assert.doesNotMatch(html, BANNED);
     assert.match(html, /<title>Softwares — Aziel Eliab catalog \| Aziel Digital Library<\/title>/);
-    assert.match(html, /<h1>Downloadable software<\/h1>/);
+    assert.match(html, /<h1>Softwares<\/h1>/);
     const softPage = ld["@graph"].find((n) => n["@type"] === "CollectionPage");
     assert.equal(softPage.name, "Softwares");
     assert.doesNotMatch(html, /triad \+25|quiet triad|collection score/i);
@@ -462,6 +472,10 @@ test("GET /software uses AZIEL_RUNTIME catalog binding and lists every product",
     assert.doesNotMatch(built.hub.blurb, /aziel-runtime 1\.6\.4 FragGate/);
     assert.doesNotMatch(built.hub.blurb, /1\.6\.2/);
     assert.ok(built.hub.links.some((l) => l.primary && l.label === "aziel-runtime"));
+    assert.ok(built.hub.links.some((l) => l.label === "Official Runtime" && l.href === "https://aziel-runtime.vibelock.workers.dev/"));
+    assert.ok(built.hub.links.some((l) => l.label === "Source on GitHub" && l.href === "https://github.com/AzielEliab/aziel-runtime"));
+    assert.ok(built.hub.links.some((l) => l.label === "Try/Deploy on Glama" && l.href === "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime"));
+    assert.ok(built.hub.links.some((l) => l.label === "Documentation" && l.href === "https://github.com/AzielEliab/aziel-runtime/tree/main/docs/2.0"));
     assert.ok(built.downloadable > 27);
     assert.ok(built.products.some((p) => p.slug === "azmail"));
     assert.ok(built.products.some((p) => p.slug === "embryolock"));
@@ -532,7 +546,7 @@ test("Googlebot /software is a light crawl path: all cards, unique SEO, no count
     assert.match(res.headers.get("x-robots-tag") || "", /index/);
     const html = await res.text();
     assert.match(html, /<title>Softwares — Aziel Eliab catalog \| Aziel Digital Library<\/title>/);
-    assert.match(html, /<h1>Downloadable software<\/h1>/);
+    assert.match(html, /<h1>Softwares<\/h1>/);
     assert.match(html, /PeaceLock/);
     assert.match(html, /AZCoherence/);
     assert.match(html, /Plain Product 24/);
@@ -568,7 +582,8 @@ test("empty Softwares catalog still ships unique title, description, and Collect
   try {
     const html = await res.text();
     assert.match(html, /<title>Softwares — Aziel Eliab catalog \| Aziel Digital Library<\/title>/);
-    assert.match(html, /Downloadable software by Aziel Eliab/);
+    assert.match(html, /not merely an API orchestrator/);
+    assert.match(html, /Softwares catalog for aziel-runtime/);
     const ld = JSON.parse(html.match(/<script type="application\/ld\+json">([^<]+)<\/script>/)[1]);
     assert.ok(ld["@graph"].some((n) => n["@type"] === "CollectionPage" && n.name === "Softwares"));
     assert.ok(ld["@graph"].some((n) => n["@type"] === "Person" && n.name === "Aziel Eliab"));
@@ -972,9 +987,31 @@ test("GET /software HTML prefers packed catalog and does not wait on a hanging o
     assert.equal(res.status, 200);
     assert.ok(Date.now() - started < 2000, "Softwares HTML must not block SSR on a slow upstream");
     const html = await res.text();
-    assert.match(html, /<h1>Downloadable software<\/h1>/);
+    assert.match(html, /<h1>Softwares<\/h1>/);
     assert.match(html, /FragGate/);
   } finally {
     globalThis.fetch = origFetch;
   }
+});
+
+test("fetchLiveRuntimeVersion cites live health and falls back to 2.0.0-rc1", async () => {
+  const env = stubEnv({
+    async fetch(request) {
+      const url = new URL(request.url);
+      if (url.pathname.endsWith("/v1/health")) {
+        return new Response(JSON.stringify({ ok: true, version: "2.0.0-rc1" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response("no", { status: 404 });
+    },
+  });
+  assert.equal(await fetchLiveRuntimeVersion(env, { timeoutMs: 200 }), "2.0.0-rc1");
+  const quiet = stubEnv({
+    async fetch() {
+      return new Response(JSON.stringify({ error: "no" }), { status: 404 });
+    },
+  });
+  assert.equal(await fetchLiveRuntimeVersion(quiet, { timeoutMs: 200 }), "2.0.0-rc1");
 });

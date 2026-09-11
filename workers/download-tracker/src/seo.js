@@ -2,6 +2,8 @@
 import {
   RUNTIME_ORIGIN,
   RUNTIME_GITHUB,
+  RUNTIME_DOCS,
+  RUNTIME_GLAMA,
   RUNTIME_LIVE_COUNT,
   RUNTIME_LOCAL_ONLY,
   RUNTIME_KERNEL,
@@ -258,7 +260,7 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
       author: { "@id": person["@id"] },
       license: "https://www.apache.org/licenses/LICENSE-2.0",
       codeRepository: GITHUB_RUNTIME,
-      sameAs: [RUNTIME_ORIGIN + "/", GITHUB_RUNTIME],
+      sameAs: [RUNTIME_ORIGIN + "/", GITHUB_RUNTIME, RUNTIME_GLAMA, RUNTIME_DOCS],
     });
     graph.push({
       "@type": "WebAPI",

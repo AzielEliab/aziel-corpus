@@ -58,15 +58,18 @@ test("JSON-LD types the author as Person with alternateName", () => {
   assert.doesNotMatch(html, BANNED);
 });
 
-test("runtime JSON-LD and discovery links advertise Aziel Runtime 1.9.0 abstract", () => {
+test("runtime JSON-LD and discovery links advertise Aziel Runtime 2.0.0-rc1 abstract", () => {
   const html = headMeta({ title: "Aziel Runtime", path: "/runtime", kind: "runtime" });
   const ld = graphFrom(html);
   const apps = ld["@graph"].filter((n) => n["@type"] === "SoftwareApplication");
   const runtimeApp = apps.find((n) => n.name === "aziel-runtime");
   assert.ok(runtimeApp);
-  assert.equal(runtimeApp.softwareVersion, "1.9.0");
+  assert.equal(runtimeApp.softwareVersion, "2.0.0-rc1");
   assert.equal(runtimeApp.url, "https://www.azielcorpuslibrary.net/runtime");
   assert.ok(runtimeApp.sameAs.includes("https://aziel-runtime.vibelock.workers.dev/"));
+  assert.ok(runtimeApp.sameAs.includes("https://github.com/AzielEliab/aziel-runtime"));
+  assert.ok(runtimeApp.sameAs.includes("https://glama.ai/mcp/servers/AzielEliab/aziel-runtime"));
+  assert.ok(runtimeApp.sameAs.includes("https://github.com/AzielEliab/aziel-runtime/tree/main/docs/2.0"));
   assert.match(runtimeApp.description, /not merely an API orchestrator/);
   assert.match(runtimeApp.description, /37 live/);
   assert.doesNotMatch(runtimeApp.description, /aziel-runtime 1\.9\.0 FragGate/);
