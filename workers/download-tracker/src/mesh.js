@@ -612,7 +612,7 @@ export function meshStatusHtml(doc) {
   const enabled = isMeshEnabled(doc);
   const label = liveNodesLabel(doc);
   const cls = enabled ? "pill ok" : "pill";
-  return `<a class="${cls}" id="aziel-live-nodes" href="/v1/mesh" title="Suite mesh. Default off until runtime enable. Author Aziel Eliab.">${esc(label)}</a>`;
+  return `<a class="${cls}" id="aziel-live-nodes" href="/v1/mesh/status" title="Suite mesh. Default off until runtime enable. GET never enables. Author Aziel Eliab.">${esc(label)}</a>`;
 }
 
 export function meshRefreshScript() {
@@ -620,10 +620,11 @@ export function meshRefreshScript() {
 (function(){
   var el=document.getElementById("aziel-live-nodes");
   if(!el||!el.textContent)return;
-  fetch("/v1/mesh",{headers:{"Accept":"application/json","User-Agent":"Mozilla/5.0"}}).then(function(r){return r.json();}).then(function(d){
+  fetch("/v1/mesh/status",{headers:{"Accept":"application/json","User-Agent":"Mozilla/5.0"}}).then(function(r){return r.json();}).then(function(d){
     if(!d)return;
-    var on=d.enabled===true||d.mesh==="on"||d.mesh==="enabled"||d.mesh==="live";
-    var n=d.live_nodes!=null?d.live_nodes:(d.nodes&&d.nodes.length)||0;
+    var src=d.origin&&typeof d.origin==="object"?d.origin:d;
+    var on=d.enabled===true||(src&&src.enabled===true)||d.mesh==="on"||d.mesh==="enabled"||d.mesh==="live";
+    var n=d.live_nodes!=null?d.live_nodes:(src&&src.live_nodes!=null?src.live_nodes:(d.nodes&&d.nodes.length)||(src&&src.rollup&&src.rollup.live)||0);
     el.textContent=on?("Live Nodes \\u00b7 "+n):"Live Nodes \\u00b7 off";
     if(on)el.className="pill ok";
   }).catch(function(){});

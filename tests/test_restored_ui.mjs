@@ -58,6 +58,44 @@ test("restored nav2 keeps every public tab and drops Health/Verify from chrome",
   assert.match(html, /class="ecosystem"/);
 });
 
+test("Softwares page keeps heading then list with no interstitial copy", () => {
+  const soft = softwareBody({
+    products: [{ name: "aziel-runtime", version: "catalog", root: true, countLabel: "1 downloads", blurb: "Root source", links: [{ href: "/runtime", label: "Site front door", primary: true }] }],
+  });
+  assert.match(soft, /<h1>Softwares<\/h1>\s*<\/section>\s*<section class="soft-section"><h2>Software<\/h2>/);
+  const chrome = page("Software", soft, { path: "/software", kind: "software" });
+  assert.doesNotMatch(chrome, /id="views"/);
+  assert.doesNotMatch(chrome, /id="downloads"/);
+  assert.match(chrome, /id="aziel-live-nodes"/);
+});
+
+test("homepage brandrow shows views, downloads, and Live Nodes pills", () => {
+  const html = page("Corpus Search", homeBody({
+    rows: [],
+    views: 380386,
+    downloads: 2199,
+    host: "https://www.azielcorpuslibrary.net",
+  }), { path: "/", kind: "search", views: 380386, downloads: 2199 });
+  assert.match(html, /class="brandrow/);
+  assert.match(html, /class="brandmark"/);
+  assert.match(html, /id="views"/);
+  assert.match(html, /href="\/stats"[^>]*>380386<span>views<\/span>/);
+  assert.match(html, /id="downloads"/);
+  assert.match(html, /href="\/stats"[^>]*>2199<span>downloads<\/span>/);
+  assert.match(html, /id="aziel-live-nodes"/);
+  assert.match(html, /href="\/v1\/mesh\/status"/);
+  assert.match(html, /Live Nodes · off/);
+  assert.doesNotMatch(html, /Views 380386 · Counted downloads 2199/);
+  const brand = html.indexOf("class=\"brandrow");
+  const viewsAt = html.indexOf('id="views"');
+  const downloadsAt = html.indexOf('id="downloads"');
+  const nodesAt = html.indexOf('id="aziel-live-nodes"');
+  const hero = html.indexOf("Search the libraries");
+  assert.ok(brand >= 0 && viewsAt > brand && downloadsAt > viewsAt && nodesAt > downloadsAt, "counters sit in brandrow after the mark");
+  assert.ok(hero > nodesAt, "counters sit above the homepage hero");
+  assert.match(CSS, /\.pill span\{/);
+});
+
 test("black/gold theme and royal purple Aziel Library text are in CSS", () => {
   assert.match(CSS, /--bg:#12100c/);
   assert.match(CSS, /--gold:#c9a227/);

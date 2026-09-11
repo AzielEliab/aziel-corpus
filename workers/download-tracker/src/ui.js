@@ -81,8 +81,10 @@ body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;lin
 .nav2 .sep{color:#5a4e3e;padding:0 2px}
 .muted{color:var(--muted)}
 a{color:var(--gold)}
-.pill{background:#2a241c;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:650;color:var(--ink)}
+.pill{background:#2a241c;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:650;color:var(--ink);font-variant-numeric:tabular-nums;text-decoration:none}
 .pill.ok{background:#14261c;color:var(--yes);border-color:#2e6b45}
+a.pill:hover{color:var(--gold)}
+.pill span{color:var(--muted);font-weight:650;margin-left:6px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin:18px 0;box-shadow:0 1px 0 #00000040}
 .button,button{background:var(--gold);color:#14110a;border:0;padding:12px 16px;border-radius:10px;text-decoration:none;cursor:pointer;min-height:44px;display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:700}
 .button.ghost,a.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
@@ -213,7 +215,8 @@ a.runtime-muted:hover{color:var(--ink)}
   html,body{overflow:auto;height:auto;min-height:100%}
   .wrap{padding:16px 14px max(120px, calc(env(safe-area-inset-bottom, 0px) + 100px))}
   .brand{width:auto;font-size:20px;flex:1 1 auto;min-width:0}
-  .brandrow{flex-wrap:wrap}
+  .brandrow{flex-wrap:wrap;gap:8px}
+  .pill{padding:5px 10px}
   .search,.hero-search .search{width:100%;min-width:0}
   .hero-search{flex-direction:column}
   .hero-search button,.button,button{width:100%}
@@ -277,7 +280,19 @@ export function ecosystemBlockHtml() {
   return `<footer class="ecosystem" aria-label="${esc(ECOSYSTEM_HEADING)}"><p class="eco-head">${esc(ECOSYSTEM_HEADING)}</p><nav class="ecosystem-nav"><ul class="ecosystem-list">${items}</ul></nav></footer>`;
 }
 
-export function page(title, body, { signed, scripts, path, kind, description, work, runtimeVersion } = {}) {
+export function brandCountPills({ views, downloads } = {}) {
+  const pills = [];
+  if (views != null && views !== "") {
+    pills.push(`<a class="pill" href="/stats" id="views">${esc(views)}<span>views</span></a>`);
+  }
+  if (downloads != null && downloads !== "") {
+    pills.push(`<a class="pill" href="/stats" id="downloads">${esc(downloads)}<span>downloads</span></a>`);
+  }
+  pills.push(meshStatusHtml(meshOffDoc()));
+  return pills.join("");
+}
+
+export function page(title, body, { signed, scripts, path, kind, description, work, runtimeVersion, views, downloads } = {}) {
   const who = signed && signed.username ? String(signed.username) : "";
   const account = signed
     ? `<span class="pill ok">signed in as ${esc(who)}</span>`
@@ -286,7 +301,7 @@ export function page(title, body, { signed, scripts, path, kind, description, wo
     ? `<a href="/logout">Log out</a>`
     : `<a href="/login">Log in</a><span class="sep">|</span><a href="/signup">Sign up</a>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(documentTitle(kind, title))}</title>${headMeta({ title, path: path || "/", kind, description, work, runtimeVersion })}<style>${CSS}</style></head><body><div class="wrap">
-<div class="brandrow nav1"><img class="brandmark" src="/sigil.png" width="40" height="40" alt="" decoding="async"><div class="brand">Aziel Digital Library</div><span class="pill">Runtime v2.7.0</span><span class="pill ok">MASTER · WRITABLE</span>${account}${meshStatusHtml(meshOffDoc())}</div>
+<div class="brandrow nav1"><img class="brandmark" src="/sigil.png" width="40" height="40" alt="" decoding="async"><div class="brand">Aziel Digital Library</div>${brandCountPills({ views, downloads })}<span class="pill">Runtime v2.7.0</span><span class="pill ok">MASTER · WRITABLE</span>${account}</div>
 <nav class="nav2 quiet"><a href="/">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/pattern">Pattern</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/how-its-scored">How it's scored</a><span class="sep">|</span><a href="/donate">Donate</a><span class="sep">|</span><a href="/runtime">Runtime</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/gazetteer">Gazetteer</a><span class="sep">|</span><a href="/intelligence">Intelligence</a><span class="sep">|</span><a href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a><span class="sep">|</span>${authLinks}</nav>
 ${donateStripHtml()}
 ${body}
@@ -501,7 +516,7 @@ export function homeBody({ q, lib, sort, domain, subject, keyword, author, rows,
   const state = browseState({ q, lib, sort, domain, subject, keyword, author });
   return `<section class="hero">
 <h1>Search the libraries</h1>
-<p class="muted">Public search across Aziel Library and the corpus. Sign up to post. Author Aziel Eliab. Views ${esc(views)} · Counted downloads ${esc(downloads)}.</p>
+<p class="muted">Public search across Aziel Library and the corpus. Sign up to post. Author Aziel Eliab.</p>
 <div class="chips">${chip(RUNTIME_CHIP, "/runtime", false)}</div>
 </section>
 ${browseTools({ action: "/", showLibChips: true, ...state })}

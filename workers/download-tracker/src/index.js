@@ -263,7 +263,7 @@ async function indexHtml(env, request) {
   const signed = await getSession(env, request);
   const rows = await searchRecords(env, { q: browse.q, library: browse.lib, sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300 });
   const facets = await listFacets(env, { library: browse.lib });
-  return page("Corpus Search", homeBody({ ...browse, rows, facets, views: stats.views || 0, downloads: stats.downloads || 0, host: HOST }), { signed, path: "/", kind: "search" });
+  return page("Corpus Search", homeBody({ ...browse, rows, facets, views: stats.views || 0, downloads: stats.downloads || 0, host: HOST }), { signed, path: "/", kind: "search", views: stats.views || 0, downloads: stats.downloads || 0 });
 }
 
 function llmsTxt() {
@@ -286,6 +286,7 @@ ${LIMITATION}
 ## API (does not increment)
 
 - GET ${HOST}/v1/health
+- GET ${HOST}/v1/stats
 - GET ${HOST}/v1/search?q=
 - GET ${HOST}/v1/skill
 - GET ${HOST}/v1/example
