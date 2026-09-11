@@ -171,6 +171,27 @@ test("GET /v1/health is failover-ready standby and does not list KV", async () =
   assert.doesNotMatch(JSON.stringify(body), BANNED);
 });
 
+test("GET /v1/stats returns packed views and downloads without listing KV", async () => {
+  const packed = sealPackedIndex({ views: 12, downloads: 4, records: [] });
+  const kv = throwingListKv(new Map([[LIBRARY_INDEX_KEY, JSON.stringify(packed)]]));
+  const res = await handleRuntimeApi(
+    new Request("https://www.azielcorpuslibrary.net/v1/stats"),
+    new URL("https://www.azielcorpuslibrary.net/v1/stats"),
+    { DOWNLOADS: kv }
+  );
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get("cache-control") || "", /s-maxage=300/);
+  const body = await res.json();
+  assert.equal(body.ok, true);
+  assert.equal(body.author, "Aziel Eliab");
+  assert.equal(body.identity, "Aziel Eliab");
+  assert.equal(body.views, 12);
+  assert.equal(body.downloads, 4);
+  assert.equal(body.kv_list_hot_path, false);
+  assert.equal(kv.calls.list, 0);
+  assert.doesNotMatch(JSON.stringify(body), BANNED);
+});
+
 test("GET /v1/library-index is the packed key and never lists", async () => {
   const packed = sealPackedIndex({
     records: [cardFromRecord({ record_id: "AZDOC-9", title: "Card", library: "aziel", author: "Aziel Eliab" })],
