@@ -354,6 +354,7 @@ test("OpenAPI identity URLs include /AzielEliab and GodLock", async () => {
   assert.match(spec.paths["/AzielEliab"].get.summary, /godlock\.uk\/AzielEliab/);
   assert.ok(spec.paths["/v1/software"]);
   assert.ok(spec.paths["/v1/download"]);
+  assert.ok(spec.paths["/v1/stats"]);
   assert.ok(spec.paths["/v1/update/check"]);
   assert.ok(spec.paths["/.well-known/mcp.json"]);
   assert.doesNotMatch(JSON.stringify(spec), BANNED);
