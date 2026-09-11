@@ -180,8 +180,11 @@ test("Pattern, Software, About, and runtime pages render live copy", () => {
     fetched: 1,
     downloadable: 1,
   });
-  assert.match(soft, /Downloadable software/);
+  assert.match(soft, /<h1>Softwares<\/h1>\s*<\/section>\s*<section class="soft-section"><h2>Software<\/h2>/);
   assert.match(soft, /aziel-runtime/);
+  assert.match(soft, /Official Runtime/);
+  assert.match(soft, /Try\/Deploy on Glama/);
+  assert.match(soft, /href="https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime"/);
   assert.match(soft, /href="\/how-its-scored"/);
   assert.match(soft, /href="\/runtime"/);
   assert.match(soft, /href="https:\/\/godlock\.uk\/AzielEliab"/);
@@ -194,9 +197,12 @@ test("Pattern, Software, About, and runtime pages render live copy", () => {
   assert.match(runtime, /\/runtime\/openapi\.json/);
   assert.match(runtime, /POST \/runtime\/mcp/);
   assert.match(runtime, /THIS IS NOT<\/strong> an API aggregator or a second software index/);
-  assert.match(runtime, /1\.9\.0/);
+  assert.match(runtime, /2\.0\.0-rc1/);
   assert.match(runtime, /37 live/);
   assert.match(runtime, /not merely an API orchestrator/);
+  assert.match(runtime, /Official Runtime/);
+  assert.match(runtime, /Try\/Deploy on Glama/);
+  assert.match(runtime, /Documentation/);
   assert.match(runtime, /FragGate/);
   assert.match(runtime, /fraggate_list/);
   assert.match(runtime, /\/runtime\/v1\/fraggate\/list/);
@@ -240,8 +246,8 @@ test("Aziel Library is publicly browseable and shelf SHA-dedupes", () => {
   assert.match(home, /href="\/file\/B"/);
   assert.doesNotMatch(home, /href="\/file\/A"/);
   assert.match(home, /href="\/runtime"/);
-  assert.match(home, /Runtime 1\.9\.0/);
-  assert.doesNotMatch(home, /Runtime 1\.9\.0 · FragGate/);
+  assert.match(home, /Runtime 2\.0\.0-rc1/);
+  assert.doesNotMatch(home, /Runtime 2\.0\.0-rc1 · FragGate/);
   assert.deepEqual(
     dedupeShelfRows([
       { record_id: "1", content_sha256: "abc" },
