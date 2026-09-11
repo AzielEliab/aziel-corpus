@@ -161,8 +161,13 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.ok(cite.sameAs.includes("https://github.com/AzielEliab/aziel-corpus"));
   assert.ok(cite.keywords.includes("GodLock"));
   assert.ok(cite.keywords.includes("FragGate"));
-  assert.match(cite.runtime_note, /1\.9\.0/);
+  assert.match(cite.runtime_note, /2\.0\.0-rc1/);
   assert.match(cite.runtime_note, /not an API aggregator/);
+  assert.equal(cite.runtime_version, "2.0.0-rc1");
+  assert.equal(cite.runtime_official, "https://aziel-runtime.vibelock.workers.dev/");
+  assert.equal(cite.runtime_github, "https://github.com/AzielEliab/aziel-runtime");
+  assert.equal(cite.runtime_glama, "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime");
+  assert.equal(cite.runtime_docs, "https://github.com/AzielEliab/aziel-runtime/tree/main/docs/2.0");
   assert.doesNotMatch(cite.runtime_note, /1\.6\.2 FragGate/);
   assert.match(cite.runtime_fraggate_list, /\/runtime\/v1\/fraggate\/list$/);
   assert.match(cite.software_live, /\/v1\/software$/);
@@ -199,6 +204,10 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(llms, /How it's scored/);
   assert.match(llms, /\/ai\.txt/);
   assert.match(llms, /aziel-runtime\.vibelock\.workers\.dev/);
+  assert.match(llms, /not merely an API orchestrator/);
+  assert.match(llms, /2\.0\.0-rc1/);
+  assert.match(llms, /Try\/Deploy on Glama: https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime/);
+  assert.match(llms, /Documentation: https:\/\/github\.com\/AzielEliab\/aziel-runtime\/tree\/main\/docs\/2\.0/);
   assert.match(llms, /1\.6\.2/);
   assert.match(llms, /FragGate/);
   assert.match(llms, /fraggate_list/);

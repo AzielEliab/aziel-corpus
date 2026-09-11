@@ -1,6 +1,6 @@
 /**
  * aziel-runtime hosted as the Digital Library AI runtime root.
- * /runtime is the human + AI page. /runtime/* proxies live aziel-runtime (1.9.0).
+ * /runtime is the human + AI page. /runtime/* proxies live aziel-runtime (2.0.0-rc1).
  * Author: Aziel Eliab.
  */
 import { page, runtimeBody } from "./ui.js";
@@ -22,6 +22,8 @@ import {
   RUNTIME_ABSTRACT,
   RUNTIME_TITLE,
   runtimeHowTo,
+  resolveRuntimeVersion,
+  runtimeDescription,
 } from "./runtime-copy.js";
 import {
   RUNTIME_VIA,
@@ -30,6 +32,7 @@ import {
   runtimeUsesResponse,
 } from "./runtime-uses.js";
 import { MESH_NOTE, QNS_CD_SPEC, meshOffDoc, proxyMeshRequest } from "./mesh.js";
+import { fetchLiveRuntimeVersion } from "./software-catalog.js";
 
 export {
   HOST,
@@ -327,11 +330,16 @@ export async function handleRuntimeRoot(request, url, env, signed, ctx) {
   const method = request.method;
 
   if (path === "/runtime" && (method === "GET" || method === "HEAD")) {
-    return htmlPage(request, "Aziel Runtime", runtimeBody(), {
+    const liveVersion = method === "HEAD"
+      ? RUNTIME_VERSION
+      : await fetchLiveRuntimeVersion(env);
+    const ver = resolveRuntimeVersion(liveVersion);
+    return htmlPage(request, "Aziel Runtime", runtimeBody(ver), {
       signed,
       path: "/runtime",
       kind: "runtime",
-      description: RUNTIME_DESCRIPTION,
+      runtimeVersion: ver,
+      description: runtimeDescription(ver),
     });
   }
 

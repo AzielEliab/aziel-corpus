@@ -5,6 +5,10 @@ import {
   RUNTIME_NOTE,
   RUNTIME_LIVE_COUNT,
   RUNTIME_LOCAL_ONLY,
+  RUNTIME_GITHUB,
+  RUNTIME_DOCS,
+  RUNTIME_GLAMA,
+  RUNTIME_ABSTRACT,
   AI_CLIENTS,
   runtimeHowTo,
 } from "./runtime-copy.js";
@@ -470,8 +474,12 @@ export function citeDoc() {
     runtime_cite: HOST + "/runtime/cite.json",
     runtime_robots: HOST + "/runtime/robots.txt",
     runtime_origin: CATALOG + "/",
-    runtime_sameAs: [CATALOG + "/", "https://github.com/AzielEliab/aziel-runtime"],
+    runtime_sameAs: [CATALOG + "/", RUNTIME_GITHUB, RUNTIME_GLAMA, RUNTIME_DOCS],
     runtime_version: RUNTIME_VERSION,
+    runtime_official: CATALOG + "/",
+    runtime_github: RUNTIME_GITHUB,
+    runtime_glama: RUNTIME_GLAMA,
+    runtime_docs: RUNTIME_DOCS,
     runtime_live_count: RUNTIME_LIVE_COUNT,
     runtime_local_only: RUNTIME_LOCAL_ONLY,
     compatible_clients: AI_CLIENTS,
@@ -525,7 +533,12 @@ export function llmsDoc(limitation) {
     + "Software hub mirrors the live aziel-runtime catalog per request (GET " + CATALOG + "/v1/software, fallback " + CATALOG + "/v1/fraggate/list; same-origin " + HOST + "/v1/software). No fixed product cap.\n"
     + "Runtime catalog: " + HOST + "/runtime\n"
     + "Runtime FragGate: " + HOST + "/runtime/v1/fraggate\n"
-    + "Runtime version: Aziel Runtime " + RUNTIME_VERSION + " (" + RUNTIME_LIVE_COUNT + " live; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse). Node-meshed MCP Softwares suite — not an API aggregator. FragGate is the single door.\n"
+    + RUNTIME_ABSTRACT + "\n"
+    + "Runtime version: Aziel Runtime " + RUNTIME_VERSION + " (" + RUNTIME_LIVE_COUNT + " live; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse). Cite live GET /runtime/v1/health. FragGate is the single door. Remain-OFF untouched.\n"
+    + "Official Runtime: " + CATALOG + "/\n"
+    + "Source on GitHub: " + RUNTIME_GITHUB + "\n"
+    + "Try/Deploy on Glama: " + RUNTIME_GLAMA + "\n"
+    + "Documentation: " + RUNTIME_DOCS + "\n"
     + "How it's scored: " + HOST + "/how-its-scored\n"
     + "GitHub: " + GITHUB_REPO + "\n"
     + "Author GitHub: " + GITHUB_AUTHOR + "\n"

@@ -16,7 +16,7 @@ Always send `User-Agent: Mozilla/5.0`.
 ## Call these URLs
 
 - Library: https://www.azielcorpuslibrary.net/
-- Runtime root: https://www.azielcorpuslibrary.net/runtime (aziel-runtime 1.6.2 FragGate door; prefer /runtime/*)
+- Runtime root: https://www.azielcorpuslibrary.net/runtime (aziel-runtime 2.0.0-rc1 FragGate door; prefer /runtime/*)
 - Runtime FragGate list: `GET https://www.azielcorpuslibrary.net/runtime/v1/fraggate/list`
 - Runtime FragGate call: `POST https://www.azielcorpuslibrary.net/runtime/v1/fraggate/call`
 - Fallback Worker: https://aziel-corpus-download-tracker.vibelock.workers.dev/
@@ -42,7 +42,7 @@ Ops (do **not** increment downloads):
 - `GET /v1/review?record_id=` (triad + ZionPattern Solver secondary score + succession cites)
 - `GET /v1/lattice?record_id=`
 - `GET /v1/runtime`
-- `GET /v1/runtime.json` (aziel-runtime 1.6.2 FragGate manifest; distinct from `/v1/runtime`)
+- `GET /v1/runtime.json` (aziel-runtime 2.0.0-rc1 FragGate manifest; distinct from `/v1/runtime`)
 - `GET /runtime` (FragGate door page; HEAD + GET return 200)
 - `GET /runtime/v1/health`
 - `GET /runtime/v1/uses` (this door's API use log; does not increment)
