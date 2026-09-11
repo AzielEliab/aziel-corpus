@@ -1,5 +1,14 @@
 import { isOperator } from "./library.js";
-import { headMeta, defaultDescription, documentTitle, ABOUT_PATH, ABOUT_NAV_LABEL, GODLOCK_IDENTITY } from "./seo.js";
+import {
+  headMeta,
+  defaultDescription,
+  documentTitle,
+  ABOUT_PATH,
+  ABOUT_NAV_LABEL,
+  GODLOCK_IDENTITY,
+  ECOSYSTEM_HEADING,
+  ECOSYSTEM_LINKS,
+} from "./seo.js";
 import { jeevesFabHtml } from "./jeeves.js";
 import {
   RUNTIME_VERSION,
@@ -184,6 +193,11 @@ label.showpw{font-size:14px;color:var(--muted);white-space:nowrap;min-height:44p
 .runtime-dist{margin:12px 0 0}
 a.runtime-muted{color:var(--muted);font-size:14px;font-weight:550;text-decoration:underline;text-underline-offset:3px;min-height:auto;padding:4px 0;display:inline;background:transparent;border:0}
 a.runtime-muted:hover{color:var(--ink)}
+.ecosystem{margin:36px 0 0;padding:20px 0 8px;border-top:1px solid var(--line)}
+.ecosystem .eco-head{margin:0 0 12px;color:var(--muted);font-size:14px;font-weight:750;letter-spacing:.02em}
+.ecosystem-list{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:0;padding:0;list-style:none}
+.ecosystem-list a{min-height:44px;display:inline-flex;align-items:center}
+.ecosystem-list a.button{min-height:44px}
 .jeeves-fab{position:fixed;right:16px;bottom:16px;z-index:40;width:auto;min-width:120px;max-width:calc(100vw - 32px);box-shadow:0 8px 24px #00000066;touch-action:manipulation;pointer-events:auto;background:var(--gold);color:#14110a}
 .jeeves-drawer{position:fixed;right:12px;bottom:72px;z-index:39;width:min(380px,calc(100vw - 24px));max-height:70vh;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 12px 32px #00000066;touch-action:pan-y;pointer-events:auto}
 .jeeves-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -253,6 +267,16 @@ export function donateStripHtml() {
   return `<aside class="donate-strip" aria-label="Donate"><p>Nothing is free. Static Donate door on this origin — no Worker KV. <a href="/donate">Donate</a>. Author <span class="donate-aziel">Aziel Eliab</span>.</p></aside>`;
 }
 
+/** Footer/nav ecosystem block. Keep out of Softwares heading→list. */
+export function ecosystemBlockHtml() {
+  const items = ECOSYSTEM_LINKS.map((l) => {
+    const cls = l.muted ? "runtime-muted" : l.primary ? "button" : "";
+    const extra = cls ? ` class="${cls}"` : "";
+    return `<li><a${extra} href="${esc(l.href)}" rel="noopener noreferrer">${esc(l.label)}</a></li>`;
+  }).join("");
+  return `<footer class="ecosystem" aria-label="${esc(ECOSYSTEM_HEADING)}"><p class="eco-head">${esc(ECOSYSTEM_HEADING)}</p><nav class="ecosystem-nav"><ul class="ecosystem-list">${items}</ul></nav></footer>`;
+}
+
 export function page(title, body, { signed, scripts, path, kind, description, work, runtimeVersion } = {}) {
   const who = signed && signed.username ? String(signed.username) : "";
   const account = signed
@@ -265,7 +289,8 @@ export function page(title, body, { signed, scripts, path, kind, description, wo
 <div class="brandrow nav1"><img class="brandmark" src="/sigil.png" width="40" height="40" alt="" decoding="async"><div class="brand">Aziel Digital Library</div><span class="pill">Runtime v2.7.0</span><span class="pill ok">MASTER · WRITABLE</span>${account}${meshStatusHtml(meshOffDoc())}</div>
 <nav class="nav2 quiet"><a href="/">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/pattern">Pattern</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/how-its-scored">How it's scored</a><span class="sep">|</span><a href="/donate">Donate</a><span class="sep">|</span><a href="/runtime">Runtime</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/gazetteer">Gazetteer</a><span class="sep">|</span><a href="/intelligence">Intelligence</a><span class="sep">|</span><a href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a><span class="sep">|</span>${authLinks}</nav>
 ${donateStripHtml()}
-${body}</div>${jeevesFabHtml()}${(scripts||[]).map((src)=>"<script src=\""+esc(src)+"\" defer></script>").join("")}${meshRefreshScript()}</body></html>`;
+${body}
+${ecosystemBlockHtml()}</div>${jeevesFabHtml()}${(scripts||[]).map((src)=>"<script src=\""+esc(src)+"\" defer></script>").join("")}${meshRefreshScript()}</body></html>`;
 }
 
 function esc(s) {

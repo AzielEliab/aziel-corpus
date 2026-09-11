@@ -156,6 +156,13 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.equal(cite.software_hub, "https://www.azielcorpuslibrary.net/software");
   assert.equal(cite.aziel_eliab, "https://www.azielcorpuslibrary.net/AzielEliab");
   assert.equal(cite.godlock, "https://godlock.uk/AzielEliab");
+  assert.equal(cite.person_id, "https://www.azieleliab.com/#aziel");
+  assert.equal(cite.website_id, "https://www.azielcorpuslibrary.net/#website");
+  assert.equal(cite.website_name, "Aziel Corpus Library");
+  assert.equal(cite.official_site, "https://www.azieleliab.com/");
+  assert.equal(cite.ecosystem.heading, "Part of the Aziel Eliab ecosystem");
+  assert.ok(cite.ecosystem.links.some((l) => l.label === "Try on Glama" && l.href === "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime"));
+  assert.ok(cite.sameAs.includes("https://www.azieleliab.com/#aziel"));
   assert.ok(cite.sameAs.includes("https://godlock.uk/AzielEliab"));
   assert.ok(cite.sameAs.includes("https://github.com/AzielEliab"));
   assert.ok(cite.sameAs.includes("https://github.com/AzielEliab/aziel-corpus"));
@@ -199,6 +206,11 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(llms, /\/\.well-known\/mcp\.json/);
   assert.match(llms, /No hard-coded 27 cap/);
   assert.match(llms, /https:\/\/www\.azielcorpuslibrary\.net\/AzielEliab/);
+  assert.match(llms, /Person @id: https:\/\/www\.azieleliab\.com\/#aziel/);
+  assert.match(llms, /Official site: https:\/\/www\.azieleliab\.com\//);
+  assert.match(llms, /WebSite @id: https:\/\/www\.azielcorpuslibrary\.net\/#website/);
+  assert.match(llms, /WebSite name: Aziel Corpus Library/);
+  assert.match(llms, /Part of the Aziel Eliab ecosystem/);
   assert.match(llms, /https:\/\/godlock\.uk\/AzielEliab/);
   assert.match(llms, /Runtime catalog: https:\/\/www\.azielcorpuslibrary\.net\/runtime/);
   assert.match(llms, /How it's scored/);
@@ -305,6 +317,9 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
 
   const humans = humansTxt();
   assertPublicIdentity(humans);
+  assert.match(humans, /Person @id: https:\/\/www\.azieleliab\.com\/#aziel/);
+  assert.match(humans, /Official site: https:\/\/www\.azieleliab\.com\//);
+  assert.match(humans, /WebSite: Aziel Corpus Library https:\/\/www\.azielcorpuslibrary\.net\/#website/);
   assert.match(humans, /github.com\/AzielEliab/);
   assert.match(humans, /azielcorpuslibrary\.net\/AzielEliab/);
   assert.match(humans, /godlock\.uk\/AzielEliab/);

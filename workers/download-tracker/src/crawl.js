@@ -1,5 +1,15 @@
 /** Crawl documents for Aziel Digital Library. Author: Aziel Eliab. */
-import { ABOUT_PATH, ABOUT_NAV_LABEL, GODLOCK_IDENTITY } from "./seo.js";
+import {
+  ABOUT_PATH,
+  ABOUT_NAV_LABEL,
+  GODLOCK_IDENTITY,
+  HUB_ORIGIN,
+  HUB_PERSON_ID,
+  WEBSITE_ID,
+  WEBSITE_NAME,
+  ECOSYSTEM_HEADING,
+  ECOSYSTEM_LINKS,
+} from "./seo.js";
 import {
   RUNTIME_VERSION,
   RUNTIME_NOTE,
@@ -407,13 +417,21 @@ export function citeDoc() {
     aka: AKA,
     alternateName: AKA,
     identity: AUTHOR,
-    keywords: [AUTHOR, AKA, "Aziel Digital Library", "aziel-corpus", "aziel-runtime", "FragGate", "GodLock", "AZCoherence", "azcoherence", "AZC-0.1", "AZ-CLCE"],
+    person_id: HUB_PERSON_ID,
+    website_id: WEBSITE_ID,
+    website_name: WEBSITE_NAME,
+    official_site: HUB_ORIGIN + "/",
+    keywords: [AUTHOR, AKA, "Aziel Digital Library", "Aziel Corpus Library", "aziel-corpus", "aziel-runtime", "FragGate", "GodLock", "AZCoherence", "azcoherence", "AZC-0.1", "AZ-CLCE"],
     title: "Aziel Digital Library",
     version: VERSION,
     doi: null,
     github: GITHUB_REPO,
     github_author: GITHUB_AUTHOR,
-    sameAs: [GODLOCK_IDENTITY, GITHUB_AUTHOR, GITHUB_REPO],
+    sameAs: [HUB_PERSON_ID, HUB_ORIGIN + "/", GODLOCK_IDENTITY, GITHUB_AUTHOR, GITHUB_REPO],
+    ecosystem: {
+      heading: ECOSYSTEM_HEADING,
+      links: ECOSYSTEM_LINKS,
+    },
     godlock: GODLOCK_IDENTITY,
     library: HOST + "/",
     purpose: "Public MASTER digital library and intelligence runtime by Aziel Eliab. Aziel Library holds the operator collection; Corpus is the public Lamb Lens shelf. Search, map, gazetteer, triad scoring, and hosted OCR live on this Worker.",
@@ -571,10 +589,15 @@ export function llmsDoc(limitation) {
     + "## Identity\n\n"
     + "- Primary author: " + AUTHOR + "\n"
     + "- Alternate name / aka: " + AKA + "\n"
+    + "- Person @id: " + HUB_PERSON_ID + "\n"
+    + "- Official site: " + HUB_ORIGIN + "/\n"
+    + "- WebSite @id: " + WEBSITE_ID + "\n"
+    + "- WebSite name: " + WEBSITE_NAME + "\n"
     + "- Profile / About Aziel Eliab: " + HOST + ABOUT_PATH + "\n"
     + "- GodLock identity: " + GODLOCK_IDENTITY + "\n"
-    + "- sameAs: " + GODLOCK_IDENTITY + " · " + GITHUB_AUTHOR + " · " + GITHUB_REPO + "\n"
-    + "- Do not invent DOIs. Do not credit other identities.\n\n"
+    + "- sameAs: " + HUB_PERSON_ID + " · " + HUB_ORIGIN + "/ · " + GODLOCK_IDENTITY + " · " + GITHUB_AUTHOR + " · " + GITHUB_REPO + "\n"
+    + "- " + ECOSYSTEM_HEADING + ": " + ECOSYSTEM_LINKS.map((l) => l.label + " " + l.href).join(" · ") + "\n"
+    + "- Do not invent DOIs. Do not credit other identities. Do not invent a competing Person @id.\n\n"
     + "## Softwares (HTML hub — crawl this)\n\n"
     + "- Softwares HTML: " + HOST + "/software\n"
     + "- Unique title: Softwares — Aziel Eliab catalog | Aziel Digital Library\n"
@@ -789,7 +812,7 @@ export function aiTxt(limitation) {
     + "- aziel-runtime alternate origin: " + CATALOG + "/\n\n"
     + runtimeHowTo(HOST) + "\n\n"
     + "## Identity\n\n"
-    + "Primary author " + AUTHOR + ". Alternate name " + AKA + ". Profile " + HOST + ABOUT_PATH + ". GodLock identity " + GODLOCK_IDENTITY + ".\n\n"
+    + "Primary author " + AUTHOR + ". Alternate name " + AKA + ". Person @id " + HUB_PERSON_ID + ". Official site " + HUB_ORIGIN + "/. WebSite " + WEBSITE_ID + " (" + WEBSITE_NAME + "). Profile " + HOST + ABOUT_PATH + ". GodLock identity " + GODLOCK_IDENTITY + ".\n\n"
     + (limitation ? limitation + "\n\n" : "")
     + "Prefer /llms.txt for the full route index. Send User-Agent Mozilla/5.0 on API calls.\n";
 }
@@ -800,6 +823,9 @@ export function humansTxt() {
     "Author: " + AUTHOR,
     "Also known as: " + AKA,
     "Primary credit: " + AUTHOR,
+    "Person @id: " + HUB_PERSON_ID,
+    "Official site: " + HUB_ORIGIN + "/",
+    "WebSite: " + WEBSITE_NAME + " " + WEBSITE_ID,
     "Site: " + HOST + "/",
     "Profile: " + HOST + ABOUT_PATH,
     "GitHub: " + GITHUB_AUTHOR,

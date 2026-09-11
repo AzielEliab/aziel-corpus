@@ -329,6 +329,7 @@ test("softwareBody renders every card in Plain → Gate → Lock with live-catal
     siteDownloads: 5,
   });
   assert.match(html, /<h1>Softwares<\/h1>\s*<\/section>\s*<section class="soft-section"><h2>Software<\/h2>/);
+  assert.doesNotMatch(html, /Part of the Aziel Eliab ecosystem/);
   assert.match(html, /\/runtime\/v1\/software/);
   assert.match(html, /fraggate\/list/);
   assert.match(html, /PeaceLock/);
@@ -460,6 +461,10 @@ test("GET /software uses AZIEL_RUNTIME catalog binding and lists every product",
     assert.match(html, /\/runtime\/v1\/fraggate\/describe\?slug=peacelock/);
     assert.match(html, /\/runtime\/mcp/);
     assert.match(html, /<h1>Softwares<\/h1>\s*<\/section>\s*<section class="soft-section"><h2>Software<\/h2>/);
+    assert.match(html, /Part of the Aziel Eliab ecosystem/);
+    const ecoAt = html.indexOf("Part of the Aziel Eliab ecosystem");
+    const listAt = html.indexOf("<h2>Software</h2>");
+    assert.ok(listAt >= 0 && ecoAt > listAt, "ecosystem footer is not between Softwares H1 and the list");
     assert.match(html, /\/runtime\/v1\/software/);
     assert.match(res.headers.get("cache-control") || "", /s-maxage=3600|no-store/);
     assert.doesNotMatch(html, BANNED);
@@ -594,7 +599,10 @@ test("empty Softwares catalog still ships unique title, description, and Collect
     assert.match(html, /Softwares catalog for aziel-runtime/);
     const ld = JSON.parse(html.match(/<script type="application\/ld\+json">([^<]+)<\/script>/)[1]);
     assert.ok(ld["@graph"].some((n) => n["@type"] === "CollectionPage" && n.name === "Softwares"));
-    assert.ok(ld["@graph"].some((n) => n["@type"] === "Person" && n.name === "Aziel Eliab"));
+    assert.ok(ld["@graph"].some((n) => n["@type"] === "Person" && n.name === "Aziel Eliab" && n["@id"] === "https://www.azieleliab.com/#aziel"));
+    const site = ld["@graph"].find((n) => n["@type"] === "WebSite");
+    assert.equal(site.name, "Aziel Corpus Library");
+    assert.deepEqual(site.publisher, { "@id": "https://www.azieleliab.com/#aziel" });
     assert.match(html, /AZCoherence|FragGate|EmbryoLock/);
     assert.doesNotMatch(html, BANNED);
   } finally {

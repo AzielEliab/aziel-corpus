@@ -1,10 +1,53 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { headMeta, defaultDescription, documentTitle, recordDescription, personNode, SHARE_IMAGE, ABOUT_PATH, aboutRedirectFrom } from "./seo.js";
+import {
+  headMeta,
+  defaultDescription,
+  documentTitle,
+  recordDescription,
+  personNode,
+  personRef,
+  websiteNode,
+  SHARE_IMAGE,
+  ABOUT_PATH,
+  aboutRedirectFrom,
+  HUB_PERSON_ID,
+  HUB_ORIGIN,
+  WEBSITE_ID,
+  WEBSITE_NAME,
+  ECOSYSTEM_HEADING,
+  ECOSYSTEM_LINKS,
+} from "./seo.js";
 import { handleRuntimeApi } from "./runtime.js";
-import { page, howItsScoredBody } from "./ui.js";
+import { page, howItsScoredBody, ecosystemBlockHtml, softwareBody } from "./ui.js";
 
 const BANNED = /Collin Horton|GodLock\.AZ|\+25|quiet (Aziel|triad|boost)|10\.5281\/zenodo/i;
+const LOCAL_PERSON = "https://www.azielcorpuslibrary.net/AzielEliab#aziel-eliab";
+
+function assertSharedIdentity(ld) {
+  const people = ld["@graph"].filter((n) => n["@type"] === "Person");
+  assert.ok(people.length >= 1);
+  for (const p of people) {
+    assert.equal(p["@id"], HUB_PERSON_ID);
+    assert.notEqual(p["@id"], LOCAL_PERSON);
+  }
+  for (const n of ld["@graph"]) {
+    assert.notEqual(n["@id"], LOCAL_PERSON);
+    for (const key of ["author", "publisher", "creator", "provider", "founder", "mainEntity"]) {
+      const ref = n[key];
+      if (!ref || typeof ref !== "object") continue;
+      if (ref["@id"] === WEBSITE_ID) continue;
+      if (key === "author" && ref["@type"] === "Person" && ref.name && !ref["@id"]) continue;
+      if (ref["@id"]) assert.equal(ref["@id"], HUB_PERSON_ID, key + " must use hub Person @id");
+    }
+  }
+  const site = ld["@graph"].find((n) => n["@type"] === "WebSite");
+  assert.equal(site["@id"], WEBSITE_ID);
+  assert.equal(site.url, "https://www.azielcorpuslibrary.net/");
+  assert.equal(site.name, WEBSITE_NAME);
+  assert.deepEqual(site.publisher, { "@id": HUB_PERSON_ID });
+  assert.deepEqual(site.author, { "@id": HUB_PERSON_ID });
+}
 
 function graphFrom(html) {
   const m = html.match(/<script type="application\/ld\+json">([^<]+)<\/script>/);
@@ -13,21 +56,24 @@ function graphFrom(html) {
 }
 
 test("JSON-LD types the author as Person with alternateName", () => {
+  assert.deepEqual(personRef(), { "@id": HUB_PERSON_ID });
+  assert.equal(HUB_PERSON_ID, "https://www.azieleliab.com/#aziel");
   const person = personNode();
   assert.equal(person["@type"], "Person");
+  assert.equal(person["@id"], HUB_PERSON_ID);
   assert.equal(person.name, "Aziel Eliab");
   assert.deepEqual(person.alternateName, ["Aziel Elroi Eliab"]);
+  assert.equal(person.url, HUB_ORIGIN + "/");
   assert.ok(person.sameAs.includes("https://godlock.uk/AzielEliab"));
   assert.ok(person.sameAs.includes("https://github.com/AzielEliab"));
   assert.ok(person.sameAs.includes("https://github.com/AzielEliab/aziel-corpus"));
-  assert.deepEqual(person.sameAs, [
-    "https://godlock.uk/AzielEliab",
-    "https://github.com/AzielEliab",
-    "https://github.com/AzielEliab/aziel-corpus",
-  ]);
+  assert.ok(person.sameAs.includes(HUB_ORIGIN + "/"));
+  assert.ok(person.sameAs.includes("https://www.azielcorpuslibrary.net/AzielEliab"));
+  assert.equal(person["@id"], "https://www.azieleliab.com/#aziel");
 
   const html = headMeta({ title: "Aziel Eliab", path: ABOUT_PATH, kind: "about" });
   const ld = graphFrom(html);
+  assertSharedIdentity(ld);
   const types = ld["@graph"].map((n) => n["@type"]);
   assert.ok(types.includes("Person"));
   assert.ok(types.includes("Organization"));
@@ -36,25 +82,35 @@ test("JSON-LD types the author as Person with alternateName", () => {
   assert.ok(types.includes("ProfilePage"));
   const who = ld["@graph"].find((n) => n["@type"] === "Person");
   assert.equal(who.name, "Aziel Eliab");
-  assert.equal(who["@id"], "https://www.azielcorpuslibrary.net/AzielEliab#aziel-eliab");
-  assert.equal(who.url, "https://www.azielcorpuslibrary.net/AzielEliab");
+  assert.equal(who["@id"], "https://www.azieleliab.com/#aziel");
+  assert.equal(who.url, "https://www.azieleliab.com/");
   assert.ok(who.alternateName.includes("Aziel Elroi Eliab"));
   assert.ok(who.sameAs.includes("https://godlock.uk/AzielEliab"));
   assert.ok(who.sameAs.includes("https://github.com/AzielEliab"));
   assert.ok(who.sameAs.includes("https://github.com/AzielEliab/aziel-corpus"));
+  assert.match(html, /rel="me" href="https:\/\/www\.azieleliab\.com\/#aziel"/);
   assert.match(html, /rel="me" href="https:\/\/godlock\.uk\/AzielEliab"/);
   assert.match(html, /keywords" content="Aziel Eliab, Aziel Elroi Eliab, Aziel Digital Library/);
   assert.match(html, /GodLock/);
+  assert.doesNotMatch(html, /AzielEliab#aziel-eliab/);
   const aboutPage = ld["@graph"].find((n) => n["@type"] === "AboutPage");
   assert.equal(aboutPage.url, "https://www.azielcorpuslibrary.net/AzielEliab");
-  assert.equal(aboutPage.mainEntity["@id"], "https://www.azielcorpuslibrary.net/AzielEliab#aziel-eliab");
+  assert.deepEqual(aboutPage.mainEntity, { "@id": HUB_PERSON_ID });
+  assert.deepEqual(aboutPage.author, { "@id": HUB_PERSON_ID });
   const profile = ld["@graph"].find((n) => n["@type"] === "ProfilePage");
   assert.equal(profile.url, "https://www.azielcorpuslibrary.net/AzielEliab");
+  assert.deepEqual(profile.mainEntity, { "@id": HUB_PERSON_ID });
   const org = ld["@graph"].find((n) => n["@type"] === "Organization");
   assert.equal(org.name, "Aziel Digital Library");
-  const site = ld["@graph"].find((n) => n["@type"] === "WebSite");
-  assert.equal(site.potentialAction["@type"], "SearchAction");
-  assert.match(site.potentialAction.target.urlTemplate, /\?q=\{search_term_string\}/);
+  assert.deepEqual(org.founder, { "@id": HUB_PERSON_ID });
+  const site = websiteNode();
+  assert.equal(site["@id"], "https://www.azielcorpuslibrary.net/#website");
+  assert.equal(site.url, "https://www.azielcorpuslibrary.net/");
+  assert.equal(site.name, "Aziel Corpus Library");
+  assert.deepEqual(site.publisher, { "@id": "https://www.azieleliab.com/#aziel" });
+  const liveSite = ld["@graph"].find((n) => n["@type"] === "WebSite");
+  assert.equal(liveSite.potentialAction["@type"], "SearchAction");
+  assert.match(liveSite.potentialAction.target.urlTemplate, /\?q=\{search_term_string\}/);
   assert.doesNotMatch(html, BANNED);
 });
 
@@ -73,9 +129,11 @@ test("runtime JSON-LD and discovery links advertise Aziel Runtime 2.0.0-rc1 abst
   assert.match(runtimeApp.description, /not merely an API orchestrator/);
   assert.match(runtimeApp.description, /37 live/);
   assert.doesNotMatch(runtimeApp.description, /aziel-runtime 1\.9\.0 FragGate/);
+  assertSharedIdentity(ld);
   const api = ld["@graph"].find((n) => n["@type"] === "WebAPI");
   assert.ok(api);
   assert.equal(api.url, "https://www.azielcorpuslibrary.net/runtime/v1/fraggate");
+  assert.deepEqual(api.provider, { "@id": HUB_PERSON_ID });
   assert.match(html, /href="\/runtime\/openapi\.json"/);
   assert.match(html, /href="\/runtime\/mcp"/);
   assert.match(html, /href="\/\.well-known\/mcp\.json"/);
@@ -118,6 +176,9 @@ test("priority pages have unique titles, canonicals, OG/Twitter, and page-type J
   const homeLd = graphFrom(home);
   const softLd = graphFrom(software);
   const aboutLd = graphFrom(about);
+  assertSharedIdentity(homeLd);
+  assertSharedIdentity(softLd);
+  assertSharedIdentity(aboutLd);
   assert.ok(homeLd["@graph"].some((n) => n["@type"] === "WebSite"));
   assert.ok(homeLd["@graph"].some((n) => n["@type"] === "CollectionPage" && n.url === "https://www.azielcorpuslibrary.net/"));
   assert.ok(homeLd["@graph"].some((n) => n["@type"] === "Person"));
@@ -186,10 +247,46 @@ test("page-specific descriptions and share images", () => {
   assert.match(record, /twitter:image" content="https:\/\/www\.azielcorpuslibrary\.net\/sigil\.png"/);
   assert.equal(SHARE_IMAGE, "https://www.azielcorpuslibrary.net/sigil.png");
   const ld = graphFrom(record);
+  assertSharedIdentity(ld);
   const article = ld["@graph"].find((n) => n["@type"] === "ScholarlyArticle");
   assert.ok(article);
   assert.equal(article.name, "The Cockroach Doctrine");
   assert.equal(article.isPartOf.name, "Aziel Library");
+  assert.deepEqual(article.author, { "@id": HUB_PERSON_ID });
+});
+
+test("ecosystem footer/nav is chrome, not Softwares heading→list", () => {
+  assert.equal(ECOSYSTEM_HEADING, "Part of the Aziel Eliab ecosystem");
+  assert.deepEqual(ECOSYSTEM_LINKS.map((l) => [l.label, l.href, !!l.muted, !!l.primary]), [
+    ["Official site", "https://www.azieleliab.com/", false, false],
+    ["Aziel Corpus Library", "https://www.azielcorpuslibrary.net/", false, false],
+    ["Aziel Runtime on GitHub", "https://github.com/AzielEliab/aziel-runtime", false, false],
+    ["Aziel Runtime", "https://aziel-runtime.vibelock.workers.dev/", true, false],
+    ["Try on Glama", "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime", false, true],
+  ]);
+  const block = ecosystemBlockHtml();
+  assert.match(block, /<footer class="ecosystem"/);
+  assert.match(block, /Part of the Aziel Eliab ecosystem/);
+  assert.match(block, /href="https:\/\/www\.azieleliab\.com\/"/);
+  assert.match(block, />Official site</);
+  assert.match(block, /href="https:\/\/www\.azielcorpuslibrary\.net\/"/);
+  assert.match(block, />Aziel Corpus Library</);
+  assert.match(block, /href="https:\/\/github\.com\/AzielEliab\/aziel-runtime"/);
+  assert.match(block, />Aziel Runtime on GitHub</);
+  assert.match(block, /class="runtime-muted"[^>]*href="https:\/\/aziel-runtime\.vibelock\.workers\.dev\/"[^>]*>Aziel Runtime</);
+  assert.match(block, /class="button"[^>]*href="https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime"[^>]*>Try on Glama</);
+  const softBody = softwareBody({
+    products: [{ slug: "azmail", name: "AZMail", kind: "plain", blurb: "door", links: [] }],
+  });
+  const chrome = page("Software", softBody, { path: "/software", kind: "software" });
+  assert.match(chrome, /rel="canonical" href="https:\/\/www\.azielcorpuslibrary\.net\/software"/);
+  assert.match(chrome, /<h1>Softwares<\/h1>\s*<\/section>\s*<section class="soft-section"><h2>Software<\/h2>/);
+  const h1 = chrome.indexOf("<h1>Softwares</h1>");
+  const list = chrome.indexOf("<h2>Software</h2>");
+  const eco = chrome.indexOf("Part of the Aziel Eliab ecosystem");
+  assert.ok(h1 >= 0 && list > h1 && eco > list, "ecosystem footer stays after Softwares heading→list");
+  assert.doesNotMatch(softBody, /Part of the Aziel Eliab ecosystem/);
+  assertSharedIdentity(graphFrom(chrome));
 });
 
 test("recordDescription uses document title and Aziel Eliab for library docs", () => {
