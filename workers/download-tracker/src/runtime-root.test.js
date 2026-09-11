@@ -16,6 +16,27 @@ import {
   recordRuntimeUse,
   runtimeUsesPayload,
 } from "./runtime-uses.js";
+import {
+  runtimeDistributionLinks,
+  RUNTIME_GLAMA,
+  RUNTIME_GLAMA_LABEL,
+  RUNTIME_ORIGIN,
+  RUNTIME_WORKER_LABEL,
+} from "./runtime-copy.js";
+
+test("runtime distribution CTA is Try on Glama; Worker is muted", () => {
+  const links = runtimeDistributionLinks();
+  assert.equal(links[0].label, RUNTIME_GLAMA_LABEL);
+  assert.equal(links[0].href, RUNTIME_GLAMA);
+  assert.equal(links[0].primary, true);
+  assert.ok(!links[0].muted);
+  const worker = links.find((l) => l.href === RUNTIME_ORIGIN + "/");
+  assert.ok(worker);
+  assert.equal(worker.label, RUNTIME_WORKER_LABEL);
+  assert.equal(worker.muted, true);
+  assert.notEqual(worker.primary, true);
+  assert.ok(links.every((l) => !/Try\/Deploy/.test(l.label)));
+});
 
 test("destFromRuntimePath strips the /runtime prefix", () => {
   assert.equal(destFromRuntimePath("/runtime/v1/skill", ""), "/v1/skill");
@@ -115,15 +136,18 @@ test("GET and HEAD /runtime return 200 HTML without a second software index", as
   assert.match(html, /2\.0\.0-rc1/);
   assert.match(html, /not merely an API orchestrator/);
   assert.match(html, /37 live/);
-  assert.match(html, />Official Runtime</);
-  assert.match(html, /href="https:\/\/aziel-runtime\.vibelock\.workers\.dev\/"/);
+  assert.match(html, /class="button"[^>]*href="https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime"[^>]*>Try on Glama</);
   assert.match(html, />Source on GitHub</);
   assert.match(html, /href="https:\/\/github\.com\/AzielEliab\/aziel-runtime"/);
-  assert.match(html, />Try\/Deploy on Glama</);
-  assert.match(html, /href="https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime"/);
   assert.match(html, />Documentation</);
   assert.match(html, /href="https:\/\/github\.com\/AzielEliab\/aziel-runtime\/tree\/main\/docs\/2\.0"/);
+  assert.match(html, /class="runtime-muted"[^>]*href="https:\/\/aziel-runtime\.vibelock\.workers\.dev\/"[^>]*>Official Runtime</);
+  assert.doesNotMatch(html, /class="button"[^>]*>Official Runtime</);
+  assert.doesNotMatch(html, /Try\/Deploy on Glama/);
   assert.doesNotMatch(html, /glama\.ai\/mcp\/servers\/[0-9a-f]{8,}/i);
+  const glamaAt = html.indexOf(">Try on Glama<");
+  const workerAt = html.indexOf(">Official Runtime<");
+  assert.ok(glamaAt >= 0 && workerAt > glamaAt, "Try on Glama is the first Runtime CTA");
   assert.doesNotMatch(html, /aziel-runtime — FragGate door 1\.6\.2/);
   assert.match(html, /FragGate/);
   assert.match(html, /fraggate_list/);

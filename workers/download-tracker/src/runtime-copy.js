@@ -17,6 +17,8 @@ export const RUNTIME_DOCS = RUNTIME_GITHUB + "/tree/main/docs/2.0";
  * Do not invent a Glama server UUID.
  */
 export const RUNTIME_GLAMA = "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime";
+export const RUNTIME_GLAMA_LABEL = "Try on Glama";
+export const RUNTIME_WORKER_LABEL = "Official Runtime";
 export const RUNTIME_LIVE_COUNT = 37;
 export const RUNTIME_PRODUCT_COUNT = 37;
 export const RUNTIME_LOCAL_ONLY = "VeilLock";
@@ -126,13 +128,13 @@ export function softwareDescription(_version) {
     + " Softwares catalog for aziel-runtime on this domain (heading then list). Author Aziel Eliab.";
 }
 
-/** Official Runtime / GitHub / Glama / docs — honest hrefs only. */
+/** Glama is the primary Runtime CTA. Worker stays online as a muted text link. */
 export function runtimeDistributionLinks() {
   return [
-    { href: RUNTIME_ORIGIN + "/", label: "Official Runtime", primary: true },
+    { href: RUNTIME_GLAMA, label: RUNTIME_GLAMA_LABEL, primary: true },
     { href: RUNTIME_GITHUB, label: "Source on GitHub" },
-    { href: RUNTIME_GLAMA, label: "Try/Deploy on Glama" },
     { href: RUNTIME_DOCS, label: "Documentation" },
+    { href: RUNTIME_ORIGIN + "/", label: RUNTIME_WORKER_LABEL, muted: true },
   ];
 }
 
@@ -204,9 +206,9 @@ export function runtimeHowTo(host) {
     "- Runtime cite.json: " + h + "/runtime/cite.json",
     "- Runtime robots.txt: " + h + "/runtime/robots.txt",
     "- Softwares download: " + h + "/download  ·  " + h + "/v1/download",
-    "- Official Runtime: " + RUNTIME_ORIGIN + "/",
+    "- " + RUNTIME_GLAMA_LABEL + ": " + RUNTIME_GLAMA,
     "- Source on GitHub: " + RUNTIME_GITHUB,
-    "- Try/Deploy on Glama: " + RUNTIME_GLAMA,
     "- Documentation: " + RUNTIME_DOCS,
+    "- " + RUNTIME_WORKER_LABEL + " (Worker): " + RUNTIME_ORIGIN + "/",
   ].join("\n");
 }

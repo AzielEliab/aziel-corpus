@@ -8,6 +8,8 @@ import {
   RUNTIME_GITHUB,
   RUNTIME_DOCS,
   RUNTIME_GLAMA,
+  RUNTIME_GLAMA_LABEL,
+  RUNTIME_WORKER_LABEL,
   RUNTIME_ABSTRACT,
   AI_CLIENTS,
   runtimeHowTo,
@@ -535,10 +537,10 @@ export function llmsDoc(limitation) {
     + "Runtime FragGate: " + HOST + "/runtime/v1/fraggate\n"
     + RUNTIME_ABSTRACT + "\n"
     + "Runtime version: Aziel Runtime " + RUNTIME_VERSION + " (" + RUNTIME_LIVE_COUNT + " live; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse). Cite live GET /runtime/v1/health. FragGate is the single door. Remain-OFF untouched.\n"
-    + "Official Runtime: " + CATALOG + "/\n"
+    + RUNTIME_GLAMA_LABEL + ": " + RUNTIME_GLAMA + "\n"
     + "Source on GitHub: " + RUNTIME_GITHUB + "\n"
-    + "Try/Deploy on Glama: " + RUNTIME_GLAMA + "\n"
     + "Documentation: " + RUNTIME_DOCS + "\n"
+    + RUNTIME_WORKER_LABEL + " (Worker): " + CATALOG + "/\n"
     + "How it's scored: " + HOST + "/how-its-scored\n"
     + "GitHub: " + GITHUB_REPO + "\n"
     + "Author GitHub: " + GITHUB_AUTHOR + "\n"
