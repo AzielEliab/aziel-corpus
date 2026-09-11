@@ -136,9 +136,9 @@ export function runtimeDistributionLinks() {
   ];
 }
 
-/** Hub card on /software. FragGate is the door product, not a version mash. */
+/** Hub card on /software. Keep the visible card short — heading then list. SEO uses softwareDescription. */
 export function softwareHubBlurb(_version) {
-  return RUNTIME_ABSTRACT + " Softwares catalog for aziel-runtime on the Aziel Digital Library — heading then list. "
+  return "aziel-runtime on the Aziel Digital Library. Node-meshed MCP Softwares suite for digital forensics and auditing — not an API aggregator. "
     + RUNTIME_LIVE_COUNT + " live advisory engines; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse. "
     + "Discover with fraggate_list, execute with fraggate_call. Author Aziel Eliab.";
 }
