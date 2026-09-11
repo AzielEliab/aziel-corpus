@@ -79,9 +79,9 @@ test("homepage brandrow shows views, downloads, and Live Nodes pills", () => {
   assert.match(html, /class="brandrow/);
   assert.match(html, /class="brandmark"/);
   assert.match(html, /id="views"/);
-  assert.match(html, /href="\/v1\/stats"[^>]*>380386<span>views<\/span>/);
+  assert.match(html, /href="\/stats"[^>]*>380386<span>views<\/span>/);
   assert.match(html, /id="downloads"/);
-  assert.match(html, /href="\/v1\/stats"[^>]*>2199<span>downloads<\/span>/);
+  assert.match(html, /href="\/stats"[^>]*>2199<span>downloads<\/span>/);
   assert.match(html, /id="aziel-live-nodes"/);
   assert.match(html, /href="\/v1\/mesh\/status"/);
   assert.match(html, /Live Nodes · off/);
