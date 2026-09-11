@@ -206,7 +206,12 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(llms, /aziel-runtime\.vibelock\.workers\.dev/);
   assert.match(llms, /not merely an API orchestrator/);
   assert.match(llms, /2\.0\.0-rc1/);
-  assert.match(llms, /Try\/Deploy on Glama: https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime/);
+  assert.match(llms, /Try on Glama: https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime/);
+  assert.match(llms, /Official Runtime \(Worker\): https:\/\/aziel-runtime\.vibelock\.workers\.dev\//);
+  assert.doesNotMatch(llms, /Try\/Deploy on Glama/);
+  const llmsGlama = llms.indexOf("Try on Glama:");
+  const llmsWorker = llms.indexOf("Official Runtime (Worker):");
+  assert.ok(llmsGlama >= 0 && llmsWorker > llmsGlama);
   assert.match(llms, /Documentation: https:\/\/github\.com\/AzielEliab\/aziel-runtime\/tree\/main\/docs\/2\.0/);
   assert.match(llms, /1\.6\.2/);
   assert.match(llms, /FragGate/);
