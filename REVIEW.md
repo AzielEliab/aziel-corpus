@@ -119,7 +119,9 @@ When **SPRE**, **CLCE**, and **PhysLing** have all verified a record, one combin
 
 ## ZionPattern Solver (secondary public score)
 
-Every upload — Aziel Library and public Corpus — gets a **ZionPattern Solver** score. It is stored on the record, shown on the shelf and detail page, and returned by `GET /v1/review`. It is **not** merged into the triad. Hard 75% confidence cap / 25% uncertainty floor. Provisional and assistive. Does not solve Zioncheck or any case. Author Aziel Eliab.
+**ZionPattern Solver** is the secondary public score (not merged into the triad). It qualifies only for historical, research, investigation, and crime documents. Philosophy, software, hardware, and designs persist `not_applicable` and **omit** the ZionPattern line (never show 0). Zioncheck Visual Archive vols 1–5 are the seed baseline and always display **75**. Score 0 / non-match also persists `not_applicable`. Compact `zsolver` (`display`, `status`, `applicable`, seed flags) is written onto the lattice tip and packed `library:index:v1` so homepage / `/aziel-library` / `/v1/search` match `/v1/review`. Hard 75% confidence cap / 25% uncertainty floor. Provisional and assistive. Does not solve Zioncheck or any case. Author Aziel Eliab.
+
+After deploy, trigger `GET /v1/verify-backfill?rebuild=1` so existing D1 scores land on the packed shelf and tips. `done:true` still runs that shelf sync.
 
 Live path: HTTPS `POST https://zsolver-download-tracker.vibelock.workers.dev/v1/score` (or optional Worker service binding `ZSOLVER`). Document-derived yes/no/unknown answers are sent. If the API is unavailable, a queued status is persisted and retried on backfill/cron.
 

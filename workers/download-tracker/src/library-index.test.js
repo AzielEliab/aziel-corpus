@@ -109,7 +109,17 @@ test("createKvBudget refuses list on the hot path", async () => {
 test("refreshPackedIndex loads D1 cards and writes library:index:v1 without list", async () => {
   const kv = throwingListKv();
   const rows = [
-    { record_id: "AZDOC-A", title: "Paper", author: "Aziel Eliab", library: "aziel", content_sha256: "aa", chain_tip: "tip", created_utc: "2026-09-01T00:00:00Z" },
+    {
+      record_id: "AZDOC-A",
+      title: "Marion A. Zioncheck Visual Archive Vol 1",
+      author: "Aziel Eliab",
+      library: "aziel",
+      content_sha256: "aa",
+      chain_tip: "tip",
+      created_utc: "2026-09-01T00:00:00Z",
+      triad_combined: 0.79,
+      zsolver_json: JSON.stringify({ display: 75, status: "scored", applicable: true, seed_corpus: true, baseline: true, capped_confidence: 0.75 }),
+    },
   ];
   const env = {
     DOWNLOADS: kv,
@@ -130,6 +140,8 @@ test("refreshPackedIndex loads D1 cards and writes library:index:v1 without list
   assert.equal(doc.records[0].shelf, "aziel");
   assert.equal(doc.records[0].href, "/record/AZDOC-A");
   assert.equal(doc.records[0].author, "Aziel Eliab");
+  assert.equal(doc.records[0].triad_display, 79);
+  assert.equal(doc.records[0].zsolver_display, 75);
   assert.ok(!("body" in doc.records[0]));
 });
 

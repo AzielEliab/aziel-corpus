@@ -792,7 +792,7 @@ class AzielLibrary:
             try:
                 rec=self.get_record(raw['record_id'])
                 z=rec.get('zsolver') or {}
-                z_ok=z.get('capped_confidence') is not None
+                z_ok=z.get('capped_confidence') is not None or z.get('status')=='not_applicable' or z.get('applicable') is False
                 if z_ok and z.get('status')=='queued':
                     try:
                         fresh=score_zsolver_document({'title':rec.get('original_name'),'body':rec.get('extracted_text') or '','filename':rec.get('original_name')}, prefer_live=True)

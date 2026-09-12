@@ -325,6 +325,7 @@ test("lattice tip documents tether not mesh", () => {
   assert.equal(tip.author, "Aziel Eliab");
   assert.match(tip.note, /not a mesh/);
   assert.equal(tip.bayesian.unranked, true);
+  assert.equal(tip.zsolver, null);
 });
 
 test("succession chains only exact subject plus title lineage", () => {

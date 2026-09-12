@@ -8,12 +8,17 @@
  * and second-source materials never trigger that path.
  */
 import { appendLedger, appendDocumentLedger, isDocumentId } from "./ledger.js";
+import { classifyDomains } from "./domain-classify.js";
 
 export const ZSOLVER_HOST = "https://zsolver-download-tracker.vibelock.workers.dev";
 export const ZSOLVER_DISCLAIMER =
   "Provisional and assistive only. Does not solve Zioncheck or any case. Hard cap 75% / uncertainty floor 25%.";
 export const ZSOLVER_CAP = 0.75;
 export const ZSOLVER_FLOOR = 0.25;
+export const ZSOLVER_SEED_DISPLAY = 75;
+/** Historical / research / investigation / crime qualify. Philosophy / software / hardware / design do not. */
+export const ZSOLVER_QUALIFY_MAINS = Object.freeze(["history", "historical", "research", "investigation", "crime"]);
+export const ZSOLVER_OMIT_MAINS = Object.freeze(["philosophy", "software", "hardware", "design", "designs"]);
 
 export const EVIDENCE_CLASS_FIRST_HAND = "first_hand";
 export const EVIDENCE_CLASS_SECOND_HAND = "second_hand";
@@ -38,6 +43,133 @@ const SIGNALS = {
   P8: { yes: ["same-day suicide conclusion", "narrative lock", "wire-service locked"], no: [] },
   P9: { yes: ["missing measurements", "no coroner file", "forensic gap", "no independent examiner"], no: ["independent measurements"] },
 };
+
+function tokenList(value) {
+  return String(value || "")
+    .toLowerCase()
+    .split(/[,;|/]+/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+}
+
+function addMain(set, raw) {
+  const x = String(raw || "").trim().toLowerCase();
+  if (!x) return;
+  const head = x.split(/[/:]+/)[0].trim();
+  if (head === "historical") set.add("history");
+  else if (head === "designs") set.add("design");
+  else if (head) set.add(head);
+}
+
+/** Zioncheck Visual Archive vols 1–5 are the seed baseline (display 75, never N/A, never 0). */
+export function isZioncheckSeedVol(input = {}) {
+  const bag = [input.title, input.filename, input.subjects, input.keywords].filter(Boolean).join("\n");
+  if (!/zioncheck/i.test(bag)) return false;
+  const m = bag.match(/\bvol(?:ume)?\.?\s*([1-5])\b/i);
+  return !!(m && Number(m[1]) >= 1 && Number(m[1]) <= 5);
+}
+
+export function classifyZsolverApplicability(input = {}) {
+  if (isZioncheckSeedVol(input)) {
+    return {
+      applicable: true,
+      seed_corpus: true,
+      baseline: true,
+      reason: "Zioncheck Visual Archive vols 1–5 seed baseline",
+    };
+  }
+  const mains = new Set();
+  try {
+    const classified = classifyDomains(input);
+    for (const p of classified && classified.paths ? classified.paths : []) addMain(mains, p && p.main);
+    addMain(mains, classified && classified.domain);
+  } catch { /* classifier optional */ }
+  for (const t of tokenList(input.domain)) addMain(mains, t);
+  for (const t of tokenList(input.subjects)) addMain(mains, t);
+  const omit = [...mains].filter((m) => ZSOLVER_OMIT_MAINS.includes(m));
+  if (omit.length) {
+    return {
+      applicable: false,
+      seed_corpus: false,
+      baseline: false,
+      reason: "not applicable for " + omit.join(", "),
+    };
+  }
+  const qualify = [...mains].filter((m) => ZSOLVER_QUALIFY_MAINS.includes(m) || m === "history");
+  if (qualify.length) {
+    return {
+      applicable: true,
+      seed_corpus: false,
+      baseline: false,
+      reason: "qualifies as " + qualify.join(", "),
+    };
+  }
+  return {
+    applicable: false,
+    seed_corpus: false,
+    baseline: false,
+    reason: "not historical, research, investigation, or crime",
+  };
+}
+
+export function notApplicableZsolver(reason) {
+  return {
+    engine: "zsolver",
+    product: "zsolver",
+    author: "Aziel Eliab",
+    official_contradiction: null,
+    alternative_coherence: null,
+    raw_confidence: null,
+    capped_confidence: null,
+    uncertainty: null,
+    confidence_cap: ZSOLVER_CAP,
+    uncertainty_floor: ZSOLVER_FLOOR,
+    display: null,
+    status: "not_applicable",
+    applicable: false,
+    seed_corpus: false,
+    baseline: false,
+    reason: String(reason || "not_applicable"),
+    disclaimer: ZSOLVER_DISCLAIMER,
+    provisional: true,
+    assistive: true,
+    solves_cases: false,
+    primary_visible: false,
+    separate_from_triad: true,
+    source: "not_applicable",
+  };
+}
+
+export function seedBaselineZsolver() {
+  return {
+    engine: "zsolver",
+    product: "zsolver",
+    author: "Aziel Eliab",
+    official_contradiction: ZSOLVER_CAP,
+    alternative_coherence: ZSOLVER_CAP,
+    raw_confidence: ZSOLVER_CAP,
+    capped_confidence: ZSOLVER_CAP,
+    uncertainty: ZSOLVER_FLOOR,
+    confidence_cap: ZSOLVER_CAP,
+    uncertainty_floor: ZSOLVER_FLOOR,
+    answered: 0,
+    unknown_answers: 0,
+    answers: [],
+    display: ZSOLVER_SEED_DISPLAY,
+    status: "scored",
+    applicable: true,
+    seed_corpus: true,
+    baseline: true,
+    reason: "Zioncheck Visual Archive vols 1–5 seed baseline",
+    disclaimer: ZSOLVER_DISCLAIMER,
+    provisional: true,
+    assistive: true,
+    solves_cases: false,
+    primary_visible: true,
+    separate_from_triad: true,
+    source: "seed-baseline",
+  };
+}
 
 function hay(input) {
   return [
@@ -158,6 +290,9 @@ export function localZsolverScore(answers) {
     primary_visible: true,
     separate_from_triad: true,
     source: "local-port",
+    applicable: true,
+    seed_corpus: false,
+    baseline: false,
   };
 }
 
@@ -188,6 +323,10 @@ function normalizeLive(json, answers, source) {
     primary_visible: true,
     separate_from_triad: true,
     source: source || "zsolver-live",
+    applicable: json.applicable !== false,
+    seed_corpus: !!json.seed_corpus,
+    baseline: !!json.baseline,
+    status: json.status || "scored",
   };
 }
 
@@ -263,18 +402,162 @@ export function zsolverIsLive(report) {
   return src === "zsolver-live" || src === "zsolver-binding";
 }
 
+export function zsolverNumericDisplay(report) {
+  if (!report || typeof report !== "object") return null;
+  if (zsolverIsNotApplicable(report)) return null;
+  if (report.display != null && report.display !== "") {
+    const n = Number(report.display);
+    if (Number.isFinite(n) && n > 0) return Math.round(n);
+  }
+  const capped = Number(report.capped_confidence);
+  if (Number.isFinite(capped) && capped > 0) return Math.round(capped * 100);
+  return null;
+}
+
+export function zsolverIsNotApplicable(report) {
+  if (!report || typeof report !== "object") return false;
+  const status = String(report.status || "").toLowerCase();
+  if (status === "not_applicable" || report.applicable === false) return true;
+  if (report.source === "not_applicable") return true;
+  return false;
+}
+
+export function zsolverIsQueued(report) {
+  if (!report || typeof report !== "object") return false;
+  const status = String(report.status || "").toLowerCase();
+  return status === "queued" || report.queued === true || report.source === "queued";
+}
+
+export function zsolverIsSettled(report) {
+  if (!report || typeof report !== "object") return false;
+  if (zsolverIsNotApplicable(report)) return true;
+  if (report.seed_corpus || report.baseline || report.source === "seed-baseline") {
+    return zsolverNumericDisplay(report) === ZSOLVER_SEED_DISPLAY;
+  }
+  if (zsolverIsQueued(report)) return false;
+  return zsolverNumericDisplay(report) != null;
+}
+
+/** Compact fields for tip / packed shelf / search. Omit display when N/A. */
+export function compactZsolverPublic(report) {
+  if (!report || typeof report !== "object") return null;
+  if (zsolverIsNotApplicable(report)) {
+    return {
+      status: "not_applicable",
+      applicable: false,
+      seed_corpus: false,
+      baseline: false,
+    };
+  }
+  const display = zsolverNumericDisplay(report);
+  const out = {
+    status: zsolverIsQueued(report) ? "queued" : (report.status || (display != null ? "scored" : "pending")),
+    applicable: true,
+    seed_corpus: !!report.seed_corpus,
+    baseline: !!report.baseline,
+  };
+  if (display != null) out.display = display;
+  return out;
+}
+
+export function triadDisplayFromRow(row) {
+  if (!row || typeof row !== "object") return null;
+  if (row.triad_display != null && row.triad_display !== "") {
+    const n = Number(row.triad_display);
+    if (Number.isFinite(n)) return Math.round(n);
+  }
+  const review = row.review && row.review.triad ? row.review.triad : null;
+  if (review && review.display != null && review.display !== "") {
+    const n = Number(review.display);
+    if (Number.isFinite(n)) return Math.round(n);
+  }
+  const combined = row.triad_combined != null ? Number(row.triad_combined) : (review && review.combined);
+  if (combined != null && Number.isFinite(Number(combined))) return Math.round(Number(combined) * 100);
+  return null;
+}
+
+export function zsolverFromRow(row) {
+  if (!row || typeof row !== "object") return null;
+  let report = parseZsolver(row.zsolver_json || row.zsolver);
+  if (!report && (row.zsolver_status || row.zsolver_score != null || row.zsolver_display != null)) {
+    report = {
+      status: row.zsolver_status || "",
+      applicable: row.zsolver_applicable,
+      display: row.zsolver_display,
+      capped_confidence: row.zsolver_score,
+      seed_corpus: row.zsolver_seed || row.seed_corpus,
+      baseline: row.zsolver_baseline || row.baseline,
+    };
+  }
+  return report || null;
+}
+
+/**
+ * Shelf / card UI state. Never invent 0. Pending only when truly unscored.
+ * N/A omits the ZionPattern line entirely.
+ */
+export function shelfScoreState(row) {
+  const triad_display = triadDisplayFromRow(row);
+  const report = zsolverFromRow(row);
+  if (zsolverIsNotApplicable(report)) {
+    return { triad_display, zsolver_display: null, zsolver_pending: false, zsolver_omit: true, zsolver_queued: false, zsolver_seed: false };
+  }
+  const display = zsolverNumericDisplay(report);
+  if (display != null) {
+    return {
+      triad_display,
+      zsolver_display: display,
+      zsolver_pending: false,
+      zsolver_omit: false,
+      zsolver_queued: zsolverIsQueued(report),
+      zsolver_seed: !!(report && (report.seed_corpus || report.baseline)),
+    };
+  }
+  if (zsolverIsQueued(report)) {
+    return { triad_display, zsolver_display: null, zsolver_pending: true, zsolver_omit: false, zsolver_queued: true, zsolver_seed: false };
+  }
+  return { triad_display, zsolver_display: null, zsolver_pending: true, zsolver_omit: false, zsolver_queued: false, zsolver_seed: false };
+}
+
+export function finalizeZsolverReport(record, report) {
+  const appl = classifyZsolverApplicability(record || {});
+  if (appl.seed_corpus) return seedBaselineZsolver();
+  if (!appl.applicable) return notApplicableZsolver(appl.reason);
+  if (!report) return notApplicableZsolver("no score");
+  if (zsolverIsNotApplicable(report)) return notApplicableZsolver(report.reason || appl.reason);
+  const display = zsolverNumericDisplay(report);
+  if (display == null || display <= 0) return notApplicableZsolver("score 0 / non-match");
+  return {
+    ...report,
+    applicable: true,
+    seed_corpus: false,
+    baseline: false,
+    display,
+    status: zsolverIsQueued(report) ? "queued" : (report.status || "scored"),
+  };
+}
+
 async function persistReport(env, recordId, report) {
-  const status = report.status || (zsolverIsLive(report) ? "scored" : report.queued ? "queued" : "local");
-  const stored = { ...report, status };
+  let stored = report && typeof report === "object" ? { ...report } : notApplicableZsolver("empty report");
+  if (!zsolverIsQueued(stored) && !zsolverIsNotApplicable(stored) && zsolverNumericDisplay(stored) == null) {
+    stored = stored.seed_corpus ? seedBaselineZsolver() : notApplicableZsolver(stored.reason || "score 0 / non-match");
+  }
+  const status = stored.status || (zsolverIsLive(stored) ? "scored" : stored.queued ? "queued" : "local");
+  stored.status = status;
+  const scoreBind = stored.capped_confidence != null && Number.isFinite(Number(stored.capped_confidence))
+    ? Number(stored.capped_confidence)
+    : null;
   try {
     await env.DB.prepare("UPDATE records SET zsolver_json=?, zsolver_score=?, zsolver_status=? WHERE record_id=?")
-      .bind(JSON.stringify(stored), stored.capped_confidence, status, recordId).run();
+      .bind(JSON.stringify(stored), scoreBind, status, recordId).run();
   } catch { /* schema */ }
   const payload = {
     record_id: recordId,
     capped_confidence: stored.capped_confidence,
     display: stored.display,
     status,
+    applicable: stored.applicable !== false,
+    seed_corpus: !!stored.seed_corpus,
     source: stored.source,
     provisional: true,
     separate_from_triad: true,
@@ -282,7 +565,46 @@ async function persistReport(env, recordId, report) {
   if (stored.pattern_break) payload.pattern_break = stored.pattern_break;
   await appendLedger(env, "ZSOLVER_SCORE", payload);
   if (isDocumentId(recordId)) await appendDocumentLedger(env, recordId, "ZSOLVER_SCORE", payload);
+  try { await patchTipZsolver(env, recordId, stored); } catch { /* tip optional */ }
   return stored;
+}
+
+async function readTipJson(env, recordId) {
+  try {
+    const row = await env.DB.prepare("SELECT lattice_tip_json FROM records WHERE record_id=?").bind(recordId).first();
+    if (row && row.lattice_tip_json) {
+      const tip = typeof row.lattice_tip_json === "string" ? JSON.parse(row.lattice_tip_json) : row.lattice_tip_json;
+      if (tip && typeof tip === "object") return tip;
+    }
+  } catch { /* */ }
+  try {
+    const trow = await env.DB.prepare(
+      "SELECT tip_json FROM lattice_tips WHERE record_id=? ORDER BY created_utc DESC LIMIT 1"
+    ).bind(recordId).first();
+    if (trow && trow.tip_json) {
+      const tip = typeof trow.tip_json === "string" ? JSON.parse(trow.tip_json) : trow.tip_json;
+      if (tip && typeof tip === "object") return tip;
+    }
+  } catch { /* */ }
+  return null;
+}
+
+export async function patchTipZsolver(env, recordId, report) {
+  if (!env || !env.DB || !recordId) return null;
+  const compact = compactZsolverPublic(report);
+  let tip = await readTipJson(env, recordId);
+  if (!tip || typeof tip !== "object") return compact;
+  tip = { ...tip, zsolver: compact };
+  const raw = JSON.stringify(tip);
+  try {
+    await env.DB.prepare("UPDATE records SET lattice_tip_json=? WHERE record_id=?").bind(raw, recordId).run();
+  } catch { /* schema */ }
+  try {
+    await env.DB.prepare(
+      "UPDATE lattice_tips SET tip_json=? WHERE record_id=? AND created_utc=(SELECT MAX(created_utc) FROM lattice_tips WHERE record_id=?)"
+    ).bind(raw, recordId, recordId).run();
+  } catch { /* schema */ }
+  return tip;
 }
 
 export async function enqueueZsolver(env, recordId, answers, error, extra) {
@@ -301,17 +623,55 @@ function attachPatternBreak(report, pattern_break) {
   return { ...report, pattern_break };
 }
 
-export async function scoreZsolverForRecord(env, record, { force = false, pattern_break = null } = {}) {
+export async function scoreZsolverForRecord(env, record, { force = false, pattern_break = null, reconcileOnly = false } = {}) {
   if (!env || !env.DB || !record || !record.record_id) return null;
   await ensureZsolverSchema(env);
+  const appl = classifyZsolverApplicability(record);
+  if (appl.seed_corpus) {
+    if (!force) {
+      const existingSeed = parseZsolver(record.zsolver_json);
+      if (existingSeed && existingSeed.seed_corpus && zsolverNumericDisplay(existingSeed) === ZSOLVER_SEED_DISPLAY) {
+        try { await patchTipZsolver(env, record.record_id, existingSeed); } catch { /* */ }
+        return existingSeed;
+      }
+    }
+    return persistReport(env, record.record_id, seedBaselineZsolver());
+  }
+  if (!appl.applicable) {
+    const na = notApplicableZsolver(appl.reason);
+    if (!force) {
+      const existingNa = parseZsolver(record.zsolver_json);
+      if (zsolverIsNotApplicable(existingNa)) {
+        try { await patchTipZsolver(env, record.record_id, existingNa); } catch { /* */ }
+        return finalizeZsolverReport(record, existingNa);
+      }
+    }
+    return persistReport(env, record.record_id, na);
+  }
   const existing = parseZsolver(record.zsolver_json);
-  if (!force && zsolverIsLive(existing)) return existing;
+  if (reconcileOnly) {
+    if (existing && (existing.display === 0 || Number(existing.capped_confidence) === 0) && !zsolverIsQueued(existing)) {
+      return persistReport(env, record.record_id, notApplicableZsolver("score 0 / non-match"));
+    }
+    if (existing) {
+      try { await patchTipZsolver(env, record.record_id, existing); } catch { /* */ }
+    }
+    return existing;
+  }
+  if (!force && zsolverIsSettled(existing) && !zsolverIsNotApplicable(existing)) {
+    try { await patchTipZsolver(env, record.record_id, existing); } catch { /* */ }
+    return existing;
+  }
   const answers = deriveZsolverAnswers(record);
   const extra = pattern_break ? { pattern_break } : null;
   const live = await requestZsolverScore(env, answers, extra);
   if (live) {
     try { await env.DB.prepare("DELETE FROM zsolver_queue WHERE record_id=?").bind(record.record_id).run(); } catch { /* */ }
-    return persistReport(env, record.record_id, attachPatternBreak(live, pattern_break));
+    return persistReport(env, record.record_id, finalizeZsolverReport(record, attachPatternBreak(live, pattern_break)));
+  }
+  if (!force && zsolverIsSettled(existing)) {
+    try { await patchTipZsolver(env, record.record_id, existing); } catch { /* */ }
+    return existing;
   }
   await enqueueZsolver(env, record.record_id, answers, "zsolver API unavailable", extra);
   const queued = pendingZsolver(answers, "zsolver API unavailable");
@@ -340,7 +700,10 @@ export async function drainZsolverQueue(env, { limit = 20 } = {}) {
     } catch { answers = []; }
     const live = await requestZsolverScore(env, answers, pattern_break ? { pattern_break } : null);
     if (live) {
-      await persistReport(env, row.record_id, attachPatternBreak(live, pattern_break));
+      const scored = zsolverNumericDisplay(live) == null
+        ? notApplicableZsolver("score 0 / non-match")
+        : { ...live, applicable: true, status: "scored" };
+      await persistReport(env, row.record_id, attachPatternBreak(scored, pattern_break));
       try { await env.DB.prepare("DELETE FROM zsolver_queue WHERE record_id=?").bind(row.record_id).run(); } catch { /* */ }
       scored += 1;
     } else {

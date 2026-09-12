@@ -17,7 +17,17 @@ import {
   rescoreSuccessionMembers,
   successionCoverageFor,
 } from "./succession.js";
-import { drainZsolverQueue, ensureZsolverSchema, parseZsolver, scoreZsolverForRecord, zsolverIsLive } from "./zsolver.js";
+import {
+  compactZsolverPublic,
+  drainZsolverQueue,
+  ensureZsolverSchema,
+  parseZsolver,
+  patchTipZsolver,
+  scoreZsolverForRecord,
+  zsolverIsLive,
+  zsolverIsSettled,
+} from "./zsolver.js";
+import { HTML_CACHE_PREFIX, cachePutText, htmlCacheUrl, refreshPackedIndex } from "./library-index.js";
 
 const CLCE_LIVE = "https://azclce-download-tracker.vibelock.workers.dev/v1/score";
 
@@ -115,7 +125,7 @@ export async function runReviewBundle({ title, body, filename, contentType, sha2
   return { structure, review };
 }
 
-export async function persistReview(env, { recordId, library, sha256, title, createdBy, event, structure, review }) {
+export async function persistReview(env, { recordId, library, sha256, title, createdBy, event, structure, review, zsolver }) {
   await ensureReviewSchema(env);
   const when = new Date().toISOString();
   const qStatus = review.quarantine_status || "CLEAR";
@@ -192,6 +202,7 @@ export async function persistReview(env, { recordId, library, sha256, title, cre
       review,
       event,
       verified_utc: when,
+      zsolver: compactZsolverPublic(zsolver),
     });
     tipEntry = await chain("LATTICE_ANCHOR", {
       record_id: recordId,
@@ -534,7 +545,7 @@ export async function backfillOneRecord(env, row, { force = false } = {}) {
     }, { force });
   } catch { zsolver = null; }
   await maybeZsolverPatternBreakRescore(env, row);
-  const zOk = zsolverIsLive(zsolver);
+  const zOk = zsolverIsSettled(zsolver) || zsolverIsLive(zsolver);
   return {
     record_id: row.record_id,
     skipped: !!(triadOk && zOk),
@@ -565,6 +576,7 @@ export async function continueFullBackfill(env, { ms = 18000, force = false, all
   if (doneFlag && !force && !all) {
     stats.done = true;
     stats.cursor = cursor;
+    try { stats.shelf = await syncShelfScores(env, { reconcile: true }); } catch { stats.shelf = null; }
     return stats;
   }
   if (force) {
@@ -615,6 +627,7 @@ export async function continueFullBackfill(env, { ms = 18000, force = false, all
     await metaSet(env, "full_backfill_stats", JSON.stringify({ ...stats, updated_utc: new Date().toISOString() }));
     if (!all && Date.now() - started >= ms) break;
   }
+  try { stats.shelf = await syncShelfScores(env, { reconcile: true }); } catch { stats.shelf = null; }
   return stats;
 }
 
@@ -628,6 +641,57 @@ export async function fullBackfillStatus(env) {
 }
 
 export { sha256hex };
+
+async function invalidatePublicHtmlCache() {
+  const paths = ["/", "/aziel-library", "/corpus", "/?lib=aziel", "/?lib=corpus"];
+  for (const path of paths) {
+    try {
+      const url = htmlCacheUrl(new Request("https://www.azielcorpuslibrary.net" + path));
+      await cachePutText(url, "", undefined, { cacheControl: "no-store" });
+    } catch { /* cache optional */ }
+  }
+  return { busted: paths, prefix: HTML_CACHE_PREFIX };
+}
+
+/**
+ * Copy already-scored zsolver onto tip + packed library:index:v1 so homepage/search
+ * show the same numbers as /v1/review. Does not require the live zsolver API.
+ */
+export async function syncShelfScores(env, { reconcile = true } = {}) {
+  await ensureReviewSchema(env);
+  const stats = { ok: true, records: 0, tips: 0, packed: 0, html_cache: null };
+  if (reconcile && env && env.DB) {
+    let rows = [];
+    try {
+      rows = (await env.DB.prepare(
+        "SELECT record_id, title, filename, subjects, keywords, domain, zsolver_json, triad_combined FROM records WHERE IFNULL(shelf_hidden,0) = 0"
+      ).all()).results || [];
+    } catch {
+      try {
+        rows = (await env.DB.prepare(
+          "SELECT record_id, title, filename, subjects, keywords, domain, zsolver_json, triad_combined FROM records"
+        ).all()).results || [];
+      } catch { rows = []; }
+    }
+    stats.records = rows.length;
+    for (const row of rows) {
+      try {
+        const report = await scoreZsolverForRecord(env, row, { reconcileOnly: true });
+        if (report) {
+          await patchTipZsolver(env, row.record_id, report);
+          stats.tips += 1;
+        }
+      } catch { /* one record */ }
+    }
+  }
+  try {
+    const packed = await refreshPackedIndex(env);
+    stats.packed = packed && Array.isArray(packed.records) ? packed.records.length : 0;
+    stats.index_sha256 = packed && packed.index_sha256;
+  } catch { /* packed optional */ }
+  try { stats.html_cache = await invalidatePublicHtmlCache(); } catch { stats.html_cache = null; }
+  return stats;
+}
 
 async function maybeZsolverPatternBreakRescore(env, row) {
   try {

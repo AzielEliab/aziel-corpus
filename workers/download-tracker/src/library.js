@@ -2,7 +2,7 @@ import { randomBytes, createHash } from "node:crypto";
 import { appendLedger, appendDocumentLedger, ensureLedger } from "./ledger.js";
 import { ensureReviewSchema, reviewAndStore } from "./review-store.js";
 import { applySuccessionForRecord, maybeRescoreZsolverOnFirstHandPatternBreak, rescoreSuccessionMembers, successionCoverageFor, subjectKey } from "./succession.js";
-import { scoreZsolverForRecord } from "./zsolver.js";
+import { patchTipZsolver, scoreZsolverForRecord } from "./zsolver.js";
 import { applyAutoClassification } from "./domain-classify.js";
 
 const MAX_BYTES = 25 * 1024 * 1024;
@@ -107,7 +107,7 @@ export async function searchRecords(env, { q, library, sort, author, domain, sub
   const query = String(q || "").trim();
   const lib = String(library || "all").toLowerCase();
   let sql =
-    "SELECT record_id, title, substr(body,1,280) AS snippet, created_by, created_utc, library, filename, content_type, object_key, byte_size, author, domain, subjects, keywords, content_sha256, quarantine_status, triad_combined, zsolver_score, zsolver_status, chain_tip, chain_sequence FROM records";
+    "SELECT record_id, title, substr(body,1,280) AS snippet, created_by, created_utc, library, filename, content_type, object_key, byte_size, author, domain, subjects, keywords, content_sha256, quarantine_status, triad_combined, zsolver_score, zsolver_status, zsolver_json, chain_tip, chain_sequence FROM records";
   const where = [];
   const binds = [];
   if (query) {
@@ -149,7 +149,7 @@ export async function searchRecords(env, { q, library, sort, author, domain, sub
   try {
     return (await env.DB.prepare(sql).bind(...binds).all()).results || [];
   } catch {
-    sql = sql.replace(", zsolver_score, zsolver_status", "");
+    sql = sql.replace(", zsolver_score, zsolver_status, zsolver_json", "").replace(", zsolver_score, zsolver_status", "");
     return (await env.DB.prepare(sql).bind(...binds).all()).results || [];
   }
 }
@@ -561,7 +561,9 @@ export async function ingestRecord(env, args) {
       filename,
       subjects: subjectsIn,
       keywords: keywordsIn,
+      domain: domainIn,
     });
+    try { await patchTipZsolver(env, id, zsolver); } catch { /* tip */ }
   } catch { zsolver = null; }
   try {
     await maybeRescoreZsolverOnFirstHandPatternBreak(env, {
