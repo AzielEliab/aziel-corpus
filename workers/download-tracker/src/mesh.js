@@ -618,16 +618,20 @@ export function meshStatusHtml(doc) {
 export function meshRefreshScript() {
   return `<script>
 (function(){
-  var el=document.getElementById("aziel-live-nodes");
-  if(!el||!el.textContent)return;
-  fetch("/v1/mesh/status",{headers:{"Accept":"application/json","User-Agent":"Mozilla/5.0"}}).then(function(r){return r.json();}).then(function(d){
-    if(!d)return;
-    var src=d.origin&&typeof d.origin==="object"?d.origin:d;
-    var on=d.enabled===true||(src&&src.enabled===true)||d.mesh==="on"||d.mesh==="enabled"||d.mesh==="live";
-    var n=d.live_nodes!=null?d.live_nodes:(src&&src.live_nodes!=null?src.live_nodes:(d.nodes&&d.nodes.length)||(src&&src.rollup&&src.rollup.live)||0);
-    el.textContent=on?("Live Nodes \\u00b7 "+n):"Live Nodes \\u00b7 off";
-    if(on)el.className="pill ok";
-  }).catch(function(){});
+  function run(){
+    var el=document.getElementById("aziel-live-nodes");
+    if(!el||!el.textContent)return;
+    fetch("/v1/mesh/status",{headers:{"Accept":"application/json","User-Agent":"Mozilla/5.0"}}).then(function(r){return r.json();}).then(function(d){
+      if(!d)return;
+      var src=d.origin&&typeof d.origin==="object"?d.origin:d;
+      var on=d.enabled===true||(src&&src.enabled===true)||d.mesh==="on"||d.mesh==="enabled"||d.mesh==="live";
+      var n=d.live_nodes!=null?d.live_nodes:(src&&src.live_nodes!=null?src.live_nodes:(d.nodes&&d.nodes.length)||(src&&src.rollup&&src.rollup.live)||0);
+      el.textContent=on?("Live Nodes \\u00b7 "+n):"Live Nodes \\u00b7 off";
+      if(on)el.className="pill ok";
+    }).catch(function(){});
+  }
+  if("requestIdleCallback" in window)requestIdleCallback(run,{timeout:2500});
+  else setTimeout(run,1);
 })();
 </script>`;
 }

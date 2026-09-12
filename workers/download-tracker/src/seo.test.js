@@ -329,6 +329,17 @@ test("legacy /about paths permanently redirect to /AzielEliab", () => {
   assert.equal(aboutRedirectFrom("/software"), null);
 });
 
+test("page chrome keeps entity-graph JSON-LD after first paint", () => {
+  const html = page("Corpus Search", "<section class=\"hero\"><h1>Search the libraries</h1></section>", { path: "/", kind: "search" });
+  const head = html.slice(0, html.indexOf("</head>"));
+  assert.doesNotMatch(head, /application\/ld\+json/);
+  assert.match(head, /rel="preload" href="\/sigil\.png"/);
+  const ld = graphFrom(html);
+  assertSharedIdentity(ld);
+  assert.ok(ld["@graph"].some((n) => n["@type"] === "CollectionPage" && n.url === "https://www.azielcorpuslibrary.net/"));
+  assert.ok(ld["@graph"].some((n) => n["@type"] === "WebSite"));
+});
+
 test("chrome page for how-its-scored does not leak the quiet triad boost", () => {
   const html = page("How it's scored", howItsScoredBody(), { path: "/how-its-scored", kind: "scored" });
   assert.match(html, /href="\/how-its-scored"/);
