@@ -88,6 +88,7 @@ test("runtime manifest and skill cite the library /runtime root", () => {
   assert.match(skill, /fraggate_call/);
   assert.match(skill, /\/runtime\/v1\/uses/);
   assert.match(skill, /Author \*\*Aziel Eliab\*\*/);
+  assert.doesNotMatch(skill, /ever-?\s*blooming/i);
   assert.doesNotMatch(skill, /Ever Blooming/i);
   assert.doesNotMatch(skill, /10\.5281\/zenodo/i);
 });
@@ -131,6 +132,7 @@ test("GET and HEAD /runtime return 200 HTML without a second software index", as
   const html = await get.text();
   assert.match(html, /href="\/runtime"/);
   assert.match(html, />Runtime</);
+  assert.match(html, /class="brandmark-link"/);
   assert.match(html, /src="\/sigil\.png"/);
   assert.match(html, /\/runtime\/v1\/runtime\.json/);
   assert.match(html, /2\.0\.0-rc1/);
@@ -156,6 +158,7 @@ test("GET and HEAD /runtime return 200 HTML without a second software index", as
   assert.match(html, /Runtime OpenAPI/);
   assert.doesNotMatch(html, /1\.4\.0/);
   assert.doesNotMatch(html, /engine-runtime 1\.3\.0/);
+  assert.doesNotMatch(html, /ever-?\s*blooming/i);
   assert.doesNotMatch(html, /Ever Blooming/i);
   assert.doesNotMatch(html, /10\.5281\/zenodo/i);
 

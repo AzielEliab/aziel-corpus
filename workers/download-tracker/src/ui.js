@@ -49,8 +49,11 @@ export const CSS = `
 *{box-sizing:border-box}
 html,body{background:var(--bg);color:var(--ink);overflow:auto;height:auto;min-height:100%}
 body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;line-height:1.5}
-.wrap{max-width:920px;margin:auto;padding:28px 22px 72px}
+.wrap{max-width:920px;margin:auto;padding:8px 22px 72px}
+.sitehead{background:var(--bg)}
+.sitehead-inner{max-width:920px;margin:auto;padding:28px 22px 0}
 .brandrow{display:flex;flex-wrap:nowrap;gap:12px;align-items:center;margin-bottom:6px;min-height:48px}
+.brandmark-link{display:block;flex:0 0 40px;width:40px;height:40px;line-height:0;order:-1}
 .brandmark{width:40px;height:40px;border-radius:10px;object-fit:cover;flex:0 0 40px;box-shadow:0 0 0 1px #0003,0 0 0 1px var(--gold)}
 .brand{font-size:23px;font-weight:800;letter-spacing:-.02em;line-height:1.2;color:var(--ink)}
 .nav1,.nav2,.top,.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
@@ -219,7 +222,8 @@ a.runtime-muted:hover{color:var(--ink)}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
 @media (max-width:720px){
   html,body{overflow:auto;height:auto;min-height:100%}
-  .wrap{padding:16px 14px max(120px, calc(env(safe-area-inset-bottom, 0px) + 100px))}
+  .sitehead-inner{padding:16px 14px 0}
+  .wrap{padding:8px 14px max(120px, calc(env(safe-area-inset-bottom, 0px) + 100px))}
   .brand{width:auto;font-size:20px;flex:1 1 auto;min-width:0}
   .brandrow{flex-wrap:wrap;gap:8px}
   .pill{padding:5px 10px}
@@ -286,6 +290,11 @@ export function ecosystemBlockHtml() {
   return `<footer class="ecosystem" aria-label="${esc(ECOSYSTEM_HEADING)}"><p class="eco-head">${esc(ECOSYSTEM_HEADING)}</p><nav class="ecosystem-nav"><ul class="ecosystem-list">${items}</ul></nav></footer>`;
 }
 
+/** Rose-star brand mark only — no words on the mark. Public identity Aziel Eliab. */
+export function brandMarkHtml() {
+  return `<a class="brandmark-link" href="/" aria-label="Aziel Digital Library"><img class="brandmark" src="/sigil.png" width="40" height="40" alt="" decoding="async" fetchpriority="high"></a>`;
+}
+
 export function brandCountPills({ views, downloads } = {}) {
   const pills = [];
   if (views != null && views !== "") {
@@ -335,9 +344,12 @@ export function page(title, body, { signed, scripts, path, kind, description, wo
     ? `<a href="/logout">Log out</a>`
     : `<a href="/login">Log in</a><span class="sep">|</span><a href="/signup">Sign up</a>`;
   const metaOpts = { title, path: path || "/", kind, description, work, runtimeVersion, includeJsonLd: false };
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(documentTitle(kind, title))}</title>${headMeta(metaOpts)}<link rel="preload" href="/sigil.png" as="image" fetchpriority="high"><style>${CSS}</style></head><body><div class="wrap">
-<div class="brandrow nav1"><img class="brandmark" src="/sigil.png" width="40" height="40" alt="" decoding="async" fetchpriority="high"><div class="brand">Aziel Digital Library</div>${brandCountPills({ views, downloads })}<span class="pill">Runtime v2.7.0</span><span class="pill ok">MASTER · WRITABLE</span>${account}</div>
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(documentTitle(kind, title))}</title>${headMeta(metaOpts)}<link rel="preload" href="/sigil.png" as="image" fetchpriority="high"><style>${CSS}</style></head><body>
+<header class="sitehead"><div class="sitehead-inner">
+<div class="brandrow nav1">${brandMarkHtml()}<div class="brand">Aziel Digital Library</div>${brandCountPills({ views, downloads })}<span class="pill">Runtime v2.7.0</span><span class="pill ok">MASTER · WRITABLE</span>${account}</div>
 <nav class="nav2 quiet"><a href="/">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/pattern">Pattern</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/how-its-scored">How it's scored</a><span class="sep">|</span><a href="/donate">Donate</a><span class="sep">|</span><a href="/runtime">Runtime</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/forensics">Forensics</a><span class="sep">|</span><a href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a><span class="sep">|</span>${authLinks}</nav>
+</div></header>
+<div class="wrap">
 ${donateStripHtml()}
 ${body}
 ${ecosystemBlockHtml()}</div>${jeevesFabHtml()}${(scripts||[]).map((src)=>"<script src=\""+esc(src)+"\" defer></script>").join("")}${meshRefreshScript()}${jsonLdScript(metaOpts)}</body></html>`;

@@ -15,8 +15,10 @@ import {
   collectTargets,
   dossierFilename,
   parseFrontMatter,
+  readmeLead,
   refuseUnpackArgs,
   renderDossier,
+  scrubBannedBrandCopy,
   subjectFor,
   validateDossierMarkdown,
 } from "../scripts/lib/software-site-dossiers.mjs";
@@ -102,4 +104,18 @@ test("generator refuses unpack flags", async () => {
     () => generate(["--unpack", "--catalog", "tests/fixtures/software-catalog-dossier.json", "--offline"]),
     /Refuse/
   );
+});
+
+test("dossier README lead scrubs retired bloom brand copy", () => {
+  const raw = "Worker chrome (Home = everblooming sigil) and sandboxes navigation";
+  const lead = readmeLead(raw);
+  assert.match(lead, /rose-star brand mark/);
+  assert.doesNotMatch(lead, /ever-?\s*blooming/i);
+  assert.equal(scrubBannedBrandCopy("Everblooming sigil"), "rose-star brand mark");
+  const md = renderDossier(
+    { slug: "azbrowser", name: "AZBrowser", kind: "software", one_line: "Research shell." },
+    { date: "2026-09-12", readme_lead: raw }
+  );
+  assert.match(md, /rose-star brand mark/);
+  assert.doesNotMatch(md, /ever-?\s*blooming/i);
 });
