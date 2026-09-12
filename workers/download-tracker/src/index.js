@@ -1,7 +1,7 @@
 import { handleRuntimeApi, corsHeaders, json, LIMITATION } from "./runtime.js";
 import { handleRuntimeRoot } from "./runtime-root.js";
 import { handleAuth, getSession } from "./auth.js";
-import { page, homeBody } from "./ui.js";
+import { page, homeBody, streamLcpHtml } from "./ui.js";
 import { handleHosted } from "./hosted.js";
 import { robotsTxt, sitemapXml, sitemapIndexXml, citeDoc, llmsDoc, aiTxt, humansTxt, mcpDiscovery, isReadMethod, crawlResponse, MIME } from "./crawl.js";
 import { searchRecords, listFacets, parseBrowseParams, serveFile, serveFileByHash, normalizeContentHash } from "./library.js";
@@ -14,6 +14,7 @@ import {
   refreshPackedIndex,
   tryTunnelFirst,
   HTML_CACHE_CONTROL,
+  HTML_EDGE_CACHE_CONTROL,
   SEO_CACHE_CONTROL,
   cacheMatchText,
   cachePutText,
@@ -256,14 +257,15 @@ function withRateCookie(res, limited) {
 
 function workCardsHtml() { return ""; }
 
-async function indexHtml(env, request) {
+async function indexHtml(env, request, signed) {
   const url = new URL(request.url);
   const browse = parseBrowseParams(url);
-  const stats = await collectStats(env);
-  const signed = await getSession(env, request);
-  const rows = await searchRecords(env, { q: browse.q, library: browse.lib, sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300 });
-  const facets = await listFacets(env, { library: browse.lib });
-  return page("Corpus Search", homeBody({ ...browse, rows, facets, views: stats.views || 0, downloads: stats.downloads || 0, host: HOST }), { signed, path: "/", kind: "search", views: stats.views || 0, downloads: stats.downloads || 0 });
+  const statsP = collectStats(env);
+  const rowsP = searchRecords(env, { q: browse.q, library: browse.lib, sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300 });
+  const facetsP = listFacets(env, { library: browse.lib });
+  const signedP = signed !== undefined ? Promise.resolve(signed) : getSession(env, request);
+  const [stats, rows, facets, session] = await Promise.all([statsP, rowsP, facetsP, signedP]);
+  return page("Corpus Search", homeBody({ ...browse, rows, facets, views: stats.views || 0, downloads: stats.downloads || 0, host: HOST }), { signed: session, path: "/", kind: "search", views: stats.views || 0, downloads: stats.downloads || 0 });
 }
 
 function llmsTxt() {
@@ -382,7 +384,7 @@ export default {
       if (!signedEarly) {
         const cached = await cacheMatchText(cacheUrl);
         if (cached) {
-          return attachVid(crawlResponse(request, cached, "text/html; charset=utf-8", htmlHeaders));
+          return attachVid(crawlResponse(request, streamLcpHtml(cached), "text/html; charset=utf-8", htmlHeaders));
         }
       }
       if (!isSeoBot(request)) {
@@ -390,9 +392,9 @@ export default {
         if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(bump);
         else await bump;
       }
-      const html = await indexHtml(env, request);
-      if (!signedEarly) await cachePutText(cacheUrl, html);
-      return attachVid(crawlResponse(request, html, "text/html; charset=utf-8", htmlHeaders));
+      const html = await indexHtml(env, request, signedEarly);
+      if (!signedEarly) await cachePutText(cacheUrl, html, undefined, { cacheControl: HTML_EDGE_CACHE_CONTROL });
+      return attachVid(crawlResponse(request, streamLcpHtml(html), "text/html; charset=utf-8", htmlHeaders));
     }
 
     const signed = await getSession(env, request);

@@ -386,6 +386,19 @@ function pageKeywords(kind) {
   return base.join(", ");
 }
 
+/** JSON-LD graph tag. Keep on the page; homepage chrome puts it after the LCP fold. */
+export function jsonLdScript(opts) {
+  const title = (opts && opts.title) || SITE;
+  const path = (opts && opts.path) || "/";
+  const kind = (opts && opts.kind) || "";
+  const runtimeVersion = opts && opts.runtimeVersion;
+  const description = (opts && opts.description) || defaultDescription(kind, runtimeVersion);
+  const ld = jsonLd(title, path, kind, description, opts && opts.work, runtimeVersion);
+  const ldOpen = "<" + "script type=" + Q + "application/ld+json" + Q + ">";
+  const ldClose = "</" + "script>";
+  return ldOpen + JSON.stringify(ld) + ldClose;
+}
+
 export function headMeta(opts) {
   const title = opts.title || SITE;
   const path = opts.path || "/";
@@ -394,12 +407,9 @@ export function headMeta(opts) {
   const description = opts.description || defaultDescription(kind, runtimeVersion);
   const seoTitle = documentTitle(kind, title);
   const url = CANON_HOST + path;
-  const ld = jsonLd(title, path, kind, description, opts.work, runtimeVersion);
-  const ldOpen = "<" + "script type=" + Q + "application/ld+json" + Q + ">";
-  const ldClose = "</" + "script>";
   const image = opts.image || SHARE_IMAGE;
   const imageAlt = SITE + " sigil. Author " + AUTHOR + ".";
-  return [
+  const tags = [
     meta("description", description),
     meta("keywords", pageKeywords(kind)),
     meta("robots", "index,follow"),
@@ -443,6 +453,7 @@ export function headMeta(opts) {
       linkRel("me", GITHUB_AUTHOR),
       linkRel("me", GITHUB_REPO),
     ] : []),
-    ldOpen + JSON.stringify(ld) + ldClose
-  ].join("");
+  ];
+  if (opts.includeJsonLd !== false) tags.push(jsonLdScript(opts));
+  return tags.join("");
 }
