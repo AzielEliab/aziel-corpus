@@ -5,6 +5,7 @@ import {
   KV_CACHE_TTL,
   SEARCH_CACHE_CONTROL,
   HTML_CACHE_CONTROL,
+  HTML_CACHE_PREFIX,
   HTML_EDGE_CACHE_CONTROL,
   SOFTWARE_HTML_CACHE_CONTROL,
   SEO_CACHE_CONTROL,
@@ -294,9 +295,11 @@ test("public HTML cache helpers share crawler and human Cache-Control", async ()
   assert.match(HTML_EDGE_CACHE_CONTROL, /max-age=3600/);
   assert.match(SOFTWARE_HTML_CACHE_CONTROL, /s-maxage=3600/);
   assert.equal(SOFTWARE_HTML_CACHE_CONTROL, SEO_CACHE_CONTROL);
+  assert.match(HTML_CACHE_PREFIX, /html-scores-v2$/);
   const cache = memoryCache();
   const req = new Request("https://www.azielcorpuslibrary.net/?q=Florence");
   const url = htmlCacheUrl(req);
+  assert.match(url, /\/__cache\/html-scores-v2\/\?q=Florence$/);
   await cachePutText(url, "<html>packed search</html>", cache);
   const hit = await cacheMatchText(url, cache);
   assert.match(hit, /packed search/);

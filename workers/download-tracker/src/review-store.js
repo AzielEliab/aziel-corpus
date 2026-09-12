@@ -695,6 +695,13 @@ async function invalidatePublicHtmlCache(cache) {
   for (const path of paths) {
     try {
       const url = htmlCacheUrl(new Request("https://www.azielcorpuslibrary.net" + path));
+      const req = new Request(url, { method: "GET" });
+      if (cache && typeof cache.delete === "function") {
+        try {
+          await cache.delete(req);
+          continue;
+        } catch { /* fall through to empty put */ }
+      }
       await cachePutText(url, "", cache, { cacheControl: "no-store" });
     } catch { /* cache optional */ }
   }
