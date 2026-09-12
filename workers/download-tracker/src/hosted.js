@@ -545,10 +545,12 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     const cacheControl = signed ? "private, no-store" : SOFTWARE_HTML_CACHE_CONTROL;
     if (head) return html("", { cacheControl, head: true });
     const render = async (opts) => {
-      const catalog = await loadSoftwareCatalog(env, stats, opts);
+      const catalog = await loadSoftwareCatalog(env, stats, Object.assign({
+        requireCountPills: !bot,
+      }, opts));
       return page("Software", softwareBody(catalog), { signed, path: "/software", kind: "software", runtimeVersion: catalog.catalogVersion });
     };
-    const cacheUrl = htmlCacheUrl(request) + (bot ? ":bot" : ":full");
+    const cacheUrl = htmlCacheUrl(request) + (bot ? ":bot-pills" : ":full-pills");
     if (!signed) {
       const cached = await cacheMatchText(cacheUrl);
       if (cached) {
@@ -560,6 +562,7 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
                 preferCache: false,
                 skipEnrich: bot,
                 timeoutMs: bot ? SOFTWARE_HTML_TIMEOUT_MS : 4000,
+                requireCountPills: !bot,
               });
               await cachePutText(cacheUrl, fresh, undefined, { cacheControl });
             } catch { /* refresh optional */ }
@@ -573,20 +576,27 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
       preferCache: true,
       skipEnrich: true,
       timeoutMs: SOFTWARE_HTML_TIMEOUT_MS,
+      requireCountPills: !bot,
     });
     if (!signed) {
-      const put = cachePutText(cacheUrl, body, undefined, { cacheControl });
       if (ctx && typeof ctx.waitUntil === "function") {
         ctx.waitUntil((async () => {
           try {
-            await put;
-            if (bot) return;
-            const full = await render({ light: false, preferCache: false, timeoutMs: 4000 });
+            if (bot) {
+              await cachePutText(cacheUrl, body, undefined, { cacheControl });
+              return;
+            }
+            const full = await render({
+              light: false,
+              preferCache: false,
+              timeoutMs: 4000,
+              requireCountPills: true,
+            });
             await cachePutText(cacheUrl, full, undefined, { cacheControl });
           } catch { /* packed cache is enough for TTFB */ }
         })());
-      } else {
-        await put;
+      } else if (bot) {
+        await cachePutText(cacheUrl, body, undefined, { cacheControl });
       }
     }
     return html(body, { cacheControl });

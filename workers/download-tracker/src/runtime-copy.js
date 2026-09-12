@@ -24,6 +24,7 @@ export const RUNTIME_PRODUCT_COUNT = 37;
 export const RUNTIME_LOCAL_ONLY = "VeilLock";
 export const LIBRARY_DOWNLOAD = HOST + "/download";
 export const LIBRARY_V1_DOWNLOAD = HOST + "/v1/download";
+export const LIBRARY_COUNT = HOST + "/count";
 
 /** Softwares-tab engines. Must match live GET /runtime/v1/health count (37). */
 export const ENGINE_SLUGS = [
