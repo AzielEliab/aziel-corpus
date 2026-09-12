@@ -1,7 +1,7 @@
 import { randomBytes, createHash } from "node:crypto";
 import { appendLedger, appendDocumentLedger, ensureLedger } from "./ledger.js";
 import { ensureReviewSchema, reviewAndStore } from "./review-store.js";
-import { applySuccessionForRecord, maybeRescoreZsolverOnFirstHandPatternBreak, rescoreSuccessionMembers, successionCoverageFor } from "./succession.js";
+import { applySuccessionForRecord, maybeRescoreZsolverOnFirstHandPatternBreak, rescoreSuccessionMembers, successionCoverageFor, subjectKey } from "./succession.js";
 import { scoreZsolverForRecord } from "./zsolver.js";
 import { applyAutoClassification } from "./domain-classify.js";
 
@@ -22,8 +22,27 @@ export function isOperator(signed) {
   return signed.user_id === "master" || signed.role === "superadmin";
 }
 
+/** Signed row for operator-token ingest (Aziel Library). Never a public account. */
+export function operatorSession() {
+  return { user_id: "master", role: "superadmin", username: "operator" };
+}
+
 export function libraryFor(signed) {
   return isOperator(signed) ? "aziel" : "corpus";
+}
+
+/** Latest Aziel-shelf record with the exact same subject key (succession, not topical fuzzy). */
+export async function findLatestSameSubject(env, { subject, library = "aziel" } = {}) {
+  const want = subjectKey(subject);
+  if (!want || !env || !env.DB) return null;
+  try {
+    const rows = (await env.DB.prepare(
+      "SELECT record_id, title, subjects, created_utc, library, content_sha256 FROM records WHERE IFNULL(library,'') = ? ORDER BY created_utc DESC LIMIT 80"
+    ).bind(library).all()).results || [];
+    return rows.find((r) => subjectKey(r.subjects) === want) || null;
+  } catch {
+    return null;
+  }
 }
 
 export function safeFilename(name) {
