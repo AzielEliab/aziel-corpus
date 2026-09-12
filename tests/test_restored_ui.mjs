@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { CSS, page, donateStripHtml, aboutBody, howItsScoredBody, patternBody, softwareBody, runtimeBody, azielLibraryBody, homeBody, corpusBody } from "../workers/download-tracker/src/ui.js";
+import { CSS, page, donateStripHtml, aboutBody, howItsScoredBody, patternBody, softwareBody, runtimeBody, azielLibraryBody, homeBody, corpusBody, LCP_FOLD, splitLcpHtml } from "../workers/download-tracker/src/ui.js";
 import { ocrPageBody, mapBody, SPECTRAL_LENSES } from "../workers/download-tracker/src/hosted-pages.js";
 import { dedupeShelfRows } from "../workers/download-tracker/src/library.js";
 
@@ -94,6 +94,55 @@ test("homepage brandrow shows views, downloads, and Live Nodes pills", () => {
   assert.ok(brand >= 0 && viewsAt > brand && downloadsAt > viewsAt && nodesAt > downloadsAt, "counters sit in brandrow after the mark");
   assert.ok(hero > nodesAt, "counters sit above the homepage hero");
   assert.match(CSS, /\.pill span\{/);
+});
+
+test("homepage LCP fold keeps hero first and leaves entity-graph plus shelf intact", () => {
+  const home = homeBody({
+    rows: [{
+      record_id: "AZDOC-lcp",
+      title: "Shelf card stays after the fold",
+      library: "aziel",
+      author: "Aziel Eliab",
+      snippet: "Public MASTER card.",
+      content_sha256: "c".repeat(64),
+    }],
+    views: 12,
+    downloads: 3,
+    host: "https://www.azielcorpuslibrary.net",
+  });
+  assert.match(home, /<h1>Search the libraries<\/h1>/);
+  assert.match(home, LCP_FOLD);
+  assert.match(home, /Shelf card stays after the fold/);
+  const split = splitLcpHtml(home);
+  assert.match(split.early, /Search the libraries/);
+  assert.match(split.early, /hero-search/);
+  assert.doesNotMatch(split.early, /Shelf card stays after the fold/);
+  assert.match(split.late, /Shelf card stays after the fold/);
+  assert.match(split.late, /doc doc-aziel/);
+
+  const html = page("Corpus Search", home, { path: "/", kind: "search", views: 12, downloads: 3 });
+  const headEnd = html.indexOf("</head>");
+  const foldAt = html.indexOf(LCP_FOLD);
+  const ldAt = html.indexOf("application/ld+json");
+  const heroAt = html.indexOf("Search the libraries");
+  const cardAt = html.indexOf("Shelf card stays after the fold");
+  assert.ok(headEnd > 0 && foldAt > headEnd, "fold sits in the body");
+  assert.ok(heroAt > 0 && heroAt < foldAt, "hero is the LCP candidate before the shelf");
+  assert.ok(cardAt > foldAt, "shelf cards stay after the fold");
+  assert.ok(ldAt > foldAt, "entity-graph JSON-LD stays on the page after first paint");
+  assert.match(html.slice(0, headEnd), /rel="preload" href="\/sigil\.png" as="image" fetchpriority="high"/);
+  assert.doesNotMatch(html.slice(0, headEnd), /application\/ld\+json/);
+  assert.match(html, /fetchpriority="high"/);
+  assert.match(html, /id="views"/);
+  assert.match(html, /id="downloads"/);
+  assert.match(html, /id="aziel-live-nodes"/);
+  assert.match(html, /id="jeevesFab"/);
+  assert.match(html, /"@type":"CollectionPage"/);
+  assert.match(html, /"@id":"https:\/\/www\.azieleliab\.com\/#aziel"/);
+  assert.match(html, /Try on Glama/);
+  assert.match(CSS, /\.doc\{[^}]*content-visibility:auto/);
+  assert.match(CSS, /\.hero h1\{[^}]*content-visibility:visible/);
+  assert.match(CSS, /html,body\{[^}]*overflow:auto/);
 });
 
 test("black/gold theme and royal purple Aziel Library text are in CSS", () => {

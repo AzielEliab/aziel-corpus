@@ -1,6 +1,7 @@
 import { isOperator } from "./library.js";
 import {
   headMeta,
+  jsonLdScript,
   defaultDescription,
   documentTitle,
   ABOUT_PATH,
@@ -106,15 +107,15 @@ input[type=checkbox],input[type=radio]{width:auto!important;min-width:18px;min-h
 textarea{min-height:120px;resize:vertical}
 label.filepick{display:block;margin:8px 0 14px}
 input[type=file]{width:100%;min-height:44px;padding:10px;background:#16130f;color:var(--ink)}
-.hero{padding:8px 0 4px}
-.hero h1{font-size:28px;margin:0 0 8px;letter-spacing:-.03em;color:var(--ink)}
+.hero{padding:8px 0 4px;content-visibility:visible}
+.hero h1{font-size:28px;margin:0 0 8px;letter-spacing:-.03em;color:var(--ink);content-visibility:visible}
 .hero-search{display:flex;gap:10px;flex-wrap:wrap;align-items:stretch;margin:18px 0 8px}
 .hero-search .search{flex:1 1 220px}
 .hero-search button{flex:0 0 auto}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 8px}
 .chip{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 16px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink);text-decoration:none;font-weight:650}
 .chip.on{background:var(--gold);color:#14110a;border-color:var(--gold)}
-.doc{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 20px 16px;margin:14px 0;overflow:visible;min-width:0;max-width:100%}
+.doc{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 20px 16px;margin:14px 0;overflow:visible;min-width:0;max-width:100%;content-visibility:auto;contain-intrinsic-size:auto 280px}
 .doc.doc-aziel{border-color:var(--royal);box-shadow:inset 3px 0 0 var(--royal)}
 .doc h3{margin:8px 0 6px;font-size:20px;letter-spacing:-.02em;overflow:visible;overflow-wrap:anywhere;word-break:break-word}
 .doc h3 a{color:var(--ink);text-decoration:none;overflow-wrap:anywhere}
@@ -292,6 +293,34 @@ export function brandCountPills({ views, downloads } = {}) {
   return pills.join("");
 }
 
+/** Split homepage HTML so the hero can paint before the 89-card shelf. */
+export const LCP_FOLD = "<!--az-lcp-fold-->";
+
+export function splitLcpHtml(html) {
+  const text = String(html || "");
+  const i = text.indexOf(LCP_FOLD);
+  if (i < 0) return { early: text, late: "" };
+  const end = i + LCP_FOLD.length;
+  return { early: text.slice(0, end), late: text.slice(end) };
+}
+
+/** Stream the LCP fold first so the browser can paint hero text before the shelf. */
+export function streamLcpHtml(html) {
+  const { early, late } = splitLcpHtml(html);
+  if (!late || typeof TransformStream !== "function") return String(html || "");
+  const { readable, writable } = new TransformStream();
+  const writer = writable.getWriter();
+  const enc = new TextEncoder();
+  writer
+    .write(enc.encode(early))
+    .then(() => writer.write(enc.encode(late)))
+    .then(() => writer.close())
+    .catch(() => {
+      try { writer.close(); } catch { /* already closed */ }
+    });
+  return readable;
+}
+
 export function page(title, body, { signed, scripts, path, kind, description, work, runtimeVersion, views, downloads } = {}) {
   const who = signed && signed.username ? String(signed.username) : "";
   const account = signed
@@ -300,12 +329,13 @@ export function page(title, body, { signed, scripts, path, kind, description, wo
   const authLinks = signed
     ? `<a href="/logout">Log out</a>`
     : `<a href="/login">Log in</a><span class="sep">|</span><a href="/signup">Sign up</a>`;
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(documentTitle(kind, title))}</title>${headMeta({ title, path: path || "/", kind, description, work, runtimeVersion })}<style>${CSS}</style></head><body><div class="wrap">
-<div class="brandrow nav1"><img class="brandmark" src="/sigil.png" width="40" height="40" alt="" decoding="async"><div class="brand">Aziel Digital Library</div>${brandCountPills({ views, downloads })}<span class="pill">Runtime v2.7.0</span><span class="pill ok">MASTER · WRITABLE</span>${account}</div>
+  const metaOpts = { title, path: path || "/", kind, description, work, runtimeVersion, includeJsonLd: false };
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(documentTitle(kind, title))}</title>${headMeta(metaOpts)}<link rel="preload" href="/sigil.png" as="image" fetchpriority="high"><style>${CSS}</style></head><body><div class="wrap">
+<div class="brandrow nav1"><img class="brandmark" src="/sigil.png" width="40" height="40" alt="" decoding="async" fetchpriority="high"><div class="brand">Aziel Digital Library</div>${brandCountPills({ views, downloads })}<span class="pill">Runtime v2.7.0</span><span class="pill ok">MASTER · WRITABLE</span>${account}</div>
 <nav class="nav2 quiet"><a href="/">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/pattern">Pattern</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/how-its-scored">How it's scored</a><span class="sep">|</span><a href="/donate">Donate</a><span class="sep">|</span><a href="/runtime">Runtime</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/gazetteer">Gazetteer</a><span class="sep">|</span><a href="/intelligence">Intelligence</a><span class="sep">|</span><a href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a><span class="sep">|</span>${authLinks}</nav>
 ${donateStripHtml()}
 ${body}
-${ecosystemBlockHtml()}</div>${jeevesFabHtml()}${(scripts||[]).map((src)=>"<script src=\""+esc(src)+"\" defer></script>").join("")}${meshRefreshScript()}</body></html>`;
+${ecosystemBlockHtml()}</div>${jeevesFabHtml()}${(scripts||[]).map((src)=>"<script src=\""+esc(src)+"\" defer></script>").join("")}${meshRefreshScript()}${jsonLdScript(metaOpts)}</body></html>`;
 }
 
 function esc(s) {
@@ -520,6 +550,7 @@ export function homeBody({ q, lib, sort, domain, subject, keyword, author, rows,
 <div class="chips">${chip(RUNTIME_CHIP, "/runtime", false)}</div>
 </section>
 ${browseTools({ action: "/", showLibChips: true, ...state })}
+${LCP_FOLD}
 ${facetBlock(facets, state, "/")}
 ${docCards(rows, state, "/")}
 <div class="card row"><a class="button" href="/download">Download library zip</a></div>
