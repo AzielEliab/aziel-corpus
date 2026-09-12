@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  SHELF_REBUILD_MS,
   SHELF_SYNC_CHUNK,
   SHELF_SYNC_CHUNK_MAX,
   SHELF_SYNC_CURSOR_KEY,
@@ -10,6 +11,7 @@ import {
 } from "./review-store.js";
 import { LIBRARY_INDEX_KEY } from "./library-index.js";
 import { handleRuntimeApi } from "./runtime.js";
+import { shouldBackgroundWalk } from "./index.js";
 import { shelfScoreRows } from "./ui.js";
 import { notApplicableZsolver, seedBaselineZsolver } from "./zsolver.js";
 
@@ -337,6 +339,7 @@ test("GET /v1/verify-backfill?rebuild=1 returns a prompt JSON page", async () =>
   assert.equal(body.done, false);
   assert.equal(body.next_cursor, "AZDOC-B");
   assert.equal(body.shelf.processed, 2);
+  assert.equal(body.packed_refresh, "inline");
   assert.match(body.note, /cursor=/);
   assert.match(body.limitation, /Aziel Eliab/);
   assert.doesNotMatch(JSON.stringify(body), BANNED);
@@ -349,9 +352,59 @@ test("GET /v1/verify-backfill?rebuild=1 returns a prompt JSON page", async () =>
   assert.equal(body2.done, false);
 });
 
+test("rebuild with ctx.waitUntil returns JSON before packed refresh", async () => {
+  const env = mockEnv(sampleRecords());
+  const jobs = [];
+  const ctx = {
+    waitUntil(p) {
+      jobs.push(p);
+    },
+  };
+  const res = await handleRuntimeApi(
+    new Request("https://www.azielcorpuslibrary.net/v1/verify-backfill?rebuild=1&limit=2&force=1"),
+    new URL("https://www.azielcorpuslibrary.net/v1/verify-backfill?rebuild=1&limit=2&force=1"),
+    env,
+    ctx
+  );
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.ok, true);
+  assert.equal(body.rebuild, true);
+  assert.equal(body.packed_refresh, "deferred");
+  assert.equal(body.shelf.processed, 2);
+  assert.equal(body.done, false);
+  assert.equal(jobs.length, 1);
+  assert.equal(env.DOWNLOADS.store.has(LIBRARY_INDEX_KEY), false, "packed write must not block the JSON response");
+  await jobs[0];
+  const packed = packedRecords(env);
+  assert.equal(packed.find((r) => r.record_id === "AZDOC-A").zsolver_display, 75);
+  assert.doesNotMatch(JSON.stringify(body), BANNED);
+});
+
+test("shouldBackgroundWalk skips verify-backfill and verify-geo", () => {
+  assert.equal(shouldBackgroundWalk("/v1/verify-backfill"), false);
+  assert.equal(shouldBackgroundWalk("/v1/verify-geo"), false);
+  assert.equal(shouldBackgroundWalk("/v1/health"), true);
+  assert.equal(shouldBackgroundWalk("/"), true);
+});
+
 test("chunk constants stay inside Worker-safe bounds", () => {
   assert.equal(SHELF_SYNC_CHUNK, 25);
   assert.equal(SHELF_SYNC_CHUNK_MAX, 50);
+  assert.equal(SHELF_REBUILD_MS, 4000);
+});
+
+test("background continueFullBackfill does not refresh packed while shelf is in progress", async () => {
+  const env = mockEnv(sampleRecords(), {
+    metadata: {
+      full_backfill_done_utc: "2026-09-12T00:00:00Z",
+      succession_backfill_utc: "2026-09-12T00:00:00Z",
+    },
+  });
+  const report = await continueFullBackfill(env, { ms: 4000, all: false, background: true });
+  assert.equal(report.done, true);
+  assert.ok(report.shelf);
+  assert.equal(env.DOWNLOADS.store.has(LIBRARY_INDEX_KEY), false);
 });
 
 test("continueFullBackfill skips shelf walk once scoring and shelf are done", async () => {
