@@ -125,7 +125,7 @@ const PRODUCT_LINES = [
   ["Aziel Digital Library (aziel-corpus)", HOST + "/", GITHUB_REPO],
   ["Software hub", HOST + "/software", HOST + "/software"],
   ["Aziel Runtime " + RUNTIME_VERSION, HOST + "/runtime", CATALOG + "/"],
-  ["Suite mesh / Live Nodes (default off)", HOST + "/v1/mesh", HOST + "/runtime/v1/mesh"],
+  ["Suite mesh / Live Nodes (read-only QNM ON)", HOST + "/v1/mesh", HOST + "/runtime/v1/mesh"],
   ["How it's scored", HOST + "/how-its-scored", HOST + "/how-its-scored"],
   ["AzielTether lattice", HOST + "/v1/lattice", HOST + "/software"],
   ["ZionPattern Solver", HOST + "/how-its-scored", HOST + "/pattern"],
@@ -579,7 +579,7 @@ export function llmsDoc(limitation) {
     + "Runtime OpenAPI: " + HOST + "/runtime/openapi.json\n"
     + "Runtime MCP: POST " + HOST + "/runtime/mcp\n"
     + "Runtime uses (this door): " + HOST + "/runtime/v1/uses\n"
-    + "Suite mesh (default off until runtime enable): " + HOST + "/v1/mesh\n"
+    + "Suite mesh (read-only QNM ON): " + HOST + "/v1/mesh\n"
     + "Runtime mesh: " + HOST + "/runtime/v1/mesh\n"
     + "Live Nodes: " + HOST + "/v1/mesh/nodes\n"
     + "QNS-CD-1.0 cross-map (photon QNS1; hub cite only; local qnsd in qnm-node; no public proxy): " + HOST + "/v1/mesh\n"
@@ -647,7 +647,7 @@ export function llmsDoc(limitation) {
     + "- Runtime health: " + HOST + "/runtime/v1/health  (Aziel Runtime " + RUNTIME_VERSION + "; " + RUNTIME_LIVE_COUNT + " live; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse)\n"
     + "- Softwares download: " + HOST + "/download  ·  " + HOST + "/v1/download\n"
     + "- Runtime uses (this door): " + HOST + "/runtime/v1/uses\n"
-    + "- Suite mesh / Live Nodes (default off until runtime enable): " + HOST + "/v1/mesh\n"
+    + "- Suite mesh / Live Nodes (read-only QNM ON): " + HOST + "/v1/mesh\n"
     + "- Runtime mesh: " + HOST + "/runtime/v1/mesh\n"
     + "- Runtime FragGate: " + HOST + "/runtime/v1/fraggate\n"
     + "- Runtime FragGate list: " + HOST + "/runtime/v1/fraggate/list\n"
@@ -807,7 +807,7 @@ export function aiTxt(limitation) {
     + "- Softwares / Software hub: " + HOST + "/software\n"
     + "- AZCoherence (azcoherence, AZC-0.1): " + HOST + "/software · https://azcoherence-download-tracker.vibelock.workers.dev/ · " + HOST + "/runtime/v1/fraggate/describe?slug=azcoherence\n"
     + "- Live software catalog: " + HOST + "/v1/software\n"
-    + "- Suite mesh / Live Nodes (default off): " + HOST + "/v1/mesh\n"
+    + "- Suite mesh / Live Nodes (read-only QNM ON): " + HOST + "/v1/mesh\n"
     + "- Runtime mesh: " + HOST + "/runtime/v1/mesh\n"
     + "- MCP discovery: " + HOST + "/.well-known/mcp.json\n"
     + "- Runtime catalog: " + HOST + "/runtime\n"
@@ -859,7 +859,7 @@ export function humansTxt() {
     "Donate: " + HOST + "/donate",
     "Software hub mirrors runtime /v1/software (fallback fraggate/list): " + HOST + "/v1/software",
     "AZCoherence (azcoherence, AZC-0.1) Softwares Plain / scoring-review: " + HOST + "/software · https://azcoherence-download-tracker.vibelock.workers.dev/ · https://github.com/AzielEliab/AZCoherence",
-    "Suite mesh (default off until runtime enable): " + HOST + "/v1/mesh",
+    "Suite mesh (read-only QNM ON): " + HOST + "/v1/mesh",
     "Runtime mesh: " + HOST + "/runtime/v1/mesh",
     "Runtime: " + HOST + "/runtime",
     "Runtime version: Aziel Runtime " + RUNTIME_VERSION,

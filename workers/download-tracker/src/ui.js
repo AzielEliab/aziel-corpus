@@ -31,7 +31,7 @@ import {
   runtimeDistributionLinks,
   AI_CLIENTS,
 } from "./runtime-copy.js";
-import { meshOffDoc, meshRefreshScript, meshStatusHtml } from "./mesh.js";
+import { meshOnDoc, meshRefreshScript, meshStatusHtml } from "./mesh.js";
 import {
   AZCOHERENCE,
   AZCOHERENCE_WORKER_HOME,
@@ -294,7 +294,7 @@ export function brandCountPills({ views, downloads } = {}) {
   if (downloads != null && downloads !== "") {
     pills.push(`<a class="pill" href="/stats" id="downloads">${esc(downloads)}<span>downloads</span></a>`);
   }
-  pills.push(meshStatusHtml(meshOffDoc()));
+  pills.push(meshStatusHtml(meshOnDoc()));
   return pills.join("");
 }
 
@@ -712,7 +712,7 @@ export function runtimeBody(version) {
   return `<section class="hero"><h1>${esc(RUNTIME_TITLE)}</h1>
 <p>${esc(RUNTIME_ABSTRACT)}</p>
 <p class="runtime-dist">${runtimeDistributionButtons()}</p>
-<p class="muted"><strong>THIS IS NOT</strong> an API aggregator or a second software index. Softwares stay heading then list on <a href="/software">Softwares</a>. Scoring is explained on <a href="/how-its-scored">How it's scored</a>. HTTP <code>/p/{slug}/{op}</code> is a proxy and is not exec. Session tools are advanced/internal. Hosted AZAI is protocol mirror + Lamb check, not the blend. Suite mesh default off until runtime enable — <a href="/v1/mesh"><code>/v1/mesh</code></a> · <a href="/runtime/v1/mesh"><code>/runtime/v1/mesh</code></a>. GET <code>/v1/mesh</code> never enables. This public HTTPS surface is not itself a mesh. Remain-OFF untouched. No invented Zenodo DOIs. Author Aziel Eliab (aka Aziel Elroi Eliab; primary credit Aziel Eliab). GodLock is one catalog engine; identity at <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a>.</p></section>
+<p class="muted"><strong>THIS IS NOT</strong> an API aggregator or a second software index. Softwares stay heading then list on <a href="/software">Softwares</a>. Scoring is explained on <a href="/how-its-scored">How it's scored</a>. HTTP <code>/p/{slug}/{op}</code> is a proxy and is not exec. Session tools are advanced/internal. Hosted AZAI is protocol mirror + Lamb check, not the blend. Suite mesh is read-only QNM ON — <a href="/v1/mesh"><code>/v1/mesh</code></a> · <a href="/runtime/v1/mesh"><code>/runtime/v1/mesh</code></a>. GET <code>/v1/mesh</code> never enables. Disable is refused. This public HTTPS surface is not itself a mesh. Remain-OFF untouched. No invented Zenodo DOIs. Author Aziel Eliab (aka Aziel Elroi Eliab; primary credit Aziel Eliab). GodLock is one catalog engine; identity at <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a>.</p></section>
 <div class="card">
 <h2>Version ${esc(ver)}</h2>
 <p>Cite live <a href="/runtime/v1/health"><code>/runtime/v1/health</code></a> (fallback ${esc(RUNTIME_VERSION)}). Engine count must match: <strong>${esc(String(RUNTIME_LIVE_COUNT))} live advisory engines</strong>; <strong>${esc(RUNTIME_LOCAL_ONLY)} local_only</strong>; stubs refuse. Prefer same-origin <code>/runtime/*</code>. One door — discover, route, refuse. Kernel: <a href="${esc(RUNTIME_KERNEL)}">github.com/AzielEliab/fraggate</a> (FG-0.1). Engine manifest: <code>/runtime/v1/runtime.json</code> (not library <code>/v1/runtime</code>). Author Aziel Eliab.</p>
@@ -735,7 +735,7 @@ export function runtimeBody(version) {
 <ul>
 <li><a href="/runtime/v1/health"><code>/runtime/v1/health</code></a> — live health (version ${esc(ver)}, door=fraggate, ${esc(String(RUNTIME_LIVE_COUNT))} live engines)</li>
 <li><a href="/runtime/v1/uses"><code>/runtime/v1/uses</code></a> — local API use log for this door (does not increment)</li>
-<li><a href="/runtime/v1/mesh"><code>/runtime/v1/mesh</code></a> · <a href="/v1/mesh"><code>/v1/mesh</code></a> — suite Live Nodes / mesh status (default off until runtime enable)</li>
+<li><a href="/runtime/v1/mesh"><code>/runtime/v1/mesh</code></a> · <a href="/v1/mesh"><code>/v1/mesh</code></a> — suite Live Nodes / mesh status (read-only QNM ON)</li>
 <li><a href="/runtime/v1/runtime.json"><code>/runtime/v1/runtime.json</code></a> — runtime manifest</li>
 <li><a href="/runtime/v1/skill"><code>/runtime/v1/skill</code></a> — runtime skill markdown</li>
 <li><a href="/runtime/v1/fraggate"><code>/runtime/v1/fraggate</code></a> · <a href="/runtime/v1/fraggate/list"><code>/runtime/v1/fraggate/list</code></a> · <code>POST /runtime/v1/fraggate/call</code></li>
@@ -759,7 +759,7 @@ export function runtimeBody(version) {
 <li><code>POST ${esc(RUNTIME_ORIGIN)}/mcp</code></li>
 <li><a href="${esc(RUNTIME_ORIGIN)}/llms.txt">llms.txt</a> · <a href="${esc(RUNTIME_ORIGIN)}/cite.json">cite.json</a> · <a href="${esc(RUNTIME_GITHUB)}">GitHub</a></li>
 </ul>
-<p class="muted">Counted downloads stay on each product Worker <code>/download</code> + <code>/count</code>. The Software tab lists those cards. AzielTether is the survival mesh for downloaded nodes. Suite mesh stays <strong>off</strong> until runtime enable — Live Nodes via <a href="/v1/mesh"><code>/v1/mesh</code></a>.</p>
+<p class="muted">Counted downloads stay on each product Worker <code>/download</code> + <code>/count</code>. The Software tab lists those cards. AzielTether is the survival mesh for downloaded nodes. Suite mesh is read-only <strong>ON</strong> — Live Nodes via <a href="/v1/mesh"><code>/v1/mesh</code></a>.</p>
 <p class="soft-links"><a class="button ghost" href="/software">Software catalog</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="runtime-muted" href="${esc(RUNTIME_ORIGIN)}/">Open alternate origin</a> <a class="button ghost" href="/runtime/v1/catalog.json">catalog.json</a> <a class="button ghost" href="/v1/lattice">Lattice API</a> <a class="button ghost" href="${esc(RUNTIME_GITHUB)}">GitHub</a></p>
 </div>`;
 }
