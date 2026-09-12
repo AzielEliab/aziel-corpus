@@ -9,6 +9,7 @@ import {
   RUNTIME_ORIGIN,
   RUNTIME_VERSION,
   LIBRARY_DOWNLOAD,
+  LIBRARY_COUNT,
   softwareChip,
   softwareHubBlurb,
   resolveRuntimeVersion,
@@ -25,6 +26,7 @@ import {
   SEO_CACHE_CONTROL,
   cacheMatchJson,
   cachePutJson,
+  collectStats,
 } from "./library-index.js";
 
 const UA = "Mozilla/5.0 AzielDigitalLibrary";
@@ -361,15 +363,19 @@ export function productLinks(product) {
 }
 
 export function parseCountPayload(j) {
-  if (!j || typeof j !== "object") return { downloads: null, views: null, uploads: null };
+  if (!j || typeof j !== "object" || j.error) return { downloads: null, views: null, uploads: null };
   const num = (v) => {
     const n = Number(v);
     return Number.isFinite(n) ? n : null;
   };
+  const downloads = num(j.downloads != null ? j.downloads : j.total != null ? j.total : j.count);
+  const views = num(j.views != null ? j.views : j.view_count);
+  const uploads = num(j.uploads != null ? j.uploads : j.upload_count);
+  const looksLikeCount = j.project != null || j.total != null || j.downloads != null || j.views != null || j.view_count != null;
   return {
-    downloads: num(j.downloads != null ? j.downloads : j.total != null ? j.total : j.count),
-    views: num(j.views != null ? j.views : j.view_count),
-    uploads: num(j.uploads != null ? j.uploads : j.upload_count),
+    downloads: downloads != null ? downloads : (looksLikeCount ? 0 : null),
+    views: views != null ? views : (looksLikeCount ? 0 : null),
+    uploads,
   };
 }
 
@@ -403,19 +409,59 @@ export function usesForSlug(usesDoc, slug) {
   return null;
 }
 
+export function inferCountUrlFromProduct(product) {
+  const download = firstText(product && product.download, product && product.download_url);
+  if (download) {
+    try {
+      const u = new URL(download);
+      if (/\/download\/?$/i.test(u.pathname)) {
+        u.pathname = u.pathname.replace(/\/download\/?$/i, "/count");
+        u.search = "";
+        u.hash = "";
+        return u.toString();
+      }
+      if (/\.workers\.dev$/i.test(u.hostname) || /azielcorpuslibrary\.net$/i.test(u.hostname)) {
+        return u.origin + "/count";
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  const home = firstText(product && product.worker_home);
+  if (home) {
+    try {
+      const base = home.endsWith("/") ? home : home + "/";
+      return new URL("count", base).toString();
+    } catch {
+      /* ignore */
+    }
+  }
+  const worker = firstText(product && product.worker);
+  if (/^[a-z0-9-]+$/i.test(worker)) return "https://" + worker + ".vibelock.workers.dev/count";
+  return "";
+}
+
+export function isLocalCorpusCountUrl(url) {
+  const href = String(url || "");
+  return /azielcorpuslibrary\.net\/count(?:\?|$)/i.test(href)
+    || /aziel-corpus-download-tracker\.vibelock\.workers\.dev\/count(?:\?|$)/i.test(href);
+}
+
 export function countUrlForProduct(product) {
   const slug = String((product && product.slug) || "").toLowerCase();
   const listed = firstText(product && product.count);
   if (slug === "fraggate") return firstText(listed, FRAGGATE_COUNT);
   if (slug === "aznet") return firstText(listed, AZNET_COUNT);
   if (slug === AZCOHERENCE_SLUG) return firstText(listed, AZCOHERENCE_COUNT);
-  return listed;
+  if (slug === "aziel-corpus") return firstText(listed, LIBRARY_COUNT);
+  return firstText(listed, inferCountUrlFromProduct(product));
 }
 
-export function countPills({ downloads, views, uploads, uses } = {}) {
+export function countPills({ downloads, views, uploads, uses } = {}, opts = {}) {
+  const requireVD = Boolean(opts.requireViewsDownloads);
   const pills = [];
-  if (downloads != null) pills.push(String(downloads) + " downloads");
-  if (views != null) pills.push(String(views) + " views");
+  if (requireVD || downloads != null) pills.push(String(downloads != null ? downloads : 0) + " downloads");
+  if (requireVD || views != null) pills.push(String(views != null ? views : 0) + " views");
   if (uploads != null) pills.push(String(uploads) + " uploads");
   if (uses != null) pills.push(String(uses) + " uses");
   return pills;
@@ -427,6 +473,8 @@ export const CATALOG_JSON_PATH = "/v1/catalog.json";
 export const SOFTWARE_CRAWL_TIMEOUT_MS = 4000;
 /** Softwares HTML: fail fast. Packed catalog cache is the SSR source of truth. */
 export const SOFTWARE_HTML_TIMEOUT_MS = 800;
+/** Per-product /count fetch. Do not let one quiet Worker stall the Softwares grid. */
+export const COUNT_FETCH_TIMEOUT_MS = 1500;
 
 function withTimeout(promise, ms) {
   const limit = Number(ms) || 0;
@@ -625,15 +673,44 @@ export async function fetchLiveSoftwareCatalog(env, opts = {}) {
   return live || { catalog: { products: [] }, source: "empty" };
 }
 
-async function fetchCountDoc(url) {
+function statsAsCount(stats) {
+  if (!stats || typeof stats !== "object") return { downloads: null, views: null, uploads: null };
+  return {
+    downloads: Number(stats.downloads) || 0,
+    views: Number(stats.views) || 0,
+    uploads: null,
+  };
+}
+
+async function fetchCountDoc(url, opts = {}) {
   if (!url) return { downloads: null, views: null, uploads: null };
+  const ms = opts.timeoutMs != null ? Number(opts.timeoutMs) : COUNT_FETCH_TIMEOUT_MS;
   try {
-    const res = await fetch(url, { headers: { "User-Agent": UA, Accept: "application/json" } });
+    const init = { headers: { "User-Agent": UA, Accept: "application/json" } };
+    if (ms > 0 && typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+      init.signal = AbortSignal.timeout(ms);
+    }
+    const res = await fetch(url, init);
     if (!res.ok) return { downloads: null, views: null, uploads: null };
     return parseCountPayload(await res.json());
   } catch {
     return { downloads: null, views: null, uploads: null };
   }
+}
+
+function localCountForProduct(product, stats) {
+  const slug = String((product && product.slug) || "").toLowerCase();
+  if (slug === "aziel-corpus" && stats) return statsAsCount(stats);
+  return { downloads: null, views: null, uploads: null };
+}
+
+async function fetchProductCount(product, stats, opts = {}) {
+  const slug = String((product && product.slug) || "").toLowerCase();
+  const url = countUrlForProduct(product);
+  if ((slug === "aziel-corpus" || isLocalCorpusCountUrl(url)) && stats) {
+    return statsAsCount(stats);
+  }
+  return fetchCountDoc(url, { timeoutMs: opts.countTimeoutMs != null ? opts.countTimeoutMs : COUNT_FETCH_TIMEOUT_MS });
 }
 
 function toCard(product, { pills, countHint } = {}) {
@@ -656,6 +733,15 @@ function toCard(product, { pills, countHint } = {}) {
 
 export async function loadSoftwareCatalog(env, stats, opts = {}) {
   const light = Boolean(opts.light);
+  const requireCountPills = opts.requireCountPills != null ? Boolean(opts.requireCountPills) : !light;
+  let localStats = stats && typeof stats === "object" ? stats : null;
+  if (!localStats && env && !opts.skipLocalStats) {
+    try {
+      localStats = await collectStats(env);
+    } catch {
+      localStats = null;
+    }
+  }
   const live = await fetchLiveSoftwareCatalog(env, {
     skipEnrich: light || Boolean(opts.skipEnrich),
     preferCache: light || Boolean(opts.preferCache),
@@ -675,8 +761,8 @@ export async function loadSoftwareCatalog(env, stats, opts = {}) {
   }
 
   const counts = light
-    ? merged.map(() => ({ downloads: null, views: null, uploads: null }))
-    : await Promise.all(merged.map((p) => fetchCountDoc(countUrlForProduct(p))));
+    ? merged.map((p) => localCountForProduct(p, localStats))
+    : await Promise.all(merged.map((p) => fetchProductCount(p, localStats, opts)));
   let fetched = 0;
   const cards = merged.map((p, i) => {
     const slug = String(p.slug || "").toLowerCase();
@@ -684,29 +770,41 @@ export async function loadSoftwareCatalog(env, stats, opts = {}) {
     let downloads = count.downloads;
     let views = count.views;
     let uploads = count.uploads;
-    if (slug === "aziel-corpus" && stats) {
-      if (views == null && stats.views != null) views = Number(stats.views);
-      if (downloads == null && stats.downloads != null) downloads = Number(stats.downloads);
+    if (slug === "aziel-corpus" && localStats) {
+      if (views == null && localStats.views != null) views = Number(localStats.views) || 0;
+      if (downloads == null && localStats.downloads != null) downloads = Number(localStats.downloads) || 0;
     }
     if (downloads != null || views != null || uploads != null) fetched += 1;
     const uses = usesForSlug(usesDoc, slug);
-    const pills = countPills({ downloads, views, uploads, uses });
-    const countHint = pills.length ? "" : (p.count ? "downloads live on Worker" : "");
+    const pills = countPills({ downloads, views, uploads, uses }, { requireViewsDownloads: requireCountPills });
+    const countHint = pills.length ? "" : (p.count || countUrlForProduct(p) ? "downloads live on Worker" : "");
     return toCard(p, { pills, countHint });
   }).sort(compareSoftware);
 
   const originUses = usesDoc && usesDoc.origin && usesDoc.origin.uses != null ? Number(usesDoc.origin.uses) : null;
   const localUses = usesDoc && usesDoc.uses != null ? Number(usesDoc.uses) : null;
+  const viewParts = counts.map((c) => c && c.views).filter((n) => n != null);
+  const dlParts = counts.map((c) => c && c.downloads).filter((n) => n != null);
+  const viewSum = viewParts.length ? viewParts.reduce((a, b) => a + b, 0) : null;
+  const dlSum = dlParts.length ? dlParts.reduce((a, b) => a + b, 0) : null;
+  const hubViews = localStats && localStats.views != null
+    ? Number(localStats.views)
+    : viewSum;
+  const hubDownloads = !light && dlSum != null
+    ? dlSum
+    : (localStats && localStats.downloads != null ? Number(localStats.downloads) : dlSum);
   const hubPills = countPills({
-    downloads: counts.map((c) => c && c.downloads).filter((n) => n != null).reduce((a, b) => a + b, 0) || null,
+    downloads: hubDownloads,
+    views: hubViews,
     uses: localUses,
-  });
+  }, { requireViewsDownloads: requireCountPills });
   if (originUses != null && Number.isFinite(originUses)) {
     hubPills.push(String(originUses) + " origin uses");
   }
 
   const catalogVersion = (catalog && catalog.version) || RUNTIME_VERSION;
   const hub = {
+    slug: "aziel-runtime",
     name: "aziel-runtime",
     version: catalogVersion,
     root: true,
@@ -735,7 +833,7 @@ export async function loadSoftwareCatalog(env, stats, opts = {}) {
     source: live.source,
     usesTotal: localUses,
     originUses: originUses != null && Number.isFinite(originUses) ? originUses : null,
-    siteViews: stats && stats.views != null ? Number(stats.views) : null,
-    siteDownloads: stats && stats.downloads != null ? Number(stats.downloads) : null,
+    siteViews: localStats && localStats.views != null ? Number(localStats.views) : null,
+    siteDownloads: localStats && localStats.downloads != null ? Number(localStats.downloads) : null,
   };
 }
