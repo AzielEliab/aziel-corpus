@@ -94,7 +94,7 @@ Ops (do **not** increment downloads):
 - \`GET /runtime/v1/mesh\` (same-origin proxy of runtime mesh; not a public qnsd proxy)
 - \`POST /v1/score\` (document review preview)
 - \`GET /v1/verify-backfill?all=1\` (walk every stored Aziel Library + Corpus record)
-- \`GET /v1/verify-backfill?rebuild=1\` (copy already-scored triad/ZionPattern onto packed shelf + tip; bust homepage HTML cache)
+- \`GET /v1/verify-backfill?rebuild=1\` (chunked copy of already-scored triad/ZionPattern onto packed shelf + tip; returns next_cursor / done. Repeat with cursor or all=1 until done:true)
 - \`GET /v1/verify-geo?force=1\` / \`?status=1\` (chunked map pins: paper date × event × geolocation)
 - \`GET /v1/document-chain?record_id=\`
 - \`POST /v1/jeeves/chat\`
@@ -177,7 +177,7 @@ function openapi() {
       "/runtime/v1/mesh/status": { get: { summary: "Same-origin proxy of aziel-runtime /v1/mesh/status. Default off until runtime enable.", operationId: "runtimeProxyMeshStatus" } },
       "/runtime/v1/mesh/nodes": { get: { summary: "Same-origin proxy of aziel-runtime /v1/mesh/nodes. Live Nodes empty while off.", operationId: "runtimeProxyMeshNodes" } },
       "/v1/score": { post: { summary: "Preview document review (SPRE, CLCE port, PhysLing, poison, triad, Bayesian). Advisory. Does not write.", operationId: "score" } },
-      "/v1/verify-backfill": { get: { summary: "Walk stored records: triad, ZionPattern Solver secondary score, and exact-same-subject succession. all=1 walks every remaining doc (chunked). rebuild=1 copies already-scored zsolver onto packed shelf + tip without live API. Reports total/scored/skipped/failed. Does not increment downloads.", operationId: "verifyBackfill", parameters: [{ name: "limit", in: "query", schema: { type: "integer", default: 25 } }, { name: "force", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "all", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "rebuild", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "record_id", in: "query", schema: { type: "string" } }] } },
+      "/v1/verify-backfill": { get: { summary: "Walk stored records: triad, ZionPattern Solver secondary score, and exact-same-subject succession. all=1 walks every remaining doc (chunked). rebuild=1 copies already-scored zsolver onto packed shelf + tip without live API, one cursor page per request. Reports total/processed/tips/done/next_cursor. Does not increment downloads.", operationId: "verifyBackfill", parameters: [{ name: "limit", in: "query", schema: { type: "integer", default: 25 } }, { name: "force", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "all", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "rebuild", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "cursor", in: "query", schema: { type: "string" } }, { name: "record_id", in: "query", schema: { type: "string" } }] } },
       "/v1/verify-geo": { get: { summary: "Chunked geography reindex: date × event × geolocation pins for docs with geospatial anchors (paper time, never upload time). force=1 restarts. status=1 progress. Does not increment downloads.", operationId: "verifyGeo", parameters: [{ name: "force", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "status", in: "query", schema: { type: "string", enum: ["0", "1"] } }] } },
       "/v1/document-chain": { get: { summary: "Per-document hash-chain bound to record_id. No orphan chains.", operationId: "documentChain", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
       "/v1/jeeves/chat": { post: { summary: "Ask Jeeves research assistant over public records. Lamb Lens. Cannot change scores.", operationId: "jeevesChat" } },
@@ -377,7 +377,7 @@ export async function handleRuntimeApi(request, url, env) {
         succession: "Exact-same-subject paper cites (Supersedes / Superseded by). Uncertain matches are not chained.",
         zsolver: "ZionPattern Solver secondary public score. Separate from triad. Qualifies for historical, research, investigation, and crime documents; philosophy, software, hardware, and designs omit ZionPattern (never 0). Zioncheck Visual Archive vols 1–5 seed baseline display 75. 75 means intentional suppression confidence; lower is more natural. Hard 75 ceiling / 25 uncertainty floor. Provisional. If the live API is down, the score is queued and retried. When a superseding document proves a ZionPattern break with first-hand / primary materials only, every document in that succession chain is force-rescored. Narrative, news, and second-source materials never trigger chain rescore. See " + HOST + "/how-its-scored",
         backfill_all: "GET /v1/verify-backfill?all=1 walks every stored Aziel Library and Corpus record",
-        backfill_rebuild: "GET /v1/verify-backfill?rebuild=1 writes already-scored zsolver onto packed library:index:v1 and lattice tips, then busts homepage HTML cache",
+        backfill_rebuild: "GET /v1/verify-backfill?rebuild=1 writes already-scored zsolver onto packed library:index:v1 and lattice tips in cursor chunks (default 25), then busts homepage HTML cache. Repeat with cursor= or all=1 until done:true. force=1 restarts.",
         verify_geo: "GET /v1/verify-geo?force=1 / ?status=1 — chunked paper-date × event × geolocation pins. Never upload time.",
         jeeves: JEEVES_LIMITATION,
         lattice: "aziel.lattice.anchor.v1 for AzielTether; site is not a mesh",
@@ -512,8 +512,30 @@ export async function handleRuntimeApi(request, url, env) {
     const recordId = (url.searchParams.get("record_id") || url.searchParams.get("id") || "").trim() || null;
     if (statusOnly) return json({ ...(await fullBackfillStatus(env)), limitation: LIMITATION });
     if (rebuild) {
-      const shelf = await syncShelfScores(env, { reconcile: true });
-      return json({ ok: true, rebuild: true, shelf, note: "Packed shelf + tips updated from stored zsolver. After Worker deploy: GET /v1/verify-backfill?rebuild=1", limitation: LIMITATION });
+      const cursor = (url.searchParams.get("cursor") || "").trim();
+      const shelf = await syncShelfScores(env, {
+        reconcile: true,
+        cursor: cursor || undefined,
+        limit,
+        all,
+        force,
+        resume: !cursor && !force,
+        refreshPacked: true,
+      });
+      const next = shelf.done ? "" : (shelf.next_cursor || "");
+      const note = shelf.done
+        ? "Packed shelf + tips updated from stored zsolver. Homepage HTML cache busted."
+        : "Chunked rebuild. Repeat GET /v1/verify-backfill?rebuild=1&cursor=" + encodeURIComponent(next) + " or ?rebuild=1&all=1 until done:true.";
+      return json({
+        ok: true,
+        rebuild: true,
+        done: !!shelf.done,
+        cursor: shelf.cursor || "",
+        next_cursor: next,
+        shelf,
+        note,
+        limitation: LIMITATION,
+      });
     }
     if (all || !recordId) {
       const report = await continueFullBackfill(env, { ms: all ? 25000 : 18000, force, all });
