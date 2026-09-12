@@ -126,6 +126,7 @@ Sitemap: https://www.azielcorpuslibrary.net/sitemap-index.xml
 - Official Runtime Worker: https://aziel-runtime.vibelock.workers.dev/
 - FragGate kernel: https://github.com/AzielEliab/fraggate
 - GodLock.uk: https://godlock.uk · https://godlock.uk/AzielEliab
+- He Didn't Jump: https://www.hedidntjump.com/
 - cite.json: https://www.azielcorpuslibrary.net/cite.json
 - GitHub cite example: https://github.com/AzielEliab/aziel-corpus/blob/main/docs/cite.example.json
 - llms.txt: https://www.azielcorpuslibrary.net/llms.txt
@@ -136,7 +137,7 @@ ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistr
 
 ## Identity
 
-Primary author Aziel Eliab. Alternate name Aziel Elroi Eliab. Person @id https://www.azieleliab.com/#aziel. Runtime @id https://www.azieleliab.com/runtime#runtime. Official site https://www.azieleliab.com/. WebSite https://www.azielcorpuslibrary.net/#website (Aziel Corpus Library). Profile https://www.azielcorpuslibrary.net/AzielEliab. GodLock identity https://godlock.uk/AzielEliab.
+Primary author Aziel Eliab. Alternate name Aziel Elroi Eliab. Person @id https://www.azieleliab.com/#aziel. Runtime @id https://www.azieleliab.com/runtime#runtime. Official site https://www.azieleliab.com/. WebSite https://www.azielcorpuslibrary.net/#website (Aziel Corpus Library). Profile https://www.azielcorpuslibrary.net/AzielEliab. GodLock identity https://godlock.uk/AzielEliab. He Didn't Jump https://www.hedidntjump.com/.
 
 Aziel Runtime 2.0.0-rc1. FragGate is the single door. Do not mash version + FragGate into Softwares blurbs. Softwares on this repo is the Digital Library catalog.
 

@@ -25,6 +25,7 @@ Compatible AI clients: ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity,
 - Try on Glama: https://glama.ai/mcp/servers/AzielEliab/aziel-runtime
 - FragGate kernel: https://github.com/AzielEliab/fraggate
 - GodLock.uk: https://godlock.uk · https://godlock.uk/AzielEliab
+- He Didn't Jump: https://www.hedidntjump.com/
 - Runtime FragGate list: `GET https://www.azielcorpuslibrary.net/runtime/v1/fraggate/list`
 - Runtime FragGate call: `POST https://www.azielcorpuslibrary.net/runtime/v1/fraggate/call`
 - Fallback Worker: https://aziel-corpus-download-tracker.vibelock.workers.dev/

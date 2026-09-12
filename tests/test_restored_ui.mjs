@@ -252,6 +252,8 @@ test("Pattern, Software, About, and runtime pages render live copy", () => {
   assert.match(about, /href="\/how-its-scored"/);
   assert.match(about, /href="https:\/\/godlock\.uk\/AzielEliab"/);
   assert.match(about, /GodLock is one product Aziel Eliab built/);
+  assert.match(about, /href="https:\/\/www\.hedidntjump\.com\/"/);
+  assert.match(about, /He Didn't Jump/);
   const scored = howItsScoredBody();
   assert.match(scored, /How it's scored/);
   assert.match(scored, /SPRE/);
@@ -286,6 +288,8 @@ test("Pattern, Software, About, and runtime pages render live copy", () => {
   assert.match(soft, /href="\/how-its-scored"/);
   assert.match(soft, /href="\/runtime"/);
   assert.match(soft, /href="https:\/\/godlock\.uk\/AzielEliab"/);
+  assert.match(soft, /href="https:\/\/www\.hedidntjump\.com\/"/);
+  assert.match(soft, /He Didn't Jump/);
   assert.doesNotMatch(soft, /zenodo/i);
   const runtime = runtimeBody();
   assert.match(runtime, /aziel-runtime/);

@@ -8,6 +8,8 @@ import {
   ABOUT_PATH,
   ABOUT_NAV_LABEL,
   GODLOCK_IDENTITY,
+  HEDIDNTJUMP_HOME,
+  HEDIDNTJUMP_LABEL,
   ECOSYSTEM_HEADING,
   ECOSYSTEM_LINKS,
 } from "./seo.js";
@@ -652,7 +654,7 @@ export function aboutBody() {
 <p>Carry the torch: I don’t own the flame. I keep it lit long enough for the next hands to find it. If the record is local, timed, and hashed, the work can outlive me. That is the point.</p>
 <p>Truth that cannot be corrected is just a private religion. So the work stays public, chained for review, not a pulpit. Later papers bury earlier ones as confidence hardens. I am not always right. That is not a confession. It is the method.</p>
 <p><strong>Aziel Library</strong> (royal purple) is the operator collection of Aziel Eliab’s own papers and software notes. <strong>Corpus</strong> is the public Lamb Lens shelf — anyone may browse; signed-in accounts file there. The two shelves share the same scoring and hash-chain rules; they are not the same collection.</p>
-<p>The software suite is listed on <a href="/software">Software</a>. The catalog/MCP door lives on <strong>this domain</strong> at <a href="/runtime">/runtime</a> — Aziel Runtime, a node-meshed MCP Softwares suite for digital forensics and auditing (${RUNTIME_LIVE_COUNT} live advisory engines; ${RUNTIME_LOCAL_ONLY} local_only; stubs refuse). Not an API aggregator. The workers.dev origin is an alternate/sameAs, not the first door. GodLock is one product Aziel Eliab built; the corresponding identity page is <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a>. How records are scored — triad SPRE × CLCE × PhysLing, and ZionPattern as a separate public reading — is on <a href="/how-its-scored">How it's scored</a>. Source: <a href="https://github.com/AzielEliab/aziel-corpus">github.com/AzielEliab/aziel-corpus</a>.</p>
+<p>The software suite is listed on <a href="/software">Software</a>. The catalog/MCP door lives on <strong>this domain</strong> at <a href="/runtime">/runtime</a> — Aziel Runtime, a node-meshed MCP Softwares suite for digital forensics and auditing (${RUNTIME_LIVE_COUNT} live advisory engines; ${RUNTIME_LOCAL_ONLY} local_only; stubs refuse). Not an API aggregator. The workers.dev origin is an alternate/sameAs, not the first door. GodLock is one product Aziel Eliab built; the corresponding identity page is <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a>. <a href="${HEDIDNTJUMP_HOME}">${HEDIDNTJUMP_LABEL}</a> is a sister archive (An Aziel Eliab Project). How records are scored — triad SPRE × CLCE × PhysLing, and ZionPattern as a separate public reading — is on <a href="/how-its-scored">How it's scored</a>. Source: <a href="https://github.com/AzielEliab/aziel-corpus">github.com/AzielEliab/aziel-corpus</a>.</p>
 <p>I am here for the record, not the applause. If not me, then who. If not now, the seal holds. I carry the torch by leaving receipts. When the work can stand without my name on it, I am done.</p>
 <p>I am temporary. The truth is not.</p>
 <p class="about-sign"><strong>— Aziel Eliab</strong></p>
@@ -804,7 +806,7 @@ ${softSection("Software", groups.plain)}
 ${softSection("Gate", groups.gate)}
 ${softSection("Lock", groups.lock)}
 <div class="card"><p class="soft-links runtime-dist">${runtimeDistributionButtons()}</p>
-<p class="soft-links"><a class="button" href="/runtime">${esc(chip)}</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="/runtime/v1/software">/v1/software</a> <a class="button ghost" href="/runtime/mcp">MCP</a> <a class="button ghost" href="/runtime/v1/uses">uses</a> <a class="button ghost" href="/v1/mesh">Live Nodes</a> <a class="button ghost" href="/v1/lattice">Lattice API</a> <a class="button ghost" href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a> <a class="button ghost" href="https://github.com/AzielEliab/aziel-corpus">aziel-corpus</a> <a class="button ghost" href="${esc(RUNTIME_GITHUB)}">aziel-runtime</a></p></div>`;
+<p class="soft-links"><a class="button" href="/runtime">${esc(chip)}</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="/runtime/v1/software">/v1/software</a> <a class="button ghost" href="/runtime/mcp">MCP</a> <a class="button ghost" href="/runtime/v1/uses">uses</a> <a class="button ghost" href="/v1/mesh">Live Nodes</a> <a class="button ghost" href="/v1/lattice">Lattice API</a> <a class="button ghost" href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a> <a class="button ghost" href="${HEDIDNTJUMP_HOME}">${esc(HEDIDNTJUMP_LABEL)}</a> <a class="button ghost" href="https://github.com/AzielEliab/aziel-corpus">aziel-corpus</a> <a class="button ghost" href="${esc(RUNTIME_GITHUB)}">aziel-runtime</a></p></div>`;
 }
 
 export { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, ocrBody, ocrFormHtml, SPECTRAL_LENSES, blockedAvBody } from "./hosted-pages.js";
