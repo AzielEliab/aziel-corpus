@@ -25,6 +25,12 @@ import { handleDonate, DONATE_PATH } from "./donate.js";
 import { handleDonateQr, isDonateQrPath } from "./donate-qr.js";
 import { serveSoftwareAsset, DEFAULT_ASSET as SOFTWARE_DEFAULT_ASSET } from "./software-download.js";
 
+/** Operator walk APIs must not share the isolate with background backfill/geo or a tunnel hop. */
+export function shouldBackgroundWalk(pathname) {
+  const path = String(pathname || "").replace(/\/+$/, "") || "/";
+  return path !== "/v1/verify-backfill" && path !== "/v1/verify-geo";
+}
+
 /**
  * Aziel Digital Library v2.7.0 public MASTER (Cloudflare Worker).
  *
@@ -301,21 +307,21 @@ export default {
     const walk = async () => {
       await refreshPackedIndex(env).catch(() => null);
       await refreshGithubIntoIndex(env).catch(() => null);
-      await continueFullBackfill(env, { ms: 12000, all: false }).catch(() => null);
+      await continueFullBackfill(env, { ms: 12000, all: false, background: true }).catch(() => null);
       await continueVerifyGeo(env, { ms: 12000, force: false }).catch(() => null);
     };
     if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(walk());
     else await walk();
   },
   async fetch(request, env, ctx) {
-    if (ctx && typeof ctx.waitUntil === "function") {
+    const url = new URL(request.url);
+    const earlyPath = url.pathname.replace(/\/+$/, "") || "/";
+    if (ctx && typeof ctx.waitUntil === "function" && shouldBackgroundWalk(earlyPath)) {
       ctx.waitUntil((async () => {
-        await continueFullBackfill(env, { ms: 8000, all: false }).catch(() => null);
+        await continueFullBackfill(env, { ms: 8000, all: false, background: true }).catch(() => null);
         await continueVerifyGeo(env, { ms: 8000, force: false }).catch(() => null);
       })());
     }
-    const url = new URL(request.url);
-    const earlyPath = url.pathname.replace(/\/+$/, "") || "/";
 
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeaders() });
@@ -334,7 +340,7 @@ export default {
     if (limited && limited.response) return limited.response;
     const attachVid = (res) => withRateCookie(res, limited);
 
-    if (isReadMethod(request.method)) {
+    if (isReadMethod(request.method) && shouldBackgroundWalk(earlyPath)) {
       const tunneled = await tryTunnelFirst(request, env);
       if (tunneled) return tunneled;
     }
@@ -351,7 +357,7 @@ export default {
       if (runtimeRoot) return attachVid(runtimeRoot);
     }
 
-    const runtime = await handleRuntimeApi(request, url, env);
+    const runtime = await handleRuntimeApi(request, url, env, ctx);
     if (runtime) return attachVid(runtime);
 
     const authed = await handleAuth(request, url, env, ctx);

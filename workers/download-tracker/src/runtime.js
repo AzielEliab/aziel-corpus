@@ -5,7 +5,7 @@
  */
 import { serveFileByHash, normalizeContentHash } from "./library.js";
 import { receiptForRecord, documentChain } from "./ledger.js";
-import { loadRecordReview, runReviewBundle, backfillReviews, continueFullBackfill, fullBackfillStatus, syncShelfScores } from "./review-store.js";
+import { loadRecordReview, runReviewBundle, backfillReviews, continueFullBackfill, fullBackfillStatus, syncShelfScores, refreshPackedShelf, SHELF_REBUILD_MS } from "./review-store.js";
 import { latticeAnchorTip, LATTICE_NOTE } from "./lattice.js";
 import { handleJeevesApi, JEEVES_LIMITATION } from "./jeeves.js";
 import { handleOperatorIngestApi } from "./operator-ingest.js";
@@ -94,7 +94,7 @@ Ops (do **not** increment downloads):
 - \`GET /runtime/v1/mesh\` (same-origin proxy of runtime mesh; not a public qnsd proxy)
 - \`POST /v1/score\` (document review preview)
 - \`GET /v1/verify-backfill?all=1\` (walk every stored Aziel Library + Corpus record)
-- \`GET /v1/verify-backfill?rebuild=1\` (chunked copy of already-scored triad/ZionPattern onto packed shelf + tip; returns next_cursor / done. Repeat with cursor or all=1 until done:true)
+- \`GET /v1/verify-backfill?rebuild=1\` (chunked tip reconcile; JSON returns promptly with next_cursor / done; packed shelf refresh is deferred. Repeat with cursor or all=1 until done:true)
 - \`GET /v1/verify-geo?force=1\` / \`?status=1\` (chunked map pins: paper date × event × geolocation)
 - \`GET /v1/document-chain?record_id=\`
 - \`POST /v1/jeeves/chat\`
@@ -222,7 +222,7 @@ function openapi() {
   };
 }
 
-export async function handleRuntimeApi(request, url, env) {
+export async function handleRuntimeApi(request, url, env, ctx) {
   const path = url.pathname.replace(/\/$/, "") || "/";
   if (request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders() });
@@ -377,7 +377,7 @@ export async function handleRuntimeApi(request, url, env) {
         succession: "Exact-same-subject paper cites (Supersedes / Superseded by). Uncertain matches are not chained.",
         zsolver: "ZionPattern Solver secondary public score. Separate from triad. Qualifies for historical, research, investigation, and crime documents; philosophy, software, hardware, and designs omit ZionPattern (never 0). Zioncheck Visual Archive vols 1–5 seed baseline display 75. 75 means intentional suppression confidence; lower is more natural. Hard 75 ceiling / 25 uncertainty floor. Provisional. If the live API is down, the score is queued and retried. When a superseding document proves a ZionPattern break with first-hand / primary materials only, every document in that succession chain is force-rescored. Narrative, news, and second-source materials never trigger chain rescore. See " + HOST + "/how-its-scored",
         backfill_all: "GET /v1/verify-backfill?all=1 walks every stored Aziel Library and Corpus record",
-        backfill_rebuild: "GET /v1/verify-backfill?rebuild=1 writes already-scored zsolver onto packed library:index:v1 and lattice tips in cursor chunks (default 25), then busts homepage HTML cache. Repeat with cursor= or all=1 until done:true. force=1 restarts.",
+        backfill_rebuild: "GET /v1/verify-backfill?rebuild=1 writes already-scored zsolver onto lattice tips in cursor chunks (default 25, ~4s). Returns JSON immediately. Packed library:index:v1 + homepage HTML cache refresh runs after the response. Repeat with cursor= or all=1 until done:true. force=1 restarts.",
         verify_geo: "GET /v1/verify-geo?force=1 / ?status=1 — chunked paper-date × event × geolocation pins. Never upload time.",
         jeeves: JEEVES_LIMITATION,
         lattice: "aziel.lattice.anchor.v1 for AzielTether; site is not a mesh",
@@ -520,11 +520,23 @@ export async function handleRuntimeApi(request, url, env) {
         all,
         force,
         resume: !cursor && !force,
-        refreshPacked: true,
+        refreshPacked: false,
+        ms: SHELF_REBUILD_MS,
       });
+      const deferPacked = ctx && typeof ctx.waitUntil === "function";
+      if (deferPacked) {
+        ctx.waitUntil(refreshPackedShelf(env).catch(() => null));
+      } else {
+        try {
+          const packed = await refreshPackedShelf(env);
+          shelf.packed = packed.packed;
+          shelf.index_sha256 = packed.index_sha256;
+          shelf.html_cache = packed.html_cache;
+        } catch { /* packed optional */ }
+      }
       const next = shelf.done ? "" : (shelf.next_cursor || "");
       const note = shelf.done
-        ? "Packed shelf + tips updated from stored zsolver. Homepage HTML cache busted."
+        ? "Tip reconcile finished. Packed shelf refresh " + (deferPacked ? "deferred" : "inline") + "."
         : "Chunked rebuild. Repeat GET /v1/verify-backfill?rebuild=1&cursor=" + encodeURIComponent(next) + " or ?rebuild=1&all=1 until done:true.";
       return json({
         ok: true,
@@ -532,6 +544,7 @@ export async function handleRuntimeApi(request, url, env) {
         done: !!shelf.done,
         cursor: shelf.cursor || "",
         next_cursor: next,
+        packed_refresh: deferPacked ? "deferred" : "inline",
         shelf,
         note,
         limitation: LIMITATION,
