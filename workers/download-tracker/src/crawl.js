@@ -167,6 +167,7 @@ export function robotsTxt() {
     "Allow: /tree",
     "Allow: /health",
     "Allow: /v1/health",
+    "Allow: /forensics",
     "Allow: /intelligence",
     "Allow: /ocr",
     "Allow: /receipt",
@@ -255,7 +256,7 @@ const STATIC_SITEMAP = [
   "/tree",
   "/gazetteer",
   "/historical",
-  "/intelligence",
+  "/forensics",
   "/aziel-library",
   "/corpus",
   "/cite.json",
@@ -452,7 +453,8 @@ export function citeDoc() {
     download: HOST + "/download",
     map: HOST + "/map",
     gazetteer: HOST + "/gazetteer",
-    intelligence: HOST + "/intelligence",
+    forensics: HOST + "/forensics",
+    intelligence: HOST + "/forensics",
     ocr: HOST + "/ocr",
     transcribe: HOST + "/transcribe",
     transcribe_note: "POST /transcribe — Workers AI Whisper; mandatory VibeLock determination; hard A/V blocks (HTTP 451)",
@@ -589,7 +591,7 @@ export function llmsDoc(limitation) {
     + "- ai.txt: " + HOST + "/ai.txt\n\n"
     + "Purpose: Public MASTER digital library by " + AUTHOR + ". Aziel Library (royal purple) is the operator collection of the author's work. Corpus is the public Lamb Lens shelf. Hosted tools include search, map, gazetteer, triad scoring (SPRE × CLCE × PhysLing), ZionPattern Solver, and hosted OCR.\n\n"
     + limitation + "\n\n"
-    + "Hosted tools run on this Worker. Visitors do not download Python, Tesseract, Poppler, or Whisper to use Map, Gazetteer, Tree, Health, Intelligence, Historical Geography, Verify, OCR, or transcription.\n\n"
+    + "Hosted tools run on this Worker. Visitors do not download Python, Tesseract, Poppler, or Whisper to use Map, Tree, Health, Forensics, Historical Geography, Verify, OCR, or transcription. Gazetteer lookup stays hosted in the background for map pins and APIs.\n\n"
     + "## Identity\n\n"
     + "- Primary author: " + AUTHOR + "\n"
     + "- Alternate name / aka: " + AKA + "\n"
@@ -655,9 +657,9 @@ export function llmsDoc(limitation) {
     + "- Pattern: " + HOST + "/pattern\n"
     + "- Tree: " + HOST + "/tree\n"
     + "- Temporal Map: " + HOST + "/map\n"
-    + "- Gazetteer: " + HOST + "/gazetteer\n"
+    + "- Gazetteer (background lookup, not a top-nav tab): " + HOST + "/gazetteer\n"
     + "- Historical Geography: " + HOST + "/historical\n"
-    + "- Intelligence / hosted OCR and Whisper: " + HOST + "/intelligence\n"
+    + "- Forensics / hosted OCR and Whisper: " + HOST + "/forensics\n"
     + "- OCR / transcription: " + HOST + "/ocr\n"
     + "- Verify: " + HOST + "/verify\n\n"
     + "## JSON / LLM routes (do not increment downloads)\n\n"
@@ -750,6 +752,7 @@ export function aiTxt(limitation) {
     "Allow: /tree",
     "Allow: /gazetteer",
     "Allow: /historical",
+    "Allow: /forensics",
     "Allow: /intelligence",
     "Allow: /aziel-library",
     "Allow: /corpus",

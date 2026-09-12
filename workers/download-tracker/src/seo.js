@@ -32,7 +32,7 @@ export const GITHUB_REPO = "https://github.com/AzielEliab/aziel-corpus";
 const GITHUB_RUNTIME = RUNTIME_GITHUB;
 export const GODLOCK_IDENTITY = "https://godlock.uk/AzielEliab";
 export const SHARE_IMAGE = CANON_HOST + "/sigil.png";
-export const SITE_DESCRIPTION = "Aziel Digital Library by Aziel Eliab. Search the public MASTER across Aziel Library and Corpus. Temporal map, gazetteer, intelligence, and hosted OCR.";
+export const SITE_DESCRIPTION = "Aziel Digital Library by Aziel Eliab. Search the public MASTER across Aziel Library and Corpus. Temporal map, gazetteer, forensics, and hosted OCR.";
 
 /** Visible ecosystem block (footer/nav). Not Softwares H1→list. */
 export const ECOSYSTEM_HEADING = "Part of the Aziel Eliab ecosystem";
@@ -67,6 +67,16 @@ export function aboutRedirectFrom(path) {
   if (p === ABOUT_PATH) return null;
   if (p === "/about" || p === "/aboutme") return ABOUT_PATH;
   if (p.toLowerCase() === "/azieleliab") return ABOUT_PATH;
+  return null;
+}
+
+export const FORENSICS_PATH = "/forensics";
+
+/** Permanent Location for legacy /intelligence. */
+export function forensicsRedirectFrom(path) {
+  const p = String(path || "").replace(/\/+$/, "") || "/";
+  if (p === FORENSICS_PATH) return null;
+  if (p.toLowerCase() === "/intelligence") return FORENSICS_PATH;
   return null;
 }
 const Q = String.fromCharCode(34);
@@ -159,7 +169,7 @@ export function defaultDescription(kind, runtimeVersion) {
   if (kind === "gazetteer") return "World gazetteer for Aziel Digital Library. GeoNames CC BY 4.0 place lookup. Author Aziel Eliab.";
   if (kind === "tree") return "Evidence-based corpus tree for Aziel Digital Library. Author Aziel Eliab.";
   if (kind === "health") return "Live health dashboard for Aziel Digital Library hosted MASTER. Author Aziel Eliab.";
-  if (kind === "intelligence") return "Hosted intelligence, OCR, SpectralLock lenses, and Whisper transcription for Aziel Digital Library. Author Aziel Eliab.";
+  if (kind === "forensics" || kind === "intelligence") return "Hosted forensics, OCR, SpectralLock lenses, and Whisper transcription for Aziel Digital Library. Author Aziel Eliab.";
   if (kind === "ocr") return "Hosted OCR and advisory SpectralLock lenses for Aziel Digital Library. Author Aziel Eliab.";
   if (kind === "historical") return "Historical geography layers for Aziel Digital Library. Author Aziel Eliab.";
   if (kind === "verify") return "Integrity verification of the hosted Aziel Digital Library MASTER. Author Aziel Eliab.";
@@ -173,7 +183,7 @@ export function defaultDescription(kind, runtimeVersion) {
   if (kind === "donate") return "AZL-DONATE-1.0. Donate to Aziel Digital Library. Static door. Exodus rails. No Worker KV. Not a catalog item. Author Aziel Eliab.";
   if (kind === "search") return SITE_DESCRIPTION + " Author Aziel Eliab.";
   if (kind === "record") return "Public record in Aziel Digital Library. Author Aziel Eliab.";
-  return "Aziel Digital Library by Aziel Eliab. Search, map, gazetteer, intelligence, and hosted OCR on the public MASTER.";
+  return "Aziel Digital Library by Aziel Eliab. Search, map, gazetteer, forensics, and hosted OCR on the public MASTER.";
 }
 
 export function recordDescription(row) {

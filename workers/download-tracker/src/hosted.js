@@ -1,5 +1,5 @@
 import { page, patternBody, softwareBody, aboutBody, howItsScoredBody } from "./ui.js";
-import { recordDescription, ABOUT_PATH, ABOUT_NAV_LABEL, aboutRedirectFrom } from "./seo.js";
+import { recordDescription, ABOUT_PATH, ABOUT_NAV_LABEL, FORENSICS_PATH, aboutRedirectFrom, forensicsRedirectFrom } from "./seo.js";
 import { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, blockedAvBody } from "./hosted-pages.js";
 import { json, corsHeaders } from "./runtime.js";
 import { receiptForRecord, sha256hex } from "./ledger.js";
@@ -412,12 +412,12 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
   if (path === "/ocr-selftest" && method === "POST") {
     if (!isOperator(signed)) return json({ error: "operator required" }, 403);
     await ocrSelftest(env, request);
-    return new Response(null, { status: 303, headers: { Location: "/intelligence" } });
+    return new Response(null, { status: 303, headers: { Location: FORENSICS_PATH } });
   }
   if (path === "/ocr-reprocess" && method === "POST") {
     if (!isOperator(signed)) return json({ error: "operator required" }, 403);
     await reprocessPendingOcr(env, signed);
-    return new Response(null, { status: 303, headers: { Location: "/intelligence" } });
+    return new Response(null, { status: 303, headers: { Location: FORENSICS_PATH } });
   }
   if (path === "/install-package" && method === "POST") {
     if (!signed) return json({ error: "login required" }, 401);
@@ -426,9 +426,9 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
       await installPackage(env, { signed, file: form.get("package") || form.get("file") });
     } catch (err) {
       const packages = await listPackages(env);
-      return pageHtml(page("Intelligence", intelligenceBody({ packages, aiReady: aiBound(env), lastTest: await lastOcrSelftest(env), pending: await pendingOcrCount(env), signed, operator: isOperator(signed), error: err && err.message ? err.message : "install failed" }), { signed, path: "/intelligence", scripts: intelScripts() }), { status: err && err.status ? err.status : 400 });
+      return pageHtml(page("Forensics", intelligenceBody({ packages, aiReady: aiBound(env), lastTest: await lastOcrSelftest(env), pending: await pendingOcrCount(env), signed, operator: isOperator(signed), error: err && err.message ? err.message : "install failed" }), { signed, path: FORENSICS_PATH, scripts: intelScripts() }), { status: err && err.status ? err.status : 400 });
     }
-    return new Response(null, { status: 303, headers: { Location: "/intelligence" } });
+    return new Response(null, { status: 303, headers: { Location: FORENSICS_PATH } });
   }
   if (path === "/tree" && read) {
     await ensurePlaces(env, ctx);
@@ -454,11 +454,24 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     const results = q ? await gazetteerSearch(env, q, 50) : [];
     return pageHtml(page("World Gazetteer", gazetteerBody({ status: st, q, results, signed }), { signed, path: "/gazetteer", kind: "gazetteer" }));
   }
-  if (path === "/intelligence" && read) {
+  if (read) {
+    const forensicsDest = forensicsRedirectFrom(path);
+    if (forensicsDest) {
+      return new Response(null, {
+        status: 301,
+        headers: {
+          Location: forensicsDest + (url.search || ""),
+          "Cache-Control": "public, s-maxage=86400",
+          ...corsHeaders(),
+        },
+      });
+    }
+  }
+  if (path === FORENSICS_PATH && read) {
     const packages = await listPackages(env);
     const lastTest = await lastOcrSelftest(env);
     const pending = await pendingOcrCount(env);
-    return pageHtml(page("Intelligence", intelligenceBody({ packages, aiReady: aiBound(env), lastTest, pending, signed, operator: isOperator(signed) }), { signed, path: "/intelligence", scripts: intelScripts(), kind: "intelligence" }));
+    return pageHtml(page("Forensics", intelligenceBody({ packages, aiReady: aiBound(env), lastTest, pending, signed, operator: isOperator(signed) }), { signed, path: FORENSICS_PATH, scripts: intelScripts(), kind: "forensics" }));
   }
   if (path === "/health" && read) {
     const health = await healthSnapshot(env, { views: stats && stats.views, downloads: stats && stats.downloads });

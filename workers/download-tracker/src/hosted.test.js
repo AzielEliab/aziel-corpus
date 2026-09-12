@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { handleHosted } from "./hosted.js";
-import { ABOUT_PATH, ABOUT_NAV_LABEL } from "./seo.js";
+import { ABOUT_PATH, ABOUT_NAV_LABEL, FORENSICS_PATH } from "./seo.js";
 
 const BANNED = /Collin Horton|GodLock\.AZ|\+25|quiet (Aziel|triad|boost)|10\.5281\/zenodo/i;
 const HOST = "https://www.azielcorpuslibrary.net";
@@ -68,6 +68,52 @@ test("GET /aboutme and case-folded /azieleliab redirect to /AzielEliab", async (
     assert.equal(res.status, 301, path);
     assert.equal(res.headers.get("location"), ABOUT_PATH, path);
   }
+});
+
+test("GET /forensics serves Forensics HTML and public nav hides Gazetteer", async () => {
+  const url = new URL(HOST + FORENSICS_PATH);
+  const res = await handleHosted(req(FORENSICS_PATH), url, stubEnv(), {}, null, null);
+  assert.ok(res, "handleHosted should serve /forensics");
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get("content-type") || "", /text\/html/);
+  const html = await res.text();
+  assert.match(html, /<title>Forensics/);
+  assert.match(html, /<h1>Forensics<\/h1>/);
+  assert.match(html, /href="\/forensics"/);
+  assert.match(html, />Forensics</);
+  assert.doesNotMatch(html, />Intelligence</);
+  assert.doesNotMatch(html, /href="\/intelligence"/);
+  assert.doesNotMatch(html, />Gazetteer</);
+  assert.doesNotMatch(html, /href="\/gazetteer"/);
+  assert.match(html, new RegExp(">" + ABOUT_NAV_LABEL + "<"));
+  assert.doesNotMatch(html, BANNED);
+});
+
+test("GET /intelligence permanently redirects to /forensics", async () => {
+  for (const path of ["/intelligence", "/intelligence/", "/Intelligence"]) {
+    const url = new URL(HOST + path);
+    const res = await handleHosted(req(path), url, stubEnv(), {}, null, null);
+    assert.ok(res, "handleHosted should redirect " + path);
+    assert.equal(res.status, 301, path);
+    assert.equal(res.headers.get("location"), FORENSICS_PATH, path);
+    assert.equal(await res.text(), "");
+  }
+  const qs = await handleHosted(req("/intelligence?setup=verified"), new URL(HOST + "/intelligence?setup=verified"), stubEnv(), {}, null, null);
+  assert.equal(qs.status, 301);
+  assert.equal(qs.headers.get("location"), FORENSICS_PATH + "?setup=verified");
+});
+
+test("GET /gazetteer stays hosted without a public nav tab", async () => {
+  const url = new URL(HOST + "/gazetteer");
+  const ctx = { waitUntil() {} };
+  const res = await handleHosted(req("/gazetteer"), url, stubEnv(), ctx, null, null);
+  assert.ok(res, "handleHosted should still serve /gazetteer");
+  assert.equal(res.status, 200);
+  const html = await res.text();
+  assert.match(html, /Aziel World Gazetteer/);
+  assert.doesNotMatch(html, />Gazetteer</);
+  assert.match(html, /href="\/forensics"/);
+  assert.match(html, />Forensics</);
 });
 
 test("HEAD /about is a permanent redirect and HEAD /AzielEliab is HTML without a body", async () => {
