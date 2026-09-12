@@ -1,0 +1,36 @@
+{
+  "ok": true,
+  "author": "Aziel Eliab",
+  "version": "2.0.0-rc1",
+  "door": "fraggate",
+  "kernel": "https://github.com/AzielEliab/fraggate",
+  "count": 2,
+  "software": [
+    {
+      "slug": "4dmap",
+      "name": "4DMap",
+      "bucket": "plain",
+      "domain": "Research",
+      "status": "live",
+      "version": "0.2.0",
+      "one_line": "4DMap (4DM-WP-1.0): four-axis inspection frame T/Δ/Γ/Π. Inspection frame after AZPIPE, not an extra door. FragGate only.",
+      "worker_home": "https://4dmap-download-tracker.vibelock.workers.dev/",
+      "download_url": "https://4dmap-download-tracker.vibelock.workers.dev/download",
+      "github": "https://github.com/AzielEliab/4dmap",
+      "mcp": "https://aziel-runtime.vibelock.workers.dev/mcp"
+    },
+    {
+      "slug": "foldlock",
+      "name": "FoldLock",
+      "bucket": "lock",
+      "domain": "Language",
+      "status": "live",
+      "version": "0.8.0",
+      "one_line": "Algorithmic tether-word suppression on UTF-8 text. Not zip.",
+      "worker_home": "https://foldlock-download-tracker.vibelock.workers.dev/",
+      "download_url": "https://foldlock-download-tracker.vibelock.workers.dev/download",
+      "github": "https://github.com/AzielEliab/foldlock",
+      "mcp": "https://aziel-runtime.vibelock.workers.dev/mcp"
+    }
+  ]
+}

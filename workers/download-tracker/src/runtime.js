@@ -8,6 +8,7 @@ import { receiptForRecord, documentChain } from "./ledger.js";
 import { loadRecordReview, runReviewBundle, backfillReviews, continueFullBackfill, fullBackfillStatus } from "./review-store.js";
 import { latticeAnchorTip, LATTICE_NOTE } from "./lattice.js";
 import { handleJeevesApi, JEEVES_LIMITATION } from "./jeeves.js";
+import { handleOperatorIngestApi } from "./operator-ingest.js";
 import { receiptForMediaRun, isMediaRunId } from "./media.js";
 import { continueVerifyGeo, geoVerifyStatus, GEO_PIN_NOTE } from "./geo.js";
 import { RUNTIME_VERSION, RUNTIME_NOTE, runtimeHowTo, AI_CLIENTS, LIBRARY_DOWNLOAD, LIBRARY_V1_DOWNLOAD } from "./runtime-copy.js";
@@ -96,7 +97,8 @@ Ops (do **not** increment downloads):
 - \`GET /v1/verify-geo?force=1\` / \`?status=1\` (chunked map pins: paper date × event × geolocation)
 - \`GET /v1/document-chain?record_id=\`
 - \`POST /v1/jeeves/chat\`
-- \`POST /v1/jeeves/upload\` (Corpus only, Lamb Lens)
+- \`POST /v1/jeeves/upload\` (signed-in public → Corpus; operator token/session → Aziel Library)
+- \`POST /v1/operator/library-ingest\` (operator token or session only; Aziel Library; SOFTWARE-SITE-DOSSIER-1.0)
 - \`POST /transcribe\` (Whisper + mandatory VibeLock determination; hard A/V blocks HTTP 451; lattice receipt even without library upload)
 - \`GET /media/{sha256}\` (inline playback of allowed A/V only)
 - \`POST /ocr\` (hosted OCR; lattice receipt on every run)
@@ -179,6 +181,7 @@ function openapi() {
       "/v1/document-chain": { get: { summary: "Per-document hash-chain bound to record_id. No orphan chains.", operationId: "documentChain", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
       "/v1/jeeves/chat": { post: { summary: "Ask Jeeves research assistant over public records. Lamb Lens. Cannot change scores.", operationId: "jeevesChat" } },
       "/v1/jeeves/upload": { post: { summary: "Ask Jeeves Add — same ingest as the shelf (structure, SPRE × CLCE × PhysLing, Bayesian). Signed-in public writes Corpus; operator writes Aziel Library.", operationId: "jeevesUpload" } },
+      "/v1/operator/library-ingest": { post: { summary: "Operator Aziel Library ingest (SOFTWARE-SITE-DOSSIER-1.0). Same ingestRecord pipeline as Jeeves/shelf. Requires X-Aziel-Operator-Token or operator session. Idempotent same-SHA; exact-same-subject supersedes. No public write hole.", operationId: "operatorLibraryIngest" } },
       "/v1/media-run": { get: { summary: "Hash-chained media lattice receipt for an OCR or transcript run (AZRUN-).", operationId: "mediaRun", parameters: [{ name: "run_id", in: "query", required: true, schema: { type: "string" } }] } },
       "/transcribe": { post: { summary: "Hosted Whisper transcription with mandatory VibeLock determination. Hard-blocks porn, nudity, and child-sexual content (HTTP 451; never stored or playable). Allowed media at /media/{sha256}. Optional library upload (signed-in: Corpus; operator: Aziel Library).", operationId: "transcribe" } },
       "/ocr": { post: { summary: "Hosted image/PDF OCR. Always writes a media lattice receipt. Optional library upload.", operationId: "ocr" } },
@@ -524,6 +527,10 @@ export async function handleRuntimeApi(request, url, env) {
     const rec = await receiptForMediaRun(env, runId);
     if (!rec) return json({ error: "not found" }, 404);
     return json({ ok: true, ...rec, limitation: LIMITATION });
+  }
+  if (path.startsWith("/v1/operator/")) {
+    const op = await handleOperatorIngestApi(request, url, env, null);
+    if (op) return op;
   }
   if (path.startsWith("/v1/jeeves/")) {
     const jeeves = await handleJeevesApi(request, url, env, null);
