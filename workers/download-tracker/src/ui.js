@@ -1,4 +1,5 @@
 import { isOperator } from "./library.js";
+import { shelfScoreState } from "./zsolver.js";
 import {
   headMeta,
   jsonLdScript,
@@ -164,6 +165,8 @@ label.showpw{font-size:14px;color:var(--muted);white-space:nowrap;min-height:44p
 .meta-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:10px 0}
 .triad{display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin:10px 0 4px;min-width:0;max-width:100%}
 .triad .metric{font-size:42px;line-height:1;color:var(--gold)}
+.triad.zsolver{outline:2px solid var(--royal);outline-offset:4px;border-radius:10px;padding:6px 10px}
+.triad.zsolver .metric,.zsolver-label{color:var(--gold)}
 .triad-card{border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--paper);margin:12px 0}
 .q-banner{background:#2a1414;color:var(--no);border:1px solid #8a2b2b;border-radius:12px;padding:12px 14px;margin:10px 0;font-weight:650}
 .about-aziel,.about-aziel p,.about-prose,.about-sign{color:var(--royal)}
@@ -339,7 +342,7 @@ ${ecosystemBlockHtml()}</div>${jeevesFabHtml()}${(scripts||[]).map((src)=>"<scri
 }
 
 function esc(s) {
-  return String(s || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
 
 function libTag(library) {
@@ -480,27 +483,33 @@ function dedupeShelf(rows) {
   return (rows || []).filter((r) => keepers.has(r.record_id));
 }
 
+export function shelfScoreRows(row) {
+  const st = shelfScoreState(row);
+  const triadRow = st.triad_display != null
+    ? `<p class="triad"><span class="metric">${esc(st.triad_display)}</span><span class="muted">Triad score (SPRE × CLCE × PhysLing)</span></p>`
+    : `<p class="muted">Triad score pending backfill</p>`;
+  let zRow = "";
+  if (st.zsolver_omit) {
+    zRow = "";
+  } else if (st.zsolver_display != null) {
+    const queued = st.zsolver_queued ? ", retry queued" : "";
+    zRow = `<p class="triad zsolver"><span class="metric">${esc(st.zsolver_display)}</span><span class="muted zsolver-label">ZionPattern Solver (secondary${queued})</span></p>`;
+  } else if (st.zsolver_pending) {
+    zRow = `<p class="muted">ZionPattern Solver pending backfill</p>`;
+  }
+  return { triadRow, zRow, ...st };
+}
+
 function docCards(rows, state = {}, path = "/") {
   const unique = dedupeShelf(rows);
   if (!unique.length) {
     return `<div class="shelf"><p class="empty"><strong>This shelf is quiet.</strong>Nothing matches these filters. Clear a chip or try another sort.</p></div>`;
   }
   const st = browseState(state);
-  const quietAziel = path === "/aziel-library";
   return `<div class="shelf">${unique
     .map((r) => {
       const aziel = isAzielRow(r);
-      const combined = r.triad_combined != null ? Number(r.triad_combined) : (r.review && r.review.triad && r.review.triad.combined);
-      const display = r.review && r.review.triad && r.review.triad.display != null ? r.review.triad.display : (combined != null ? Math.round(Number(combined) * 100) : null);
-      const triadRow = display != null
-        ? `<p class="triad"><span class="metric">${esc(display)}</span><span class="muted">Triad score (SPRE × CLCE × PhysLing)</span></p>`
-        : (quietAziel ? "" : `<p class="muted">Triad score pending backfill</p>`);
-      const zScore = r.zsolver_score != null ? Number(r.zsolver_score) : (r.zsolver && r.zsolver.capped_confidence);
-      const zDisp = r.zsolver && r.zsolver.display != null ? r.zsolver.display : (zScore != null && Number.isFinite(zScore) ? Math.round(zScore * 100) : null);
-      const zStat = String(r.zsolver_status || (r.zsolver && r.zsolver.status) || "").toLowerCase();
-      const zRow = zDisp != null
-        ? `<p class="triad"><span class="metric">${esc(zDisp)}</span><span class="muted">ZionPattern Solver (secondary` + (zStat === "queued" ? ", retry queued" : "") + `)</span></p>`
-        : (quietAziel ? "" : `<p class="muted">ZionPattern Solver pending backfill</p>`);
+      const { triadRow, zRow } = shelfScoreRows(r);
       const sha = String(r.content_sha256 || "").trim();
       const open = `<p><a class="button" href="/file/${esc(r.record_id)}">Download</a>` + (sha ? ` <a class="button ghost" href="/download?hash=${esc(sha)}">By hash</a>` : "") + `</p>`;
       const file = r.filename ? esc(r.filename) : "text record";
@@ -674,7 +683,7 @@ export function howItsScoredBody() {
 </div>
 <div class="card">
 <h2>ZionPattern Solver — honest reading</h2>
-<p>Every Aziel Library and Corpus upload also gets a <strong>ZionPattern Solver</strong> score. It is public, stored on the record, and returned by review. It is <em>not</em> merged into the triad. Provisional and assistive. It does not solve cases.</p>
+<p><strong>ZionPattern Solver</strong> is the secondary public score. It is not merged into the triad. It qualifies only for historical, research, investigation, and crime documents. Philosophy, software, hardware, and designs are <em>not applicable</em> and the ZionPattern line is omitted (never shown as 0). Zioncheck Visual Archive vols 1–5 are the seed baseline and always display <strong>75</strong>. Provisional and assistive. It does not solve cases.</p>
 <p>A published reading of <strong>75</strong> is intentional suppression confidence — the ceiling. <strong>Lower is more natural</strong>: less confidence that a suppression pattern holds. The solver also keeps a 25 uncertainty floor so thin evidence cannot pretend to be certainty in the other direction.</p>
 <p>If a later paper supersedes an earlier one <em>and</em> proves a pattern break with first-hand / primary materials only, the succession chain can be force-rescored. Narrative, news, and second-source materials never trigger that path.</p>
 </div>
