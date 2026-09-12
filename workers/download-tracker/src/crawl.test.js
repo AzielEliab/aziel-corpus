@@ -122,7 +122,7 @@ test("sitemap.xml lists key routes and uses XML mime helper", async () => {
   };
   const xml = await sitemapXml(env);
   assert.match(xml, /<\?xml version="1.0"/);
-  for (const path of ["/", "/AzielEliab", "/software", "/donate", "/v1/software", "/v1/download", "/v1/library-index", "/v1/stats", "/v1/update/check", "/sitemap-index.xml", "/mcp.json", "/.well-known/mcp.json", "/runtime", "/runtime/", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/software", "/runtime/v1/uses", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/intelligence", "/aziel-library", "/corpus", "/cite.json", "/llms.txt", "/ai.txt"]) {
+  for (const path of ["/", "/AzielEliab", "/software", "/donate", "/v1/software", "/v1/download", "/v1/library-index", "/v1/stats", "/v1/update/check", "/sitemap-index.xml", "/mcp.json", "/.well-known/mcp.json", "/runtime", "/runtime/", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/software", "/runtime/v1/uses", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/forensics", "/aziel-library", "/corpus", "/cite.json", "/llms.txt", "/ai.txt"]) {
     assert.match(xml, new RegExp("<loc>https://www\\.azielcorpuslibrary\\.net" + path.replace("/", "\\/") + "</loc>"));
   }
   assert.doesNotMatch(xml, /azielcorpuslibrary\.net\/about</);
@@ -147,6 +147,9 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(cite.github, /AzielEliab\/aziel-corpus/);
   assert.match(cite.software, /\/software$/);
   assert.match(cite.how_its_scored, /\/how-its-scored$/);
+  assert.match(cite.forensics, /\/forensics$/);
+  assert.match(cite.intelligence, /\/forensics$/);
+  assert.doesNotMatch(cite.intelligence, /\/intelligence$/);
   assert.match(cite.about, /\/AzielEliab$/);
   assert.equal(cite.priority_pages.home.url, "https://www.azielcorpuslibrary.net/");
   assert.equal(cite.priority_pages.software.url, "https://www.azielcorpuslibrary.net/software");
@@ -216,6 +219,9 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(llms, /https:\/\/godlock\.uk\/AzielEliab/);
   assert.match(llms, /Runtime catalog: https:\/\/www\.azielcorpuslibrary\.net\/runtime/);
   assert.match(llms, /How it's scored/);
+  assert.match(llms, /Forensics \/ hosted OCR and Whisper: https:\/\/www\.azielcorpuslibrary\.net\/forensics/);
+  assert.doesNotMatch(llms, /Intelligence \/ hosted OCR/);
+  assert.doesNotMatch(llms, /\/intelligence\n/);
   assert.match(llms, /\/ai\.txt/);
   assert.match(llms, /aziel-runtime\.vibelock\.workers\.dev/);
   assert.match(llms, /not merely an API orchestrator/);
