@@ -700,10 +700,10 @@ export async function drainZsolverQueue(env, { limit = 20 } = {}) {
     } catch { answers = []; }
     const live = await requestZsolverScore(env, answers, pattern_break ? { pattern_break } : null);
     if (live) {
-      const scored = zsolverNumericDisplay(live) == null
+      const report = zsolverNumericDisplay(live) == null
         ? notApplicableZsolver("score 0 / non-match")
         : { ...live, applicable: true, status: "scored" };
-      await persistReport(env, row.record_id, attachPatternBreak(scored, pattern_break));
+      await persistReport(env, row.record_id, attachPatternBreak(report, pattern_break));
       try { await env.DB.prepare("DELETE FROM zsolver_queue WHERE record_id=?").bind(row.record_id).run(); } catch { /* */ }
       scored += 1;
     } else {
