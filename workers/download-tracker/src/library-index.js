@@ -13,6 +13,8 @@ export const PUBLIC_CACHE_CONTROL = "public, s-maxage=300, stale-while-revalidat
 /** RL-WP-0.1-library: search / public HTML share this TTL so crawlers and humans hit one cache. */
 export const SEARCH_CACHE_CONTROL = "public, s-maxage=120, stale-while-revalidate=3600";
 export const HTML_CACHE_CONTROL = SEARCH_CACHE_CONTROL;
+/** Worker Cache API storage for homepage HTML. Longer than the public s-maxage so a 120s browser TTL does not force a D1 rebuild. */
+export const HTML_EDGE_CACHE_CONTROL = "public, max-age=3600, stale-while-revalidate=86400";
 export const SEO_CACHE_CONTROL = "public, s-maxage=3600, stale-while-revalidate=86400";
 /** Softwares HTML: longer edge TTL so Googlebot does not rebuild the live catalog on every crawl. */
 export const SOFTWARE_HTML_CACHE_CONTROL = SEO_CACHE_CONTROL;

@@ -490,6 +490,7 @@ test("human chrome shows quiet Live Nodes status without a redesign", () => {
   assert.match(meshStatusHtml(meshOffDoc()), /Live Nodes · off/);
   assert.match(meshStatusHtml(decorateMeshDoc({ enabled: true, live_nodes: 4 })), /Live Nodes · 4/);
   assert.match(meshRefreshScript(), /fetch\("\/v1\/mesh\/status"/);
+  assert.match(meshRefreshScript(), /requestIdleCallback/);
   const meta = headMeta({ title: "aziel-runtime", path: "/runtime", kind: "runtime" });
   assert.match(meta, /href="\/v1\/mesh"/);
 });
