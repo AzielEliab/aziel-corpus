@@ -111,7 +111,7 @@ test("homepage LCP fold keeps hero first and leaves entity-graph plus shelf inta
     host: "https://www.azielcorpuslibrary.net",
   });
   assert.match(home, /<h1>Search the libraries<\/h1>/);
-  assert.match(home, LCP_FOLD);
+  assert.ok(home.includes(LCP_FOLD), "homepage body marks the LCP fold");
   assert.match(home, /Shelf card stays after the fold/);
   const split = splitLcpHtml(home);
   assert.match(split.early, /Search the libraries/);
