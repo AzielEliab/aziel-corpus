@@ -22,6 +22,8 @@ import {
   pathMentionsSlug,
   usesForSlug,
   countUrlForProduct,
+  inferCountUrlFromProduct,
+  isLocalCorpusCountUrl,
   countPills,
   loadSoftwareCatalog,
   hubSoftwareCopy,
@@ -35,6 +37,7 @@ import {
   AZCOHERENCE_COUNT,
 } from "./azcoherence.js";
 import { handleRuntimeApi } from "./runtime.js";
+import { LIBRARY_COUNT } from "./runtime-copy.js";
 
 const HOST = "https://www.azielcorpuslibrary.net";
 const BANNED = /Collin Horton|GodLock\.AZ|\+25|quiet (Aziel|triad|boost)|10\.5281\/zenodo/i;
@@ -49,6 +52,12 @@ function blockLiveRuntime(origFetch, extra) {
     if (/aziel-runtime\.vibelock\.workers\.dev/i.test(href)) {
       return new Response(JSON.stringify({ error: "blocked live runtime" }), {
         status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (/\/count(?:\?|$)/.test(href)) {
+      return new Response(JSON.stringify({ project: "stub", views: 0, downloads: 0, total: 0 }), {
+        status: 200,
         headers: { "Content-Type": "application/json" },
       });
     }
@@ -287,6 +296,7 @@ test("hubSoftwareCopy prefers separate software over separate engine", () => {
 test("count and uses helpers surface download, view, upload, and slug uses", () => {
   assert.deepEqual(parseCountPayload({ views: 10, downloads: 4, uploads: 2 }), { downloads: 4, views: 10, uploads: 2 });
   assert.deepEqual(parseCountPayload({ project: "fraggate", views: 8, downloads: 1, total: 1 }), { downloads: 1, views: 8, uploads: null });
+  assert.deepEqual(parseCountPayload({ project: "codelock", total: 42 }), { downloads: 42, views: 0, uploads: null });
   assert.equal(pathMentionsSlug("/p/foldlock/health", "foldlock"), true);
   assert.equal(pathMentionsSlug("/p/godlock/health", "foldlock"), false);
   assert.equal(usesForSlug({ by_path: { "/p/foldlock/health": 3, "/runtime/v1/pull/foldlock": 1 } }, "foldlock"), 4);
@@ -299,9 +309,21 @@ test("count and uses helpers surface download, view, upload, and slug uses", () 
   }, "azbrowser"), 2);
   assert.equal(usesForSlug({ by_path: { "/runtime/v1/fraggate/list": 4 } }, "fraggate"), 4);
   assert.deepEqual(countPills({ downloads: 4, views: 10, uses: 3 }), ["4 downloads", "10 views", "3 uses"]);
+  assert.deepEqual(countPills({}, { requireViewsDownloads: true }), ["0 downloads", "0 views"]);
   assert.equal(countUrlForProduct({ slug: "azbrowser", count: "https://azbrowser-download-tracker.vibelock.workers.dev/count" }), "https://azbrowser-download-tracker.vibelock.workers.dev/count");
   assert.deepEqual(parseCountPayload({ project: "aznet", views: 3, downloads: 1, total: 1 }), { downloads: 1, views: 3, uploads: null });
   assert.equal(countUrlForProduct({ slug: "aznet" }), AZNET_COUNT);
+  assert.equal(countUrlForProduct({ slug: "aziel-corpus" }), LIBRARY_COUNT);
+  assert.equal(
+    countUrlForProduct({ slug: "codelock", download: "https://codelock-download-tracker.vibelock.workers.dev/download" }),
+    "https://codelock-download-tracker.vibelock.workers.dev/count",
+  );
+  assert.equal(
+    inferCountUrlFromProduct({ download: "https://foldlock-download-tracker.vibelock.workers.dev/download" }),
+    "https://foldlock-download-tracker.vibelock.workers.dev/count",
+  );
+  assert.equal(isLocalCorpusCountUrl(LIBRARY_COUNT), true);
+  assert.equal(isLocalCorpusCountUrl("https://codelock-download-tracker.vibelock.workers.dev/count"), false);
 });
 
 test("softwareBody renders every card in Plain → Gate → Lock with live-catalog copy", () => {
@@ -472,6 +494,11 @@ test("GET /software uses AZIEL_RUNTIME catalog binding and lists every product",
     assert.doesNotMatch(html, BANNED);
     assert.match(html, /<title>Softwares — Aziel Eliab catalog \| Aziel Digital Library<\/title>/);
     assert.match(html, /<h1>Softwares<\/h1>/);
+    assert.match(html, /data-slug="aziel-runtime"/);
+    assert.match(html, /11 downloads/);
+    assert.match(html, /99 views/);
+    assert.match(html, /Try on Glama/);
+    assert.doesNotMatch(html, /Try\/Deploy on Glama/);
     const softPage = ld["@graph"].find((n) => n["@type"] === "CollectionPage");
     assert.equal(softPage.name, "Softwares");
     assert.doesNotMatch(html, /triad \+25|quiet triad|collection score/i);
@@ -734,6 +761,12 @@ test("loadSoftwareCatalog rewrites live catalog one_lines and adds Worker homepa
   const origFetch = globalThis.fetch;
   globalThis.fetch = async (url) => {
     const href = String(url);
+    if (/\/count(?:\?|$)/.test(href)) {
+      return {
+        ok: true,
+        json: async () => ({ project: "stub", views: 1, downloads: 1, total: 1 }),
+      };
+    }
     if (href.includes("/v1/catalog.json") || href.includes("/v1/software")) {
       return {
         ok: true,
@@ -1038,4 +1071,127 @@ test("fetchLiveRuntimeVersion cites live health and falls back to 2.0.0-rc1", as
     },
   });
   assert.equal(await fetchLiveRuntimeVersion(quiet, { timeoutMs: 200 }), "2.0.0-rc1");
+});
+
+test("Softwares cards show views+downloads for corpus, runtime hub, and CodeLock", async () => {
+  const catalog = {
+    version: "2.0.0-rc1",
+    software: [
+      {
+        slug: "aziel-corpus",
+        name: "Aziel Digital Library",
+        download_url: "https://www.azielcorpuslibrary.net/download",
+      },
+      {
+        slug: "codelock",
+        name: "CodeLock",
+        download: "https://codelock-download-tracker.vibelock.workers.dev/download",
+      },
+      {
+        slug: "foldlock",
+        name: "FoldLock",
+        download: "https://foldlock-download-tracker.vibelock.workers.dev/download",
+        count: "https://foldlock-download-tracker.vibelock.workers.dev/count",
+      },
+    ],
+  };
+  let corpusCountHits = 0;
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = blockLiveRuntime(origFetch, (href) => {
+    if (isLocalCorpusCountUrl(href)) {
+      corpusCountHits += 1;
+      return new Response(JSON.stringify({ error: "must not self-fetch corpus /count" }), {
+        status: 599,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (href === "https://codelock-download-tracker.vibelock.workers.dev/count") {
+      return new Response(JSON.stringify({ project: "codelock", total: 42 }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (href === "https://foldlock-download-tracker.vibelock.workers.dev/count") {
+      return new Response(JSON.stringify({ project: "foldlock", views: 7, downloads: 3, total: 3 }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    return null;
+  });
+  const env = stubEnv({
+    async fetch(request) {
+      const url = new URL(request.url);
+      if (url.pathname.endsWith("/software") || url.pathname.endsWith("/catalog.json")) {
+        return new Response(JSON.stringify(catalog), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      if (url.pathname.endsWith("/uses")) {
+        return new Response(JSON.stringify({ uses: 2, by_op: { "codelock.health": 2 } }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response("no", { status: 404 });
+    },
+  });
+  try {
+    const built = await loadSoftwareCatalog(env, { views: 99, downloads: 11 });
+    assert.equal(corpusCountHits, 0, "corpus card must use packed stats, not GET /count");
+    const hub = built.hub;
+    assert.equal(hub.slug, "aziel-runtime");
+    assert.ok(hub.pills.includes("99 views"), hub.pills.join(","));
+    assert.ok(hub.pills.some((p) => /downloads$/.test(p)), hub.pills.join(","));
+    assert.ok(hub.links.some((l) => l.primary && l.label === "Try on Glama"));
+
+    const corpus = built.products.find((p) => p.slug === "aziel-corpus");
+    assert.ok(corpus);
+    assert.ok(corpus.pills.includes("99 views"));
+    assert.ok(corpus.pills.includes("11 downloads"));
+
+    const code = built.products.find((p) => p.slug === "codelock");
+    assert.ok(code);
+    assert.ok(code.pills.includes("42 downloads"), code.pills.join(","));
+    assert.ok(code.pills.includes("0 views"), "CodeLock /count omits views; card still shows a views pill");
+    assert.ok(code.pills.includes("2 uses"));
+
+    const fold = built.products.find((p) => p.slug === "foldlock");
+    assert.ok(fold.pills.includes("3 downloads"));
+    assert.ok(fold.pills.includes("7 views"));
+
+    for (const card of [hub].concat(built.products)) {
+      const labels = card.pills.join(" ");
+      assert.match(labels, /\d+ downloads/, card.slug + " missing downloads pill");
+      assert.match(labels, /\d+ views/, card.slug + " missing views pill");
+    }
+
+    const html = softwareBody(built);
+    assert.match(html, /<h1>Softwares<\/h1>\s*<\/section>\s*<section class="soft-section"><h2>Software<\/h2>/);
+    assert.match(html, /data-slug="aziel-runtime"/);
+    assert.match(html, /data-slug="aziel-corpus"/);
+    assert.match(html, /data-slug="codelock"/);
+    assert.match(html, /99 views/);
+    assert.match(html, /42 downloads/);
+    assert.match(html, /0 views/);
+    assert.match(html, />Try on Glama</);
+    assert.doesNotMatch(html, /Part of the Aziel Eliab ecosystem/);
+    assert.doesNotMatch(html, /Try\/Deploy on Glama/);
+
+    const res = await handleHosted(
+      new Request(HOST + "/software", { headers: { Accept: "text/html" } }),
+      new URL(HOST + "/software"),
+      env,
+      {},
+      null,
+      { views: 99, downloads: 11 },
+    );
+    assert.equal(res.status, 200);
+    const firstPaint = await res.text();
+    assert.match(firstPaint, /data-slug="aziel-runtime"/);
+    assert.match(firstPaint, /99 views/);
+    assert.match(firstPaint, /11 downloads/);
+    assert.match(firstPaint, /data-slug="aziel-corpus"/);
+    assert.match(firstPaint, /data-slug="codelock"/);
+  } finally {
+    globalThis.fetch = origFetch;
+  }
 });
