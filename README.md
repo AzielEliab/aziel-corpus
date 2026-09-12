@@ -6,6 +6,8 @@ This release makes the library's **core runtime independent of third-party Pytho
 
 Live HTTPS surfaces for this library and the sister engines. Public identity is **Aziel Eliab** only. Also known as Aziel Elroi Eliab (`alternateName` / aka only). No DOIs. Forks welcome. Apache-2.0.
 
+One-file Softwares/site dossiers (SOFTWARE-SITE-DOSSIER-1.0): `docs/SOFTWARE-SITE-DOSSIER-1.0.md`, generated under `dossiers/`. Operator ingest: `POST /v1/operator/library-ingest` (Aziel Library shelf). Not a tarball unpack.
+
 **Part of the Aziel Eliab ecosystem**
 
 - **Official site:** [https://www.azieleliab.com/](https://www.azieleliab.com/) — Person `@id` [https://www.azieleliab.com/#aziel](https://www.azieleliab.com/#aziel)

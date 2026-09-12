@@ -4,7 +4,8 @@
  *
  * Not sovereign. Not operator. Cannot change scores. Corpus-only Add.
  */
-import { searchRecords, ingestRecord, asFile, isOperator } from "./library.js";
+import { searchRecords, ingestRecord, asFile, isOperator, operatorSession } from "./library.js";
+import { isOperatorRequest } from "./rate-limit.js";
 import { lookupPlaces, listEvents } from "./geo.js";
 
 function json(body, status = 200) {
@@ -14,7 +15,7 @@ function json(body, status = 200) {
       "Content-Type": "application/json; charset=utf-8",
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Accept, MCP-Protocol-Version, mcp-session-id",
+      "Access-Control-Allow-Headers": "Content-Type, Accept, MCP-Protocol-Version, mcp-session-id, Authorization, X-Aziel-Operator-Token",
     },
   });
 }
@@ -1566,7 +1567,8 @@ async function sessionFromRequest(env, request) {
 
 export async function handleJeevesApi(request, url, env, signed) {
   const path = url.pathname.replace(/\/$/, "") || "/";
-  const who = signed || (await sessionFromRequest(env, request));
+  let who = signed || (await sessionFromRequest(env, request));
+  if (isOperatorRequest(request, env, who)) who = operatorSession();
   if (path === "/v1/jeeves/chat" && request.method === "POST") {
     let body;
     try {

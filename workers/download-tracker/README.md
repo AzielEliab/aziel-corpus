@@ -38,6 +38,7 @@ Custom domains: www.azielcorpuslibrary.net and azielcorpuslibrary.net
 - POST /v1/score  preview review, no write
 - POST /v1/jeeves/chat  Ask Jeeves (research assistant)
 - POST /v1/jeeves/upload  same ingest/score path as the shelf (public → Corpus; operator → Aziel Library)
+- POST /v1/operator/library-ingest  operator token/session only; Aziel Library; one-file software/site dossiers (SOFTWARE-SITE-DOSSIER-1.0)
 - POST /transcribe  hosted Whisper + mandatory VibeLock determination; hard A/V blocks (HTTP 451)
 - GET /media/{sha256}  inline playback of allowed A/V only (blocked media is never stored)
 - POST /ocr  hosted OCR; lattice receipt always
