@@ -1,9 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { CSS, page, donateStripHtml, aboutBody, howItsScoredBody, patternBody, softwareBody, runtimeBody, azielLibraryBody, homeBody, corpusBody, LCP_FOLD, splitLcpHtml } from "../workers/download-tracker/src/ui.js";
+import { CSS, page, donateStripHtml, aboutBody, howItsScoredBody, patternBody, softwareBody, runtimeBody, azielLibraryBody, homeBody, corpusBody, brandMarkHtml, LCP_FOLD, splitLcpHtml } from "../workers/download-tracker/src/ui.js";
 import { ocrPageBody, mapBody, SPECTRAL_LENSES } from "../workers/download-tracker/src/hosted-pages.js";
 import { dedupeShelfRows } from "../workers/download-tracker/src/library.js";
 
@@ -34,14 +34,18 @@ test("restored nav2 keeps every public tab and drops Health/Verify/Gazetteer fro
     assert.match(html, new RegExp('href="' + href.replace("/", "\\/") + '"'));
     assert.match(html, new RegExp(label));
   }
+  assert.match(html, /class="sitehead"/);
+  assert.match(html, /class="brandrow nav1"><a class="brandmark-link" href="\/"/);
   assert.match(html, /class="brandmark"/);
   assert.match(html, /src="\/sigil\.png"/);
+  assert.match(html, /<img class="brandmark"[^>]*alt=""/);
   assert.doesNotMatch(html, /href="\/health"/);
   assert.doesNotMatch(html, /href="\/verify"/);
   assert.doesNotMatch(html, />Gazetteer</);
   assert.doesNotMatch(html, /href="\/gazetteer"/);
   assert.doesNotMatch(html, />Intelligence</);
   assert.doesNotMatch(html, /href="\/intelligence"/);
+  assert.doesNotMatch(html, /ever-?\s*blooming/i);
   assert.doesNotMatch(html, /Ever Blooming/i);
   assert.doesNotMatch(html, /10\.5281\/zenodo/i);
   assert.match(html, /class="donate-strip"/);
@@ -79,7 +83,9 @@ test("homepage brandrow shows views, downloads, and Live Nodes pills", () => {
     downloads: 2199,
     host: "https://www.azielcorpuslibrary.net",
   }), { path: "/", kind: "search", views: 380386, downloads: 2199 });
+  assert.match(html, /class="sitehead"/);
   assert.match(html, /class="brandrow/);
+  assert.match(html, /class="brandmark-link"/);
   assert.match(html, /class="brandmark"/);
   assert.match(html, /id="views"/);
   assert.match(html, /href="\/stats"[^>]*>380386<span>views<\/span>/);
@@ -370,4 +376,62 @@ test("sigil and spectral samples are hosted public assets", () => {
   for (const id of ["zero", "tazel", "vyrn", "uv", "rosetta", "zen", "chaos", "balance"]) {
     assert.equal(existsSync(join(ROOT, "workers/download-tracker/public/spectral-samples/" + id + ".png")), true);
   }
+});
+
+test("rose-star brand mark is top-left chrome with no words on the mark", () => {
+  const mark = brandMarkHtml();
+  assert.match(mark, /^<a class="brandmark-link" href="\/"/);
+  assert.match(mark, /<img class="brandmark" src="\/sigil\.png"/);
+  assert.match(mark, /alt=""/);
+  assert.doesNotMatch(mark, />[^<]*ever/i);
+  const pages = [
+    page("Corpus Search", homeBody({ rows: [], views: 1, downloads: 1, host: "https://www.azielcorpuslibrary.net" }), { path: "/", kind: "search" }),
+    page("Software", softwareBody({
+      products: [{ name: "aziel-runtime", version: "catalog", root: true, blurb: "Root source", links: [{ href: "/runtime", label: "Site front door", primary: true }] }],
+    }), { path: "/software", kind: "software" }),
+    page("Forensics", "<section class=\"hero\"><h1>Forensics</h1></section>", { path: "/forensics", kind: "forensics" }),
+    page("Aziel Eliab", aboutBody(), { path: "/AzielEliab", kind: "about" }),
+    page("Runtime", runtimeBody(), { path: "/runtime", kind: "runtime" }),
+    page("Pattern", patternBody({ total: 0 }), { path: "/pattern", kind: "pattern" }),
+  ];
+  for (const html of pages) {
+    const headAt = html.indexOf('class="sitehead"');
+    const markAt = html.indexOf('class="brandmark-link"');
+    const brandAt = html.indexOf('class="brand"');
+    const navAt = html.indexOf('class="nav2');
+    assert.ok(headAt >= 0 && markAt > headAt && brandAt > markAt && navAt > brandAt, "mark sits top-left before title and nav");
+    assert.match(html, />Forensics</);
+    assert.doesNotMatch(html, />Gazetteer</);
+    assert.doesNotMatch(html, /href="\/gazetteer"/);
+    assert.doesNotMatch(html, /ever-?\s*blooming/i);
+  }
+  const soft = pages[1];
+  assert.match(soft, /<h1>Softwares<\/h1>\s*<\/section>\s*<section class="soft-section"><h2>Software<\/h2>/);
+});
+
+function walkFiles(dir, acc = []) {
+  for (const name of readdirSync(dir, { withFileTypes: true })) {
+    const p = join(dir, name.name);
+    if (name.isDirectory()) walkFiles(p, acc);
+    else acc.push(p);
+  }
+  return acc;
+}
+
+test("Worker-served HTML and library docs never use the retired bloom phrase", () => {
+  const banned = /ever-?\s*blooming/i;
+  const roots = [
+    join(ROOT, "workers/download-tracker/src"),
+    join(ROOT, "dossiers"),
+    join(ROOT, "docs"),
+  ];
+  const hits = [];
+  for (const root of roots) {
+    for (const file of walkFiles(root)) {
+      if (file.endsWith(".test.js") || file.endsWith(".mjs")) continue;
+      const text = readFileSync(file, "utf8");
+      if (banned.test(text)) hits.push(file.slice(ROOT.length + 1));
+    }
+  }
+  assert.deepEqual(hits, [], "banned bloom phrase remains in " + hits.join(", "));
 });

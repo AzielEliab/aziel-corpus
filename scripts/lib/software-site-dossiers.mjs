@@ -255,6 +255,11 @@ function yamlEscape(value) {
   return s;
 }
 
+/** Public Worker/docs copy: rose-star mark only. Never the retired bloom-sigil phrase. */
+export function scrubBannedBrandCopy(text) {
+  return String(text || "").replace(/ever-?\s*blooming(?:\s+sigil)?/gi, "rose-star brand mark");
+}
+
 export function readmeLead(markdown, maxLines = 40) {
   const lines = String(markdown || "").split(/\r?\n/);
   const keep = [];
@@ -263,7 +268,7 @@ export function readmeLead(markdown, maxLines = 40) {
     keep.push(line);
     if (keep.length >= maxLines) break;
   }
-  return keep.join("\n").trim();
+  return scrubBannedBrandCopy(keep.join("\n").trim());
 }
 
 function citePurpose(cite) {
@@ -356,7 +361,7 @@ export function renderDossier(target, extras = {}) {
   ].join(", ");
   const surfaces = surfacesFor(target);
   const readme = extras.readme_lead ? readmeLead(extras.readme_lead) : "";
-  const citeNote = extras.cite_purpose ? String(extras.cite_purpose).slice(0, 600) : "";
+  const citeNote = extras.cite_purpose ? scrubBannedBrandCopy(String(extras.cite_purpose).slice(0, 600)) : "";
   const digest = firstText(target.engine_digest);
   const catalogDomain = firstText(target.catalog_domain);
 

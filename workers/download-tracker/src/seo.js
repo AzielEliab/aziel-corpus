@@ -422,7 +422,7 @@ export function headMeta(opts) {
   const seoTitle = documentTitle(kind, title);
   const url = CANON_HOST + path;
   const image = opts.image || SHARE_IMAGE;
-  const imageAlt = SITE + " sigil. Author " + AUTHOR + ".";
+  const imageAlt = SITE + " rose-star brand mark. Author " + AUTHOR + ".";
   const tags = [
     meta("description", description),
     meta("keywords", pageKeywords(kind)),

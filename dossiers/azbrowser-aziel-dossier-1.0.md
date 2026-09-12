@@ -98,7 +98,7 @@ README lead (truncated, source only):
 >
 > v0.1 is a **research shell**. It cannot ship a Chromium binary. The
 > Worker looks like a real browser (tabs, omnibox, Back/Forward/Reload,
-> Home = everblooming sigil) and sandboxes navigation via controlled
+> Home = rose-star brand mark, no words) and sandboxes navigation via controlled
 > fetch/proxy preview + receipted airlock + AZNet ethical search. It does
 > **not** replace the operator's OS browser.
 >
