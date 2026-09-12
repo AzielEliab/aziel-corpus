@@ -271,6 +271,8 @@ test("page-specific descriptions and share images", () => {
   assert.match(record, /The Cockroach Doctrine by Aziel Eliab/);
   assert.match(record, /og:image" content="https:\/\/www\.azielcorpuslibrary\.net\/sigil\.png"/);
   assert.match(record, /twitter:image" content="https:\/\/www\.azielcorpuslibrary\.net\/sigil\.png"/);
+  assert.match(record, /og:image:alt" content="Aziel Digital Library rose-star brand mark. Author Aziel Eliab."/);
+  assert.doesNotMatch(record, /ever-?\s*blooming/i);
   assert.equal(SHARE_IMAGE, "https://www.azielcorpuslibrary.net/sigil.png");
   const ld = graphFrom(record);
   assertSharedIdentity(ld);
