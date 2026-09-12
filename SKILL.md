@@ -5,18 +5,26 @@ description: Use when an assistant should search the Aziel Digital Library maste
 
 # Aziel Digital Library v2.7.0
 
-Self-contained immutable local digital library and intelligence runtime. Public site is MASTER. Anonymous GET is read-only. Signed-in accounts may ingest. Author: **Aziel Eliab**.
+Self-contained immutable local digital library and intelligence runtime. Public site is MASTER. Anonymous GET is read-only. Signed-in accounts may ingest. Author: **Aziel Eliab** (aka Aziel Elroi Eliab is `alternateName` only). Person `@id` https://www.azieleliab.com/#aziel. Runtime `@id` https://www.azieleliab.com/runtime#runtime.
 
-**THIS IS:** Aziel Digital Library v2.7.0 (search, records, map, gazetteer, counted zip, poison immunity, PhysLing Review, unranked Bayesian scores, exact-same-subject succession cites).
+**THIS IS:** Aziel Digital Library v2.7.0 (search, records, map, gazetteer, counted zip, poison immunity, PhysLing Review, unranked Bayesian scores, exact-same-subject succession cites). Library Softwares catalog lives at `/software`.
 
-**THIS IS NOT:** a 26-card software index. Not Zenodo. Not Horton.
+**THIS IS NOT:** a 26-card software index. Not Zenodo. Not Horton. Do not mash Aziel Runtime version + FragGate into Softwares blurbs.
 
 Always send `User-Agent: Mozilla/5.0`.
 
+Compatible AI clients: ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants.
+
 ## Call these URLs
 
+- Official site: https://www.azieleliab.com/
 - Library: https://www.azielcorpuslibrary.net/
-- Runtime root: https://www.azielcorpuslibrary.net/runtime (aziel-runtime 2.0.0-rc1 FragGate door; prefer /runtime/*)
+- Softwares: https://www.azielcorpuslibrary.net/software
+- Donate: https://www.azielcorpuslibrary.net/donate (same rails https://www.azieleliab.com/donate)
+- Runtime root: https://www.azielcorpuslibrary.net/runtime (Aziel Runtime 2.0.0-rc1. FragGate is the single door. Prefer /runtime/*)
+- Try on Glama: https://glama.ai/mcp/servers/AzielEliab/aziel-runtime
+- FragGate kernel: https://github.com/AzielEliab/fraggate
+- GodLock.uk: https://godlock.uk · https://godlock.uk/AzielEliab
 - Runtime FragGate list: `GET https://www.azielcorpuslibrary.net/runtime/v1/fraggate/list`
 - Runtime FragGate call: `POST https://www.azielcorpuslibrary.net/runtime/v1/fraggate/call`
 - Fallback Worker: https://aziel-corpus-download-tracker.vibelock.workers.dev/
@@ -42,8 +50,8 @@ Ops (do **not** increment downloads):
 - `GET /v1/review?record_id=` (triad + ZionPattern Solver secondary score + succession cites)
 - `GET /v1/lattice?record_id=`
 - `GET /v1/runtime`
-- `GET /v1/runtime.json` (aziel-runtime 2.0.0-rc1 FragGate manifest; distinct from `/v1/runtime`)
-- `GET /runtime` (FragGate door page; HEAD + GET return 200)
+- `GET /v1/runtime.json` (Aziel Runtime 2.0.0-rc1 manifest; distinct from `/v1/runtime`)
+- `GET /runtime` (Aziel Runtime page; FragGate is the single door; HEAD + GET return 200)
 - `GET /runtime/v1/health`
 - `GET /runtime/v1/uses` (this door's API use log; does not increment)
 - `GET /runtime/v1/fraggate` and `GET /runtime/v1/fraggate/list`

@@ -4,17 +4,32 @@ This release makes the library's **core runtime independent of third-party Pytho
 
 ## Websites
 
-Live HTTPS surfaces for this library and the sister engines. Public identity is **Aziel Eliab** only. No DOIs. Forks welcome.
+Live HTTPS surfaces for this library and the sister engines. Public identity is **Aziel Eliab** only. Also known as Aziel Elroi Eliab (`alternateName` / aka only). No DOIs. Forks welcome. Apache-2.0.
 
-- **Aziel Corpus Library (this site):** [https://www.azielcorpuslibrary.net/](https://www.azielcorpuslibrary.net/)
-- **Aziel Eliab:** [https://www.azielcorpuslibrary.net/AzielEliab](https://www.azielcorpuslibrary.net/AzielEliab)
-- **Software:** [https://www.azielcorpuslibrary.net/software](https://www.azielcorpuslibrary.net/software) — mirrors the live aziel-runtime catalog (`GET /runtime/v1/catalog.json`); no fixed product cap
-- **Donate:** [https://www.azielcorpuslibrary.net/donate](https://www.azielcorpuslibrary.net/donate) — AZL-DONATE-1.0 static door + chrome strip. Exodus rails. Does not touch KV. Not a catalog item.
+**Part of the Aziel Eliab ecosystem**
+
+- **Official site:** [https://www.azieleliab.com/](https://www.azieleliab.com/) — Person `@id` [https://www.azieleliab.com/#aziel](https://www.azieleliab.com/#aziel)
+- **Aziel Corpus Library (this site):** [https://www.azielcorpuslibrary.net/](https://www.azielcorpuslibrary.net/) — WebSite `@id` [https://www.azielcorpuslibrary.net/#website](https://www.azielcorpuslibrary.net/#website) · name Aziel Corpus Library
+- **Aziel Eliab (library):** [https://www.azielcorpuslibrary.net/AzielEliab](https://www.azielcorpuslibrary.net/AzielEliab)
+- **Softwares:** [https://www.azielcorpuslibrary.net/software](https://www.azielcorpuslibrary.net/software) — library Softwares catalog for aziel-runtime (`GET /v1/software`, fallback `GET /runtime/v1/fraggate/list`). Heading then list. No fixed product cap. Do not mash version + FragGate into Softwares copy.
+- **Donate:** [https://www.azielcorpuslibrary.net/donate](https://www.azielcorpuslibrary.net/donate) — AZL-DONATE-1.0 static door + chrome strip. Same rails [https://www.azieleliab.com/donate](https://www.azieleliab.com/donate). Exodus rails. Does not touch KV. Not a catalog item.
 - **Packed index / tunnel standby:** `GET /v1/search` filters one packed key (`library:index:v1`). Cost savings from packing + cache, not from rationing readers. Humans and crawlers stay uncapped on HTML/search/SEO. `GET /v1/library-index` and `GET /v1/health` (`role=standby`). Design notes: `docs/TUN-WP-0.1.md`, `docs/RL-WP-0.1-library.md`. Worker is standby catalog of truth; cloudflared may be primary later. Not a VPN. Library-scope only — not aziel-runtime, not godlock.uk.
-- **Runtime front door (this domain):** [https://www.azielcorpuslibrary.net/runtime](https://www.azielcorpuslibrary.net/runtime) — aziel-runtime 1.6.2 FragGate catalog/MCP door
+- **Aziel Runtime (this domain):** [https://www.azielcorpuslibrary.net/runtime](https://www.azielcorpuslibrary.net/runtime) — Aziel Runtime **2.0.0-rc1**. FragGate is the single door (`fraggate_list` → `fraggate_describe` → `fraggate_call`). Prefer `/runtime/*`. Runtime `@id` [https://www.azieleliab.com/runtime#runtime](https://www.azieleliab.com/runtime#runtime)
 - **How it’s scored:** [https://www.azielcorpuslibrary.net/how-its-scored](https://www.azielcorpuslibrary.net/how-its-scored)
-- **GodLock.uk (sister engine):** [https://godlock.uk](https://godlock.uk) — Aziel Eliab tab [https://godlock.uk/AzielEliab](https://godlock.uk/AzielEliab)
-- **aziel-runtime alternate origin:** [https://aziel-runtime.vibelock.workers.dev/](https://aziel-runtime.vibelock.workers.dev/) — repo [https://github.com/AzielEliab/aziel-runtime](https://github.com/AzielEliab/aziel-runtime) — Glama [https://glama.ai/mcp/servers/AzielEliab/aziel-runtime](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)
+- **GodLock.uk (sister engine):** [https://godlock.uk](https://godlock.uk) — Aziel Eliab tab [https://godlock.uk/AzielEliab](https://godlock.uk/AzielEliab). Softwares on GodLock is GodLock’s own catalog. This repo’s Softwares stays the Digital Library catalog. Do not claim GodLock Softwares mirrors Digital Library completeness.
+- **Aziel Runtime Worker (muted / sameAs):** [https://aziel-runtime.vibelock.workers.dev/](https://aziel-runtime.vibelock.workers.dev/)
+- **Aziel Runtime on GitHub:** [https://github.com/AzielEliab/aziel-runtime](https://github.com/AzielEliab/aziel-runtime)
+- **Try on Glama:** [https://glama.ai/mcp/servers/AzielEliab/aziel-runtime](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime) — primary Runtime CTA (owner/repo listing; no invented server id)
+- **FragGate kernel:** [https://github.com/AzielEliab/fraggate](https://github.com/AzielEliab/fraggate) (FG-0.1)
+- **Documentation (2.0 pack):** [https://github.com/AzielEliab/aziel-runtime/tree/main/docs/2.0](https://github.com/AzielEliab/aziel-runtime/tree/main/docs/2.0)
+
+### Compatible AI clients
+
+ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants.
+
+### GitHub crawl aids
+
+Repo-root [`llms.txt`](llms.txt), [`ai.txt`](ai.txt), and [`docs/cite.example.json`](docs/cite.example.json). Live Worker copies: [llms.txt](https://www.azielcorpuslibrary.net/llms.txt) · [ai.txt](https://www.azielcorpuslibrary.net/ai.txt) · [cite.json](https://www.azielcorpuslibrary.net/cite.json).
 
 ## What “self-contained” means
 
