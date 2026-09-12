@@ -27,7 +27,7 @@ Operator-intended docs belong on the Aziel Library shelf (`library=aziel`), not 
 | `azieleliab-com` | https://www.azieleliab.com/ |
 | `azielcorpuslibrary-net` | https://www.azielcorpuslibrary.net/ |
 | `godlock-uk` | https://godlock.uk/ |
-| `hedidntjump-com` | https://hedidntjump.com/ |
+| `hedidntjump-com` | https://www.hedidntjump.com/ |
 | `aziel-runtime` | https://aziel-runtime.vibelock.workers.dev/ |
 
 **Softwares:** every live card from `GET https://aziel-runtime.vibelock.workers.dev/v1/software` (`software[]`).

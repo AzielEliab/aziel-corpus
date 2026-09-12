@@ -75,6 +75,7 @@ test("JSON-LD types the author as Person with alternateName", () => {
   assert.deepEqual(person.alternateName, ["Aziel Elroi Eliab"]);
   assert.equal(person.url, HUB_ORIGIN + "/");
   assert.ok(person.sameAs.includes("https://godlock.uk/AzielEliab"));
+  assert.ok(person.sameAs.includes("https://www.hedidntjump.com/"));
   assert.ok(person.sameAs.includes("https://github.com/AzielEliab"));
   assert.ok(person.sameAs.includes("https://github.com/AzielEliab/aziel-corpus"));
   assert.ok(person.sameAs.includes(HUB_ORIGIN + "/"));
@@ -96,6 +97,7 @@ test("JSON-LD types the author as Person with alternateName", () => {
   assert.equal(who.url, "https://www.azieleliab.com/");
   assert.ok(who.alternateName.includes("Aziel Elroi Eliab"));
   assert.ok(who.sameAs.includes("https://godlock.uk/AzielEliab"));
+  assert.ok(who.sameAs.includes("https://www.hedidntjump.com/"));
   assert.ok(who.sameAs.includes("https://github.com/AzielEliab"));
   assert.ok(who.sameAs.includes("https://github.com/AzielEliab/aziel-corpus"));
   assert.match(html, /rel="me" href="https:\/\/www\.azieleliab\.com\/#aziel"/);
@@ -118,6 +120,7 @@ test("JSON-LD types the author as Person with alternateName", () => {
   assert.equal(site.url, "https://www.azielcorpuslibrary.net/");
   assert.equal(site.name, "Aziel Corpus Library");
   assert.deepEqual(site.publisher, { "@id": "https://www.azieleliab.com/#aziel" });
+  assert.ok(site.sameAs.includes("https://www.hedidntjump.com/"));
   const liveSite = ld["@graph"].find((n) => n["@type"] === "WebSite");
   assert.equal(liveSite.potentialAction["@type"], "SearchAction");
   assert.match(liveSite.potentialAction.target.urlTemplate, /\?q=\{search_term_string\}/);
@@ -283,6 +286,7 @@ test("ecosystem footer/nav is chrome, not Softwares heading→list", () => {
   assert.deepEqual(ECOSYSTEM_LINKS.map((l) => [l.label, l.href, !!l.muted, !!l.primary]), [
     ["Official site", "https://www.azieleliab.com/", false, false],
     ["Aziel Corpus Library", "https://www.azielcorpuslibrary.net/", false, false],
+    ["He Didn't Jump", "https://www.hedidntjump.com/", false, false],
     ["Aziel Runtime on GitHub", "https://github.com/AzielEliab/aziel-runtime", false, false],
     ["Aziel Runtime", "https://aziel-runtime.vibelock.workers.dev/", true, false],
     ["Try on Glama", "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime", false, true],
@@ -294,6 +298,8 @@ test("ecosystem footer/nav is chrome, not Softwares heading→list", () => {
   assert.match(block, />Official site</);
   assert.match(block, /href="https:\/\/www\.azielcorpuslibrary\.net\/"/);
   assert.match(block, />Aziel Corpus Library</);
+  assert.match(block, /href="https:\/\/www\.hedidntjump\.com\/"/);
+  assert.match(block, />He Didn't Jump</);
   assert.match(block, /href="https:\/\/github\.com\/AzielEliab\/aziel-runtime"/);
   assert.match(block, />Aziel Runtime on GitHub</);
   assert.match(block, /class="runtime-muted"[^>]*href="https:\/\/aziel-runtime\.vibelock\.workers\.dev\/"[^>]*>Aziel Runtime</);

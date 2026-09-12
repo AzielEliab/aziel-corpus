@@ -31,6 +31,9 @@ export const GITHUB_AUTHOR = "https://github.com/AzielEliab";
 export const GITHUB_REPO = "https://github.com/AzielEliab/aziel-corpus";
 const GITHUB_RUNTIME = RUNTIME_GITHUB;
 export const GODLOCK_IDENTITY = "https://godlock.uk/AzielEliab";
+/** Sister research archive. Not a Softwares-tab product. */
+export const HEDIDNTJUMP_HOME = "https://www.hedidntjump.com/";
+export const HEDIDNTJUMP_LABEL = "He Didn't Jump";
 export const SHARE_IMAGE = CANON_HOST + "/sigil.png";
 export const SITE_DESCRIPTION = "Aziel Digital Library by Aziel Eliab. Search the public MASTER across Aziel Library and Corpus. Temporal map, gazetteer, forensics, and hosted OCR.";
 
@@ -39,6 +42,7 @@ export const ECOSYSTEM_HEADING = "Part of the Aziel Eliab ecosystem";
 export const ECOSYSTEM_LINKS = Object.freeze([
   Object.freeze({ href: HUB_ORIGIN + "/", label: "Official site" }),
   Object.freeze({ href: CANON_HOST + "/", label: "Aziel Corpus Library" }),
+  Object.freeze({ href: HEDIDNTJUMP_HOME, label: HEDIDNTJUMP_LABEL }),
   Object.freeze({ href: RUNTIME_GITHUB, label: "Aziel Runtime on GitHub" }),
   Object.freeze({ href: RUNTIME_ORIGIN + "/", label: "Aziel Runtime", muted: true }),
   Object.freeze({ href: RUNTIME_GLAMA, label: "Try on Glama", primary: true }),
@@ -128,7 +132,7 @@ export function personNode() {
     alternateName: [AKA],
     url: HUB_ORIGIN + "/",
     description: "Author of Aziel Digital Library. Identity Aziel Eliab only.",
-    sameAs: [HUB_ORIGIN + "/", GODLOCK_IDENTITY, GITHUB_AUTHOR, GITHUB_REPO, CANON_HOST + ABOUT_PATH],
+    sameAs: [HUB_ORIGIN + "/", GODLOCK_IDENTITY, HEDIDNTJUMP_HOME, GITHUB_AUTHOR, GITHUB_REPO, CANON_HOST + ABOUT_PATH],
   };
 }
 
@@ -152,7 +156,7 @@ export function websiteNode() {
     description: SITE_DESCRIPTION,
     author: personRef(),
     publisher: personRef(),
-    sameAs: [GITHUB_REPO],
+    sameAs: [GITHUB_REPO, HEDIDNTJUMP_HOME],
     potentialAction: {
       "@type": "SearchAction",
       target: {
