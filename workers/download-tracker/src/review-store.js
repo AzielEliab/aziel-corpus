@@ -31,6 +31,14 @@ import { HTML_CACHE_PREFIX, cachePutText, htmlCacheUrl, refreshPackedIndex } fro
 
 const CLCE_LIVE = "https://azclce-download-tracker.vibelock.workers.dev/v1/score";
 
+/** One request must finish inside Worker CPU/time limits. Tip reconcile is cursor-paginated. */
+export const SHELF_SYNC_CURSOR_KEY = "shelf_sync_cursor";
+export const SHELF_SYNC_DONE_KEY = "shelf_sync_done_utc";
+export const SHELF_SYNC_STATS_KEY = "shelf_sync_stats";
+export const SHELF_SYNC_CHUNK = 25;
+export const SHELF_SYNC_CHUNK_MAX = 50;
+export const SHELF_SYNC_MS = 12000;
+
 export async function ensureReviewSchema(env) {
   if (!env || !env.DB) return;
   await ensureLedger(env);
@@ -576,7 +584,14 @@ export async function continueFullBackfill(env, { ms = 18000, force = false, all
   if (doneFlag && !force && !all) {
     stats.done = true;
     stats.cursor = cursor;
-    try { stats.shelf = await syncShelfScores(env, { reconcile: true }); } catch { stats.shelf = null; }
+    const shelfDone = await metaGet(env, SHELF_SYNC_DONE_KEY);
+    if (!shelfDone) {
+      try {
+        stats.shelf = await syncShelfScores(env, { reconcile: true, resume: true, refreshPacked: true });
+      } catch { stats.shelf = null; }
+    } else {
+      stats.shelf = { ok: true, done: true, skipped: true, author: "Aziel Eliab" };
+    }
     return stats;
   }
   if (force) {
@@ -627,7 +642,15 @@ export async function continueFullBackfill(env, { ms = 18000, force = false, all
     await metaSet(env, "full_backfill_stats", JSON.stringify({ ...stats, updated_utc: new Date().toISOString() }));
     if (!all && Date.now() - started >= ms) break;
   }
-  try { stats.shelf = await syncShelfScores(env, { reconcile: true }); } catch { stats.shelf = null; }
+  try {
+    // Packed refresh only after a scoring walk. Full tip reconcile is chunked via rebuild=1
+    // (or the done:true path above) so one request cannot exceed Worker CPU/time limits.
+    stats.shelf = await syncShelfScores(env, {
+      reconcile: !!stats.done,
+      resume: true,
+      refreshPacked: true,
+    });
+  } catch { stats.shelf = null; }
   return stats;
 }
 
@@ -635,61 +658,198 @@ export async function fullBackfillStatus(env) {
   const total = await countRecords(env);
   const done = await metaGet(env, "full_backfill_done_utc");
   const cursor = await metaGet(env, "full_backfill_cursor");
+  const shelfDone = await metaGet(env, SHELF_SYNC_DONE_KEY);
+  const shelfCursor = await metaGet(env, SHELF_SYNC_CURSOR_KEY);
   let stats = null;
   try { stats = JSON.parse(await metaGet(env, "full_backfill_stats") || "null"); } catch { stats = null; }
-  return { ok: true, total, done: !!done, done_utc: done || null, cursor: cursor || "", stats };
+  let shelf_stats = null;
+  try { shelf_stats = JSON.parse(await metaGet(env, SHELF_SYNC_STATS_KEY) || "null"); } catch { shelf_stats = null; }
+  return {
+    ok: true,
+    total,
+    done: !!done,
+    done_utc: done || null,
+    cursor: cursor || "",
+    stats,
+    shelf: {
+      done: !!shelfDone,
+      done_utc: shelfDone || null,
+      cursor: shelfCursor || "",
+      next_cursor: shelfDone ? "" : (shelfCursor || ""),
+      stats: shelf_stats,
+    },
+  };
 }
 
 export { sha256hex };
 
-async function invalidatePublicHtmlCache() {
+async function invalidatePublicHtmlCache(cache) {
   const paths = ["/", "/aziel-library", "/corpus", "/?lib=aziel", "/?lib=corpus"];
   for (const path of paths) {
     try {
       const url = htmlCacheUrl(new Request("https://www.azielcorpuslibrary.net" + path));
-      await cachePutText(url, "", undefined, { cacheControl: "no-store" });
+      await cachePutText(url, "", cache, { cacheControl: "no-store" });
     } catch { /* cache optional */ }
   }
   return { busted: paths, prefix: HTML_CACHE_PREFIX };
 }
 
+function clampShelfChunk(limit) {
+  const n = Number(limit);
+  if (!Number.isFinite(n) || n <= 0) return SHELF_SYNC_CHUNK;
+  return Math.min(Math.max(Math.floor(n), 1), SHELF_SYNC_CHUNK_MAX);
+}
+
+async function loadShelfSyncBatch(env, cursor, cap) {
+  if (!env || !env.DB) return [];
+  const hidden = "IFNULL(shelf_hidden,0) = 0";
+  const cols = "record_id, title, filename, subjects, keywords, domain, zsolver_json, triad_combined, lattice_tip_json";
+  const lite = "record_id, title, filename, subjects, keywords, domain, zsolver_json, triad_combined";
+  try {
+    if (cursor) {
+      return (await env.DB.prepare(
+        "SELECT " + cols + " FROM records WHERE " + hidden + " AND record_id>? ORDER BY record_id ASC LIMIT ?"
+      ).bind(cursor, cap).all()).results || [];
+    }
+    return (await env.DB.prepare(
+      "SELECT " + cols + " FROM records WHERE " + hidden + " ORDER BY record_id ASC LIMIT ?"
+    ).bind(cap).all()).results || [];
+  } catch {
+    try {
+      if (cursor) {
+        return (await env.DB.prepare(
+          "SELECT " + lite + " FROM records WHERE record_id>? ORDER BY record_id ASC LIMIT ?"
+        ).bind(cursor, cap).all()).results || [];
+      }
+      return (await env.DB.prepare(
+        "SELECT " + lite + " FROM records ORDER BY record_id ASC LIMIT ?"
+      ).bind(cap).all()).results || [];
+    } catch { return []; }
+  }
+}
+
 /**
  * Copy already-scored zsolver onto tip + packed library:index:v1 so homepage/search
  * show the same numbers as /v1/review. Does not require the live zsolver API.
+ *
+ * Tip reconcile is cursor-paginated. One request processes at most `limit` rows
+ * (default 25) or until `ms` elapses. Packed shelf is rebuilt from stored D1
+ * scores after every chunk so homepage pending-backfill clears for already-scored
+ * docs without waiting for every tip.
  */
-export async function syncShelfScores(env, { reconcile = true } = {}) {
+export async function syncShelfScores(env, {
+  reconcile = true,
+  cursor,
+  limit = SHELF_SYNC_CHUNK,
+  all = false,
+  force = false,
+  resume = true,
+  refreshPacked = true,
+  ms = SHELF_SYNC_MS,
+  cache,
+} = {}) {
   await ensureReviewSchema(env);
-  const stats = { ok: true, records: 0, tips: 0, packed: 0, html_cache: null };
-  if (reconcile && env && env.DB) {
-    let rows = [];
-    try {
-      rows = (await env.DB.prepare(
-        "SELECT record_id, title, filename, subjects, keywords, domain, zsolver_json, triad_combined FROM records WHERE IFNULL(shelf_hidden,0) = 0"
-      ).all()).results || [];
-    } catch {
-      try {
-        rows = (await env.DB.prepare(
-          "SELECT record_id, title, filename, subjects, keywords, domain, zsolver_json, triad_combined FROM records"
-        ).all()).results || [];
-      } catch { rows = []; }
-    }
-    stats.records = rows.length;
-    for (const row of rows) {
-      try {
-        const report = await scoreZsolverForRecord(env, row, { reconcileOnly: true });
-        if (report) {
-          await patchTipZsolver(env, row.record_id, report);
-          stats.tips += 1;
-        }
-      } catch { /* one record */ }
-    }
+  const started = Date.now();
+  const cap = clampShelfChunk(limit);
+  const total = await countRecords(env);
+  const explicitCursor = cursor != null && String(cursor) !== "";
+  let pos = explicitCursor ? String(cursor) : "";
+  if (!explicitCursor && !force && resume) {
+    pos = await metaGet(env, SHELF_SYNC_CURSOR_KEY);
   }
-  try {
-    const packed = await refreshPackedIndex(env);
-    stats.packed = packed && Array.isArray(packed.records) ? packed.records.length : 0;
-    stats.index_sha256 = packed && packed.index_sha256;
-  } catch { /* packed optional */ }
-  try { stats.html_cache = await invalidatePublicHtmlCache(); } catch { stats.html_cache = null; }
+  const priorDone = await metaGet(env, SHELF_SYNC_DONE_KEY);
+  const stats = {
+    ok: true,
+    records: 0,
+    tips: 0,
+    packed: 0,
+    processed: 0,
+    total,
+    cursor: pos || "",
+    next_cursor: "",
+    done: false,
+    html_cache: null,
+    author: "Aziel Eliab",
+  };
+
+  if (reconcile && priorDone && !force && !explicitCursor && !all && resume) {
+    stats.done = true;
+    stats.next_cursor = "";
+    if (refreshPacked) {
+      try {
+        const packed = await refreshPackedIndex(env, { cache });
+        stats.packed = packed && Array.isArray(packed.records) ? packed.records.length : 0;
+        stats.index_sha256 = packed && packed.index_sha256;
+      } catch { /* packed optional */ }
+      try { stats.html_cache = await invalidatePublicHtmlCache(cache); } catch { stats.html_cache = null; }
+    }
+    return stats;
+  }
+
+  if (force) {
+    pos = explicitCursor ? String(cursor) : "";
+    await metaSet(env, SHELF_SYNC_DONE_KEY, "");
+    if (!explicitCursor) await metaSet(env, SHELF_SYNC_CURSOR_KEY, "");
+  }
+
+  if (reconcile && env && env.DB) {
+    while (true) {
+      const batch = await loadShelfSyncBatch(env, pos, cap);
+      if (!batch.length) {
+        stats.done = true;
+        stats.next_cursor = "";
+        await metaSet(env, SHELF_SYNC_DONE_KEY, new Date().toISOString());
+        await metaSet(env, SHELF_SYNC_CURSOR_KEY, "");
+        break;
+      }
+      let batchComplete = true;
+      for (const row of batch) {
+        try {
+          const report = await scoreZsolverForRecord(env, row, { reconcileOnly: true });
+          if (report) stats.tips += 1;
+        } catch { /* one record */ }
+        pos = row.record_id;
+        stats.processed += 1;
+        stats.records = stats.processed;
+        stats.cursor = pos;
+        stats.next_cursor = pos;
+        if (!all && Date.now() - started >= ms) {
+          batchComplete = false;
+          break;
+        }
+      }
+      if (batchComplete && batch.length < cap) {
+        stats.done = true;
+        stats.next_cursor = "";
+        await metaSet(env, SHELF_SYNC_DONE_KEY, new Date().toISOString());
+        await metaSet(env, SHELF_SYNC_CURSOR_KEY, "");
+        break;
+      }
+      await metaSet(env, SHELF_SYNC_CURSOR_KEY, pos);
+      await metaSet(env, SHELF_SYNC_DONE_KEY, "");
+      if (!all) break;
+      if (Date.now() - started >= ms) break;
+    }
+  } else {
+    stats.done = !!(priorDone && !force);
+  }
+
+  if (refreshPacked) {
+    try {
+      const packed = await refreshPackedIndex(env, { cache });
+      stats.packed = packed && Array.isArray(packed.records) ? packed.records.length : 0;
+      stats.index_sha256 = packed && packed.index_sha256;
+    } catch { /* packed optional */ }
+    try { stats.html_cache = await invalidatePublicHtmlCache(cache); } catch { stats.html_cache = null; }
+  }
+  await metaSet(env, SHELF_SYNC_STATS_KEY, JSON.stringify({
+    processed: stats.processed,
+    tips: stats.tips,
+    packed: stats.packed,
+    done: stats.done,
+    cursor: stats.next_cursor || stats.cursor || "",
+    updated_utc: new Date().toISOString(),
+  }));
   return stats;
 }
 
