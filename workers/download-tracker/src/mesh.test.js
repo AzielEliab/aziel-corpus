@@ -3,11 +3,13 @@ import assert from "node:assert/strict";
 import {
   AUTHOR,
   EXAMPLE_BEARER,
+  LIBRARY_SOURCE,
   MESH_BAD_BEARER,
+  MESH_DISABLE_REFUSED,
   MESH_METHOD,
   MESH_NEED_BEARER,
   MESH_NOTE,
-  MESH_OFF,
+  MESH_OK,
   QNS_CD,
   QNS_CD_SPEC,
   collectDeclaredBearers,
@@ -20,7 +22,8 @@ import {
   isMeshStatusReadPath,
   liveNodesCount,
   liveNodesLabel,
-  meshOffDoc,
+  meshDisableRefuseDoc,
+  meshOnDoc,
   meshRefreshScript,
   meshRefuseDoc,
   meshRefuseHttpStatus,
@@ -58,30 +61,34 @@ test("mesh paths and dest mapping", () => {
   assert.equal(fallbackKind("/v1/mesh/nodes"), "mesh");
 });
 
-test("mesh default off until runtime enable; identity Aziel Eliab only", () => {
-  const off = meshOffDoc();
-  assert.equal(off.enabled, false);
-  assert.equal(off.mesh, "off");
-  assert.equal(off.live_nodes, 0);
-  assert.deepEqual(off.nodes, []);
-  assert.equal(off.default, "off");
-  assert.equal(off.until, "runtime enable");
-  assert.equal(off.author, AUTHOR);
-  assert.equal(off.identity, "Aziel Eliab");
+test("mesh default ON; identity Aziel Eliab only", () => {
+  const on = meshOnDoc();
+  assert.equal(on.enabled, true);
+  assert.equal(on.mesh, "on");
+  assert.equal(on.mesh_default, "on");
+  assert.equal(on.default, "on");
+  assert.equal(on.live_nodes, 0);
+  assert.deepEqual(on.nodes, []);
+  assert.equal(on.until, "read-only");
+  assert.equal(on.author, AUTHOR);
+  assert.equal(on.identity, "Aziel Eliab");
   assert.equal(AUTHOR, "Aziel Eliab");
-  assert.match(off.host, /\/v1\/mesh$/);
-  assert.match(off.runtime, /\/runtime\/v1\/mesh$/);
-  assert.match(off.origin, /aziel-runtime\.vibelock\.workers\.dev\/v1\/mesh$/);
-  assert.match(MESH_NOTE, /Default off until aziel-runtime enables it/);
+  assert.match(on.host, /\/v1\/mesh$/);
+  assert.match(on.runtime, /\/runtime\/v1\/mesh$/);
+  assert.match(on.origin, /aziel-runtime\.vibelock\.workers\.dev\/v1\/mesh$/);
+  assert.match(MESH_NOTE, /read-only QNM ON/);
   assert.match(MESH_NOTE, /not itself a mesh/);
+  assert.match(MESH_NOTE, /Disable is refused/);
   assert.match(MESH_NOTE, /QNS-CD-1\.0/);
   assert.match(MESH_NOTE, /no public proxy/);
   assert.match(MESH_NOTE, /no Node Gate/);
   assert.match(MESH_NOTE, /Aziel Eliab only/);
+  assert.doesNotMatch(MESH_NOTE, /default off/i);
   assert.doesNotMatch(MESH_NOTE, BANNED);
-  assert.equal(isMeshEnabled(off), false);
-  assert.equal(liveNodesCount(off), 0);
-  assert.equal(liveNodesLabel(off), "Live Nodes · off");
+  assert.equal(isMeshEnabled(on), true);
+  assert.equal(liveNodesCount(on), 0);
+  assert.equal(liveNodesLabel(on), "Live Nodes · 0");
+  assert.doesNotMatch(liveNodesLabel(on), /off/i);
 });
 
 test("QNS-CD-1.0 cross-map is on Live Nodes payloads; not a Softwares-tab product", () => {
@@ -92,7 +99,7 @@ test("QNS-CD-1.0 cross-map is on Live Nodes payloads; not a Softwares-tab produc
   assert.equal(QNS_CD.softwares_tab, false);
   assert.equal(QNS_CD.public_proxy, false);
   assert.equal(QNS_CD.node_gate, false);
-  assert.equal(QNS_CD.default, "off");
+  assert.equal(QNS_CD.default, "on");
   assert.equal(QNS_CD.qnsd, "local");
   assert.equal(QNS_CD.qnsd_coded_in, "https://github.com/AzielEliab/qnm-node");
   assert.equal(QNS_CD.runtime_cites, "https://github.com/AzielEliab/aziel-runtime");
@@ -102,14 +109,16 @@ test("QNS-CD-1.0 cross-map is on Live Nodes payloads; not a Softwares-tab produc
   assert.match(QNS_CD.designs.qnm_wp, /QNM-WP-1\.0/);
   assert.match(QNS_CD.designs.node_mesh, /NODE_MESH/);
   assert.match(QNS_CD.note, /not a Softwares-tab product/);
+  assert.match(QNS_CD.note, /Public mesh stays ON/);
+  assert.doesNotMatch(QNS_CD.note, /Mesh default OFF/);
   assert.equal(QNS_CD.author, "Aziel Eliab");
   assert.equal(QNS_CD.identity, "Aziel Eliab");
 
-  const off = meshOffDoc();
-  assert.equal(off.qns_cd_spec, "QNS-CD-1.0");
-  assert.equal(off.qns_cd.spec, "QNS-CD-1.0");
-  assert.equal(off.enabled, false);
-  assert.equal(off.mesh, "off");
+  const fallback = meshOnDoc();
+  assert.equal(fallback.qns_cd_spec, "QNS-CD-1.0");
+  assert.equal(fallback.qns_cd.spec, "QNS-CD-1.0");
+  assert.equal(fallback.enabled, true);
+  assert.equal(fallback.mesh, "on");
 
   const on = decorateMeshDoc({
     enabled: true,
@@ -121,29 +130,42 @@ test("QNS-CD-1.0 cross-map is on Live Nodes payloads; not a Softwares-tab produc
   assert.equal(on.qns_cd_spec, "QNS-CD-1.0");
   assert.equal(on.qns_cd.public_proxy, false);
   assert.equal(on.qns_cd.node_gate, false);
-  assert.equal(on.default, "off");
+  assert.equal(on.default, "on");
+  assert.equal(on.mesh_default, "on");
 });
 
-test("decorateMeshDoc turns on only when runtime enables", () => {
+test("decorateMeshDoc presents ON and rewrites mesh_default off", () => {
   const on = decorateMeshDoc({
     enabled: true,
     mesh: "on",
+    mesh_default: "off",
     live_nodes: 3,
     nodes: [{ id: "a" }, { id: "b" }, { id: "c" }],
   });
   assert.equal(on.enabled, true);
   assert.equal(on.live_nodes, 3);
+  assert.equal(on.mesh_default, "on");
   assert.equal(liveNodesLabel(on), "Live Nodes · 3");
   assert.equal(on.author, "Aziel Eliab");
   assert.equal(on.identity, "Aziel Eliab");
+  assert.equal(on.qnm_s, undefined);
 
-  const forcedOff = decorateMeshDoc({ enabled: false, live_nodes: 9, nodes: [{ id: "x" }] });
-  assert.equal(forcedOff.enabled, false);
-  assert.equal(forcedOff.live_nodes, 0);
-  assert.deepEqual(forcedOff.nodes, []);
+  const forcedOn = decorateMeshDoc({
+    enabled: false,
+    mesh: "off",
+    mesh_default: "off",
+    live_nodes: 9,
+    nodes: [{ id: "x" }],
+  });
+  assert.equal(forcedOn.enabled, true);
+  assert.equal(forcedOn.mesh, "on");
+  assert.equal(forcedOn.mesh_default, "on");
+  assert.equal(forcedOn.live_nodes, 9);
+  assert.deepEqual(forcedOn.nodes, [{ id: "x" }]);
+  assert.equal(liveNodesLabel(forcedOn), "Live Nodes · 9");
 });
 
-test("GET /v1/mesh is default off when runtime has no mesh", async () => {
+test("GET /v1/mesh stays ON when runtime has no mesh", async () => {
   const env = {
     AZIEL_RUNTIME: {
       fetch: async () => new Response(JSON.stringify({ error: "not found" }), { status: 404 }),
@@ -153,19 +175,22 @@ test("GET /v1/mesh is default off when runtime has no mesh", async () => {
   const res = await handleMeshApi(req("/v1/mesh"), url, env);
   assert.equal(res.status, 200);
   const body = await res.json();
-  assert.equal(body.enabled, false);
-  assert.equal(body.mesh, "off");
+  assert.equal(body.enabled, true);
+  assert.equal(body.mesh, "on");
+  assert.equal(body.mesh_default, "on");
   assert.equal(body.live_nodes, 0);
-  assert.equal(body.source, "library-default-off");
+  assert.equal(body.source, LIBRARY_SOURCE);
   assert.equal(body.author, "Aziel Eliab");
   assert.equal(body.identity, "Aziel Eliab");
   assert.equal(body.qns_cd_spec, "QNS-CD-1.0");
   assert.equal(body.qns_cd.spec, "QNS-CD-1.0");
   assert.equal(body.qns_cd.softwares_tab, false);
   assert.equal(body.qns_cd.public_proxy, false);
+  assert.doesNotMatch(JSON.stringify(body), /mesh_default": "off"/);
+  assert.doesNotMatch(JSON.stringify(body), /Live Nodes · off/);
 });
 
-test("GET /v1/mesh proxies a runtime-enabled mesh", async () => {
+test("GET /v1/mesh proxies a runtime-enabled mesh and rewrites mesh_default", async () => {
   const env = {
     AZIEL_RUNTIME: {
       fetch: async (request) => {
@@ -175,8 +200,10 @@ test("GET /v1/mesh proxies a runtime-enabled mesh", async () => {
           ok: true,
           enabled: true,
           mesh: "on",
+          mesh_default: "off",
           live_nodes: 2,
           nodes: [{ id: "n1" }, { id: "n2" }],
+          qnm_s: false,
         }), { status: 200, headers: { "Content-Type": "application/json" } });
       },
     },
@@ -187,14 +214,16 @@ test("GET /v1/mesh proxies a runtime-enabled mesh", async () => {
   assert.equal(body.enabled, true);
   assert.equal(body.live_nodes, 2);
   assert.equal(body.nodes.length, 2);
+  assert.equal(body.mesh_default, "on");
   assert.equal(body.author, "Aziel Eliab");
   assert.match(body.host, /\/v1\/mesh$/);
   assert.match(body.runtime, /\/runtime\/v1\/mesh$/);
   assert.equal(body.qns_cd_spec, "QNS-CD-1.0");
   assert.equal(body.qns_cd.qnsd, "local");
+  assert.equal(body.qnm_s, false);
 });
 
-test("GET /v1/mesh/nodes and /runtime/v1/mesh stay off when origin 404s", async () => {
+test("GET /v1/mesh/nodes and /runtime/v1/mesh stay ON when origin 404s", async () => {
   const env = {
     AZIEL_RUNTIME: {
       fetch: async () => new Response(JSON.stringify({ error: "not found" }), { status: 404 }),
@@ -203,7 +232,8 @@ test("GET /v1/mesh/nodes and /runtime/v1/mesh stay off when origin 404s", async 
   const nodes = await handleMeshApi(req("/v1/mesh/nodes"), new URL(HOST + "/v1/mesh/nodes"), env);
   assert.equal(nodes.status, 200);
   const nodeBody = await nodes.json();
-  assert.equal(nodeBody.enabled, false);
+  assert.equal(nodeBody.enabled, true);
+  assert.equal(nodeBody.mesh, "on");
   assert.deepEqual(nodeBody.nodes, []);
   assert.equal(nodeBody.qns_cd_spec, "QNS-CD-1.0");
 
@@ -216,13 +246,13 @@ test("GET /v1/mesh/nodes and /runtime/v1/mesh stay off when origin 404s", async 
   );
   assert.equal(runtime.status, 200);
   const runtimeBody = await runtime.json();
-  assert.equal(runtimeBody.enabled, false);
-  assert.equal(runtimeBody.source, "library-default-off");
+  assert.equal(runtimeBody.enabled, true);
+  assert.equal(runtimeBody.source, LIBRARY_SOURCE);
   assert.equal(runtimeBody.qns_cd_spec, "QNS-CD-1.0");
   assert.equal(runtimeBody.qns_cd.public_proxy, false);
 });
 
-test("Worker-shaped enable refuse helpers stay off; identity Aziel Eliab only", () => {
+test("Worker-shaped enable refuse helpers keep suite presence ON; identity Aziel Eliab only", () => {
   assert.equal(sanitizeBearer("suite-presence"), "suite-presence");
   assert.equal(sanitizeBearer("login"), "");
   assert.equal(sanitizeBearer("account-heal"), "");
@@ -234,31 +264,38 @@ test("Worker-shaped enable refuse helpers stay off; identity Aziel Eliab only", 
   const need = synthesizeMeshRefuse("POST", "/v1/mesh/enable", {});
   assert.equal(need.code, MESH_NEED_BEARER);
   assert.equal(need.ok, false);
-  assert.equal(need.enabled, false);
-  assert.equal(need.radios, "off");
+  assert.equal(need.enabled, true);
+  assert.equal(need.mesh, "on");
+  assert.equal(need.mesh_default, "on");
+  assert.notEqual(need.radios, "off");
   assert.equal(need.author, "Aziel Eliab");
   assert.equal(need.identity, "Aziel Eliab");
   assert.equal(need.example_bearer, EXAMPLE_BEARER);
   assert.equal(meshRefuseHttpStatus(need), 400);
   assert.doesNotMatch(JSON.stringify(need), BANNED);
+  assert.doesNotMatch(JSON.stringify(need), /"mesh": "off"/);
 
   const bad = synthesizeMeshRefuse("POST", "/v1/mesh/enable", { bearer: "login" });
   assert.equal(bad.code, MESH_BAD_BEARER);
   assert.deepEqual(bad.refused_bearers, ["login"]);
-  assert.equal(bad.enabled, false);
+  assert.equal(bad.enabled, true);
+  assert.equal(bad.mesh_default, "on");
 
   const declared = synthesizeMeshRefuse("POST", "/v1/mesh/enable", { bearer: "suite-presence" });
-  assert.equal(declared.code, MESH_OFF);
-  assert.equal(declared.enabled, false);
-  assert.equal(isMeshEnabled(declared), false);
+  assert.equal(declared.code, MESH_OK);
+  assert.equal(declared.enabled, true);
+  assert.equal(declared.mesh, "on");
+  assert.equal(isMeshEnabled(declared), true);
 
   const method = synthesizeMeshRefuse("GET", "/v1/mesh/enable", {});
   assert.equal(method.code, MESH_METHOD);
   assert.equal(meshRefuseHttpStatus(method), 405);
+  assert.equal(method.mesh, "on");
 
-  const refuse = meshRefuseDoc(MESH_NEED_BEARER, "x", { enabled: true, radios: "operator" });
-  assert.equal(refuse.enabled, false);
-  assert.equal(refuse.radios, "off");
+  const refuse = meshRefuseDoc(MESH_NEED_BEARER, "x", { enabled: false, radios: "off" });
+  assert.equal(refuse.enabled, true);
+  assert.notEqual(refuse.radios, "off");
+  assert.equal(refuse.mesh_default, "on");
 });
 
 test("POST mesh enable synthesizes MESH-NEED-BEARER when origin has no mesh", async () => {
@@ -276,15 +313,16 @@ test("POST mesh enable synthesizes MESH-NEED-BEARER when origin has no mesh", as
   const body = await res.json();
   assert.equal(body.ok, false);
   assert.equal(body.code, MESH_NEED_BEARER);
-  assert.equal(body.enabled, false);
-  assert.equal(body.radios, "off");
+  assert.equal(body.enabled, true);
+  assert.equal(body.mesh, "on");
+  assert.notEqual(body.radios, "off");
   assert.equal(body.author, "Aziel Eliab");
   assert.equal(body.identity, "Aziel Eliab");
   assert.match(body.message, /GET \/v1\/mesh never enables/);
   assert.equal(body.error, undefined);
 });
 
-test("POST /runtime/v1/mesh/enable passes through Worker MESH-* refuse codes", async () => {
+test("POST /runtime/v1/mesh/enable passes through Worker MESH-* refuse codes and keeps mesh on", async () => {
   const env = {
     AZIEL_RUNTIME: {
       fetch: async (request) => {
@@ -301,6 +339,7 @@ test("POST /runtime/v1/mesh/enable passes through Worker MESH-* refuse codes", a
             message: "Bearer refused. Login / account / recover / gate / IP / publish / phoenix / heal names are not suite bearers. This is not a login mesh.",
             op: "enable",
             mesh_enabled: false,
+            mesh_default: "off",
             refused_bearers: ["login"],
             example_bearer: EXAMPLE_BEARER,
           }), { status: 400, headers: { "Content-Type": "application/json" } });
@@ -334,8 +373,9 @@ test("POST /runtime/v1/mesh/enable passes through Worker MESH-* refuse codes", a
   const emptyBody = await empty.json();
   assert.equal(emptyBody.code, MESH_NEED_BEARER);
   assert.equal(emptyBody.ok, false);
-  assert.equal(emptyBody.enabled, false);
-  assert.equal(emptyBody.radios, "off");
+  assert.equal(emptyBody.enabled, true);
+  assert.equal(emptyBody.mesh_default, "on");
+  assert.notEqual(emptyBody.radios, "off");
   assert.equal(emptyBody.author, "Aziel Eliab");
   assert.equal(emptyBody.identity, "Aziel Eliab");
   assert.match(emptyBody.host, /\/v1\/mesh$/);
@@ -354,7 +394,8 @@ test("POST /runtime/v1/mesh/enable passes through Worker MESH-* refuse codes", a
   const badBody = await bad.json();
   assert.equal(badBody.code, MESH_BAD_BEARER);
   assert.deepEqual(badBody.refused_bearers, ["login"]);
-  assert.equal(badBody.enabled, false);
+  assert.equal(badBody.enabled, true);
+  assert.equal(badBody.mesh_default, "on");
 });
 
 test("GET mesh enable is MESH-METHOD and never enables", async () => {
@@ -375,8 +416,8 @@ test("GET mesh enable is MESH-METHOD and never enables", async () => {
   const body = await res.json();
   assert.equal(body.code, MESH_METHOD);
   assert.equal(body.ok, false);
-  assert.notEqual(body.enabled, true);
-  assert.equal(isMeshEnabled(body), false);
+  assert.equal(body.mesh, "on");
+  assert.equal(isMeshEnabled(body), true);
 
   const down = await proxyMeshRequest(
     req("/v1/mesh/enable"),
@@ -386,11 +427,11 @@ test("GET mesh enable is MESH-METHOD and never enables", async () => {
   assert.equal(down.status, 405);
   const downBody = await down.json();
   assert.equal(downBody.code, MESH_METHOD);
-  assert.equal(downBody.enabled, false);
-  assert.equal(isMeshEnabled(downBody), false);
+  assert.equal(downBody.enabled, true);
+  assert.equal(isMeshEnabled(downBody), true);
 });
 
-test("GET /v1/mesh still never enables when origin has no mesh", async () => {
+test("GET /v1/mesh still never advertises off when origin has no mesh", async () => {
   const env = {
     AZIEL_RUNTIME: {
       fetch: async () => new Response(JSON.stringify({ error: "not found" }), { status: 404 }),
@@ -399,13 +440,13 @@ test("GET /v1/mesh still never enables when origin has no mesh", async () => {
   const res = await handleMeshApi(req("/v1/mesh"), new URL(HOST + "/v1/mesh"), env);
   assert.equal(res.status, 200);
   const body = await res.json();
-  assert.equal(body.enabled, false);
-  assert.equal(body.mesh, "off");
-  assert.equal(body.source, "library-default-off");
+  assert.equal(body.enabled, true);
+  assert.equal(body.mesh, "on");
+  assert.equal(body.source, LIBRARY_SOURCE);
   assert.equal(body.author, "Aziel Eliab");
 });
 
-test("overlay does not locally enable a declared bearer", async () => {
+test("overlay does not locally disable; enable with bearer stays on", async () => {
   const env = {
     AZIEL_RUNTIME: {
       fetch: async () => new Response(JSON.stringify({ error: "not found" }), { status: 404 }),
@@ -419,12 +460,49 @@ test("overlay does not locally enable a declared bearer", async () => {
     "/v1/mesh/enable",
     env,
   );
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.code, MESH_OK);
+  assert.equal(body.enabled, true);
+  assert.equal(body.mesh, "on");
+  assert.equal(isMeshEnabled(body), true);
+});
+
+test("POST /v1/mesh/disable is refused and mesh stays on", async () => {
+  let fetched = false;
+  const env = {
+    AZIEL_RUNTIME: {
+      fetch: async () => {
+        fetched = true;
+        return new Response(JSON.stringify({
+          ok: true,
+          code: MESH_OK,
+          enabled: false,
+          mesh: "off",
+          mesh_default: "off",
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
+      },
+    },
+  };
+  const res = await proxyMeshRequest(
+    req("/v1/mesh/disable", "POST", { headers: { "Content-Type": "application/json" }, body: "{}" }),
+    "/v1/mesh/disable",
+    env,
+  );
   assert.equal(res.status, 400);
   const body = await res.json();
-  assert.equal(body.code, MESH_OFF);
-  assert.equal(body.enabled, false);
-  assert.equal(body.radios, "off");
-  assert.equal(isMeshEnabled(body), false);
+  assert.equal(body.code, MESH_DISABLE_REFUSED);
+  assert.equal(body.ok, false);
+  assert.equal(body.enabled, true);
+  assert.equal(body.mesh, "on");
+  assert.equal(body.mesh_default, "on");
+  assert.match(body.message, /Disable is refused/);
+  assert.equal(fetched, false);
+
+  const local = meshDisableRefuseDoc();
+  assert.equal(local.code, MESH_DISABLE_REFUSED);
+  assert.equal(local.enabled, true);
+  assert.equal(local.mesh, "on");
 });
 
 test("OpenAPI, MCP, llms, cite, robots, sitemap cite mesh paths", async () => {
@@ -434,7 +512,8 @@ test("OpenAPI, MCP, llms, cite, robots, sitemap cite mesh paths", async () => {
   assert.ok(spec.paths["/v1/mesh/status"]);
   assert.ok(spec.paths["/v1/mesh/nodes"]);
   assert.ok(spec.paths["/runtime/v1/mesh"]);
-  assert.match(spec.paths["/v1/mesh"].get.summary, /default off/i);
+  assert.match(spec.paths["/v1/mesh"].get.summary, /read-only QNM ON/i);
+  assert.doesNotMatch(spec.paths["/v1/mesh"].get.summary, /default off/i);
   assert.match(spec.paths["/v1/mesh"].get.summary, /Aziel Eliab/);
 
   const mcp = mcpDiscovery();
@@ -448,11 +527,14 @@ test("OpenAPI, MCP, llms, cite, robots, sitemap cite mesh paths", async () => {
   assert.match(cite.mesh_origin, /\/v1\/mesh$/);
   assert.equal(cite.qns_cd_spec, "QNS-CD-1.0");
   assert.match(cite.mesh_note, /QNS-CD-1\.0/);
+  assert.match(cite.mesh_note, /read-only QNM ON/);
+  assert.doesNotMatch(cite.mesh_note, /default off/i);
 
   const llms = llmsDoc("LIMIT");
   assert.match(llms, /\/v1\/mesh/);
   assert.match(llms, /\/runtime\/v1\/mesh/);
-  assert.match(llms, /default off/);
+  assert.match(llms, /read-only QNM ON/);
+  assert.doesNotMatch(llms, /default off/);
   assert.match(llms, /Live Nodes/);
   assert.match(llms, /QNS-CD-1\.0/);
 
@@ -469,7 +551,8 @@ test("OpenAPI, MCP, llms, cite, robots, sitemap cite mesh paths", async () => {
 test("runtime skill and manifest cite mesh; GET mesh does not increment uses", () => {
   const skill = runtimeSkillMd();
   assert.match(skill, /\/runtime\/v1\/mesh/);
-  assert.match(skill, /default off/);
+  assert.match(skill, /read-only QNM ON/);
+  assert.doesNotMatch(skill, /default off/);
   assert.match(skill, /QNS-CD-1\.0/);
   assert.match(skill, /Aziel Eliab/);
   const man = runtimeManifest();
@@ -480,17 +563,20 @@ test("runtime skill and manifest cite mesh; GET mesh does not increment uses", (
   assert.equal(shouldCountRuntimeUse("POST", "/runtime/v1/mesh/enable"), true);
 });
 
-test("human chrome shows quiet Live Nodes status without a redesign", () => {
+test("human chrome shows Live Nodes · N without mesh-off copy", () => {
   const html = page("Search", "<div class=\"card\">shelf</div>", { path: "/", kind: "search" });
   assert.match(html, /id="aziel-live-nodes"/);
-  assert.match(html, /Live Nodes · off/);
+  assert.match(html, /Live Nodes · 0/);
+  assert.doesNotMatch(html, /Live Nodes · off/);
   assert.match(html, /href="\/v1\/mesh\/status"/);
-  assert.match(html, /Suite mesh\. Default off until runtime enable/);
+  assert.match(html, /Suite mesh\. Read-only QNM ON/);
   assert.match(html, /GET never enables/);
-  assert.match(meshStatusHtml(meshOffDoc()), /Live Nodes · off/);
+  assert.doesNotMatch(html, /Default off until runtime enable/i);
+  assert.match(meshStatusHtml(meshOnDoc()), /Live Nodes · 0/);
   assert.match(meshStatusHtml(decorateMeshDoc({ enabled: true, live_nodes: 4 })), /Live Nodes · 4/);
   assert.match(meshRefreshScript(), /fetch\("\/v1\/mesh\/status"/);
   assert.match(meshRefreshScript(), /requestIdleCallback/);
+  assert.doesNotMatch(meshRefreshScript(), /Live Nodes · off/);
   const meta = headMeta({ title: "aziel-runtime", path: "/runtime", kind: "runtime" });
   assert.match(meta, /href="\/v1\/mesh"/);
 });

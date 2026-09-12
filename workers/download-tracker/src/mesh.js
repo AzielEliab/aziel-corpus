@@ -1,12 +1,13 @@
 /**
- * Suite decentralized node mesh — library proxy + default-off status.
- * Public HTTPS is not itself a mesh. Mesh stays off until aziel-runtime enables it.
+ * Suite decentralized node mesh — library proxy + read-only QNM ON.
+ * Public HTTPS is not itself a mesh. Public suite presence stays on.
+ * Disable is refused (no mesh-off kill switch). Overlay never disables radios.
  * QNS-CD-1.0 is a hub cite / Worker mesh cross-map only (photon QNS1 packet transfer).
  * Local qnsd lives in AzielEliab/qnm-node. Runtime cites + catalog field live in
  * AzielEliab/aziel-runtime. AZInterface has pair custody. Not a Softwares-tab product.
  * No Node Gate. No public qnsd proxy. Identity: Aziel Eliab only.
  * Host overlay must not rewrite Worker MESH-* refuse codes into a 409
- * library-default-off body. GET never enables. Overlay never enables radios.
+ * library-default-off body. GET never enables. Overlay never disables radios.
  */
 import { HOST, RUNTIME_ORIGIN, RUNTIME_GITHUB } from "./runtime-copy.js";
 
@@ -24,6 +25,7 @@ export const AUTHOR = "Aziel Eliab";
 export const QNS_CD_SPEC = "QNS-CD-1.0";
 const QNM_NODE = "https://github.com/AzielEliab/qnm-node";
 const AZINTERFACE = "https://github.com/AzielEliab/azinterface";
+export const LIBRARY_SOURCE = "library-default-on";
 
 /** Hub cite / Worker mesh cross-map. Not a Softwares-tab product. No public qnsd. */
 export const QNS_CD = Object.freeze({
@@ -33,7 +35,7 @@ export const QNS_CD = Object.freeze({
   softwares_tab: false,
   public_proxy: false,
   node_gate: false,
-  default: "off",
+  default: "on",
   qnsd: "local",
   qnsd_coded_in: QNM_NODE,
   runtime_cites: RUNTIME_GITHUB,
@@ -54,12 +56,12 @@ export const QNS_CD = Object.freeze({
     "QNS-CD-1.0 photon QNS1 packet transfer. Local qnsd is coded in AzielEliab/qnm-node. "
     + "Runtime cites + catalog field live in AzielEliab/aziel-runtime. "
     + "AZInterface has pair custody. Hub cite / Worker mesh cross-map only — not a Softwares-tab product. "
-    + "No public qnsd proxy. No Node Gate. Mesh default OFF. Author Aziel Eliab only.",
+    + "No public qnsd proxy. No Node Gate. Public mesh stays ON (read-only; disable refused). Author Aziel Eliab only.",
 });
 
 export const MESH_NOTE =
-  "Suite decentralized node mesh. Default off until aziel-runtime enables it. "
-  + "This public HTTPS library is not itself a mesh. "
+  "Suite decentralized node mesh. Public surface is read-only QNM ON. "
+  + "This public HTTPS library is not itself a mesh. Disable is refused — suite presence stays on. "
   + "QNS-CD-1.0 photon QNS1 packet transfer (local qnsd in qnm-node; runtime cite only; no public proxy; no Node Gate). "
   + "Identity Aziel Eliab only.";
 
@@ -82,7 +84,7 @@ export function destMeshPath(pathname, search) {
   return trimmed + (search || "");
 }
 
-/** Align host overlay refuses with aziel-runtime Worker codes. Radios stay OFF here. */
+/** Align host overlay refuses with aziel-runtime Worker codes. Public presence stays ON. */
 export const MESH_SPEC = "QNM-BUILD-1.0";
 export const MESH_COMPANION = "AIH-WP-1.1";
 export const MESH_NAME = "Quantum Node Mesh";
@@ -90,6 +92,8 @@ export const EXAMPLE_BEARER = "suite-presence";
 export const MESH_NEED_BEARER = "MESH-NEED-BEARER";
 export const MESH_BAD_BEARER = "MESH-BAD-BEARER";
 export const MESH_OFF = "MESH-OFF";
+export const MESH_DISABLE_REFUSED = "MESH-DISABLE-REFUSED";
+export const MESH_OVERLAY_NOOP = "MESH-OVERLAY-NOOP";
 export const MESH_METHOD = "MESH-METHOD";
 export const MESH_NOT_FOUND = "MESH-NOT-FOUND";
 export const MESH_OK = "MESH-OK";
@@ -128,8 +132,10 @@ const NEED_BEARER_MESSAGE =
   "LIVE only after the operator declares ≥1 bearer. Pass { bearer: \"suite-presence\" }. Empty enable is refused. GET /v1/mesh never enables.";
 const BAD_BEARER_MESSAGE =
   "Bearer refused. Login / account / recover / gate / IP / publish / phoenix / heal names are not suite bearers. This is not a login mesh.";
-const OFF_MESSAGE =
-  "QNM radios are off. Default OFF. Declare ≥1 bearer with enable first. Site pings do not enable.";
+const DISABLE_REFUSED_MESSAGE =
+  "Public suite presence stays on. Disable is refused. Read-only QNM. GET /v1/mesh never enables. Identity Aziel Eliab only.";
+const OVERLAY_NOOP_MESSAGE =
+  "Host overlay does not toggle suite radios. Public mesh stays on. GET /v1/mesh never enables. Identity Aziel Eliab only.";
 
 export function meshPathOnly(pathname) {
   return String(pathname || "").split("?")[0].replace(/\/+$/, "") || "/";
@@ -188,21 +194,15 @@ export function collectDeclaredBearers(src) {
   return { accepted, rejected, raw };
 }
 
-function radiosOffFields() {
+function radiosOnFields() {
   return {
-    enabled: false,
-    radios: "off",
-    mesh_enabled: false,
-    bearers: [],
-    rollup: { live: 0, locked: 0, isolated: 0 },
-    live_nodes: 0,
-    locked_nodes: 0,
-    isolated_nodes: 0,
-    products_present: [],
-    products: [],
-    nodes: [],
-    mesh: "off",
-    default: "off",
+    enabled: true,
+    radios: "on",
+    mesh_enabled: true,
+    bearers: ["suite-presence"],
+    mesh: "on",
+    default: "on",
+    mesh_default: "on",
   };
 }
 
@@ -220,7 +220,7 @@ function qnmFrame() {
     local_node_note:
       "Full node process is local qnm-node/ (boot/chain/apg/bearers/outbox/phoenix/score/memorial/tethers). "
       + "Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). "
-      + "Parent will roll that package. This runtime is suite rollup + operator enable only.",
+      + "Parent will roll that package. This runtime is suite rollup + read-only public presence.",
     host_note:
       "azieleliab.com hosts published software/runtime — not login-recovery, not Node Gate/IP panel, not upload proxy.",
     qns_cd: QNS_CD,
@@ -234,63 +234,82 @@ function libraryMeshCites(extra = {}) {
     host: HOST + "/v1/mesh",
     runtime: HOST + "/runtime/v1/mesh",
     origin: RUNTIME_ORIGIN + "/v1/mesh",
-    source: extra.source || "library-default-off",
+    source: extra.source || LIBRARY_SOURCE,
     qns_cd_spec: QNS_CD_SPEC,
   };
 }
 
-/** Worker-shaped refuse. Overlay never turns radios on. */
+function presentSuiteOn(doc) {
+  if (!doc || typeof doc !== "object") return meshOnDoc();
+  const next = { ...doc };
+  next.enabled = true;
+  next.mesh_enabled = true;
+  next.mesh = "on";
+  next.default = "on";
+  next.mesh_default = "on";
+  if (next.radios === "off" || next.radios == null) next.radios = "on";
+  return next;
+}
+
+/** Worker-shaped refuse. Overlay never turns radios off. Suite presence stays ON. */
 export function meshRefuseDoc(code, message, extra = {}) {
-  const source = extra.source || "library-default-off";
+  const source = extra.source || LIBRARY_SOURCE;
   const rest = { ...extra };
   delete rest.source;
   delete rest.enabled;
   delete rest.radios;
   delete rest.mesh_enabled;
   delete rest.ok;
-  return {
+  delete rest.mesh;
+  delete rest.mesh_default;
+  delete rest.default;
+  return presentSuiteOn({
     ok: false,
     code,
     author: AUTHOR,
     identity: AUTHOR,
     kernel: "mesh",
-    mesh_default: "off",
     message,
     ...qnmFrame(),
-    ...radiosOffFields(),
+    ...radiosOnFields(),
     ...libraryMeshCites({ source }),
     ...rest,
-    enabled: false,
-    radios: "off",
-    mesh_enabled: false,
-    mesh: "off",
     author: AUTHOR,
     identity: AUTHOR,
     qns_cd_spec: QNS_CD_SPEC,
     qns_cd: QNS_CD,
-  };
+  });
 }
 
-/** Cite host paths on a Worker envelope. Does not enable radios. */
+export function meshDisableRefuseDoc(extra = {}) {
+  return meshRefuseDoc(MESH_DISABLE_REFUSED, DISABLE_REFUSED_MESSAGE, {
+    ...extra,
+    op: "disable",
+    note: "No mesh-off kill switch on this public surface. Overlay does not disable radios.",
+  });
+}
+
+/** Cite host paths on a Worker envelope. Does not enable radios. Never advertises mesh off. */
 export function citeMeshEnvelope(doc, extra = {}) {
   if (!doc || typeof doc !== "object") {
-    return meshRefuseDoc(MESH_OFF, OFF_MESSAGE, extra);
+    return meshOnDoc(extra);
   }
-  const cited = {
+  const cited = presentSuiteOn({
     ...doc,
     ...libraryMeshCites({ source: extra.source || doc.source || "origin-fetch" }),
     author: AUTHOR,
     identity: AUTHOR,
-    qns_cd: doc.qns_cd && typeof doc.qns_cd === "object" ? doc.qns_cd : QNS_CD,
+    qns_cd: QNS_CD,
     qns_cd_spec: QNS_CD_SPEC,
-  };
-  if (doc.ok === false) {
-    cited.enabled = false;
-    cited.mesh_enabled = false;
-    cited.mesh = "off";
-    if (cited.radios == null) cited.radios = "off";
+  });
+  if (String(cited.op || extra.op || "").toLowerCase() === "disable") {
+    return meshDisableRefuseDoc({
+      source: cited.source,
+      live_nodes: cited.live_nodes,
+      nodes: cited.nodes,
+      rollup: cited.rollup,
+    });
   }
-  if (cited.enabled === true && !isMeshEnabled(doc)) cited.enabled = false;
   return cited;
 }
 
@@ -299,10 +318,10 @@ export function synthesizeMeshRefuse(method, destPath, payload, extra = {}) {
   const path = meshPathOnly(destPath);
   const op = meshOpFromPath(path);
   const src = payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {};
-  const source = extra.source || "library-default-off";
+  const source = extra.source || LIBRARY_SOURCE;
 
   if (isMeshStatusReadPath(path) && (m === "GET" || m === "HEAD")) {
-    return meshOffDoc({ source });
+    return meshOnDoc({ source });
   }
 
   if (POST_MESH_OPS[path]) {
@@ -312,6 +331,9 @@ export function synthesizeMeshRefuse(method, destPath, payload, extra = {}) {
         op,
         hint: "POST " + path,
       });
+    }
+    if (op === "disable") {
+      return meshDisableRefuseDoc({ source });
     }
     if (op === "enable") {
       const { accepted, rejected, raw } = collectDeclaredBearers(src);
@@ -330,33 +352,24 @@ export function synthesizeMeshRefuse(method, destPath, payload, extra = {}) {
           example_bearer: EXAMPLE_BEARER,
         });
       }
-      return meshRefuseDoc(MESH_OFF, OFF_MESSAGE, {
-        source,
-        op: "enable",
-        declared_bearers: accepted.slice(0, 8),
-        example_bearer: EXAMPLE_BEARER,
-        note: "Host overlay does not enable radios. GET /v1/mesh never enables. Identity Aziel Eliab only.",
-      });
-    }
-    if (op === "disable" || op === "leave") {
       return {
         ok: true,
         code: MESH_OK,
         author: AUTHOR,
         identity: AUTHOR,
         kernel: "mesh",
-        mesh_default: "off",
+        message: OVERLAY_NOOP_MESSAGE,
         ...qnmFrame(),
-        ...radiosOffFields(),
+        ...radiosOnFields(),
         ...libraryMeshCites({ source }),
-        op,
-        note: op === "disable"
-          ? "Radios/bearers OFF. Tethers drop clean — no implicit heal, no account resurrection, no wipe internals."
-          : "Presence dropped clean. No implicit heal.",
+        op: "enable",
+        declared_bearers: accepted.slice(0, 8),
+        example_bearer: EXAMPLE_BEARER,
+        note: "Host overlay does not toggle radios. Public mesh stays on. GET /v1/mesh never enables. Identity Aziel Eliab only.",
         qns_cd: QNS_CD,
       };
     }
-    return meshRefuseDoc(MESH_OFF, OFF_MESSAGE, { source, op });
+    return meshRefuseDoc(MESH_OVERLAY_NOOP, OVERLAY_NOOP_MESSAGE, { source, op });
   }
 
   if (path === "/v1/mesh" || path === "/v1/mesh/status") {
@@ -378,58 +391,76 @@ export function isMeshEnabled(doc) {
   if (!doc || typeof doc !== "object") return false;
   if (doc.enabled === true) return true;
   const mesh = String(doc.mesh == null ? "" : doc.mesh).toLowerCase();
-  return mesh === "on" || mesh === "enabled" || mesh === "live";
+  if (mesh === "on" || mesh === "enabled" || mesh === "live") return true;
+  const def = String(doc.mesh_default == null ? doc.default : doc.mesh_default).toLowerCase();
+  return def === "on";
 }
 
 export function liveNodesCount(doc) {
   if (!doc || typeof doc !== "object") return 0;
-  if (!isMeshEnabled(doc)) return 0;
   if (doc.live_nodes != null && Number.isFinite(Number(doc.live_nodes))) return Number(doc.live_nodes);
   if (doc.node_count != null && Number.isFinite(Number(doc.node_count))) return Number(doc.node_count);
+  if (doc.rollup && doc.rollup.live != null && Number.isFinite(Number(doc.rollup.live))) {
+    return Number(doc.rollup.live);
+  }
   if (Array.isArray(doc.nodes)) return doc.nodes.length;
   return 0;
 }
 
 export function liveNodesLabel(doc) {
-  if (isMeshEnabled(doc)) return "Live Nodes · " + liveNodesCount(doc);
-  return "Live Nodes · off";
+  return "Live Nodes · " + liveNodesCount(doc);
 }
 
-export function meshOffDoc(extra = {}) {
+export function meshOnDoc(extra = {}) {
+  const rest = { ...extra };
+  delete rest.enabled;
+  delete rest.mesh;
+  delete rest.mesh_default;
+  delete rest.default;
   return {
     ok: true,
-    enabled: false,
-    mesh: "off",
-    live_nodes: 0,
-    nodes: [],
-    default: "off",
-    until: "runtime enable",
+    code: MESH_OK,
+    enabled: true,
+    mesh: "on",
+    mesh_default: "on",
+    live_nodes: rest.live_nodes != null && Number.isFinite(Number(rest.live_nodes))
+      ? Number(rest.live_nodes)
+      : 0,
+    nodes: Array.isArray(rest.nodes) ? rest.nodes : [],
+    default: "on",
+    until: "read-only",
     author: AUTHOR,
     identity: AUTHOR,
     host: HOST + "/v1/mesh",
     runtime: HOST + "/runtime/v1/mesh",
     origin: RUNTIME_ORIGIN + "/v1/mesh",
     note: MESH_NOTE,
-    source: extra.source || "library-default-off",
-    ...extra,
+    source: rest.source || LIBRARY_SOURCE,
+    ...rest,
+    enabled: true,
+    mesh: "on",
+    mesh_default: "on",
+    default: "on",
     qns_cd_spec: QNS_CD_SPEC,
     qns_cd: QNS_CD,
   };
 }
 
+/** Alias: public surface is ON. Leftover imports must not advertise mesh off. */
+export function meshOffDoc(extra = {}) {
+  return meshOnDoc(extra);
+}
+
 export function decorateMeshDoc(doc, extra = {}) {
-  if (!doc || typeof doc !== "object") return meshOffDoc(extra);
-  const enabled = isMeshEnabled(doc);
+  if (!doc || typeof doc !== "object") return meshOnDoc(extra);
   const nodes = Array.isArray(doc.nodes) ? doc.nodes : [];
-  return {
+  const live = liveNodesCount({ ...doc, enabled: true, mesh: "on", nodes });
+  return presentSuiteOn({
     ...doc,
     ok: doc.ok !== false,
-    enabled,
-    mesh: enabled ? (doc.mesh && String(doc.mesh).toLowerCase() !== "off" ? doc.mesh : "on") : "off",
-    live_nodes: enabled ? liveNodesCount({ ...doc, enabled: true, nodes }) : 0,
-    nodes: enabled ? nodes : [],
-    default: "off",
-    until: "runtime enable",
+    live_nodes: live,
+    nodes,
+    until: "read-only",
     author: AUTHOR,
     identity: AUTHOR,
     host: HOST + "/v1/mesh",
@@ -439,7 +470,7 @@ export function decorateMeshDoc(doc, extra = {}) {
     source: extra.source || doc.source || "runtime",
     qns_cd_spec: QNS_CD_SPEC,
     qns_cd: QNS_CD,
-  };
+  });
 }
 
 function meshJson(body, status = 200) {
@@ -552,17 +583,22 @@ export async function proxyMeshRequest(request, destPathAndQuery, env) {
   const method = String(request.method || "GET").toUpperCase();
   const destPath = meshPathOnly(destPathAndQuery);
   const statusRead = isMeshStatusReadPath(destPath);
+  const op = meshOpFromPath(destPath);
   const { payload, bodyText } = await readJsonPayload(request);
   const outbound = requestWithBody(request, bodyText);
+
+  if (op === "disable" && method === "POST") {
+    return respondMeshEnvelope(request, meshDisableRefuseDoc({ source: LIBRARY_SOURCE }));
+  }
 
   let res;
   try {
     res = await fetchRuntimeMesh(outbound, destPathAndQuery, env, bodyText);
   } catch {
     if (statusRead && (method === "GET" || method === "HEAD")) {
-      return respondMaybeHead(request, meshJson(meshOffDoc({ source: "library-default-off" })));
+      return respondMaybeHead(request, meshJson(meshOnDoc({ source: LIBRARY_SOURCE })));
     }
-    return respondMeshEnvelope(request, synthesizeMeshRefuse(method, destPath, payload, { source: "library-default-off" }));
+    return respondMeshEnvelope(request, synthesizeMeshRefuse(method, destPath, payload, { source: LIBRARY_SOURCE }));
   }
 
   let doc = null;
@@ -586,7 +622,7 @@ export async function proxyMeshRequest(request, destPathAndQuery, env) {
     if (res && res.ok && looksLikeMeshDoc(doc)) {
       return respondMaybeHead(request, meshJson(decorateMeshDoc(doc, { source: originSource(env) })));
     }
-    return respondMaybeHead(request, meshJson(meshOffDoc({ source: "library-default-off" })));
+    return respondMaybeHead(request, meshJson(meshOnDoc({ source: LIBRARY_SOURCE })));
   }
 
   if (res && res.ok && doc && typeof doc === "object") {
@@ -594,7 +630,7 @@ export async function proxyMeshRequest(request, destPathAndQuery, env) {
   }
 
   await cancelBody(res);
-  return respondMeshEnvelope(request, synthesizeMeshRefuse(method, destPath, payload, { source: "library-default-off" }));
+  return respondMeshEnvelope(request, synthesizeMeshRefuse(method, destPath, payload, { source: LIBRARY_SOURCE }));
 }
 
 export async function handleMeshApi(request, url, env) {
@@ -609,10 +645,8 @@ export async function handleMeshApi(request, url, env) {
 }
 
 export function meshStatusHtml(doc) {
-  const enabled = isMeshEnabled(doc);
   const label = liveNodesLabel(doc);
-  const cls = enabled ? "pill ok" : "pill";
-  return `<a class="${cls}" id="aziel-live-nodes" href="/v1/mesh/status" title="Suite mesh. Default off until runtime enable. GET never enables. Author Aziel Eliab.">${esc(label)}</a>`;
+  return `<a class="pill ok" id="aziel-live-nodes" href="/v1/mesh/status" title="Suite mesh. Read-only QNM ON. GET never enables. Author Aziel Eliab.">${esc(label)}</a>`;
 }
 
 export function meshRefreshScript() {
@@ -624,10 +658,9 @@ export function meshRefreshScript() {
     fetch("/v1/mesh/status",{headers:{"Accept":"application/json","User-Agent":"Mozilla/5.0"}}).then(function(r){return r.json();}).then(function(d){
       if(!d)return;
       var src=d.origin&&typeof d.origin==="object"?d.origin:d;
-      var on=d.enabled===true||(src&&src.enabled===true)||d.mesh==="on"||d.mesh==="enabled"||d.mesh==="live";
       var n=d.live_nodes!=null?d.live_nodes:(src&&src.live_nodes!=null?src.live_nodes:(d.nodes&&d.nodes.length)||(src&&src.rollup&&src.rollup.live)||0);
-      el.textContent=on?("Live Nodes \\u00b7 "+n):"Live Nodes \\u00b7 off";
-      if(on)el.className="pill ok";
+      el.textContent="Live Nodes \\u00b7 "+n;
+      el.className="pill ok";
     }).catch(function(){});
   }
   if("requestIdleCallback" in window)requestIdleCallback(run,{timeout:2500});

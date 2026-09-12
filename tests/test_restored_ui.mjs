@@ -87,7 +87,8 @@ test("homepage brandrow shows views, downloads, and Live Nodes pills", () => {
   assert.match(html, /href="\/stats"[^>]*>2199<span>downloads<\/span>/);
   assert.match(html, /id="aziel-live-nodes"/);
   assert.match(html, /href="\/v1\/mesh\/status"/);
-  assert.match(html, /Live Nodes · off/);
+  assert.match(html, /Live Nodes · 0/);
+  assert.doesNotMatch(html, /Live Nodes · off/);
   assert.doesNotMatch(html, /Views 380386 · Counted downloads 2199/);
   const brand = html.indexOf("class=\"brandrow");
   const viewsAt = html.indexOf('id="views"');

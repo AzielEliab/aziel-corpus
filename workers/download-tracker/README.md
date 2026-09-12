@@ -31,7 +31,7 @@ Custom domains: www.azielcorpuslibrary.net and azielcorpuslibrary.net
 - GET /v1/search?q=&lib=all|aziel|corpus
 - GET /v1/review?record_id=  triad composite + SPRE + CLCE + PhysLing + Bayesian (unranked)
 - GET /v1/lattice?record_id=  AzielTether tip (site is not a mesh)
-- GET /v1/mesh and /runtime/v1/mesh  suite node mesh status (default off until aziel-runtime enable; Live Nodes empty while off). Payload cites QNS-CD-1.0 (photon QNS1 packet transfer) as a hub / Worker mesh cross-map: local qnsd in https://github.com/AzielEliab/qnm-node, runtime cites in https://github.com/AzielEliab/aziel-runtime, pair custody in AZInterface. Not a Softwares-tab product. No public qnsd proxy. No Node Gate.
+- GET /v1/mesh and /runtime/v1/mesh  suite node mesh status (read-only QNM ON; Live Nodes · N while mesh on). Payload cites QNS-CD-1.0 (photon QNS1 packet transfer) as a hub / Worker mesh cross-map: local qnsd in https://github.com/AzielEliab/qnm-node, runtime cites in https://github.com/AzielEliab/aziel-runtime, pair custody in AZInterface. Not a Softwares-tab product. No public qnsd proxy. No Node Gate. Disable is refused.
 - GET /v1/verify-backfill  score unscored records (skip unless force=1)
 - GET /v1/verify-backfill?rebuild=1  copy already-scored triad/ZionPattern onto packed `library:index:v1` and lattice tips, then bust homepage HTML cache. **After Worker deploy**, hit this once so the live shelf drops “pending backfill” for docs `/v1/review` already scored. `?all=1` also syncs the shelf when the walk finishes. `done:true` no longer skips the shelf write.
 - GET /v1/verify-geo?force=1 / ?status=1  chunked paper-date × event × geolocation pins (never upload time)

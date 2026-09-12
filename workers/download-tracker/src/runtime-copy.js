@@ -160,7 +160,7 @@ export const RUNTIME_LIMITATION =
   + "Not an API aggregator. One door — discover, route, refuse. " + RUNTIME_LIVE_COUNT + " live advisory engines; " + RUNTIME_LOCAL_ONLY + " stays local_only; stub verbs refuse. "
   + "Prefer same-origin /runtime/*. " + RUNTIME_ORIGIN + " is the alternate origin (sameAs). "
   + "Catalog, pull, OpenAPI, MCP, skill, and FragGate remain. HTTP /p/{slug}/{op} is a proxy and is not exec. "
-  + "Session tools are advanced/internal. Hosted AZAI is protocol mirror + Lamb check, not the blend. Suite mesh default off until runtime enable. GET /v1/mesh never enables. This public HTTPS surface is not itself a mesh. "
+  + "Session tools are advanced/internal. Hosted AZAI is protocol mirror + Lamb check, not the blend. Suite mesh is read-only QNM ON. GET /v1/mesh never enables. Disable is refused. This public HTTPS surface is not itself a mesh. "
   + "THIS IS NOT: a second software index. The Software tab stays the product-card catalog. No invented Zenodo DOIs. Author Aziel Eliab only.";
 
 export const RUNTIME_NOTE = runtimeNote();
@@ -177,7 +177,7 @@ export function runtimeHowTo(host) {
     RUNTIME_CHANGELOG.join("\n"),
     "",
     "Live count: " + RUNTIME_LIVE_COUNT + " advisory engines (must match /runtime/v1/health). "
-      + RUNTIME_LOCAL_ONLY + " stays local_only. Stubs refuse. Suite mesh default off until runtime enable. GET /v1/mesh never enables.",
+      + RUNTIME_LOCAL_ONLY + " stays local_only. Stubs refuse. Suite mesh is read-only QNM ON. GET /v1/mesh never enables. Disable is refused.",
     "One door — discover, route, refuse. Kernel: " + RUNTIME_KERNEL + " (FG-0.1).",
     "Prefer these library URLs. Alternate origin: " + RUNTIME_ORIGIN + "/",
     "",
@@ -197,7 +197,7 @@ export function runtimeHowTo(host) {
     "- FragGate call: POST " + h + "/runtime/v1/fraggate/call",
     "- Health: " + h + "/runtime/v1/health",
     "- Uses (this door): " + h + "/runtime/v1/uses",
-    "- Suite mesh (default off until runtime enable): " + h + "/runtime/v1/mesh  (also " + h + "/v1/mesh). QNS-CD-1.0 photon QNS1 cross-map (hub cite only; local qnsd in qnm-node; no public proxy; no Node Gate). GET never enables.",
+    "- Suite mesh (read-only QNM ON): " + h + "/runtime/v1/mesh  (also " + h + "/v1/mesh). QNS-CD-1.0 photon QNS1 cross-map (hub cite only; local qnsd in qnm-node; no public proxy; no Node Gate). GET never enables. Disable is refused.",
     "- Manifest: " + h + "/runtime/v1/runtime.json",
     "- Skill: " + h + "/runtime/v1/skill",
     "- OpenAPI: " + h + "/runtime/openapi.json",
