@@ -31,7 +31,7 @@ import {
   runtimeUsesPayload,
   runtimeUsesResponse,
 } from "./runtime-uses.js";
-import { MESH_NOTE, QNS_CD_SPEC, meshOffDoc, proxyMeshRequest } from "./mesh.js";
+import { MESH_NOTE, QNS_CD_SPEC, meshOnDoc, proxyMeshRequest } from "./mesh.js";
 import { fetchLiveRuntimeVersion } from "./software-catalog.js";
 
 export {
@@ -85,7 +85,7 @@ ${runtimeHowTo(HOST)}
 - Pull: \`GET ${HOST}/runtime/v1/pull/{slug}\`
 - Bundle: \`GET ${HOST}/runtime/v1/bundle/{slug}\`
 - Catalog: \`GET ${HOST}/runtime/v1/catalog.json\`
-- Suite mesh (default off until runtime enable): \`GET ${HOST}/runtime/v1/mesh\` · \`GET ${HOST}/v1/mesh\` — QNS-CD-1.0 photon QNS1 cross-map (hub cite; local qnsd in qnm-node; no public proxy)
+- Suite mesh (read-only QNM ON): \`GET ${HOST}/runtime/v1/mesh\` · \`GET ${HOST}/v1/mesh\` — QNS-CD-1.0 photon QNS1 cross-map (hub cite; local qnsd in qnm-node; no public proxy)
 - OpenAPI: \`GET ${HOST}/runtime/openapi.json\`
 - MCP: \`POST ${HOST}/runtime/mcp\`
 - Runtime llms.txt: ${HOST}/runtime/llms.txt
@@ -294,7 +294,7 @@ async function cancelBody(res) {
 }
 
 async function fallbackResponse(request, kind) {
-  if (kind === "mesh") return respondMaybeHead(request, json(meshOffDoc({ source: "library-default-off" })));
+  if (kind === "mesh") return respondMaybeHead(request, json(meshOnDoc({ source: "library-default-on" })));
   if (kind === "runtime.json") return respondMaybeHead(request, json(runtimeManifest("library-fallback")));
   if (kind === "skill") {
     return respondMaybeHead(request, new Response(runtimeSkillMd(), {
