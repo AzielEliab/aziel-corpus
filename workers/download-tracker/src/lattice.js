@@ -23,6 +23,7 @@ export function latticeAnchorTip({
   run_id,
   media_kind,
   vibe_digest,
+  zsolver,
 } = {}) {
   const r = review || {};
   return {
@@ -50,6 +51,7 @@ export function latticeAnchorTip({
       ? { posterior: r.bayesian.posterior, unranked: true, note: r.bayesian.note }
       : null,
     quarantine: r.quarantine_status && r.quarantine_status !== "CLEAR" ? r.quarantine_status : null,
+    zsolver: zsolver && typeof zsolver === "object" ? zsolver : null,
     ledger_entry_hash: ledger_entry_hash || null,
     verified_utc: verified_utc || new Date().toISOString(),
     note: LATTICE_NOTE,

@@ -5,6 +5,7 @@
  * Author: Aziel Eliab only. Not a VPN. Not a Node Gate.
  */
 import { createHash } from "node:crypto";
+import { compactZsolverPublic, shelfScoreState, zsolverFromRow } from "./zsolver.js";
 
 export const LIBRARY_INDEX_KEY = "library:index:v1";
 export const KV_CACHE_TTL = 3600;
@@ -21,7 +22,7 @@ export const SOFTWARE_HTML_CACHE_CONTROL = SEO_CACHE_CONTROL;
 export const SOFTWARE_CATALOG_CACHE_URL = "https://azielcorpuslibrary.net/__cache/software-catalog-v1";
 export const AUTHOR = "Aziel Eliab";
 export const INDEX_CACHE_URL = "https://azielcorpuslibrary.net/__cache/library-index-v1";
-export const HTML_CACHE_PREFIX = "https://azielcorpuslibrary.net/__cache/html";
+export const HTML_CACHE_PREFIX = "https://azielcorpuslibrary.net/__cache/html-scores-v1";
 
 const PROJECT = "aziel-corpus";
 
@@ -256,7 +257,9 @@ export function cardFromRecord(row) {
   if (!id) return null;
   const shelf = shelfOf(row);
   const updated = String(row.updated || row.updated_utc || row.ts || row.created_utc || "");
-  return {
+  const scores = shelfScoreState(row);
+  const z = compactZsolverPublic(zsolverFromRow(row));
+  const card = {
     id,
     record_id: id,
     title: String(row.title || id),
@@ -273,14 +276,22 @@ export function cardFromRecord(row) {
     keywords: String(row.keywords || ""),
     filename: String(row.filename || ""),
     href: "/record/" + id,
+    triad_combined: row.triad_combined != null ? Number(row.triad_combined) : null,
+    triad_display: scores.triad_display,
+    zsolver: z,
+    zsolver_status: z && z.status,
+    zsolver_applicable: z ? z.applicable !== false : null,
   };
+  if (scores.zsolver_display != null) card.zsolver_display = scores.zsolver_display;
+  if (scores.zsolver_seed) card.zsolver_seed = true;
+  return card;
 }
 
 /** Public /v1/search card. AZDOC id, title, shelf, content_sha256, chain_tip, updated. No PDF body. */
 export function publicSearchCard(row) {
   const card = cardFromRecord(row);
   if (!card) return null;
-  return {
+  const out = {
     id: card.id,
     record_id: card.record_id,
     title: card.title,
@@ -298,24 +309,39 @@ export function publicSearchCard(row) {
     filename: card.filename,
     href: card.href,
   };
+  if (card.triad_display != null) out.triad_display = card.triad_display;
+  if (card.zsolver_display != null) out.zsolver_display = card.zsolver_display;
+  if (card.zsolver && card.zsolver.status === "not_applicable") {
+    /* omit ZionPattern from search JSON when N/A */
+  } else if (card.zsolver) {
+    out.zsolver = card.zsolver;
+  }
+  return out;
 }
 
 export async function loadShelfCards(env, { limit = 500 } = {}) {
   if (!env || !env.DB || typeof env.DB.prepare !== "function") return [];
   const lim = Math.min(Math.max(Number(limit) || 500, 1), 500);
   const sql =
-    "SELECT record_id, title, author, library, content_sha256, chain_tip, created_utc, domain, subjects, keywords, filename FROM records WHERE IFNULL(shelf_hidden,0) = 0 ORDER BY created_utc DESC LIMIT ?";
+    "SELECT record_id, title, author, library, content_sha256, chain_tip, created_utc, domain, subjects, keywords, filename, triad_combined, zsolver_score, zsolver_status, zsolver_json FROM records WHERE IFNULL(shelf_hidden,0) = 0 ORDER BY created_utc DESC LIMIT ?";
   try {
     const rows = (await env.DB.prepare(sql).bind(lim).all()).results || [];
     return rows.map(cardFromRecord).filter(Boolean);
   } catch {
     try {
       const fallback =
-        "SELECT record_id, title, author, library, content_sha256, created_utc, domain, subjects, keywords, filename FROM records ORDER BY created_utc DESC LIMIT ?";
+        "SELECT record_id, title, author, library, content_sha256, created_utc, domain, subjects, keywords, filename, triad_combined FROM records ORDER BY created_utc DESC LIMIT ?";
       const rows = (await env.DB.prepare(fallback).bind(lim).all()).results || [];
       return rows.map(cardFromRecord).filter(Boolean);
     } catch {
-      return [];
+      try {
+        const fallback =
+          "SELECT record_id, title, author, library, content_sha256, created_utc, domain, subjects, keywords, filename FROM records ORDER BY created_utc DESC LIMIT ?";
+        const rows = (await env.DB.prepare(fallback).bind(lim).all()).results || [];
+        return rows.map(cardFromRecord).filter(Boolean);
+      } catch {
+        return [];
+      }
     }
   }
 }

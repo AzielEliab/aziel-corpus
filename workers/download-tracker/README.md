@@ -17,7 +17,7 @@ Custom domains: www.azielcorpuslibrary.net and azielcorpuslibrary.net
 - GET /download and GET /v1/download: counted Softwares zip (streamed HTTP 200) or honest 2xx descriptor when the asset is missing. Catalog `download_url` is `/download`.
 - GET /donate: AZL-DONATE-1.0 static Donate door + chrome strip. Exodus rails (BTC/ETH/LTC/XRP/DOGE/SOL/TRX). Copy, open-in-wallet, solid black-on-white PNG payment-URI QR. Does not touch KV. Not a catalog item.
 - GET /v1/library-index: packed shelf cards (`library:index:v1`). One KV get + Cache-Control. No PDF bodies.
-- GET /v1/search: filters packed `library:index:v1` in memory (one KV get). AZDOC cards: id, title, shelf, content_sha256, chain_tip. ChainLock library-sync client. `Cache-Control: public, s-maxage=120, stale-while-revalidate=3600`.
+- GET /v1/search: filters packed `library:index:v1` in memory (one KV get). AZDOC cards: id, title, shelf, content_sha256, chain_tip, triad_display, zsolver_display (omitted when ZionPattern is not_applicable). ChainLock library-sync client. `Cache-Control: public, s-maxage=120, stale-while-revalidate=3600`.
 - GET /v1/health: standby / tunnel-primary failover fields (`role=standby`, `index_sha256`). See `docs/TUN-WP-0.1.md` and `docs/RL-WP-0.1-library.md`.
 - Public read paths: uncapped for normal humans and SEO crawlers. Cost cut is packed `library:index:v1` + Cache-Control (no `KV.list()`). Soft 429 only on extreme write/walk API fan-out. Operator token uncapped. Not a Node Gate. Not a VPN.
 - GET/HEAD /runtime: Aziel Runtime 2.0.0-rc1 SEO shell (cite/pull live /v1/health version; fallback 2.0.0-rc1). Abstract leads. Changelog/version below. Distribution: Try on Glama is the primary Runtime CTA (owner/repo listing — no invented server id); Source on GitHub; Documentation (docs/2.0); Official Runtime Worker stays a muted text link (online via AZIEL_RUNTIME binding — not the hero CTA). 37 live advisory engines; VeilLock local_only; stubs refuse. Prefer /runtime/*. Remain-OFF untouched. GET /v1/mesh never enables.
@@ -33,6 +33,7 @@ Custom domains: www.azielcorpuslibrary.net and azielcorpuslibrary.net
 - GET /v1/lattice?record_id=  AzielTether tip (site is not a mesh)
 - GET /v1/mesh and /runtime/v1/mesh  suite node mesh status (default off until aziel-runtime enable; Live Nodes empty while off). Payload cites QNS-CD-1.0 (photon QNS1 packet transfer) as a hub / Worker mesh cross-map: local qnsd in https://github.com/AzielEliab/qnm-node, runtime cites in https://github.com/AzielEliab/aziel-runtime, pair custody in AZInterface. Not a Softwares-tab product. No public qnsd proxy. No Node Gate.
 - GET /v1/verify-backfill  score unscored records (skip unless force=1)
+- GET /v1/verify-backfill?rebuild=1  copy already-scored triad/ZionPattern onto packed `library:index:v1` and lattice tips, then bust homepage HTML cache. **After Worker deploy**, hit this once so the live shelf drops “pending backfill” for docs `/v1/review` already scored. `?all=1` also syncs the shelf when the walk finishes. `done:true` no longer skips the shelf write.
 - GET /v1/verify-geo?force=1 / ?status=1  chunked paper-date × event × geolocation pins (never upload time)
 - GET /v1/document-chain?record_id=  per-document hash-chain
 - POST /v1/score  preview review, no write

@@ -150,9 +150,13 @@ class ReviewVaultTest(unittest.TestCase):
         self.assertIsNone(v.find_record_id_by_hash('0'*64))
         self.assertLessEqual(int(rec['review']['triad']['display']),100)
         self.assertIsNotNone(rec.get('zsolver'))
-        self.assertIn('capped_confidence',rec['zsolver'])
-        self.assertLessEqual(float(rec['zsolver']['capped_confidence']),0.75)
-        self.assertNotIn('boost',json.dumps(rec['zsolver']))
+        zrep=rec['zsolver']
+        if zrep.get('status')=='not_applicable' or zrep.get('applicable') is False:
+            self.assertNotEqual(zrep.get('display'),0)
+        else:
+            self.assertIn('capped_confidence',zrep)
+            self.assertLessEqual(float(zrep['capped_confidence']),0.75)
+        self.assertNotIn('boost',json.dumps(zrep))
         (inp/'A Treatise on Gravity Measurement.txt').write_text('Independent primary source measurement of 4 joules. Archive ledger hash recorded in Florence.',encoding='utf-8')
         (inp/'A Treatise on Gravity Measurement (Revised).txt').write_text('Independent primary source measurement of 4 joules, revised edition. Archive ledger hash recorded in Florence.',encoding='utf-8')
         later=v.ingest([inp/'A Treatise on Gravity Measurement.txt', inp/'A Treatise on Gravity Measurement (Revised).txt'])

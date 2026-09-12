@@ -524,7 +524,7 @@ export function citeDoc() {
     docs_download: HOST + "/v1/docs/{hash}/download",
     triad: "TRIAD_V1 geometric mean of SPRE, CLCE, and PhysLing — primary visible score. AZCoherence (azcoherence) is a second-pass scoring-review (peer AZ-CLCE; not AKM-TRIAD; not inside this mean). See " + HOST + "/how-its-scored",
     succession: "Exact-same-subject paper cites: Supersedes / Superseded by on the record page and GET /v1/review. Uncertain matches are not chained.",
-    zsolver: "ZionPattern Solver secondary public score on every record. Separate from triad. 75 means intentional suppression confidence; lower is more natural. Hard 75 ceiling / 25 uncertainty floor. Provisional. Does not solve cases. A superseding document that proves a pattern break with first-hand / primary materials force-rescores the succession chain; narrative and second-source materials never trigger that rescore.",
+    zsolver: "ZionPattern Solver secondary public score. Separate from triad. Qualifies for historical, research, investigation, and crime documents; philosophy, software, hardware, and designs omit the line (never 0). Zioncheck Visual Archive vols 1–5 seed baseline display 75. 75 means intentional suppression confidence; lower is more natural. Hard 75 ceiling / 25 uncertainty floor. Provisional. Does not solve cases. A superseding document that proves a pattern break with first-hand / primary materials force-rescores the succession chain; narrative and second-source materials never trigger that rescore.",
     azcoherence: AZCOHERENCE,
     azcoherence_slug: AZCOHERENCE.slug,
     azclce: {

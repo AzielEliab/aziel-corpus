@@ -8,6 +8,9 @@ ZSOLVER_HOST = "https://zsolver-download-tracker.vibelock.workers.dev"
 ZSOLVER_DISCLAIMER = "Provisional and assistive only. Does not solve Zioncheck or any case. Hard cap 75% / uncertainty floor 25%."
 ZSOLVER_CAP = 0.75
 ZSOLVER_FLOOR = 0.25
+ZSOLVER_SEED_DISPLAY = 75
+ZSOLVER_QUALIFY_MAINS = ("history", "historical", "research", "investigation", "crime")
+ZSOLVER_OMIT_MAINS = ("philosophy", "software", "hardware", "design", "designs")
 PATTERN_IDS = ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9"]
 SIGNALS = {
     "P1": {"yes": ["unexplained gap", "timeline contradiction", "clocks cannot", "kinematic impossibility"], "no": ["timeline consistent", "clocks agree"]},
@@ -20,6 +23,75 @@ SIGNALS = {
     "P8": {"yes": ["same-day suicide conclusion", "narrative lock", "wire-service locked"], "no": []},
     "P9": {"yes": ["missing measurements", "no coroner file", "forensic gap", "no independent examiner"], "no": ["independent measurements"]},
 }
+
+def is_zioncheck_seed_vol(doc=None):
+    bag = "\n".join(str((doc or {}).get(k) or "") for k in ("title", "filename", "subjects", "keywords"))
+    if "zioncheck" not in bag.lower():
+        return False
+    import re
+    return bool(re.search(r"\bvol(?:ume)?\.?\s*[1-5]\b", bag, re.I))
+
+def classify_zsolver_applicability(doc=None):
+    doc = doc or {}
+    if is_zioncheck_seed_vol(doc):
+        return {"applicable": True, "seed_corpus": True, "baseline": True, "reason": "Zioncheck Visual Archive vols 1–5 seed baseline"}
+    mains = set()
+    for raw in str(doc.get("domain") or "").replace("/", ",").split(","):
+        head = raw.strip().lower().split(":")[0]
+        if head == "historical":
+            mains.add("history")
+        elif head == "designs":
+            mains.add("design")
+        elif head:
+            mains.add(head)
+    omit = [m for m in mains if m in ZSOLVER_OMIT_MAINS]
+    if omit:
+        return {"applicable": False, "seed_corpus": False, "baseline": False, "reason": "not applicable for " + ", ".join(omit)}
+    qualify = [m for m in mains if m in ZSOLVER_QUALIFY_MAINS or m == "history"]
+    if qualify:
+        return {"applicable": True, "seed_corpus": False, "baseline": False, "reason": "qualifies as " + ", ".join(qualify)}
+    return {"applicable": False, "seed_corpus": False, "baseline": False, "reason": "not historical, research, investigation, or crime"}
+
+def not_applicable_zsolver(reason="not_applicable"):
+    return {
+        "engine": "zsolver",
+        "product": "zsolver",
+        "author": "Aziel Eliab",
+        "capped_confidence": None,
+        "display": None,
+        "status": "not_applicable",
+        "applicable": False,
+        "seed_corpus": False,
+        "baseline": False,
+        "reason": reason,
+        "disclaimer": ZSOLVER_DISCLAIMER,
+        "provisional": True,
+        "assistive": True,
+        "solves_cases": False,
+        "separate_from_triad": True,
+        "source": "not_applicable",
+    }
+
+def seed_baseline_zsolver():
+    return {
+        "engine": "zsolver",
+        "product": "zsolver",
+        "author": "Aziel Eliab",
+        "capped_confidence": ZSOLVER_CAP,
+        "raw_confidence": ZSOLVER_CAP,
+        "uncertainty": ZSOLVER_FLOOR,
+        "display": ZSOLVER_SEED_DISPLAY,
+        "status": "scored",
+        "applicable": True,
+        "seed_corpus": True,
+        "baseline": True,
+        "disclaimer": ZSOLVER_DISCLAIMER,
+        "provisional": True,
+        "assistive": True,
+        "solves_cases": False,
+        "separate_from_triad": True,
+        "source": "seed-baseline",
+    }
 
 def _hay(doc):
     return "\n".join(str(doc.get(k) or "") for k in ("title", "body", "filename", "subjects", "keywords", "original_name", "extracted_text", "primary_subject", "search_terms")).lower()
@@ -133,17 +205,29 @@ def request_zsolver_score(answers, timeout=4):
         return None
 
 def score_document(doc=None, prefer_live=True):
+    appl = classify_zsolver_applicability(doc or {})
+    if appl.get("seed_corpus"):
+        return seed_baseline_zsolver()
+    if not appl.get("applicable"):
+        return not_applicable_zsolver(appl.get("reason") or "not_applicable")
     answers = derive_zsolver_answers(doc or {})
     want_live = bool(prefer_live) and str(os.environ.get("AZIEL_ZSOLVER_LIVE") or "1").lower() not in {"0", "false", "no"}
     if want_live:
         live = request_zsolver_score(answers)
         if live:
+            disp = live.get("display")
+            if disp in (None, 0) and not (live.get("capped_confidence") or 0):
+                return not_applicable_zsolver("score 0 / non-match")
+            live["applicable"] = True
             return live
     report = local_zsolver_score(answers)
     if want_live:
         report["status"] = "queued"
         report["queued"] = True
         report["source"] = "queued"
+    if report.get("display") in (None, 0) and not report.get("queued"):
+        return not_applicable_zsolver("score 0 / non-match")
+    report["applicable"] = True
     return report
 
 def zsolver_is_live(report):

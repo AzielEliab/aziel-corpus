@@ -1,10 +1,11 @@
 import { isOperator } from "./library.js";
+import { shelfScoreState, zsolverFromRow } from "./zsolver.js";
 
 function esc(s) {
   const q = String.fromCharCode(34);
   const map = { "&": "&amp;", "<": "&lt;", ">": "&gt;" };
   map[q] = "&quot;";
-  return String(s || "").replace(/[&<>"]/g, (c) => map[c] || c);
+  return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => map[c] || c);
 }
 function libTag(library) {
   const lib = String(library || "corpus").toLowerCase() === "aziel" ? "aziel" : "corpus";
@@ -169,11 +170,13 @@ export function recordBody(payload) {
     if (!list || !list.length) return "<p class=\"muted\">" + esc(empty) + "</p>";
     return "<ul>" + list.map((x) => "<li><a href=\"/record/" + esc(x.record_id) + "\">" + esc(x.title || x.record_id) + "</a></li>").join("") + "</ul>";
   }
-  const zsolver = payload.zsolver || (row && row.zsolver_json ? (() => { try { return JSON.parse(row.zsolver_json); } catch { return null; } })() : null);
-  const zDisp = zsolver && zsolver.display != null ? zsolver.display : (zsolver && zsolver.capped_confidence != null ? Math.round(Number(zsolver.capped_confidence) * 100) : (row && row.zsolver_score != null ? Math.round(Number(row.zsolver_score) * 100) : null));
+  const zsolver = payload.zsolver || zsolverFromRow(row);
+  const zState = shelfScoreState({ ...row, zsolver, review });
   const zQueued = zsolver && (zsolver.status === "queued" || zsolver.queued);
-  const zsolverHtml = zDisp != null
-    ? "<div class=\"card\"><h2>ZionPattern Solver</h2><div class=\"triad\"><div class=\"metric\">" + esc(zDisp) + "</div><div><p>Secondary public score. Separate from the triad. 75 means intentional suppression confidence; lower is more natural. Provisional and assistive. Does not solve cases.</p><p class=\"muted\">" + esc((zsolver && zsolver.disclaimer) || "Provisional and assistive only. Author Aziel Eliab.") + " <a href=\"/how-its-scored\">How it's scored</a>." + (zQueued ? " Live score retry is queued." : "") + "</p></div></div></div>"
+  const zsolverHtml = zState.zsolver_omit
+    ? ""
+    : zState.zsolver_display != null
+    ? "<div class=\"card zsolver\"><h2>ZionPattern Solver</h2><div class=\"triad zsolver\"><div class=\"metric\">" + esc(zState.zsolver_display) + "</div><div><p>Secondary public score. Separate from the triad. 75 means intentional suppression confidence; lower is more natural. Provisional and assistive. Does not solve cases.</p><p class=\"muted\">" + esc((zsolver && zsolver.disclaimer) || "Provisional and assistive only. Author Aziel Eliab.") + " <a href=\"/how-its-scored\">How it's scored</a>." + (zQueued ? " Live score retry is queued." : "") + "</p></div></div></div>"
     : "<div class=\"card\"><h2>ZionPattern Solver</h2><p class=\"muted\">Secondary score pending backfill or live retry.</p></div>";
   const successionHtml = succChain.length >= 2
     ? "<div class=\"card\"><h2>Succession</h2><p class=\"muted\">Exact-same-subject paper cites. Oldest to newest.</p><h3>Supersedes</h3>" +
