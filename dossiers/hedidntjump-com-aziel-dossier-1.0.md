@@ -75,7 +75,7 @@ This is a **single** library dossier. Do not unpack the GitHub tree, release tar
 
 ## Surfaces
 
-- **Home:** https://hedidntjump.com/
+- **Home:** https://www.hedidntjump.com/
 - **cite / llms:** https://hedidntjump.com/llms.txt
 
 ## Related ecosystem links
@@ -85,7 +85,7 @@ This is a **single** library dossier. Do not unpack the GitHub tree, release tar
 - Official site https://www.azieleliab.com/
 - Aziel Corpus Library https://www.azielcorpuslibrary.net/
 - GodLock.uk https://godlock.uk/
-- He Didn't Jump https://hedidntjump.com/
+- He Didn't Jump https://www.hedidntjump.com/
 - Aziel Runtime https://aziel-runtime.vibelock.workers.dev/
 - FragGate kernel https://github.com/AzielEliab/fraggate
 - Try on Glama https://glama.ai/mcp/servers/AzielEliab/aziel-runtime

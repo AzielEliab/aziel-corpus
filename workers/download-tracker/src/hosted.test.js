@@ -47,6 +47,8 @@ test("GET /AzielEliab serves the About HTML at the canonical path", async () => 
   assert.match(html, />Try on Glama</);
   assert.match(html, /href="https:\/\/godlock\.uk\/AzielEliab"/);
   assert.match(html, /godlock\.uk\/AzielEliab/);
+  assert.match(html, /href="https:\/\/www\.hedidntjump\.com\/"/);
+  assert.match(html, /He Didn't Jump/);
   assert.doesNotMatch(html, /href="\/about"/);
   assert.doesNotMatch(html, BANNED);
 });

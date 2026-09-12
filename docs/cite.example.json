@@ -18,6 +18,7 @@
     "https://www.azieleliab.com/#aziel",
     "https://www.azieleliab.com/",
     "https://godlock.uk/AzielEliab",
+    "https://www.hedidntjump.com/",
     "https://github.com/AzielEliab",
     "https://github.com/AzielEliab/aziel-corpus"
   ],
@@ -40,6 +41,8 @@
   "about": "https://www.azielcorpuslibrary.net/AzielEliab",
   "godlock": "https://godlock.uk/AzielEliab",
   "godlock_home": "https://godlock.uk",
+  "hedidntjump": "https://www.hedidntjump.com/",
+  "hedidntjump_label": "He Didn't Jump",
   "runtime": "https://www.azielcorpuslibrary.net/runtime",
   "runtime_version": "2.0.0-rc1",
   "runtime_note": "Aziel Runtime 2.0.0-rc1. FragGate is the single door. Prefer /runtime/*.",
@@ -55,6 +58,7 @@
     "links": [
       { "href": "https://www.azieleliab.com/", "label": "Official site" },
       { "href": "https://www.azielcorpuslibrary.net/", "label": "Aziel Corpus Library" },
+      { "href": "https://www.hedidntjump.com/", "label": "He Didn't Jump" },
       { "href": "https://github.com/AzielEliab/aziel-runtime", "label": "Aziel Runtime on GitHub" },
       { "href": "https://aziel-runtime.vibelock.workers.dev/", "label": "Aziel Runtime", "muted": true },
       { "href": "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime", "label": "Try on Glama", "primary": true },
