@@ -11,6 +11,8 @@ import {
   SHARE_IMAGE,
   ABOUT_PATH,
   aboutRedirectFrom,
+  forensicsRedirectFrom,
+  FORENSICS_PATH,
   HUB_PERSON_ID,
   HUB_ORIGIN,
   HUB_RUNTIME_ID,
@@ -262,7 +264,7 @@ test("page-specific descriptions and share images", () => {
     work: { title: "The Cockroach Doctrine", author: "Aziel Eliab", library: "aziel", record_id: "AZDOC-1" },
   });
   assert.match(about, /content="About Aziel Eliab/);
-  assert.doesNotMatch(record, /Search, map, gazetteer, intelligence, and hosted OCR/);
+  assert.doesNotMatch(record, /Search, map, gazetteer, forensics, and hosted OCR/);
   assert.match(record, /The Cockroach Doctrine by Aziel Eliab/);
   assert.match(record, /og:image" content="https:\/\/www\.azielcorpuslibrary\.net\/sigil\.png"/);
   assert.match(record, /twitter:image" content="https:\/\/www\.azielcorpuslibrary\.net\/sigil\.png"/);
@@ -327,6 +329,15 @@ test("legacy /about paths permanently redirect to /AzielEliab", () => {
   assert.equal(aboutRedirectFrom("/AZIELELIAB"), "/AzielEliab");
   assert.equal(aboutRedirectFrom("/AzielEliab"), null);
   assert.equal(aboutRedirectFrom("/software"), null);
+});
+
+test("legacy /intelligence paths permanently redirect to /forensics", () => {
+  assert.equal(FORENSICS_PATH, "/forensics");
+  assert.equal(forensicsRedirectFrom("/intelligence"), "/forensics");
+  assert.equal(forensicsRedirectFrom("/intelligence/"), "/forensics");
+  assert.equal(forensicsRedirectFrom("/Intelligence"), "/forensics");
+  assert.equal(forensicsRedirectFrom("/forensics"), null);
+  assert.equal(forensicsRedirectFrom("/software"), null);
 });
 
 test("page chrome keeps entity-graph JSON-LD after first paint", () => {

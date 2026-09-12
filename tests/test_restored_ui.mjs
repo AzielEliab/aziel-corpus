@@ -20,8 +20,7 @@ const NAV = [
   [">Tree<", "/tree"],
   [">Map<", "/map"],
   [">Historical<", "/historical"],
-  [">Gazetteer<", "/gazetteer"],
-  [">Intelligence<", "/intelligence"],
+  [">Forensics<", "/forensics"],
   [">Aziel Eliab<", "/AzielEliab"],
 ];
 
@@ -29,7 +28,7 @@ function chrome(body, extra) {
   return page("Test", body, { signed: null, path: "/", ...extra });
 }
 
-test("restored nav2 keeps every public tab and drops Health/Verify from chrome", () => {
+test("restored nav2 keeps every public tab and drops Health/Verify/Gazetteer from chrome", () => {
   const html = chrome("<p>ok</p>");
   for (const [label, href] of NAV) {
     assert.match(html, new RegExp('href="' + href.replace("/", "\\/") + '"'));
@@ -39,6 +38,10 @@ test("restored nav2 keeps every public tab and drops Health/Verify from chrome",
   assert.match(html, /src="\/sigil\.png"/);
   assert.doesNotMatch(html, /href="\/health"/);
   assert.doesNotMatch(html, /href="\/verify"/);
+  assert.doesNotMatch(html, />Gazetteer</);
+  assert.doesNotMatch(html, /href="\/gazetteer"/);
+  assert.doesNotMatch(html, />Intelligence</);
+  assert.doesNotMatch(html, /href="\/intelligence"/);
   assert.doesNotMatch(html, /Ever Blooming/i);
   assert.doesNotMatch(html, /10\.5281\/zenodo/i);
   assert.match(html, /class="donate-strip"/);
