@@ -46,7 +46,13 @@ test("GET /AzielEliab serves the About HTML at the canonical path", async () => 
   assert.doesNotMatch(html, /azielcorpuslibrary\.net\/AzielEliab#aziel-eliab/);
   assert.match(html, /Part of the Aziel Eliab ecosystem/);
   assert.match(html, />Official site</);
-  assert.match(html, />Try on Glama</);
+  assert.match(html, />Corpus</);
+  assert.match(html, />GodLock</);
+  assert.match(html, />Runtime GitHub</);
+  assert.match(html, />Glama</);
+  assert.match(html, /What matters is the record/);
+  assert.match(html, /1936 official Zioncheck suicide narrative/);
+  assert.match(html, /does not invent court holdings/);
   assert.match(html, /href="https:\/\/godlock\.uk\/AzielEliab"/);
   assert.match(html, /godlock\.uk\/AzielEliab/);
   assert.match(html, /href="https:\/\/www\.hedidntjump\.com\/"/);

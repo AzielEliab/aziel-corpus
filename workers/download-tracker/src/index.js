@@ -4,6 +4,7 @@ import { handleAuth, getSession } from "./auth.js";
 import { page, homeBody, streamLcpHtml } from "./ui.js";
 import { handleHosted } from "./hosted.js";
 import { robotsTxt, sitemapXml, sitemapIndexXml, citeDoc, llmsDoc, aiTxt, humansTxt, mcpDiscovery, isReadMethod, crawlResponse, MIME } from "./crawl.js";
+import { identityRouteBody } from "./identity.js";
 import { searchRecords, listFacets, parseBrowseParams, serveFile, serveFileByHash, normalizeContentHash } from "./library.js";
 import { continueFullBackfill } from "./review-store.js";
 import { continueVerifyGeo } from "./geo.js";
@@ -509,6 +510,12 @@ export default {
     }
     if (isReadMethod(request.method) && crawlPath === "/cite.json") {
       return crawlResponse(request, JSON.stringify(citeDoc(), null, 2), MIME.json, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
+    }
+    if (isReadMethod(request.method)) {
+      const identity = identityRouteBody(crawlPath);
+      if (identity) {
+        return crawlResponse(request, identity.body, identity.type, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
+      }
     }
     if (isReadMethod(request.method) && crawlPath === "/llms.txt") {
       return crawlResponse(request, llmsDoc(LIMITATION), MIME.plain, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });

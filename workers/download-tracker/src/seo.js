@@ -13,6 +13,12 @@ import {
   softwareDescription,
   softwareHubBlurb,
 } from "./runtime-copy.js";
+import {
+  PERSON_SAME_AS,
+  PERSON_DESCRIPTION,
+  personNode as lockedPersonNode,
+  GODLOCK_HOME,
+} from "./identity.js";
 
 export const CANON_HOST = "https://www.azielcorpuslibrary.net";
 export const ABOUT_PATH = "/AzielEliab";
@@ -41,11 +47,11 @@ export const SITE_DESCRIPTION = "Aziel Digital Library by Aziel Eliab. Search th
 export const ECOSYSTEM_HEADING = "Part of the Aziel Eliab ecosystem";
 export const ECOSYSTEM_LINKS = Object.freeze([
   Object.freeze({ href: HUB_ORIGIN + "/", label: "Official site" }),
-  Object.freeze({ href: CANON_HOST + "/", label: "Aziel Corpus Library" }),
+  Object.freeze({ href: CANON_HOST + "/", label: "Corpus" }),
+  Object.freeze({ href: GODLOCK_HOME, label: "GodLock" }),
   Object.freeze({ href: HEDIDNTJUMP_HOME, label: HEDIDNTJUMP_LABEL }),
-  Object.freeze({ href: RUNTIME_GITHUB, label: "Aziel Runtime on GitHub" }),
-  Object.freeze({ href: RUNTIME_ORIGIN + "/", label: "Aziel Runtime", muted: true }),
-  Object.freeze({ href: RUNTIME_GLAMA, label: "Try on Glama", primary: true }),
+  Object.freeze({ href: RUNTIME_GITHUB, label: "Runtime GitHub" }),
+  Object.freeze({ href: RUNTIME_GLAMA, label: "Glama", primary: true }),
 ]);
 
 /** Unique <title> / OG / Twitter strings. Visible H1s stay in page bodies. */
@@ -125,14 +131,11 @@ export function toolRef(slug) {
  * Same hub @id only — never a competing corpus-local Person @id.
  */
 export function personNode() {
+  const locked = lockedPersonNode();
   return {
-    "@type": "Person",
-    "@id": HUB_PERSON_ID,
-    name: AUTHOR,
-    alternateName: [AKA],
-    url: HUB_ORIGIN + "/",
-    description: "Author of Aziel Digital Library. Identity Aziel Eliab only.",
-    sameAs: [HUB_ORIGIN + "/", GODLOCK_IDENTITY, HEDIDNTJUMP_HOME, GITHUB_AUTHOR, GITHUB_REPO, CANON_HOST + ABOUT_PATH],
+    ...locked,
+    description: PERSON_DESCRIPTION,
+    sameAs: PERSON_SAME_AS.slice(),
   };
 }
 
@@ -346,6 +349,8 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
       description,
       isPartOf: { "@id": WEBSITE_ID },
       author: who,
+      creator: who,
+      publisher: who,
       mainEntity: who,
     });
     graph.push({
@@ -445,6 +450,11 @@ export function headMeta(opts) {
     meta("twitter:image", image),
     meta("twitter:image:alt", imageAlt),
     linkRel("alternate", "/cite.json", " type=" + Q + "application/json" + Q),
+    linkRel("alternate", "/person.jsonld", " type=" + Q + "application/ld+json" + Q),
+    linkRel("alternate", "/identity.jsonld", " type=" + Q + "application/ld+json" + Q),
+    linkRel("alternate", "/graph.jsonld", " type=" + Q + "application/ld+json" + Q),
+    linkRel("alternate", "/who-is-aziel-eliab.txt", " type=" + Q + "text/plain" + Q),
+    linkRel("alternate", "/.well-known/aziel.json", " type=" + Q + "application/json" + Q),
     linkRel("alternate", "/llms.txt", " type=" + Q + "text/plain" + Q),
     linkRel("alternate", "/ai.txt", " type=" + Q + "text/plain" + Q),
     linkRel("alternate", "/openapi.json", " type=" + Q + "application/json" + Q + " title=" + Q + "OpenAPI" + Q),
