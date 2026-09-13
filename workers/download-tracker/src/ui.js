@@ -21,7 +21,6 @@ import {
   RUNTIME_GITHUB,
   RUNTIME_LIVE_COUNT,
   RUNTIME_LOCAL_ONLY,
-  RUNTIME_CHIP,
   RUNTIME_ABSTRACT,
   RUNTIME_TITLE,
   RUNTIME_CHANGELOG,
@@ -85,8 +84,14 @@ body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;lin
 .donate-meta p{margin:0 0 10px}
 .nav2 a,.quiet a{color:var(--gold);text-decoration:none;font-size:15px;padding:10px 11px;min-height:44px;display:inline-flex;align-items:center;border-radius:10px;white-space:nowrap;flex-shrink:0}
 .nav2 a:hover{background:#2a241c;color:var(--ink)}
-.nav2 a.nav-aziel{white-space:nowrap;flex:0 0 auto}
+.nav2 a.nav-aziel{color:var(--royal);font-weight:700;white-space:nowrap;flex:0 0 auto}
+.nav2 a.nav-aziel:hover{background:#2a241c;color:var(--ink)}
 .nav2 .sep{color:#5a4e3e;padding:0 2px}
+.aziel-name{color:var(--royal);font-weight:700}
+.home-doors{display:grid;grid-template-columns:1fr;gap:14px;margin:18px 0}
+@media (min-width:721px){
+  .home-doors{grid-template-columns:1fr 1fr}
+}
 .muted{color:var(--muted)}
 a{color:var(--gold)}
 .pill{background:#2a241c;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:650;color:var(--ink);font-variant-numeric:tabular-nums;text-decoration:none}
@@ -336,7 +341,7 @@ export function streamLcpHtml(html) {
   return readable;
 }
 
-export function page(title, body, { signed, scripts, path, kind, description, work, runtimeVersion, views, downloads } = {}) {
+export function page(title, body, { signed, scripts, path, kind, description, work, runtimeVersion, views, downloads, donateStrip = true, ecosystem = true } = {}) {
   const who = signed && signed.username ? String(signed.username) : "";
   const account = signed
     ? `<span class="pill ok">signed in as ${esc(who)}</span>`
@@ -345,15 +350,18 @@ export function page(title, body, { signed, scripts, path, kind, description, wo
     ? `<a href="/logout">Log out</a>`
     : `<a href="/login">Log in</a><span class="sep">|</span><a href="/signup">Sign up</a>`;
   const metaOpts = { title, path: path || "/", kind, description, work, runtimeVersion, includeJsonLd: false };
+  const homeChrome = kind === "search";
+  const showDonate = donateStrip && !homeChrome;
+  const showEco = ecosystem && !homeChrome;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(documentTitle(kind, title))}</title>${headMeta(metaOpts)}<link rel="preload" href="/sigil.png" as="image" fetchpriority="high"><style>${CSS}</style></head><body>
 <header class="sitehead"><div class="sitehead-inner">
 <div class="brandrow nav1">${brandMarkHtml()}<div class="brand">Aziel Digital Library</div>${brandCountPills({ views, downloads })}<span class="pill">Runtime v2.7.0</span><span class="pill ok">MASTER · WRITABLE</span>${account}</div>
 <nav class="nav2 quiet"><a href="/">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/pattern">Pattern</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/how-its-scored">How it's scored</a><span class="sep">|</span><a href="/donate">Donate</a><span class="sep">|</span><a href="/runtime">Runtime</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/forensics">Forensics</a><span class="sep">|</span><a class="nav-aziel" href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a><span class="sep">|</span>${authLinks}</nav>
 </div></header>
 <div class="wrap">
-${donateStripHtml()}
+${showDonate ? donateStripHtml() : ""}
 ${body}
-${ecosystemBlockHtml()}</div>${jeevesFabHtml()}${(scripts||[]).map((src)=>"<script src=\""+esc(src)+"\" defer></script>").join("")}${meshRefreshScript()}${jsonLdScript(metaOpts)}</body></html>`;
+${showEco ? ecosystemBlockHtml() : ""}</div>${jeevesFabHtml()}${(scripts||[]).map((src)=>"<script src=\""+esc(src)+"\" defer></script>").join("")}${meshRefreshScript()}${jsonLdScript(metaOpts)}</body></html>`;
 }
 
 function esc(s) {
@@ -566,19 +574,62 @@ function metaInputs({ authorPlaceholder = "Author" } = {}) {
 </div>`;
 }
 
-export function homeBody({ q, lib, sort, domain, subject, keyword, author, rows, facets, views, downloads, host }) {
+export function homeSearchActive(state = {}) {
+  const s = browseState(state);
+  return !!(s.q || s.domain || s.subject || s.keyword || s.author);
+}
+
+function homeLibraryChips(state) {
+  const st = browseState(state);
+  return `<div class="chips">${chip("All", "/", !st.q && !st.domain && !st.subject && !st.keyword && !st.author)}${chip("Aziel Library", "/aziel-library", false)}${chip("Corpus", "/corpus", false)}</div>`;
+}
+
+function homeSignupCard() {
+  return `<div class="card" id="signup">
+<h2>Sign up</h2>
+<p class="muted">Create an account to post under a name. Anyone may browse. Author <span class="aziel-name">Aziel Eliab</span>.</p>
+<form method="post" action="/signup">
+<input name="username" required minlength="3" placeholder="username" autocomplete="username">
+${pwField("password")}
+<p><button>Create account</button></p>
+</form>
+<p class="muted">Already have an account? <a href="/login">Log in</a>.</p>
+</div>`;
+}
+
+function homeAnonymousUploadCard({ error } = {}) {
+  const err = error ? `<p class="bad">${esc(error)}</p>` : "";
+  return `<div class="drop" id="upload-anonymous">
+<h2>Upload anonymously</h2>
+<p class="muted">Files go to Corpus (Lamb Lens), not Aziel Library. Safety review (poison quarantine, triad) runs before a record appears on the public shelf. Aziel Library upload stays operator-only.</p>
+${err}
+<form method="post" action="/ingest" enctype="multipart/form-data">
+<input type="hidden" name="from" value="home">
+<label class="filepick">File (optional if you include title and notes)<input type="file" name="file"></label>
+<input name="title" placeholder="Title">
+${metaInputs({ authorPlaceholder: "Author (optional)" })}
+<textarea name="body" rows="5" placeholder="Text or notes"></textarea>
+<p><button>Upload to Corpus</button></p>
+</form>
+</div>`;
+}
+
+export function homeBody({ q, lib, sort, domain, subject, keyword, author, rows, error } = {}) {
   const state = browseState({ q, lib, sort, domain, subject, keyword, author });
+  const searching = homeSearchActive(state);
+  const tools = browseTools({ action: "/", showLibChips: false, ...state });
+  const results = searching
+    ? docCards(rows, state, "/")
+    : "";
   return `<section class="hero">
 <h1>Search the libraries</h1>
-<p class="muted">Public search across Aziel Library and the corpus. Sign up to post. Author Aziel Eliab.</p>
-<div class="chips">${chip(RUNTIME_CHIP, "/runtime", false)}</div>
+<p class="muted">Public search across Aziel Library and Corpus. Author <span class="aziel-name">Aziel Eliab</span>.</p>
 </section>
-${browseTools({ action: "/", showLibChips: true, ...state })}
+${tools}
+${homeLibraryChips(state)}
 ${LCP_FOLD}
-${facetBlock(facets, state, "/")}
-${docCards(rows, state, "/")}
-<div class="card row"><a class="button" href="/download">Download library zip</a></div>
-<div class="muted">One-click install: <code>curl -fsSL ${esc(host)}/install.sh | bash</code></div>`;
+${results}
+<div class="home-doors">${homeSignupCard()}${homeAnonymousUploadCard({ error })}</div>`;
 }
 
 export function azielLibraryBody({ rows, error, q, sort, domain, subject, keyword, author, facets, signed } = {}) {
@@ -627,7 +678,7 @@ ${metaInputs({ authorPlaceholder: "Author" })}
 </form>
 </div>`;
   } else {
-    form = `<div class="card"><p>Anyone can view this library. An account is required to post.</p><p><a class="button" href="/login">Log in</a> <a class="button ghost" href="/signup">Sign up</a></p></div>`;
+    form = `<div class="card"><p>Anyone can view this library. <a href="/signup">Sign up</a> to post under a name, or <a href="/#upload-anonymous">upload anonymously</a> from Search. Corpus uploads are reviewed for safety before they appear. Aziel Library stays operator-only.</p><p><a class="button" href="/signup">Sign up</a> <a class="button ghost" href="/#upload-anonymous">Upload anonymously</a></p></div>`;
   }
   return `<section class="hero"><h1>Corpus library</h1><p class="muted">Files from every other account.</p></section>
 ${browseTools({ action: "/corpus", showLibChips: false, ...state })}
@@ -666,7 +717,7 @@ export function aboutBody() {
 <p>If not me, then who holds the record when names get stripped and the files get sealed? I didn’t ask for the seat. The work was already sitting there undone. I build receipts so truth has a place to live that isn’t someone else’s story.</p>
 <p>Carry the torch: I don’t own the flame. I keep it lit long enough for the next hands to find it. If the record is local, timed, and hashed, the work can outlive me. That is the point.</p>
 <p>Truth that cannot be corrected is just a private religion. So the work stays public, chained for review, not a pulpit. Later papers bury earlier ones as confidence hardens. I am not always right. That is not a confession. It is the method.</p>
-<p><strong>Aziel Library</strong> (royal purple) is the operator collection of Aziel Eliab’s own papers and software notes. <strong>Corpus</strong> is the public Lamb Lens shelf — anyone may browse; signed-in accounts file there. The two shelves share the same scoring and hash-chain rules; they are not the same collection.</p>
+<p><strong>Aziel Library</strong> (royal purple) is the operator collection of Aziel Eliab’s own papers and software notes. <strong>Corpus</strong> is the public Lamb Lens shelf — anyone may browse; signed-in accounts or anonymous homepage uploads file there after safety review. The two shelves share the same scoring and hash-chain rules; they are not the same collection.</p>
 <ul class="about-mission">
 <li>What matters is the record — not a biography.</li>
 <li>Hashed receipts, timed files, and software that can be opened without taking the speaker on faith.</li>
