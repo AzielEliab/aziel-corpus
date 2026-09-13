@@ -48,6 +48,8 @@ test("renderDossier has Apache-2.0, author, required sections, and aziel shelf m
   assert.match(md, /Forks welcome/);
   assert.match(md, /https:\/\/www\.azieleliab\.com\/#aziel/);
   assert.match(md, /https:\/\/www\.azieleliab\.com\/runtime#runtime/);
+  assert.match(md, /He Didn't Jump https:\/\/www\.hedidntjump\.com\//);
+  assert.doesNotMatch(md, /He Didn't Jump https:\/\/hedidntjump\.com\//);
   const { meta } = parseFrontMatter(md);
   assert.equal(meta.library, "aziel");
   assert.equal(meta.license, LICENSE);

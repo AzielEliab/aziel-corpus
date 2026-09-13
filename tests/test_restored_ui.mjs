@@ -59,6 +59,10 @@ test("restored nav2 keeps every public tab and drops Health/Verify/Gazetteer fro
   assert.match(html, />Official site</);
   assert.match(html, /href="https:\/\/www\.azieleliab\.com\/"/);
   assert.match(html, />Aziel Corpus Library</);
+  assert.match(html, />He Didn't Jump</);
+  assert.match(html, /href="https:\/\/www\.hedidntjump\.com\/"/);
+  assert.match(html, />GodLock\.uk</);
+  assert.match(html, /href="https:\/\/godlock\.uk\/"/);
   assert.match(html, />Aziel Runtime on GitHub</);
   assert.match(html, /class="runtime-muted"[^>]*href="https:\/\/aziel-runtime\.vibelock\.workers\.dev\/"[^>]*>Aziel Runtime</);
   assert.match(html, />Try on Glama</);

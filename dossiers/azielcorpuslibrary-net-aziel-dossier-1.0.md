@@ -90,6 +90,7 @@ README lead (truncated, source only):
 > - **Aziel Runtime (this domain):** [https://www.azielcorpuslibrary.net/runtime](https://www.azielcorpuslibrary.net/runtime) — Aziel Runtime **2.0.0-rc1**. FragGate is the single door (`fraggate_list` → `fraggate_describe` → `fraggate_call`). Prefer `/runtime/*`. Runtime `@id` [https://www.azieleliab.com/runtime#runtime](https://www.azieleliab.com/runtime#runtime)
 > - **How it’s scored:** [https://www.azielcorpuslibrary.net/how-its-scored](https://www.azielcorpuslibrary.net/how-its-scored)
 > - **GodLock.uk (sister engine):** [https://godlock.uk](https://godlock.uk) — Aziel Eliab tab [https://godlock.uk/AzielEliab](https://godlock.uk/AzielEliab). Softwares on GodLock is GodLock’s own catalog. This repo’s Softwares stays the Digital Library catalog. Do not claim GodLock Softwares mirrors Digital Library completeness.
+> - **He Didn't Jump (sister archive):** [https://www.hedidntjump.com/](https://www.hedidntjump.com/) — An Aziel Eliab Project. Not a Softwares-tab product.
 > - **Aziel Runtime Worker (muted / sameAs):** [https://aziel-runtime.vibelock.workers.dev/](https://aziel-runtime.vibelock.workers.dev/)
 > - **Aziel Runtime on GitHub:** [https://github.com/AzielEliab/aziel-runtime](https://github.com/AzielEliab/aziel-runtime)
 > - **Try on Glama:** [https://glama.ai/mcp/servers/AzielEliab/aziel-runtime](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime) — primary Runtime CTA (owner/repo listing; no invented server id)
@@ -122,7 +123,7 @@ README lead (truncated, source only):
 - Official site https://www.azieleliab.com/
 - Aziel Corpus Library https://www.azielcorpuslibrary.net/
 - GodLock.uk https://godlock.uk/
-- He Didn't Jump https://hedidntjump.com/
+- He Didn't Jump https://www.hedidntjump.com/
 - Aziel Runtime https://aziel-runtime.vibelock.workers.dev/
 - FragGate kernel https://github.com/AzielEliab/fraggate
 - Try on Glama https://glama.ai/mcp/servers/AzielEliab/aziel-runtime

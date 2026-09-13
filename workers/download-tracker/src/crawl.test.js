@@ -159,8 +159,19 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.equal(cite.software_hub, "https://www.azielcorpuslibrary.net/software");
   assert.equal(cite.aziel_eliab, "https://www.azielcorpuslibrary.net/AzielEliab");
   assert.equal(cite.godlock, "https://godlock.uk/AzielEliab");
+  assert.equal(cite.godlock_home, "https://godlock.uk/");
   assert.equal(cite.hedidntjump, "https://www.hedidntjump.com/");
   assert.equal(cite.hedidntjump_label, "He Didn't Jump");
+  assert.ok(cite.relatedLink.includes("https://www.hedidntjump.com/"));
+  assert.ok(cite.relatedLink.includes("https://www.azieleliab.com/"));
+  assert.ok(cite.relatedLink.includes("https://godlock.uk/"));
+  assert.ok(cite.relatedLink.includes("https://aziel-runtime.vibelock.workers.dev/"));
+  assert.ok(!cite.relatedLink.includes("https://www.azielcorpuslibrary.net/"));
+  assert.ok(cite.related_sites.some((s) => s.id === "hedidntjump" && s.href === "https://www.hedidntjump.com/"));
+  assert.ok(cite.related_sites.some((s) => s.id === "godlock" && s.href === "https://godlock.uk/"));
+  assert.ok(cite.related_sites.some((s) => s.id === "official" && s.href === "https://www.azieleliab.com/"));
+  assert.ok(cite.related_sites.some((s) => s.id === "runtime" && s.href === "https://aziel-runtime.vibelock.workers.dev/"));
+  assert.ok(cite.priority_pages.about.sameAs.includes("https://www.hedidntjump.com/"));
   assert.equal(cite.person_id, "https://www.azieleliab.com/#aziel");
   assert.equal(cite.runtime_id, "https://www.azieleliab.com/runtime#runtime");
   assert.equal(cite.website_id, "https://www.azielcorpuslibrary.net/#website");
@@ -169,6 +180,9 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.equal(cite.ecosystem.heading, "Part of the Aziel Eliab ecosystem");
   assert.ok(cite.ecosystem.links.some((l) => l.label === "Try on Glama" && l.href === "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime"));
   assert.ok(cite.ecosystem.links.some((l) => l.label === "He Didn't Jump" && l.href === "https://www.hedidntjump.com/"));
+  assert.ok(cite.ecosystem.links.some((l) => l.label === "GodLock.uk" && l.href === "https://godlock.uk/"));
+  assert.ok(cite.ecosystem.links.some((l) => l.label === "Official site" && l.href === "https://www.azieleliab.com/"));
+  assert.ok(cite.ecosystem.links.some((l) => l.label === "Aziel Runtime" && l.href === "https://aziel-runtime.vibelock.workers.dev/"));
   assert.ok(cite.sameAs.includes("https://www.azieleliab.com/#aziel"));
   assert.ok(cite.sameAs.includes("https://godlock.uk/AzielEliab"));
   assert.ok(cite.sameAs.includes("https://www.hedidntjump.com/"));
@@ -346,6 +360,8 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(index, /<sitemapindex /);
   assert.match(index, /azielcorpuslibrary\.net\/sitemap\.xml/);
   assert.match(index, /aziel-runtime\.vibelock\.workers\.dev\/sitemap-index\.xml/);
+  assert.match(index, /www\.azieleliab\.com\/sitemap\.xml/);
+  assert.match(index, /godlock\.uk\/sitemap\.xml/);
   assert.match(index, /www\.hedidntjump\.com\/sitemap\.xml/);
   const mcp = mcpDiscovery();
   assert.equal(mcp.author, "Aziel Eliab");

@@ -105,7 +105,7 @@ README lead (truncated, source only):
 - Official site https://www.azieleliab.com/
 - Aziel Corpus Library https://www.azielcorpuslibrary.net/
 - GodLock.uk https://godlock.uk/
-- He Didn't Jump https://hedidntjump.com/
+- He Didn't Jump https://www.hedidntjump.com/
 - Aziel Runtime https://aziel-runtime.vibelock.workers.dev/
 - FragGate kernel https://github.com/AzielEliab/fraggate
 - Try on Glama https://glama.ai/mcp/servers/AzielEliab/aziel-runtime

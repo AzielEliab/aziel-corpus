@@ -76,7 +76,7 @@ This is a **single** library dossier. Do not unpack the GitHub tree, release tar
 ## Surfaces
 
 - **Home:** https://www.hedidntjump.com/
-- **cite / llms:** https://hedidntjump.com/llms.txt
+- **cite / llms:** https://www.hedidntjump.com/llms.txt
 
 ## Related ecosystem links
 

@@ -2,6 +2,7 @@
 import {
   ABOUT_PATH,
   ABOUT_NAV_LABEL,
+  GODLOCK_HOME,
   GODLOCK_IDENTITY,
   HEDIDNTJUMP_HOME,
   HEDIDNTJUMP_LABEL,
@@ -12,6 +13,8 @@ import {
   WEBSITE_NAME,
   ECOSYSTEM_HEADING,
   ECOSYSTEM_LINKS,
+  RELATED_LINK_HREFS,
+  RELATED_SITES,
 } from "./seo.js";
 import {
   RUNTIME_VERSION,
@@ -341,9 +344,10 @@ export function softwareRelatedPaths() {
 export function sitemapIndexXml() {
   const locs = [
     HOST + "/sitemap.xml",
+    HUB_ORIGIN + "/sitemap.xml",
     CATALOG + "/sitemap.xml",
     CATALOG + "/sitemap-index.xml",
-    "https://godlock.uk/sitemap.xml",
+    GODLOCK_HOME.replace(/\/+$/, "") + "/sitemap.xml",
     HEDIDNTJUMP_HOME.replace(/\/+$/, "") + "/sitemap.xml",
   ];
   return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n"
@@ -436,11 +440,14 @@ export function citeDoc() {
     github: GITHUB_REPO,
     github_author: GITHUB_AUTHOR,
     sameAs: [HUB_PERSON_ID, HUB_ORIGIN + "/", GODLOCK_IDENTITY, HEDIDNTJUMP_HOME, GITHUB_AUTHOR, GITHUB_REPO],
+    relatedLink: RELATED_LINK_HREFS,
+    related_sites: RELATED_SITES,
     ecosystem: {
       heading: ECOSYSTEM_HEADING,
       links: ECOSYSTEM_LINKS,
     },
     godlock: GODLOCK_IDENTITY,
+    godlock_home: GODLOCK_HOME,
     hedidntjump: HEDIDNTJUMP_HOME,
     hedidntjump_label: HEDIDNTJUMP_LABEL,
     library: HOST + "/",
@@ -451,7 +458,7 @@ export function citeDoc() {
     priority_pages: {
       home: { url: HOST + "/", title: "Aziel Digital Library", schema: "WebSite" },
       software: { url: HOST + "/software", title: "Softwares", schema: "CollectionPage", related: softwareRelatedPaths().map((p) => HOST + p) },
-      about: { url: HOST + ABOUT_PATH, title: "About Aziel Eliab", schema: "AboutPage", aka: AKA, sameAs: [GODLOCK_IDENTITY, GITHUB_AUTHOR, GITHUB_REPO] },
+      about: { url: HOST + ABOUT_PATH, title: "About Aziel Eliab", schema: "AboutPage", aka: AKA, sameAs: [GODLOCK_IDENTITY, HEDIDNTJUMP_HOME, GITHUB_AUTHOR, GITHUB_REPO] },
     },
     software_hub: HOST + "/software",
     aziel_eliab: HOST + ABOUT_PATH,
@@ -623,7 +630,7 @@ export function llmsDoc(limitation) {
     + "- About HTML: " + HOST + ABOUT_PATH + "\n"
     + "- Unique title: About Aziel Eliab | Aziel Digital Library\n"
     + "- Legacy /about and /aboutme permanently redirect here (301).\n"
-    + "- Identity page sameAs: " + GODLOCK_IDENTITY + "\n"
+    + "- Identity page sameAs: " + GODLOCK_IDENTITY + " · " + HEDIDNTJUMP_HOME + "\n"
     + "- Sister archive: " + HEDIDNTJUMP_LABEL + " " + HEDIDNTJUMP_HOME + "\n"
     + "- Alternate name Aziel Elroi Eliab is SEO alternateName only.\n\n"
     + "## Software products (crawl these hubs)\n\n"
