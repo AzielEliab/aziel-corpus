@@ -459,6 +459,9 @@ test("homepage doors include Sign up and anonymous Corpus upload; other pages ke
   assert.match(home, /id="upload-anonymous"/);
   assert.match(home, /Upload anonymously/);
   assert.match(home, /action="\/ingest"/);
+  assert.doesNotMatch(home, /Files go to Corpus \(Lamb Lens\)/);
+  assert.doesNotMatch(home, /Safety review \(poison quarantine, triad\)/);
+  assert.doesNotMatch(home, /Aziel Library upload stays operator-only/);
   assert.match(home, /name="from" value="home"/);
   assert.match(home, /href="\/aziel-library"/);
   assert.match(home, /href="\/corpus"/);
