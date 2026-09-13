@@ -83,8 +83,9 @@ body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;lin
 .wallet-hint{margin:12px 0 14px;color:var(--muted);font-size:14px;line-height:1.45}
 .donate-extra,.donate-net{margin:8px 0 0;color:var(--muted);font-size:14px}
 .donate-meta p{margin:0 0 10px}
-.nav2 a,.quiet a{color:var(--gold);text-decoration:none;font-size:15px;padding:10px 11px;min-height:44px;display:inline-flex;align-items:center;border-radius:10px}
+.nav2 a,.quiet a{color:var(--gold);text-decoration:none;font-size:15px;padding:10px 11px;min-height:44px;display:inline-flex;align-items:center;border-radius:10px;white-space:nowrap;flex-shrink:0}
 .nav2 a:hover{background:#2a241c;color:var(--ink)}
+.nav2 a.nav-aziel{white-space:nowrap;flex:0 0 auto}
 .nav2 .sep{color:#5a4e3e;padding:0 2px}
 .muted{color:var(--muted)}
 a{color:var(--gold)}
@@ -347,7 +348,7 @@ export function page(title, body, { signed, scripts, path, kind, description, wo
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(documentTitle(kind, title))}</title>${headMeta(metaOpts)}<link rel="preload" href="/sigil.png" as="image" fetchpriority="high"><style>${CSS}</style></head><body>
 <header class="sitehead"><div class="sitehead-inner">
 <div class="brandrow nav1">${brandMarkHtml()}<div class="brand">Aziel Digital Library</div>${brandCountPills({ views, downloads })}<span class="pill">Runtime v2.7.0</span><span class="pill ok">MASTER · WRITABLE</span>${account}</div>
-<nav class="nav2 quiet"><a href="/">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/pattern">Pattern</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/how-its-scored">How it's scored</a><span class="sep">|</span><a href="/donate">Donate</a><span class="sep">|</span><a href="/runtime">Runtime</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/forensics">Forensics</a><span class="sep">|</span><a href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a><span class="sep">|</span>${authLinks}</nav>
+<nav class="nav2 quiet"><a href="/">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/pattern">Pattern</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/how-its-scored">How it's scored</a><span class="sep">|</span><a href="/donate">Donate</a><span class="sep">|</span><a href="/runtime">Runtime</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/forensics">Forensics</a><span class="sep">|</span><a class="nav-aziel" href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a><span class="sep">|</span>${authLinks}</nav>
 </div></header>
 <div class="wrap">
 ${donateStripHtml()}

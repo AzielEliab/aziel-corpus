@@ -65,6 +65,34 @@ test("restored nav2 keeps every public tab and drops Health/Verify/Gazetteer fro
   assert.match(html, /class="ecosystem"/);
 });
 
+test("Aziel Eliab identity tab stays one wrap unit in public nav2", () => {
+  const html = chrome("<p>ok</p>");
+  assert.match(html, /<a class="nav-aziel" href="\/AzielEliab">Aziel Eliab<\/a>/);
+  assert.doesNotMatch(html, />Eliab</);
+  assert.match(html, />Aziel Eliab</);
+  assert.match(
+    html,
+    /href="\/forensics">Forensics<\/a><span class="sep">\|<\/span><a class="nav-aziel" href="\/AzielEliab">Aziel Eliab<\/a><span class="sep">\|<\/span><a href="\/login">Log in<\/a>/,
+  );
+  assert.match(CSS, /\.nav2 a,\.quiet a\{[^}]*white-space:nowrap/);
+  assert.match(CSS, /\.nav2 a,\.quiet a\{[^}]*flex-shrink:0/);
+  assert.match(CSS, /\.nav2 a\.nav-aziel\{white-space:nowrap;flex:0 0 auto\}/);
+  const pages = [
+    chrome("<p>ok</p>"),
+    page("Software", softwareBody({
+      products: [{ name: "aziel-runtime", version: "catalog", root: true, blurb: "Root source", links: [{ href: "/runtime", label: "Site front door", primary: true }] }],
+    }), { path: "/software", kind: "software" }),
+    page("Forensics", "<section class=\"hero\"><h1>Forensics</h1></section>", { path: "/forensics", kind: "forensics" }),
+    page("Aziel Eliab", aboutBody(), { path: "/AzielEliab", kind: "about" }),
+  ];
+  const navs = pages.map((pageHtml) => {
+    const match = pageHtml.match(/<nav class="nav2 quiet">[\s\S]*?<\/nav>/);
+    assert.ok(match, "every page renders nav2");
+    return match[0];
+  });
+  assert.ok(navs.every((nav) => nav === navs[0]), "tabs chrome stays identical on every page");
+});
+
 test("Softwares page keeps heading then list with no interstitial copy", () => {
   const soft = softwareBody({
     products: [{ name: "aziel-runtime", version: "catalog", root: true, countLabel: "1 downloads", blurb: "Root source", links: [{ href: "/runtime", label: "Site front door", primary: true }] }],
