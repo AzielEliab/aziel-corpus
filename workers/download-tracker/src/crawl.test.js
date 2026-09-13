@@ -26,7 +26,7 @@ function assertPublicIdentity(text) {
 test("robots.txt allows research surfaces and major AI bots", () => {
   const txt = robotsTxt();
   assertPublicIdentity(txt);
-  for (const path of ["/ai.txt", "/how-its-scored", "/humans.txt", "/software", "/donate", "/runtime", "/runtime/v1/uses", "/AzielEliab", "/aboutme", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/.well-known/aziel.json"]) {
+  for (const path of ["/ai.txt", "/how-its-scored", "/humans.txt", "/software", "/donate", "/runtime", "/runtime/v1/uses", "/AzielEliab", "/aboutme", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/search", "/.well-known/aziel.json"]) {
     assert.match(txt, new RegExp("Allow: " + path.replace("/", "\\/")));
   }
   assert.match(txt, /Content-Signal: search=yes, ai-input=yes, ai-train=yes/);
@@ -122,7 +122,7 @@ test("sitemap.xml lists key routes and uses XML mime helper", async () => {
   };
   const xml = await sitemapXml(env);
   assert.match(xml, /<\?xml version="1.0"/);
-  for (const path of ["/", "/AzielEliab", "/software", "/donate", "/v1/software", "/v1/download", "/v1/library-index", "/v1/stats", "/v1/update/check", "/sitemap-index.xml", "/mcp.json", "/.well-known/mcp.json", "/runtime", "/runtime/", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/software", "/runtime/v1/uses", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/forensics", "/aziel-library", "/corpus", "/cite.json", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/.well-known/aziel.json", "/llms.txt", "/ai.txt"]) {
+  for (const path of ["/", "/search", "/login", "/signup", "/AzielEliab", "/software", "/donate", "/v1/software", "/v1/download", "/v1/library-index", "/v1/stats", "/v1/update/check", "/sitemap-index.xml", "/mcp.json", "/.well-known/mcp.json", "/runtime", "/runtime/", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/software", "/runtime/v1/uses", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/forensics", "/aziel-library", "/corpus", "/cite.json", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/.well-known/aziel.json", "/llms.txt", "/ai.txt"]) {
     assert.match(xml, new RegExp("<loc>https://www\\.azielcorpuslibrary\\.net" + path.replace("/", "\\/") + "</loc>"));
   }
   assert.doesNotMatch(xml, /azielcorpuslibrary\.net\/about</);
@@ -348,6 +348,8 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(ai, /אליאב/);
   assert.match(ai, /Aziell, Asiel, El Roi, Eliav/);
   assert.match(ai, /who-is-aziel-eliab\.txt/);
+  assert.match(ai, /Allow: \/who-is/);
+  assert.match(ai, /Allow: \/search/);
   assert.match(ai, /azieleliab\.com\/v1\/stats/);
   assert.match(ai, /azielcorpuslibrary\.net\/stats/);
   assert.doesNotMatch(ai, /azielcorpuslibrary\.net\/v1\/stats/);
@@ -405,7 +407,7 @@ test("Worker SEO documents are 200 with long public cache and never empty for Go
   const env = {
     DOWNLOADS: { async get() { return null; }, async put() {}, async list() { throw new Error("no list"); } },
   };
-  for (const path of ["/robots.txt", "/llms.txt", "/cite.json", "/ai.txt", "/humans.txt", "/sitemap-index.xml", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/.well-known/aziel.json"]) {
+  for (const path of ["/robots.txt", "/llms.txt", "/cite.json", "/ai.txt", "/humans.txt", "/sitemap-index.xml", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/.well-known/aziel.json"]) {
     const res = await worker.fetch(
       new Request("https://www.azielcorpuslibrary.net" + path, { headers: { "User-Agent": "Googlebot/2.1" } }),
       env,

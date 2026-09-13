@@ -411,6 +411,8 @@ test("OpenAPI identity URLs include /AzielEliab and GodLock", async () => {
   assert.ok(spec.paths["/identity.jsonld"]);
   assert.ok(spec.paths["/graph.jsonld"]);
   assert.ok(spec.paths["/who-is-aziel-eliab.txt"]);
+  assert.ok(spec.paths["/who-is"]);
+  assert.ok(spec.paths["/search"]);
   assert.ok(spec.paths["/.well-known/aziel.json"]);
   assert.equal(spec.info.contact.name, "Aziel Eliab");
   assert.equal(spec.info.contact.url, "https://www.azielcorpuslibrary.net/AzielEliab");
