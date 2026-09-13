@@ -431,14 +431,19 @@ export async function ingestRecord(env, args) {
   const keywords = args && args.keywords;
   const supersedes = args && args.supersedes;
   const supersededBy = args && (args.superseded_by || args.supersededBy);
-  await ensureLedger(env);
-  try { await ensureReviewSchema(env); } catch { /* schema */ }
   const library = libraryFor(signed);
   if (library === "aziel" && !isOperator(signed)) {
     const err = new Error("Aziel Library upload is operator-only");
     err.status = 403;
     throw err;
   }
+  if ((signed.role === "guest" || signed.user_id === "anonymous") && !String(title || "").trim()) {
+    const err = new Error("Title is required.");
+    err.status = 400;
+    throw err;
+  }
+  await ensureLedger(env);
+  try { await ensureReviewSchema(env); } catch { /* schema */ }
   let ocrHint = null;
   const id = "AZDOC-" + randomBytes(6).toString("hex").toUpperCase();
   const who = isOperator(signed) ? "operator" : signed.username || "anonymous";
