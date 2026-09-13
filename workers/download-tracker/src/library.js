@@ -31,6 +31,16 @@ export function libraryFor(signed) {
   return isOperator(signed) ? "aziel" : "corpus";
 }
 
+/** Public Corpus writer with no account. Never an Aziel Library session. */
+export function guestSession() {
+  return { user_id: "anonymous", role: "guest", username: "anonymous" };
+}
+
+export function quarantineHiddenFromPublic(status) {
+  const q = String(status || "CLEAR").toUpperCase();
+  return q === "POISON_SUSPECT" || q === "QUARANTINE";
+}
+
 /** Latest Aziel-shelf record with the exact same subject key (succession, not topical fuzzy). */
 export async function findLatestSameSubject(env, { subject, library = "aziel" } = {}) {
   const want = subjectKey(subject);
@@ -98,7 +108,7 @@ function sortClause(sort) {
   return "ORDER BY created_utc DESC";
 }
 
-export async function searchRecords(env, { q, library, sort, author, domain, subject, keyword, limit, offset } = {}) {
+export async function searchRecords(env, { q, library, sort, author, domain, subject, keyword, limit, offset, includeQuarantine } = {}) {
   if (!env || !env.DB) return [];
   try { await ensureLedger(env); } catch { /* schema */ }
   try { await ensureReviewSchema(env); } catch { /* schema */ }
@@ -123,6 +133,9 @@ export async function searchRecords(env, { q, library, sort, author, domain, sub
   }
   // Oldest identical-SHA copies stay in D1/receipts but leave the public shelf.
   where.push("IFNULL(shelf_hidden,0) = 0");
+  if (!includeQuarantine) {
+    where.push("UPPER(IFNULL(quarantine_status,'CLEAR')) NOT IN ('POISON_SUSPECT','QUARANTINE')");
+  }
   const authorFilter = String(author || "").trim();
   if (authorFilter) {
     where.push("IFNULL(author,'') LIKE ?");
@@ -149,8 +162,17 @@ export async function searchRecords(env, { q, library, sort, author, domain, sub
   try {
     return (await env.DB.prepare(sql).bind(...binds).all()).results || [];
   } catch {
-    sql = sql.replace(", zsolver_score, zsolver_status, zsolver_json", "").replace(", zsolver_score, zsolver_status", "");
-    return (await env.DB.prepare(sql).bind(...binds).all()).results || [];
+    let fallback = sql.replace(", zsolver_score, zsolver_status, zsolver_json", "").replace(", zsolver_score, zsolver_status", "");
+    try {
+      return (await env.DB.prepare(fallback).bind(...binds).all()).results || [];
+    } catch {
+      fallback = fallback.replace(" AND UPPER(IFNULL(quarantine_status,'CLEAR')) NOT IN ('POISON_SUSPECT','QUARANTINE')", "");
+      try {
+        return (await env.DB.prepare(fallback).bind(...binds).all()).results || [];
+      } catch {
+        return [];
+      }
+    }
   }
 }
 
@@ -399,7 +421,7 @@ function looksText(filename, contentType) {
 }
 
 export async function ingestRecord(env, args) {
-  const signed = args && args.signed;
+  const signed = (args && args.signed) || guestSession();
   const title = args && args.title;
   const body = args && args.body;
   const file = args && args.file;
@@ -409,17 +431,17 @@ export async function ingestRecord(env, args) {
   const keywords = args && args.keywords;
   const supersedes = args && args.supersedes;
   const supersededBy = args && (args.superseded_by || args.supersededBy);
-  if (!signed) {
-    const err = new Error("login required");
-    err.status = 401;
-    throw err;
-  }
   await ensureLedger(env);
   try { await ensureReviewSchema(env); } catch { /* schema */ }
   const library = libraryFor(signed);
+  if (library === "aziel" && !isOperator(signed)) {
+    const err = new Error("Aziel Library upload is operator-only");
+    err.status = 403;
+    throw err;
+  }
   let ocrHint = null;
   const id = "AZDOC-" + randomBytes(6).toString("hex").toUpperCase();
-  const who = isOperator(signed) ? "operator" : signed.username;
+  const who = isOperator(signed) ? "operator" : signed.username || "anonymous";
   const notes = String(body || "").trim();
   let filename = null;
   let contentType = null;
