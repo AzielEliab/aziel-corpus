@@ -79,8 +79,11 @@ test("JSON-LD types the author as Person with alternateName", () => {
   assert.ok(person.alternateName.includes("עזיאל"));
   assert.ok(person.alternateName.includes("Aziell"));
   assert.equal(person.disambiguatingDescription, DISAMBIGUATING_DESCRIPTION);
-  assert.match(person.disambiguatingDescription, /Not Aziel S\./);
+  assert.match(person.disambiguatingDescription, /Not biblical Aziel/);
+  assert.match(person.disambiguatingDescription, /not biblical Eliab/);
   assert.match(person.disambiguatingDescription, /euaziel\.site/);
+  assert.match(person.disambiguatingDescription, /not Aziel S\. \(Flutter\/portfolio\)/);
+  assert.match(person.disambiguatingDescription, /not other engineers named Aziel/);
   assert.ok(person.knowsAbout.includes("Aziel Digital Library"));
   assert.equal(person.url, HUB_ORIGIN + "/");
   assert.ok(person.sameAs.includes("https://godlock.uk/"));

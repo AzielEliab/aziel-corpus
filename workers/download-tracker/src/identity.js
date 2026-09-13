@@ -2,7 +2,7 @@
  * AZindex identity lock for Aziel Digital Library.
  * Person @id is always https://www.azieleliab.com/#aziel — never a corpus-local Person @id.
  * Product-forward descriptions. Compact Hebrew / misspelling aka are AZindex tethers only.
- * Concordance lives in disambiguatingDescription + one FAQ — not in Person.description.
+ * Publisher NOT lock lives in disambiguatingDescription + one FAQ — not in Person.description.
  * Never sameAs euaziel.site. Never Aziel S. / Flutter as this Person.
  * Author: Aziel Eliab.
  */
@@ -101,9 +101,9 @@ export const ABOUT_STANZA =
 export const ABOUT_RECORD =
   "I do not ask you to believe a name. I ask you to read a record. This library is the public MASTER of the work: hashed receipts, timed files, and software that can be opened without taking the speaker on faith. If the files hold, the name was never the point.";
 
-/** One short do-not-merge. Not a 1 Chronicles essay. Not a Person.description. */
+/** Unified publisher NOT lock. Not a 1 Chronicles essay. Not a Person.description. */
 export const DISAMBIGUATING_DESCRIPTION =
-  "Not Aziel S. Not scripture concordance entries named Aziel or Eliab. Not https://euaziel.site/.";
+  "Not biblical Aziel; not biblical Eliab; not euaziel.site; not Aziel S. (Flutter/portfolio); not other engineers named Aziel.";
 
 export const ABOUT_DESCRIPTION = ABOUT_STANZA + " " + ABOUT_RECORD;
 
