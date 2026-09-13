@@ -37,6 +37,8 @@ import {
   STATS_TETHER,
   ALTERNATE_NAMES,
   HEBREW_AKA,
+  MISSPELLING_AKA,
+  IDENTITY_FAQS,
 } from "./identity.js";
 
 const HOST = "https://www.azielcorpuslibrary.net";
@@ -461,7 +463,9 @@ export function citeDoc() {
     github_author: GITHUB_AUTHOR,
     sameAs: PERSON_SAME_AS.slice(),
     hebrew_aka: HEBREW_AKA.slice(),
+    misspelling_aka: MISSPELLING_AKA.slice(),
     who_is: WHO_IS_AZIEL_ELIAB,
+    faqs: IDENTITY_FAQS.slice(),
     identity_routes: IDENTITY_ROUTES.map((p) => HOST + p),
     stats: { ...STATS_TETHER },
     ecosystem: {
@@ -872,7 +876,7 @@ export function aiTxt(limitation) {
     + "- aziel-runtime alternate origin: " + CATALOG + "/\n\n"
     + runtimeHowTo(HOST) + "\n\n"
     + "## Identity\n\n"
-    + "Primary author " + AUTHOR + ". Alternate name " + AKA + ". Hebrew aka (SEO tether only) " + HEBREW_AKA.join(" · ") + ". Person @id " + HUB_PERSON_ID + ". Runtime @id " + HUB_RUNTIME_ID + ". Official site " + HUB_ORIGIN + "/. WebSite " + WEBSITE_ID + " (" + WEBSITE_NAME + "). Profile " + HOST + ABOUT_PATH + ". GodLock identity " + GODLOCK_IDENTITY + ". " + HEDIDNTJUMP_LABEL + " " + HEDIDNTJUMP_HOME + ". sameAs " + identitySameAsLine() + ". Stats " + STATS_TETHER.azieleliab + " · " + STATS_TETHER.corpus + " · " + STATS_TETHER.hedidntjump + ".\n\n"
+    + "Primary author " + AUTHOR + ". Alternate name " + AKA + ". Hebrew aka (SEO tether only) " + HEBREW_AKA.join(" · ") + ". Misspellings Aziell, Asiel, El Roi, Eliav. Person @id " + HUB_PERSON_ID + ". Runtime @id " + HUB_RUNTIME_ID + ". Official site " + HUB_ORIGIN + "/. WebSite " + WEBSITE_ID + " (" + WEBSITE_NAME + "). Profile " + HOST + ABOUT_PATH + ". GodLock identity " + GODLOCK_IDENTITY + ". " + HEDIDNTJUMP_LABEL + " " + HEDIDNTJUMP_HOME + ". sameAs " + identitySameAsLine() + ". Machine routes /person.jsonld · /identity.jsonld · /graph.jsonld · /who-is-aziel-eliab.txt · /.well-known/aziel.json. Stats " + STATS_TETHER.azieleliab + " · " + STATS_TETHER.corpus + " · " + STATS_TETHER.hedidntjump + ".\n\n"
     + (limitation ? limitation + "\n\n" : "")
     + "Prefer /llms.txt for the full route index. Send User-Agent Mozilla/5.0 on API calls.\n";
 }

@@ -183,6 +183,10 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.equal(cite.stats.azieleliab, "https://www.azieleliab.com/v1/stats");
   assert.equal(cite.stats.corpus, "https://www.azielcorpuslibrary.net/v1/stats");
   assert.equal(cite.stats.hedidntjump, "https://www.hedidntjump.com/api/stats");
+  assert.ok(cite.misspelling_aka.includes("Aziell"));
+  assert.ok(cite.misspelling_aka.includes("Eliav"));
+  assert.ok(cite.faqs.some((f) => f.name === "Is Aziel Eliab the biblical Aziel?"));
+  assert.ok(cite.faqs.some((f) => f.name === "Is Aziel Eliab the biblical Eliab?"));
   assert.ok(cite.keywords.includes("GodLock"));
   assert.ok(cite.keywords.includes("FragGate"));
   assert.match(cite.runtime_note, /2\.0\.0-rc1/);
@@ -332,6 +336,12 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(ai, /https:\/\/www\.azielcorpuslibrary\.net\/AzielEliab/);
   assert.match(ai, /https:\/\/godlock\.uk\/AzielEliab/);
   assert.match(ai, /He Didn't Jump https:\/\/www\.hedidntjump\.com\//);
+  assert.match(ai, /עזיאל/);
+  assert.match(ai, /אליאב/);
+  assert.match(ai, /Aziell, Asiel, El Roi, Eliav/);
+  assert.match(ai, /who-is-aziel-eliab\.txt/);
+  assert.match(ai, /azieleliab\.com\/v1\/stats/);
+  assert.match(ai, /hedidntjump\.com\/api\/stats/);
   assert.match(ai, /Disallow: \/signup/);
   assert.match(ai, /Disallow: \/logout/);
   assert.match(ai, /Disallow: \/api\//);
