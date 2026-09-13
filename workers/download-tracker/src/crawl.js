@@ -37,6 +37,12 @@ import {
   STATS_TETHER,
   ALTERNATE_NAMES,
   HEBREW_AKA,
+  HEBREW_AKA_POINTED,
+  HEBREW_AKA_PHRASE,
+  HEBREW_DEFINITION,
+  HEBREW_NAME_FORMS,
+  NAME_LATTICE,
+  PEN_NAME_AKA,
   MISSPELLING_AKA,
   IDENTITY_FAQS,
   ABOUT_LEAD,
@@ -46,6 +52,7 @@ import {
   DISAMBIGUATING_DESCRIPTION,
   LOCK_LINE,
   WHO_PATH,
+  GITHUB_SECONDARY,
 } from "./identity.js";
 
 const HOST = "https://www.azielcorpuslibrary.net";
@@ -509,15 +516,24 @@ export function citeDoc() {
     website_id: WEBSITE_ID,
     website_name: WEBSITE_NAME,
     official_site: HUB_ORIGIN + "/",
-    keywords: [AUTHOR, AKA, "Aziel Digital Library", "Aziel Corpus Library", "aziel-corpus", "aziel-runtime", "FragGate", "GodLock", "AZCoherence", "azcoherence", "AZC-0.1", "AZ-CLCE"],
+    keywords: [AUTHOR, AKA, "Elias Artista", "The Revealer of The Sealed", "Aziel Digital Library", "Aziel Corpus Library", "aziel-corpus", "aziel-runtime", "FragGate", "GodLock", "AZCoherence", "azcoherence", "AZC-0.1", "AZ-CLCE"],
     title: "Aziel Digital Library",
     version: VERSION,
     doi: null,
     github: GITHUB_REPO,
     github_author: GITHUB_AUTHOR,
+    github_secondary: GITHUB_SECONDARY,
+    github_runtime: RUNTIME_GITHUB,
+    github_fraggate: "https://github.com/AzielEliab/fraggate",
     sameAs: PERSON_SAME_AS.slice(),
     who_is: WHO_IS_AZIEL_ELIAB,
     hebrew_aka: HEBREW_AKA.slice(),
+    hebrew_aka_pointed: HEBREW_AKA_POINTED.slice(),
+    hebrew_aka_phrase: HEBREW_AKA_PHRASE.slice(),
+    hebrew_definition: HEBREW_DEFINITION,
+    hebrew_name_forms: { ...HEBREW_NAME_FORMS },
+    name_lattice: { ...NAME_LATTICE, also: NAME_LATTICE.also.slice() },
+    pen_name_aka: PEN_NAME_AKA.slice(),
     misspelling_aka: MISSPELLING_AKA.slice(),
     disambiguatingDescription: DISAMBIGUATING_DESCRIPTION,
     about_lead: ABOUT_LEAD,
@@ -544,7 +560,7 @@ export function citeDoc() {
     priority_pages: {
       home: { url: HOST + "/", title: "Aziel Digital Library", schema: "WebSite" },
       software: { url: HOST + "/software", title: "Softwares", schema: "CollectionPage", related: softwareRelatedPaths().map((p) => HOST + p) },
-      about: { url: HOST + ABOUT_PATH, title: "About Aziel Eliab", schema: "AboutPage", aka: AKA, sameAs: [GODLOCK_IDENTITY, GITHUB_AUTHOR, GITHUB_REPO] },
+      about: { url: HOST + ABOUT_PATH, title: "About Aziel Eliab", schema: "AboutPage", aka: AKA, sameAs: [GODLOCK_IDENTITY, GITHUB_AUTHOR, GITHUB_SECONDARY, GITHUB_REPO] },
       who: { url: HOST + WHO_PATH, title: "Who is Aziel Eliab", schema: "FAQPage" },
     },
     software_hub: HOST + "/software",
@@ -715,8 +731,11 @@ export function llmsDoc(limitation) {
     + "- Published About: " + ABOUT_STANZA + "\n"
     + "- Record: " + ABOUT_RECORD + "\n"
     + "- Disambiguation: " + DISAMBIGUATING_DESCRIPTION + "\n"
-    + "- Canonical aka: Aziel Elroi Eliab · AzielEliab · AzielElroiEliab · The Revealer of The Sealed\n"
+    + "- Canonical aka: Aziel Elroi Eliab · AzielEliab · AzielElroiEliab · The Revealer of The Sealed · Elias Artista\n"
+    + "- Pen name aka: " + PEN_NAME_AKA.join(" · ") + "\n"
     + "- Compact Hebrew aka (AZindex tether only): " + HEBREW_AKA.join(" · ") + "\n"
+    + "- Hebrew phrases: " + HEBREW_AKA_PHRASE.join(" / ") + "\n"
+    + "- Hebrew definition: " + HEBREW_DEFINITION + "\n"
     + "- Compact misspellings (AZindex tether only): " + MISSPELLING_AKA.join(", ") + "\n"
     + "- GodLock identity: " + GODLOCK_IDENTITY + "\n"
     + "- " + HEDIDNTJUMP_LABEL + ": " + HEDIDNTJUMP_HOME + "\n"
@@ -979,7 +998,7 @@ export function aiTxt(limitation) {
     + "- aziel-runtime alternate origin: " + CATALOG + "/\n\n"
     + runtimeHowTo(HOST) + "\n\n"
     + "## Identity\n\n"
-    + "Primary author " + AUTHOR + ". Canonical aka " + ALTERNATE_NAMES.join(" · ") + ". " + LOCK_LINE + " " + WHO_IS_AZIEL_ELIAB + " " + ABOUT_STANZA + " " + ABOUT_LEAD + " " + ABOUT_RECORD + " " + DISAMBIGUATING_DESCRIPTION + " Person @id " + HUB_PERSON_ID + ". Runtime @id " + HUB_RUNTIME_ID + ". Official site " + HUB_ORIGIN + "/. WebSite " + WEBSITE_ID + " (" + WEBSITE_NAME + "). Profile " + HOST + ABOUT_PATH + ". Who HTML " + HOST + WHO_PATH + ". GodLock identity " + GODLOCK_IDENTITY + ". " + HEDIDNTJUMP_LABEL + " " + HEDIDNTJUMP_HOME + ". sameAs " + identitySameAsLine() + ". Machine routes /person.jsonld · /identity.jsonld · /graph.jsonld · /who-is-aziel-eliab.txt · /who-is · /who · /.well-known/aziel.json · /.well-known/person.jsonld. Stats " + STATS_TETHER.azieleliab + " · " + STATS_TETHER.corpus + " · " + STATS_TETHER.hedidntjump + ".\n\n"
+    + "Primary author " + AUTHOR + ". Canonical aka " + ALTERNATE_NAMES.join(" · ") + ". " + LOCK_LINE + " " + WHO_IS_AZIEL_ELIAB + " Also Elias Artista. " + HEBREW_DEFINITION + " " + ABOUT_STANZA + " " + ABOUT_LEAD + " " + ABOUT_RECORD + " " + DISAMBIGUATING_DESCRIPTION + " Person @id " + HUB_PERSON_ID + ". Runtime @id " + HUB_RUNTIME_ID + ". Official site " + HUB_ORIGIN + "/. WebSite " + WEBSITE_ID + " (" + WEBSITE_NAME + "). Profile " + HOST + ABOUT_PATH + ". Who HTML " + HOST + WHO_PATH + ". GodLock identity " + GODLOCK_IDENTITY + ". " + HEDIDNTJUMP_LABEL + " " + HEDIDNTJUMP_HOME + ". sameAs " + identitySameAsLine() + ". Machine routes /person.jsonld · /identity.jsonld · /graph.jsonld · /who-is-aziel-eliab.txt · /who-is · /who · /.well-known/aziel.json · /.well-known/person.jsonld. Stats " + STATS_TETHER.azieleliab + " · " + STATS_TETHER.corpus + " · " + STATS_TETHER.hedidntjump + ".\n\n"
     + (limitation ? limitation + "\n\n" : "")
     + "Prefer /llms.txt for the full route index. Send User-Agent Mozilla/5.0 on API calls.\n";
 }
@@ -988,7 +1007,7 @@ export function humansTxt() {
   return [
     "/* TEAM */",
     "Author: " + AUTHOR,
-    "Also known as: " + AKA,
+    "Also known as: " + AKA + " · Elias Artista · The Revealer of The Sealed",
     "Primary credit: " + AUTHOR,
     "Person @id: " + HUB_PERSON_ID,
     "Runtime @id: " + HUB_RUNTIME_ID,
@@ -997,6 +1016,8 @@ export function humansTxt() {
     "Site: " + HOST + "/",
     "Profile: " + HOST + ABOUT_PATH,
     "GitHub: " + GITHUB_AUTHOR,
+    "GitHub secondary: " + GITHUB_SECONDARY,
+    "Hebrew definition: " + HEBREW_DEFINITION,
     "Repo: " + GITHUB_REPO,
     "GodLock: " + GODLOCK_IDENTITY,
     HEDIDNTJUMP_LABEL + ": " + HEDIDNTJUMP_HOME,

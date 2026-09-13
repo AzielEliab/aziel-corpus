@@ -53,6 +53,9 @@ test("GET /AzielEliab serves the About HTML at the canonical path", async () => 
   assert.doesNotMatch(aboutBody(), /Aziel S\./);
   assert.doesNotMatch(aboutBody(), new RegExp(LOCK_LINE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   assert.match(aboutBody(), /Who\? Does not matter/);
+  assert.doesNotMatch(aboutBody(), /Elias Artista/);
+  assert.doesNotMatch(aboutBody(), /God is my strength/);
+  assert.doesNotMatch(aboutBody(), /Everblooming Flower/);
   assert.match(html, /Aziel Elroi Eliab/);
   assert.match(html, new RegExp('href="' + ABOUT_PATH.replace("/", "\\/") + '"'));
   assert.match(html, new RegExp(">" + ABOUT_NAV_LABEL + "<"));
@@ -109,6 +112,9 @@ test("GET /who is 200 with H1 Who is Aziel Eliab and no visible 15:20 lock parag
   assert.ok(html.includes(WHO_IS_AZIEL_ELIAB));
   assert.doesNotMatch(whoBody(), new RegExp(LOCK_LINE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   assert.ok(whoBody().includes(WHO_IS_AZIEL_ELIAB));
+  assert.doesNotMatch(whoBody(), /Elias Artista/);
+  assert.doesNotMatch(whoBody(), /God is my strength/);
+  assert.doesNotMatch(whoBody(), /Everblooming Flower/);
   assert.match(html, /Is Aziel Eliab the two musicians named in 1 Chronicles 15:20\?/);
   assert.match(html, /https:\/\/www\.azieleliab\.com\/#aziel/);
   assert.doesNotMatch(html, /azielcorpuslibrary\.net\/AzielEliab#aziel-eliab/);
