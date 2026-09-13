@@ -140,7 +140,7 @@ Sitemap: https://www.azielcorpuslibrary.net/sitemap-index.xml
 - well-known: https://www.azielcorpuslibrary.net/.well-known/aziel.json
 - GitHub cite example: https://github.com/AzielEliab/aziel-corpus/blob/main/docs/cite.example.json
 - llms.txt: https://www.azielcorpuslibrary.net/llms.txt
-- Cross-tether stats: https://www.azieleliab.com/v1/stats · https://www.azielcorpuslibrary.net/v1/stats · https://www.hedidntjump.com/api/stats
+- Cross-tether stats: https://www.azieleliab.com/v1/stats · https://www.azielcorpuslibrary.net/stats · https://www.hedidntjump.com/api/stats
 
 ## Compatible AI clients
 
@@ -148,7 +148,7 @@ ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistr
 
 ## Identity
 
-Primary author Aziel Eliab. Alternate name Aziel Elroi Eliab. Hebrew aka (SEO tether only) עזיאל · אל ראי · אלרועי · אליאב. Misspellings Aziell, Asiel, El Roi, Eliav. Person @id https://www.azieleliab.com/#aziel. Runtime @id https://www.azieleliab.com/runtime#runtime. Official site https://www.azieleliab.com/. WebSite https://www.azielcorpuslibrary.net/#website (Aziel Corpus Library). Profile https://www.azielcorpuslibrary.net/AzielEliab. GodLock identity https://godlock.uk/AzielEliab. He Didn't Jump https://www.hedidntjump.com/. sameAs https://github.com/AzielEliab · https://github.com/azieltherevealerofthesealed-arch · https://glama.ai/mcp/servers/AzielEliab/aziel-runtime · https://www.azieleliab.com/ · https://www.azielcorpuslibrary.net/ · https://godlock.uk/ · https://www.hedidntjump.com/ · https://x.com/AzielElroiEliab · https://x.com/azieleliab. Machine routes /person.jsonld · /identity.jsonld · /graph.jsonld · /who-is-aziel-eliab.txt · /.well-known/aziel.json. Stats https://www.azieleliab.com/v1/stats · https://www.azielcorpuslibrary.net/v1/stats · https://www.hedidntjump.com/api/stats.
+Primary author Aziel Eliab. Alternate name Aziel Elroi Eliab. Hebrew aka (SEO tether only) עזיאל · אל ראי · אלרועי · אליאב. Misspellings Aziell, Asiel, El Roi, Eliav. Person @id https://www.azieleliab.com/#aziel. Runtime @id https://www.azieleliab.com/runtime#runtime. Official site https://www.azieleliab.com/. WebSite https://www.azielcorpuslibrary.net/#website (Aziel Corpus Library). Profile https://www.azielcorpuslibrary.net/AzielEliab. GodLock identity https://godlock.uk/AzielEliab. He Didn't Jump https://www.hedidntjump.com/. sameAs https://github.com/AzielEliab · https://github.com/azieltherevealerofthesealed-arch · https://glama.ai/mcp/servers/AzielEliab/aziel-runtime · https://www.azieleliab.com/ · https://www.azielcorpuslibrary.net/ · https://godlock.uk/ · https://www.hedidntjump.com/ · https://x.com/AzielElroiEliab · https://x.com/azieleliab. Machine routes /person.jsonld · /identity.jsonld · /graph.jsonld · /who-is-aziel-eliab.txt · /.well-known/aziel.json. Stats https://www.azieleliab.com/v1/stats · https://www.azielcorpuslibrary.net/stats · https://www.hedidntjump.com/api/stats.
 
 Aziel Runtime 2.0.0-rc1. FragGate is the single door. Do not mash version + FragGate into Softwares blurbs. Softwares on this repo is the Digital Library catalog.
 

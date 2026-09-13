@@ -122,9 +122,11 @@ test("who-is-aziel-eliab.txt is the verbatim identity-lock answer", () => {
 test("cite and well-known share stats tether and mission lock", () => {
   const wellKnown = azielJson();
   const cite = citeDoc();
+  assert.equal(STATS_TETHER.corpus, "https://www.azielcorpuslibrary.net/stats");
+  assert.notEqual(STATS_TETHER.corpus, "https://www.azielcorpuslibrary.net/v1/stats");
   assert.deepEqual(wellKnown.stats, {
     azieleliab: "https://www.azieleliab.com/v1/stats",
-    corpus: "https://www.azielcorpuslibrary.net/v1/stats",
+    corpus: "https://www.azielcorpuslibrary.net/stats",
     hedidntjump: "https://www.hedidntjump.com/api/stats",
   });
   assert.deepEqual(cite.stats, wellKnown.stats);
@@ -159,6 +161,8 @@ test("llms.txt keeps library sections and the full sameAs lock", () => {
   assert.match(llms, /אליאב/);
   assert.match(llms, /Aziell/);
   assert.match(llms, /azieleliab\.com\/v1\/stats/);
+  assert.match(llms, /azielcorpuslibrary\.net\/stats/);
+  assert.doesNotMatch(llms, /azielcorpuslibrary\.net\/v1\/stats/);
   assert.match(llms, /hedidntjump\.com\/api\/stats/);
   assert.doesNotMatch(llms, BANNED);
 });
