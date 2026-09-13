@@ -50,7 +50,7 @@ test("GET /AzielEliab serves the About HTML at the canonical path", async () => 
   assert.doesNotMatch(html, /Researcher\. Builder/);
   assert.doesNotMatch(html, /Flutter\/React/);
   assert.ok(html.includes(DISAMBIGUATING_DESCRIPTION));
-  assert.doesNotMatch(html.split(DISAMBIGUATING_DESCRIPTION).join("").split(LOCK_LINE).join(""), /Aziel S\./);
+  assert.doesNotMatch(aboutBody(), /Aziel S\./);
   assert.doesNotMatch(aboutBody(), new RegExp(LOCK_LINE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   assert.match(aboutBody(), /Who\? Does not matter/);
   assert.match(html, /Aziel Elroi Eliab/);
