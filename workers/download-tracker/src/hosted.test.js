@@ -45,7 +45,9 @@ test("GET /AzielEliab serves the About HTML at the canonical path", async () => 
   assert.doesNotMatch(html, /Who does not matter/);
   assert.doesNotMatch(html, /1 Chronicles/);
   assert.doesNotMatch(html, /Researcher\. Builder/);
-  assert.doesNotMatch(html, /Aziel S\.|Flutter\/React/);
+  assert.doesNotMatch(html, /Flutter\/React/);
+  assert.match(html, /Not Aziel S\./);
+  assert.doesNotMatch(html.replaceAll("Not Aziel S.", ""), /Aziel S\./);
   assert.match(html, /Aziel Elroi Eliab/);
   assert.match(html, new RegExp('href="' + ABOUT_PATH.replace("/", "\\/") + '"'));
   assert.match(html, new RegExp(">" + ABOUT_NAV_LABEL + "<"));

@@ -799,6 +799,7 @@ export function llmsDoc(limitation) {
     + "- GET " + HOST + "/who-is-aziel-eliab.txt\n"
     + "- GET " + HOST + "/who-is\n"
     + "- GET " + HOST + "/.well-known/aziel.json\n"
+    + "- GET " + HOST + "/.well-known/person.jsonld\n"
     + "- GET " + HOST + "/openapi.json\n"
     + "- GET " + HOST + "/llms.txt\n"
     + "- GET " + HOST + "/ai.txt\n"
@@ -914,7 +915,7 @@ export function aiTxt(limitation) {
     + "- aziel-runtime alternate origin: " + CATALOG + "/\n\n"
     + runtimeHowTo(HOST) + "\n\n"
     + "## Identity\n\n"
-    + "Primary author " + AUTHOR + ". Canonical aka " + ALTERNATE_NAMES.join(" · ") + ". " + WHO_IS_AZIEL_ELIAB + " " + ABOUT_LEAD + " " + ABOUT_RECORD + " Person @id " + HUB_PERSON_ID + ". Runtime @id " + HUB_RUNTIME_ID + ". Official site " + HUB_ORIGIN + "/. WebSite " + WEBSITE_ID + " (" + WEBSITE_NAME + "). Profile " + HOST + ABOUT_PATH + ". GodLock identity " + GODLOCK_IDENTITY + ". " + HEDIDNTJUMP_LABEL + " " + HEDIDNTJUMP_HOME + ". sameAs " + identitySameAsLine() + ". Machine routes /person.jsonld · /identity.jsonld · /graph.jsonld · /who-is-aziel-eliab.txt · /who-is · /.well-known/aziel.json. Stats " + STATS_TETHER.azieleliab + " · " + STATS_TETHER.corpus + " · " + STATS_TETHER.hedidntjump + ".\n\n"
+    + "Primary author " + AUTHOR + ". Canonical aka " + ALTERNATE_NAMES.join(" · ") + ". " + WHO_IS_AZIEL_ELIAB + " " + ABOUT_LEAD + " " + ABOUT_RECORD + " " + DISAMBIGUATING_DESCRIPTION + " Person @id " + HUB_PERSON_ID + ". Runtime @id " + HUB_RUNTIME_ID + ". Official site " + HUB_ORIGIN + "/. WebSite " + WEBSITE_ID + " (" + WEBSITE_NAME + "). Profile " + HOST + ABOUT_PATH + ". GodLock identity " + GODLOCK_IDENTITY + ". " + HEDIDNTJUMP_LABEL + " " + HEDIDNTJUMP_HOME + ". sameAs " + identitySameAsLine() + ". Machine routes /person.jsonld · /identity.jsonld · /graph.jsonld · /who-is-aziel-eliab.txt · /who-is · /.well-known/aziel.json · /.well-known/person.jsonld. Stats " + STATS_TETHER.azieleliab + " · " + STATS_TETHER.corpus + " · " + STATS_TETHER.hedidntjump + ".\n\n"
     + (limitation ? limitation + "\n\n" : "")
     + "Prefer /llms.txt for the full route index. Send User-Agent Mozilla/5.0 on API calls.\n";
 }
