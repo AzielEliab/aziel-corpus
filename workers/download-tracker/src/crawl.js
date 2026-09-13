@@ -210,6 +210,8 @@ export function robotsTxt() {
     "Allow: /identity.jsonld",
     "Allow: /graph.jsonld",
     "Allow: /who-is-aziel-eliab.txt",
+    "Allow: /who-is",
+    "Allow: /search",
     "Allow: /.well-known/aziel.json",
     "Allow: /llms.txt",
     "Allow: /ai.txt",
@@ -246,6 +248,9 @@ export function robotsTxt() {
 
 const STATIC_SITEMAP = [
   "/",
+  "/search",
+  "/login",
+  "/signup",
   ABOUT_PATH,
   "/software",
   "/donate",
@@ -286,6 +291,7 @@ const STATIC_SITEMAP = [
   "/identity.jsonld",
   "/graph.jsonld",
   "/who-is-aziel-eliab.txt",
+  "/who-is",
   "/.well-known/aziel.json",
   "/llms.txt",
   "/ai.txt",
@@ -316,6 +322,7 @@ const STATIC_SITEMAP = [
 
 const SITEMAP_HINTS = {
   "/": { changefreq: "daily", priority: "1.0" },
+  "/search": { changefreq: "daily", priority: "0.8" },
   "/software": { changefreq: "weekly", priority: "0.9" },
   [ABOUT_PATH]: { changefreq: "monthly", priority: "0.9" },
   "/v1/software": { changefreq: "weekly", priority: "0.8" },
@@ -326,6 +333,7 @@ const SITEMAP_HINTS = {
   "/identity.jsonld": { changefreq: "monthly", priority: "0.8" },
   "/graph.jsonld": { changefreq: "monthly", priority: "0.8" },
   "/who-is-aziel-eliab.txt": { changefreq: "monthly", priority: "0.8" },
+  "/who-is": { changefreq: "monthly", priority: "0.8" },
   "/.well-known/aziel.json": { changefreq: "monthly", priority: "0.8" },
   "/llms.txt": { changefreq: "weekly", priority: "0.7" },
   "/ai.txt": { changefreq: "weekly", priority: "0.7" },
@@ -779,6 +787,7 @@ export function llmsDoc(limitation) {
     + "- GET " + HOST + "/identity.jsonld\n"
     + "- GET " + HOST + "/graph.jsonld\n"
     + "- GET " + HOST + "/who-is-aziel-eliab.txt\n"
+    + "- GET " + HOST + "/who-is\n"
     + "- GET " + HOST + "/.well-known/aziel.json\n"
     + "- GET " + HOST + "/openapi.json\n"
     + "- GET " + HOST + "/llms.txt\n"
@@ -826,6 +835,8 @@ export function aiTxt(limitation) {
     "Allow: /identity.jsonld",
     "Allow: /graph.jsonld",
     "Allow: /who-is-aziel-eliab.txt",
+    "Allow: /who-is",
+    "Allow: /search",
     "Allow: /.well-known/aziel.json",
     "Allow: /llms.txt",
     "Allow: /ai.txt",
@@ -892,7 +903,7 @@ export function aiTxt(limitation) {
     + "- aziel-runtime alternate origin: " + CATALOG + "/\n\n"
     + runtimeHowTo(HOST) + "\n\n"
     + "## Identity\n\n"
-    + "Primary author " + AUTHOR + ". Alternate name " + AKA + ". Lead " + ABOUT_LEAD + " " + ABOUT_STANZA + " " + ABOUT_RECORD + " Hebrew aka (SEO tether only) " + HEBREW_AKA.join(" · ") + ". Misspellings Aziell, Asiel, El Roi, Eliav. Person @id " + HUB_PERSON_ID + ". Runtime @id " + HUB_RUNTIME_ID + ". Official site " + HUB_ORIGIN + "/. WebSite " + WEBSITE_ID + " (" + WEBSITE_NAME + "). Profile " + HOST + ABOUT_PATH + ". GodLock identity " + GODLOCK_IDENTITY + ". " + HEDIDNTJUMP_LABEL + " " + HEDIDNTJUMP_HOME + ". sameAs " + identitySameAsLine() + ". Machine routes /person.jsonld · /identity.jsonld · /graph.jsonld · /who-is-aziel-eliab.txt · /.well-known/aziel.json. Stats " + STATS_TETHER.azieleliab + " · " + STATS_TETHER.corpus + " · " + STATS_TETHER.hedidntjump + ".\n\n"
+    + "Primary author " + AUTHOR + ". Alternate name " + AKA + ". Lead " + ABOUT_LEAD + " " + ABOUT_STANZA + " " + ABOUT_RECORD + " Hebrew aka (SEO tether only) " + HEBREW_AKA.join(" · ") + ". Misspellings Aziell, Asiel, El Roi, Eliav. Person @id " + HUB_PERSON_ID + ". Runtime @id " + HUB_RUNTIME_ID + ". Official site " + HUB_ORIGIN + "/. WebSite " + WEBSITE_ID + " (" + WEBSITE_NAME + "). Profile " + HOST + ABOUT_PATH + ". GodLock identity " + GODLOCK_IDENTITY + ". " + HEDIDNTJUMP_LABEL + " " + HEDIDNTJUMP_HOME + ". sameAs " + identitySameAsLine() + ". Machine routes /person.jsonld · /identity.jsonld · /graph.jsonld · /who-is-aziel-eliab.txt · /who-is · /.well-known/aziel.json. Stats " + STATS_TETHER.azieleliab + " · " + STATS_TETHER.corpus + " · " + STATS_TETHER.hedidntjump + ".\n\n"
     + (limitation ? limitation + "\n\n" : "")
     + "Prefer /llms.txt for the full route index. Send User-Agent Mozilla/5.0 on API calls.\n";
 }

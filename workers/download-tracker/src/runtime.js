@@ -200,6 +200,8 @@ function openapi() {
       "/identity.jsonld": { get: { summary: "AZindex identity JSON-LD. Same Person document as /person.jsonld.", operationId: "identityJsonLd" } },
       "/graph.jsonld": { get: { summary: "AZindex graph: Person, Who-is + biblical Aziel/Eliab FAQs, WebSite publisher, library role, stats tether.", operationId: "graphJsonLd" } },
       "/who-is-aziel-eliab.txt": { get: { summary: "Verbatim Who is Aziel Eliab answer from the identity lock.", operationId: "whoIsAzielEliab" } },
+      "/who-is": { get: { summary: "Alias of /who-is-aziel-eliab.txt. Living publisher Aziel Eliab; not biblical Aziel (1 Chronicles) or biblical Eliab.", operationId: "whoIs" } },
+      "/search": { get: { summary: "Corpus Search HTML (HTTP 200). Same shelf as /; does not increment homepage views.", operationId: "searchPage" } },
       "/.well-known/aziel.json": { get: { summary: "Shared azieleliab-pack mission object. Not a biography. doi null.", operationId: "wellKnownAziel" } },
       "/runtime": { get: { summary: "Aziel Runtime " + RUNTIME_VERSION + " on this domain. Prefer /runtime/*. " + RUNTIME_NOTE, operationId: "runtimePage" } },
       "/runtime/v1/health": { get: { summary: "Aziel Runtime " + RUNTIME_VERSION + " health via same-origin proxy.", operationId: "runtimeProxyHealth" } },

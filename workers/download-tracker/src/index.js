@@ -382,6 +382,15 @@ export default {
       });
     }
 
+    if ((url.pathname === "/search" || url.pathname === "/search/") && isReadMethod(request.method)) {
+      const htmlHeaders = { "Cache-Control": HTML_CACHE_CONTROL, "X-Robots-Tag": "index, follow, max-image-preview:large", ...corsHeaders() };
+      if (request.method === "HEAD") {
+        return crawlResponse(request, "", "text/html; charset=utf-8", htmlHeaders);
+      }
+      const html = await indexHtml(env, request, signedEarly);
+      return attachVid(crawlResponse(request, streamLcpHtml(html), "text/html; charset=utf-8", htmlHeaders));
+    }
+
     if (url.pathname === "/" && isReadMethod(request.method)) {
       const htmlHeaders = { "Cache-Control": HTML_CACHE_CONTROL, "X-Robots-Tag": "index, follow, max-image-preview:large", ...corsHeaders() };
       if (request.method === "HEAD") {
@@ -412,11 +421,6 @@ export default {
     }
     const hosted = await handleHosted(request, url, env, ctx, signed, hostedStats);
     if (hosted) return attachVid(hosted);
-
-    if (url.pathname === "/search" && request.method === "GET") {
-      const q = url.searchParams.get("q") || "";
-      return Response.redirect(new URL("/?q=" + encodeURIComponent(q), url).toString(), 302);
-    }
 
     if (url.pathname === "/count" && request.method === "GET") {
       const stats = await collectStats(env);
