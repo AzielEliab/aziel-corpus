@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { handleHosted } from "./hosted.js";
+import { aboutBody } from "./ui.js";
+import { DISAMBIGUATING_DESCRIPTION } from "./identity.js";
 import { ABOUT_PATH, ABOUT_NAV_LABEL, FORENSICS_PATH } from "./seo.js";
 
 const BANNED = /Collin Horton|GodLock\.AZ|\+25|quiet (Aziel|triad|boost)|10\.5281\/zenodo/i;
@@ -46,8 +48,9 @@ test("GET /AzielEliab serves the About HTML at the canonical path", async () => 
   assert.doesNotMatch(html, /1 Chronicles/);
   assert.doesNotMatch(html, /Researcher\. Builder/);
   assert.doesNotMatch(html, /Flutter\/React/);
-  assert.match(html, /Not Aziel S\./);
-  assert.doesNotMatch(html.replaceAll("Not Aziel S.", ""), /Aziel S\./);
+  assert.ok(html.includes(DISAMBIGUATING_DESCRIPTION));
+  assert.doesNotMatch(html.split(DISAMBIGUATING_DESCRIPTION).join(""), /Aziel S\./);
+  assert.doesNotMatch(aboutBody(), /biblical Aziel|biblical Eliab|euaziel|Flutter|Aziel S\./);
   assert.match(html, /Aziel Elroi Eliab/);
   assert.match(html, new RegExp('href="' + ABOUT_PATH.replace("/", "\\/") + '"'));
   assert.match(html, new RegExp(">" + ABOUT_NAV_LABEL + "<"));
