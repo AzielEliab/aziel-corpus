@@ -5,6 +5,9 @@ import {
   PERSON_SAME_AS,
   ALTERNATE_NAMES,
   HEBREW_AKA,
+  HEBREW_AKA_PHRASE,
+  HEBREW_DEFINITION,
+  NAME_LATTICE,
   MISSPELLING_AKA,
   PERSON_KNOWS_ABOUT,
   STATS_TETHER,
@@ -15,6 +18,8 @@ import {
   FAQ_CONCORDANCE,
   FAQ_MUSICIANS,
   FAQ_ELROI,
+  FAQ_ELIAS,
+  FAQ_HEBREW,
   FAQ_WHAT_MATTERS,
   FAQ_PUBLISHES,
   ABOUT_LEAD,
@@ -38,7 +43,7 @@ import {
 import { robotsTxt, sitemapXml, citeDoc, llmsDoc } from "./crawl.js";
 import { personNode, HUB_PERSON_ID } from "./seo.js";
 
-const BANNED = /Collin Horton|GodLock\.AZ|\+25|quiet (Aziel|triad|boost)|10\.5281\/zenodo|legalName|homeLocation|worksFor|familyName/;
+const BANNED = /Collin Horton|GodLock\.AZ|\+25|quiet (Aziel|triad|boost)|10\.5281\/zenodo|legalName|homeLocation|worksFor|familyName|Everblooming Flower/;
 const IDENTITY_SPAM = /biblical combinations|Flutter\/React|Chronicles essay|1 Chronicles 15:21/;
 const PRODUCT_FORWARD_COLLISION = /Aziel S\.|euaziel\.site/;
 const PUBLISHER_NOT_LOCK =
@@ -83,18 +88,28 @@ test("Person @id is hub #aziel and sameAs is the full lock", () => {
 });
 
 test("alternateName is compact aka tethers — no 1 Chronicles essays", () => {
-  assert.deepEqual(ALTERNATE_NAMES.slice(0, 5), [
+  assert.deepEqual(ALTERNATE_NAMES.slice(0, 6), [
     "Aziel Elroi Eliab",
     "AzielEliab",
     "AzielElroiEliab",
     "The Revealer of The Sealed",
     "Revealer of The Sealed",
+    "Elias Artista",
   ]);
   assert.deepEqual(HEBREW_AKA, ["עזיאל", "אל ראי", "אלרועי", "אליאב"]);
+  assert.deepEqual(HEBREW_AKA_PHRASE, ["עזיאל אל ראי אליאב", "עזיאל אלרועי אליאב"]);
+  assert.match(HEBREW_DEFINITION, /God is my strength/);
+  assert.match(HEBREW_DEFINITION, /God who sees/);
+  assert.match(HEBREW_DEFINITION, /God is father/);
+  assert.deepEqual(NAME_LATTICE.also, ["Aziel Elroi Eliab", "Elias Artista", "The Revealer of The Sealed"]);
   assert.deepEqual(MISSPELLING_AKA, ["Aziell", "Asiel", "El Roi", "Eliav"]);
   assert.ok(ALTERNATE_NAMES.includes("עזיאל"));
+  assert.ok(ALTERNATE_NAMES.includes("עזיאל אל ראי אליאב"));
+  assert.ok(ALTERNATE_NAMES.includes("עזיאל אלרועי אליאב"));
+  assert.ok(ALTERNATE_NAMES.includes("Elias Artista"));
   assert.ok(ALTERNATE_NAMES.includes("Aziell"));
   assert.ok(!ALTERNATE_NAMES.includes("Aziel Eliav"));
+  assert.ok(!ALTERNATE_NAMES.includes("Everblooming Flower"));
   const person = personJsonLd();
   assert.deepEqual(person.alternateName, ALTERNATE_NAMES.slice());
   assert.equal(person.disambiguatingDescription, DISAMBIGUATING_DESCRIPTION);
@@ -104,6 +119,8 @@ test("alternateName is compact aka tethers — no 1 Chronicles essays", () => {
   assert.match(person.description, BOTH_MUSICIANS);
   assert.doesNotMatch(person.description, /scripture concordance/);
   assert.match(person.description, PRODUCT_FORWARD_COLLISION);
+  assert.match(person.description, /Elias Artista/);
+  assert.equal(person.description.includes(HEBREW_DEFINITION), true);
   assert.equal(person.disambiguatingDescription, PUBLISHER_NOT_LOCK);
   assert.match(person.disambiguatingDescription, BOTH_MUSICIANS);
   assert.match(person.disambiguatingDescription, /euaziel\.site/);
@@ -142,6 +159,10 @@ test("graph.jsonld has Who-is + product FAQs, publisher Person, library role, st
   assert.ok(questions.includes(FAQ_MUSICIANS.name));
   assert.equal(FAQ_CONCORDANCE, FAQ_MUSICIANS);
   assert.ok(questions.includes(FAQ_ELROI.name));
+  assert.ok(questions.includes(FAQ_ELIAS.name));
+  assert.ok(questions.includes(FAQ_HEBREW.name));
+  assert.equal(FAQ_ELIAS.text.includes("Elias Artista") || FAQ_ELIAS.name.includes("Elias Artista"), true);
+  assert.equal(FAQ_HEBREW.text, HEBREW_DEFINITION);
   assert.ok(!questions.includes("Is Aziel Eliab a scripture concordance entry?"));
   assert.ok(!questions.includes("Is Aziel Eliab the biblical Aziel?"));
   assert.ok(!questions.includes("Is Aziel Eliab the biblical Eliab?"));
@@ -183,7 +204,12 @@ test("graph.jsonld has Who-is + product FAQs, publisher Person, library role, st
 });
 
 test("who-is-aziel-eliab.txt is the 15:20 identity-lock answer", () => {
-  assert.equal(whoIsTxt(), WHO_IS_AZIEL_ELIAB + "\n");
+  const who = whoIsTxt();
+  assert.match(who, new RegExp("^" + WHO_IS_AZIEL_ELIAB.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.match(who, /Elias Artista/);
+  assert.equal(who.includes(HEBREW_DEFINITION), true);
+  assert.match(who, /github\.com\/AzielEliab/);
+  assert.match(who, /github\.com\/azieltherevealerofthesealed-arch/);
   assert.match(WHO_IS_AZIEL_ELIAB, /independent researcher/);
   assert.match(WHO_IS_AZIEL_ELIAB, /receipt-first/);
   assert.match(WHO_IS_AZIEL_ELIAB, /azielcorpuslibrary\.net/);
@@ -216,6 +242,13 @@ test("cite and well-known share stats tether and mission lock", () => {
   });
   assert.deepEqual(cite.stats, wellKnown.stats);
   assert.deepEqual(cite.hebrew_aka, wellKnown.hebrew_aka);
+  assert.equal(cite.hebrew_definition, HEBREW_DEFINITION);
+  assert.equal(wellKnown.hebrew_definition, HEBREW_DEFINITION);
+  assert.deepEqual(cite.name_lattice.also, NAME_LATTICE.also.slice());
+  assert.ok(cite.name_lattice.also.includes("Elias Artista"));
+  assert.equal(cite.github_author, "https://github.com/AzielEliab");
+  assert.equal(cite.github_secondary, "https://github.com/azieltherevealerofthesealed-arch");
+  assert.equal(wellKnown.github_secondary, cite.github_secondary);
   assert.deepEqual(cite.misspelling_aka, wellKnown.misspelling_aka);
   assert.deepEqual(cite.faqs, wellKnown.faqs);
   assert.equal(wellKnown.about_lead, ABOUT_LEAD);
@@ -268,6 +301,9 @@ test("llms.txt keeps library sections and the full sameAs lock", () => {
   assert.match(llms, /euaziel\.site/);
   assert.match(llms, /not Aziel S\. \(Flutter\/portfolio\)/);
   assert.match(llms, /The Revealer of The Sealed/);
+  assert.match(llms, /Elias Artista/);
+  assert.equal(llms.includes(HEBREW_DEFINITION), true);
+  assert.doesNotMatch(llms, /Everblooming Flower/);
   assert.match(llms, /Who is Aziel Eliab: https:\/\/www\.azielcorpuslibrary\.net\/who/);
   assert.doesNotMatch(withoutPublisherNotLock(llms), /\bFlutter\b/);
   assert.match(llms, /azieleliab\.com\/v1\/stats/);
@@ -323,8 +359,10 @@ test("Worker serves identity routes with locked Content-Types", async () => {
       assert.match(desc, BOTH_MUSICIANS);
     }
     if (path === "/who-is-aziel-eliab.txt" || path === "/who-is") {
-      assert.equal(body, WHO_IS_AZIEL_ELIAB + "\n");
+      assert.equal(body, whoIsTxt());
       assert.match(body, BOTH_MUSICIANS);
+      assert.match(body, /Elias Artista/);
+      assert.equal(body.includes(HEBREW_DEFINITION), true);
     }
     if (path === "/.well-known/person.jsonld") {
       assert.equal(body, identityRouteBody("/person.jsonld").body);

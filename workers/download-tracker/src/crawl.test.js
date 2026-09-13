@@ -123,7 +123,7 @@ test("sitemap.xml lists key routes and uses XML mime helper", async () => {
   };
   const xml = await sitemapXml(env);
   assert.match(xml, /<\?xml version="1.0"/);
-  for (const path of ["/", "/search", "/login", "/signup", "/AzielEliab", "/software", "/donate", "/v1/software", "/v1/download", "/v1/library-index", "/v1/stats", "/v1/update/check", "/sitemap-index.xml", "/sitemap-records.xml", "/mcp.json", "/.well-known/mcp.json", "/runtime", "/runtime/", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/software", "/runtime/v1/uses", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/forensics", "/aziel-library", "/corpus", "/cite.json", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/.well-known/aziel.json", "/.well-known/person.jsonld", "/llms.txt", "/ai.txt"]) {
+  for (const path of ["/", "/search", "/login", "/signup", "/AzielEliab", "/software", "/donate", "/v1/software", "/v1/download", "/v1/library-index", "/v1/stats", "/v1/update/check", "/sitemap-index.xml", "/sitemap-records.xml", "/mcp.json", "/.well-known/mcp.json", "/runtime", "/runtime/", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/software", "/runtime/v1/uses", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/forensics", "/aziel-library", "/corpus", "/cite.json", "/receipts", "/v1/receipts", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/.well-known/aziel.json", "/.well-known/person.jsonld", "/llms.txt", "/ai.txt"]) {
     assert.match(xml, new RegExp("<loc>https://www\\.azielcorpuslibrary\\.net" + path.replace("/", "\\/") + "</loc>"));
   }
   assert.doesNotMatch(xml, /azielcorpuslibrary\.net\/about</);
@@ -151,8 +151,22 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.ok(cite.alternateName.includes("Aziel Elroi Eliab"));
   assert.ok(cite.alternateName.includes("AzielEliab"));
   assert.ok(cite.alternateName.includes("The Revealer of The Sealed"));
+  assert.ok(cite.alternateName.includes("Elias Artista"));
   assert.ok(cite.alternateName.includes("עזיאל"));
+  assert.ok(cite.alternateName.includes("עזיאל אל ראי אליאב"));
+  assert.ok(!cite.alternateName.includes("Everblooming Flower"));
   assert.ok(cite.hebrew_aka.includes("עזיאל"));
+  assert.match(cite.hebrew_definition, /God is my strength/);
+  assert.match(cite.hebrew_definition, /God who sees/);
+  assert.match(cite.hebrew_definition, /God is father/);
+  assert.equal(cite.github_author, "https://github.com/AzielEliab");
+  assert.equal(cite.github_secondary, "https://github.com/azieltherevealerofthesealed-arch");
+  assert.equal(cite.github_runtime, "https://github.com/AzielEliab/aziel-runtime");
+  assert.equal(cite.github_fraggate, "https://github.com/AzielEliab/fraggate");
+  assert.equal(cite.receipts, "https://www.azielcorpuslibrary.net/receipts");
+  assert.equal(cite.receipts_spec, "ACT-RECEIPT-1.0");
+  assert.ok(cite.name_lattice.also.includes("Elias Artista"));
+  assert.ok(cite.pen_name_aka.includes("Elias Artista"));
   assert.ok(cite.misspelling_aka.includes("Aziell"));
   assert.equal(
     cite.disambiguatingDescription,
@@ -254,6 +268,10 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(llms, /public MASTER of the work/);
   assert.doesNotMatch(llms, /Researcher\. Builder\. AI\. A one-man dev team\. Just a man\./);
   assert.match(llms, /Compact Hebrew aka/);
+  assert.match(llms, /Elias Artista/);
+  assert.match(llms, /Hebrew definition:/);
+  assert.match(llms, /God is my strength/);
+  assert.doesNotMatch(llms, /Everblooming Flower/);
   assert.match(llms, /Who is Aziel Eliab: https:\/\/www\.azielcorpuslibrary\.net\/who/);
   assert.match(llms, /Softwares: https:\/\/www\.azielcorpuslibrary\.net\/software/);
   assert.match(llms, /About Aziel Eliab: https:\/\/www\.azielcorpuslibrary\.net\/AzielEliab/);
@@ -379,6 +397,9 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(ai, /Aziel Digital Library on this site/);
   assert.match(ai, /GodLock/);
   assert.match(ai, /עזיאל/);
+  assert.match(ai, /Elias Artista/);
+  assert.match(ai, /God is my strength/);
+  assert.doesNotMatch(ai, /Everblooming Flower/);
   assert.match(ai, /Aziell/);
   assert.match(ai, /1 Chronicles 15:20/);
   assert.match(ai, /who-is-aziel-eliab\.txt/);
@@ -408,6 +429,10 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(humans, /Official site: https:\/\/www\.azieleliab\.com\//);
   assert.match(humans, /WebSite: Aziel Corpus Library https:\/\/www\.azielcorpuslibrary\.net\/#website/);
   assert.match(humans, /github.com\/AzielEliab/);
+  assert.match(humans, /azieltherevealerofthesealed-arch/);
+  assert.match(humans, /Elias Artista/);
+  assert.match(humans, /God is my strength/);
+  assert.doesNotMatch(humans, /Everblooming Flower/);
   assert.match(humans, /azielcorpuslibrary\.net\/AzielEliab/);
   assert.match(humans, /godlock\.uk\/AzielEliab/);
   assert.match(humans, /He Didn't Jump: https:\/\/www\.hedidntjump\.com\//);
