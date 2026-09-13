@@ -189,7 +189,6 @@ label.showpw{font-size:14px;color:var(--muted);white-space:nowrap;min-height:44p
 .about-prose > :last-child{margin-bottom:0}
 .about-sign{margin-top:2px}
 .about-record{background:var(--paper);color:var(--ink);border:1px dashed var(--line);box-shadow:none;margin-top:8px}
-.about-record h2{margin:0 0 12px;font-size:15px;color:var(--muted);letter-spacing:.03em;font-weight:750}
 .about-record,.about-record p,.about-record li{color:var(--ink)}
 .about-record a{color:var(--gold)}
 .about-record a:hover{color:var(--ink)}
