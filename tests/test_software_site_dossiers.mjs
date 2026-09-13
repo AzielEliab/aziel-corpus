@@ -48,6 +48,9 @@ test("renderDossier has Apache-2.0, author, required sections, and aziel shelf m
   assert.match(md, /Forks welcome/);
   assert.match(md, /https:\/\/www\.azieleliab\.com\/#aziel/);
   assert.match(md, /https:\/\/www\.azieleliab\.com\/runtime#runtime/);
+  assert.match(md, /Not scripture concordance entries named Aziel or Eliab/);
+  assert.match(md, /Publisher of Aziel Digital Library/);
+  assert.doesNotMatch(md, /1 Chronicles/);
   const { meta } = parseFrontMatter(md);
   assert.equal(meta.library, "aziel");
   assert.equal(meta.license, LICENSE);

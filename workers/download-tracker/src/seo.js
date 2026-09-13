@@ -187,7 +187,7 @@ export function defaultDescription(kind, runtimeVersion) {
   if (kind === "aziel-library") return "Aziel Library — royal-purple operator collection of work by Aziel Eliab on Aziel Digital Library.";
   if (kind === "runtime") return runtimeDescription(runtimeVersion);
   if (kind === "software") return softwareDescription(runtimeVersion);
-  if (kind === "about") return "About Aziel Eliab. " + ABOUT_DESCRIPTION + " Signed Aziel Elroi Eliab. GodLock is one product on that record.";
+  if (kind === "about") return "About Aziel Eliab, publisher of Aziel Digital Library on this site. " + ABOUT_DESCRIPTION + " Signed Aziel Elroi Eliab. GodLock is one product on that record.";
   if (kind === "scored" || kind === "how-its-scored") return "How Aziel Digital Library scores records: triad SPRE × CLCE × PhysLing, AZCoherence second-pass triad coherence (peer AZ-CLCE; not AKM-TRIAD), and ZionPattern meaning (75 is intentional suppression confidence; lower is more natural). Author Aziel Eliab.";
   if (kind === "pattern") return "Pattern clusters across Aziel Digital Library domains, subjects, and keywords. Author Aziel Eliab.";
   if (kind === "donate") return "AZL-DONATE-1.0. Donate to Aziel Digital Library. Static door. Exodus rails. No Worker KV. Not a catalog item. Author Aziel Eliab.";
@@ -448,6 +448,7 @@ export function headMeta(opts) {
     linkRel("alternate", "/graph.jsonld", " type=" + Q + "application/ld+json" + Q),
     linkRel("alternate", "/who-is-aziel-eliab.txt", " type=" + Q + "text/plain" + Q),
     linkRel("alternate", "/.well-known/aziel.json", " type=" + Q + "application/json" + Q),
+    linkRel("alternate", "/.well-known/person.jsonld", " type=" + Q + "application/ld+json" + Q),
     linkRel("alternate", "/llms.txt", " type=" + Q + "text/plain" + Q),
     linkRel("alternate", "/ai.txt", " type=" + Q + "text/plain" + Q),
     linkRel("alternate", "/openapi.json", " type=" + Q + "application/json" + Q + " title=" + Q + "OpenAPI" + Q),
