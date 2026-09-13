@@ -58,10 +58,10 @@ test("restored nav2 keeps every public tab and drops Health/Verify/Gazetteer fro
   assert.match(html, /Part of the Aziel Eliab ecosystem/);
   assert.match(html, />Official site</);
   assert.match(html, /href="https:\/\/www\.azieleliab\.com\/"/);
-  assert.match(html, />Aziel Corpus Library</);
-  assert.match(html, />Aziel Runtime on GitHub</);
-  assert.match(html, /class="runtime-muted"[^>]*href="https:\/\/aziel-runtime\.vibelock\.workers\.dev\/"[^>]*>Aziel Runtime</);
-  assert.match(html, />Try on Glama</);
+  assert.match(html, />Corpus</);
+  assert.match(html, />GodLock</);
+  assert.match(html, />Runtime GitHub</);
+  assert.match(html, />Glama</);
   assert.match(html, /class="ecosystem"/);
 });
 
@@ -133,7 +133,7 @@ test("homepage LCP fold keeps hero first and leaves entity-graph plus shelf inta
   const html = page("Corpus Search", home, { path: "/", kind: "search", views: 12, downloads: 3 });
   const headEnd = html.indexOf("</head>");
   const foldAt = html.indexOf(LCP_FOLD);
-  const ldAt = html.indexOf("application/ld+json");
+  const ldAt = html.indexOf('<script type="application/ld+json">');
   const heroAt = html.indexOf("Search the libraries");
   const cardAt = html.indexOf("Shelf card stays after the fold");
   assert.ok(headEnd > 0 && foldAt > headEnd, "fold sits in the body");
@@ -141,7 +141,8 @@ test("homepage LCP fold keeps hero first and leaves entity-graph plus shelf inta
   assert.ok(cardAt > foldAt, "shelf cards stay after the fold");
   assert.ok(ldAt > foldAt, "entity-graph JSON-LD stays on the page after first paint");
   assert.match(html.slice(0, headEnd), /rel="preload" href="\/sigil\.png" as="image" fetchpriority="high"/);
-  assert.doesNotMatch(html.slice(0, headEnd), /application\/ld\+json/);
+  assert.match(html.slice(0, headEnd), /href="\/person\.jsonld"/);
+  assert.doesNotMatch(html.slice(0, headEnd), /<script type="application\/ld\+json">/);
   assert.match(html, /fetchpriority="high"/);
   assert.match(html, /id="views"/);
   assert.match(html, /id="downloads"/);
@@ -149,7 +150,7 @@ test("homepage LCP fold keeps hero first and leaves entity-graph plus shelf inta
   assert.match(html, /id="jeevesFab"/);
   assert.match(html, /"@type":"CollectionPage"/);
   assert.match(html, /"@id":"https:\/\/www\.azieleliab\.com\/#aziel"/);
-  assert.match(html, /Try on Glama/);
+  assert.match(html, />Glama</);
   assert.match(CSS, /\.doc\{[^}]*content-visibility:auto/);
   assert.match(CSS, /\.hero h1\{[^}]*content-visibility:visible/);
   assert.match(CSS, /html,body\{[^}]*overflow:auto/);
@@ -252,6 +253,8 @@ test("Pattern, Software, About, and runtime pages render live copy", () => {
   const about = aboutBody();
   assert.match(about, /About Aziel/);
   assert.match(about, /Who\? Does not matter/);
+  assert.match(about, /Researcher\. Builder\. AI\. A one-man dev team\. Just a man\./);
+  assert.match(about, /public MASTER of the work/);
   assert.doesNotMatch(about, /Who does not matter/);
   assert.match(about, /— Aziel Elroi Eliab/);
   assert.match(about, /— Aziel Eliab/);

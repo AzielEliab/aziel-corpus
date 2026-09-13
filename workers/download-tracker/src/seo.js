@@ -13,6 +13,15 @@ import {
   softwareDescription,
   softwareHubBlurb,
 } from "./runtime-copy.js";
+import {
+  PERSON_SAME_AS,
+  PERSON_DESCRIPTION,
+  personNode as lockedPersonNode,
+  GODLOCK_HOME,
+  ABOUT_DESCRIPTION,
+  aboutPageNode,
+  faqNode,
+} from "./identity.js";
 
 export const CANON_HOST = "https://www.azielcorpuslibrary.net";
 export const ABOUT_PATH = "/AzielEliab";
@@ -41,11 +50,11 @@ export const SITE_DESCRIPTION = "Aziel Digital Library by Aziel Eliab. Search th
 export const ECOSYSTEM_HEADING = "Part of the Aziel Eliab ecosystem";
 export const ECOSYSTEM_LINKS = Object.freeze([
   Object.freeze({ href: HUB_ORIGIN + "/", label: "Official site" }),
-  Object.freeze({ href: CANON_HOST + "/", label: "Aziel Corpus Library" }),
+  Object.freeze({ href: CANON_HOST + "/", label: "Corpus" }),
+  Object.freeze({ href: GODLOCK_HOME, label: "GodLock" }),
   Object.freeze({ href: HEDIDNTJUMP_HOME, label: HEDIDNTJUMP_LABEL }),
-  Object.freeze({ href: RUNTIME_GITHUB, label: "Aziel Runtime on GitHub" }),
-  Object.freeze({ href: RUNTIME_ORIGIN + "/", label: "Aziel Runtime", muted: true }),
-  Object.freeze({ href: RUNTIME_GLAMA, label: "Try on Glama", primary: true }),
+  Object.freeze({ href: RUNTIME_GITHUB, label: "Runtime GitHub" }),
+  Object.freeze({ href: RUNTIME_GLAMA, label: "Glama", primary: true }),
 ]);
 
 /** Unique <title> / OG / Twitter strings. Visible H1s stay in page bodies. */
@@ -125,14 +134,11 @@ export function toolRef(slug) {
  * Same hub @id only — never a competing corpus-local Person @id.
  */
 export function personNode() {
+  const locked = lockedPersonNode();
   return {
-    "@type": "Person",
-    "@id": HUB_PERSON_ID,
-    name: AUTHOR,
-    alternateName: [AKA],
-    url: HUB_ORIGIN + "/",
-    description: "Author of Aziel Digital Library. Identity Aziel Eliab only.",
-    sameAs: [HUB_ORIGIN + "/", GODLOCK_IDENTITY, HEDIDNTJUMP_HOME, GITHUB_AUTHOR, GITHUB_REPO, CANON_HOST + ABOUT_PATH],
+    ...locked,
+    description: PERSON_DESCRIPTION,
+    sameAs: PERSON_SAME_AS.slice(),
   };
 }
 
@@ -181,7 +187,7 @@ export function defaultDescription(kind, runtimeVersion) {
   if (kind === "aziel-library") return "Aziel Library — royal-purple operator collection of work by Aziel Eliab on Aziel Digital Library.";
   if (kind === "runtime") return runtimeDescription(runtimeVersion);
   if (kind === "software") return softwareDescription(runtimeVersion);
-  if (kind === "about") return "About Aziel Eliab. What matters is the record: hashed receipts, timed files, and software that can be opened without taking the speaker on faith. Signed Aziel Elroi Eliab. GodLock is one product on that record.";
+  if (kind === "about") return "About Aziel Eliab. " + ABOUT_DESCRIPTION + " Signed Aziel Elroi Eliab. GodLock is one product on that record.";
   if (kind === "scored" || kind === "how-its-scored") return "How Aziel Digital Library scores records: triad SPRE × CLCE × PhysLing, AZCoherence second-pass triad coherence (peer AZ-CLCE; not AKM-TRIAD), and ZionPattern meaning (75 is intentional suppression confidence; lower is more natural). Author Aziel Eliab.";
   if (kind === "pattern") return "Pattern clusters across Aziel Digital Library domains, subjects, and keywords. Author Aziel Eliab.";
   if (kind === "donate") return "AZL-DONATE-1.0. Donate to Aziel Digital Library. Static door. Exodus rails. No Worker KV. Not a catalog item. Author Aziel Eliab.";
@@ -338,16 +344,8 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
     });
   }
   if (kind === "about" || path === ABOUT_PATH) {
-    graph.push({
-      "@type": "AboutPage",
-      "@id": CANON_HOST + ABOUT_PATH + "#about",
-      name: "About " + AUTHOR,
-      url: CANON_HOST + ABOUT_PATH,
-      description,
-      isPartOf: { "@id": WEBSITE_ID },
-      author: who,
-      mainEntity: who,
-    });
+    graph.push(aboutPageNode(description));
+    graph.push(faqNode());
     graph.push({
       "@type": "ProfilePage",
       name: title || ABOUT_NAV_LABEL,
@@ -445,6 +443,11 @@ export function headMeta(opts) {
     meta("twitter:image", image),
     meta("twitter:image:alt", imageAlt),
     linkRel("alternate", "/cite.json", " type=" + Q + "application/json" + Q),
+    linkRel("alternate", "/person.jsonld", " type=" + Q + "application/ld+json" + Q),
+    linkRel("alternate", "/identity.jsonld", " type=" + Q + "application/ld+json" + Q),
+    linkRel("alternate", "/graph.jsonld", " type=" + Q + "application/ld+json" + Q),
+    linkRel("alternate", "/who-is-aziel-eliab.txt", " type=" + Q + "text/plain" + Q),
+    linkRel("alternate", "/.well-known/aziel.json", " type=" + Q + "application/json" + Q),
     linkRel("alternate", "/llms.txt", " type=" + Q + "text/plain" + Q),
     linkRel("alternate", "/ai.txt", " type=" + Q + "text/plain" + Q),
     linkRel("alternate", "/openapi.json", " type=" + Q + "application/json" + Q + " title=" + Q + "OpenAPI" + Q),
