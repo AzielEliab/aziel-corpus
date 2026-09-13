@@ -253,6 +253,8 @@ test("Pattern, Software, About, and runtime pages render live copy", () => {
   const about = aboutBody();
   assert.match(about, /About Aziel/);
   assert.match(about, /Who\? Does not matter/);
+  assert.match(about, /Researcher\. Builder\. AI\. A one-man dev team\. Just a man\./);
+  assert.match(about, /public MASTER of the work/);
   assert.doesNotMatch(about, /Who does not matter/);
   assert.match(about, /— Aziel Elroi Eliab/);
   assert.match(about, /— Aziel Eliab/);

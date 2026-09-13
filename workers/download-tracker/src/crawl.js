@@ -39,6 +39,10 @@ import {
   HEBREW_AKA,
   MISSPELLING_AKA,
   IDENTITY_FAQS,
+  ABOUT_LEAD,
+  ABOUT_STANZA,
+  ABOUT_RECORD,
+  ABOUT_SIGNIFICANT_LINKS,
 } from "./identity.js";
 
 const HOST = "https://www.azielcorpuslibrary.net";
@@ -465,8 +469,12 @@ export function citeDoc() {
     hebrew_aka: HEBREW_AKA.slice(),
     misspelling_aka: MISSPELLING_AKA.slice(),
     who_is: WHO_IS_AZIEL_ELIAB,
+    about_lead: ABOUT_LEAD,
+    about_stanza: ABOUT_STANZA,
+    about_record: ABOUT_RECORD,
     faqs: IDENTITY_FAQS.slice(),
     identity_routes: IDENTITY_ROUTES.map((p) => HOST + p),
+    significant_links: ABOUT_SIGNIFICANT_LINKS.slice(),
     stats: { ...STATS_TETHER },
     ecosystem: {
       heading: ECOSYSTEM_HEADING,
@@ -639,6 +647,9 @@ export function llmsDoc(limitation) {
     + "- WebSite @id: " + WEBSITE_ID + "\n"
     + "- WebSite name: " + WEBSITE_NAME + "\n"
     + "- Profile / About Aziel Eliab: " + HOST + ABOUT_PATH + "\n"
+    + "- Lead: " + ABOUT_LEAD + "\n"
+    + "- Published About: " + ABOUT_STANZA + "\n"
+    + "- Record: " + ABOUT_RECORD + "\n"
     + "- GodLock identity: " + GODLOCK_IDENTITY + "\n"
     + "- " + HEDIDNTJUMP_LABEL + ": " + HEDIDNTJUMP_HOME + "\n"
     + "- sameAs: " + identitySameAsLine() + "\n"
@@ -659,6 +670,11 @@ export function llmsDoc(limitation) {
     + "- About HTML: " + HOST + ABOUT_PATH + "\n"
     + "- Unique title: About Aziel Eliab | Aziel Digital Library\n"
     + "- Legacy /about and /aboutme permanently redirect here (301).\n"
+    + "- Lead: " + ABOUT_LEAD + "\n"
+    + "- " + ABOUT_STANZA + "\n"
+    + "- " + ABOUT_RECORD + "\n"
+    + "- Not a biography. Publisher/creator resolve to " + HUB_PERSON_ID + ".\n"
+    + "- significantLink: " + ABOUT_SIGNIFICANT_LINKS.join(" · ") + "\n"
     + "- Identity page sameAs: " + GODLOCK_IDENTITY + "\n"
     + "- Sister archive: " + HEDIDNTJUMP_LABEL + " " + HEDIDNTJUMP_HOME + "\n"
     + "- Alternate name Aziel Elroi Eliab is SEO alternateName only.\n\n"
@@ -876,7 +892,7 @@ export function aiTxt(limitation) {
     + "- aziel-runtime alternate origin: " + CATALOG + "/\n\n"
     + runtimeHowTo(HOST) + "\n\n"
     + "## Identity\n\n"
-    + "Primary author " + AUTHOR + ". Alternate name " + AKA + ". Hebrew aka (SEO tether only) " + HEBREW_AKA.join(" · ") + ". Misspellings Aziell, Asiel, El Roi, Eliav. Person @id " + HUB_PERSON_ID + ". Runtime @id " + HUB_RUNTIME_ID + ". Official site " + HUB_ORIGIN + "/. WebSite " + WEBSITE_ID + " (" + WEBSITE_NAME + "). Profile " + HOST + ABOUT_PATH + ". GodLock identity " + GODLOCK_IDENTITY + ". " + HEDIDNTJUMP_LABEL + " " + HEDIDNTJUMP_HOME + ". sameAs " + identitySameAsLine() + ". Machine routes /person.jsonld · /identity.jsonld · /graph.jsonld · /who-is-aziel-eliab.txt · /.well-known/aziel.json. Stats " + STATS_TETHER.azieleliab + " · " + STATS_TETHER.corpus + " · " + STATS_TETHER.hedidntjump + ".\n\n"
+    + "Primary author " + AUTHOR + ". Alternate name " + AKA + ". Lead " + ABOUT_LEAD + " " + ABOUT_STANZA + " " + ABOUT_RECORD + " Hebrew aka (SEO tether only) " + HEBREW_AKA.join(" · ") + ". Misspellings Aziell, Asiel, El Roi, Eliav. Person @id " + HUB_PERSON_ID + ". Runtime @id " + HUB_RUNTIME_ID + ". Official site " + HUB_ORIGIN + "/. WebSite " + WEBSITE_ID + " (" + WEBSITE_NAME + "). Profile " + HOST + ABOUT_PATH + ". GodLock identity " + GODLOCK_IDENTITY + ". " + HEDIDNTJUMP_LABEL + " " + HEDIDNTJUMP_HOME + ". sameAs " + identitySameAsLine() + ". Machine routes /person.jsonld · /identity.jsonld · /graph.jsonld · /who-is-aziel-eliab.txt · /.well-known/aziel.json. Stats " + STATS_TETHER.azieleliab + " · " + STATS_TETHER.corpus + " · " + STATS_TETHER.hedidntjump + ".\n\n"
     + (limitation ? limitation + "\n\n" : "")
     + "Prefer /llms.txt for the full route index. Send User-Agent Mozilla/5.0 on API calls.\n";
 }

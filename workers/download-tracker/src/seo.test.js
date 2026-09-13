@@ -122,6 +122,18 @@ test("JSON-LD types the author as Person with alternateName", () => {
   assert.deepEqual(aboutPage.author, { "@id": HUB_PERSON_ID });
   assert.deepEqual(aboutPage.creator, { "@id": HUB_PERSON_ID });
   assert.deepEqual(aboutPage.publisher, { "@id": HUB_PERSON_ID });
+  assert.deepEqual(aboutPage.significantLink, [
+    "https://www.azielcorpuslibrary.net/person.jsonld",
+    "https://www.azielcorpuslibrary.net/who-is-aziel-eliab.txt",
+    "https://www.azielcorpuslibrary.net/graph.jsonld",
+    "https://www.azielcorpuslibrary.net/.well-known/aziel.json",
+  ]);
+  assert.match(aboutPage.description, /Researcher\. Builder/);
+  assert.match(aboutPage.description, /Who\? Does not matter/);
+  const aboutFaq = ld["@graph"].find((n) => n["@type"] === "FAQPage");
+  assert.ok(aboutFaq);
+  assert.ok(aboutFaq.mainEntity.some((q) => q.name === "What matters about Aziel Eliab?"));
+  assert.ok(aboutFaq.mainEntity.some((q) => q.name === "Is Aziel Eliab a researcher and builder?"));
   const profile = ld["@graph"].find((n) => n["@type"] === "ProfilePage");
   assert.equal(profile.url, "https://www.azielcorpuslibrary.net/AzielEliab");
   assert.deepEqual(profile.mainEntity, { "@id": HUB_PERSON_ID });
@@ -266,7 +278,9 @@ test("page-specific descriptions and share images", () => {
   assert.match(defaultDescription("about"), /Aziel Elroi Eliab/);
   assert.match(defaultDescription("about"), /What matters is the record/);
   assert.match(defaultDescription("about"), /GodLock/);
-  assert.doesNotMatch(defaultDescription("about"), /researcher and builder/);
+  assert.match(defaultDescription("about"), /Researcher\. Builder/);
+  assert.match(defaultDescription("about"), /one-man dev team/);
+  assert.match(defaultDescription("about"), /public MASTER/);
   assert.match(defaultDescription("software"), /Software|aziel-runtime/i);
   assert.match(defaultDescription("scored"), /intentional suppression/);
   assert.match(defaultDescription("search"), /Aziel Digital Library by Aziel Eliab/);
