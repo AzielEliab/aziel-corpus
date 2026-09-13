@@ -102,13 +102,18 @@ export const ABOUT_SIGNIFICANT_LINKS = Object.freeze([
   LIBRARY_HOST + "/.well-known/aziel.json",
 ]);
 
-/** Verbatim Who-is answer. FAQ + /who-is-aziel-eliab.txt must match this string. */
+/** Verbatim Who-is answer. FAQ + /who-is-aziel-eliab.txt + /who-is must match this string. */
 export const WHO_IS_AZIEL_ELIAB =
   ABOUT_LEAD +
-  " Public identity Aziel Eliab. Researcher. Builder. AI. A one-man dev team. Just a man. " +
+  " Public identity Aziel Eliab. Living publisher of this MASTER. Researcher. Builder. AI. A one-man dev team. Just a man. " +
   ABOUT_RECORD +
-  " Person @id " +
+  " NOT biblical Aziel (1 Chronicles). NOT biblical Eliab. Person @id " +
   PERSON_ID;
+
+export const FAQ_WHO_IS = Object.freeze({
+  name: "Who is Aziel Eliab?",
+  text: WHO_IS_AZIEL_ELIAB,
+});
 
 export const FAQ_WHAT_MATTERS = Object.freeze({
   name: "What matters about Aziel Eliab?",
@@ -123,13 +128,13 @@ export const FAQ_RESEARCHER_BUILDER = Object.freeze({
 export const FAQ_BIBLICAL_AZIEL = Object.freeze({
   name: "Is Aziel Eliab the biblical Aziel?",
   text:
-    "No. Biblical Aziel (עזיאל) is a scriptural name, not this publisher. The public identity Aziel Eliab is the author of the record. Hebrew עזיאל is an SEO tether only. Person @id https://www.azieleliab.com/#aziel",
+    "No. Biblical Aziel (1 Chronicles; עזיאל) is a scriptural name, not this publisher. The public identity Aziel Eliab is the living publisher of this MASTER, not the biblical Aziel. Hebrew עזיאל is an SEO tether only. Person @id https://www.azieleliab.com/#aziel",
 });
 
 export const FAQ_BIBLICAL_ELIAB = Object.freeze({
   name: "Is Aziel Eliab the biblical Eliab?",
   text:
-    "No. Biblical Eliab (אליאב) is a scriptural name, not this publisher. The public identity is Aziel Eliab. Hebrew אליאב is an SEO tether only. Person @id https://www.azieleliab.com/#aziel",
+    "No. Biblical Eliab (אליאב) is a scriptural name, not this publisher. The public identity Aziel Eliab is the living publisher of this MASTER, not the biblical Eliab. Hebrew אליאב is an SEO tether only. Person @id https://www.azieleliab.com/#aziel",
 });
 
 export const FAQ_ELROI = Object.freeze({
@@ -139,7 +144,7 @@ export const FAQ_ELROI = Object.freeze({
 });
 
 export const IDENTITY_FAQS = Object.freeze([
-  Object.freeze({ name: "Who is Aziel Eliab", text: WHO_IS_AZIEL_ELIAB }),
+  FAQ_WHO_IS,
   FAQ_WHAT_MATTERS,
   FAQ_RESEARCHER_BUILDER,
   FAQ_BIBLICAL_AZIEL,
@@ -188,6 +193,7 @@ export const IDENTITY_ROUTES = Object.freeze([
   "/identity.jsonld",
   "/graph.jsonld",
   "/who-is-aziel-eliab.txt",
+  "/who-is",
   "/.well-known/aziel.json",
 ]);
 
@@ -278,7 +284,7 @@ export function faqNode() {
   return {
     "@type": "FAQPage",
     "@id": LIBRARY_HOST + "/graph.jsonld#faq",
-    name: "Who is Aziel Eliab",
+    name: FAQ_WHO_IS.name,
     url: LIBRARY_HOST + "/who-is-aziel-eliab.txt",
     mainEntity: IDENTITY_FAQS.map(faqQuestion),
   };
@@ -340,7 +346,7 @@ export function identityRouteBody(path) {
   if (path === "/graph.jsonld") {
     return { body: JSON.stringify(graphJsonLd(), null, 2) + "\n", type: IDENTITY_MIME.jsonld };
   }
-  if (path === "/who-is-aziel-eliab.txt") {
+  if (path === "/who-is-aziel-eliab.txt" || path === "/who-is") {
     return { body: whoIsTxt(), type: IDENTITY_MIME.plain };
   }
   if (path === "/.well-known/aziel.json") {

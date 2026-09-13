@@ -10,6 +10,7 @@ import {
   STATS_URLS,
   WHO_IS_AZIEL_ELIAB,
   IDENTITY_FAQS,
+  FAQ_WHO_IS,
   FAQ_BIBLICAL_AZIEL,
   FAQ_BIBLICAL_ELIAB,
   FAQ_ELROI,
@@ -89,21 +90,27 @@ test("graph.jsonld has Who-is + biblical Aziel/Eliab FAQs, publisher Person, lib
   assert.equal(people[0]["@id"], PERSON_ID);
   const faq = graph["@graph"].find((n) => n["@type"] === "FAQPage");
   const questions = faq.mainEntity.map((q) => q.name);
-  assert.ok(questions.includes("Who is Aziel Eliab"));
+  assert.ok(questions.includes("Who is Aziel Eliab?"));
+  assert.equal(FAQ_WHO_IS.name, "Who is Aziel Eliab?");
   assert.ok(questions.includes(FAQ_WHAT_MATTERS.name));
   assert.ok(questions.includes(FAQ_RESEARCHER_BUILDER.name));
   assert.ok(questions.includes(FAQ_BIBLICAL_AZIEL.name));
   assert.ok(questions.includes(FAQ_BIBLICAL_ELIAB.name));
   assert.ok(questions.includes(FAQ_ELROI.name));
-  const who = faq.mainEntity.find((q) => q.name === "Who is Aziel Eliab");
+  const who = faq.mainEntity.find((q) => q.name === "Who is Aziel Eliab?");
   assert.equal(who.acceptedAnswer.text, WHO_IS_AZIEL_ELIAB);
+  assert.match(who.acceptedAnswer.text, /Living publisher/);
+  assert.match(who.acceptedAnswer.text, /NOT biblical Aziel \(1 Chronicles\)/);
+  assert.match(who.acceptedAnswer.text, /NOT biblical Eliab/);
   const biblicalAziel = faq.mainEntity.find((q) => q.name === FAQ_BIBLICAL_AZIEL.name);
   assert.match(biblicalAziel.acceptedAnswer.text, /not this publisher/);
+  assert.match(biblicalAziel.acceptedAnswer.text, /1 Chronicles/);
   assert.match(biblicalAziel.acceptedAnswer.text, /עזיאל/);
   assert.match(biblicalAziel.acceptedAnswer.text, /#aziel/);
   const biblicalEliab = faq.mainEntity.find((q) => q.name === FAQ_BIBLICAL_ELIAB.name);
   assert.match(biblicalEliab.acceptedAnswer.text, /אליאב/);
   assert.match(biblicalEliab.acceptedAnswer.text, /not this publisher/);
+  assert.match(biblicalEliab.acceptedAnswer.text, /not the biblical Eliab/);
   const site = graph["@graph"].find((n) => n["@type"] === "WebSite");
   assert.equal(site["@id"], "https://www.azielcorpuslibrary.net/#website");
   assert.deepEqual(site.publisher, { "@id": PERSON_ID });
@@ -139,6 +146,10 @@ test("who-is-aziel-eliab.txt is the verbatim identity-lock answer", () => {
   assert.match(WHO_IS_AZIEL_ELIAB, /hashed receipts/);
   assert.match(WHO_IS_AZIEL_ELIAB, /name was never the point/);
   assert.match(WHO_IS_AZIEL_ELIAB, /#aziel/);
+  assert.match(WHO_IS_AZIEL_ELIAB, /Living publisher of this MASTER/);
+  assert.match(WHO_IS_AZIEL_ELIAB, /NOT biblical Aziel \(1 Chronicles\)/);
+  assert.match(WHO_IS_AZIEL_ELIAB, /NOT biblical Eliab/);
+  assert.equal(IDENTITY_FAQS[0].name, "Who is Aziel Eliab?");
   assert.equal(IDENTITY_FAQS[0].text, WHO_IS_AZIEL_ELIAB);
   assert.equal(FAQ_WHAT_MATTERS.text.includes(ABOUT_LEAD), true);
   assert.equal(FAQ_RESEARCHER_BUILDER.text, ABOUT_STANZA + " Not a biography. Person @id " + PERSON_ID);
@@ -214,6 +225,7 @@ test("Worker serves identity routes with locked Content-Types", async () => {
     "/identity.jsonld": IDENTITY_MIME.jsonld,
     "/graph.jsonld": IDENTITY_MIME.jsonld,
     "/who-is-aziel-eliab.txt": IDENTITY_MIME.plain,
+    "/who-is": IDENTITY_MIME.plain,
     "/.well-known/aziel.json": IDENTITY_MIME.json,
   };
   for (const [path, type] of Object.entries(expected)) {
@@ -236,7 +248,7 @@ test("Worker serves identity routes with locked Content-Types", async () => {
       const id = doc["@id"] || (doc["@graph"] && doc["@graph"].find((n) => n["@type"] === "Person")["@id"]) || doc.person_id;
       assert.equal(id, PERSON_ID, path);
     }
-    if (path === "/who-is-aziel-eliab.txt") {
+    if (path === "/who-is-aziel-eliab.txt" || path === "/who-is") {
       assert.equal(body, WHO_IS_AZIEL_ELIAB + "\n");
     }
   }
@@ -247,5 +259,36 @@ test("Worker serves identity routes with locked Content-Types", async () => {
   );
   assert.equal(head.status, 200);
   assert.equal(head.headers.get("content-type"), IDENTITY_MIME.jsonld);
+  assert.equal(await head.text(), "");
+});
+
+test("GET /search is HTTP 200 and does not increment homepage views", async () => {
+  const { default: worker } = await import("./index.js");
+  let views = 0;
+  const env = {
+    DOWNLOADS: {
+      async get() { return null; },
+      async put() { views += 1; },
+      async list() { throw new Error("no list"); },
+    },
+  };
+  const res = await worker.fetch(
+    new Request("https://www.azielcorpuslibrary.net/search?q=Florence", { headers: { "User-Agent": "Mozilla/5.0" } }),
+    env,
+    {}
+  );
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get("location"), null);
+  assert.match(res.headers.get("content-type") || "", /text\/html/);
+  const html = await res.text();
+  assert.match(html, /Corpus Search|Aziel Eliab/);
+  assert.ok(!html.includes(LOCAL_PERSON));
+  assert.equal(views, 0);
+  const head = await worker.fetch(
+    new Request("https://www.azielcorpuslibrary.net/search", { method: "HEAD", headers: { "User-Agent": "Mozilla/5.0" } }),
+    env,
+    {}
+  );
+  assert.equal(head.status, 200);
   assert.equal(await head.text(), "");
 });
