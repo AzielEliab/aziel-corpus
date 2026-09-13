@@ -31,11 +31,27 @@ export const GITHUB_AUTHOR = "https://github.com/AzielEliab";
 export const GITHUB_REPO = "https://github.com/AzielEliab/aziel-corpus";
 const GITHUB_RUNTIME = RUNTIME_GITHUB;
 export const GODLOCK_IDENTITY = "https://godlock.uk/AzielEliab";
-/** Sister research archive. Not a Softwares-tab product. */
+export const GODLOCK_HOME = "https://godlock.uk/";
+/** Sister research archive. Not a Softwares-tab product. Canonical www. */
 export const HEDIDNTJUMP_HOME = "https://www.hedidntjump.com/";
 export const HEDIDNTJUMP_LABEL = "He Didn't Jump";
 export const SHARE_IMAGE = CANON_HOST + "/sigil.png";
 export const SITE_DESCRIPTION = "Aziel Digital Library by Aziel Eliab. Search the public MASTER across Aziel Library and Corpus. Temporal map, gazetteer, forensics, and hosted OCR.";
+
+/**
+ * AZindex hub set (official / library / He Didn't Jump / GodLock / runtime).
+ * Sister sites, not Softwares cards. JSON-LD relatedLink omits this library origin.
+ */
+export const RELATED_SITES = Object.freeze([
+  Object.freeze({ id: "official", label: "Official site", href: HUB_ORIGIN + "/" }),
+  Object.freeze({ id: "library", label: "Aziel Corpus Library", href: CANON_HOST + "/" }),
+  Object.freeze({ id: "hedidntjump", label: HEDIDNTJUMP_LABEL, href: HEDIDNTJUMP_HOME }),
+  Object.freeze({ id: "godlock", label: "GodLock.uk", href: GODLOCK_HOME }),
+  Object.freeze({ id: "runtime", label: "Aziel Runtime", href: RUNTIME_ORIGIN + "/" }),
+]);
+export const RELATED_LINK_HREFS = Object.freeze(
+  RELATED_SITES.filter((s) => s.href !== CANON_HOST + "/").map((s) => s.href)
+);
 
 /** Visible ecosystem block (footer/nav). Not Softwares H1→list. */
 export const ECOSYSTEM_HEADING = "Part of the Aziel Eliab ecosystem";
@@ -43,6 +59,7 @@ export const ECOSYSTEM_LINKS = Object.freeze([
   Object.freeze({ href: HUB_ORIGIN + "/", label: "Official site" }),
   Object.freeze({ href: CANON_HOST + "/", label: "Aziel Corpus Library" }),
   Object.freeze({ href: HEDIDNTJUMP_HOME, label: HEDIDNTJUMP_LABEL }),
+  Object.freeze({ href: GODLOCK_HOME, label: "GodLock.uk" }),
   Object.freeze({ href: RUNTIME_GITHUB, label: "Aziel Runtime on GitHub" }),
   Object.freeze({ href: RUNTIME_ORIGIN + "/", label: "Aziel Runtime", muted: true }),
   Object.freeze({ href: RUNTIME_GLAMA, label: "Try on Glama", primary: true }),
@@ -143,7 +160,8 @@ export function organizationNode() {
     name: SITE,
     url: CANON_HOST + "/",
     founder: personRef(),
-    sameAs: [GITHUB_REPO],
+    sameAs: [GITHUB_REPO, HEDIDNTJUMP_HOME],
+    relatedLink: RELATED_LINK_HREFS.slice(),
   };
 }
 
@@ -157,6 +175,7 @@ export function websiteNode() {
     author: personRef(),
     publisher: personRef(),
     sameAs: [GITHUB_REPO, HEDIDNTJUMP_HOME],
+    relatedLink: RELATED_LINK_HREFS.slice(),
     potentialAction: {
       "@type": "SearchAction",
       target: {
@@ -271,6 +290,7 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
     publisher: who,
     license: "https://www.apache.org/licenses/LICENSE-2.0",
     codeRepository: GITHUB_REPO,
+    relatedLink: RELATED_LINK_HREFS.slice(),
   };
   const library = {
     "@type": "DigitalLibrary",
@@ -278,6 +298,7 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
     url: CANON_HOST + "/",
     creator: who,
     publisher: who,
+    relatedLink: RELATED_LINK_HREFS.slice(),
   };
   const graph = [website, software, library, person, org];
   if (kind === "corpus" || kind === "search" || path === "/" || path === "/corpus") {
@@ -464,6 +485,7 @@ export function headMeta(opts) {
       linkRel("me", HUB_ORIGIN + "/"),
       linkRel("me", HUB_PERSON_ID),
       linkRel("me", GODLOCK_IDENTITY),
+      linkRel("me", HEDIDNTJUMP_HOME),
       linkRel("me", GITHUB_AUTHOR),
       linkRel("me", GITHUB_REPO),
     ] : []),

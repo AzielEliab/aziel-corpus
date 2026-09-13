@@ -22,6 +22,19 @@
     "https://github.com/AzielEliab",
     "https://github.com/AzielEliab/aziel-corpus"
   ],
+  "relatedLink": [
+    "https://www.azieleliab.com/",
+    "https://www.hedidntjump.com/",
+    "https://godlock.uk/",
+    "https://aziel-runtime.vibelock.workers.dev/"
+  ],
+  "related_sites": [
+    { "id": "official", "label": "Official site", "href": "https://www.azieleliab.com/" },
+    { "id": "library", "label": "Aziel Corpus Library", "href": "https://www.azielcorpuslibrary.net/" },
+    { "id": "hedidntjump", "label": "He Didn't Jump", "href": "https://www.hedidntjump.com/" },
+    { "id": "godlock", "label": "GodLock.uk", "href": "https://godlock.uk/" },
+    { "id": "runtime", "label": "Aziel Runtime", "href": "https://aziel-runtime.vibelock.workers.dev/" }
+  ],
   "keywords": [
     "Aziel Eliab",
     "Aziel Elroi Eliab",
@@ -40,7 +53,7 @@
   "donate_sister": "https://www.azieleliab.com/donate",
   "about": "https://www.azielcorpuslibrary.net/AzielEliab",
   "godlock": "https://godlock.uk/AzielEliab",
-  "godlock_home": "https://godlock.uk",
+  "godlock_home": "https://godlock.uk/",
   "hedidntjump": "https://www.hedidntjump.com/",
   "hedidntjump_label": "He Didn't Jump",
   "runtime": "https://www.azielcorpuslibrary.net/runtime",
@@ -59,11 +72,11 @@
       { "href": "https://www.azieleliab.com/", "label": "Official site" },
       { "href": "https://www.azielcorpuslibrary.net/", "label": "Aziel Corpus Library" },
       { "href": "https://www.hedidntjump.com/", "label": "He Didn't Jump" },
+      { "href": "https://godlock.uk/", "label": "GodLock.uk" },
       { "href": "https://github.com/AzielEliab/aziel-runtime", "label": "Aziel Runtime on GitHub" },
       { "href": "https://aziel-runtime.vibelock.workers.dev/", "label": "Aziel Runtime", "muted": true },
       { "href": "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime", "label": "Try on Glama", "primary": true },
-      { "href": "https://github.com/AzielEliab/fraggate", "label": "FragGate kernel" },
-      { "href": "https://godlock.uk", "label": "GodLock.uk" }
+      { "href": "https://github.com/AzielEliab/fraggate", "label": "FragGate kernel" }
     ]
   },
   "how_to_cite": "Eliab, Aziel. (2026). Aziel Digital Library v2.7.0 [Software]. Apache-2.0. https://www.azielcorpuslibrary.net/"

@@ -94,7 +94,7 @@ export const SITE_TARGETS = [
     name: "He Didn't Jump",
     kind: "website",
     url: "https://www.hedidntjump.com/",
-    cite: "https://hedidntjump.com/llms.txt",
+    cite: "https://www.hedidntjump.com/llms.txt",
     github: "",
     domain: "research, history",
     zion_pattern: "research_archive",

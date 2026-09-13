@@ -58,6 +58,7 @@ Always send \`User-Agent: Mozilla/5.0\`.
 - Library: ${HOST}/
 - Aziel Eliab: ${HOST}/AzielEliab
 - GodLock identity: https://godlock.uk/AzielEliab
+- He Didn't Jump: https://www.hedidntjump.com/
 - Software hub: ${HOST}/software
 - How it's scored: ${HOST}/how-its-scored
 - Fallback Worker: ${FALLBACK_HOST}/
@@ -154,7 +155,7 @@ function openapi() {
       title: "Aziel Digital Library",
       version: VERSION,
       summary: "Public MASTER digital library by Aziel Eliab (also known as Aziel Elroi Eliab).",
-      description: LIMITATION + " Author Aziel Eliab (aka Aziel Elroi Eliab; primary credit Aziel Eliab). Identity " + HOST + "/AzielEliab. GodLock identity https://godlock.uk/AzielEliab. Software hub " + HOST + "/software. Runtime catalog " + HOST + "/runtime. Origin catalog " + CATALOG + "/. GitHub https://github.com/AzielEliab and https://github.com/AzielEliab/aziel-corpus. How records are scored: " + HOST + "/how-its-scored. No invented DOIs.",
+      description: LIMITATION + " Author Aziel Eliab (aka Aziel Elroi Eliab; primary credit Aziel Eliab). Identity " + HOST + "/AzielEliab. GodLock identity https://godlock.uk/AzielEliab. He Didn't Jump https://www.hedidntjump.com/. Software hub " + HOST + "/software. Runtime catalog " + HOST + "/runtime. Origin catalog " + CATALOG + "/. GitHub https://github.com/AzielEliab and https://github.com/AzielEliab/aziel-corpus. How records are scored: " + HOST + "/how-its-scored. No invented DOIs.",
       contact: { name: "Aziel Eliab", url: HOST + "/AzielEliab" },
       license: { name: "Apache-2.0", url: "https://www.apache.org/licenses/LICENSE-2.0" },
     },
@@ -195,7 +196,7 @@ function openapi() {
       "/v1/docs/{hash}/download": { get: { summary: "Download the stored file for a kept record whose content_sha256 matches. Does not increment downloads. Duplicates are not deleted.", operationId: "downloadByHash", parameters: [{ name: "hash", in: "path", required: true, schema: { type: "string" } }] } },
       "/v1/runtime": { get: { summary: "Digital Library package discovery (NOT the Aziel Runtime engine manifest). Use /v1/runtime.json or /runtime/v1/runtime.json for Aziel Runtime " + RUNTIME_VERSION + ".", operationId: "runtime" } },
       "/v1/runtime.json": { get: { summary: "Aziel Runtime " + RUNTIME_VERSION + " manifest (proxied). Distinct from /v1/runtime library package discovery.", operationId: "runtimeRoot" } },
-      "/AzielEliab": { get: { summary: "Aziel Eliab — author profile page (HTML). Corresponds with https://godlock.uk/AzielEliab. Legacy /about and /aboutme permanently redirect here.", operationId: "azielEliab" } },
+      "/AzielEliab": { get: { summary: "Aziel Eliab — author profile page (HTML). Corresponds with https://godlock.uk/AzielEliab and https://www.hedidntjump.com/. Legacy /about and /aboutme permanently redirect here.", operationId: "azielEliab" } },
       "/runtime": { get: { summary: "Aziel Runtime " + RUNTIME_VERSION + " on this domain. Prefer /runtime/*. " + RUNTIME_NOTE, operationId: "runtimePage" } },
       "/runtime/v1/health": { get: { summary: "Aziel Runtime " + RUNTIME_VERSION + " health via same-origin proxy.", operationId: "runtimeProxyHealth" } },
       "/runtime/v1/uses": { get: { summary: "Local API use log for this /runtime door. Does not increment.", operationId: "runtimeUses" } },
