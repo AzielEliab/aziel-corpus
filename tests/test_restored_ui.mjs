@@ -328,10 +328,15 @@ test("Pattern, Software, About, and runtime pages render live copy", () => {
   assert.match(about, /href="\/how-its-scored"/);
   assert.match(about, /href="https:\/\/godlock\.uk\/AzielEliab"/);
   assert.match(about, /GodLock is one product Aziel Eliab built/);
+  assert.doesNotMatch(about, /Elias Artista/);
+  assert.doesNotMatch(about, /God is my strength/);
+  assert.doesNotMatch(about, /Everblooming Flower/);
   const who = whoBody();
   assert.match(who, /<h1>Who is Aziel Eliab<\/h1>/);
   assert.doesNotMatch(who, /Aziel Eliab is a living researcher and software designer\. Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20\./);
   assert.match(who, /independent researcher/);
+  assert.doesNotMatch(who, /Elias Artista/);
+  assert.doesNotMatch(who, /God is my strength/);
   assert.match(about, /href="https:\/\/www\.hedidntjump\.com\/"/);
   assert.match(about, /He Didn't Jump/);
   const scored = howItsScoredBody();

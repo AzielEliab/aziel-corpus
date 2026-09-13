@@ -76,7 +76,12 @@ test("JSON-LD types the author as Person with alternateName", () => {
   assert.ok(person.alternateName.includes("Aziel Elroi Eliab"));
   assert.ok(person.alternateName.includes("AzielEliab"));
   assert.ok(person.alternateName.includes("The Revealer of The Sealed"));
+  assert.ok(person.alternateName.includes("Elias Artista"));
   assert.ok(person.alternateName.includes("עזיאל"));
+  assert.ok(person.alternateName.includes("עזיאל אל ראי אליאב"));
+  assert.ok(!person.alternateName.includes("Everblooming Flower"));
+  assert.match(person.description, /Elias Artista/);
+  assert.match(person.description, /God is my strength/);
   assert.ok(person.alternateName.includes("Aziell"));
   assert.equal(person.disambiguatingDescription, DISAMBIGUATING_DESCRIPTION);
   assert.match(person.disambiguatingDescription, /two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20/);
@@ -116,7 +121,8 @@ test("JSON-LD types the author as Person with alternateName", () => {
   assert.ok(who.sameAs.includes("https://x.com/azieleliab"));
   assert.match(html, /rel="me" href="https:\/\/www\.azieleliab\.com\/#aziel"/);
   assert.match(html, /rel="me" href="https:\/\/godlock\.uk\/AzielEliab"/);
-  assert.match(html, /keywords" content="Aziel Eliab, Aziel Elroi Eliab, Aziel Digital Library/);
+  assert.match(html, /keywords" content="Aziel Eliab, Aziel Elroi Eliab, Elias Artista, Aziel Digital Library/);
+  assert.match(html, /rel="me" href="https:\/\/github\.com\/azieltherevealerofthesealed-arch"/);
   assert.match(html, /GodLock/);
   assert.doesNotMatch(html, /AzielEliab#aziel-eliab/);
   const aboutPage = ld["@graph"].find((n) => n["@type"] === "AboutPage");
@@ -203,6 +209,31 @@ test("runtime JSON-LD and discovery links advertise Aziel Runtime 2.0.0-rc1 abst
   assert.doesNotMatch(defaultDescription("runtime"), /aziel-runtime 1\.9\.0 FragGate/);
   assert.doesNotMatch(defaultDescription("runtime"), /1\.6\.2/);
   assert.doesNotMatch(defaultDescription("runtime"), /26 live/);
+});
+
+test("shared Person JSON-LD cross-tethers HTML routes with name lattice + both GitHubs", () => {
+  const pages = [
+    headMeta({ title: "Corpus Search", path: "/", kind: "search" }),
+    headMeta({ title: "Software", path: "/software", kind: "software" }),
+    headMeta({ title: "Aziel Eliab", path: ABOUT_PATH, kind: "about" }),
+    headMeta({ title: "Who is Aziel Eliab", path: "/who", kind: "who" }),
+    headMeta({ title: "Aziel Library", path: "/aziel-library", kind: "aziel-library" }),
+    headMeta({ title: "Corpus library", path: "/corpus", kind: "corpus" }),
+    headMeta({ title: "Corpus Search", path: "/search", kind: "search" }),
+  ];
+  for (const html of pages) {
+    const ld = graphFrom(html);
+    const person = ld["@graph"].find((n) => n["@type"] === "Person");
+    assert.ok(person, "Person JSON-LD missing");
+    assert.equal(person["@id"], HUB_PERSON_ID);
+    assert.ok(person.alternateName.includes("Elias Artista"));
+    assert.ok(person.alternateName.includes("The Revealer of The Sealed"));
+    assert.ok(person.alternateName.includes("עזיאל אל ראי אליאב"));
+    assert.ok(!person.alternateName.includes("Everblooming Flower"));
+    assert.match(person.description, /God is my strength/);
+    assert.ok(person.sameAs.includes("https://github.com/AzielEliab"));
+    assert.ok(person.sameAs.includes("https://github.com/azieltherevealerofthesealed-arch"));
+  }
 });
 
 test("priority pages have unique titles, canonicals, OG/Twitter, and page-type JSON-LD", () => {
