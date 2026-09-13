@@ -205,6 +205,9 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(cite.about_record, /public MASTER/);
   assert.match(cite.who_is, /Aziel Runtime \(MCP\)/);
   assert.doesNotMatch(cite.who_is, /scripture concordance/);
+  assert.ok(cite.who_is.includes(
+    "Not biblical Aziel; not biblical Eliab; not euaziel.site; not Aziel S. (Flutter/portfolio); not other engineers named Aziel.",
+  ));
   assert.match(cite.disambiguatingDescription, /Not biblical Aziel/);
   assert.match(cite.disambiguatingDescription, /not Aziel S\. \(Flutter\/portfolio\)/);
   assert.match(cite.disambiguatingDescription, /not other engineers named Aziel/);
