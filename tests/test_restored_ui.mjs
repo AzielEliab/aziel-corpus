@@ -22,6 +22,7 @@ const NAV = [
   [">Map<", "/map"],
   [">Historical<", "/historical"],
   [">Forensics<", "/forensics"],
+  [">Receipts<", "/receipts"],
   [">Aziel Eliab<", "/AzielEliab"],
 ];
 
@@ -73,7 +74,7 @@ test("Aziel Eliab identity tab stays one wrap unit in public nav2", () => {
   assert.match(html, />Aziel Eliab</);
   assert.match(
     html,
-    /href="\/forensics">Forensics<\/a><span class="sep">\|<\/span><a class="nav-aziel" href="\/AzielEliab">Aziel Eliab<\/a><span class="sep">\|<\/span><a href="\/login">Log in<\/a>/,
+    /href="\/forensics">Forensics<\/a><span class="sep">\|<\/span><a href="\/receipts">Receipts<\/a><span class="sep">\|<\/span><a class="nav-aziel" href="\/AzielEliab">Aziel Eliab<\/a><span class="sep">\|<\/span><a href="\/login">Log in<\/a>/,
   );
   assert.match(CSS, /\.nav2 a,\.quiet a\{[^}]*white-space:nowrap/);
   assert.match(CSS, /\.nav2 a,\.quiet a\{[^}]*flex-shrink:0/);
