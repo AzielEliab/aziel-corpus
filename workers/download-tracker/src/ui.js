@@ -180,10 +180,22 @@ label.showpw{font-size:14px;color:var(--muted);white-space:nowrap;min-height:44p
 .triad.zsolver .metric,.zsolver-label{color:var(--gold)}
 .triad-card{border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--paper);margin:12px 0}
 .q-banner{background:#2a1414;color:var(--no);border:1px solid #8a2b2b;border-radius:12px;padding:12px 14px;margin:10px 0;font-weight:650}
-.about-aziel,.about-aziel p,.about-prose,.about-sign{color:var(--royal)}
-.about-aziel h1,.about-aziel h2{color:var(--royal)}
-.about-aziel a{color:var(--royal)}
-.about-aziel a:hover{color:var(--gold)}
+.about-aziel h1{color:var(--royal)}
+.about-prose{margin-top:8px;margin-bottom:12px;padding-top:18px;padding-bottom:18px}
+.about-prose,.about-prose p,.about-sign{color:var(--royal)}
+.about-prose a{color:var(--royal)}
+.about-prose a:hover{color:var(--gold)}
+.about-prose p{margin:0 0 10px}
+.about-prose > :last-child{margin-bottom:0}
+.about-sign{margin-top:2px}
+.about-record{background:var(--paper);color:var(--ink);border:1px dashed var(--line);box-shadow:none;margin-top:8px}
+.about-record h2{margin:0 0 12px;font-size:15px;color:var(--muted);letter-spacing:.03em;font-weight:750}
+.about-record,.about-record p,.about-record li{color:var(--ink)}
+.about-record a{color:var(--gold)}
+.about-record a:hover{color:var(--ink)}
+.about-record p{margin:0 0 12px}
+.about-record ul{margin:0 0 14px;padding-left:1.25em}
+.about-record > :last-child{margin-bottom:0}
 .doc.doc-aziel,.doc.doc-aziel h3,.doc.doc-aziel h3 a,.doc.doc-aziel p,.doc.doc-aziel .meta,.doc.doc-aziel .byline{color:var(--royal)}
 .doc.doc-aziel h3 a:hover{color:var(--gold)}
 .doc.doc-aziel .mini-chip{color:var(--royal);border-color:var(--royal)}
@@ -711,15 +723,14 @@ export function patternBody({ total, domains, subjects, keywords, crosses } = {}
 export function aboutBody() {
   return `<section class="hero about-aziel" id="aziel-eliab"><h1>About Aziel</h1>
 <div class="card about-prose">
-<p>Aziel Eliab publishes <strong>GodLock</strong>, <strong>Aziel Digital Library</strong> on this site, <strong>Aziel Runtime</strong> (MCP), and the <strong>He Didn't Jump</strong> archive. This library is the public MASTER of hashed receipts, timed files, and software.</p>
-<p>Canonical Person <code>@id</code> <a href="https://www.azieleliab.com/#aziel">https://www.azieleliab.com/#aziel</a>. Also Aziel Elroi Eliab. The public identity is the work, not a biography. GodLock is a product, not the Person.</p>
 <p>Who? Does not matter. What matters is the record.</p>
 <p>I do not ask you to believe a name. I ask you to read a record. This library is the public MASTER of the work: hashed receipts, timed files, and software that can be opened without taking the speaker on faith. If the files hold, the name was never the point.</p>
 <p class="about-sign"><strong>— Aziel Elroi Eliab</strong></p>
-<p>If not me, then who holds the record when names get stripped and the files get sealed? I didn’t ask for the seat. The work was already sitting there undone. I build receipts so truth has a place to live that isn’t someone else’s story.</p>
-<p>Carry the torch: I don’t own the flame. I keep it lit long enough for the next hands to find it. If the record is local, timed, and hashed, the work can outlive me. That is the point.</p>
-<p>Truth that cannot be corrected is just a private religion. So the work stays public, chained for review, not a pulpit. Later papers bury earlier ones as confidence hardens. I am not always right. That is not a confession. It is the method.</p>
-<p><strong>Aziel Library</strong> (royal purple) is the operator collection of Aziel Eliab’s own papers and software notes. <strong>Corpus</strong> is the public Lamb Lens shelf — anyone may browse; signed-in accounts or anonymous homepage uploads file there after safety review. The two shelves share the same scoring and hash-chain rules; they are not the same collection.</p>
+</div>
+<aside class="card about-record">
+<p>Aziel Eliab publishes <strong>GodLock</strong>, <strong>Aziel Digital Library</strong> on this site, <strong>Aziel Runtime</strong> (MCP), and the <strong>He Didn't Jump</strong> archive. This library is the public MASTER of hashed receipts, timed files, and software.</p>
+<p>Canonical Person <code>@id</code> <a href="https://www.azieleliab.com/#aziel">https://www.azieleliab.com/#aziel</a>. Also Aziel Elroi Eliab. The public identity is the work, not a biography. GodLock is a product, not the Person.</p>
+<p><strong class="aziel-name">Aziel Library</strong> is the operator collection of Aziel Eliab’s own papers and software notes. <strong>Corpus</strong> is the public Lamb Lens shelf — anyone may browse; signed-in accounts or anonymous homepage uploads file there after safety review. The two shelves share the same scoring and hash-chain rules; they are not the same collection.</p>
 <ul class="about-mission">
 <li>What matters is the record — not a biography.</li>
 <li>Hashed receipts, timed files, and software that can be opened without taking the speaker on faith.</li>
@@ -728,10 +739,7 @@ export function aboutBody() {
 <li><a href="${HEDIDNTJUMP_HOME}">${HEDIDNTJUMP_LABEL}</a> is a sister archive challenging the 1936 official Zioncheck suicide narrative. It does not invent court holdings.</li>
 </ul>
 <p>The software suite is listed on <a href="/software">Software</a>. The catalog/MCP door lives on <strong>this domain</strong> at <a href="/runtime">/runtime</a> — Aziel Runtime, a node-meshed MCP Softwares suite for digital forensics and auditing (${RUNTIME_LIVE_COUNT} live advisory engines; ${RUNTIME_LOCAL_ONLY} local_only; stubs refuse). Not an API aggregator. The workers.dev origin is an alternate/sameAs, not the first door. GodLock is one product Aziel Eliab built; the corresponding identity page is <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a>. How records are scored — triad SPRE × CLCE × PhysLing, and ZionPattern as a separate public reading — is on <a href="/how-its-scored">How it's scored</a>. Source: <a href="https://github.com/AzielEliab/aziel-corpus">github.com/AzielEliab/aziel-corpus</a>.</p>
-<p>I am here for the record, not the applause. If not me, then who. If not now, the seal holds. I carry the torch by leaving receipts. When the work can stand without my name on it, I am done.</p>
-<p>I am temporary. The truth is not.</p>
-<p class="about-sign"><strong>— Aziel Eliab</strong></p>
-</div>
+</aside>
 </section>`;
 }
 
