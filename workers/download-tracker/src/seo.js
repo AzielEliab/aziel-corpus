@@ -24,6 +24,7 @@ import {
   whoFaqNode,
   LOCK_LINE,
   WHO_PATH as LOCKED_WHO_PATH,
+  GITHUB_SECONDARY,
 } from "./identity.js";
 
 export const CANON_HOST = "https://www.azielcorpuslibrary.net";
@@ -442,7 +443,7 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
 }
 
 function pageKeywords(kind) {
-  const base = [AUTHOR, AKA, SITE, "aziel-corpus"];
+  const base = [AUTHOR, AKA, "Elias Artista", SITE, "aziel-corpus"];
   if (kind === "about") base.push("GodLock");
   if (kind === "software" || kind === "runtime") base.push("aziel-runtime", "FragGate", "AzielTether", "GodLock", "AZCoherence", "azcoherence");
   if (kind === "scored" || kind === "how-its-scored" || kind === "record") base.push("SPRE", "CLCE", "PhysLing", "ZionPattern", "AZCoherence", "azcoherence", "AZ-CLCE");
@@ -521,6 +522,7 @@ export function headMeta(opts) {
       linkRel("me", HUB_PERSON_ID),
       linkRel("me", GODLOCK_IDENTITY),
       linkRel("me", GITHUB_AUTHOR),
+      linkRel("me", GITHUB_SECONDARY),
       linkRel("me", GITHUB_REPO),
     ] : []),
   ];

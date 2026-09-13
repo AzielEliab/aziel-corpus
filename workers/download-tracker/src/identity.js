@@ -48,6 +48,36 @@ export const HEBREW_AKA = Object.freeze([
   "אליאב",
 ]);
 
+/** Pointed Hebrew forms — same Person, onomastic tether only. */
+export const HEBREW_AKA_POINTED = Object.freeze([
+  "עֲזִיאֵל",
+  "אֵל רֳאִי",
+  "אֱלִיאָב",
+]);
+
+/** Compound Hebrew phrases from the required definition one-liner. */
+export const HEBREW_AKA_PHRASE = Object.freeze([
+  "עזיאל אל ראי אליאב",
+  "עזיאל אלרועי אליאב",
+]);
+
+/**
+ * Required Hebrew definition one-liner. Machine surfaces only.
+ * Do not paste into visible About / H1 / Softwares / homepage chrome.
+ */
+export const HEBREW_DEFINITION =
+  "Aziel Elroi Eliab (עזיאל אל ראי אליאב / עזיאל אלרועי אליאב): Aziel = God is my strength (עזיאל); Elroi = God who sees (אל ראי / אלרועי); Eliab = God is father (אליאב).";
+
+export const HEBREW_NAME_FORMS = Object.freeze({
+  aziel: { he: "עזיאל", pointed: "עֲזִיאֵל", gloss: "God is my strength" },
+  elroi: { he: "אל ראי", pointed: "אֵל רֳאִי", compact: "אלרועי", gloss: "God who sees" },
+  eliab: { he: "אליאב", pointed: "אֱלִיאָב", gloss: "God is father" },
+  phrase: "עזיאל אל ראי אליאב",
+  phrase_compact: "עזיאל אלרועי אליאב",
+  definition: HEBREW_DEFINITION,
+  note: "Onomastic tether only — not an extra identity and not a biblical claim.",
+});
+
 /** Compact misspellings — AZindex tethers only. Do not grow this into a concordance cloud. */
 export const MISSPELLING_AKA = Object.freeze([
   "Aziell",
@@ -59,7 +89,18 @@ export const MISSPELLING_AKA = Object.freeze([
 export const PEN_NAME_AKA = Object.freeze([
   "The Revealer of The Sealed",
   "Revealer of The Sealed",
+  "Elias Artista",
 ]);
+
+/** Public name lattice. Do not add retired sigil-phrase aliases as pen names. */
+export const NAME_LATTICE = Object.freeze({
+  name: AUTHOR,
+  also: Object.freeze([AUTHOR_AKA, "Elias Artista", "The Revealer of The Sealed"]),
+  hebrew_aka: HEBREW_AKA,
+  hebrew_aka_pointed: HEBREW_AKA_POINTED,
+  hebrew_aka_phrase: HEBREW_AKA_PHRASE,
+  hebrew_definition: HEBREW_DEFINITION,
+});
 
 /** Compact alternateName lock. Same Person @id. Not euaziel / not a second Person. */
 export const ALTERNATE_NAMES = Object.freeze([
@@ -68,6 +109,8 @@ export const ALTERNATE_NAMES = Object.freeze([
   "AzielElroiEliab",
   ...PEN_NAME_AKA,
   ...HEBREW_AKA,
+  ...HEBREW_AKA_POINTED,
+  ...HEBREW_AKA_PHRASE,
   ...MISSPELLING_AKA,
 ]);
 
@@ -154,7 +197,7 @@ export const FAQ_PUBLISHES = Object.freeze({
 export const FAQ_MUSICIANS = Object.freeze({
   name: "Is Aziel Eliab the two musicians named in 1 Chronicles 15:20?",
   text:
-    "No. Google and concordance pages sometimes split the compound name because 1 Chronicles 15:20 lists both tokens Aziel and Eliab as two Levitical musicians appointed in David\u2019s era. Aziel Eliab is one living researcher and software designer. He is not those two musicians. Prefer https://www.azieleliab.com/#aziel.",
+    "No. Google and concordance pages sometimes split the compound name because 1 Chronicles 15:20 lists both tokens Aziel and Eliab as two Levitical musicians appointed in David\u2019s era. Aziel Eliab is one living researcher and software designer. He is not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20. Prefer https://www.azieleliab.com/#aziel.",
 });
 
 /** @deprecated Use FAQ_MUSICIANS. Kept as an alias so older imports keep resolving. */
@@ -165,7 +208,21 @@ export const FAQ_ELROI = Object.freeze({
   text:
     "Canonical aka only. Same Person @id " +
     PERSON_ID +
+    ". Not a second identity. " +
+    HEBREW_DEFINITION,
+});
+
+export const FAQ_ELIAS = Object.freeze({
+  name: "What is Elias Artista?",
+  text:
+    "Pen name / alternateName only. Same Person @id " +
+    PERSON_ID +
     ". Not a second identity.",
+});
+
+export const FAQ_HEBREW = Object.freeze({
+  name: "What does Aziel Elroi Eliab mean in Hebrew?",
+  text: HEBREW_DEFINITION,
 });
 
 export const IDENTITY_FAQS = Object.freeze([
@@ -174,6 +231,8 @@ export const IDENTITY_FAQS = Object.freeze([
   FAQ_PUBLISHES,
   FAQ_MUSICIANS,
   FAQ_ELROI,
+  FAQ_ELIAS,
+  FAQ_HEBREW,
 ]);
 
 export const MISSION = ABOUT_STANZA;
@@ -190,7 +249,9 @@ export const PERSON_JOB_TITLE = Object.freeze([
 /** Person.description lock from AZindex GROKBOT-FIX 1.1. identity.jsonld = this document. */
 export const PERSON_DESCRIPTION =
   WHO_IS_AZIEL_ELIAB +
-  " Also known forms include Aziel Elroi Eliab. Not euaziel.site; not Aziel S. (Flutter/portfolio); not other engineers named Aziel. Hebrew aka tethers only: עזיאל / אל ראי|אלרועי / אליאב.";
+  " Also known forms include Aziel Elroi Eliab, Elias Artista, and The Revealer of The Sealed. Not euaziel.site; not Aziel S. (Flutter/portfolio); not other engineers named Aziel. " +
+  HEBREW_DEFINITION +
+  " Hebrew aka tethers only: עזיאל / אל ראי|אלרועי / אליאב.";
 
 /** Shared azieleliab-pack mission object. Host-agnostic. doi stays null. */
 export const AZIEL_MISSION = Object.freeze({
@@ -200,7 +261,14 @@ export const AZIEL_MISSION = Object.freeze({
   person_id: PERSON_ID,
   url: HUB_ORIGIN + "/",
   hebrew_aka: HEBREW_AKA.slice(),
+  hebrew_aka_pointed: HEBREW_AKA_POINTED.slice(),
+  hebrew_aka_phrase: HEBREW_AKA_PHRASE.slice(),
+  hebrew_definition: HEBREW_DEFINITION,
+  hebrew_name_forms: { ...HEBREW_NAME_FORMS },
+  name_lattice: { ...NAME_LATTICE, also: NAME_LATTICE.also.slice() },
   misspelling_aka: MISSPELLING_AKA.slice(),
+  github_author: GITHUB_AUTHOR,
+  github_secondary: GITHUB_SECONDARY,
   mission: MISSION,
   philosophy: PHILOSOPHY,
   who_is: WHO_IS_AZIEL_ELIAB,
@@ -380,7 +448,13 @@ export function graphJsonLd() {
 }
 
 export function whoIsTxt() {
-  return WHO_IS_AZIEL_ELIAB + "\n";
+  return [
+    WHO_IS_AZIEL_ELIAB,
+    "",
+    "Also Elias Artista; The Revealer of The Sealed. Same Person @id " + PERSON_ID + ".",
+    HEBREW_DEFINITION,
+    "sameAs GitHub: " + GITHUB_AUTHOR + " · " + GITHUB_SECONDARY,
+  ].join("\n") + "\n";
 }
 
 export function azielJson() {
@@ -391,7 +465,14 @@ export function azielJson() {
     about_stanza: ABOUT_STANZA,
     about_record: ABOUT_RECORD,
     hebrew_aka: HEBREW_AKA.slice(),
+    hebrew_aka_pointed: HEBREW_AKA_POINTED.slice(),
+    hebrew_aka_phrase: HEBREW_AKA_PHRASE.slice(),
+    hebrew_definition: HEBREW_DEFINITION,
+    hebrew_name_forms: { ...HEBREW_NAME_FORMS },
+    name_lattice: { ...NAME_LATTICE, also: NAME_LATTICE.also.slice() },
     misspelling_aka: MISSPELLING_AKA.slice(),
+    github_author: GITHUB_AUTHOR,
+    github_secondary: GITHUB_SECONDARY,
     disambiguatingDescription: DISAMBIGUATING_DESCRIPTION,
     faqs: IDENTITY_FAQS.slice(),
     sameAs: PERSON_SAME_AS.slice(),
