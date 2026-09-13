@@ -72,14 +72,25 @@ test("JSON-LD types the author as Person with alternateName", () => {
   assert.equal(person["@type"], "Person");
   assert.equal(person["@id"], HUB_PERSON_ID);
   assert.equal(person.name, "Aziel Eliab");
-  assert.deepEqual(person.alternateName, ["Aziel Elroi Eliab"]);
+  assert.ok(person.alternateName.includes("Aziel Elroi Eliab"));
+  assert.ok(person.alternateName.includes("עזיאל"));
+  assert.ok(person.alternateName.includes("אל ראי"));
+  assert.ok(person.alternateName.includes("אלרועי"));
+  assert.ok(person.alternateName.includes("אליאב"));
+  assert.ok(person.alternateName.includes("Aziell"));
+  assert.ok(person.alternateName.includes("Asiel"));
+  assert.ok(person.alternateName.includes("El Roi"));
+  assert.ok(person.alternateName.includes("Eliav"));
   assert.equal(person.url, HUB_ORIGIN + "/");
-  assert.ok(person.sameAs.includes("https://godlock.uk/AzielEliab"));
+  assert.ok(person.sameAs.includes("https://godlock.uk/"));
   assert.ok(person.sameAs.includes("https://www.hedidntjump.com/"));
   assert.ok(person.sameAs.includes("https://github.com/AzielEliab"));
-  assert.ok(person.sameAs.includes("https://github.com/AzielEliab/aziel-corpus"));
+  assert.ok(person.sameAs.includes("https://github.com/azieltherevealerofthesealed-arch"));
+  assert.ok(person.sameAs.includes("https://glama.ai/mcp/servers/AzielEliab/aziel-runtime"));
   assert.ok(person.sameAs.includes(HUB_ORIGIN + "/"));
-  assert.ok(person.sameAs.includes("https://www.azielcorpuslibrary.net/AzielEliab"));
+  assert.ok(person.sameAs.includes("https://www.azielcorpuslibrary.net/"));
+  assert.ok(person.sameAs.includes("https://x.com/AzielElroiEliab"));
+  assert.ok(person.sameAs.includes("https://x.com/azieleliab"));
   assert.equal(person["@id"], "https://www.azieleliab.com/#aziel");
 
   const html = headMeta({ title: "Aziel Eliab", path: ABOUT_PATH, kind: "about" });
@@ -96,10 +107,10 @@ test("JSON-LD types the author as Person with alternateName", () => {
   assert.equal(who["@id"], "https://www.azieleliab.com/#aziel");
   assert.equal(who.url, "https://www.azieleliab.com/");
   assert.ok(who.alternateName.includes("Aziel Elroi Eliab"));
-  assert.ok(who.sameAs.includes("https://godlock.uk/AzielEliab"));
+  assert.ok(who.sameAs.includes("https://godlock.uk/"));
   assert.ok(who.sameAs.includes("https://www.hedidntjump.com/"));
   assert.ok(who.sameAs.includes("https://github.com/AzielEliab"));
-  assert.ok(who.sameAs.includes("https://github.com/AzielEliab/aziel-corpus"));
+  assert.ok(who.sameAs.includes("https://x.com/azieleliab"));
   assert.match(html, /rel="me" href="https:\/\/www\.azieleliab\.com\/#aziel"/);
   assert.match(html, /rel="me" href="https:\/\/godlock\.uk\/AzielEliab"/);
   assert.match(html, /keywords" content="Aziel Eliab, Aziel Elroi Eliab, Aziel Digital Library/);
@@ -109,6 +120,8 @@ test("JSON-LD types the author as Person with alternateName", () => {
   assert.equal(aboutPage.url, "https://www.azielcorpuslibrary.net/AzielEliab");
   assert.deepEqual(aboutPage.mainEntity, { "@id": HUB_PERSON_ID });
   assert.deepEqual(aboutPage.author, { "@id": HUB_PERSON_ID });
+  assert.deepEqual(aboutPage.creator, { "@id": HUB_PERSON_ID });
+  assert.deepEqual(aboutPage.publisher, { "@id": HUB_PERSON_ID });
   const profile = ld["@graph"].find((n) => n["@type"] === "ProfilePage");
   assert.equal(profile.url, "https://www.azielcorpuslibrary.net/AzielEliab");
   assert.deepEqual(profile.mainEntity, { "@id": HUB_PERSON_ID });
@@ -287,11 +300,11 @@ test("ecosystem footer/nav is chrome, not Softwares heading→list", () => {
   assert.equal(ECOSYSTEM_HEADING, "Part of the Aziel Eliab ecosystem");
   assert.deepEqual(ECOSYSTEM_LINKS.map((l) => [l.label, l.href, !!l.muted, !!l.primary]), [
     ["Official site", "https://www.azieleliab.com/", false, false],
-    ["Aziel Corpus Library", "https://www.azielcorpuslibrary.net/", false, false],
+    ["Corpus", "https://www.azielcorpuslibrary.net/", false, false],
+    ["GodLock", "https://godlock.uk/", false, false],
     ["He Didn't Jump", "https://www.hedidntjump.com/", false, false],
-    ["Aziel Runtime on GitHub", "https://github.com/AzielEliab/aziel-runtime", false, false],
-    ["Aziel Runtime", "https://aziel-runtime.vibelock.workers.dev/", true, false],
-    ["Try on Glama", "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime", false, true],
+    ["Runtime GitHub", "https://github.com/AzielEliab/aziel-runtime", false, false],
+    ["Glama", "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime", false, true],
   ]);
   const block = ecosystemBlockHtml();
   assert.match(block, /<footer class="ecosystem"/);
@@ -299,13 +312,14 @@ test("ecosystem footer/nav is chrome, not Softwares heading→list", () => {
   assert.match(block, /href="https:\/\/www\.azieleliab\.com\/"/);
   assert.match(block, />Official site</);
   assert.match(block, /href="https:\/\/www\.azielcorpuslibrary\.net\/"/);
-  assert.match(block, />Aziel Corpus Library</);
+  assert.match(block, />Corpus</);
+  assert.match(block, /href="https:\/\/godlock\.uk\/"/);
+  assert.match(block, />GodLock</);
   assert.match(block, /href="https:\/\/www\.hedidntjump\.com\/"/);
   assert.match(block, />He Didn't Jump</);
   assert.match(block, /href="https:\/\/github\.com\/AzielEliab\/aziel-runtime"/);
-  assert.match(block, />Aziel Runtime on GitHub</);
-  assert.match(block, /class="runtime-muted"[^>]*href="https:\/\/aziel-runtime\.vibelock\.workers\.dev\/"[^>]*>Aziel Runtime</);
-  assert.match(block, /class="button"[^>]*href="https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime"[^>]*>Try on Glama</);
+  assert.match(block, />Runtime GitHub</);
+  assert.match(block, /class="button"[^>]*href="https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime"[^>]*>Glama</);
   const softBody = softwareBody({
     products: [{ slug: "azmail", name: "AZMail", kind: "plain", blurb: "door", links: [] }],
   });
@@ -351,7 +365,8 @@ test("legacy /intelligence paths permanently redirect to /forensics", () => {
 test("page chrome keeps entity-graph JSON-LD after first paint", () => {
   const html = page("Corpus Search", "<section class=\"hero\"><h1>Search the libraries</h1></section>", { path: "/", kind: "search" });
   const head = html.slice(0, html.indexOf("</head>"));
-  assert.doesNotMatch(head, /application\/ld\+json/);
+  assert.doesNotMatch(head, /<script type="application\/ld\+json">/);
+  assert.match(head, /href="\/person\.jsonld"/);
   assert.match(head, /rel="preload" href="\/sigil\.png"/);
   const ld = graphFrom(html);
   assertSharedIdentity(ld);
@@ -378,6 +393,11 @@ test("OpenAPI identity URLs include /AzielEliab and GodLock", async () => {
   assert.equal(res.status, 200);
   const spec = await res.json();
   assert.ok(spec.paths["/AzielEliab"]);
+  assert.ok(spec.paths["/person.jsonld"]);
+  assert.ok(spec.paths["/identity.jsonld"]);
+  assert.ok(spec.paths["/graph.jsonld"]);
+  assert.ok(spec.paths["/who-is-aziel-eliab.txt"]);
+  assert.ok(spec.paths["/.well-known/aziel.json"]);
   assert.equal(spec.info.contact.name, "Aziel Eliab");
   assert.equal(spec.info.contact.url, "https://www.azielcorpuslibrary.net/AzielEliab");
   assert.match(spec.info.description, /godlock\.uk\/AzielEliab/);
