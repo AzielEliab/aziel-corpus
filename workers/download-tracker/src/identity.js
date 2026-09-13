@@ -2,7 +2,7 @@
  * AZindex identity lock for Aziel Digital Library.
  * Person @id is always https://www.azieleliab.com/#aziel — never a corpus-local Person @id.
  * Product-forward About stanza. Compact Hebrew / misspelling aka are AZindex tethers only.
- * GROKBOT-FIX 1.1: visible HTML lock on /AzielEliab and /who. disambiguatingDescription + FAQ name both musicians + 15:20.
+ * GROKBOT-FIX 1.1 lock is machine-only (JSON-LD / meta / FAQ / llms / who-is). No visible HTML lock paragraph on /AzielEliab or /who. disambiguatingDescription + FAQ name both musicians + 15:20.
  * Keep euaziel machine NOT. Never sameAs euaziel.site. Never Aziel S. / Flutter as this Person.
  * Author: Aziel Eliab.
  */
@@ -109,8 +109,8 @@ export const ABOUT_RECORD =
   "I do not ask you to believe a name. I ask you to read a record. This library is the public MASTER of the work: hashed receipts, timed files, and software that can be opened without taking the speaker on faith. If the files hold, the name was never the point.";
 
 /**
- * GROKBOT-FIX 1.1 visible HTML lock. Verbatim in /AzielEliab and /who body, first viewport.
- * Must appear in view-source HTML body — not only llms.txt / JSON-LD.
+ * Machine identity lock (meta description, JSON-LD, llms, who-is). Not a visible HTML paragraph.
+ * Do not render this as a standalone <p> on /AzielEliab or /who.
  */
 export const LOCK_LINE =
   "Aziel Eliab is a living researcher and software designer. Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20.";
