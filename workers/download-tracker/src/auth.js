@@ -1,7 +1,7 @@
 import { scryptSync, randomBytes, timingSafeEqual } from "node:crypto";
 import { json, corsHeaders } from "./runtime.js";
-import { page, pwField, azielLibraryBody, corpusBody } from "./ui.js";
-import { isOperator, ingestRecord, searchRecords, listFacets, parseBrowseParams, asFile } from "./library.js";
+import { page, pwField, azielLibraryBody, corpusBody, homeBody } from "./ui.js";
+import { isOperator, ingestRecord, searchRecords, listFacets, parseBrowseParams, asFile, guestSession } from "./library.js";
 import { extractEventsForRecord } from "./geo.js";
 import { ocrIngestHint } from "./ocr.js";
 import { refreshPackedIndex, HTML_CACHE_CONTROL } from "./library-index.js";
@@ -93,7 +93,7 @@ export async function handleAuth(request, url, env, ctx) {
   const signed = await getSession(env, request);
 
   if (path === "/signup" && request.method === "GET") {
-    return html(page("Sign up", `<div class="card"><h2>Sign up</h2><p class="muted">Anyone can view. An account is required to post or ingest.</p><form method="post" action="/signup"><input name="username" required minlength="3" placeholder="username" autocomplete="username">${pwField("password")}<button>Create account</button></form><p><a href="/login">Log in</a></p></div>`, { signed }), { signed });
+    return html(page("Sign up", `<div class="card"><h2>Sign up</h2><p class="muted">Create an account to post under a name. You can also <a href="/#upload-anonymous">upload anonymously</a> from the homepage. Corpus uploads are reviewed for safety before they appear. Aziel Library stays operator-only.</p><form method="post" action="/signup"><input name="username" required minlength="3" placeholder="username" autocomplete="username">${pwField("password")}<button>Create account</button></form><p><a href="/login">Log in</a></p></div>`, { signed }), { signed });
   }
   if (path === "/login" && request.method === "GET") {
     return html(page("Log in", `<div class="card"><h2>Log in</h2><form method="post" action="/login"><input name="username" required placeholder="username" autocomplete="username">${pwField("password")}<button>Log in</button></form><p><a href="/signup">Sign up</a></p></div>`, { signed }), { signed });
@@ -150,7 +150,7 @@ export async function handleAuth(request, url, env, ctx) {
 
   if (path === "/aziel-library" && (request.method === "GET" || request.method === "HEAD")) {
     const browse = parseBrowseParams(url);
-    const rows = request.method === "HEAD" ? [] : await searchRecords(env, { q: browse.q, library: "aziel", sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300 });
+    const rows = request.method === "HEAD" ? [] : await searchRecords(env, { q: browse.q, library: "aziel", sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300, includeQuarantine: isOperator(signed) });
     const facets = request.method === "HEAD" ? {} : await listFacets(env, { library: "aziel" });
     return html(page("Aziel Library", azielLibraryBody({ rows, facets, ...browse, lib: "aziel", signed }), { signed, path: "/aziel-library", kind: "aziel-library" }), { signed, head: request.method === "HEAD" });
   }
@@ -189,32 +189,41 @@ export async function handleAuth(request, url, env, ctx) {
     if (isOperator(signed)) {
       return new Response(null, { status: 303, headers: { Location: "/aziel-library" } });
     }
-    if (!signed) return loginGate(signed, "Anyone can view. Posting needs an account.");
+    if (!signed) return new Response(null, { status: 303, headers: { Location: "/#upload-anonymous" } });
     const browse = parseBrowseParams(url);
     const rows = await searchRecords(env, { q: browse.q, library: "corpus", sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300 });
     const facets = await listFacets(env, { library: "corpus" });
     return html(page("Corpus library", corpusBody({ signed, rows, facets, ...browse, lib: "corpus" }), { signed, path: "/corpus", kind: "corpus" }), { signed });
   }
   if (path === "/ingest" && request.method === "POST") {
-    if (!signed) return json({ error: "login required" }, 401);
     if (isOperator(signed)) {
       return new Response(null, { status: 303, headers: { Location: "/aziel-library" } });
     }
+    const who = signed || guestSession();
     const form = await request.formData();
+    const fromHome = String(form.get("from") || "") === "home" || !signed;
     const file = asFile(form.get("file"));
     const title = String(form.get("title") || "").trim();
     const body = String(form.get("body") || form.get("notes") || "");
     const meta = formMeta(form);
+    const homeErr = (message, status = 400) => html(page("Corpus Search", homeBody({ error: message, host: "https://www.azielcorpuslibrary.net" }), { signed, path: "/", kind: "search" }), { status, signed });
     if (!file && !(title && body)) {
+      if (fromHome) return homeErr("Upload a file, or include both title and notes.");
       const rows = await searchRecords(env, { library: "corpus", limit: 300 });
       return html(page("Corpus library", corpusBody({ signed, rows, error: "Upload a file, or include both title and notes." }), { signed }), { status: 400, signed });
     }
     try {
-      const rec = await ingestRecord(env, { signed, title, body, file, ...meta });
+      const rec = await ingestRecord(env, { signed: who, title, body, file, ...meta });
       await afterIngest(env, rec, ctx);
+      if (fromHome) {
+        const held = rec && rec.quarantine_status && String(rec.quarantine_status).toUpperCase() !== "CLEAR";
+        return new Response(null, { status: 303, headers: { Location: held ? "/?received=held#upload-anonymous" : "/record/" + rec.id } });
+      }
     } catch (err) {
+      const message = err && err.message ? err.message : "Upload failed.";
+      if (fromHome) return homeErr(message, err && err.status ? err.status : 400);
       const rows = await searchRecords(env, { library: "corpus", limit: 300 });
-      return html(page("Corpus library", corpusBody({ signed, rows, error: err && err.message ? err.message : "Upload failed." }), { signed }), { status: err && err.status ? err.status : 400, signed });
+      return html(page("Corpus library", corpusBody({ signed, rows, error: message }), { signed }), { status: err && err.status ? err.status : 400, signed });
     }
     return new Response(null, { status: 303, headers: { Location: "/corpus" } });
   }
