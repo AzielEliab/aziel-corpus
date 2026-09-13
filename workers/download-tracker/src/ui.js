@@ -119,6 +119,9 @@ input[type=checkbox],input[type=radio]{width:auto!important;min-width:18px;min-h
 textarea{min-height:120px;resize:vertical}
 label.filepick{display:block;margin:8px 0 14px}
 input[type=file]{width:100%;min-height:44px;padding:10px;background:#16130f;color:var(--ink)}
+.drop form > input[type=file]{margin:0}
+.field-label{display:block;margin:10px 0 6px;font-size:14px;font-weight:700;color:var(--ink)}
+.field-label .req{color:var(--gold)}
 .hero{padding:8px 0 4px;content-visibility:visible}
 .hero h1{font-size:28px;margin:0 0 8px;letter-spacing:-.03em;color:var(--ink);content-visibility:visible}
 .hero-search{display:flex;gap:10px;flex-wrap:wrap;align-items:stretch;margin:18px 0 8px}
@@ -608,6 +611,11 @@ ${pwField("password")}
 </div>`;
 }
 
+function requiredTitleField(id) {
+  return `<label class="field-label" for="${id}">Title <span class="req" aria-hidden="true">*</span></label>
+<input id="${id}" name="title" placeholder="Title" required pattern=".*\\S.*" title="Title is required" autocomplete="off">`;
+}
+
 function homeAnonymousUploadCard({ error } = {}) {
   const err = error ? `<p class="bad">${esc(error)}</p>` : "";
   return `<div class="drop" id="upload-anonymous">
@@ -615,8 +623,8 @@ function homeAnonymousUploadCard({ error } = {}) {
 ${err}
 <form method="post" action="/ingest" enctype="multipart/form-data">
 <input type="hidden" name="from" value="home">
-<label class="filepick">File (optional if you include title and notes)<input type="file" name="file"></label>
-<input name="title" placeholder="Title">
+<input type="file" name="file">
+${requiredTitleField("anon-title")}
 ${metaInputs({ authorPlaceholder: "Author (optional)" })}
 <textarea name="body" rows="5" placeholder="Text or notes"></textarea>
 <p><button>Upload to Corpus</button></p>
@@ -680,8 +688,8 @@ export function corpusBody({ signed, rows, error, q, sort, domain, subject, keyw
 <p class="muted">Signed-in accounts can upload a file and/or title + notes. Signup is required to post.</p>
 ${err}
 <form method="post" action="/ingest" enctype="multipart/form-data">
-<label class="filepick">File (optional if you include title and notes)<input type="file" name="file"></label>
-<input name="title" placeholder="Title">
+<input type="file" name="file">
+${requiredTitleField("corpus-title")}
 ${metaInputs({ authorPlaceholder: "Author" })}
 <textarea name="body" rows="6" placeholder="Text or notes"></textarea>
 <p><button>Preserve + index</button></p>

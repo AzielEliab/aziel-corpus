@@ -462,6 +462,9 @@ test("homepage doors include Sign up and anonymous Corpus upload; other pages ke
   assert.doesNotMatch(home, /Files go to Corpus \(Lamb Lens\)/);
   assert.doesNotMatch(home, /Safety review \(poison quarantine, triad\)/);
   assert.doesNotMatch(home, /Aziel Library upload stays operator-only/);
+  assert.doesNotMatch(home, /File \(optional if you include title and notes\)/);
+  assert.match(home, /<label class="field-label" for="anon-title">Title <span class="req" aria-hidden="true">\*<\/span><\/label>/);
+  assert.match(home, /id="anon-title"[^>]*name="title"[^>]*required/);
   assert.match(home, /name="from" value="home"/);
   assert.match(home, /href="\/aziel-library"/);
   assert.match(home, /href="\/corpus"/);

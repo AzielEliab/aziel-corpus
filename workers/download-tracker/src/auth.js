@@ -207,10 +207,10 @@ export async function handleAuth(request, url, env, ctx) {
     const body = String(form.get("body") || form.get("notes") || "");
     const meta = formMeta(form);
     const homeErr = (message, status = 400) => html(page("Corpus Search", homeBody({ error: message, host: "https://www.azielcorpuslibrary.net" }), { signed, path: "/", kind: "search" }), { status, signed });
-    if (!file && !(title && body)) {
-      if (fromHome) return homeErr("Upload a file, or include both title and notes.");
+    if (!title) {
+      if (fromHome) return homeErr("Title is required.");
       const rows = await searchRecords(env, { library: "corpus", limit: 300 });
-      return html(page("Corpus library", corpusBody({ signed, rows, error: "Upload a file, or include both title and notes." }), { signed }), { status: 400, signed });
+      return html(page("Corpus library", corpusBody({ signed, rows, error: "Title is required." }), { signed }), { status: 400, signed });
     }
     try {
       const rec = await ingestRecord(env, { signed: who, title, body, file, ...meta });
