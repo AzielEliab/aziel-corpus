@@ -311,8 +311,8 @@ test("Pattern, Software, About, and runtime pages render live copy", () => {
   assert.doesNotMatch(prose, /The software suite is listed/);
   assert.doesNotMatch(about, /royal purple/);
   assert.doesNotMatch(about, /Researcher\. Builder\. AI\. A one-man dev team\. Just a man\./);
-  assert.match(about, /Aziel Eliab is a living researcher and software designer\. Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20\./);
-  assert.ok(about.indexOf("Aziel Eliab is a living researcher") < about.indexOf("Who? Does not matter"));
+  assert.doesNotMatch(about, /Aziel Eliab is a living researcher and software designer\. Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20\./);
+  assert.match(about, /Who\? Does not matter/);
   assert.match(about, /public MASTER of the work/);
   assert.match(record, /class="about-mission"/);
   assert.match(record, /Publisher resolves to/);
@@ -330,8 +330,8 @@ test("Pattern, Software, About, and runtime pages render live copy", () => {
   assert.match(about, /GodLock is one product Aziel Eliab built/);
   const who = whoBody();
   assert.match(who, /<h1>Who is Aziel Eliab<\/h1>/);
-  assert.match(who, /Aziel Eliab is a living researcher and software designer\. Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20\./);
-  assert.ok(who.indexOf("Aziel Eliab is a living researcher") < who.indexOf("independent researcher"));
+  assert.doesNotMatch(who, /Aziel Eliab is a living researcher and software designer\. Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20\./);
+  assert.match(who, /independent researcher/);
   assert.match(about, /href="https:\/\/www\.hedidntjump\.com\/"/);
   assert.match(about, /He Didn't Jump/);
   const scored = howItsScoredBody();
