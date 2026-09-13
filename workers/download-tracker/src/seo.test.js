@@ -79,8 +79,7 @@ test("JSON-LD types the author as Person with alternateName", () => {
   assert.ok(person.alternateName.includes("עזיאל"));
   assert.ok(person.alternateName.includes("Aziell"));
   assert.equal(person.disambiguatingDescription, DISAMBIGUATING_DESCRIPTION);
-  assert.match(person.disambiguatingDescription, /Not biblical Aziel/);
-  assert.match(person.disambiguatingDescription, /not biblical Eliab/);
+  assert.match(person.disambiguatingDescription, /two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20/);
   assert.match(person.disambiguatingDescription, /euaziel\.site/);
   assert.match(person.disambiguatingDescription, /not Aziel S\. \(Flutter\/portfolio\)/);
   assert.match(person.disambiguatingDescription, /not other engineers named Aziel/);
@@ -135,12 +134,13 @@ test("JSON-LD types the author as Person with alternateName", () => {
   ]);
   assert.match(aboutPage.description, /Aziel Digital Library/);
   assert.match(aboutPage.description, /GodLock/);
-  assert.doesNotMatch(aboutPage.description, /1 Chronicles/);
+  assert.match(aboutPage.description, /1 Chronicles 15:20/);
   const aboutFaq = ld["@graph"].find((n) => n["@type"] === "FAQPage");
   assert.ok(aboutFaq);
   assert.ok(aboutFaq.mainEntity.some((q) => q.name === "What matters about Aziel Eliab?"));
   assert.ok(aboutFaq.mainEntity.some((q) => q.name === "What does Aziel Eliab publish?"));
-  assert.ok(aboutFaq.mainEntity.some((q) => q.name === "Is Aziel Eliab a scripture concordance entry?"));
+  assert.ok(aboutFaq.mainEntity.some((q) => q.name === "Is Aziel Eliab the two musicians named in 1 Chronicles 15:20?"));
+  assert.ok(!aboutFaq.mainEntity.some((q) => q.name === "Is Aziel Eliab a scripture concordance entry?"));
   assert.ok(!aboutFaq.mainEntity.some((q) => /biblical Aziel|biblical Eliab/.test(q.name)));
   const profile = ld["@graph"].find((n) => n["@type"] === "ProfilePage");
   assert.equal(profile.url, "https://www.azielcorpuslibrary.net/AzielEliab");
@@ -287,9 +287,10 @@ test("page-specific descriptions and share images", () => {
   assert.match(defaultDescription("about"), /Aziel Digital Library/);
   assert.match(defaultDescription("about"), /GodLock/);
   assert.match(defaultDescription("about"), /public MASTER/);
+  assert.match(defaultDescription("about"), /1 Chronicles 15:20/);
   assert.doesNotMatch(defaultDescription("about"), /Researcher\. Builder/);
-  assert.doesNotMatch(defaultDescription("about"), /1 Chronicles/);
   assert.doesNotMatch(defaultDescription("about"), /Aziel S\.|Flutter\/React/);
+  assert.equal(defaultDescription("who"), "Aziel Eliab is a living researcher and software designer. Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20.");
   assert.match(defaultDescription("software"), /Software|aziel-runtime/i);
   assert.match(defaultDescription("scored"), /intentional suppression/);
   assert.match(defaultDescription("search"), /Aziel Digital Library by Aziel Eliab/);
@@ -421,6 +422,7 @@ test("OpenAPI identity URLs include /AzielEliab and GodLock", async () => {
   assert.ok(spec.paths["/graph.jsonld"]);
   assert.ok(spec.paths["/who-is-aziel-eliab.txt"]);
   assert.ok(spec.paths["/who-is"]);
+  assert.ok(spec.paths["/who"]);
   assert.ok(spec.paths["/search"]);
   assert.ok(spec.paths["/.well-known/aziel.json"]);
   assert.ok(spec.paths["/.well-known/person.jsonld"]);
