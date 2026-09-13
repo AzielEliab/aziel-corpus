@@ -4,11 +4,12 @@
  * Author: Aziel Eliab.
  */
 import { serveFileByHash, normalizeContentHash } from "./library.js";
-import { receiptForRecord, documentChain } from "./ledger.js";
+import { receiptForRecord, documentChain, isJsonDocumentId } from "./ledger.js";
 import { loadRecordReview, runReviewBundle, backfillReviews, continueFullBackfill, fullBackfillStatus, syncShelfScores, refreshPackedShelf, SHELF_REBUILD_MS } from "./review-store.js";
 import { latticeAnchorTip, LATTICE_NOTE } from "./lattice.js";
 import { handleJeevesApi, JEEVES_LIMITATION } from "./jeeves.js";
 import { handleOperatorIngestApi } from "./operator-ingest.js";
+import { continueMetadataBackfill, metadataBackfillStatus, receiptForJsonMetadata } from "./record-metadata.js";
 import { receiptForMediaRun, isMediaRunId } from "./media.js";
 import { continueVerifyGeo, geoVerifyStatus, GEO_PIN_NOTE } from "./geo.js";
 import { RUNTIME_VERSION, RUNTIME_NOTE, runtimeHowTo, AI_CLIENTS, LIBRARY_DOWNLOAD, LIBRARY_V1_DOWNLOAD } from "./runtime-copy.js";
@@ -182,12 +183,16 @@ function openapi() {
       "/v1/document-chain": { get: { summary: "Per-document hash-chain bound to record_id. No orphan chains.", operationId: "documentChain", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
       "/v1/jeeves/chat": { post: { summary: "Ask Jeeves research assistant over public records. Lamb Lens. Cannot change scores.", operationId: "jeevesChat" } },
       "/v1/jeeves/upload": { post: { summary: "Ask Jeeves Add — same ingest as the shelf (structure, SPRE × CLCE × PhysLing, Bayesian). Signed-in public writes Corpus; operator writes Aziel Library.", operationId: "jeevesUpload" } },
-      "/v1/operator/library-ingest": { post: { summary: "Operator Aziel Library ingest (SOFTWARE-SITE-DOSSIER-1.0). Same ingestRecord pipeline as Jeeves/shelf. Requires X-Aziel-Operator-Token or operator session. Idempotent same-SHA; exact-same-subject supersedes. No public write hole.", operationId: "operatorLibraryIngest" } },
+      "/v1/operator/library-ingest": { post: { summary: "Operator Aziel Library ingest (SOFTWARE-SITE-DOSSIER-1.0). Same ingestRecord pipeline as Jeeves/shelf. Requires X-Aziel-Operator-Token or operator session. Idempotent same-SHA; exact-same-subject supersedes. Writes discovery metadata sidecar in the same ingest. No public write hole.", operationId: "operatorLibraryIngest" } },
+      "/v1/metadata-backfill": { get: { summary: "Idempotent discovery-metadata backfill. Writes {library}/{AZDOC}/JSONAZDOC-….json beside the paper and mirrors under .Json/. JSON-prefixed document_ledger receipts copy the paper lattice and never rewrite paper chain_tip. all=1 walks remaining; force=1 restarts; status=1 progress. Cron and request walks also continue. Does not increment downloads.", operationId: "metadataBackfill", parameters: [{ name: "all", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "force", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "status", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "record_id", in: "query", schema: { type: "string" } }] } },
+      "/record/{record_id}/metadata.json": { get: { summary: "Public Schema.org discovery metadata for one AZDOC record (no auth). Co-located with the paper package and mirrored under .Json/. Alias: /record/{record_id}.json.", operationId: "recordMetadata", parameters: [{ name: "record_id", in: "path", required: true, schema: { type: "string" } }] } },
+      "/record/{record_id}.json": { get: { summary: "Alias of /record/{record_id}/metadata.json.", operationId: "recordMetadataAlias", parameters: [{ name: "record_id", in: "path", required: true, schema: { type: "string" } }] } },
+      "/sitemap-records.xml": { get: { summary: "Record HTML + metadata.json + .json alias URLs for crawlers. Linked from sitemap-index.xml.", operationId: "sitemapRecords" } },
       "/v1/media-run": { get: { summary: "Hash-chained media lattice receipt for an OCR or transcript run (AZRUN-).", operationId: "mediaRun", parameters: [{ name: "run_id", in: "query", required: true, schema: { type: "string" } }] } },
       "/transcribe": { post: { summary: "Hosted Whisper transcription with mandatory VibeLock determination. Hard-blocks porn, nudity, and child-sexual content (HTTP 451; never stored or playable). Allowed media at /media/{sha256}. Optional library upload (signed-in: Corpus; operator: Aziel Library).", operationId: "transcribe" } },
       "/ocr": { post: { summary: "Hosted image/PDF OCR. Always writes a media lattice receipt. Optional library upload.", operationId: "ocr" } },
       "/media/{sha256}": { get: { summary: "Inline playback of allowed A/V stored at av/{sha256}. Blocked media is never stored.", operationId: "media", parameters: [{ name: "sha256", in: "path", required: true, schema: { type: "string" } }] } },
-      "/receipt/{id}": { get: { summary: "Receipt for an AZDOC- record or AZRUN- media lattice entry.", operationId: "receipt", parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }] } },
+      "/receipt/{id}": { get: { summary: "Receipt for an AZDOC- paper, JSONAZDOC- discovery sidecar, or AZRUN- media lattice entry.", operationId: "receipt", parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }] } },
       "/ledger/{id}": { get: { summary: "Alias of /receipt/{id} for media lattice and document receipts.", operationId: "ledger", parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }] } },
       "/file/{record_id}": { get: { summary: "Download any stored record (text or file). HTTP 200. Quarantined poison docs stay downloadable with X-Aziel-Quarantine. Ledger-linked. A 64-hex SHA-256 also resolves the kept matching file.", operationId: "file" } },
       "/download": { get: { summary: "Counted Softwares zip (asset=), counted record download (record=AZDOC-…), or counted content-hash download (hash=SHA-256). Streams the hosted zip. Honest 200 JSON if the asset is missing. HTTP 200, no silent 302.", operationId: "download", parameters: [{ name: "asset", in: "query", schema: { type: "string" } }, { name: "record", in: "query", schema: { type: "string" } }, { name: "hash", in: "query", schema: { type: "string" } }, { name: "sha256", in: "query", schema: { type: "string" } }] } },
@@ -466,9 +471,23 @@ export async function handleRuntimeApi(request, url, env, ctx) {
       limitation: LIMITATION,
     });
   }
+  if (path === "/v1/metadata-backfill" && request.method === "GET") {
+    const force = url.searchParams.get("force") === "1" || url.searchParams.get("force") === "true";
+    const all = url.searchParams.get("all") === "1" || url.searchParams.get("all") === "true";
+    const statusOnly = url.searchParams.get("status") === "1" || url.searchParams.get("status") === "true";
+    const recordId = (url.searchParams.get("record_id") || url.searchParams.get("id") || "").trim() || null;
+    if (statusOnly) return json({ ...(await metadataBackfillStatus(env)), limitation: LIMITATION });
+    const report = await continueMetadataBackfill(env, { ms: all ? 25000 : 12000, force, all, recordId });
+    return json({ ...report, limitation: LIMITATION });
+  }
   if (path === "/v1/lattice" && request.method === "GET") {
     const recordId = (url.searchParams.get("record_id") || url.searchParams.get("id") || url.searchParams.get("run_id") || "").trim();
     if (!recordId) return json({ error: "record_id required", note: LATTICE_NOTE }, 400);
+    if (isJsonDocumentId(recordId)) {
+      const rec = await receiptForJsonMetadata(env, recordId);
+      if (!rec) return json({ error: "not found", note: LATTICE_NOTE }, 404);
+      return json({ ok: true, tip: rec.lattice_tip, record_id: rec.record_id, paper_record_id: rec.paper_record_id, kind: rec.kind, note: LATTICE_NOTE, limitation: LIMITATION });
+    }
     if (isMediaRunId(recordId)) {
       const rec = await receiptForMediaRun(env, recordId);
       if (!rec) return json({ error: "not found", note: LATTICE_NOTE }, 404);

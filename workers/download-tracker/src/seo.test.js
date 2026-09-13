@@ -318,6 +318,7 @@ test("page-specific descriptions and share images", () => {
   assert.equal(article.name, "The Cockroach Doctrine");
   assert.equal(article.isPartOf.name, "Aziel Library");
   assert.deepEqual(article.author, { "@id": HUB_PERSON_ID });
+  assert.ok(article.sameAs.includes("https://www.azielcorpuslibrary.net/record/AZDOC-1/metadata.json"));
 });
 
 test("ecosystem footer/nav is chrome, not Softwares heading→list", () => {
