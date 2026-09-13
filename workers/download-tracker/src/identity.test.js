@@ -155,8 +155,9 @@ test("graph.jsonld has Who-is + product FAQs, publisher Person, library role, st
   assert.match(people[0].disambiguatingDescription, /not Aziel S\. \(Flutter\/portfolio\)/);
   assert.match(people[0].disambiguatingDescription, /euaziel\.site/);
   const musicians = faq.mainEntity.find((q) => q.name === FAQ_MUSICIANS.name);
-  assert.match(musicians.acceptedAnswer.text, BOTH_MUSICIANS);
+  assert.match(musicians.acceptedAnswer.text, /1 Chronicles 15:20/);
   assert.match(musicians.acceptedAnswer.text, /two Levitical musicians/);
+  assert.match(musicians.acceptedAnswer.text, /Aziel and Eliab/);
   assert.doesNotMatch(musicians.acceptedAnswer.text, /Chronicles essay/);
   const site = graph["@graph"].find((n) => n["@type"] === "WebSite");
   assert.equal(site["@id"], "https://www.azielcorpuslibrary.net/#website");
