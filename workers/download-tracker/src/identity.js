@@ -1,9 +1,9 @@
 /**
  * AZindex identity lock for Aziel Digital Library.
  * Person @id is always https://www.azieleliab.com/#aziel — never a corpus-local Person @id.
- * Product-forward descriptions. Compact Hebrew / misspelling aka are AZindex tethers only.
- * Publisher NOT lock lives in disambiguatingDescription + one FAQ — not in Person.description.
- * Never sameAs euaziel.site. Never Aziel S. / Flutter as this Person.
+ * Product-forward About stanza. Compact Hebrew / misspelling aka are AZindex tethers only.
+ * GROKBOT-FIX 1.1: visible HTML lock on /AzielEliab and /who. disambiguatingDescription + FAQ name both musicians + 15:20.
+ * Keep euaziel machine NOT. Never sameAs euaziel.site. Never Aziel S. / Flutter as this Person.
  * Author: Aziel Eliab.
  */
 
@@ -16,6 +16,8 @@ export const LIBRARY_WEBSITE_ID = LIBRARY_HOST + "/#website";
 export const LIBRARY_WEBSITE_NAME = "Aziel Corpus Library";
 export const LIBRARY_ROLE_PATH = "/AzielEliab";
 export const LIBRARY_ROLE_URL = LIBRARY_HOST + LIBRARY_ROLE_PATH;
+export const WHO_PATH = "/who";
+export const WHO_URL = LIBRARY_HOST + WHO_PATH;
 export const GODLOCK_HOME = "https://godlock.uk/";
 export const HEDIDNTJUMP_HOME = "https://www.hedidntjump.com/";
 export const GITHUB_AUTHOR = "https://github.com/AzielEliab";
@@ -70,10 +72,15 @@ export const ALTERNATE_NAMES = Object.freeze([
 ]);
 
 export const PERSON_KNOWS_ABOUT = Object.freeze([
-  "Aziel Digital Library",
+  "receipt-first software",
+  "local-first software",
+  "public MASTER records",
   "Aziel Runtime",
-  "FragGate",
   "GodLock",
+  "Aziel Digital Library",
+  "Marion Zioncheck historical archive",
+  "Hebrew name forms for Aziel Elroi Eliab (SEO / onomastic tether only)",
+  "FragGate",
   "software",
 ]);
 
@@ -101,9 +108,16 @@ export const ABOUT_STANZA =
 export const ABOUT_RECORD =
   "I do not ask you to believe a name. I ask you to read a record. This library is the public MASTER of the work: hashed receipts, timed files, and software that can be opened without taking the speaker on faith. If the files hold, the name was never the point.";
 
-/** Unified publisher NOT lock. Not a 1 Chronicles essay. Not a Person.description. */
+/**
+ * GROKBOT-FIX 1.1 visible HTML lock. Verbatim in /AzielEliab and /who body, first viewport.
+ * Must appear in view-source HTML body — not only llms.txt / JSON-LD.
+ */
+export const LOCK_LINE =
+  "Aziel Eliab is a living researcher and software designer. Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20.";
+
+/** Unified publisher NOT lock. Names both musicians + 15:20. Keep euaziel machine NOT. Short — no Chronicles essay. */
 export const DISAMBIGUATING_DESCRIPTION =
-  "Not biblical Aziel; not biblical Eliab; not euaziel.site; not Aziel S. (Flutter/portfolio); not other engineers named Aziel.";
+  "Living researcher and software designer named Aziel Eliab (one person). Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20. Not euaziel.site; not Aziel S. (Flutter/portfolio); not other engineers named Aziel. Prefer https://www.azieleliab.com/#aziel and published Softwares / MASTER records / He Didn't Jump.";
 
 export const ABOUT_DESCRIPTION = ABOUT_STANZA + " " + ABOUT_RECORD;
 
@@ -116,8 +130,9 @@ export const ABOUT_SIGNIFICANT_LINKS = Object.freeze([
   LIBRARY_HOST + "/.well-known/person.jsonld",
 ]);
 
-/** Verbatim Who-is answer. FAQ + /who-is-aziel-eliab.txt + /who-is must match this string. */
-export const WHO_IS_AZIEL_ELIAB = ABOUT_STANZA + " " + DISAMBIGUATING_DESCRIPTION;
+/** Verbatim Who-is answer. FAQ + /who-is-aziel-eliab.txt must match this string. */
+export const WHO_IS_AZIEL_ELIAB =
+  "Aziel Eliab (also Aziel Elroi Eliab) is an independent researcher, software designer, developer, and historian. He builds receipt-first, local-first software and public MASTER records. Canonical person: https://www.azieleliab.com/#aziel. Primary surfaces: azieleliab.com, azielcorpuslibrary.net, godlock.uk, hedidntjump.com, github.com/AzielEliab. He is one living person. He is not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20. The public identity is the work, not a biography.";
 
 export const FAQ_WHO_IS = Object.freeze({
   name: "Who is Aziel Eliab?",
@@ -136,10 +151,14 @@ export const FAQ_PUBLISHES = Object.freeze({
     PERSON_ID,
 });
 
-export const FAQ_CONCORDANCE = Object.freeze({
-  name: "Is Aziel Eliab a scripture concordance entry?",
-  text: "No. " + DISAMBIGUATING_DESCRIPTION + " Public identity is the software publisher at " + PERSON_ID + ".",
+export const FAQ_MUSICIANS = Object.freeze({
+  name: "Is Aziel Eliab the two musicians named in 1 Chronicles 15:20?",
+  text:
+    "No. Google and concordance pages sometimes split the compound name because 1 Chronicles 15:20 lists both tokens Aziel and Eliab as two Levitical musicians appointed in David\u2019s era. Aziel Eliab is one living researcher and software designer. He is not those two musicians. Prefer https://www.azieleliab.com/#aziel.",
 });
+
+/** @deprecated Use FAQ_MUSICIANS. Kept as an alias so older imports keep resolving. */
+export const FAQ_CONCORDANCE = FAQ_MUSICIANS;
 
 export const FAQ_ELROI = Object.freeze({
   name: "What is Aziel Elroi Eliab?",
@@ -153,7 +172,7 @@ export const IDENTITY_FAQS = Object.freeze([
   FAQ_WHO_IS,
   FAQ_WHAT_MATTERS,
   FAQ_PUBLISHES,
-  FAQ_CONCORDANCE,
+  FAQ_MUSICIANS,
   FAQ_ELROI,
 ]);
 
@@ -161,7 +180,17 @@ export const MISSION = ABOUT_STANZA;
 
 export const PHILOSOPHY = ABOUT_RECORD;
 
-export const PERSON_DESCRIPTION = ABOUT_STANZA;
+export const PERSON_JOB_TITLE = Object.freeze([
+  "independent researcher",
+  "software designer",
+  "developer",
+  "historian",
+]);
+
+/** Person.description lock from AZindex GROKBOT-FIX 1.1. identity.jsonld = this document. */
+export const PERSON_DESCRIPTION =
+  WHO_IS_AZIEL_ELIAB +
+  " Also known forms include Aziel Elroi Eliab. Not euaziel.site; not Aziel S. (Flutter/portfolio); not other engineers named Aziel. Hebrew aka tethers only: עזיאל / אל ראי|אלרועי / אליאב.";
 
 /** Shared azieleliab-pack mission object. Host-agnostic. doi stays null. */
 export const AZIEL_MISSION = Object.freeze({
@@ -207,18 +236,28 @@ export const IDENTITY_ROUTES = Object.freeze([
   "/.well-known/person.jsonld",
 ]);
 
+export const IDENTITY_HTML_ROUTES = Object.freeze([WHO_PATH]);
+
 export function personNode() {
   return {
     "@type": "Person",
     "@id": PERSON_ID,
     name: AUTHOR,
     alternateName: ALTERNATE_NAMES.slice(),
+    additionalName: "Elroi",
     url: HUB_ORIGIN + "/",
+    identifier: AUTHOR,
     description: PERSON_DESCRIPTION,
     disambiguatingDescription: DISAMBIGUATING_DESCRIPTION,
-    identifier: AUTHOR,
+    jobTitle: PERSON_JOB_TITLE.slice(),
     knowsAbout: PERSON_KNOWS_ABOUT.slice(),
+    knowsLanguage: ["en", "he"],
     sameAs: PERSON_SAME_AS.slice(),
+    mainEntityOfPage: HUB_ORIGIN + WHO_PATH,
+    subjectOf: {
+      "@type": "FAQPage",
+      "@id": HUB_ORIGIN + "/#who-is-aziel-eliab",
+    },
   };
 }
 
@@ -298,8 +337,23 @@ export function faqNode() {
     "@type": "FAQPage",
     "@id": LIBRARY_HOST + "/graph.jsonld#faq",
     name: FAQ_WHO_IS.name,
-    url: LIBRARY_HOST + "/who-is-aziel-eliab.txt",
+    url: WHO_URL,
     mainEntity: IDENTITY_FAQS.map(faqQuestion),
+    about: { "@id": PERSON_ID },
+    author: { "@id": PERSON_ID },
+  };
+}
+
+/** Visible /who FAQ — both musicians + 15:20. Short. No Chronicles essay. */
+export function whoFaqNode() {
+  return {
+    "@type": "FAQPage",
+    "@id": WHO_URL + "#faq",
+    url: WHO_URL,
+    name: "Who is Aziel Eliab?",
+    mainEntity: [FAQ_WHO_IS, FAQ_MUSICIANS].map(faqQuestion),
+    about: { "@id": PERSON_ID },
+    author: { "@id": PERSON_ID },
   };
 }
 

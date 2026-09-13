@@ -1,5 +1,5 @@
-import { page, patternBody, softwareBody, aboutBody, howItsScoredBody } from "./ui.js";
-import { recordDescription, ABOUT_PATH, ABOUT_NAV_LABEL, FORENSICS_PATH, aboutRedirectFrom, forensicsRedirectFrom } from "./seo.js";
+import { page, patternBody, softwareBody, aboutBody, whoBody, howItsScoredBody } from "./ui.js";
+import { recordDescription, ABOUT_PATH, ABOUT_NAV_LABEL, FORENSICS_PATH, WHO_PATH, aboutRedirectFrom, forensicsRedirectFrom } from "./seo.js";
 import { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, blockedAvBody } from "./hosted-pages.js";
 import { json, corsHeaders } from "./runtime.js";
 import { receiptForRecord, sha256hex } from "./ledger.js";
@@ -116,7 +116,7 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
   const read = method === "GET" || head;
   const pageHtml = (pageBody, extra) =>
     html(pageBody, Object.assign({ cacheControl: signed ? "private, no-store" : HTML_CACHE_CONTROL }, extra, { head }));
-  const staticPriority = path === "/software" || path === ABOUT_PATH || path === "/how-its-scored";
+  const staticPriority = path === "/software" || path === ABOUT_PATH || path === WHO_PATH || path === "/how-its-scored";
   if (!staticPriority) await ensureSchema(env);
 
   if ((path === "/assets/world_110m.geojson" || path === "/world_110m.geojson") && read) {
@@ -619,6 +619,9 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
   }
   if (path === ABOUT_PATH && read) {
     return pageHtml(page(ABOUT_NAV_LABEL, aboutBody(), { signed, path: ABOUT_PATH, kind: "about" }), { cacheControl: signed ? "private, no-store" : SEO_CACHE_CONTROL });
+  }
+  if (path === WHO_PATH && read) {
+    return pageHtml(page("Who is Aziel Eliab", whoBody(), { signed, path: WHO_PATH, kind: "who", donateStrip: false }), { cacheControl: signed ? "private, no-store" : SEO_CACHE_CONTROL });
   }
   return null;
 }
