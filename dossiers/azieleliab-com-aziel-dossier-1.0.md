@@ -52,7 +52,7 @@ Person and ecosystem hub. Locked Person @id and Runtime SoftwareApplication @id 
 
 ## Concept
 
-Public identity is Aziel Eliab only (Aziel Elroi Eliab is alternateName / aka only). Entity graph: Person #aziel, WebSite #website, Runtime #runtime. hasPart is named tools only — not MCP verbs.
+Public identity is Aziel Eliab only (Aziel Elroi Eliab is alternateName / aka only). Publisher of Aziel Digital Library and related software. Not scripture concordance entries named Aziel or Eliab. Entity graph: Person #aziel, WebSite #website, Runtime #runtime. hasPart is named tools only — not MCP verbs.
 
 ## Use cases
 

@@ -44,7 +44,8 @@ test("AZCoherence cite object is Plain scoring-review, peer AZ-CLCE, not AKM-TRI
   assert.equal(AZCOHERENCE.identity, "Aziel Eliab");
   assert.equal(AZCOHERENCE.doi, null);
   assert.match(AZCOHERENCE.compatible_clients, /ChatGPT, Grok, Venice, Claude, Cursor, Glama/);
-  assert.match(AZCOHERENCE.dual_surface, /Worker \/ Flutter \/ local install/);
+  assert.match(AZCOHERENCE.dual_surface, /Worker \/ mobile \/ local install/);
+  assert.doesNotMatch(AZCOHERENCE.dual_surface, /Flutter/);
   assert.equal(AZCOHERENCE.sister_hubs.library, HOST + "/software");
   assert.equal(AZCOHERENCE.sister_hubs.azieleliab, "https://www.azieleliab.com");
   assert.match(AZCOHERENCE.sister_hubs.godlock, /godlock\.uk\/AzielEliab/);

@@ -38,7 +38,7 @@ export const SITE_TARGETS = [
     purpose: "Person and ecosystem hub. Locked Person @id and Runtime SoftwareApplication @id live on this host. Softwares section refreshes from aziel-runtime GET /v1/software.",
     what_it_is: "The official website of Aziel Eliab. Identity hub, Softwares door, donate strip, and runtime parent page.",
     what_it_is_not: "Not a second FragGate door. Not a login mesh. Not a biography dump. Apex azieleliab.com 301s to www; @id values never use apex and never #aziel-eliab.",
-    concept: "Public identity is Aziel Eliab only (Aziel Elroi Eliab is alternateName / aka only). Entity graph: Person #aziel, WebSite #website, Runtime #runtime. hasPart is named tools only — not MCP verbs.",
+    concept: "Public identity is Aziel Eliab only (Aziel Elroi Eliab is alternateName / aka only). Publisher of Aziel Digital Library and related software. Not scripture concordance entries named Aziel or Eliab. Entity graph: Person #aziel, WebSite #website, Runtime #runtime. hasPart is named tools only — not MCP verbs.",
     use_cases: [
       "Cite the Person @id from any sister product or paper",
       "Open Softwares / donate / runtime from one host",
@@ -400,7 +400,7 @@ export function renderDossier(target, extras = {}) {
     "",
     "## License",
     "",
-    "**" + LICENSE + "**. Forks welcome and always allowed. Public identity is **Aziel Eliab** only (Aziel Elroi Eliab is `alternateName` / aka only).",
+    "**" + LICENSE + "**. Forks welcome and always allowed. Public identity is **Aziel Eliab** only (Aziel Elroi Eliab is `alternateName` / aka only). Publisher of Aziel Digital Library and related software. Person `@id` " + PERSON_ID + ". Not scripture concordance entries named Aziel or Eliab.",
     "",
     "## Identity",
     "",

@@ -28,7 +28,7 @@ filename: employeelock-aziel-dossier-1.0.md
 
 ## License
 
-**Apache-2.0**. Forks welcome and always allowed. Public identity is **Aziel Eliab** only (Aziel Elroi Eliab is `alternateName` / aka only).
+**Apache-2.0**. Forks welcome and always allowed. Public identity is **Aziel Eliab** only (Aziel Elroi Eliab is `alternateName` / aka only). Publisher of Aziel Digital Library and related software. Person `@id` https://www.azieleliab.com/#aziel. Not scripture concordance entries named Aziel or Eliab.
 
 ## Identity
 
