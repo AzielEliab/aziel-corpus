@@ -165,7 +165,7 @@ test("who-is-aziel-eliab.txt is the product-forward identity-lock answer", () =>
   assert.equal(IDENTITY_FAQS[0].name, "Who is Aziel Eliab?");
   assert.equal(IDENTITY_FAQS[0].text, WHO_IS_AZIEL_ELIAB);
   assert.equal(FAQ_WHAT_MATTERS.text.includes(ABOUT_LEAD), true);
-  assert.match(FAQ_PUBLISHES.text, /Aziel Digital Library/);
+  assert.match(FAQ_PUBLISHES.text, /^GodLock, Aziel Digital Library on this site, Aziel Runtime \(MCP\)/);
   assert.match(ABOUT_RECORD, /public MASTER/);
 });
 

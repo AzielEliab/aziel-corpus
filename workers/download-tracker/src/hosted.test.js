@@ -37,7 +37,10 @@ test("GET /AzielEliab serves the About HTML at the canonical path", async () => 
   assert.match(html, /About Aziel/);
   assert.match(html, /Aziel Eliab/);
   assert.match(html, /Aziel Digital Library/);
-  assert.match(html, /Not scripture concordance entries named Aziel or Eliab/);
+  assert.match(html, /GodLock/);
+  assert.match(html, /Aziel Runtime/);
+  assert.match(html, /He Didn't Jump/);
+  assert.match(html, /Is Aziel Eliab a scripture concordance entry\?/);
   assert.match(html, /Who\? Does not matter/);
   assert.doesNotMatch(html, /Who does not matter/);
   assert.doesNotMatch(html, /1 Chronicles/);
