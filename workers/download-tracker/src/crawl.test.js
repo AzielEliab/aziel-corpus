@@ -149,7 +149,10 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.ok(cite.alternateName.includes("עזיאל"));
   assert.ok(cite.hebrew_aka.includes("עזיאל"));
   assert.ok(cite.misspelling_aka.includes("Aziell"));
-  assert.equal(cite.disambiguatingDescription, "Not scripture concordance entries named Aziel or Eliab. Not https://euaziel.site/.");
+  assert.equal(cite.disambiguatingDescription, "Not Aziel S. Not scripture concordance entries named Aziel or Eliab. Not https://euaziel.site/.");
+  assert.ok(cite.significant_links.includes("https://www.azielcorpuslibrary.net/.well-known/person.jsonld"));
+  assert.doesNotMatch(cite.azcoherence.dual_surface, /Flutter/);
+  assert.doesNotMatch(JSON.stringify(cite), /\bFlutter\b/);
   assert.equal(cite.doi, null);
   assert.match(cite.github, /AzielEliab\/aziel-corpus/);
   assert.match(cite.software, /\/software$/);
@@ -230,7 +233,9 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(llms, /Who\? Does not matter\. What matters is the record\./);
   assert.match(llms, /Aziel Digital Library on this site/);
   assert.match(llms, /GodLock/);
+  assert.match(llms, /Not Aziel S\./);
   assert.match(llms, /Not scripture concordance entries named Aziel or Eliab/);
+  assert.doesNotMatch(llms, /\bFlutter\b/);
   assert.match(llms, /public MASTER of the work/);
   assert.doesNotMatch(llms, /Researcher\. Builder\. AI\. A one-man dev team\. Just a man\./);
   assert.match(llms, /Compact Hebrew aka/);
@@ -362,6 +367,9 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(ai, /Aziell/);
   assert.doesNotMatch(ai, /1 Chronicles/);
   assert.match(ai, /who-is-aziel-eliab\.txt/);
+  assert.match(ai, /Not Aziel S\./);
+  assert.match(ai, /\.well-known\/person\.jsonld/);
+  assert.doesNotMatch(ai, /\bFlutter\b/);
   assert.match(ai, /Allow: \/who-is/);
   assert.match(ai, /Allow: \/search/);
   assert.match(ai, /azieleliab\.com\/v1\/stats/);

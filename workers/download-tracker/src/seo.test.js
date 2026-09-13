@@ -23,6 +23,7 @@ import {
   ECOSYSTEM_HEADING,
   ECOSYSTEM_LINKS,
 } from "./seo.js";
+import { DISAMBIGUATING_DESCRIPTION } from "./identity.js";
 import { handleRuntimeApi } from "./runtime.js";
 import { page, howItsScoredBody, ecosystemBlockHtml, softwareBody } from "./ui.js";
 
@@ -77,7 +78,9 @@ test("JSON-LD types the author as Person with alternateName", () => {
   assert.ok(person.alternateName.includes("The Revealer of The Sealed"));
   assert.ok(person.alternateName.includes("עזיאל"));
   assert.ok(person.alternateName.includes("Aziell"));
-  assert.equal(person.disambiguatingDescription, "Not scripture concordance entries named Aziel or Eliab. Not https://euaziel.site/.");
+  assert.equal(person.disambiguatingDescription, DISAMBIGUATING_DESCRIPTION);
+  assert.match(person.disambiguatingDescription, /Not Aziel S\./);
+  assert.match(person.disambiguatingDescription, /euaziel\.site/);
   assert.ok(person.knowsAbout.includes("Aziel Digital Library"));
   assert.equal(person.url, HUB_ORIGIN + "/");
   assert.ok(person.sameAs.includes("https://godlock.uk/"));
@@ -125,6 +128,7 @@ test("JSON-LD types the author as Person with alternateName", () => {
     "https://www.azielcorpuslibrary.net/who-is-aziel-eliab.txt",
     "https://www.azielcorpuslibrary.net/graph.jsonld",
     "https://www.azielcorpuslibrary.net/.well-known/aziel.json",
+    "https://www.azielcorpuslibrary.net/.well-known/person.jsonld",
   ]);
   assert.match(aboutPage.description, /Aziel Digital Library/);
   assert.match(aboutPage.description, /GodLock/);

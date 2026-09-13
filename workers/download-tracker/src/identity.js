@@ -103,7 +103,7 @@ export const ABOUT_RECORD =
 
 /** One short do-not-merge. Not a 1 Chronicles essay. Not a Person.description. */
 export const DISAMBIGUATING_DESCRIPTION =
-  "Not scripture concordance entries named Aziel or Eliab. Not https://euaziel.site/.";
+  "Not Aziel S. Not scripture concordance entries named Aziel or Eliab. Not https://euaziel.site/.";
 
 export const ABOUT_DESCRIPTION = ABOUT_STANZA + " " + ABOUT_RECORD;
 
@@ -113,6 +113,7 @@ export const ABOUT_SIGNIFICANT_LINKS = Object.freeze([
   LIBRARY_HOST + "/who-is-aziel-eliab.txt",
   LIBRARY_HOST + "/graph.jsonld",
   LIBRARY_HOST + "/.well-known/aziel.json",
+  LIBRARY_HOST + "/.well-known/person.jsonld",
 ]);
 
 /** Verbatim Who-is answer. FAQ + /who-is-aziel-eliab.txt + /who-is must match this string. */
