@@ -131,7 +131,7 @@ export const FAQ_WHAT_MATTERS = Object.freeze({
 export const FAQ_PUBLISHES = Object.freeze({
   name: "What does Aziel Eliab publish?",
   text:
-    "Aziel Digital Library on this site, Aziel Runtime, FragGate, GodLock, and related software. Person @id " +
+    "GodLock, Aziel Digital Library on this site, Aziel Runtime (MCP), and the He Didn't Jump archive. Person @id " +
     PERSON_ID,
 });
 
