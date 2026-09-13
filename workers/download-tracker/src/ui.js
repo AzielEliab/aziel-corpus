@@ -139,7 +139,7 @@ input[type=file]{width:100%;min-height:44px;padding:10px;background:#16130f;colo
 .lib-tag.aziel{background:var(--royal);color:#f3e9ff;border:1px solid var(--royal-deep)}
 .lib-tag.corpus{background:#2a241c;color:var(--gold);border:1px solid var(--line)}
 .drop{border:2px dashed var(--line);border-radius:16px;padding:22px;background:var(--cream);margin:12px 0 8px}
-.drop h3{margin:0 0 6px}
+.drop h2,.drop h3{margin:0 0 10px}
 .pw-row{display:flex;gap:8px;align-items:center;margin:6px 0;flex-wrap:wrap}
 .pw-row input[type=password],.pw-row input[type=text]{flex:1;min-width:0}
 label.showpw{font-size:14px;color:var(--muted);white-space:nowrap;min-height:44px;display:inline-flex;align-items:center;gap:8px}
@@ -612,7 +612,6 @@ function homeAnonymousUploadCard({ error } = {}) {
   const err = error ? `<p class="bad">${esc(error)}</p>` : "";
   return `<div class="drop" id="upload-anonymous">
 <h2>Upload anonymously</h2>
-<p class="muted">Files go to Corpus (Lamb Lens), not Aziel Library. Safety review (poison quarantine, triad) runs before a record appears on the public shelf. Aziel Library upload stays operator-only.</p>
 ${err}
 <form method="post" action="/ingest" enctype="multipart/form-data">
 <input type="hidden" name="from" value="home">
