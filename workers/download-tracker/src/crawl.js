@@ -198,6 +198,8 @@ export function robotsTxt() {
     "Allow: /intelligence",
     "Allow: /ocr",
     "Allow: /receipt",
+    "Allow: /receipts",
+    "Allow: /v1/receipts",
     "Allow: /ledger",
     "Allow: /historical",
     "Allow: /verify",
@@ -304,6 +306,8 @@ const STATIC_SITEMAP = [
   "/aziel-library",
   "/corpus",
   "/cite.json",
+  "/receipts",
+  "/v1/receipts",
   "/person.jsonld",
   "/identity.jsonld",
   "/graph.jsonld",
@@ -574,6 +578,9 @@ export function citeDoc() {
     transcribe: HOST + "/transcribe",
     transcribe_note: "POST /transcribe — Workers AI Whisper; mandatory VibeLock determination; hard A/V blocks (HTTP 451)",
     receipt: HOST + "/receipt/{id}",
+    receipts: HOST + "/receipts",
+    receipts_json: HOST + "/v1/receipts",
+    receipts_spec: "ACT-RECEIPT-1.0",
     ledger: HOST + "/ledger/{id}",
     media_run: HOST + "/v1/media-run",
     health: HOST + "/v1/health",
@@ -710,6 +717,7 @@ export function llmsDoc(limitation) {
     + "- Who is Aziel Eliab: " + HOST + WHO_PATH + "\n"
     + "- Softwares live catalog: " + HOST + "/v1/software\n"
     + "- cite.json: " + HOST + "/cite.json\n"
+    + "- Action receipts (ACT-RECEIPT-1.0): " + HOST + "/receipts · " + HOST + "/v1/receipts\n"
     + "- llms.txt: " + HOST + "/llms.txt\n"
     + "- ai.txt: " + HOST + "/ai.txt\n\n"
     + "Purpose: Public MASTER digital library by " + AUTHOR + ". Aziel Library (royal purple) is the operator collection of the author's work. Corpus is the public Lamb Lens shelf. Hosted tools include search, map, gazetteer, triad scoring (SPRE × CLCE × PhysLing), ZionPattern Solver, and hosted OCR.\n\n"
@@ -918,6 +926,8 @@ export function aiTxt(limitation) {
     "Allow: /aziel-library",
     "Allow: /corpus",
     "Allow: /cite.json",
+    "Allow: /receipts",
+    "Allow: /v1/receipts",
     "Allow: /person.jsonld",
     "Allow: /identity.jsonld",
     "Allow: /graph.jsonld",
@@ -989,6 +999,7 @@ export function aiTxt(limitation) {
     + "- Aziel Library: " + HOST + "/aziel-library\n"
     + "- Corpus: " + HOST + "/corpus\n"
     + "- cite.json: " + HOST + "/cite.json\n"
+    + "- Action receipts (ACT-RECEIPT-1.0): " + HOST + "/receipts · " + HOST + "/v1/receipts\n"
     + "- llms.txt: " + HOST + "/llms.txt\n"
     + "- OpenAPI: " + HOST + "/openapi.json\n"
     + "- GitHub: " + GITHUB_REPO + "\n"
