@@ -117,7 +117,7 @@ export const ABOUT_SIGNIFICANT_LINKS = Object.freeze([
 ]);
 
 /** Verbatim Who-is answer. FAQ + /who-is-aziel-eliab.txt + /who-is must match this string. */
-export const WHO_IS_AZIEL_ELIAB = ABOUT_STANZA;
+export const WHO_IS_AZIEL_ELIAB = ABOUT_STANZA + " " + DISAMBIGUATING_DESCRIPTION;
 
 export const FAQ_WHO_IS = Object.freeze({
   name: "Who is Aziel Eliab?",

@@ -134,6 +134,7 @@ test("graph.jsonld has Who-is + product FAQs, publisher Person, library role, st
   assert.equal(who.acceptedAnswer.text, WHO_IS_AZIEL_ELIAB);
   assert.match(who.acceptedAnswer.text, /Aziel Digital Library/);
   assert.match(who.acceptedAnswer.text, /GodLock/);
+  assert.ok(who.acceptedAnswer.text.includes(PUBLISHER_NOT_LOCK));
   assert.doesNotMatch(who.acceptedAnswer.text, /scripture concordance/);
   assert.equal(people[0].disambiguatingDescription, PUBLISHER_NOT_LOCK);
   assert.match(people[0].disambiguatingDescription, /Not biblical Aziel/);
@@ -169,6 +170,7 @@ test("graph.jsonld has Who-is + product FAQs, publisher Person, library role, st
 test("who-is-aziel-eliab.txt is the product-forward identity-lock answer", () => {
   assert.equal(whoIsTxt(), WHO_IS_AZIEL_ELIAB + "\n");
   assert.ok(WHO_IS_AZIEL_ELIAB.startsWith(ABOUT_STANZA));
+  assert.equal(WHO_IS_AZIEL_ELIAB, ABOUT_STANZA + " " + DISAMBIGUATING_DESCRIPTION);
   assert.match(WHO_IS_AZIEL_ELIAB, /GodLock/);
   assert.match(WHO_IS_AZIEL_ELIAB, /Aziel Digital Library on this site/);
   assert.match(WHO_IS_AZIEL_ELIAB, /Aziel Runtime \(MCP\)/);
@@ -178,7 +180,9 @@ test("who-is-aziel-eliab.txt is the product-forward identity-lock answer", () =>
   assert.doesNotMatch(WHO_IS_AZIEL_ELIAB, /1 Chronicles/);
   assert.doesNotMatch(WHO_IS_AZIEL_ELIAB, /Researcher\. Builder/);
   assert.equal(DISAMBIGUATING_DESCRIPTION, PUBLISHER_NOT_LOCK);
-  assert.doesNotMatch(WHO_IS_AZIEL_ELIAB, PRODUCT_FORWARD_COLLISION);
+  assert.ok(WHO_IS_AZIEL_ELIAB.includes(PUBLISHER_NOT_LOCK));
+  assert.ok(whoIsTxt().includes(PUBLISHER_NOT_LOCK));
+  assert.doesNotMatch(withoutPublisherNotLock(WHO_IS_AZIEL_ELIAB), PRODUCT_FORWARD_COLLISION);
   assert.doesNotMatch(ABOUT_STANZA, PRODUCT_FORWARD_COLLISION);
   assert.equal(IDENTITY_FAQS[0].name, "Who is Aziel Eliab?");
   assert.equal(IDENTITY_FAQS[0].text, WHO_IS_AZIEL_ELIAB);
@@ -204,6 +208,10 @@ test("cite and well-known share stats tether and mission lock", () => {
   assert.equal(wellKnown.about_lead, ABOUT_LEAD);
   assert.equal(wellKnown.about_stanza, ABOUT_STANZA);
   assert.equal(wellKnown.about_record, ABOUT_RECORD);
+  assert.equal(wellKnown.who_is, WHO_IS_AZIEL_ELIAB);
+  assert.equal(cite.who_is, WHO_IS_AZIEL_ELIAB);
+  assert.ok(cite.who_is.includes(PUBLISHER_NOT_LOCK));
+  assert.ok(!ABOUT_STANZA.includes(PUBLISHER_NOT_LOCK));
   assert.deepEqual(wellKnown.significant_links, ABOUT_SIGNIFICANT_LINKS.slice());
   assert.deepEqual(cite.about_lead, ABOUT_LEAD);
   assert.deepEqual(cite.significant_links, ABOUT_SIGNIFICANT_LINKS.slice());
@@ -296,7 +304,8 @@ test("Worker serves identity routes with locked Content-Types", async () => {
     }
     if (path === "/who-is-aziel-eliab.txt" || path === "/who-is") {
       assert.equal(body, WHO_IS_AZIEL_ELIAB + "\n");
-      assert.doesNotMatch(body, PRODUCT_FORWARD_COLLISION);
+      assert.ok(body.includes(PUBLISHER_NOT_LOCK));
+      assert.doesNotMatch(withoutPublisherNotLock(body), PRODUCT_FORWARD_COLLISION);
     }
     if (path === "/.well-known/person.jsonld") {
       assert.equal(body, identityRouteBody("/person.jsonld").body);
