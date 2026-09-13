@@ -128,6 +128,8 @@ test("cite and well-known share stats tether and mission lock", () => {
     hedidntjump: "https://www.hedidntjump.com/api/stats",
   });
   assert.deepEqual(cite.stats, wellKnown.stats);
+  assert.deepEqual(cite.misspelling_aka, wellKnown.misspelling_aka);
+  assert.deepEqual(cite.faqs, wellKnown.faqs);
   assert.equal(wellKnown.person_id, PERSON_ID);
   assert.equal(cite.person_id, PERSON_ID);
   assert.equal(wellKnown.doi, null);
