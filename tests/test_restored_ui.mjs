@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { CSS, page, donateStripHtml, aboutBody, howItsScoredBody, patternBody, softwareBody, runtimeBody, azielLibraryBody, homeBody, corpusBody, brandMarkHtml, LCP_FOLD, splitLcpHtml } from "../workers/download-tracker/src/ui.js";
+import { CSS, page, donateStripHtml, aboutBody, howItsScoredBody, patternBody, softwareBody, runtimeBody, azielLibraryBody, homeBody, homeSearchActive, corpusBody, brandMarkHtml, LCP_FOLD, splitLcpHtml } from "../workers/download-tracker/src/ui.js";
+import { guestSession, isOperator, libraryFor, quarantineHiddenFromPublic, ingestRecord, searchRecords } from "../workers/download-tracker/src/library.js";
 import { ocrPageBody, mapBody, SPECTRAL_LENSES } from "../workers/download-tracker/src/hosted-pages.js";
 import { dedupeShelfRows } from "../workers/download-tracker/src/library.js";
 
@@ -76,7 +77,7 @@ test("Aziel Eliab identity tab stays one wrap unit in public nav2", () => {
   );
   assert.match(CSS, /\.nav2 a,\.quiet a\{[^}]*white-space:nowrap/);
   assert.match(CSS, /\.nav2 a,\.quiet a\{[^}]*flex-shrink:0/);
-  assert.match(CSS, /\.nav2 a\.nav-aziel\{white-space:nowrap;flex:0 0 auto\}/);
+  assert.match(CSS, /\.nav2 a\.nav-aziel\{color:var\(--royal\);font-weight:700;white-space:nowrap;flex:0 0 auto\}/);
   const pages = [
     chrome("<p>ok</p>"),
     page("Software", softwareBody({
@@ -134,7 +135,7 @@ test("homepage brandrow shows views, downloads, and Live Nodes pills", () => {
   assert.match(CSS, /\.pill span\{/);
 });
 
-test("homepage LCP fold keeps hero first and leaves entity-graph plus shelf intact", () => {
+test("homepage LCP fold keeps hero first and leaves entity-graph plus doors intact", () => {
   const home = homeBody({
     rows: [{
       record_id: "AZDOC-lcp",
@@ -150,27 +151,36 @@ test("homepage LCP fold keeps hero first and leaves entity-graph plus shelf inta
   });
   assert.match(home, /<h1>Search the libraries<\/h1>/);
   assert.ok(home.includes(LCP_FOLD), "homepage body marks the LCP fold");
-  assert.match(home, /Shelf card stays after the fold/);
+  assert.doesNotMatch(home, /Shelf card stays after the fold/);
+  assert.match(home, /id="signup"/);
+  assert.match(home, /id="upload-anonymous"/);
+  assert.match(home, /Upload anonymously/);
+  assert.doesNotMatch(home, /Nothing is free/);
+  assert.doesNotMatch(home, /class="facets"/);
+  assert.doesNotMatch(home, /curl -fsSL/);
   const split = splitLcpHtml(home);
   assert.match(split.early, /Search the libraries/);
   assert.match(split.early, /hero-search/);
-  assert.doesNotMatch(split.early, /Shelf card stays after the fold/);
-  assert.match(split.late, /Shelf card stays after the fold/);
-  assert.match(split.late, /doc doc-aziel/);
+  assert.doesNotMatch(split.early, /id="signup"/);
+  assert.match(split.late, /id="signup"/);
+  assert.match(split.late, /id="upload-anonymous"/);
 
   const html = page("Corpus Search", home, { path: "/", kind: "search", views: 12, downloads: 3 });
   const headEnd = html.indexOf("</head>");
   const foldAt = html.indexOf(LCP_FOLD);
   const ldAt = html.indexOf('<script type="application/ld+json">');
   const heroAt = html.indexOf("Search the libraries");
-  const cardAt = html.indexOf("Shelf card stays after the fold");
+  const signAt = html.indexOf('id="signup"');
   assert.ok(headEnd > 0 && foldAt > headEnd, "fold sits in the body");
-  assert.ok(heroAt > 0 && heroAt < foldAt, "hero is the LCP candidate before the shelf");
-  assert.ok(cardAt > foldAt, "shelf cards stay after the fold");
+  assert.ok(heroAt > 0 && heroAt < foldAt, "hero is the LCP candidate before the doors");
+  assert.ok(signAt > foldAt, "sign up and upload sit after the fold");
   assert.ok(ldAt > foldAt, "entity-graph JSON-LD stays on the page after first paint");
   assert.match(html.slice(0, headEnd), /rel="preload" href="\/sigil\.png" as="image" fetchpriority="high"/);
   assert.match(html.slice(0, headEnd), /href="\/person\.jsonld"/);
   assert.doesNotMatch(html.slice(0, headEnd), /<script type="application\/ld\+json">/);
+  assert.doesNotMatch(html, /class="donate-strip"/);
+  assert.doesNotMatch(html, /Nothing is free\. Static Donate door/);
+  assert.doesNotMatch(html, /Part of the Aziel Eliab ecosystem/);
   assert.match(html, /fetchpriority="high"/);
   assert.match(html, /id="views"/);
   assert.match(html, /id="downloads"/);
@@ -178,7 +188,6 @@ test("homepage LCP fold keeps hero first and leaves entity-graph plus shelf inta
   assert.match(html, /id="jeevesFab"/);
   assert.match(html, /"@type":"CollectionPage"/);
   assert.match(html, /"@id":"https:\/\/www\.azieleliab\.com\/#aziel"/);
-  assert.match(html, />Glama</);
   assert.match(CSS, /\.doc\{[^}]*content-visibility:auto/);
   assert.match(CSS, /\.hero h1\{[^}]*content-visibility:visible/);
   assert.match(CSS, /html,body\{[^}]*overflow:auto/);
@@ -191,6 +200,8 @@ test("black/gold theme and royal purple Aziel Library text are in CSS", () => {
   assert.match(CSS, /html,body\{[^}]*overflow:auto/);
   assert.match(CSS, /\.about-aziel/);
   assert.match(CSS, /\.donate-aziel\{color:var\(--royal\)/);
+  assert.match(CSS, /\.aziel-name\{color:var\(--royal\)/);
+  assert.match(CSS, /\.nav2 a\.nav-aziel\{color:var\(--royal\)/);
   assert.match(CSS, /\.donate-rails\{display:grid;grid-template-columns:1fr/);
   assert.match(CSS, /\.donate-pair\{display:flex;flex-wrap:nowrap/);
   assert.match(CSS, /\.donate-qr\{[^}]*width:180px/);
@@ -250,7 +261,7 @@ test("file and library cards grow with the page instead of a clipped overflow sh
     content_sha256: "b".repeat(64),
     snippet: "Peace → Clarity → Service. Safe public note for anonymous Corpus ingest test.",
   };
-  const home = homeBody({ rows: [azielRow, corpusRow], views: 1, downloads: 1, host: "https://www.azielcorpuslibrary.net" });
+  const home = homeBody({ q: "Cockroach", rows: [azielRow, corpusRow], views: 1, downloads: 1, host: "https://www.azielcorpuslibrary.net" });
   const aziel = azielLibraryBody({ signed: null, rows: [azielRow] });
   const corpus = corpusBody({ signed: null, rows: [corpusRow] });
   for (const html of [home, aziel, corpus]) {
@@ -283,6 +294,9 @@ test("Pattern, Software, About, and runtime pages render live copy", () => {
   assert.match(about, /Who\? Does not matter/);
   assert.match(about, /Researcher\. Builder\. AI\. A one-man dev team\. Just a man\./);
   assert.match(about, /public MASTER of the work/);
+  assert.match(about, /class="about-mission"/);
+  assert.match(about, /Publisher resolves to/);
+  assert.match(about, /https:\/\/www\.azieleliab\.com\/#aziel/);
   assert.doesNotMatch(about, /Who does not matter/);
   assert.match(about, /— Aziel Elroi Eliab/);
   assert.match(about, /— Aziel Eliab/);
@@ -379,6 +393,7 @@ test("Aziel Library is publicly browseable and shelf SHA-dedupes", () => {
   assert.doesNotMatch(html, /AZDOC-1/);
   assert.match(html, /doc-aziel/);
   const home = homeBody({
+    q: "B",
     rows: [
       { record_id: "A", title: "A", library: "corpus", content_sha256: "bb".repeat(32), snippet: "x" },
       { record_id: "B", title: "B", library: "corpus", content_sha256: "bb".repeat(32), snippet: "y" },
@@ -389,8 +404,12 @@ test("Aziel Library is publicly browseable and shelf SHA-dedupes", () => {
   });
   assert.match(home, /href="\/file\/B"/);
   assert.doesNotMatch(home, /href="\/file\/A"/);
-  assert.match(home, /href="\/runtime"/);
-  assert.match(home, /Runtime 2\.0\.0-rc1/);
+  assert.equal(homeSearchActive({}), false);
+  assert.equal(homeSearchActive({ q: "B" }), true);
+  assert.match(home, /id="signup"/);
+  assert.match(home, /action="\/signup"/);
+  assert.match(home, /id="upload-anonymous"/);
+  assert.match(home, /action="\/ingest"/);
   assert.doesNotMatch(home, /Runtime 2\.0\.0-rc1 · FragGate/);
   assert.deepEqual(
     dedupeShelfRows([
@@ -407,6 +426,67 @@ test("sigil and spectral samples are hosted public assets", () => {
   for (const id of ["zero", "tazel", "vyrn", "uv", "rosetta", "zen", "chaos", "balance"]) {
     assert.equal(existsSync(join(ROOT, "workers/download-tracker/public/spectral-samples/" + id + ".png")), true);
   }
+});
+
+test("homepage doors include Sign up and anonymous Corpus upload; other pages keep donate chrome", () => {
+  const home = page("Corpus Search", homeBody({ rows: [], host: "https://www.azielcorpuslibrary.net" }), { path: "/", kind: "search" });
+  const other = page("Forensics", "<section class=\"hero\"><h1>Forensics</h1></section>", { path: "/forensics", kind: "forensics" });
+  assert.match(home, /<nav class="nav2 quiet">/);
+  assert.match(home, /<a class="nav-aziel" href="\/AzielEliab">Aziel Eliab<\/a>/);
+  assert.match(home, /id="signup"/);
+  assert.match(home, /<h2>Sign up<\/h2>/);
+  assert.match(home, /action="\/signup"/);
+  assert.match(home, /id="upload-anonymous"/);
+  assert.match(home, /Upload anonymously/);
+  assert.match(home, /action="\/ingest"/);
+  assert.match(home, /name="from" value="home"/);
+  assert.match(home, /href="\/aziel-library"/);
+  assert.match(home, /href="\/corpus"/);
+  assert.doesNotMatch(home, /class="donate-strip"/);
+  assert.doesNotMatch(home, /Nothing is free\. Static Donate door/);
+  assert.doesNotMatch(home, /Part of the Aziel Eliab ecosystem/);
+  assert.doesNotMatch(home, /class="shelf"/);
+  assert.match(other, /class="donate-strip"/);
+  assert.match(other, /Part of the Aziel Eliab ecosystem/);
+  assert.match(other, /<a class="nav-aziel" href="\/AzielEliab">Aziel Eliab<\/a>/);
+});
+
+test("anonymous Corpus ingest is reviewed and never writes Aziel Library", async () => {
+  const guest = guestSession();
+  assert.equal(isOperator(guest), false);
+  assert.equal(libraryFor(guest), "corpus");
+  assert.equal(libraryFor(null), "corpus");
+  assert.equal(quarantineHiddenFromPublic("POISON_SUSPECT"), true);
+  assert.equal(quarantineHiddenFromPublic("QUARANTINE"), true);
+  assert.equal(quarantineHiddenFromPublic("CLEAR"), false);
+  try {
+    await ingestRecord({}, {});
+    assert.fail("expected ingest to fail without storage");
+  } catch (err) {
+    assert.notEqual(err && err.message, "login required");
+  }
+  let sql = "";
+  const env = {
+    DB: {
+      prepare(s) {
+        sql = String(s);
+        return {
+          bind() {
+            return {
+              async all() { return { results: [{ record_id: "AZDOC-poison", quarantine_status: "POISON_SUSPECT" }] }; },
+              async first() { return null; },
+              async run() { return { success: true }; },
+            };
+          },
+        };
+      },
+    },
+  };
+  await searchRecords(env, { q: "x" });
+  assert.match(sql, /POISON_SUSPECT/);
+  assert.match(sql, /QUARANTINE/);
+  const open = await searchRecords(env, { q: "x", includeQuarantine: true });
+  assert.ok(Array.isArray(open));
 });
 
 test("rose-star brand mark is top-left chrome with no words on the mark", () => {

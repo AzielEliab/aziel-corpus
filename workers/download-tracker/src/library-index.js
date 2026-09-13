@@ -22,7 +22,7 @@ export const SOFTWARE_HTML_CACHE_CONTROL = SEO_CACHE_CONTROL;
 export const SOFTWARE_CATALOG_CACHE_URL = "https://azielcorpuslibrary.net/__cache/software-catalog-v1";
 export const AUTHOR = "Aziel Eliab";
 export const INDEX_CACHE_URL = "https://azielcorpuslibrary.net/__cache/library-index-v1";
-export const HTML_CACHE_PREFIX = "https://azielcorpuslibrary.net/__cache/html-scores-v2";
+export const HTML_CACHE_PREFIX = "https://azielcorpuslibrary.net/__cache/html-home-v3";
 
 const PROJECT = "aziel-corpus";
 
@@ -323,7 +323,7 @@ export async function loadShelfCards(env, { limit = 500 } = {}) {
   if (!env || !env.DB || typeof env.DB.prepare !== "function") return [];
   const lim = Math.min(Math.max(Number(limit) || 500, 1), 500);
   const sql =
-    "SELECT record_id, title, author, library, content_sha256, chain_tip, created_utc, domain, subjects, keywords, filename, triad_combined, zsolver_score, zsolver_status, zsolver_json FROM records WHERE IFNULL(shelf_hidden,0) = 0 ORDER BY created_utc DESC LIMIT ?";
+    "SELECT record_id, title, author, library, content_sha256, chain_tip, created_utc, domain, subjects, keywords, filename, triad_combined, zsolver_score, zsolver_status, zsolver_json FROM records WHERE IFNULL(shelf_hidden,0) = 0 AND UPPER(IFNULL(quarantine_status,'CLEAR')) NOT IN ('POISON_SUSPECT','QUARANTINE') ORDER BY created_utc DESC LIMIT ?";
   try {
     const rows = (await env.DB.prepare(sql).bind(lim).all()).results || [];
     return rows.map(cardFromRecord).filter(Boolean);
@@ -355,6 +355,10 @@ export function searchPackedRecords(doc, { q, library, sort, author, domain, sub
   const subjectF = String(subject || "").trim().toLowerCase();
   const keywordF = String(keyword || "").trim().toLowerCase();
   let rows = Array.isArray(doc && doc.records) ? doc.records.slice() : [];
+  rows = rows.filter((r) => {
+    const q = String(r.quarantine_status || "CLEAR").toUpperCase();
+    return q !== "POISON_SUSPECT" && q !== "QUARANTINE";
+  });
   if (lib === "aziel" || lib === "corpus") {
     rows = rows.filter((r) => shelfOf(r) === lib);
   }

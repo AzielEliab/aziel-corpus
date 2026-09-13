@@ -1,11 +1,11 @@
 import { handleRuntimeApi, corsHeaders, json, LIMITATION } from "./runtime.js";
 import { handleRuntimeRoot } from "./runtime-root.js";
 import { handleAuth, getSession } from "./auth.js";
-import { page, homeBody, streamLcpHtml } from "./ui.js";
+import { page, homeBody, homeSearchActive, streamLcpHtml } from "./ui.js";
 import { handleHosted } from "./hosted.js";
 import { robotsTxt, sitemapXml, sitemapIndexXml, citeDoc, llmsDoc, aiTxt, humansTxt, mcpDiscovery, isReadMethod, crawlResponse, MIME } from "./crawl.js";
 import { identityRouteBody } from "./identity.js";
-import { searchRecords, listFacets, parseBrowseParams, serveFile, serveFileByHash, normalizeContentHash } from "./library.js";
+import { searchRecords, parseBrowseParams, serveFile, serveFileByHash, normalizeContentHash } from "./library.js";
 import { continueFullBackfill } from "./review-store.js";
 import { continueVerifyGeo } from "./geo.js";
 import {
@@ -267,12 +267,18 @@ function workCardsHtml() { return ""; }
 async function indexHtml(env, request, signed) {
   const url = new URL(request.url);
   const browse = parseBrowseParams(url);
+  const searching = homeSearchActive(browse);
+  const held = String(url.searchParams.get("received") || "") === "held";
   const statsP = collectStats(env);
-  const rowsP = searchRecords(env, { q: browse.q, library: browse.lib, sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300 });
-  const facetsP = listFacets(env, { library: browse.lib });
+  const rowsP = searching
+    ? searchRecords(env, { q: browse.q, library: browse.lib, sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300 })
+    : Promise.resolve([]);
   const signedP = signed !== undefined ? Promise.resolve(signed) : getSession(env, request);
-  const [stats, rows, facets, session] = await Promise.all([statsP, rowsP, facetsP, signedP]);
-  return page("Corpus Search", homeBody({ ...browse, rows, facets, views: stats.views || 0, downloads: stats.downloads || 0, host: HOST }), { signed: session, path: "/", kind: "search", views: stats.views || 0, downloads: stats.downloads || 0 });
+  const [stats, rows, session] = await Promise.all([statsP, rowsP, signedP]);
+  const error = held
+    ? "Received. Safety review held this file off the public shelf. It is not deleted."
+    : "";
+  return page("Corpus Search", homeBody({ ...browse, rows, error, views: stats.views || 0, downloads: stats.downloads || 0, host: HOST }), { signed: session, path: "/", kind: "search", views: stats.views || 0, downloads: stats.downloads || 0, donateStrip: false, ecosystem: false });
 }
 
 function llmsTxt() {
