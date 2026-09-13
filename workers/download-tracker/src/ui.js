@@ -14,6 +14,7 @@ import {
   ECOSYSTEM_LINKS,
 } from "./seo.js";
 import { jeevesFabHtml } from "./jeeves.js";
+import { LOCK_LINE, WHO_IS_AZIEL_ELIAB } from "./identity.js";
 import {
   RUNTIME_VERSION,
   RUNTIME_ORIGIN,
@@ -729,6 +730,7 @@ export function patternBody({ total, domains, subjects, keywords, crosses } = {}
 export function aboutBody() {
   return `<section class="hero about-aziel" id="aziel-eliab"><h1>About Aziel</h1>
 <div class="card about-prose">
+<p>${esc(LOCK_LINE)}</p>
 <p>Who? Does not matter. What matters is the record.</p>
 <p>I do not ask you to believe a name. I ask you to read a record. This library is the public MASTER of the work: hashed receipts, timed files, and software that can be opened without taking the speaker on faith. If the files hold, the name was never the point.</p>
 <p class="about-sign"><strong>— Aziel Elroi Eliab</strong></p>
@@ -746,6 +748,15 @@ export function aboutBody() {
 </ul>
 <p>The software suite is listed on <a href="/software">Software</a>. The catalog/MCP door lives on <strong>this domain</strong> at <a href="/runtime">/runtime</a> — Aziel Runtime, a node-meshed MCP Softwares suite for digital forensics and auditing (${RUNTIME_LIVE_COUNT} live advisory engines; ${RUNTIME_LOCAL_ONLY} local_only; stubs refuse). Not an API aggregator. The workers.dev origin is an alternate/sameAs, not the first door. GodLock is one product Aziel Eliab built; the corresponding identity page is <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a>. How records are scored — triad SPRE × CLCE × PhysLing, and ZionPattern as a separate public reading — is on <a href="/how-its-scored">How it's scored</a>. Source: <a href="https://github.com/AzielEliab/aziel-corpus">github.com/AzielEliab/aziel-corpus</a>.</p>
 </aside>
+</section>`;
+}
+
+export function whoBody() {
+  return `<section class="hero about-aziel" id="who-is-aziel-eliab"><h1>Who is Aziel Eliab</h1>
+<div class="card about-prose">
+<p>${esc(LOCK_LINE)}</p>
+<p>${esc(WHO_IS_AZIEL_ELIAB)}</p>
+</div>
 </section>`;
 }
 

@@ -21,11 +21,15 @@ import {
   ABOUT_DESCRIPTION,
   aboutPageNode,
   faqNode,
+  whoFaqNode,
+  LOCK_LINE,
+  WHO_PATH as LOCKED_WHO_PATH,
 } from "./identity.js";
 
 export const CANON_HOST = "https://www.azielcorpuslibrary.net";
 export const ABOUT_PATH = "/AzielEliab";
 export const ABOUT_NAV_LABEL = "Aziel Eliab";
+export const WHO_PATH = LOCKED_WHO_PATH;
 export const HUB_ORIGIN = "https://www.azieleliab.com";
 /** Shared public Person @id. Do not invent a corpus-local competing Person @id. */
 export const HUB_PERSON_ID = "https://www.azieleliab.com/#aziel";
@@ -63,6 +67,7 @@ export function documentTitle(kind, title) {
   if (kind === "software") return "Softwares — " + AUTHOR + " catalog | " + SITE;
   if (kind === "runtime") return RUNTIME_TITLE;
   if (kind === "about") return "About " + AUTHOR + " | " + SITE;
+  if (kind === "who") return "Who is Aziel Eliab";
   const t = String(title || "").trim();
   if (t && t !== SITE) return t + " — " + SITE;
   return SITE + " — Public MASTER by " + AUTHOR;
@@ -187,7 +192,8 @@ export function defaultDescription(kind, runtimeVersion) {
   if (kind === "aziel-library") return "Aziel Library — royal-purple operator collection of work by Aziel Eliab on Aziel Digital Library.";
   if (kind === "runtime") return runtimeDescription(runtimeVersion);
   if (kind === "software") return softwareDescription(runtimeVersion);
-  if (kind === "about") return "About Aziel Eliab, publisher of Aziel Digital Library on this site. " + ABOUT_DESCRIPTION + " Signed Aziel Elroi Eliab. GodLock is one product on that record.";
+  if (kind === "about") return LOCK_LINE + " About Aziel Eliab, publisher of Aziel Digital Library on this site. " + ABOUT_DESCRIPTION + " Signed Aziel Elroi Eliab. GodLock is one product on that record.";
+  if (kind === "who") return LOCK_LINE;
   if (kind === "scored" || kind === "how-its-scored") return "How Aziel Digital Library scores records: triad SPRE × CLCE × PhysLing, AZCoherence second-pass triad coherence (peer AZ-CLCE; not AKM-TRIAD), and ZionPattern meaning (75 is intentional suppression confidence; lower is more natural). Author Aziel Eliab.";
   if (kind === "pattern") return "Pattern clusters across Aziel Digital Library domains, subjects, and keywords. Author Aziel Eliab.";
   if (kind === "donate") return "AZL-DONATE-1.0. Donate to Aziel Digital Library. Static door. Exodus rails. No Worker KV. Not a catalog item. Author Aziel Eliab.";
@@ -359,6 +365,24 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
       { name: "About " + AUTHOR, item: CANON_HOST + ABOUT_PATH },
     ]));
   }
+  if (kind === "who" || path === WHO_PATH) {
+    graph.push(whoFaqNode());
+    graph.push({
+      "@type": "WebPage",
+      "@id": CANON_HOST + WHO_PATH + "#page",
+      name: "Who is Aziel Eliab",
+      url: CANON_HOST + WHO_PATH,
+      description: LOCK_LINE,
+      isPartOf: { "@id": WEBSITE_ID },
+      mainEntity: who,
+      about: who,
+      author: who,
+    });
+    graph.push(breadcrumbNode([
+      { name: SITE, item: CANON_HOST + "/" },
+      { name: "Who is Aziel Eliab", item: CANON_HOST + WHO_PATH },
+    ]));
+  }
   if (kind === "scored" || kind === "how-its-scored" || path === "/how-its-scored") {
     graph.push({
       "@type": "WebPage",
@@ -446,10 +470,11 @@ export function headMeta(opts) {
     linkRel("alternate", "/person.jsonld", " type=" + Q + "application/ld+json" + Q),
     linkRel("alternate", "/identity.jsonld", " type=" + Q + "application/ld+json" + Q),
     linkRel("alternate", "/graph.jsonld", " type=" + Q + "application/ld+json" + Q),
-    linkRel("alternate", "/who-is-aziel-eliab.txt", " type=" + Q + "text/plain" + Q),
+    linkRel("alternate", "/who", " type=" + Q + "text/html" + Q + " title=" + Q + "who" + Q),
+    linkRel("alternate", "/who-is-aziel-eliab.txt", " type=" + Q + "text/plain" + Q + " title=" + Q + "who-is" + Q),
     linkRel("alternate", "/.well-known/aziel.json", " type=" + Q + "application/json" + Q),
     linkRel("alternate", "/.well-known/person.jsonld", " type=" + Q + "application/ld+json" + Q),
-    linkRel("alternate", "/llms.txt", " type=" + Q + "text/plain" + Q),
+    linkRel("alternate", "/llms.txt", " type=" + Q + "text/plain" + Q + " title=" + Q + "llms.txt" + Q),
     linkRel("alternate", "/ai.txt", " type=" + Q + "text/plain" + Q),
     linkRel("alternate", "/openapi.json", " type=" + Q + "application/json" + Q + " title=" + Q + "OpenAPI" + Q),
     linkRel("alternate", "/runtime/openapi.json", " type=" + Q + "application/json" + Q + " title=" + Q + "Runtime OpenAPI" + Q),
@@ -464,7 +489,7 @@ export function headMeta(opts) {
     linkRel("sitemap", "/sitemap.xml"),
     linkRel("sitemap", "/sitemap-index.xml"),
     linkRel("service", "/runtime/v1/fraggate", " title=" + Q + "FragGate" + Q),
-    ...(kind === "about" || path === ABOUT_PATH ? [
+    ...(kind === "about" || path === ABOUT_PATH || kind === "who" || path === WHO_PATH ? [
       linkRel("me", HUB_ORIGIN + "/"),
       linkRel("me", HUB_PERSON_ID),
       linkRel("me", GODLOCK_IDENTITY),

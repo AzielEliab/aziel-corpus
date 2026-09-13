@@ -1,9 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { handleHosted } from "./hosted.js";
-import { aboutBody } from "./ui.js";
-import { DISAMBIGUATING_DESCRIPTION } from "./identity.js";
-import { ABOUT_PATH, ABOUT_NAV_LABEL, FORENSICS_PATH } from "./seo.js";
+import { aboutBody, whoBody } from "./ui.js";
+import { DISAMBIGUATING_DESCRIPTION, LOCK_LINE, WHO_IS_AZIEL_ELIAB } from "./identity.js";
+import { ABOUT_PATH, ABOUT_NAV_LABEL, FORENSICS_PATH, WHO_PATH } from "./seo.js";
 
 const BANNED = /Collin Horton|GodLock\.AZ|\+25|quiet (Aziel|triad|boost)|10\.5281\/zenodo/i;
 const HOST = "https://www.azielcorpuslibrary.net";
@@ -42,15 +42,17 @@ test("GET /AzielEliab serves the About HTML at the canonical path", async () => 
   assert.match(html, /GodLock/);
   assert.match(html, /Aziel Runtime/);
   assert.match(html, /He Didn't Jump/);
-  assert.match(html, /Is Aziel Eliab a scripture concordance entry\?/);
+  assert.match(html, /Is Aziel Eliab the two musicians named in 1 Chronicles 15:20\?/);
   assert.match(html, /Who\? Does not matter/);
   assert.doesNotMatch(html, /Who does not matter/);
-  assert.doesNotMatch(html, /1 Chronicles/);
+  assert.ok(html.includes(LOCK_LINE));
+  assert.match(html, /<p>Aziel Eliab is a living researcher and software designer\. Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20\.<\/p>/);
   assert.doesNotMatch(html, /Researcher\. Builder/);
   assert.doesNotMatch(html, /Flutter\/React/);
   assert.ok(html.includes(DISAMBIGUATING_DESCRIPTION));
-  assert.doesNotMatch(html.split(DISAMBIGUATING_DESCRIPTION).join(""), /Aziel S\./);
-  assert.doesNotMatch(aboutBody(), /biblical Aziel|biblical Eliab|euaziel|Flutter|Aziel S\./);
+  assert.doesNotMatch(html.split(DISAMBIGUATING_DESCRIPTION).join("").split(LOCK_LINE).join(""), /Aziel S\./);
+  assert.match(aboutBody(), new RegExp(LOCK_LINE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.ok(aboutBody().indexOf(LOCK_LINE) < aboutBody().indexOf("Who? Does not matter"));
   assert.match(html, /Aziel Elroi Eliab/);
   assert.match(html, new RegExp('href="' + ABOUT_PATH.replace("/", "\\/") + '"'));
   assert.match(html, new RegExp(">" + ABOUT_NAV_LABEL + "<"));
@@ -91,6 +93,28 @@ test("GET /AzielEliab serves the About HTML at the canonical path", async () => 
   assert.match(record, /href="\/how-its-scored"/);
   assert.doesNotMatch(html, /href="\/about"/);
   assert.doesNotMatch(html, BANNED);
+});
+
+test("GET /who is 200 with H1 Who is Aziel Eliab and visible 15:20 lock", async () => {
+  const url = new URL(HOST + WHO_PATH);
+  const res = await handleHosted(req(WHO_PATH), url, stubEnv(), {}, null, null);
+  assert.ok(res, "handleHosted should serve /who");
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get("content-type") || "", /text\/html/);
+  const html = await res.text();
+  assert.match(html, /<h1>Who is Aziel Eliab<\/h1>/);
+  assert.match(html, /<title>Who is Aziel Eliab<\/title>/);
+  assert.ok(html.includes(LOCK_LINE));
+  assert.match(html, /<p>Aziel Eliab is a living researcher and software designer\. Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20\.<\/p>/);
+  assert.ok(html.includes(WHO_IS_AZIEL_ELIAB));
+  assert.ok(whoBody().indexOf(LOCK_LINE) < whoBody().indexOf(WHO_IS_AZIEL_ELIAB));
+  assert.match(html, /Is Aziel Eliab the two musicians named in 1 Chronicles 15:20\?/);
+  assert.match(html, /https:\/\/www\.azieleliab\.com\/#aziel/);
+  assert.doesNotMatch(html, /azielcorpuslibrary\.net\/AzielEliab#aziel-eliab/);
+  assert.doesNotMatch(html, BANNED);
+  const head = await handleHosted(req(WHO_PATH, "HEAD"), new URL(HOST + WHO_PATH), stubEnv(), {}, null, null);
+  assert.equal(head.status, 200);
+  assert.equal(await head.text(), "");
 });
 
 test("GET /about permanently redirects to /AzielEliab", async () => {
