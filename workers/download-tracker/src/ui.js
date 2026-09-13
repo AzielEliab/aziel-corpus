@@ -711,7 +711,9 @@ export function patternBody({ total, domains, subjects, keywords, crosses } = {}
 export function aboutBody() {
   return `<section class="hero about-aziel" id="aziel-eliab"><h1>About Aziel</h1>
 <div class="card about-prose">
-<p>Researcher. Builder. AI. A one-man dev team. Just a man. Who? Does not matter. What matters is the record.</p>
+<p>Aziel Eliab publishes <strong>GodLock</strong>, <strong>Aziel Digital Library</strong> on this site, <strong>Aziel Runtime</strong> (MCP), and the <strong>He Didn't Jump</strong> archive. This library is the public MASTER of hashed receipts, timed files, and software.</p>
+<p>Canonical Person <code>@id</code> <a href="https://www.azieleliab.com/#aziel">https://www.azieleliab.com/#aziel</a>. Also Aziel Elroi Eliab. The public identity is the work, not a biography. GodLock is a product, not the Person.</p>
+<p>Who? Does not matter. What matters is the record.</p>
 <p>I do not ask you to believe a name. I ask you to read a record. This library is the public MASTER of the work: hashed receipts, timed files, and software that can be opened without taking the speaker on faith. If the files hold, the name was never the point.</p>
 <p class="about-sign"><strong>— Aziel Elroi Eliab</strong></p>
 <p>If not me, then who holds the record when names get stripped and the files get sealed? I didn’t ask for the seat. The work was already sitting there undone. I build receipts so truth has a place to live that isn’t someone else’s story.</p>

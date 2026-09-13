@@ -26,7 +26,7 @@ function assertPublicIdentity(text) {
 test("robots.txt allows research surfaces and major AI bots", () => {
   const txt = robotsTxt();
   assertPublicIdentity(txt);
-  for (const path of ["/ai.txt", "/how-its-scored", "/humans.txt", "/software", "/donate", "/runtime", "/runtime/v1/uses", "/AzielEliab", "/aboutme", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/search", "/.well-known/aziel.json"]) {
+  for (const path of ["/ai.txt", "/how-its-scored", "/humans.txt", "/software", "/donate", "/runtime", "/runtime/v1/uses", "/AzielEliab", "/aboutme", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/search", "/.well-known/aziel.json", "/.well-known/person.jsonld"]) {
     assert.match(txt, new RegExp("Allow: " + path.replace("/", "\\/")));
   }
   assert.match(txt, /Content-Signal: search=yes, ai-input=yes, ai-train=yes/);
@@ -122,7 +122,7 @@ test("sitemap.xml lists key routes and uses XML mime helper", async () => {
   };
   const xml = await sitemapXml(env);
   assert.match(xml, /<\?xml version="1.0"/);
-  for (const path of ["/", "/search", "/login", "/signup", "/AzielEliab", "/software", "/donate", "/v1/software", "/v1/download", "/v1/library-index", "/v1/stats", "/v1/update/check", "/sitemap-index.xml", "/mcp.json", "/.well-known/mcp.json", "/runtime", "/runtime/", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/software", "/runtime/v1/uses", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/forensics", "/aziel-library", "/corpus", "/cite.json", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/.well-known/aziel.json", "/llms.txt", "/ai.txt"]) {
+  for (const path of ["/", "/search", "/login", "/signup", "/AzielEliab", "/software", "/donate", "/v1/software", "/v1/download", "/v1/library-index", "/v1/stats", "/v1/update/check", "/sitemap-index.xml", "/mcp.json", "/.well-known/mcp.json", "/runtime", "/runtime/", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/software", "/runtime/v1/uses", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/forensics", "/aziel-library", "/corpus", "/cite.json", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/.well-known/aziel.json", "/.well-known/person.jsonld", "/llms.txt", "/ai.txt"]) {
     assert.match(xml, new RegExp("<loc>https://www\\.azielcorpuslibrary\\.net" + path.replace("/", "\\/") + "</loc>"));
   }
   assert.doesNotMatch(xml, /azielcorpuslibrary\.net\/about</);
@@ -144,8 +144,15 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.equal(cite.aka, "Aziel Elroi Eliab");
   assert.ok(Array.isArray(cite.alternateName));
   assert.ok(cite.alternateName.includes("Aziel Elroi Eliab"));
+  assert.ok(cite.alternateName.includes("AzielEliab"));
+  assert.ok(cite.alternateName.includes("The Revealer of The Sealed"));
   assert.ok(cite.alternateName.includes("עזיאל"));
-  assert.ok(cite.alternateName.includes("Aziell"));
+  assert.ok(cite.hebrew_aka.includes("עזיאל"));
+  assert.ok(cite.misspelling_aka.includes("Aziell"));
+  assert.equal(cite.disambiguatingDescription, "Not Aziel S. Not scripture concordance entries named Aziel or Eliab. Not https://euaziel.site/.");
+  assert.ok(cite.significant_links.includes("https://www.azielcorpuslibrary.net/.well-known/person.jsonld"));
+  assert.doesNotMatch(cite.azcoherence.dual_surface, /Flutter/);
+  assert.doesNotMatch(JSON.stringify(cite), /\bFlutter\b/);
   assert.equal(cite.doi, null);
   assert.match(cite.github, /AzielEliab\/aziel-corpus/);
   assert.match(cite.software, /\/software$/);
@@ -183,13 +190,16 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.equal(cite.stats.azieleliab, "https://www.azieleliab.com/v1/stats");
   assert.equal(cite.stats.corpus, "https://www.azielcorpuslibrary.net/stats");
   assert.equal(cite.stats.hedidntjump, "https://www.hedidntjump.com/api/stats");
-  assert.ok(cite.misspelling_aka.includes("Aziell"));
-  assert.ok(cite.misspelling_aka.includes("Eliav"));
-  assert.ok(cite.faqs.some((f) => f.name === "Is Aziel Eliab the biblical Aziel?"));
-  assert.ok(cite.faqs.some((f) => f.name === "Is Aziel Eliab the biblical Eliab?"));
+  assert.ok(cite.faqs.some((f) => f.name === "Is Aziel Eliab a scripture concordance entry?"));
+  assert.ok(!cite.faqs.some((f) => f.name === "Is Aziel Eliab the biblical Aziel?"));
+  assert.ok(!cite.faqs.some((f) => f.name === "Is Aziel Eliab the biblical Eliab?"));
   assert.equal(cite.about_lead, "Who? Does not matter. What matters is the record.");
-  assert.match(cite.about_stanza, /Researcher\. Builder/);
+  assert.match(cite.about_stanza, /Aziel Digital Library on this site/);
+  assert.match(cite.about_stanza, /GodLock/);
   assert.match(cite.about_record, /public MASTER/);
+  assert.match(cite.who_is, /Aziel Runtime \(MCP\)/);
+  assert.doesNotMatch(cite.who_is, /scripture concordance/);
+  assert.match(cite.disambiguatingDescription, /Not scripture concordance entries/);
   assert.ok(cite.significant_links.includes("https://www.azielcorpuslibrary.net/person.jsonld"));
   assert.ok(cite.significant_links.includes("https://www.azielcorpuslibrary.net/who-is-aziel-eliab.txt"));
   assert.ok(cite.keywords.includes("GodLock"));
@@ -221,8 +231,15 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(llms, /## Softwares \(HTML hub — crawl this\)/);
   assert.match(llms, /## About Aziel Eliab \(HTML — crawl this\)/);
   assert.match(llms, /Who\? Does not matter\. What matters is the record\./);
-  assert.match(llms, /Researcher\. Builder\. AI\. A one-man dev team\. Just a man\./);
+  assert.match(llms, /Aziel Digital Library on this site/);
+  assert.match(llms, /GodLock/);
+  assert.match(llms, /Not Aziel S\./);
+  assert.match(llms, /Not scripture concordance entries named Aziel or Eliab/);
+  assert.doesNotMatch(llms, /\bFlutter\b/);
   assert.match(llms, /public MASTER of the work/);
+  assert.doesNotMatch(llms, /Researcher\. Builder\. AI\. A one-man dev team\. Just a man\./);
+  assert.match(llms, /Compact Hebrew aka/);
+  assert.doesNotMatch(llms, /1 Chronicles/);
   assert.match(llms, /Softwares: https:\/\/www\.azielcorpuslibrary\.net\/software/);
   assert.match(llms, /About Aziel Eliab: https:\/\/www\.azielcorpuslibrary\.net\/AzielEliab/);
   assert.match(robotsTxt(), /Priority pages: \/  \/software  \/AzielEliab/);
@@ -344,10 +361,15 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(ai, /https:\/\/www\.azielcorpuslibrary\.net\/AzielEliab/);
   assert.match(ai, /https:\/\/godlock\.uk\/AzielEliab/);
   assert.match(ai, /He Didn't Jump https:\/\/www\.hedidntjump\.com\//);
+  assert.match(ai, /Aziel Digital Library on this site/);
+  assert.match(ai, /GodLock/);
   assert.match(ai, /עזיאל/);
-  assert.match(ai, /אליאב/);
-  assert.match(ai, /Aziell, Asiel, El Roi, Eliav/);
+  assert.match(ai, /Aziell/);
+  assert.doesNotMatch(ai, /1 Chronicles/);
   assert.match(ai, /who-is-aziel-eliab\.txt/);
+  assert.match(ai, /Not Aziel S\./);
+  assert.match(ai, /\.well-known\/person\.jsonld/);
+  assert.doesNotMatch(ai, /\bFlutter\b/);
   assert.match(ai, /Allow: \/who-is/);
   assert.match(ai, /Allow: \/search/);
   assert.match(ai, /azieleliab\.com\/v1\/stats/);
@@ -355,7 +377,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.doesNotMatch(ai, /azielcorpuslibrary\.net\/v1\/stats/);
   assert.match(ai, /hedidntjump\.com\/api\/stats/);
   assert.match(ai, /Who\? Does not matter\. What matters is the record\./);
-  assert.match(ai, /Researcher\. Builder/);
+  assert.doesNotMatch(ai, /Researcher\. Builder/);
   assert.match(ai, /Disallow: \/signup/);
   assert.match(ai, /Disallow: \/logout/);
   assert.match(ai, /Disallow: \/api\//);
@@ -407,7 +429,7 @@ test("Worker SEO documents are 200 with long public cache and never empty for Go
   const env = {
     DOWNLOADS: { async get() { return null; }, async put() {}, async list() { throw new Error("no list"); } },
   };
-  for (const path of ["/robots.txt", "/llms.txt", "/cite.json", "/ai.txt", "/humans.txt", "/sitemap-index.xml", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/.well-known/aziel.json"]) {
+  for (const path of ["/robots.txt", "/llms.txt", "/cite.json", "/ai.txt", "/humans.txt", "/sitemap-index.xml", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/.well-known/aziel.json", "/.well-known/person.jsonld"]) {
     const res = await worker.fetch(
       new Request("https://www.azielcorpuslibrary.net" + path, { headers: { "User-Agent": "Googlebot/2.1" } }),
       env,

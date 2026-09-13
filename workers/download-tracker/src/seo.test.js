@@ -23,6 +23,7 @@ import {
   ECOSYSTEM_HEADING,
   ECOSYSTEM_LINKS,
 } from "./seo.js";
+import { DISAMBIGUATING_DESCRIPTION } from "./identity.js";
 import { handleRuntimeApi } from "./runtime.js";
 import { page, howItsScoredBody, ecosystemBlockHtml, softwareBody } from "./ui.js";
 
@@ -73,14 +74,14 @@ test("JSON-LD types the author as Person with alternateName", () => {
   assert.equal(person["@id"], HUB_PERSON_ID);
   assert.equal(person.name, "Aziel Eliab");
   assert.ok(person.alternateName.includes("Aziel Elroi Eliab"));
+  assert.ok(person.alternateName.includes("AzielEliab"));
+  assert.ok(person.alternateName.includes("The Revealer of The Sealed"));
   assert.ok(person.alternateName.includes("עזיאל"));
-  assert.ok(person.alternateName.includes("אל ראי"));
-  assert.ok(person.alternateName.includes("אלרועי"));
-  assert.ok(person.alternateName.includes("אליאב"));
   assert.ok(person.alternateName.includes("Aziell"));
-  assert.ok(person.alternateName.includes("Asiel"));
-  assert.ok(person.alternateName.includes("El Roi"));
-  assert.ok(person.alternateName.includes("Eliav"));
+  assert.equal(person.disambiguatingDescription, DISAMBIGUATING_DESCRIPTION);
+  assert.match(person.disambiguatingDescription, /Not Aziel S\./);
+  assert.match(person.disambiguatingDescription, /euaziel\.site/);
+  assert.ok(person.knowsAbout.includes("Aziel Digital Library"));
   assert.equal(person.url, HUB_ORIGIN + "/");
   assert.ok(person.sameAs.includes("https://godlock.uk/"));
   assert.ok(person.sameAs.includes("https://www.hedidntjump.com/"));
@@ -127,13 +128,17 @@ test("JSON-LD types the author as Person with alternateName", () => {
     "https://www.azielcorpuslibrary.net/who-is-aziel-eliab.txt",
     "https://www.azielcorpuslibrary.net/graph.jsonld",
     "https://www.azielcorpuslibrary.net/.well-known/aziel.json",
+    "https://www.azielcorpuslibrary.net/.well-known/person.jsonld",
   ]);
-  assert.match(aboutPage.description, /Researcher\. Builder/);
-  assert.match(aboutPage.description, /Who\? Does not matter/);
+  assert.match(aboutPage.description, /Aziel Digital Library/);
+  assert.match(aboutPage.description, /GodLock/);
+  assert.doesNotMatch(aboutPage.description, /1 Chronicles/);
   const aboutFaq = ld["@graph"].find((n) => n["@type"] === "FAQPage");
   assert.ok(aboutFaq);
   assert.ok(aboutFaq.mainEntity.some((q) => q.name === "What matters about Aziel Eliab?"));
-  assert.ok(aboutFaq.mainEntity.some((q) => q.name === "Is Aziel Eliab a researcher and builder?"));
+  assert.ok(aboutFaq.mainEntity.some((q) => q.name === "What does Aziel Eliab publish?"));
+  assert.ok(aboutFaq.mainEntity.some((q) => q.name === "Is Aziel Eliab a scripture concordance entry?"));
+  assert.ok(!aboutFaq.mainEntity.some((q) => /biblical Aziel|biblical Eliab/.test(q.name)));
   const profile = ld["@graph"].find((n) => n["@type"] === "ProfilePage");
   assert.equal(profile.url, "https://www.azielcorpuslibrary.net/AzielEliab");
   assert.deepEqual(profile.mainEntity, { "@id": HUB_PERSON_ID });
@@ -276,11 +281,12 @@ test("software JSON-LD and meta prefer live catalog.version over baked 1.6.2", (
 test("page-specific descriptions and share images", () => {
   assert.match(defaultDescription("about"), /Aziel Eliab/);
   assert.match(defaultDescription("about"), /Aziel Elroi Eliab/);
-  assert.match(defaultDescription("about"), /What matters is the record/);
+  assert.match(defaultDescription("about"), /Aziel Digital Library/);
   assert.match(defaultDescription("about"), /GodLock/);
-  assert.match(defaultDescription("about"), /Researcher\. Builder/);
-  assert.match(defaultDescription("about"), /one-man dev team/);
   assert.match(defaultDescription("about"), /public MASTER/);
+  assert.doesNotMatch(defaultDescription("about"), /Researcher\. Builder/);
+  assert.doesNotMatch(defaultDescription("about"), /1 Chronicles/);
+  assert.doesNotMatch(defaultDescription("about"), /Aziel S\.|Flutter\/React/);
   assert.match(defaultDescription("software"), /Software|aziel-runtime/i);
   assert.match(defaultDescription("scored"), /intentional suppression/);
   assert.match(defaultDescription("search"), /Aziel Digital Library by Aziel Eliab/);
@@ -414,6 +420,7 @@ test("OpenAPI identity URLs include /AzielEliab and GodLock", async () => {
   assert.ok(spec.paths["/who-is"]);
   assert.ok(spec.paths["/search"]);
   assert.ok(spec.paths["/.well-known/aziel.json"]);
+  assert.ok(spec.paths["/.well-known/person.jsonld"]);
   assert.equal(spec.info.contact.name, "Aziel Eliab");
   assert.equal(spec.info.contact.url, "https://www.azielcorpuslibrary.net/AzielEliab");
   assert.match(spec.info.description, /godlock\.uk\/AzielEliab/);

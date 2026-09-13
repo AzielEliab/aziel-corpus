@@ -5,7 +5,7 @@ description: Use when an assistant should search the Aziel Digital Library maste
 
 # Aziel Digital Library v2.7.0
 
-Self-contained immutable local digital library and intelligence runtime. Public site is MASTER. Anonymous GET is read-only. Signed-in accounts may ingest. Author: **Aziel Eliab** (aka Aziel Elroi Eliab is `alternateName` only). Person `@id` https://www.azieleliab.com/#aziel. Runtime `@id` https://www.azieleliab.com/runtime#runtime.
+Self-contained immutable local digital library and intelligence runtime. Public site is MASTER. Anonymous GET is read-only. Signed-in accounts may ingest. Author: **Aziel Eliab** (aka Aziel Elroi Eliab is `alternateName` only) — publisher of Aziel Digital Library. Person `@id` https://www.azieleliab.com/#aziel. Runtime `@id` https://www.azieleliab.com/runtime#runtime. Not scripture concordance entries named Aziel or Eliab.
 
 **THIS IS:** Aziel Digital Library v2.7.0 (search, records, map, gazetteer, counted zip, poison immunity, PhysLing Review, unranked Bayesian scores, exact-same-subject succession cites). Library Softwares catalog lives at `/software`.
 
