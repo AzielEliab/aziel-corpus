@@ -81,9 +81,44 @@ export const STATS_URLS = Object.freeze([
   STATS_TETHER.hedidntjump,
 ]);
 
+/** Published About lead — verbatim from /AzielEliab. Not a biography. */
+export const ABOUT_LEAD = "Who? Does not matter. What matters is the record.";
+
+/** Published About first stanza — Researcher/Builder/one-man team/just a man + lead. */
+export const ABOUT_STANZA =
+  "Researcher. Builder. AI. A one-man dev team. Just a man. Who? Does not matter. What matters is the record.";
+
+/** Published About record paragraph — public MASTER, no faith in the speaker. */
+export const ABOUT_RECORD =
+  "I do not ask you to believe a name. I ask you to read a record. This library is the public MASTER of the work: hashed receipts, timed files, and software that can be opened without taking the speaker on faith. If the files hold, the name was never the point.";
+
+export const ABOUT_DESCRIPTION = ABOUT_STANZA + " " + ABOUT_RECORD;
+
+/** AboutPage significantLink — machine identity files only. */
+export const ABOUT_SIGNIFICANT_LINKS = Object.freeze([
+  LIBRARY_HOST + "/person.jsonld",
+  LIBRARY_HOST + "/who-is-aziel-eliab.txt",
+  LIBRARY_HOST + "/graph.jsonld",
+  LIBRARY_HOST + "/.well-known/aziel.json",
+]);
+
 /** Verbatim Who-is answer. FAQ + /who-is-aziel-eliab.txt must match this string. */
 export const WHO_IS_AZIEL_ELIAB =
-  "Aziel Eliab is the public identity of the author. Who? Does not matter. What matters is the record: hashed receipts, timed files, and software that can be opened without taking the speaker on faith. If the files hold, the name was never the point. Person @id https://www.azieleliab.com/#aziel";
+  ABOUT_LEAD +
+  " Public identity Aziel Eliab. Researcher. Builder. AI. A one-man dev team. Just a man. " +
+  ABOUT_RECORD +
+  " Person @id " +
+  PERSON_ID;
+
+export const FAQ_WHAT_MATTERS = Object.freeze({
+  name: "What matters about Aziel Eliab?",
+  text: ABOUT_LEAD + " " + ABOUT_RECORD + " Not a biography. Person @id " + PERSON_ID,
+});
+
+export const FAQ_RESEARCHER_BUILDER = Object.freeze({
+  name: "Is Aziel Eliab a researcher and builder?",
+  text: ABOUT_STANZA + " Not a biography. Person @id " + PERSON_ID,
+});
 
 export const FAQ_BIBLICAL_AZIEL = Object.freeze({
   name: "Is Aziel Eliab the biblical Aziel?",
@@ -105,19 +140,18 @@ export const FAQ_ELROI = Object.freeze({
 
 export const IDENTITY_FAQS = Object.freeze([
   Object.freeze({ name: "Who is Aziel Eliab", text: WHO_IS_AZIEL_ELIAB }),
+  FAQ_WHAT_MATTERS,
+  FAQ_RESEARCHER_BUILDER,
   FAQ_BIBLICAL_AZIEL,
   FAQ_BIBLICAL_ELIAB,
   FAQ_ELROI,
 ]);
 
-export const MISSION =
-  "You don't get to know me. You get to understand the work. What matters is the record: hashed receipts, timed files, and software that can be opened without taking the speaker on faith.";
+export const MISSION = ABOUT_LEAD + " " + ABOUT_RECORD;
 
-export const PHILOSOPHY =
-  "I do not ask you to believe a name. I ask you to read a record. If the files hold, the name was never the point.";
+export const PHILOSOPHY = ABOUT_RECORD;
 
-export const PERSON_DESCRIPTION =
-  "Author of Aziel Digital Library. What matters is the record: hashed receipts, timed files, and software that can be opened without taking the speaker on faith.";
+export const PERSON_DESCRIPTION = ABOUT_STANZA;
 
 /** Shared azieleliab-pack mission object. Host-agnostic. doi stays null. */
 export const AZIEL_MISSION = Object.freeze({
@@ -131,8 +165,12 @@ export const AZIEL_MISSION = Object.freeze({
   mission: MISSION,
   philosophy: PHILOSOPHY,
   who_is: WHO_IS_AZIEL_ELIAB,
+  about_lead: ABOUT_LEAD,
+  about_stanza: ABOUT_STANZA,
+  about_record: ABOUT_RECORD,
   faqs: IDENTITY_FAQS.slice(),
   sameAs: PERSON_SAME_AS.slice(),
+  significant_links: ABOUT_SIGNIFICANT_LINKS.slice(),
   stats: { ...STATS_TETHER },
   doi: null,
   license: "Apache-2.0",
@@ -197,13 +235,31 @@ function libraryRoleNode() {
     "@id": LIBRARY_ROLE_URL + "#library-role",
     name: "Aziel Eliab — library role",
     url: LIBRARY_ROLE_URL,
-    description: "Library role on Aziel Digital Library. Not a biography. What matters is the record.",
+    description: ABOUT_DESCRIPTION + " Library role on Aziel Digital Library. Not a biography.",
     isPartOf: { "@id": LIBRARY_WEBSITE_ID },
     mainEntity: { "@id": PERSON_ID },
     author: { "@id": PERSON_ID },
     creator: { "@id": PERSON_ID },
     publisher: { "@id": PERSON_ID },
     about: { "@id": PERSON_ID },
+    significantLink: ABOUT_SIGNIFICANT_LINKS.slice(),
+  };
+}
+
+export function aboutPageNode(description) {
+  return {
+    "@type": "AboutPage",
+    "@id": LIBRARY_ROLE_URL + "#about",
+    name: "About " + AUTHOR,
+    url: LIBRARY_ROLE_URL,
+    description: description || ABOUT_DESCRIPTION,
+    isPartOf: { "@id": LIBRARY_WEBSITE_ID },
+    mainEntity: { "@id": PERSON_ID },
+    author: { "@id": PERSON_ID },
+    creator: { "@id": PERSON_ID },
+    publisher: { "@id": PERSON_ID },
+    about: { "@id": PERSON_ID },
+    significantLink: ABOUT_SIGNIFICANT_LINKS.slice(),
   };
 }
 
@@ -218,7 +274,7 @@ function faqQuestion(item) {
   };
 }
 
-function faqNode() {
+export function faqNode() {
   return {
     "@type": "FAQPage",
     "@id": LIBRARY_HOST + "/graph.jsonld#faq",
@@ -246,7 +302,7 @@ function statsTetherNode() {
 export function graphJsonLd() {
   return {
     "@context": "https://schema.org",
-    "@graph": [personNode(), faqNode(), websiteNode(), libraryRoleNode(), statsTetherNode()],
+    "@graph": [personNode(), faqNode(), websiteNode(), aboutPageNode(), libraryRoleNode(), statsTetherNode()],
   };
 }
 
@@ -260,8 +316,12 @@ export function azielJson() {
     alternateName: ALTERNATE_NAMES.slice(),
     hebrew_aka: HEBREW_AKA.slice(),
     misspelling_aka: MISSPELLING_AKA.slice(),
+    about_lead: ABOUT_LEAD,
+    about_stanza: ABOUT_STANZA,
+    about_record: ABOUT_RECORD,
     faqs: IDENTITY_FAQS.slice(),
     sameAs: PERSON_SAME_AS.slice(),
+    significant_links: ABOUT_SIGNIFICANT_LINKS.slice(),
     stats: { ...STATS_TETHER },
   };
 }

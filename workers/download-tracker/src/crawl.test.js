@@ -187,6 +187,11 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.ok(cite.misspelling_aka.includes("Eliav"));
   assert.ok(cite.faqs.some((f) => f.name === "Is Aziel Eliab the biblical Aziel?"));
   assert.ok(cite.faqs.some((f) => f.name === "Is Aziel Eliab the biblical Eliab?"));
+  assert.equal(cite.about_lead, "Who? Does not matter. What matters is the record.");
+  assert.match(cite.about_stanza, /Researcher\. Builder/);
+  assert.match(cite.about_record, /public MASTER/);
+  assert.ok(cite.significant_links.includes("https://www.azielcorpuslibrary.net/person.jsonld"));
+  assert.ok(cite.significant_links.includes("https://www.azielcorpuslibrary.net/who-is-aziel-eliab.txt"));
   assert.ok(cite.keywords.includes("GodLock"));
   assert.ok(cite.keywords.includes("FragGate"));
   assert.match(cite.runtime_note, /2\.0\.0-rc1/);
@@ -215,6 +220,9 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(llms, /## Priority pages \(index first\)/);
   assert.match(llms, /## Softwares \(HTML hub — crawl this\)/);
   assert.match(llms, /## About Aziel Eliab \(HTML — crawl this\)/);
+  assert.match(llms, /Who\? Does not matter\. What matters is the record\./);
+  assert.match(llms, /Researcher\. Builder\. AI\. A one-man dev team\. Just a man\./);
+  assert.match(llms, /public MASTER of the work/);
   assert.match(llms, /Softwares: https:\/\/www\.azielcorpuslibrary\.net\/software/);
   assert.match(llms, /About Aziel Eliab: https:\/\/www\.azielcorpuslibrary\.net\/AzielEliab/);
   assert.match(robotsTxt(), /Priority pages: \/  \/software  \/AzielEliab/);
@@ -344,6 +352,8 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(ai, /azielcorpuslibrary\.net\/stats/);
   assert.doesNotMatch(ai, /azielcorpuslibrary\.net\/v1\/stats/);
   assert.match(ai, /hedidntjump\.com\/api\/stats/);
+  assert.match(ai, /Who\? Does not matter\. What matters is the record\./);
+  assert.match(ai, /Researcher\. Builder/);
   assert.match(ai, /Disallow: \/signup/);
   assert.match(ai, /Disallow: \/logout/);
   assert.match(ai, /Disallow: \/api\//);

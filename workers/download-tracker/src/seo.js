@@ -18,6 +18,9 @@ import {
   PERSON_DESCRIPTION,
   personNode as lockedPersonNode,
   GODLOCK_HOME,
+  ABOUT_DESCRIPTION,
+  aboutPageNode,
+  faqNode,
 } from "./identity.js";
 
 export const CANON_HOST = "https://www.azielcorpuslibrary.net";
@@ -184,7 +187,7 @@ export function defaultDescription(kind, runtimeVersion) {
   if (kind === "aziel-library") return "Aziel Library — royal-purple operator collection of work by Aziel Eliab on Aziel Digital Library.";
   if (kind === "runtime") return runtimeDescription(runtimeVersion);
   if (kind === "software") return softwareDescription(runtimeVersion);
-  if (kind === "about") return "About Aziel Eliab. What matters is the record: hashed receipts, timed files, and software that can be opened without taking the speaker on faith. Signed Aziel Elroi Eliab. GodLock is one product on that record.";
+  if (kind === "about") return "About Aziel Eliab. " + ABOUT_DESCRIPTION + " Signed Aziel Elroi Eliab. GodLock is one product on that record.";
   if (kind === "scored" || kind === "how-its-scored") return "How Aziel Digital Library scores records: triad SPRE × CLCE × PhysLing, AZCoherence second-pass triad coherence (peer AZ-CLCE; not AKM-TRIAD), and ZionPattern meaning (75 is intentional suppression confidence; lower is more natural). Author Aziel Eliab.";
   if (kind === "pattern") return "Pattern clusters across Aziel Digital Library domains, subjects, and keywords. Author Aziel Eliab.";
   if (kind === "donate") return "AZL-DONATE-1.0. Donate to Aziel Digital Library. Static door. Exodus rails. No Worker KV. Not a catalog item. Author Aziel Eliab.";
@@ -341,18 +344,8 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
     });
   }
   if (kind === "about" || path === ABOUT_PATH) {
-    graph.push({
-      "@type": "AboutPage",
-      "@id": CANON_HOST + ABOUT_PATH + "#about",
-      name: "About " + AUTHOR,
-      url: CANON_HOST + ABOUT_PATH,
-      description,
-      isPartOf: { "@id": WEBSITE_ID },
-      author: who,
-      creator: who,
-      publisher: who,
-      mainEntity: who,
-    });
+    graph.push(aboutPageNode(description));
+    graph.push(faqNode());
     graph.push({
       "@type": "ProfilePage",
       name: title || ABOUT_NAV_LABEL,

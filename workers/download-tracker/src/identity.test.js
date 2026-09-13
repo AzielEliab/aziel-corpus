@@ -13,6 +13,13 @@ import {
   FAQ_BIBLICAL_AZIEL,
   FAQ_BIBLICAL_ELIAB,
   FAQ_ELROI,
+  FAQ_WHAT_MATTERS,
+  FAQ_RESEARCHER_BUILDER,
+  ABOUT_LEAD,
+  ABOUT_STANZA,
+  ABOUT_RECORD,
+  ABOUT_SIGNIFICANT_LINKS,
+  aboutPageNode,
   IDENTITY_MIME,
   IDENTITY_ROUTES,
   personJsonLd,
@@ -83,6 +90,8 @@ test("graph.jsonld has Who-is + biblical Aziel/Eliab FAQs, publisher Person, lib
   const faq = graph["@graph"].find((n) => n["@type"] === "FAQPage");
   const questions = faq.mainEntity.map((q) => q.name);
   assert.ok(questions.includes("Who is Aziel Eliab"));
+  assert.ok(questions.includes(FAQ_WHAT_MATTERS.name));
+  assert.ok(questions.includes(FAQ_RESEARCHER_BUILDER.name));
   assert.ok(questions.includes(FAQ_BIBLICAL_AZIEL.name));
   assert.ok(questions.includes(FAQ_BIBLICAL_ELIAB.name));
   assert.ok(questions.includes(FAQ_ELROI.name));
@@ -102,9 +111,17 @@ test("graph.jsonld has Who-is + biblical Aziel/Eliab FAQs, publisher Person, lib
   assert.ok(site.relatedLink.includes(STATS_TETHER.azieleliab));
   assert.ok(site.relatedLink.includes(STATS_TETHER.corpus));
   assert.ok(site.relatedLink.includes(STATS_TETHER.hedidntjump));
+  const about = graph["@graph"].find((n) => n["@id"] === "https://www.azielcorpuslibrary.net/AzielEliab#about");
+  assert.ok(about);
+  assert.deepEqual(about.publisher, { "@id": PERSON_ID });
+  assert.deepEqual(about.creator, { "@id": PERSON_ID });
+  assert.deepEqual(about.significantLink, ABOUT_SIGNIFICANT_LINKS.slice());
+  assert.match(about.description, /Researcher\. Builder/);
+  assert.match(about.description, /public MASTER/);
   const role = graph["@graph"].find((n) => n["@id"] === "https://www.azielcorpuslibrary.net/AzielEliab#library-role");
   assert.ok(role);
   assert.deepEqual(role.publisher, { "@id": PERSON_ID });
+  assert.deepEqual(role.significantLink, ABOUT_SIGNIFICANT_LINKS.slice());
   const stats = graph["@graph"].find((n) => n["@id"] === "https://www.azielcorpuslibrary.net/#stats-tether");
   const urls = stats.itemListElement.map((i) => i.url);
   assert.deepEqual(urls, STATS_URLS.slice());
@@ -113,10 +130,19 @@ test("graph.jsonld has Who-is + biblical Aziel/Eliab FAQs, publisher Person, lib
 
 test("who-is-aziel-eliab.txt is the verbatim identity-lock answer", () => {
   assert.equal(whoIsTxt(), WHO_IS_AZIEL_ELIAB + "\n");
-  assert.match(WHO_IS_AZIEL_ELIAB, /What matters is the record/);
+  assert.ok(WHO_IS_AZIEL_ELIAB.startsWith(ABOUT_LEAD));
+  assert.match(WHO_IS_AZIEL_ELIAB, /Researcher\. Builder/);
+  assert.match(WHO_IS_AZIEL_ELIAB, /one-man dev team/);
+  assert.match(WHO_IS_AZIEL_ELIAB, /Just a man/);
+  assert.match(WHO_IS_AZIEL_ELIAB, /believe a name/);
+  assert.match(WHO_IS_AZIEL_ELIAB, /public MASTER/);
   assert.match(WHO_IS_AZIEL_ELIAB, /hashed receipts/);
-  assert.doesNotMatch(WHO_IS_AZIEL_ELIAB, /researcher and builder/i);
+  assert.match(WHO_IS_AZIEL_ELIAB, /name was never the point/);
+  assert.match(WHO_IS_AZIEL_ELIAB, /#aziel/);
   assert.equal(IDENTITY_FAQS[0].text, WHO_IS_AZIEL_ELIAB);
+  assert.equal(FAQ_WHAT_MATTERS.text.includes(ABOUT_LEAD), true);
+  assert.equal(FAQ_RESEARCHER_BUILDER.text, ABOUT_STANZA + " Not a biography. Person @id " + PERSON_ID);
+  assert.match(ABOUT_RECORD, /public MASTER/);
 });
 
 test("cite and well-known share stats tether and mission lock", () => {
@@ -132,6 +158,13 @@ test("cite and well-known share stats tether and mission lock", () => {
   assert.deepEqual(cite.stats, wellKnown.stats);
   assert.deepEqual(cite.misspelling_aka, wellKnown.misspelling_aka);
   assert.deepEqual(cite.faqs, wellKnown.faqs);
+  assert.equal(wellKnown.about_lead, ABOUT_LEAD);
+  assert.equal(wellKnown.about_stanza, ABOUT_STANZA);
+  assert.equal(wellKnown.about_record, ABOUT_RECORD);
+  assert.deepEqual(wellKnown.significant_links, ABOUT_SIGNIFICANT_LINKS.slice());
+  assert.deepEqual(cite.about_lead, ABOUT_LEAD);
+  assert.deepEqual(cite.significant_links, ABOUT_SIGNIFICANT_LINKS.slice());
+  assert.equal(aboutPageNode().publisher["@id"], PERSON_ID);
   assert.equal(wellKnown.person_id, PERSON_ID);
   assert.equal(cite.person_id, PERSON_ID);
   assert.equal(wellKnown.doi, null);
@@ -164,6 +197,10 @@ test("llms.txt keeps library sections and the full sameAs lock", () => {
   assert.match(llms, /azielcorpuslibrary\.net\/stats/);
   assert.doesNotMatch(llms, /azielcorpuslibrary\.net\/v1\/stats/);
   assert.match(llms, /hedidntjump\.com\/api\/stats/);
+  assert.match(llms, /Who\? Does not matter\. What matters is the record\./);
+  assert.match(llms, /Researcher\. Builder\. AI\. A one-man dev team\. Just a man\./);
+  assert.match(llms, /public MASTER/);
+  assert.match(llms, /significantLink:/);
   assert.doesNotMatch(llms, BANNED);
 });
 
