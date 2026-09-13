@@ -71,7 +71,7 @@ export const ALTERNATE_NAMES = Object.freeze([
 /** Cross-tether public stats. Do not invent extra counters. */
 export const STATS_TETHER = Object.freeze({
   azieleliab: HUB_ORIGIN + "/v1/stats",
-  corpus: LIBRARY_HOST + "/v1/stats",
+  corpus: LIBRARY_HOST + "/stats",
   hedidntjump: "https://www.hedidntjump.com/api/stats",
 });
 

@@ -181,7 +181,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.ok(cite.sameAs.includes("https://github.com/azieltherevealerofthesealed-arch"));
   assert.ok(cite.sameAs.includes("https://x.com/AzielElroiEliab"));
   assert.equal(cite.stats.azieleliab, "https://www.azieleliab.com/v1/stats");
-  assert.equal(cite.stats.corpus, "https://www.azielcorpuslibrary.net/v1/stats");
+  assert.equal(cite.stats.corpus, "https://www.azielcorpuslibrary.net/stats");
   assert.equal(cite.stats.hedidntjump, "https://www.hedidntjump.com/api/stats");
   assert.ok(cite.misspelling_aka.includes("Aziell"));
   assert.ok(cite.misspelling_aka.includes("Eliav"));
@@ -341,6 +341,8 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(ai, /Aziell, Asiel, El Roi, Eliav/);
   assert.match(ai, /who-is-aziel-eliab\.txt/);
   assert.match(ai, /azieleliab\.com\/v1\/stats/);
+  assert.match(ai, /azielcorpuslibrary\.net\/stats/);
+  assert.doesNotMatch(ai, /azielcorpuslibrary\.net\/v1\/stats/);
   assert.match(ai, /hedidntjump\.com\/api\/stats/);
   assert.match(ai, /Disallow: \/signup/);
   assert.match(ai, /Disallow: \/logout/);
