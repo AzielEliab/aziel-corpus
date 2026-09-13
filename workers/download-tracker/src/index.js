@@ -3,7 +3,8 @@ import { handleRuntimeRoot } from "./runtime-root.js";
 import { handleAuth, getSession } from "./auth.js";
 import { page, homeBody, homeSearchActive, streamLcpHtml } from "./ui.js";
 import { handleHosted } from "./hosted.js";
-import { robotsTxt, sitemapXml, sitemapIndexXml, citeDoc, llmsDoc, aiTxt, humansTxt, mcpDiscovery, isReadMethod, crawlResponse, MIME } from "./crawl.js";
+import { robotsTxt, sitemapXml, sitemapIndexXml, sitemapRecordsXml, citeDoc, llmsDoc, aiTxt, humansTxt, mcpDiscovery, isReadMethod, crawlResponse, MIME } from "./crawl.js";
+import { continueMetadataBackfill } from "./record-metadata.js";
 import { identityRouteBody } from "./identity.js";
 import { searchRecords, parseBrowseParams, serveFile, serveFileByHash, normalizeContentHash } from "./library.js";
 import { continueFullBackfill } from "./review-store.js";
@@ -29,7 +30,7 @@ import { serveSoftwareAsset, DEFAULT_ASSET as SOFTWARE_DEFAULT_ASSET } from "./s
 /** Operator walk APIs must not share the isolate with background backfill/geo or a tunnel hop. */
 export function shouldBackgroundWalk(pathname) {
   const path = String(pathname || "").replace(/\/+$/, "") || "/";
-  return path !== "/v1/verify-backfill" && path !== "/v1/verify-geo";
+  return path !== "/v1/verify-backfill" && path !== "/v1/verify-geo" && path !== "/v1/metadata-backfill";
 }
 
 /**
@@ -315,6 +316,7 @@ export default {
       await refreshPackedIndex(env).catch(() => null);
       await refreshGithubIntoIndex(env).catch(() => null);
       await continueFullBackfill(env, { ms: 12000, all: false, background: true }).catch(() => null);
+      await continueMetadataBackfill(env, { ms: 8000, all: false }).catch(() => null);
       await continueVerifyGeo(env, { ms: 12000, force: false }).catch(() => null);
     };
     if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(walk());
@@ -326,6 +328,7 @@ export default {
     if (ctx && typeof ctx.waitUntil === "function" && shouldBackgroundWalk(earlyPath)) {
       ctx.waitUntil((async () => {
         await continueFullBackfill(env, { ms: 8000, all: false, background: true }).catch(() => null);
+        await continueMetadataBackfill(env, { ms: 6000, all: false }).catch(() => null);
         await continueVerifyGeo(env, { ms: 8000, force: false }).catch(() => null);
       })());
     }
@@ -514,6 +517,10 @@ export default {
     }
     if (isReadMethod(request.method) && crawlPath === "/sitemap-index.xml") {
       return crawlResponse(request, sitemapIndexXml(), MIME.xml, { "Cache-Control": SEO_CACHE_CONTROL, "Last-Modified": new Date().toUTCString(), ...corsHeaders() });
+    }
+    if (isReadMethod(request.method) && crawlPath === "/sitemap-records.xml") {
+      const xml = await sitemapRecordsXml(env);
+      return crawlResponse(request, xml, MIME.xml, { "Cache-Control": SEO_CACHE_CONTROL, "Last-Modified": new Date().toUTCString(), ...corsHeaders() });
     }
     if (isReadMethod(request.method) && (crawlPath === "/mcp.json" || crawlPath === "/.well-known/mcp.json")) {
       return crawlResponse(request, JSON.stringify(mcpDiscovery(), null, 2), MIME.json, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });

@@ -8,7 +8,7 @@ import { deriveZsolverAnswers, localZsolverScore } from "./zsolver.js";
 import { proposeAllLinks, titleLineageCore, subjectKey } from "./succession.js";
 import { verifyBytes, verifyTextRecord, sha256hex } from "./structure.js";
 import { latticeAnchorTip } from "./lattice.js";
-import { isDocumentId } from "./ledger.js";
+import { isDocumentId, isJsonDocumentId, jsonRecordId } from "./ledger.js";
 import {
   jeevesShouldRefuse,
   lambLensSigned,
@@ -267,6 +267,9 @@ test("document ids bind chains; asset ids do not", () => {
   assert.equal(isDocumentId("AZDOC-ABCDEF"), true);
   assert.equal(isDocumentId("ASSET-zip"), false);
   assert.equal(isDocumentId("DOWNLOAD"), false);
+  assert.equal(isJsonDocumentId("JSONAZDOC-ABCDEF"), true);
+  assert.equal(isDocumentId("JSONAZDOC-ABCDEF"), false);
+  assert.equal(jsonRecordId("AZDOC-ABCDEF"), "JSONAZDOC-ABCDEF");
 });
 
 test("fully scored rows skip backfill unless forced", () => {

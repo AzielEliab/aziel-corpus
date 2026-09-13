@@ -56,6 +56,25 @@ export function isDocumentId(recordId) {
   return /^AZDOC-[A-Z0-9]+$/i.test(String(recordId || "").trim());
 }
 
+/** JSON discovery receipt id: prefix JSON + paper AZDOC id. Never equals a paper id. */
+export function isJsonDocumentId(recordId) {
+  return /^JSONAZDOC-[A-Z0-9]+$/i.test(String(recordId || "").trim());
+}
+
+export function jsonRecordId(paperId) {
+  const raw = String(paperId || "").trim();
+  if (isJsonDocumentId(raw)) return raw.toUpperCase();
+  if (!isDocumentId(raw)) return "";
+  return "JSON" + raw.toUpperCase();
+}
+
+export function paperRecordId(anyId) {
+  const raw = String(anyId || "").trim();
+  if (isJsonDocumentId(raw)) return raw.slice(4).toUpperCase();
+  if (isDocumentId(raw)) return raw.toUpperCase();
+  return "";
+}
+
 async function lastDocumentEntry(env, recordId) {
   const row = await env.DB.prepare(
     "SELECT sequence, entry_hash FROM document_ledger WHERE record_id=? ORDER BY sequence DESC LIMIT 1"
@@ -68,7 +87,9 @@ async function lastDocumentEntry(env, recordId) {
 export async function appendDocumentLedger(env, recordId, action, payload) {
   await ensureLedger(env);
   const id = String(recordId || "").trim();
-  if (!isDocumentId(id)) return null;
+  const paper = isDocumentId(id);
+  const jsonDoc = isJsonDocumentId(id);
+  if (!paper && !jsonDoc) return null;
   const body = payload && typeof payload === "object" ? payload : {};
   body.record_id = id;
   let lastErr = null;
@@ -83,9 +104,11 @@ export async function appendDocumentLedger(env, recordId, action, payload) {
       await env.DB.prepare(
         "INSERT INTO document_ledger(record_id,sequence,timestamp_utc,action,payload_json,previous_hash,entry_hash) VALUES(?,?,?,?,?,?,?)"
       ).bind(id, sequence, timestamp_utc, String(action), canonicalJson(body), previous_hash, entry_hash).run();
-      try {
-        await env.DB.prepare("UPDATE records SET chain_tip=?, chain_sequence=? WHERE record_id=?").bind(entry_hash, sequence, id).run();
-      } catch { /* schema */ }
+      if (paper) {
+        try {
+          await env.DB.prepare("UPDATE records SET chain_tip=?, chain_sequence=? WHERE record_id=?").bind(entry_hash, sequence, id).run();
+        } catch { /* schema */ }
+      }
       return { ...entry, entry_hash };
     } catch (err) {
       lastErr = err;

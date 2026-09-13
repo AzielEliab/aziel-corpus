@@ -226,6 +226,10 @@ export async function appendOcrToRecord(env, recordId, extraText, signed) {
   if (String(row.library || "") === "aziel" && !isOperator(signed)) return;
   const body = [row.body || "", extraText].filter(Boolean).join("\n\n").slice(0, 200000);
   await env.DB.prepare("UPDATE records SET body=? WHERE record_id=?").bind(body, recordId).run();
+  try {
+    const { persistRecordDiscoveryMetadata } = await import("./record-metadata.js");
+    await persistRecordDiscoveryMetadata(env, { record_id: recordId, body, library: row.library });
+  } catch { /* sidecar refresh after OCR text */ }
   const art = await recordOcrTextArtifact(env, recordId, extraText);
   await appendLedger(env, "REPROCESS_EXTRACTION", { record_id: recordId, library: row.library, sha256: art && art.content_sha256, artifact: "OCR_TEXT" });
 }

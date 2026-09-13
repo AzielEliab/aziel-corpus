@@ -246,7 +246,34 @@ function workNode(work, path) {
     node.author = { "@type": "Person", name: String(work.author) };
   }
   if (work.datePublished) node.datePublished = isoDate(work.datePublished);
-  if (work.record_id) node.identifier = work.record_id;
+  if (work.dateCreated) node.dateCreated = isoDate(work.dateCreated);
+  else if (work.datePublished) node.dateCreated = isoDate(work.datePublished);
+  if (work.dateModified) node.dateModified = isoDate(work.dateModified);
+  if (work.record_id) {
+    node.identifier = work.record_id;
+    node.sameAs = [
+      CANON_HOST + "/record/" + work.record_id + "/metadata.json",
+      CANON_HOST + "/record/" + work.record_id + ".json",
+    ];
+    node.encoding = {
+      "@type": "MediaObject",
+      contentUrl: CANON_HOST + "/file/" + work.record_id,
+      sha256: work.content_sha256 || undefined,
+    };
+  }
+  const subjects = String(work.subjects || work.keywords || work.domain || "")
+    .split(/[,;]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (subjects.length) {
+    node.about = subjects;
+    node.keywords = subjects.join(", ");
+  }
+  const excerpt = String(work.content || work.description || "").replace(/\s+/g, " ").trim();
+  if (excerpt) {
+    node.description = excerpt.slice(0, 8000);
+    node.abstract = node.description;
+  }
   return node;
 }
 

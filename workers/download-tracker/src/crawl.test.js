@@ -4,6 +4,7 @@ import {
   robotsTxt,
   sitemapXml,
   sitemapIndexXml,
+  sitemapRecordsXml,
   mcpDiscovery,
   citeDoc,
   llmsDoc,
@@ -122,11 +123,15 @@ test("sitemap.xml lists key routes and uses XML mime helper", async () => {
   };
   const xml = await sitemapXml(env);
   assert.match(xml, /<\?xml version="1.0"/);
-  for (const path of ["/", "/search", "/login", "/signup", "/AzielEliab", "/software", "/donate", "/v1/software", "/v1/download", "/v1/library-index", "/v1/stats", "/v1/update/check", "/sitemap-index.xml", "/mcp.json", "/.well-known/mcp.json", "/runtime", "/runtime/", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/software", "/runtime/v1/uses", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/forensics", "/aziel-library", "/corpus", "/cite.json", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/.well-known/aziel.json", "/.well-known/person.jsonld", "/llms.txt", "/ai.txt"]) {
+  for (const path of ["/", "/search", "/login", "/signup", "/AzielEliab", "/software", "/donate", "/v1/software", "/v1/download", "/v1/library-index", "/v1/stats", "/v1/update/check", "/sitemap-index.xml", "/sitemap-records.xml", "/mcp.json", "/.well-known/mcp.json", "/runtime", "/runtime/", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/software", "/runtime/v1/uses", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/forensics", "/aziel-library", "/corpus", "/cite.json", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/.well-known/aziel.json", "/.well-known/person.jsonld", "/llms.txt", "/ai.txt"]) {
     assert.match(xml, new RegExp("<loc>https://www\\.azielcorpuslibrary\\.net" + path.replace("/", "\\/") + "</loc>"));
   }
   assert.doesNotMatch(xml, /azielcorpuslibrary\.net\/about</);
   assert.match(xml, /\/record\/AZDOC-AZIEL1/);
+  assert.match(xml, /\/record\/AZDOC-AZIEL1\/metadata\.json/);
+  const recordsMap = await sitemapRecordsXml(env);
+  assert.match(recordsMap, /\/record\/AZDOC-AZIEL1\/metadata\.json/);
+  assert.match(recordsMap, /\/record\/AZDOC-AZIEL1\.json/);
   assert.match(xml, /<lastmod>2026-08-01<\/lastmod>/);
   assert.match(xml, /<lastmod>2026-07-01<\/lastmod>/);
   assert.match(xml, /<loc>https:\/\/www\.azielcorpuslibrary\.net\/<\/loc><lastmod>[^<]+<\/lastmod><changefreq>daily<\/changefreq><priority>1\.0<\/priority>/);
@@ -412,6 +417,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   const index = sitemapIndexXml();
   assert.match(index, /<sitemapindex /);
   assert.match(index, /azielcorpuslibrary\.net\/sitemap\.xml/);
+  assert.match(index, /azielcorpuslibrary\.net\/sitemap-records\.xml/);
   assert.match(index, /aziel-runtime\.vibelock\.workers\.dev\/sitemap-index\.xml/);
   assert.match(index, /www\.hedidntjump\.com\/sitemap\.xml/);
   const mcp = mcpDiscovery();
