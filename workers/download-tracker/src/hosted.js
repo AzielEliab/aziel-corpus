@@ -2,7 +2,8 @@ import { page, patternBody, softwareBody, aboutBody, whoBody, howItsScoredBody }
 import { recordDescription, ABOUT_PATH, ABOUT_NAV_LABEL, FORENSICS_PATH, WHO_PATH, aboutRedirectFrom, forensicsRedirectFrom } from "./seo.js";
 import { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, blockedAvBody } from "./hosted-pages.js";
 import { json, corsHeaders } from "./runtime.js";
-import { receiptForRecord, sha256hex } from "./ledger.js";
+import { receiptForRecord, sha256hex, isJsonDocumentId } from "./ledger.js";
+import { serveRecordMetadata, parseRecordMetadataPath, receiptForJsonMetadata } from "./record-metadata.js";
 import { isOperator, asFile, getObject, putObject, objectExists, ingestRecord, safeFilename, serveDerived, patternClusters } from "./library.js";
 import {
   persistOcrRun, persistMediaRun, receiptForMediaRun, isMediaRunId, truthy, bytesAsFile,
@@ -49,6 +50,10 @@ function wantsHtml(request) {
 
 async function receiptForAny(env, id) {
   const key = String(id || "").trim();
+  if (isJsonDocumentId(key)) {
+    const jsonRec = await receiptForJsonMetadata(env, key);
+    if (jsonRec) return jsonRec;
+  }
   if (isMediaRunId(key)) {
     const media = await receiptForMediaRun(env, key);
     if (media) return media;
@@ -118,6 +123,10 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     html(pageBody, Object.assign({ cacheControl: signed ? "private, no-store" : HTML_CACHE_CONTROL }, extra, { head }));
   const staticPriority = path === "/software" || path === ABOUT_PATH || path === WHO_PATH || path === "/how-its-scored";
   if (!staticPriority) await ensureSchema(env);
+
+  if (read && parseRecordMetadataPath(path)) {
+    return serveRecordMetadata(env, path);
+  }
 
   if ((path === "/assets/world_110m.geojson" || path === "/world_110m.geojson") && read) {
     return assetFromPublic(env, request, "world_110m.geojson", "application/geo+json");
@@ -511,6 +520,13 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
         library: row.library,
         record_id: row.record_id,
         datePublished: row.created_utc,
+        dateCreated: row.created_utc,
+        dateModified: row.created_utc,
+        subjects: row.subjects,
+        keywords: row.keywords,
+        domain: row.domain,
+        content_sha256: row.content_sha256,
+        content: row.body,
       },
     }));
   }

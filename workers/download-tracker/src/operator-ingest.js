@@ -94,6 +94,10 @@ export async function operatorLibraryIngest(env, { signed, request, file, title,
     const sha = createHash("sha256").update(new Uint8Array(bytes)).digest("hex");
     const existing = await findRecordByHash(env, sha);
     if (existing && String(existing.library || "").toLowerCase() === "aziel") {
+      try {
+        const { persistRecordDiscoveryMetadata } = await import("./record-metadata.js");
+        await persistRecordDiscoveryMetadata(env, { record_id: existing.record_id, library: "aziel", content_sha256: existing.content_sha256 || sha });
+      } catch { /* sidecar backfill on unchanged SHA */ }
       return {
         ok: true,
         unchanged: true,
@@ -101,6 +105,7 @@ export async function operatorLibraryIngest(env, { signed, request, file, title,
         record_id: existing.record_id,
         content_sha256: existing.content_sha256 || sha,
         href: "/record/" + existing.record_id,
+        metadata_url: "/record/" + existing.record_id + "/metadata.json",
         download: "/file/" + existing.record_id,
       };
     }
@@ -143,6 +148,8 @@ export async function operatorLibraryIngest(env, { signed, request, file, title,
     quarantine_status: record.quarantine_status,
     triad,
     href: "/record/" + record.id,
+    metadata_url: "/record/" + record.id + "/metadata.json",
+    json_record_id: record.json_record_id || null,
     download: "/file/" + record.id,
   };
 }

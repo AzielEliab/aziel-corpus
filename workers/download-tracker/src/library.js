@@ -446,6 +446,7 @@ export async function ingestRecord(env, args) {
   try { await ensureReviewSchema(env); } catch { /* schema */ }
   let ocrHint = null;
   const id = "AZDOC-" + randomBytes(6).toString("hex").toUpperCase();
+  const createdUtc = new Date().toISOString();
   const who = isOperator(signed) ? "operator" : signed.username || "anonymous";
   const notes = String(body || "").trim();
   let filename = null;
@@ -532,7 +533,7 @@ export async function ingestRecord(env, args) {
   await env.DB.prepare(
     "INSERT INTO records(record_id,title,body,created_by,created_utc,library,filename,content_type,object_key,byte_size,author,domain,subjects,keywords,content_sha256) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
   ).bind(
-    id, finalTitle, searchBody || "", who, new Date().toISOString(), library, filename, contentType, objectKey, byteSize, biblioAuthor || null, domainIn || null, subjectsIn || null, keywordsIn || null, contentSha
+    id, finalTitle, searchBody || "", who, createdUtc, library, filename, contentType, objectKey, byteSize, biblioAuthor || null, domainIn || null, subjectsIn || null, keywordsIn || null, contentSha
   ).run();
   if (duplicateOf) {
     await appendLedger(env, "DUPLICATE_SEEN", { record_id: id, existing_record_id: duplicateOf, library, sha256: contentSha, filename, byte_size: byteSize, title: finalTitle, created_by: who });
@@ -550,7 +551,7 @@ export async function ingestRecord(env, args) {
       domain: domainIn,
       keywords: keywordsIn,
       body: searchBody || notes,
-      created_utc: new Date().toISOString(),
+      created_utc: createdUtc,
       content_sha256: contentSha,
       library,
     }, { supersedes, superseded_by: supersededBy });
@@ -603,6 +604,26 @@ export async function ingestRecord(env, args) {
       zsolver_json: zsolver ? JSON.stringify(zsolver) : null,
     }, succession && succession.cite);
   } catch { /* first-hand pattern-break rescore optional */ }
+  let discovery = null;
+  try {
+    const { persistRecordDiscoveryMetadata } = await import("./record-metadata.js");
+    discovery = await persistRecordDiscoveryMetadata(env, {
+      record_id: id,
+      title: finalTitle,
+      body: searchBody || notes,
+      author: biblioAuthor,
+      domain: domainIn,
+      subjects: subjectsIn,
+      keywords: keywordsIn,
+      library,
+      filename,
+      content_type: contentType,
+      content_sha256: contentSha,
+      created_utc: createdUtc,
+      lattice_tip: reviewBundle && reviewBundle.tip,
+      chain_tip: reviewBundle && reviewBundle.tip && reviewBundle.tip.ledger_entry_hash,
+    });
+  } catch { discovery = null; }
   return {
     id,
     library,
@@ -621,6 +642,9 @@ export async function ingestRecord(env, args) {
     lattice_tip: reviewBundle && reviewBundle.tip,
     succession: succession && succession.cite,
     zsolver,
+    metadata_url: "/record/" + id + "/metadata.json",
+    json_record_id: discovery && discovery.json_record_id,
+    discovery,
   };
 }
 

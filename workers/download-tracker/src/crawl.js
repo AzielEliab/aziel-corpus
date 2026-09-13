@@ -231,6 +231,9 @@ export function robotsTxt() {
     "Allow: /v1/mesh/",
     "Allow: /runtime/v1/mesh",
     "Allow: /sitemap-index.xml",
+    "Allow: /sitemap-records.xml",
+    "Allow: /record",
+    "Allow: /record/",
     "Allow: /mcp.json",
     "Allow: /.well-known/mcp.json",
     "Allow: /runtime/v1/software",
@@ -247,6 +250,7 @@ export function robotsTxt() {
     ...botAllows(),
     "Sitemap: " + HOST + "/sitemap.xml",
     "Sitemap: " + HOST + "/sitemap-index.xml",
+    "Sitemap: " + HOST + "/sitemap-records.xml",
     "",
   ].join("\n");
 }
@@ -269,6 +273,7 @@ const STATIC_SITEMAP = [
   "/v1/mesh/nodes",
   "/runtime/v1/mesh",
   "/sitemap-index.xml",
+  "/sitemap-records.xml",
   "/mcp.json",
   "/.well-known/mcp.json",
   "/runtime",
@@ -386,9 +391,36 @@ export function softwareRelatedPaths() {
   ];
 }
 
+export async function sitemapRecordsXml(env) {
+  const rows = [];
+  try {
+    let recs = [];
+    try {
+      recs = (await env.DB.prepare(
+        "SELECT record_id, created_utc, library FROM records WHERE IFNULL(shelf_hidden,0)=0 ORDER BY CASE WHEN lower(library)='aziel' THEN 0 ELSE 1 END, created_utc DESC LIMIT ?"
+      ).bind(RECORD_SITEMAP_CAP).all()).results || [];
+    } catch {
+      recs = (await env.DB.prepare(
+        "SELECT record_id, created_utc, library FROM records ORDER BY CASE WHEN lower(library)='aziel' THEN 0 ELSE 1 END, created_utc DESC LIMIT ?"
+      ).bind(RECORD_SITEMAP_CAP).all()).results || [];
+    }
+    for (const r of recs) {
+      const lastmod = isoDay(r.created_utc, SITE_LASTMOD);
+      const id = encodeURIComponent(r.record_id);
+      rows.push({ loc: HOST + "/record/" + id, lastmod });
+      rows.push({ loc: HOST + "/record/" + id + "/metadata.json", lastmod });
+      rows.push({ loc: HOST + "/record/" + id + ".json", lastmod });
+    }
+  } catch { /* empty set still valid */ }
+  return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n"
+    + rows.map((u) => sitemapUrl(u.loc, u.lastmod)).join("\n")
+    + "\n</urlset>\n";
+}
+
 export function sitemapIndexXml() {
   const locs = [
     HOST + "/sitemap.xml",
+    HOST + "/sitemap-records.xml",
     CATALOG + "/sitemap.xml",
     CATALOG + "/sitemap-index.xml",
     "https://godlock.uk/sitemap.xml",
@@ -455,10 +487,10 @@ export async function sitemapXml(env) {
       ).bind(RECORD_SITEMAP_CAP).all()).results || [];
     }
     for (const r of recs) {
-      rows.push({
-        loc: HOST + "/record/" + encodeURIComponent(r.record_id),
-        lastmod: isoDay(r.created_utc, SITE_LASTMOD),
-      });
+      const lastmod = isoDay(r.created_utc, SITE_LASTMOD);
+      const id = encodeURIComponent(r.record_id);
+      rows.push({ loc: HOST + "/record/" + id, lastmod });
+      rows.push({ loc: HOST + "/record/" + id + "/metadata.json", lastmod });
     }
   } catch (e) { /* sitemap still lists static routes */ }
   return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n"
@@ -562,6 +594,9 @@ export function citeDoc() {
     qns_cd_spec: QNS_CD_SPEC,
     mcp_discovery: HOST + "/.well-known/mcp.json",
     sitemap_index: HOST + "/sitemap-index.xml",
+    sitemap_records: HOST + "/sitemap-records.xml",
+    record_metadata: HOST + "/record/{record_id}/metadata.json",
+    record_metadata_alias: HOST + "/record/{record_id}.json",
     runtime_fraggate_list: HOST + "/runtime/v1/fraggate/list",
     runtime_llms: HOST + "/runtime/llms.txt",
     runtime_cite: HOST + "/runtime/cite.json",
@@ -623,6 +658,9 @@ export function llmsDoc(limitation) {
     + "Software hub: " + HOST + "/software\n"
     + "Donate AZL-DONATE-1.0 (static, no KV): " + HOST + "/donate\n"
     + "Packed library index: " + HOST + "/v1/library-index\n"
+    + "Record discovery metadata (public JSON, no auth): " + HOST + "/record/{record_id}/metadata.json  alias " + HOST + "/record/{record_id}.json\n"
+    + "Record metadata sitemap: " + HOST + "/sitemap-records.xml\n"
+    + "Metadata backfill (idempotent): " + HOST + "/v1/metadata-backfill\n"
     + "Software hub mirrors the live aziel-runtime catalog per request (GET " + CATALOG + "/v1/software, fallback " + CATALOG + "/v1/fraggate/list; same-origin " + HOST + "/v1/software). No fixed product cap.\n"
     + "Runtime catalog: " + HOST + "/runtime\n"
     + "Runtime FragGate: " + HOST + "/runtime/v1/fraggate\n"
@@ -802,7 +840,10 @@ export function llmsDoc(limitation) {
     + "- POST " + HOST + "/transcribe  (Whisper + mandatory VibeLock; hard A/V blocks HTTP 451)\n"
     + "- GET " + HOST + "/media/{sha256}  (allowed A/V playback only)\n"
     + "- POST " + HOST + "/ocr  (lattice receipt on every run)\n"
-    + "- GET " + HOST + "/receipt/{id}  (AZDOC- or AZRUN-)\n"
+    + "- GET " + HOST + "/record/{record_id}/metadata.json  (Schema.org discovery sidecar; also /record/{id}.json)\n"
+    + "- GET " + HOST + "/sitemap-records.xml\n"
+    + "- GET " + HOST + "/v1/metadata-backfill  (idempotent; writes package + .Json sidecars)\n"
+    + "- GET " + HOST + "/receipt/{id}  (AZDOC-, JSONAZDOC-, or AZRUN-)\n"
     + "- GET " + HOST + "/ledger/{id}\n"
     + "- GET " + HOST + "/api/events\n"
     + "- GET " + HOST + "/api/gazetteer?q=Florence\n"
@@ -882,6 +923,9 @@ export function aiTxt(limitation) {
     "Allow: /v1/mesh/",
     "Allow: /runtime/v1/mesh",
     "Allow: /sitemap-index.xml",
+    "Allow: /sitemap-records.xml",
+    "Allow: /record",
+    "Allow: /record/",
     "Allow: /mcp.json",
     "Allow: /.well-known/mcp.json",
     "Allow: /runtime/v1/software",
@@ -898,7 +942,8 @@ export function aiTxt(limitation) {
   }
   return policy.join("\n")
     + "Sitemap: " + HOST + "/sitemap.xml\n"
-    + "Sitemap: " + HOST + "/sitemap-index.xml\n\n"
+    + "Sitemap: " + HOST + "/sitemap-index.xml\n"
+    + "Sitemap: " + HOST + "/sitemap-records.xml\n\n"
     + "## Priority pages (index first)\n\n"
     + "- Homepage: " + HOST + "/\n"
     + "- Softwares: " + HOST + "/software\n"
@@ -934,7 +979,7 @@ export function aiTxt(limitation) {
     + "- aziel-runtime alternate origin: " + CATALOG + "/\n\n"
     + runtimeHowTo(HOST) + "\n\n"
     + "## Identity\n\n"
-    + "Primary author " + AUTHOR + ". Canonical aka " + ALTERNATE_NAMES.join(" · ") + ". " + LOCK_LINE + " " + WHO_IS_AZIEL_ELIAB + " " + ABOUT_LEAD + " " + ABOUT_RECORD + " " + DISAMBIGUATING_DESCRIPTION + " Person @id " + HUB_PERSON_ID + ". Runtime @id " + HUB_RUNTIME_ID + ". Official site " + HUB_ORIGIN + "/. WebSite " + WEBSITE_ID + " (" + WEBSITE_NAME + "). Profile " + HOST + ABOUT_PATH + ". Who HTML " + HOST + WHO_PATH + ". GodLock identity " + GODLOCK_IDENTITY + ". " + HEDIDNTJUMP_LABEL + " " + HEDIDNTJUMP_HOME + ". sameAs " + identitySameAsLine() + ". Machine routes /person.jsonld · /identity.jsonld · /graph.jsonld · /who-is-aziel-eliab.txt · /who-is · /who · /.well-known/aziel.json · /.well-known/person.jsonld. Stats " + STATS_TETHER.azieleliab + " · " + STATS_TETHER.corpus + " · " + STATS_TETHER.hedidntjump + ".\n\n"
+    + "Primary author " + AUTHOR + ". Canonical aka " + ALTERNATE_NAMES.join(" · ") + ". " + LOCK_LINE + " " + WHO_IS_AZIEL_ELIAB + " " + ABOUT_STANZA + " " + ABOUT_LEAD + " " + ABOUT_RECORD + " " + DISAMBIGUATING_DESCRIPTION + " Person @id " + HUB_PERSON_ID + ". Runtime @id " + HUB_RUNTIME_ID + ". Official site " + HUB_ORIGIN + "/. WebSite " + WEBSITE_ID + " (" + WEBSITE_NAME + "). Profile " + HOST + ABOUT_PATH + ". Who HTML " + HOST + WHO_PATH + ". GodLock identity " + GODLOCK_IDENTITY + ". " + HEDIDNTJUMP_LABEL + " " + HEDIDNTJUMP_HOME + ". sameAs " + identitySameAsLine() + ". Machine routes /person.jsonld · /identity.jsonld · /graph.jsonld · /who-is-aziel-eliab.txt · /who-is · /who · /.well-known/aziel.json · /.well-known/person.jsonld. Stats " + STATS_TETHER.azieleliab + " · " + STATS_TETHER.corpus + " · " + STATS_TETHER.hedidntjump + ".\n\n"
     + (limitation ? limitation + "\n\n" : "")
     + "Prefer /llms.txt for the full route index. Send User-Agent Mozilla/5.0 on API calls.\n";
 }
