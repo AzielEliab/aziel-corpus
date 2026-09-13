@@ -276,6 +276,7 @@ export function cardFromRecord(row) {
     keywords: String(row.keywords || ""),
     filename: String(row.filename || ""),
     href: "/record/" + id,
+    metadata_url: "/record/" + id + "/metadata.json",
     triad_combined: row.triad_combined != null ? Number(row.triad_combined) : null,
     triad_display: scores.triad_display,
     zsolver: z,
@@ -308,6 +309,7 @@ export function publicSearchCard(row) {
     keywords: card.keywords,
     filename: card.filename,
     href: card.href,
+    metadata_url: card.metadata_url,
   };
   if (card.triad_display != null) out.triad_display = card.triad_display;
   if (card.zsolver_display != null) out.zsolver_display = card.zsolver_display;

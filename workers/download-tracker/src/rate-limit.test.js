@@ -58,6 +58,7 @@ test("browse, search, records, and SEO docs are never content-rationed", () => {
   assert.equal(pathClass("/record/AZDOC-1"), "content");
   assert.equal(isFanoutPath("/event", "POST"), true);
   assert.equal(isFanoutPath("/v1/search", "GET"), false);
+  assert.equal(isFanoutPath("/v1/metadata-backfill", "GET"), true);
 });
 
 test("SEO Allow-list bots are never 429, including on fan-out", async () => {

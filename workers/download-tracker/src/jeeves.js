@@ -1546,6 +1546,8 @@ export async function jeevesUpload(env, { signed, file, title, body, author, dom
     download: "/file/" + record.id,
     download_hash: record.content_sha256 ? "/download?hash=" + record.content_sha256 : null,
     href: "/record/" + record.id,
+    metadata_url: "/record/" + record.id + "/metadata.json",
+    json_record_id: record.json_record_id || null,
     limitation: JEEVES_LIMITATION,
   };
 }
