@@ -291,8 +291,11 @@ test("OCR page still ships all eight SpectralLock lenses", () => {
 test("Pattern, Software, About, and runtime pages render live copy", () => {
   const about = aboutBody();
   assert.match(about, /About Aziel/);
+  assert.match(about, /Aziel Digital Library/);
+  assert.match(about, /Not scripture concordance entries named Aziel or Eliab/);
   assert.match(about, /Who\? Does not matter/);
-  assert.match(about, /Researcher\. Builder\. AI\. A one-man dev team\. Just a man\./);
+  assert.doesNotMatch(about, /Researcher\. Builder\. AI\. A one-man dev team\. Just a man\./);
+  assert.doesNotMatch(about, /1 Chronicles/);
   assert.match(about, /public MASTER of the work/);
   assert.match(about, /class="about-mission"/);
   assert.match(about, /Publisher resolves to/);

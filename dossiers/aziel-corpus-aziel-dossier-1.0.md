@@ -28,7 +28,7 @@ filename: aziel-corpus-aziel-dossier-1.0.md
 
 ## License
 
-**Apache-2.0**. Forks welcome and always allowed. Public identity is **Aziel Eliab** only (Aziel Elroi Eliab is `alternateName` / aka only).
+**Apache-2.0**. Forks welcome and always allowed. Public identity is **Aziel Eliab** only (Aziel Elroi Eliab is `alternateName` / aka only). Publisher of Aziel Digital Library and related software. Person `@id` https://www.azieleliab.com/#aziel. Not scripture concordance entries named Aziel or Eliab.
 
 ## Identity
 
@@ -77,7 +77,7 @@ README lead (truncated, source only):
 >
 > ## Websites
 >
-> Live HTTPS surfaces for this library and the sister engines. Public identity is **Aziel Eliab** only. Also known as Aziel Elroi Eliab (`alternateName` / aka only). No DOIs. Forks welcome. Apache-2.0.
+> Live HTTPS surfaces for this library and the sister engines. Public identity is **Aziel Eliab** only — publisher of **Aziel Digital Library** on this site, plus Aziel Runtime, FragGate, GodLock, and related software. Also known as Aziel Elroi Eliab (`alternateName` / aka only). Not scripture concordance entries named Aziel or Eliab. No DOIs. Forks welcome. Apache-2.0.
 >
 > **Part of the Aziel Eliab ecosystem**
 >

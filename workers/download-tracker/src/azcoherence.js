@@ -2,7 +2,7 @@
  * AZCoherence (azcoherence, AZC-0.1) library cite + Softwares extra + peer map.
  * Second-pass triad coherence (primary vs alternate → PASS/FLAG/NEUTRALIZE/REFUSE).
  * Scoring-review placement. Peer AZ-CLCE. Not AKM-TRIAD fabric. FragGate is THE single door.
- * Dual surface: agent chat has no technical UI chrome; Worker / Flutter / local install /
+ * Dual surface: agent chat has no technical UI chrome; Worker / mobile / local install /
  * counted download stay complete human software.
  * Identity: Aziel Eliab only.
  */
@@ -43,7 +43,7 @@ export const AZCOHERENCE_ONE_LINE =
   + "Never invents evidence. Confidence ≠ truth. Peer AZ-CLCE. Not AKM-TRIAD. FragGate only. Author Aziel Eliab.";
 
 export const AZCOHERENCE_DUAL_SURFACE =
-  "Dual surface: agent chat has no technical UI chrome; Worker / Flutter / local install / counted download stay complete human software.";
+  "Dual surface: agent chat has no technical UI chrome; Worker / mobile / local install / counted download stay complete human software.";
 
 export const AZCOHERENCE_NOTE =
   "AZCoherence is the second-pass coherence reviewer for triad scores. "

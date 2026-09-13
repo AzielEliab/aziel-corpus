@@ -1,8 +1,9 @@
 /**
  * AZindex identity lock for Aziel Digital Library.
  * Person @id is always https://www.azieleliab.com/#aziel — never a corpus-local Person @id.
- * Mission object is the shared azieleliab pack (record over faith, not a biography).
- * Hebrew / misspelling forms are SEO tethers only. Biblical names are disambiguated, not claimed.
+ * Product-forward descriptions. Compact Hebrew / misspelling aka are AZindex tethers only.
+ * Concordance lives in disambiguatingDescription + one FAQ — not in Person.description.
+ * Never sameAs euaziel.site. Never Aziel S. / Flutter as this Person.
  * Author: Aziel Eliab.
  */
 
@@ -37,7 +38,7 @@ export const PERSON_SAME_AS = Object.freeze([
   X_PRIMARY,
 ]);
 
-/** Hebrew aka forms — SEO tether only, not a biography and not a biblical claim. */
+/** Compact Hebrew aka — AZindex tethers only, not a biblical claim and not extra identities. */
 export const HEBREW_AKA = Object.freeze([
   "עזיאל",
   "אל ראי",
@@ -45,27 +46,35 @@ export const HEBREW_AKA = Object.freeze([
   "אליאב",
 ]);
 
-/** Common misspellings / spacing variants — SEO alternateName only. */
+/** Compact misspellings — AZindex tethers only. Do not grow this into a concordance cloud. */
 export const MISSPELLING_AKA = Object.freeze([
   "Aziell",
   "Asiel",
   "El Roi",
-  "Elroi",
   "Eliav",
-  "Aziel Elroi",
-  "Aziel El Roi",
-  "Aziel El-Roi",
-  "Aziel Eliav",
-  "Aziell Eliab",
-  "Asiel Eliab",
-  "Elroi Eliab",
-  "El Roi Eliab",
 ]);
 
+export const PEN_NAME_AKA = Object.freeze([
+  "The Revealer of The Sealed",
+  "Revealer of The Sealed",
+]);
+
+/** Compact alternateName lock. Same Person @id. Not euaziel / not a second Person. */
 export const ALTERNATE_NAMES = Object.freeze([
   AUTHOR_AKA,
+  "AzielEliab",
+  "AzielElroiEliab",
+  ...PEN_NAME_AKA,
   ...HEBREW_AKA,
   ...MISSPELLING_AKA,
+]);
+
+export const PERSON_KNOWS_ABOUT = Object.freeze([
+  "Aziel Digital Library",
+  "Aziel Runtime",
+  "FragGate",
+  "GodLock",
+  "software",
 ]);
 
 /** Cross-tether public stats. Do not invent extra counters. */
@@ -81,16 +90,20 @@ export const STATS_URLS = Object.freeze([
   STATS_TETHER.hedidntjump,
 ]);
 
-/** Published About lead — verbatim from /AzielEliab. Not a biography. */
+/** Published About lead — work over biography. Not the Who-is lead. */
 export const ABOUT_LEAD = "Who? Does not matter. What matters is the record.";
 
-/** Published About first stanza — Researcher/Builder/one-man team/just a man + lead. */
+/** Product-forward Person / About stanza. Living stack first. No concordance essay. */
 export const ABOUT_STANZA =
-  "Researcher. Builder. AI. A one-man dev team. Just a man. Who? Does not matter. What matters is the record.";
+  "Aziel Eliab (also Aziel Elroi Eliab) publishes GodLock, Aziel Digital Library on this site, Aziel Runtime (MCP), and the He Didn't Jump archive. Canonical Person @id https://www.azieleliab.com/#aziel. The public identity is the work, not a biography.";
 
 /** Published About record paragraph — public MASTER, no faith in the speaker. */
 export const ABOUT_RECORD =
   "I do not ask you to believe a name. I ask you to read a record. This library is the public MASTER of the work: hashed receipts, timed files, and software that can be opened without taking the speaker on faith. If the files hold, the name was never the point.";
+
+/** One short do-not-merge. Not a 1 Chronicles essay. Not a Person.description. */
+export const DISAMBIGUATING_DESCRIPTION =
+  "Not scripture concordance entries named Aziel or Eliab. Not https://euaziel.site/.";
 
 export const ABOUT_DESCRIPTION = ABOUT_STANZA + " " + ABOUT_RECORD;
 
@@ -103,12 +116,7 @@ export const ABOUT_SIGNIFICANT_LINKS = Object.freeze([
 ]);
 
 /** Verbatim Who-is answer. FAQ + /who-is-aziel-eliab.txt + /who-is must match this string. */
-export const WHO_IS_AZIEL_ELIAB =
-  ABOUT_LEAD +
-  " Public identity Aziel Eliab. Living publisher of this MASTER. Researcher. Builder. AI. A one-man dev team. Just a man. " +
-  ABOUT_RECORD +
-  " NOT biblical Aziel (1 Chronicles). NOT biblical Eliab. Person @id " +
-  PERSON_ID;
+export const WHO_IS_AZIEL_ELIAB = ABOUT_STANZA;
 
 export const FAQ_WHO_IS = Object.freeze({
   name: "Who is Aziel Eliab?",
@@ -117,42 +125,38 @@ export const FAQ_WHO_IS = Object.freeze({
 
 export const FAQ_WHAT_MATTERS = Object.freeze({
   name: "What matters about Aziel Eliab?",
-  text: ABOUT_LEAD + " " + ABOUT_RECORD + " Not a biography. Person @id " + PERSON_ID,
+  text: ABOUT_LEAD + " " + ABOUT_RECORD + " Person @id " + PERSON_ID,
 });
 
-export const FAQ_RESEARCHER_BUILDER = Object.freeze({
-  name: "Is Aziel Eliab a researcher and builder?",
-  text: ABOUT_STANZA + " Not a biography. Person @id " + PERSON_ID,
-});
-
-export const FAQ_BIBLICAL_AZIEL = Object.freeze({
-  name: "Is Aziel Eliab the biblical Aziel?",
+export const FAQ_PUBLISHES = Object.freeze({
+  name: "What does Aziel Eliab publish?",
   text:
-    "No. Biblical Aziel (1 Chronicles; עזיאל) is a scriptural name, not this publisher. The public identity Aziel Eliab is the living publisher of this MASTER, not the biblical Aziel. Hebrew עזיאל is an SEO tether only. Person @id https://www.azieleliab.com/#aziel",
+    "Aziel Digital Library on this site, Aziel Runtime, FragGate, GodLock, and related software. Person @id " +
+    PERSON_ID,
 });
 
-export const FAQ_BIBLICAL_ELIAB = Object.freeze({
-  name: "Is Aziel Eliab the biblical Eliab?",
-  text:
-    "No. Biblical Eliab (אליאב) is a scriptural name, not this publisher. The public identity Aziel Eliab is the living publisher of this MASTER, not the biblical Eliab. Hebrew אליאב is an SEO tether only. Person @id https://www.azieleliab.com/#aziel",
+export const FAQ_CONCORDANCE = Object.freeze({
+  name: "Is Aziel Eliab a scripture concordance entry?",
+  text: "No. " + DISAMBIGUATING_DESCRIPTION + " Public identity is the software publisher at " + PERSON_ID + ".",
 });
 
 export const FAQ_ELROI = Object.freeze({
-  name: "What is Aziel Elroi / El Roi?",
+  name: "What is Aziel Elroi Eliab?",
   text:
-    "Aziel Elroi Eliab, El Roi, אל ראי, and אלרועי are SEO alternateName tethers only. Public identity is Aziel Eliab. Not a biography. Person @id https://www.azieleliab.com/#aziel",
+    "Canonical aka only. Same Person @id " +
+    PERSON_ID +
+    ". Not a second identity.",
 });
 
 export const IDENTITY_FAQS = Object.freeze([
   FAQ_WHO_IS,
   FAQ_WHAT_MATTERS,
-  FAQ_RESEARCHER_BUILDER,
-  FAQ_BIBLICAL_AZIEL,
-  FAQ_BIBLICAL_ELIAB,
+  FAQ_PUBLISHES,
+  FAQ_CONCORDANCE,
   FAQ_ELROI,
 ]);
 
-export const MISSION = ABOUT_LEAD + " " + ABOUT_RECORD;
+export const MISSION = ABOUT_STANZA;
 
 export const PHILOSOPHY = ABOUT_RECORD;
 
@@ -163,23 +167,27 @@ export const AZIEL_MISSION = Object.freeze({
   v: "azindex-1.0",
   name: AUTHOR,
   alternateName: ALTERNATE_NAMES.slice(),
-  hebrew_aka: HEBREW_AKA.slice(),
-  misspelling_aka: MISSPELLING_AKA.slice(),
   person_id: PERSON_ID,
   url: HUB_ORIGIN + "/",
+  hebrew_aka: HEBREW_AKA.slice(),
+  misspelling_aka: MISSPELLING_AKA.slice(),
   mission: MISSION,
   philosophy: PHILOSOPHY,
   who_is: WHO_IS_AZIEL_ELIAB,
   about_lead: ABOUT_LEAD,
   about_stanza: ABOUT_STANZA,
   about_record: ABOUT_RECORD,
+  disambiguatingDescription: DISAMBIGUATING_DESCRIPTION,
   faqs: IDENTITY_FAQS.slice(),
   sameAs: PERSON_SAME_AS.slice(),
   significant_links: ABOUT_SIGNIFICANT_LINKS.slice(),
   stats: { ...STATS_TETHER },
   doi: null,
   license: "Apache-2.0",
-  note: "Public identity Aziel Eliab only. Not a biography. Hebrew and misspelling forms are SEO tethers only. Biblical Aziel/Eliab are disambiguated, not claimed. Do not invent DOIs. Do not publish legal name, home, county, employer, family, health, or court.",
+  note:
+    "Public identity Aziel Eliab only. Compact aka tethers are not extra identities. " +
+    "GodLock is a product, not the Person. Not a biography. " +
+    "Do not invent DOIs. Do not publish legal name, home, county, employer, family, health, or court.",
 });
 
 export const IDENTITY_MIME = {
@@ -195,6 +203,7 @@ export const IDENTITY_ROUTES = Object.freeze([
   "/who-is-aziel-eliab.txt",
   "/who-is",
   "/.well-known/aziel.json",
+  "/.well-known/person.jsonld",
 ]);
 
 export function personNode() {
@@ -205,6 +214,9 @@ export function personNode() {
     alternateName: ALTERNATE_NAMES.slice(),
     url: HUB_ORIGIN + "/",
     description: PERSON_DESCRIPTION,
+    disambiguatingDescription: DISAMBIGUATING_DESCRIPTION,
+    identifier: AUTHOR,
+    knowsAbout: PERSON_KNOWS_ABOUT.slice(),
     sameAs: PERSON_SAME_AS.slice(),
   };
 }
@@ -241,7 +253,7 @@ function libraryRoleNode() {
     "@id": LIBRARY_ROLE_URL + "#library-role",
     name: "Aziel Eliab — library role",
     url: LIBRARY_ROLE_URL,
-    description: ABOUT_DESCRIPTION + " Library role on Aziel Digital Library. Not a biography.",
+    description: ABOUT_DESCRIPTION + " Library role on Aziel Digital Library.",
     isPartOf: { "@id": LIBRARY_WEBSITE_ID },
     mainEntity: { "@id": PERSON_ID },
     author: { "@id": PERSON_ID },
@@ -320,11 +332,12 @@ export function azielJson() {
   return {
     ...AZIEL_MISSION,
     alternateName: ALTERNATE_NAMES.slice(),
-    hebrew_aka: HEBREW_AKA.slice(),
-    misspelling_aka: MISSPELLING_AKA.slice(),
     about_lead: ABOUT_LEAD,
     about_stanza: ABOUT_STANZA,
     about_record: ABOUT_RECORD,
+    hebrew_aka: HEBREW_AKA.slice(),
+    misspelling_aka: MISSPELLING_AKA.slice(),
+    disambiguatingDescription: DISAMBIGUATING_DESCRIPTION,
     faqs: IDENTITY_FAQS.slice(),
     sameAs: PERSON_SAME_AS.slice(),
     significant_links: ABOUT_SIGNIFICANT_LINKS.slice(),
@@ -351,6 +364,9 @@ export function identityRouteBody(path) {
   }
   if (path === "/.well-known/aziel.json") {
     return { body: JSON.stringify(azielJson(), null, 2) + "\n", type: IDENTITY_MIME.json };
+  }
+  if (path === "/.well-known/person.jsonld") {
+    return { body: JSON.stringify(personJsonLd(), null, 2) + "\n", type: IDENTITY_MIME.jsonld };
   }
   return null;
 }
