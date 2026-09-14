@@ -8,6 +8,8 @@
  * No Node Gate. No public qnsd proxy. Identity: Aziel Eliab only.
  * Host overlay must not rewrite Worker MESH-* refuse codes into a 409
  * library-default-off body. GET never enables. Overlay never disables radios.
+ * Public Worker rollup stays counts/status — this surface is not the cell.
+ * MESH-SPLIT-WIRES-1.0 + MESH-COLD-COPY-1.0 + die-with-pull (PR #87).
  */
 import { HOST, RUNTIME_ORIGIN, RUNTIME_GITHUB } from "./runtime-copy.js";
 
@@ -59,11 +61,205 @@ export const QNS_CD = Object.freeze({
     + "No public qnsd proxy. No Node Gate. Public mesh stays ON (read-only; disable refused). Author Aziel Eliab only.",
 });
 
+export const SPLIT_WIRES_SPEC = "MESH-SPLIT-WIRES-1.0";
+export const COLD_COPY_SPEC = "MESH-COLD-COPY-1.0";
+export const FAST_TICK_MIN_S = 0.5;
+export const FAST_TICK_MAX_S = 1;
+export const DWELL_AFTER_VALID_CITE_S = 777;
+export const PUBLIC_ROLLUP = "counts-status";
+
+const FAST_TICK_KEYS = Object.freeze(["presence", "tip_hash"]);
+
+/** Cell law cite. Public Worker is not the cell. Author Aziel Eliab only. */
+export const SPLIT_WIRES = Object.freeze({
+  spec: SPLIT_WIRES_SPEC,
+  name: "Split the wires",
+  kind: "mesh-law-cite",
+  public_worker_is_cell: false,
+  public_rollup: PUBLIC_ROLLUP,
+  fast_tick: "0.5–1s presence + tip hash only (fixed-size; no body/diff/file)",
+  payload_plane: "receiver-pull — never sender fan-out",
+  live_sync_bodies: false,
+  update: "proof not a timer — cite prev + lockset, fail-closed; 777s dwell after valid cite; clock desync ≠ yes; ambiguous tip = isolate",
+  equivocation: "same prev two tips → lock/isolate that node; quorum cannot outvote broken hash",
+  emit_last: "locally after own verify",
+  phoenix: "local to failed node only",
+  unsend_unverified_body: false,
+  partition: "no auto-splice split-brain; rejoin = cite + operator/lockset; heartbeat loss ≠ poison ≠ apply last packet",
+  sockets: "1s loop and 777s gate never share a socket",
+  die_with_pull: true,
+  author: AUTHOR,
+  identity: AUTHOR,
+  note:
+    "Split the wires. Fast tick is presence + tip hash only. Payload is receiver-pull. "
+    + "1s loop and 777s gate never share a socket. Public Worker rollup is counts/status — not the cell. "
+    + "Die-with-pull stays. Author Aziel Eliab only.",
+});
+
+/** Vault-on-transfer is cold multiply. Server pull cannot wipe a cold replica. */
+export const COLD_COPY = Object.freeze({
+  spec: COLD_COPY_SPEC,
+  name: "Cold-copy survival",
+  kind: "mesh-law-cite",
+  vault_on_transfer: "cold-multiply",
+  tip_expensive_to_erase: true,
+  live_sync_bodies: false,
+  server_pull_wipes_cold: false,
+  poison: "hash-absolute-refuse",
+  equivocation: "isolate",
+  data_outlives_creators: true,
+  public_worker_is_cell: false,
+  die_with_pull: true,
+  split_wires: true,
+  author: AUTHOR,
+  identity: AUTHOR,
+  note:
+    "Vault-on-transfer multiplies cold copies so the tip is expensive to erase. "
+    + "Live sync of bodies is refused. A server pull cannot wipe a cold replica. "
+    + "Poison is refused hash-absolute. Equivocation isolates. Data outlives creators. "
+    + "Author Aziel Eliab only.",
+});
+
 export const MESH_NOTE =
   "Suite decentralized node mesh. Public surface is read-only QNM ON. "
   + "This public HTTPS library is not itself a mesh. Disable is refused — suite presence stays on. "
+  + "Public Worker rollup is counts/status — this surface is not the cell. "
+  + "Split the wires (MESH-SPLIT-WIRES-1.0): 0.5–1s tick = presence + tip hash only; payload is receiver-pull; 1s loop and 777s gate never share a socket. "
+  + "Cold-copy survival (MESH-COLD-COPY-1.0): vault-on-transfer multiplies cold copies; live sync of bodies is refused; server pull cannot wipe a cold replica; poison is hash-absolute refuse; equivocation isolates; data outlives creators. "
   + "QNS-CD-1.0 photon QNS1 packet transfer (local qnsd in qnm-node; runtime cite only; no public proxy; no Node Gate). "
   + "Identity Aziel Eliab only.";
+
+export function publicWorkerIsCell() {
+  return false;
+}
+
+export function publicWorkerRollupKind() {
+  return PUBLIC_ROLLUP;
+}
+
+export function vaultTransferKind() {
+  return "cold-multiply";
+}
+
+export function liveSyncBodiesAllowed() {
+  return false;
+}
+
+export function serverPullWipesColdReplica() {
+  return false;
+}
+
+export function dataOutlivesCreators() {
+  return true;
+}
+
+export function phoenixScope() {
+  return "failed-node-only";
+}
+
+export function mayUnsendUnverifiedBody() {
+  return false;
+}
+
+export function mayEmitLast(input) {
+  const src = input && typeof input === "object" ? input : {};
+  return src.verified_locally === true;
+}
+
+export function isFastTickEnvelope(doc) {
+  if (!doc || typeof doc !== "object" || Array.isArray(doc)) return false;
+  if (doc.body != null || doc.diff != null || doc.file != null) return false;
+  if (doc.presence == null || !String(doc.tip_hash || "").trim()) return false;
+  for (const key of Object.keys(doc)) {
+    if (!FAST_TICK_KEYS.includes(key)) return false;
+  }
+  return true;
+}
+
+export function planesMayShareSocket(planeA, planeB) {
+  const labels = [String(planeA || "").toLowerCase(), String(planeB || "").toLowerCase()];
+  const isFast = (s) => s === "1s-loop" || s === "1s" || s === "fast-tick" || s === "0.5-1s";
+  const isGate = (s) => s === "777s-gate" || s === "777s" || s === "dwell" || s === "payload";
+  return !(labels.some(isFast) && labels.some(isGate));
+}
+
+export function judgeUpdateProof(input) {
+  const src = input && typeof input === "object" ? input : {};
+  if (src.ambiguous_tip === true) {
+    return { accept: false, action: "isolate", reason: "ambiguous-tip" };
+  }
+  if (src.clock_desync === true) {
+    return { accept: false, action: "refuse", reason: "clock-desync-is-not-yes" };
+  }
+  const prev = String(src.prev || "").trim();
+  const lockset = String(src.lockset || "").trim();
+  if (!prev || !lockset) {
+    return { accept: false, action: "refuse", reason: "fail-closed-need-cite" };
+  }
+  return { accept: true, action: "dwell", dwell_s: DWELL_AFTER_VALID_CITE_S, reason: "valid-cite" };
+}
+
+export function judgeEquivocation(input) {
+  const src = input && typeof input === "object" ? input : {};
+  const prev = String(src.prev || "").trim();
+  const tipA = String(src.tip_a || src.tipA || "").trim();
+  const tipB = String(src.tip_b || src.tipB || "").trim();
+  if (prev && tipA && tipB && tipA !== tipB) {
+    return {
+      end_peer: true,
+      action: "lock-isolate",
+      quorum_cannot_outvote: true,
+      reason: "same-prev-two-tips",
+    };
+  }
+  return { end_peer: false, action: "ok", quorum_cannot_outvote: true };
+}
+
+export function judgePartitionEvent(input) {
+  const src = input && typeof input === "object" ? input : {};
+  return {
+    auto_splice: false,
+    rejoin: "cite+operator/lockset",
+    heartbeat_loss_is_poison: false,
+    apply_last_packet: false,
+    heartbeat_lost: src.heartbeat_lost === true,
+    split_brain: src.split_brain === true,
+  };
+}
+
+export function judgePoison(input) {
+  const src = input && typeof input === "object" ? input : {};
+  const expected = String(src.expected_hash || src.tip_hash || "").trim();
+  const got = String(src.got_hash || src.hash || "").trim();
+  if (src.poison === true || (expected && got && expected !== got)) {
+    return { accept: false, action: "refuse", reason: "hash-absolute", interpret: false };
+  }
+  return { accept: true, action: "ok", interpret: false };
+}
+
+export function judgeColdReplicaAfterPull(input) {
+  const src = input && typeof input === "object" ? input : {};
+  const hasCold = src.cold_replica === true || src.has_cold_copy === true;
+  return {
+    server_pulled: src.server_pulled === true,
+    wiped: false,
+    replica_survives: hasCold,
+    live_sync_bodies: false,
+    data_outlives_creators: true,
+    vault_on_transfer: "cold-multiply",
+  };
+}
+
+function meshLawCites() {
+  return {
+    split_wires_spec: SPLIT_WIRES_SPEC,
+    split_wires: SPLIT_WIRES,
+    cold_copy_spec: COLD_COPY_SPEC,
+    cold_copy: COLD_COPY,
+    public_worker_is_cell: false,
+    public_rollup: PUBLIC_ROLLUP,
+  };
+}
 
 export function isMeshLibraryPath(pathname) {
   const path = String(pathname || "").split("?")[0].replace(/\/+$/, "") || "/";
@@ -215,17 +411,20 @@ function qnmFrame() {
     qnm_s_note: "Views, MCP, and downloads do not enter QNM-S.",
     scores: false,
     leaderboard: false,
-    phoenix_lock: "local wait / re-seal after poison or isolation — not restore public hostname",
+    phoenix_lock: "local wait / re-seal after poison or isolation — local to failed node only — not restore public hostname",
     local_node: "qnm-node/",
     local_node_note:
       "Full node process is local qnm-node/ (boot/chain/apg/bearers/outbox/phoenix/score/memorial/tethers). "
-      + "Phoenix is wait / re-seal after poison or isolation, not restore of a public .uk or other hostname. "
+      + "Phoenix is wait / re-seal after poison or isolation, local to the failed node only, not restore of a public .uk or other hostname. "
       + "Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). "
       + "Parent will roll that package. This runtime is suite rollup + read-only public presence. "
+      + "This public Worker is not the cell. Split the wires: 0.5–1s tick = presence + tip hash only; payload is receiver-pull; 1s loop and 777s gate never share a socket. "
+      + "Vault-on-transfer is cold multiply. Live sync of bodies is refused. A server pull cannot wipe a cold replica. Poison is hash-absolute refuse. Equivocation isolates. Data outlives creators. "
       + "Sites pulled → public rollup is down. Local node can keep verifying and appending. The mesh does not climb back onto the public hostname by itself.",
     host_note:
       "azieleliab.com hosts published software/runtime — not login-recovery, not Node Gate/IP panel, not upload proxy.",
     qns_cd: QNS_CD,
+    ...meshLawCites(),
   };
 }
 
@@ -238,6 +437,7 @@ function libraryMeshCites(extra = {}) {
     origin: RUNTIME_ORIGIN + "/v1/mesh",
     source: extra.source || LIBRARY_SOURCE,
     qns_cd_spec: QNS_CD_SPEC,
+    ...meshLawCites(),
   };
 }
 
@@ -280,6 +480,7 @@ export function meshRefuseDoc(code, message, extra = {}) {
     identity: AUTHOR,
     qns_cd_spec: QNS_CD_SPEC,
     qns_cd: QNS_CD,
+    ...meshLawCites(),
   });
 }
 
@@ -303,6 +504,7 @@ export function citeMeshEnvelope(doc, extra = {}) {
     identity: AUTHOR,
     qns_cd: QNS_CD,
     qns_cd_spec: QNS_CD_SPEC,
+    ...meshLawCites(),
   });
   if (String(cited.op || extra.op || "").toLowerCase() === "disable") {
     return meshDisableRefuseDoc({
@@ -369,6 +571,7 @@ export function synthesizeMeshRefuse(method, destPath, payload, extra = {}) {
         example_bearer: EXAMPLE_BEARER,
         note: "Host overlay does not toggle radios. Public mesh stays on. GET /v1/mesh never enables. Identity Aziel Eliab only.",
         qns_cd: QNS_CD,
+        ...meshLawCites(),
       };
     }
     return meshRefuseDoc(MESH_OVERLAY_NOOP, OVERLAY_NOOP_MESSAGE, { source, op });
@@ -445,6 +648,7 @@ export function meshOnDoc(extra = {}) {
     default: "on",
     qns_cd_spec: QNS_CD_SPEC,
     qns_cd: QNS_CD,
+    ...meshLawCites(),
   };
 }
 
@@ -472,6 +676,7 @@ export function decorateMeshDoc(doc, extra = {}) {
     source: extra.source || doc.source || "runtime",
     qns_cd_spec: QNS_CD_SPEC,
     qns_cd: QNS_CD,
+    ...meshLawCites(),
   });
 }
 
@@ -648,7 +853,7 @@ export async function handleMeshApi(request, url, env) {
 
 export function meshStatusHtml(doc) {
   const label = liveNodesLabel(doc);
-  return `<a class="pill ok" id="aziel-live-nodes" href="/v1/mesh/status" title="Suite mesh. Read-only QNM ON. GET never enables. Author Aziel Eliab.">${esc(label)}</a>`;
+  return `<a class="pill ok" id="aziel-live-nodes" href="/v1/mesh/status" title="Suite mesh rollup (counts/status). Not the cell. Cold copies survive a pull. Read-only QNM ON. GET never enables. Author Aziel Eliab.">${esc(label)}</a>`;
 }
 
 export function meshRefreshScript() {
