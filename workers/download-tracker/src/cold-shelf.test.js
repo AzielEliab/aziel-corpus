@@ -20,6 +20,7 @@ import {
   claimShelfLive,
   exportPack,
   hashManifestFromMap,
+  ARCHIVE_ORG_TIP_PACK,
   CODEBERG_TIP_PACK,
   FAMILY_BLAST_RADII,
   PLANE_B_WORKING_TARGETS,
@@ -140,13 +141,29 @@ test("COLD-MULTI-SHELF planes A/B/C: one LIVE tunnel, alt-forge SLOT, Zenodo ref
   assert.equal(claimShelfLive(codeberg).live, false);
   assert.equal(planeBLiveReady(), false);
 
-  for (const id of ["plane-b-archive-org-tip-pack", "plane-b-gitflic-ru-tip-pack"]) {
-    const row = SHELF_REGISTRY.find((s) => s.id === id);
-    assert.equal(row.plane, "B", id);
-    assert.equal(row.status, "slot", id);
-    assert.equal(row.url, null, id);
-    assert.equal(claimShelfLive(row).live, false, id);
-  }
+  const archiveOrg = SHELF_REGISTRY.find((s) => s.id === "plane-b-archive-org-tip-pack");
+  assert.equal(archiveOrg.plane, "B");
+  assert.equal(archiveOrg.status, "slot");
+  assert.equal(archiveOrg.url, ARCHIVE_ORG_TIP_PACK.url);
+  assert.equal(archiveOrg.identifier, ARCHIVE_ORG_TIP_PACK.identifier);
+  assert.equal(archiveOrg.item, ARCHIVE_ORG_TIP_PACK.item);
+  assert.equal(archiveOrg.download_base, ARCHIVE_ORG_TIP_PACK.download_base);
+  assert.equal(archiveOrg.hash_verify, "pass");
+  assert.equal(archiveOrg.tip_verified, true);
+  assert.equal(archiveOrg.live_ready, false);
+  assert.equal(archiveOrg.doi, null);
+  assert.equal(archiveOrg.pack_sha256, ARCHIVE_ORG_TIP_PACK.pack_sha256);
+  assert.equal(archiveOrg.lockset_tip, ARCHIVE_ORG_TIP_PACK.lockset_tip);
+  assert.deepEqual(archiveOrg.files, ARCHIVE_ORG_TIP_PACK.files);
+  assert.equal(archiveOrg.refuse, REFUSE.PLANE_B_ALL_TARGETS);
+  assert.equal(claimShelfLive(archiveOrg).live, false);
+  assert.equal(planeBLiveReady(), false);
+
+  const gitflic = SHELF_REGISTRY.find((s) => s.id === "plane-b-gitflic-ru-tip-pack");
+  assert.equal(gitflic.plane, "B");
+  assert.equal(gitflic.status, "slot");
+  assert.equal(gitflic.url, null);
+  assert.equal(claimShelfLive(gitflic).live, false);
 
   const tipPack = SHELF_REGISTRY.find((s) => s.id === "plane-b-zenodo-tip-pack");
   assert.equal(tipPack.plane, "B");
@@ -203,6 +220,9 @@ test("COLD-MULTI-SHELF planes A/B/C: one LIVE tunnel, alt-forge SLOT, Zenodo ref
   assert.equal(reg.planes.B.zenodo_working_path, false);
   assert.equal(reg.planes.B.live_ready, false);
   assert.equal(reg.planes.B.refuse, REFUSE.ZENODO_IP_BAN);
+  assert.match(reg.planes.B.note, /Codeberg \+ archive\.org uploaded \+ hash-verify PASS \(still SLOT\)/);
+  assert.match(reg.planes.B.note, /GitFlic RU unverified/);
+  assert.match(reg.planes.B.note, /CNS-ZENODO-IP-BAN/);
   assert.equal(reg.planes.C.status, "slot");
   assert.ok(reg.planes.C.refuse.includes(REFUSE.OPERATOR_ATTEST));
   assert.match(reg.planes.C.attest, /CNS-OPERATOR-ATTEST/);
@@ -330,6 +350,10 @@ test("refuse invented PHY/DNS/ICANN, neighbor-vote heal, Cap-7/AZ-GEN overclaim"
   assert.equal(judgeInventedDeposit({ kind: "ipfs_cid", cid: "QmFakeNotReal" }).reason, REFUSE.NO_CID);
   assert.equal(judgeInventedDeposit({ kind: "ipfs_cid" }).status, "slot");
   assert.equal(judgeInventedDeposit({ kind: "archive_org", url: "https://archive.org/details/fake" }).reason, REFUSE.NO_WARC);
+  assert.equal(judgeInventedDeposit({ kind: "archive_org", url: ARCHIVE_ORG_TIP_PACK.url }).accept, true);
+  assert.equal(judgeInventedDeposit({ kind: "archive_org", identifier: ARCHIVE_ORG_TIP_PACK.identifier }).accept, true);
+  assert.equal(judgeInventedDeposit({ kind: "archive_org", download_base: ARCHIVE_ORG_TIP_PACK.download_base }).accept, true);
+  assert.equal(judgeInventedDeposit({ kind: "archive_org", invent_url: true, url: ARCHIVE_ORG_TIP_PACK.url }).reason, REFUSE.NO_WARC);
   assert.equal(judgeInventedDeposit({ kind: "zenodo_doi", doi: "10.5281/zenodo.99999999" }).reason, REFUSE.FAKE_DEPOSIT);
   assert.equal(judgeInventedDeposit({ kind: "zenodo_doi", doi: "10.5281/zenodo.21435707" }).reason, REFUSE.TIP_NOT_ON_DEPOSIT);
   assert.equal(judgeInventedDeposit({ kind: "zenodo_doi" }).status, "refused");
