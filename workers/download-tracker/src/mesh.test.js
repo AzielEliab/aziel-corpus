@@ -61,6 +61,17 @@ test("mesh paths and dest mapping", () => {
   assert.equal(fallbackKind("/v1/mesh/nodes"), "mesh");
 });
 
+test("phoenix is wait/re-seal, not restore of a public hostname", () => {
+  const refuse = meshRefuseDoc(MESH_DISABLE_REFUSED, "Public suite presence stays on.");
+  assert.match(refuse.phoenix_lock, /re-seal after poison or isolation/);
+  assert.match(refuse.phoenix_lock, /not restore public hostname/);
+  assert.match(refuse.local_node_note, /not restore of a public \.uk/);
+  assert.match(refuse.local_node_note, /does not climb back onto the public hostname/);
+  assert.doesNotMatch(refuse.phoenix_lock, /bring (the )?\.?uk (node )?back/i);
+  assert.doesNotMatch(refuse.local_node_note, /resume on the named fabric/i);
+  assert.doesNotMatch(JSON.stringify(refuse), /mesh brings the public/i);
+});
+
 test("mesh default ON; identity Aziel Eliab only", () => {
   const on = meshOnDoc();
   assert.equal(on.enabled, true);

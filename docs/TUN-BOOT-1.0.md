@@ -1,15 +1,17 @@
 # TUN-BOOT-1.0 — Named tunnel bootstrap on primary miss
 
-Author: Aziel Eliab
+Author: Aziel Eliab only
 Spec id: TUN-BOOT-1.0
-Date: 2026-09-13
+Date: 2026-09-14
 License: Apache-2.0
 Amends: MESH-CONTINUE-1.0, TUN-WP-0.1
 Not a VPN. Not an unmarked host. Not a fresh-IP factory.
 
 ## 0. Sentence
 
-If the primary official site fails a health probe, bootstrap the next named path: published Worker standby, then the other official origins, then the local vault.
+If the primary official site fails a health probe, bootstrap the next named path that is still up: published Worker standby, then the other official origins, then the local vault.
+
+This client walk finds named answers still up. It does not resurrect pulled hosts and does not auto-reattach cloudflared to a dead hostname.
 
 Named origin for an epoch is the first published roster node that is on, or that this walker successfully touches. Unmarked machines do not become origins by touching the wire.
 
@@ -22,7 +24,7 @@ Named origin for an epoch is the first published roster node that is on, or that
 5. https://hedidntjump.com/
 6. local MESH-VAULT
 
-Stop at the first named answer. Do not invent a host. Do not probe raw IPs.
+Stop at the first named answer. Do not invent a host. Do not probe raw IPs. A pulled, revoked, dropped, or DNS-killed name is not an answer.
 
 ## 2. Epoch origin
 
@@ -30,8 +32,14 @@ First published roster node that answers this touch becomes named origin for the
 
 ## 3. Tunnel
 
-Operator cloudflared remains outbound-only to the official hostname (TUN-WP-0.1). This bootstrap is the client walk that finds a named answer when that hostname misses. It does not provision hidden tunnel accounts.
+Operator cloudflared remains outbound-only to the official hostname (TUN-WP-0.1) only while that hostname, token, DNS, and account are still legal. This bootstrap is the client walk that finds a named answer still up when that hostname misses. It does not provision hidden tunnel accounts, does not resurrect a pulled host, and does not auto-reattach cloudflared to a dead hostname.
+
+A process supervisor on the box can restart cloudflared. That is operator kit. It is not in the public contract, and it fails if the credential or hostname is gone. Pull the site, revoke the token, drop the Worker, or kill DNS and cloudflared has nowhere legal to land.
 
 ## 4. Receipt
 
 Each walk mints ACT-RECEIPT-1.0: first-touch or hold or failover-first-up, named origin id, event metadata only.
+
+## 5. Cap
+
+Named hosts only. No VPN. No unmarked tunnel hydra. Sites pulled → public rollup is down → local node can keep verifying and appending. The mesh does not climb back onto the public hostname by itself.
