@@ -34,7 +34,7 @@
       "live_ready": false,
       "refuse": "CNS-ZENODO-IP-BAN",
       "checklist": "tools/cold_shelf/ALT-FORGE-TIP-PACK-CHECKLIST.md",
-      "note": "Codeberg uploaded + hash-verify PASS (still SLOT). archive.org + GitFlic RU unverified. LIVE only when all three pass (CNS-PLANE-B-ALL-TARGETS). Zenodo refused (CNS-ZENODO-IP-BAN)."
+      "note": "Codeberg + archive.org uploaded + hash-verify PASS (still SLOT). GitFlic RU unverified. LIVE only when all three pass (CNS-PLANE-B-ALL-TARGETS). Zenodo refused (CNS-ZENODO-IP-BAN)."
     },
     "C": {
       "name": "USB airgap + optional second forge",
@@ -304,7 +304,7 @@
       ],
       "refuse": "CNS-NO-FORGE-MIRROR",
       "checklist": "tools/cold_shelf/ALT-FORGE-TIP-PACK-CHECKLIST.md",
-      "reason": "Plane B working shelf is an alternate independent forge/archive tip-pack (Codeberg / archive.org / GitFlic RU). Codeberg hash-verify PASS; archive.org + GitFlic still unverified. SLOT until all three pass. cite.json / lockset doi stay null.",
+      "reason": "Plane B working shelf is an alternate independent forge/archive tip-pack (Codeberg / archive.org / GitFlic RU). Codeberg + archive.org hash-verify PASS; GitFlic still unverified. SLOT until all three pass. cite.json / lockset doi stay null.",
       "note": "Not Zenodo. Zenodo is not the Plane B working path (CNS-ZENODO-IP-BAN)."
     },
     {
@@ -338,13 +338,27 @@
       "plane": "B",
       "kind": "archive_org",
       "status": "slot",
-      "url": null,
-      "item": null,
+      "url": "https://archive.org/details/aziel-lockset-tip",
+      "identifier": "aziel-lockset-tip",
+      "item": "aziel-lockset-tip",
+      "download_base": "https://archive.org/download/aziel-lockset-tip/",
+      "files": [
+        "aziel-tip-pack.tar",
+        "SHA256SUMS",
+        "lockset.json",
+        "verify-airgap.sh"
+      ],
+      "pack_sha256": "b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37",
+      "lockset_tip": "c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245",
+      "hash_verify": "pass",
+      "tip_verified": true,
+      "live_ready": false,
+      "doi": null,
       "blast_radius": "archive-org",
       "independent": true,
       "lockset_shelf": true,
-      "refuse": "CNS-NO-WARC",
-      "reason": "archive.org tip-pack is a Plane B LIVE-promotion target. No published item in-repo. SLOT. Do not invent a URL. LIVE only after tip hash-verify."
+      "refuse": "CNS-PLANE-B-ALL-TARGETS",
+      "reason": "archive.org tip-pack uploaded and hash-verify PASS. SLOT until GitFlic RU also hash-verify. Plane B LIVE only when Codeberg + archive.org + GitFlic all pass (CNS-PLANE-B-ALL-TARGETS). doi null."
     },
     {
       "id": "plane-b-gitflic-ru-tip-pack",

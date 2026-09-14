@@ -188,6 +188,16 @@ export const CODEBERG_TIP_PACK = Object.freeze({
   lockset_tip: "c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245",
 });
 
+export const ARCHIVE_ORG_TIP_PACK = Object.freeze({
+  url: "https://archive.org/details/aziel-lockset-tip",
+  identifier: "aziel-lockset-tip",
+  item: "aziel-lockset-tip",
+  download_base: "https://archive.org/download/aziel-lockset-tip/",
+  files: Object.freeze(["aziel-tip-pack.tar", "SHA256SUMS", "lockset.json", "verify-airgap.sh"]),
+  pack_sha256: "b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37",
+  lockset_tip: "c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245",
+});
+
 export const USB_ATTEST_PATH =
   "USB offline-verify before LIVE: copy the airgap pack off-network, run verify-airgap.sh / sha256sum -c SHA256SUMS against the published tip, then operator attest (CNS-OPERATOR-ATTEST).";
 
@@ -263,7 +273,7 @@ export const SHELF_REGISTRY = Object.freeze([
     working_targets: PLANE_B_WORKING_TARGETS,
     refuse: REFUSE.NO_FORGE,
     checklist: "tools/cold_shelf/ALT-FORGE-TIP-PACK-CHECKLIST.md",
-    reason: "Plane B working shelf is an alternate independent forge/archive tip-pack (Codeberg / archive.org / GitFlic RU). Codeberg hash-verify PASS; archive.org + GitFlic still unverified. SLOT until all three pass. cite.json / lockset doi stay null.",
+    reason: "Plane B working shelf is an alternate independent forge/archive tip-pack (Codeberg / archive.org / GitFlic RU). Codeberg + archive.org hash-verify PASS; GitFlic still unverified. SLOT until all three pass. cite.json / lockset doi stay null.",
     note: "Not Zenodo. Zenodo is not the Plane B working path (CNS-ZENODO-IP-BAN).",
   }),
   Object.freeze({
@@ -292,13 +302,22 @@ export const SHELF_REGISTRY = Object.freeze([
     plane: "B",
     kind: "archive_org",
     status: "slot",
-    url: null,
-    item: null,
+    url: ARCHIVE_ORG_TIP_PACK.url,
+    identifier: ARCHIVE_ORG_TIP_PACK.identifier,
+    item: ARCHIVE_ORG_TIP_PACK.item,
+    download_base: ARCHIVE_ORG_TIP_PACK.download_base,
+    files: ARCHIVE_ORG_TIP_PACK.files,
+    pack_sha256: ARCHIVE_ORG_TIP_PACK.pack_sha256,
+    lockset_tip: ARCHIVE_ORG_TIP_PACK.lockset_tip,
+    hash_verify: "pass",
+    tip_verified: true,
+    live_ready: false,
+    doi: null,
     blast_radius: "archive-org",
     independent: true,
     lockset_shelf: true,
-    refuse: REFUSE.NO_WARC,
-    reason: "archive.org tip-pack is a Plane B LIVE-promotion target. No published item in-repo. SLOT. Do not invent a URL. LIVE only after tip hash-verify.",
+    refuse: REFUSE.PLANE_B_ALL_TARGETS,
+    reason: "archive.org tip-pack uploaded and hash-verify PASS. SLOT until GitFlic RU also hash-verify. Plane B LIVE only when Codeberg + archive.org + GitFlic all pass (CNS-PLANE-B-ALL-TARGETS). doi null.",
   }),
   Object.freeze({
     id: "plane-b-gitflic-ru-tip-pack",
@@ -618,9 +637,18 @@ export function judgeInventedDeposit(input) {
     return { accept: true, action: "slot", reason: REFUSE.NO_CID, status: "slot" };
   }
   if (kind === "archive_org") {
-    const item = String(src.item || src.url || "").trim();
+    const item = String(src.item || src.identifier || src.url || src.download_base || "").trim();
     if (item) {
-      return { accept: false, action: "refuse", reason: REFUSE.NO_WARC, note: "No published archive.org item. Do not invent." };
+      const listed = SHELF_REGISTRY.some((s) => {
+        if (s.kind !== "archive_org") return false;
+        const refs = [s.url, s.item, s.identifier, s.download_base, String(s.download_base || "").replace(/\/+$/, "")];
+        const norm = item.replace(/\/+$/, "");
+        return refs.some((r) => r && (r === item || String(r).replace(/\/+$/, "") === norm));
+      });
+      if (!listed || src.invent_url === true) {
+        return { accept: false, action: "refuse", reason: REFUSE.NO_WARC, note: "Only the listed verified archive.org item is allowed. Do not invent a URL." };
+      }
+      return { accept: true, action: "ok" };
     }
     return { accept: true, action: "slot", reason: REFUSE.NO_WARC, status: "slot" };
   }
@@ -751,7 +779,7 @@ export function shelfRegistryDoc(host = HOST) {
         live_ready: planeBLiveReady(),
         refuse: REFUSE.ZENODO_IP_BAN,
         checklist: "tools/cold_shelf/ALT-FORGE-TIP-PACK-CHECKLIST.md",
-        note: "Codeberg uploaded + hash-verify PASS (still SLOT). archive.org + GitFlic RU unverified. LIVE only when all three pass (CNS-PLANE-B-ALL-TARGETS). Zenodo refused (CNS-ZENODO-IP-BAN).",
+        note: "Codeberg + archive.org uploaded + hash-verify PASS (still SLOT). GitFlic RU unverified. LIVE only when all three pass (CNS-PLANE-B-ALL-TARGETS). Zenodo refused (CNS-ZENODO-IP-BAN).",
       },
       C: {
         name: "USB airgap + optional second forge",
