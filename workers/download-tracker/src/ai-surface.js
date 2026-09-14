@@ -83,6 +83,47 @@ export const CAP7_SITES = Object.freeze({
   hedidntjump: cap7SiteEntry("hedidntjump", HUB_HEDIDNTJUMP),
 });
 
+/** Compact Cap-7 cite matching /cite.json + sister-hub /shelves honesty. */
+export function cap7SitesCompact() {
+  const out = {};
+  for (const [slug, site] of Object.entries(CAP7_SITES)) {
+    out[slug] = Object.freeze({
+      design_of: site.design_of,
+      resolves_to_hub: false,
+      name_may_change: true,
+      public_icann: false,
+    });
+  }
+  return Object.freeze(out);
+}
+
+/**
+ * /shelves Cap-7 block. Matches sister-hub honesty + this hub's /bridge.json.
+ * This library hub hosts /bridge.json; Cap-7 names still do not resolve to hubs.
+ */
+export function cap7ShelvesCite() {
+  return Object.freeze({
+    spec: CAP7_BRIDGE_SPEC,
+    design_of_only: true,
+    bridge: HOST + "/bridge.json",
+    resolves_to_hub: false,
+    name_may_change: true,
+    public_icann: false,
+    fifth_product: false,
+    visible_1520_chrome: false,
+    sites: Object.freeze({
+      azeliab: Object.freeze({ design_of: HUB_AZELIELIAB, resolves_to_hub: false }),
+      azcorpus: Object.freeze({ design_of: LIBRARY_HUB, resolves_to_hub: false }),
+      azlibrary: Object.freeze({ design_of: LIBRARY_HUB, resolves_to_hub: false }),
+      godlock: Object.freeze({ design_of: HUB_GODLOCK, resolves_to_hub: false }),
+      hedidntjump: Object.freeze({ design_of: HUB_HEDIDNTJUMP, resolves_to_hub: false }),
+    }),
+    note:
+      "Cap-7 names inherit design_of the four hubs only. If a bridge is present, resolves_to_hub stays false. "
+      + "Not aliases, not CNAME/redirect, not hub hostnames. This library hub hosts /bridge.json as the Plane A cite.",
+  });
+}
+
 export const DUAL_SURFACE =
   "Dual surface: agents run software with outputs shown in the AI and inputs run back "
   + "(no technical MCP UI required); software side keeps complete human UI "

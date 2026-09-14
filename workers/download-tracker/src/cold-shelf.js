@@ -33,6 +33,7 @@ import {
   foldlockExportCite,
   foldlockLlmsBlock,
 } from "./foldlock.js";
+import { cap7ShelvesCite, cap7SitesCompact } from "./ai-surface.js";
 
 export { AUTHOR, COLD_MULTI_SHELF_RULE, LOCKSET_ID, LOCKSET_TIP, PUBLISHED_TIP } from "./ingest-receipt.js";
 
@@ -1129,6 +1130,12 @@ export function shelvesDoc(host = HOST) {
     planes: shelfRegistryDoc(h).planes,
     foldlock: foldlockExportCite(h),
     foldlock_shelf: FOLDLOCK_SHELF_SPEC,
+    cap7: cap7ShelvesCite(),
+    cap7_sites: cap7SitesCompact(),
+    resolves_to_hub: false,
+    name_may_change: true,
+    public_icann: false,
+    fifth_product: false,
     verify: verifyHowTo(h),
   };
 }
@@ -1165,7 +1172,8 @@ export function shelvesLlmsBlock(host = HOST) {
     + "- CLI: node tools/cold_shelf/cli.mjs export | verify --hash <64-hex> | airgap | restore-drill | fold\n"
     + "- Do not invent IPFS CIDs, archive.org items, lockset DOIs, or forge URLs.\n"
     + "- Do not count 5 published surfaces as 5 independent shelves.\n"
-    + "- AZ Generator / Cap-7 / live ICANN publish is not this repo.\n"
+    + "- Cap-7 mesh names inherit design_of the four hubs; resolves_to_hub: false. This hub hosts /bridge.json.\n"
+    + "- AZ Generator / Cap-7 live ICANN publish is not this repo.\n"
     + "- Crawlers are extra shelves. They do not re-expand. Training residue is rumor.\n"
     + "- Operator -95. Never publish . Growth-ON.\n"
     + foldlockLlmsBlock(h) + "\n";

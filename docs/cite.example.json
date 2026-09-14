@@ -117,6 +117,17 @@
     "godlock": { "design_of": "https://godlock.uk/", "resolves_to_hub": false, "name_may_change": true, "public_icann": false },
     "hedidntjump": { "design_of": "https://www.hedidntjump.com/", "resolves_to_hub": false, "name_may_change": true, "public_icann": false }
   },
+  "redline": {
+    "spec": "REDLINE-2026-09-14",
+    "pointer": true,
+    "law": "https://github.com/AzielEliab/aziel-runtime/blob/main/docs/designs/REDLINE-2026-09-14.md",
+    "runtime_cite": "https://aziel-runtime.vibelock.workers.dev/cite.json",
+    "one_line": "LIVE law — runtime redline: map public doors; refuse anonymous mutate; operator token header-only; Growth-ON Allow (no GPTBot Disallow); Cloudflare TLS cite; Cap-7 design_of + resolves_to_hub false; attack sims refuse",
+    "attack_sim_refuse": "Attack sims refuse: AZ-GEN as registrar; GET /v1/mesh enabling radios; Cap-7 resolves_to_hub:true; invented Zenodo DOI; operator token in query/body/MCP args.",
+    "cap7": { "spec": "CAP-7", "design_of": "hub_designs", "inherit": "designs", "resolves_to_hub": false }
+  },
+  "redline_spec": "REDLINE-2026-09-14",
+  "attack_sim_refuse": "Attack sims refuse: AZ-GEN as registrar; GET /v1/mesh enabling radios; Cap-7 resolves_to_hub:true; invented Zenodo DOI; operator token in query/body/MCP args.",
   "products": "https://www.azielcorpuslibrary.net/v1/products",
   "azcorpus": "https://www.azielcorpuslibrary.net/corpus",
   "azlibrary": "https://www.azielcorpuslibrary.net/aziel-library",
