@@ -19,4 +19,14 @@ Plane C USB airgap stays **SLOT** until an operator attests an off-network copy 
 
 Do not mark LIVE from a network-only run. Do not skip the off-network copy. Do not invent a second-forge URL to stand in for USB.
 
-Refuse codes: `CNS-OPERATOR-ATTEST` · `CNS-NO-FORGE-MIRROR`
+## RESTORE-DRILL (bytes + prev-hash, not index)
+
+After the USB copy hashes, the operator drill is re-expand from those Plane C bytes and each receipt `previous_hash`. Do not start from an index, crawl roster, or Lamb Lens search hit.
+
+```bash
+node tools/cold_shelf/cli.mjs restore-drill
+```
+
+That command emits the ACT-RECEIPT attest **schema**. It is not an attest and does not mark LIVE (NO-FAN). Spec: `docs/RESTORE-DRILL-1.0.md`. Checklist: `tools/cold_shelf/RESTORE-DRILL.md`.
+
+Refuse codes: `CNS-OPERATOR-ATTEST` · `CNS-NO-FORGE-MIRROR` · `CNS-NO-FAN-FAKE-DEPOSIT` · `CNS-TRAINING-RESIDUE-RUMOR`
