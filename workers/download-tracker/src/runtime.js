@@ -80,7 +80,7 @@ Always send \`User-Agent: Mozilla/5.0\`.
 - Library skill: \`GET ${HOST}/v1/skill\`
 - Live software catalog: \`GET ${HOST}/v1/software\` (origin ${CATALOG}/v1/software; fallback fraggate/list)
 - Installer update check: \`GET ${HOST}/v1/update/check?slug=aziel-corpus&version=\` (origin ${CATALOG}/v1/update/check)
-- Suite mesh (read-only QNM ON): \`GET ${HOST}/v1/mesh\` · \`GET ${HOST}/runtime/v1/mesh\` (origin ${CATALOG}/v1/mesh). Live Nodes cite **QNS-CD-1.0** (photon QNS1 packet transfer) as a hub / Worker mesh cross-map. Local \`qnsd\` is coded in https://github.com/AzielEliab/qnm-node. Runtime cites + catalog field live in https://github.com/AzielEliab/aziel-runtime. AZInterface has pair custody. Not a Softwares-tab product. No public \`qnsd\` proxy. No Node Gate. Disable is refused.
+- Suite mesh (read-only QNM ON): \`GET ${HOST}/v1/mesh\` · \`GET ${HOST}/runtime/v1/mesh\` (origin ${CATALOG}/v1/mesh). Live Nodes cite **QNS-CD-1.0** (photon QNS1 packet transfer) as a hub / Worker mesh cross-map. Public rollup is counts/status — not the cell. Split-wires + cold-copy survival (vault-on-transfer multiplies cold copies; live body sync refused). Local \`qnsd\` is coded in https://github.com/AzielEliab/qnm-node. Runtime cites + catalog field live in https://github.com/AzielEliab/aziel-runtime. AZInterface has pair custody. Not a Softwares-tab product. No public \`qnsd\` proxy. No Node Gate. Disable is refused.
 
 Ops (do **not** increment downloads):
 
@@ -91,7 +91,7 @@ Ops (do **not** increment downloads):
 - \`GET /v1/skill\`
 - \`GET /v1/review?record_id=\` (triad + ZionPattern Solver secondary score + succession cites)
 - \`GET /v1/lattice?record_id=\`
-- \`GET /v1/mesh\` · \`GET /v1/mesh/status\` · \`GET /v1/mesh/nodes\` (suite mesh; read-only QNM ON; QNS-CD-1.0 cross-map on the payload)
+- \`GET /v1/mesh\` · \`GET /v1/mesh/status\` · \`GET /v1/mesh/nodes\` (suite mesh; read-only QNM ON; counts/status rollup, not the cell; QNS-CD-1.0 + MESH-SPLIT-WIRES-1.0 + MESH-COLD-COPY-1.0 on the payload)
 - \`GET /runtime/v1/mesh\` (same-origin proxy of runtime mesh; not a public qnsd proxy)
 - \`POST /v1/score\` (document review preview)
 - \`GET /v1/verify-backfill?all=1\` (walk every stored Aziel Library + Corpus record)
@@ -171,9 +171,9 @@ function openapi() {
       "/v1/skill": { get: { summary: "Skill markdown.", operationId: "skill" } },
       "/v1/review": { get: { summary: "Triad composite (SPRE × CLCE × PhysLing geometric mean) plus component scores, Bayesian (unranked), quarantine, document chain tip, and exact-same-subject succession cites when present. Does not increment downloads.", operationId: "review", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
       "/v1/lattice": { get: { summary: "AzielTether lattice anchor tip for a verified record. Public site is not a mesh.", operationId: "lattice", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
-      "/v1/mesh": { get: { summary: "Suite decentralized node mesh status. Read-only QNM ON. Proxies /v1/mesh. Cites QNS-CD-1.0 (photon QNS1; hub cite only; no public qnsd). Author Aziel Eliab.", operationId: "mesh" } },
-      "/v1/mesh/status": { get: { summary: "Suite mesh status alias. Read-only QNM ON. QNS-CD-1.0 cross-map. Author Aziel Eliab.", operationId: "meshStatus" } },
-      "/v1/mesh/nodes": { get: { summary: "Live Nodes list for the suite mesh. Live Nodes · N while mesh on. QNS-CD-1.0 cross-map. Author Aziel Eliab.", operationId: "meshNodes" } },
+      "/v1/mesh": { get: { summary: "Suite decentralized node mesh status. Read-only QNM ON. Counts/status rollup — not the cell. Proxies /v1/mesh. Cites QNS-CD-1.0, MESH-SPLIT-WIRES-1.0, MESH-COLD-COPY-1.0. Author Aziel Eliab.", operationId: "mesh" } },
+      "/v1/mesh/status": { get: { summary: "Suite mesh status alias. Read-only QNM ON. Counts/status — not the cell. QNS-CD-1.0 + split-wires + cold-copy. Author Aziel Eliab.", operationId: "meshStatus" } },
+      "/v1/mesh/nodes": { get: { summary: "Live Nodes list for the suite mesh. Live Nodes · N while mesh on. Rollup counts only — not the cell. Author Aziel Eliab.", operationId: "meshNodes" } },
       "/runtime/v1/mesh": { get: { summary: "Same-origin proxy of aziel-runtime /v1/mesh. Read-only QNM ON.", operationId: "runtimeProxyMesh" } },
       "/runtime/v1/mesh/status": { get: { summary: "Same-origin proxy of aziel-runtime /v1/mesh/status. Read-only QNM ON.", operationId: "runtimeProxyMeshStatus" } },
       "/runtime/v1/mesh/nodes": { get: { summary: "Same-origin proxy of aziel-runtime /v1/mesh/nodes. Live Nodes · N while mesh on.", operationId: "runtimeProxyMeshNodes" } },
@@ -395,7 +395,7 @@ export async function handleRuntimeApi(request, url, env, ctx) {
         verify_geo: "GET /v1/verify-geo?force=1 / ?status=1 — chunked paper-date × event × geolocation pins. Never upload time.",
         jeeves: JEEVES_LIMITATION,
         lattice: "aziel.lattice.anchor.v1 for AzielTether; site is not a mesh",
-        mesh: "GET /v1/mesh and /runtime/v1/mesh — suite node mesh; read-only QNM ON. Disable refused. QNS-CD-1.0 photon QNS1 cross-map (hub cite only; local qnsd in qnm-node; no public proxy; no Node Gate). Author Aziel Eliab.",
+        mesh: "GET /v1/mesh and /runtime/v1/mesh — suite node mesh; read-only QNM ON. Counts/status rollup — not the cell. Disable refused. QNS-CD-1.0 + MESH-SPLIT-WIRES-1.0 + MESH-COLD-COPY-1.0. Live body sync refused. Author Aziel Eliab.",
         transcription: "POST /transcribe — Workers AI Whisper; video has no FFmpeg demux; VibeLock determination is mandatory",
         vibelock: "Mandatory determination on every /transcribe run. Hard blocks porn, nudity, child-sexual content. Not courtroom proof.",
         media_lattice: "Every OCR and transcript run appends a lattice receipt. Transcript success is LATTICE_TRANSCRIPT_VIBELOCK; blocked A/V is LATTICE_AV_BLOCKED (HTTP 451).",
