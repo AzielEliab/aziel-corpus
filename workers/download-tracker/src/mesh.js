@@ -9,9 +9,9 @@
  * Host overlay must not rewrite Worker MESH-* refuse codes into a 409
  * library-default-off body. GET never enables. Overlay never disables radios.
  * Public Worker rollup stays counts/status — this surface is not the cell.
- * MESH-SPLIT-WIRES-1.0 + MESH-COLD-COPY-1.0 + die-with-pull (PR #87).
- * MESH-REEXPAND-1.0 (archive restore) + MESH-REHEAL-1.0 (self tip + trusted
- * pull or phoenix-WAIT — never neighbor majority). Keep them distinct.
+ * CROSS-NETWORK-SURVIVAL-1.0 umbrella over MESH-SPLIT-WIRES-1.0 +
+ * MESH-COLD-COPY-1.0 + die-with-pull (PR #87) + MESH-REEXPAND-1.0 +
+ * MESH-REHEAL-1.0 (archive restore vs self tip + trusted pull or phoenix-WAIT).
  */
 import { HOST, RUNTIME_ORIGIN, RUNTIME_GITHUB } from "./runtime-copy.js";
 
@@ -63,6 +63,7 @@ export const QNS_CD = Object.freeze({
     + "No public qnsd proxy. No Node Gate. Public mesh stays ON (read-only; disable refused). Author Aziel Eliab only.",
 });
 
+export const CROSS_NETWORK_SURVIVAL_SPEC = "CROSS-NETWORK-SURVIVAL-1.0";
 export const SPLIT_WIRES_SPEC = "MESH-SPLIT-WIRES-1.0";
 export const COLD_COPY_SPEC = "MESH-COLD-COPY-1.0";
 export const REEXPAND_SPEC = "MESH-REEXPAND-1.0";
@@ -93,12 +94,47 @@ export const SPLIT_WIRES = Object.freeze({
   partition: "no auto-splice split-brain; rejoin = cite + operator/lockset; heartbeat loss ≠ poison ≠ apply last packet",
   sockets: "1s loop and 777s gate never share a socket",
   die_with_pull: true,
+  umbrella: CROSS_NETWORK_SURVIVAL_SPEC,
   author: AUTHOR,
   identity: AUTHOR,
   note:
     "Split the wires. Fast tick is presence + tip hash only. Payload is receiver-pull. "
     + "1s loop and 777s gate never share a socket. Public Worker rollup is counts/status — not the cell. "
     + "Die-with-pull stays. Author Aziel Eliab only.",
+});
+
+/** If the network and live data die tomorrow, the chain still survives on cold copies. */
+export const CROSS_NETWORK_SURVIVAL = Object.freeze({
+  spec: CROSS_NETWORK_SURVIVAL_SPEC,
+  name: "Cross-network survival",
+  kind: "mesh-law-cite",
+  umbrella: true,
+  covers: Object.freeze([
+    SPLIT_WIRES_SPEC,
+    COLD_COPY_SPEC,
+    "die-with-pull",
+    REEXPAND_SPEC,
+    REHEAL_SPEC,
+  ]),
+  survival: "bytes↔hash",
+  shelves: Object.freeze(["hosts", "workers", "git", "doi", "local-vaults"]),
+  crawlers: "extra-shelf-not-resurrection",
+  reexpand: "operator-verify-from-archive",
+  reheal: "self-tip+trusted-pull-or-phoenix-WAIT",
+  neighbor_majority_heals: false,
+  live_network_required: false,
+  die_with_pull: true,
+  public_worker_is_cell: false,
+  public_rollup: PUBLIC_ROLLUP,
+  author: AUTHOR,
+  identity: AUTHOR,
+  note:
+    "If the network and live data die tomorrow, the chain still survives on cold copies "
+    + "across independent shelves (hosts, Workers, git, DOI-registered archives, local vaults). "
+    + "Survival is bytes↔hash. Crawlers are extra shelves, not resurrection. "
+    + "Re-expand (MESH-REEXPAND-1.0) is operator verify-from-archive. "
+    + "Reheal (MESH-REHEAL-1.0) is self tip + trusted pull or phoenix-WAIT — not neighbor majority. "
+    + "Author Aziel Eliab only.",
 });
 
 /** Vault-on-transfer is cold multiply. Server pull cannot wipe a cold replica. */
@@ -116,6 +152,7 @@ export const COLD_COPY = Object.freeze({
   public_worker_is_cell: false,
   die_with_pull: true,
   split_wires: true,
+  umbrella: CROSS_NETWORK_SURVIVAL_SPEC,
   author: AUTHOR,
   identity: AUTHOR,
   note:
@@ -145,6 +182,7 @@ export const REEXPAND = Object.freeze({
   distinct_from: REHEAL_SPEC,
   public_worker_is_cell: false,
   die_with_pull: true,
+  umbrella: CROSS_NETWORK_SURVIVAL_SPEC,
   author: AUTHOR,
   identity: AUTHOR,
   note:
@@ -168,6 +206,7 @@ export const REHEAL = Object.freeze({
   distinct_from: REEXPAND_SPEC,
   public_worker_is_cell: false,
   die_with_pull: true,
+  umbrella: CROSS_NETWORK_SURVIVAL_SPEC,
   author: AUTHOR,
   identity: AUTHOR,
   note:
@@ -180,6 +219,8 @@ export const MESH_NOTE =
   "Suite decentralized node mesh. Public surface is read-only QNM ON. "
   + "This public HTTPS library is not itself a mesh. Disable is refused — suite presence stays on. "
   + "Public Worker rollup is counts/status — this surface is not the cell. "
+  + "Cross-network survival (CROSS-NETWORK-SURVIVAL-1.0): if the network and live data die tomorrow, the chain still survives on cold copies across independent shelves (hosts, Workers, git, DOI, local vaults). Survival is bytes↔hash. Crawlers are extra shelves, not resurrection. Re-expand is operator verify-from-archive. Reheal is self tip + trusted pull or phoenix-WAIT — not neighbor majority. "
+  + "Umbrella over MESH-SPLIT-WIRES-1.0 / MESH-COLD-COPY-1.0 / die-with-pull / MESH-REEXPAND-1.0 / MESH-REHEAL-1.0. "
   + "Split the wires (MESH-SPLIT-WIRES-1.0): 0.5–1s tick = presence + tip hash only; payload is receiver-pull; 1s loop and 777s gate never share a socket. "
   + "Cold-copy survival (MESH-COLD-COPY-1.0): vault-on-transfer multiplies cold copies; live sync of bodies is refused; server pull cannot wipe a cold replica; poison is hash-absolute refuse; equivocation isolates; data outlives creators. "
   + "Re-expand (MESH-REEXPAND-1.0): restore from archive — original receipts, each prev-hash, new local node on that tip. Bytes survive, not summaries. Crawlers do not re-expand. Training residue is rumor. "
@@ -466,8 +507,48 @@ export function judgeRehealPoisonedNode(input) {
   };
 }
 
+/** Survival is bytes↔hash. Summaries, snippets, weights, and hash-mentions are not the chain. */
+export function judgeSurvivalBytesHash(input) {
+  const src = input && typeof input === "object" ? input : {};
+  const expected = String(src.expected_hash || src.tip_hash || "").trim();
+  const got = String(src.got_hash || src.hash || "").trim();
+  const hasBytes = src.bytes === true || src.has_bytes === true || src.full_object === true;
+  const residue = src.snippet === true
+    || src.paraphrase === true
+    || src.weights === true
+    || src.index_only === true
+    || src.training_residue === true
+    || src.hash_mention_only === true;
+  if (residue || !hasBytes) {
+    return { survive: false, reason: "survival-is-bytes-hash", crawler_resurrects: false };
+  }
+  if (!expected || !got) {
+    return { survive: false, reason: "need-bytes-and-hash", crawler_resurrects: false };
+  }
+  if (expected !== got) {
+    return { survive: false, reason: "hash-mismatch", crawler_resurrects: false };
+  }
+  return { survive: true, reason: "bytes-hash", crawler_resurrects: false };
+}
+
+/** Crawlers that kept a vault are extra shelves. They do not resurrect a pulled host. */
+export function judgeCrawlerNotResurrection(input) {
+  const src = input && typeof input === "object" ? input : {};
+  return {
+    crawler: src.crawler !== false,
+    shelf: true,
+    resurrection: false,
+    reexpand: false,
+    restore_hostname: false,
+    role: "extra-shelf",
+    die_with_pull: true,
+  };
+}
+
 function meshLawCites() {
   return {
+    cross_network_survival_spec: CROSS_NETWORK_SURVIVAL_SPEC,
+    cross_network_survival: CROSS_NETWORK_SURVIVAL,
     split_wires_spec: SPLIT_WIRES_SPEC,
     split_wires: SPLIT_WIRES,
     cold_copy_spec: COLD_COPY_SPEC,
@@ -640,6 +721,7 @@ function qnmFrame() {
       + "Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). "
       + "Parent will roll that package. This runtime is suite rollup + read-only public presence. "
       + "This public Worker is not the cell. Split the wires: 0.5–1s tick = presence + tip hash only; payload is receiver-pull; 1s loop and 777s gate never share a socket. "
+      + "CROSS-NETWORK-SURVIVAL-1.0: if the network and live data die tomorrow, the chain still survives on cold copies (bytes↔hash) across independent shelves. Crawlers are extra shelves, not resurrection. Re-expand is operator verify-from-archive. Reheal is self tip + trusted pull or phoenix-WAIT — not neighbor majority. "
       + "Vault-on-transfer is cold multiply. Live sync of bodies is refused. A server pull cannot wipe a cold replica. Poison is hash-absolute refuse. Equivocation isolates. Data outlives creators. "
       + "Re-expand is archive restore (MESH-REEXPAND-1.0): original receipts, each prev-hash, new local node on that tip. Bytes survive, not summaries. Crawlers do not re-expand. Training residue is rumor. "
       + "Reheal of a poisoned live node (MESH-REHEAL-1.0) is self tip + trusted pull or phoenix-WAIT — never neighbor majority. Distinct from re-expand. "
@@ -1076,7 +1158,7 @@ export async function handleMeshApi(request, url, env) {
 
 export function meshStatusHtml(doc) {
   const label = liveNodesLabel(doc);
-  return `<a class="pill ok" id="aziel-live-nodes" href="/v1/mesh/status" title="Suite mesh rollup (counts/status). Not the cell. Cold copies survive a pull. Re-expand is archive restore. Reheal is self tip + trusted pull or phoenix-WAIT, never neighbor majority. Read-only QNM ON. GET never enables. Author Aziel Eliab.">${esc(label)}</a>`;
+  return `<a class="pill ok" id="aziel-live-nodes" href="/v1/mesh/status" title="Suite mesh rollup (counts/status). Not the cell. Cold copies survive a pull. CROSS-NETWORK-SURVIVAL-1.0: if the network dies, the chain survives (bytes↔hash). Crawlers are extra shelves, not resurrection. Re-expand is archive restore (MESH-REEXPAND-1.0). Reheal is self tip + trusted pull or phoenix-WAIT, never neighbor majority (MESH-REHEAL-1.0). Read-only QNM ON. GET never enables. Author Aziel Eliab.">${esc(label)}</a>`;
 }
 
 export function meshRefreshScript() {

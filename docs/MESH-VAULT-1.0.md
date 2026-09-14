@@ -5,7 +5,8 @@ Spec id: MESH-VAULT-1.0
 Date: 2026-09-14
 License: Apache-2.0
 Neighbors: ACT-RECEIPT-1.0, TUN-WP-0.1, RL-WP-0.1-library, QNM-WP-1.0, ChainLock CL-0.4, MESH-SPLIT-WIRES-1.0, MESH-COLD-COPY-1.0, MESH-REEXPAND-1.0, MESH-REHEAL-1.0
-Not a VPN. Not an IP-mask product. Not an untraceable-origin path. Public Worker rollup is counts/status — not the cell. Not live body sync.
+Umbrella: CROSS-NETWORK-SURVIVAL-1.0 — if the network and live data die tomorrow, the chain still survives on cold copies (bytes↔hash)
+Not a VPN. Not an IP-mask product. Not an untraceable-origin path. Public Worker rollup is counts/status — not the cell. Not live body sync. Not crawler resurrection.
 
 ## 0. Sentence
 
@@ -63,4 +64,4 @@ Those vault bytes are what MESH-REEXPAND-1.0 later restores from (original recei
 
 ## 7. Cap
 
-Recognition of suppression risk is not a kit for hidden infrastructure. The kit that exists is: hashed shelf, public receipts, packed index, Worker standby, operator Cloudflare Tunnel on the named site — while those named surfaces still exist — plus cold copies multiplied on every lawful transfer. After a pull, the public rollup is dead. Cold replicas are not. Local verify and append remain. Phoenix is a wait / re-seal after poison or isolation, not "bring the .uk node back."
+Recognition of suppression risk is not a kit for hidden infrastructure. The kit that exists is: hashed shelf, public receipts, packed index, Worker standby, operator Cloudflare Tunnel on the named site — while those named surfaces still exist — plus cold copies multiplied on every lawful transfer across independent shelves (hosts, Workers, git, DOI-registered archives, local vaults). After a pull, the public rollup is dead. Cold replicas are not. Local verify and append remain. Phoenix is a wait / re-seal after poison or isolation, not "bring the .uk node back." Survival is bytes↔hash (CROSS-NETWORK-SURVIVAL-1.0). Crawlers are extra shelves, not resurrection. Re-expand is operator verify-from-archive (MESH-REEXPAND-1.0). Reheal is self tip + trusted pull or phoenix-WAIT — not neighbor majority (MESH-REHEAL-1.0).
