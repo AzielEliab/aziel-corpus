@@ -65,6 +65,7 @@ Always send \`User-Agent: Mozilla/5.0\`.
 - Worker OpenAPI: ${HOST}/openapi.json
 - llms.txt: ${HOST}/llms.txt
 - ai.txt: ${HOST}/ai.txt
+- Cold multi-shelf (COLD-MULTI-SHELF-1.0): \`GET ${HOST}/shelves\` · \`GET ${HOST}/cold-copy\`
 - Runtime root: ${HOST}/runtime (aziel-runtime ${RUNTIME_VERSION} FragGate door; prefer /runtime/*)
 - Runtime FragGate list: \`GET ${HOST}/runtime/v1/fraggate/list\`
 - Runtime FragGate call: \`POST ${HOST}/runtime/v1/fraggate/call\`
@@ -80,7 +81,7 @@ Always send \`User-Agent: Mozilla/5.0\`.
 - Library skill: \`GET ${HOST}/v1/skill\`
 - Live software catalog: \`GET ${HOST}/v1/software\` (origin ${CATALOG}/v1/software; fallback fraggate/list)
 - Installer update check: \`GET ${HOST}/v1/update/check?slug=aziel-corpus&version=\` (origin ${CATALOG}/v1/update/check)
-- Suite mesh (read-only QNM ON): \`GET ${HOST}/v1/mesh\` · \`GET ${HOST}/runtime/v1/mesh\` (origin ${CATALOG}/v1/mesh). Live Nodes cite **QNS-CD-1.0** (photon QNS1 packet transfer) as a hub / Worker mesh cross-map. Public rollup is counts/status — not the cell. **CROSS-NETWORK-SURVIVAL-1.0** umbrella: if the network dies, the chain survives on cold copies (bytes↔hash); crawlers are extra shelves, not resurrection. Covers split-wires + cold-copy + die-with-pull + MESH-REEXPAND-1.0 (operator verify-from-archive) + MESH-REHEAL-1.0 (self tip + trusted pull or phoenix-WAIT — not neighbor majority). **NO-LIE-NO-REWRITE-1.0**: network never lies to stay alive; no rewrite key; cites live lockset \`AZLOCK-INGEST-REEXPAND-1.0\`. Local \`qnsd\` is coded in https://github.com/AzielEliab/qnm-node. Runtime cites + catalog field live in https://github.com/AzielEliab/aziel-runtime. AZInterface has pair custody. Not a Softwares-tab product. No public \`qnsd\` proxy. No Node Gate. Disable is refused.
+- Suite mesh (read-only QNM ON): \`GET ${HOST}/v1/mesh\` · \`GET ${HOST}/runtime/v1/mesh\` (origin ${CATALOG}/v1/mesh). Live Nodes cite **QNS-CD-1.0** (photon QNS1 packet transfer) as a hub / Worker mesh cross-map. Public rollup is counts/status — not the cell. **CROSS-NETWORK-SURVIVAL-1.0** umbrella: if the network dies, the chain survives on cold copies (bytes↔hash); crawlers are extra shelves, not resurrection. Covers split-wires + cold-copy + die-with-pull + MESH-REEXPAND-1.0 (operator verify-from-archive) + MESH-REHEAL-1.0 (self tip + trusted pull or phoenix-WAIT — not neighbor majority). **COLD-MULTI-SHELF-1.0** executable registry: \`GET ${HOST}/shelves\`. **NO-LIE-NO-REWRITE-1.0**: network never lies to stay alive; no rewrite key; cites live lockset \`AZLOCK-INGEST-REEXPAND-1.0\`. Local \`qnsd\` is coded in https://github.com/AzielEliab/qnm-node. Runtime cites + catalog field live in https://github.com/AzielEliab/aziel-runtime. AZInterface has pair custody. Not a Softwares-tab product. No public \`qnsd\` proxy. No Node Gate. Disable is refused. GET /v1/mesh never enables radios.
 
 Ops (do **not** increment downloads):
 
@@ -232,6 +233,10 @@ function openapi() {
       "/runtime/llms.txt": { get: { summary: "Runtime llms.txt via same-origin proxy.", operationId: "runtimeLlms" } },
       "/runtime/cite.json": { get: { summary: "Runtime cite.json via same-origin proxy.", operationId: "runtimeCite" } },
       "/runtime/robots.txt": { get: { summary: "Runtime robots.txt via same-origin proxy.", operationId: "runtimeRobots" } },
+      "/shelves": { get: { summary: "COLD-MULTI-SHELF-1.0 honest registry + verify how-to. live|slot|refused. No invented CIDs. Not AZ-GEN live ICANN publish.", operationId: "coldShelves" } },
+      "/cold-copy": { get: { summary: "Alias of /shelves (COLD-MULTI-SHELF-1.0).", operationId: "coldCopy" } },
+      "/v1/shelves": { get: { summary: "Alias of /shelves (COLD-MULTI-SHELF-1.0).", operationId: "v1Shelves" } },
+      "/v1/cold-copy": { get: { summary: "Alias of /shelves (COLD-MULTI-SHELF-1.0).", operationId: "v1ColdCopy" } },
     },
   };
 }

@@ -44,6 +44,8 @@ test("browse, search, records, and SEO docs are never content-rationed", () => {
   assert.equal(isRateExemptPath("/llms.txt"), true);
   assert.equal(isRateExemptPath("/cite.json"), true);
   assert.equal(isRateExemptPath("/lockset.json"), true);
+  assert.equal(isRateExemptPath("/shelves"), true);
+  assert.equal(isRateExemptPath("/cold-copy"), true);
   assert.equal(isRateExemptPath("/person.jsonld"), true);
   assert.equal(isRateExemptPath("/identity.jsonld"), true);
   assert.equal(isRateExemptPath("/graph.jsonld"), true);

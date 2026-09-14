@@ -344,6 +344,10 @@ test("CROSS-NETWORK-SURVIVAL-1.0 umbrella: bytes↔hash; crawlers are not resurr
   assert.match(MESH_NOTE, /MESH-REHEAL-1\.0/);
   assert.match(MESH_NOTE, /Ingest-as-receipt \+ re-expand-from-archive/);
   assert.match(MESH_NOTE, /cite, don't merge/);
+  assert.match(MESH_NOTE, /COLD-MULTI-SHELF-1\.0/);
+  assert.match(MESH_NOTE, /planes A\/B\/C/);
+  assert.match(CROSS_NETWORK_SURVIVAL.note, /planes A\/B\/C/);
+  assert.match(CROSS_NETWORK_SURVIVAL.note, /Plane A = one CF\/GitHub tunnel/);
   assert.doesNotMatch(MESH_NOTE, /upcoming/i);
   assert.doesNotMatch(MESH_NOTE, BANNED);
 
