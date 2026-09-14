@@ -28,6 +28,7 @@ import {
   runtimeHowTo,
 } from "./runtime-copy.js";
 import { MESH_NOTE, QNS_CD_SPEC } from "./mesh.js";
+import { ingestReceiptCite, ingestReceiptLlmsBlock } from "./ingest-receipt.js";
 import { AZCOHERENCE, AZCLCE_NAME, AZCLCE_SLUG, AZCLCE_GITHUB, AZCLCE_WORKER_HOME, azcoherenceLlmsBlock } from "./azcoherence.js";
 import {
   IDENTITY_ROUTES,
@@ -199,7 +200,10 @@ export function robotsTxt() {
     "Allow: /ocr",
     "Allow: /receipt",
     "Allow: /receipts",
+    "Allow: /receipts/verify",
     "Allow: /v1/receipts",
+    "Allow: /v1/receipts/verify",
+    "Allow: /lockset.json",
     "Allow: /ledger",
     "Allow: /historical",
     "Allow: /verify",
@@ -306,8 +310,11 @@ const STATIC_SITEMAP = [
   "/aziel-library",
   "/corpus",
   "/cite.json",
+  "/lockset.json",
   "/receipts",
+  "/receipts/verify",
   "/v1/receipts",
+  "/v1/receipts/verify",
   "/person.jsonld",
   "/identity.jsonld",
   "/graph.jsonld",
@@ -352,6 +359,9 @@ const SITEMAP_HINTS = {
   "/v1/download": { changefreq: "weekly", priority: "0.7" },
   "/runtime": { changefreq: "weekly", priority: "0.8" },
   "/cite.json": { changefreq: "weekly", priority: "0.7" },
+  "/lockset.json": { changefreq: "weekly", priority: "0.8" },
+  "/receipts": { changefreq: "daily", priority: "0.8" },
+  "/receipts/verify": { changefreq: "daily", priority: "0.8" },
   "/person.jsonld": { changefreq: "monthly", priority: "0.8" },
   "/identity.jsonld": { changefreq: "monthly", priority: "0.8" },
   "/graph.jsonld": { changefreq: "monthly", priority: "0.8" },
@@ -581,6 +591,8 @@ export function citeDoc() {
     receipts: HOST + "/receipts",
     receipts_json: HOST + "/v1/receipts",
     receipts_spec: "ACT-RECEIPT-1.0",
+    receipts_verify: HOST + "/receipts/verify",
+    ...ingestReceiptCite(HOST),
     ledger: HOST + "/ledger/{id}",
     media_run: HOST + "/v1/media-run",
     health: HOST + "/v1/health",
@@ -710,6 +722,7 @@ export function llmsDoc(limitation) {
     + "Compatible AI clients: " + AI_CLIENTS + "\n"
     + "License: Apache-2.0\n"
     + "DOI: none (do not invent)\n\n"
+    + ingestReceiptLlmsBlock(HOST) + "\n"
     + "## Priority pages (index first)\n\n"
     + "- Homepage: " + HOST + "/\n"
     + "- Softwares: " + HOST + "/software\n"
@@ -717,7 +730,9 @@ export function llmsDoc(limitation) {
     + "- Who is Aziel Eliab: " + HOST + WHO_PATH + "\n"
     + "- Softwares live catalog: " + HOST + "/v1/software\n"
     + "- cite.json: " + HOST + "/cite.json\n"
+    + "- lockset.json: " + HOST + "/lockset.json\n"
     + "- Action receipts (ACT-RECEIPT-1.0): " + HOST + "/receipts · " + HOST + "/v1/receipts\n"
+    + "- Tip verify: " + HOST + "/receipts/verify\n"
     + "- llms.txt: " + HOST + "/llms.txt\n"
     + "- ai.txt: " + HOST + "/ai.txt\n\n"
     + "Purpose: Public MASTER digital library by " + AUTHOR + ". Aziel Library (royal purple) is the operator collection of the author's work. Corpus is the public Lamb Lens shelf. Hosted tools include search, map, gazetteer, triad scoring (SPRE × CLCE × PhysLing), ZionPattern Solver, and hosted OCR.\n\n"
@@ -926,8 +941,11 @@ export function aiTxt(limitation) {
     "Allow: /aziel-library",
     "Allow: /corpus",
     "Allow: /cite.json",
+    "Allow: /lockset.json",
     "Allow: /receipts",
+    "Allow: /receipts/verify",
     "Allow: /v1/receipts",
+    "Allow: /v1/receipts/verify",
     "Allow: /person.jsonld",
     "Allow: /identity.jsonld",
     "Allow: /graph.jsonld",
@@ -999,7 +1017,9 @@ export function aiTxt(limitation) {
     + "- Aziel Library: " + HOST + "/aziel-library\n"
     + "- Corpus: " + HOST + "/corpus\n"
     + "- cite.json: " + HOST + "/cite.json\n"
+    + "- lockset.json: " + HOST + "/lockset.json\n"
     + "- Action receipts (ACT-RECEIPT-1.0): " + HOST + "/receipts · " + HOST + "/v1/receipts\n"
+    + "- Tip verify: " + HOST + "/receipts/verify\n"
     + "- llms.txt: " + HOST + "/llms.txt\n"
     + "- OpenAPI: " + HOST + "/openapi.json\n"
     + "- GitHub: " + GITHUB_REPO + "\n"
@@ -1008,6 +1028,7 @@ export function aiTxt(limitation) {
     + "- aziel-runtime (this domain): " + HOST + "/runtime\n"
     + "- aziel-runtime alternate origin: " + CATALOG + "/\n\n"
     + runtimeHowTo(HOST) + "\n\n"
+    + ingestReceiptLlmsBlock(HOST) + "\n"
     + "## Identity\n\n"
     + "Primary author " + AUTHOR + ". Canonical aka " + ALTERNATE_NAMES.join(" · ") + ". " + LOCK_LINE + " " + WHO_IS_AZIEL_ELIAB + " Also Elias Artista. " + HEBREW_DEFINITION + " " + ABOUT_STANZA + " " + ABOUT_LEAD + " " + ABOUT_RECORD + " " + DISAMBIGUATING_DESCRIPTION + " Person @id " + HUB_PERSON_ID + ". Runtime @id " + HUB_RUNTIME_ID + ". Official site " + HUB_ORIGIN + "/. WebSite " + WEBSITE_ID + " (" + WEBSITE_NAME + "). Profile " + HOST + ABOUT_PATH + ". Who HTML " + HOST + WHO_PATH + ". GodLock identity " + GODLOCK_IDENTITY + ". " + HEDIDNTJUMP_LABEL + " " + HEDIDNTJUMP_HOME + ". sameAs " + identitySameAsLine() + ". Machine routes /person.jsonld · /identity.jsonld · /graph.jsonld · /who-is-aziel-eliab.txt · /who-is · /who · /.well-known/aziel.json · /.well-known/person.jsonld. Stats " + STATS_TETHER.azieleliab + " · " + STATS_TETHER.corpus + " · " + STATS_TETHER.hedidntjump + ".\n\n"
     + (limitation ? limitation + "\n\n" : "")
@@ -1041,6 +1062,8 @@ export function humansTxt() {
     "Software hub mirrors runtime /v1/software (fallback fraggate/list): " + HOST + "/v1/software",
     "AZCoherence (azcoherence, AZC-0.1) Softwares Plain / scoring-review: " + HOST + "/software · https://azcoherence-download-tracker.vibelock.workers.dev/ · https://github.com/AzielEliab/AZCoherence",
     "Suite mesh (read-only QNM ON): " + HOST + "/v1/mesh",
+    "Lockset tip / ingest-as-receipt: " + HOST + "/lockset.json · " + HOST + "/receipts/verify",
+    "cite, don't merge · bytes survive; crawlers do not re-expand",
     "Runtime mesh: " + HOST + "/runtime/v1/mesh",
     "Runtime: " + HOST + "/runtime",
     "Runtime version: Aziel Runtime " + RUNTIME_VERSION,

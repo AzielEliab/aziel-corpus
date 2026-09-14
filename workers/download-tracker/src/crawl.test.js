@@ -123,7 +123,7 @@ test("sitemap.xml lists key routes and uses XML mime helper", async () => {
   };
   const xml = await sitemapXml(env);
   assert.match(xml, /<\?xml version="1.0"/);
-  for (const path of ["/", "/search", "/login", "/signup", "/AzielEliab", "/software", "/donate", "/v1/software", "/v1/download", "/v1/library-index", "/v1/stats", "/v1/update/check", "/sitemap-index.xml", "/sitemap-records.xml", "/mcp.json", "/.well-known/mcp.json", "/runtime", "/runtime/", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/software", "/runtime/v1/uses", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/forensics", "/aziel-library", "/corpus", "/cite.json", "/receipts", "/v1/receipts", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/.well-known/aziel.json", "/.well-known/person.jsonld", "/llms.txt", "/ai.txt"]) {
+  for (const path of ["/", "/search", "/login", "/signup", "/AzielEliab", "/software", "/donate", "/v1/software", "/v1/download", "/v1/library-index", "/v1/stats", "/v1/update/check", "/sitemap-index.xml", "/sitemap-records.xml", "/mcp.json", "/.well-known/mcp.json", "/runtime", "/runtime/", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/software", "/runtime/v1/uses", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/forensics", "/aziel-library", "/corpus", "/cite.json", "/lockset.json", "/receipts", "/receipts/verify", "/v1/receipts", "/v1/receipts/verify", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/.well-known/aziel.json", "/.well-known/person.jsonld", "/llms.txt", "/ai.txt"]) {
     assert.match(xml, new RegExp("<loc>https://www\\.azielcorpuslibrary\\.net" + path.replace("/", "\\/") + "</loc>"));
   }
   assert.doesNotMatch(xml, /azielcorpuslibrary\.net\/about</);
@@ -472,7 +472,7 @@ test("Worker SEO documents are 200 with long public cache and never empty for Go
   const env = {
     DOWNLOADS: { async get() { return null; }, async put() {}, async list() { throw new Error("no list"); } },
   };
-  for (const path of ["/robots.txt", "/llms.txt", "/cite.json", "/ai.txt", "/humans.txt", "/sitemap-index.xml", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/.well-known/aziel.json", "/.well-known/person.jsonld"]) {
+  for (const path of ["/robots.txt", "/llms.txt", "/cite.json", "/lockset.json", "/ai.txt", "/humans.txt", "/sitemap-index.xml", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/.well-known/aziel.json", "/.well-known/person.jsonld"]) {
     const res = await worker.fetch(
       new Request("https://www.azielcorpuslibrary.net" + path, { headers: { "User-Agent": "Googlebot/2.1" } }),
       env,
