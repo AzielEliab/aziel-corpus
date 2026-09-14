@@ -106,5 +106,12 @@
       { "href": "https://godlock.uk", "label": "GodLock.uk" }
     ]
   },
+  "hashchain_learn": "HASHCHAIN-LATTICE-LEARN-1.0",
+  "hashchain_learn_rule": "adaptive learning via hashchain lattice for recollection and reasoning",
+  "possibility": "https://www.azielcorpuslibrary.net/v1/possibility",
+  "recollect": "https://www.azielcorpuslibrary.net/v1/recollect",
+  "poison_learn": "https://www.azielcorpuslibrary.net/v1/poison-learn",
+  "pin": "https://www.azielcorpuslibrary.net/v1/pin",
+  "map4d": "https://github.com/AzielEliab/4dmap",
   "how_to_cite": "Eliab, Aziel. (2026). Aziel Digital Library v2.7.0 [Software]. Apache-2.0. https://www.azielcorpuslibrary.net/"
 }

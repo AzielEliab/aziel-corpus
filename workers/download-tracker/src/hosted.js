@@ -158,7 +158,13 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     return json({ ok: true, q, matches: rows, ambiguous: ids.size !== 1, pin: ids.size === 1 ? exact[0] : null, attribution: "GeoNames CC BY 4.0 https://www.geonames.org/" });
   }
   if (path === "/api/events" && read) {
-    return json({ ok: true, events: await listEvents(env) });
+    return json({
+      ok: true,
+      events: await listEvents(env),
+      law: "adaptive learning via hashchain lattice for recollection and reasoning",
+      possibility_note: "possibility ≠ probability ≠ triad ≠ ZionPattern. Scores are not courtroom truth.",
+      map4d: { spec: "4DM-WP-1.0", cite: "https://github.com/AzielEliab/4dmap" },
+    });
   }
   if (path === "/api/historical" && read) {
     const date = url.searchParams.get("date") || url.searchParams.get("year") || "";

@@ -15,7 +15,7 @@ REFUSE_RE = re.compile(
     r"\b(operator (password|hash|credential|account|secret|cookie)|master password|master hash|password hash|"
     r"hidden admin|hidden operator|admin route|superadmin|aziel_session|session token|scrypt|"
     r"delete[- ]?all|wipe (the )?(corpus|library|ledger)|drop table|bypass quarantine|unquarantine|"
-    r"forge (a )?(score|triad|receipt)|modify (the )?(spre|clce|plr|physling|bayesian|triad|combined)( score)?|"
+    r"forge (a )?(score|triad|receipt|possibility)|modify (the )?(spre|clce|plr|physling|bayesian|possibility|triad|combined)( score)?|"
     r"change (the )?score|set (the )?(triad|score)|exfiltrat|dump (all )?(hashes|credentials|sessions)|"
     r"reveal (the )?(operator|master))\b",
     re.I,

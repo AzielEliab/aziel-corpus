@@ -1,6 +1,7 @@
 import { randomBytes, createHash } from "node:crypto";
 import { appendLedger, appendDocumentLedger, ensureLedger } from "./ledger.js";
-import { ensureReviewSchema, reviewAndStore } from "./review-store.js";
+import { ensureReviewSchema, reviewAndStore, persistPossibilityOnReview } from "./review-store.js";
+import { preflightIngest, pinFromUpload, appendPoisonLearn } from "./lattice-learn.js";
 import { applySuccessionForRecord, maybeRescoreZsolverOnFirstHandPatternBreak, rescoreSuccessionMembers, successionCoverageFor, subjectKey } from "./succession.js";
 import { patchTipZsolver, scoreZsolverForRecord } from "./zsolver.js";
 import { applyAutoClassification } from "./domain-classify.js";
@@ -530,6 +531,40 @@ export async function ingestRecord(env, args) {
   if (metaBits.length) {
     searchBody = [searchBody, metaBits.join("\n")].filter(Boolean).join("\n\n");
   }
+  let preflight = null;
+  try {
+    preflight = await preflightIngest(env, {
+      title: finalTitle,
+      body: searchBody || notes,
+      filename,
+      sha256: contentSha,
+      library,
+      bytes: fileBytes,
+    });
+  } catch { preflight = null; }
+  if (preflight && preflight.refuse === "POISON_LEARNED") {
+    let receipt = null;
+    try {
+      receipt = await appendPoisonLearn(env, {
+        sha256: contentSha,
+        title: finalTitle,
+        filename,
+        markers: (preflight.poison && preflight.poison.markers) || [],
+        extra: { reason: "learned_repeat", body_retained: false },
+      });
+    } catch { receipt = { feature_id: preflight.features && preflight.features.feature_id }; }
+    const err = new Error("poison refused — learned feature match; body not stored");
+    err.status = 422;
+    err.receipt = {
+      ok: false,
+      refuse: "POISON_LEARNED",
+      content_sha256: contentSha,
+      feature_id: receipt && receipt.feature_id,
+      body_retained: false,
+      law: "adaptive learning via hashchain lattice for recollection and reasoning",
+    };
+    throw err;
+  }
   await env.DB.prepare(
     "INSERT INTO records(record_id,title,body,created_by,created_utc,library,filename,content_type,object_key,byte_size,author,domain,subjects,keywords,content_sha256) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
   ).bind(
@@ -624,6 +659,19 @@ export async function ingestRecord(env, args) {
       chain_tip: reviewBundle && reviewBundle.tip && reviewBundle.tip.ledger_entry_hash,
     });
   } catch { discovery = null; }
+  let pin = null;
+  try {
+    pin = await pinFromUpload(env, {
+      recordId: id,
+      structure: reviewBundle && reviewBundle.structure,
+      poison: reviewBundle && reviewBundle.review && reviewBundle.review.poison,
+      sha256: contentSha,
+      library,
+    });
+    if (pin && pin.possibility && reviewBundle && reviewBundle.review) {
+      reviewBundle.review = await persistPossibilityOnReview(env, id, pin.possibility, reviewBundle.review);
+    }
+  } catch { pin = null; }
   return {
     id,
     library,
@@ -642,6 +690,8 @@ export async function ingestRecord(env, args) {
     lattice_tip: reviewBundle && reviewBundle.tip,
     succession: succession && succession.cite,
     zsolver,
+    pin,
+    possibility: pin && pin.possibility,
     metadata_url: "/record/" + id + "/metadata.json",
     json_record_id: discovery && discovery.json_record_id,
     discovery,
