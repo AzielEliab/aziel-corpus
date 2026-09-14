@@ -15,6 +15,8 @@ This GitHub file is a crawler index for AzielEliab/aziel-corpus. Prefer the live
 - SHA-256: c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245
 - cite, don't merge
 - bytes survive; crawlers do not re-expand
+- CROSS-NETWORK-SURVIVAL: If network + live data die tomorrow, the chain still survives via cold copies across independent shelves; survival = bytes↔hash.
+- NO-LIE / NO-REWRITE: receipts that still hash; copies not all on one tunnel; verify without voice; no rewrite key; network never lies even to stay alive.
 - Spec: INGEST-AS-RECEIPT-1.0 · RE-EXPAND-FROM-ARCHIVE-1.0
 - Verify (paste hash, yes/no): https://www.azielcorpuslibrary.net/receipts/verify
 - Machine verify: https://www.azielcorpuslibrary.net/v1/receipts/verify?hash=

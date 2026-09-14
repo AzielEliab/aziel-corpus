@@ -1064,6 +1064,8 @@ export function humansTxt() {
     "Suite mesh (read-only QNM ON): " + HOST + "/v1/mesh",
     "Lockset tip / ingest-as-receipt: " + HOST + "/lockset.json · " + HOST + "/receipts/verify",
     "cite, don't merge · bytes survive; crawlers do not re-expand",
+    "CROSS-NETWORK-SURVIVAL: If network + live data die tomorrow, the chain still survives via cold copies across independent shelves; survival = bytes↔hash.",
+    "NO-LIE / NO-REWRITE: receipts that still hash; copies not all on one tunnel; verify without voice; no rewrite key; network never lies even to stay alive.",
     "Runtime mesh: " + HOST + "/runtime/v1/mesh",
     "Runtime: " + HOST + "/runtime",
     "Runtime version: Aziel Runtime " + RUNTIME_VERSION,

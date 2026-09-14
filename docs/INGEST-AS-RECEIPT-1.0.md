@@ -5,7 +5,7 @@ Spec id: INGEST-AS-RECEIPT-1.0
 Origin: https://www.azielcorpuslibrary.net/  
 Date: 2026-09-14  
 License: Apache-2.0  
-Neighbors: RE-EXPAND-FROM-ARCHIVE-1.0, ACT-RECEIPT-1.0, MESH-COLD-COPY-1.0, MESH-SPLIT-WIRES-1.0, MESH-VAULT-1.0  
+Neighbors: RE-EXPAND-FROM-ARCHIVE-1.0, CROSS-NETWORK-SURVIVAL, NO-LIE / NO-REWRITE, ACT-RECEIPT-1.0, MESH-COLD-COPY-1.0, MESH-SPLIT-WIRES-1.0, MESH-VAULT-1.0  
 Keeps: ACT-RECEIPT-1.0; die-with-pull; split-wires; cold-copy mesh refuse  
 Not a Softwares-tab product. Not a mesh growth path. Not visible 15:20 identity-lock chrome.
 
@@ -21,6 +21,8 @@ The first screen of a public page is a receipt:
 - canonical URL (`https://www.azielcorpuslibrary.net/`)
 - SHA-256 of the published lockset bytes
 - the short rule: **cite, don't merge**
+- **CROSS-NETWORK-SURVIVAL:** If network + live data die tomorrow, the chain still survives via cold copies across independent shelves; survival = bytes↔hash.
+- **NO-LIE / NO-REWRITE:** receipts that still hash; copies not all on one tunnel; verify without voice; no rewrite key; network never lies even to stay alive.
 
 The same lockset tip is the string to copy into HTML, PDF, Zenodo, and GitHub. Do not invent a DOI. Survival is bytes matching the hash, not a paraphrase of the essay.
 
@@ -30,7 +32,7 @@ Public verify: paste a hash, get yes/no against the published tip.
 
 - HTML + JSON: `GET /receipts/verify?hash=`
 - machine: `GET /v1/receipts/verify?hash=`
-- lockset bytes: `GET /lockset.json` (SHA-256 of those bytes is the tip)
+- lockset: `GET /lockset.json` (core SHA-256 is the published tip; file also cites CROSS-NETWORK-SURVIVAL and NO-LIE / NO-REWRITE)
 
 If a model quotes the essay wrong, the hash still exists on the scraped page.
 
@@ -48,7 +50,7 @@ Official indexes that may cite the same tip:
 
 ## 4. Training is lossy
 
-Weights will not store the chain. Design so the phrase they keep is the hash and the rule (**cite, don't merge**), not the essay. That short rule sits next to the hash on the first screen and in `llms.txt` / `cite.json` / `ai.txt`.
+Weights will not store the chain. Design so the phrase they keep is the hash and the rule (**cite, don't merge**), not the essay. That short rule sits next to the hash on the first screen and in `llms.txt` / `cite.json` / `ai.txt`, beside **CROSS-NETWORK-SURVIVAL** and **NO-LIE / NO-REWRITE**.
 
 ## 5. Growth-ON
 
