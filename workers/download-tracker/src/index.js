@@ -4,6 +4,7 @@ import { handleAuth, getSession } from "./auth.js";
 import { page, homeBody, homeSearchActive, streamLcpHtml } from "./ui.js";
 import { handleHosted } from "./hosted.js";
 import { robotsTxt, sitemapXml, sitemapIndexXml, sitemapRecordsXml, citeDoc, llmsDoc, aiTxt, humansTxt, mcpDiscovery, isReadMethod, crawlResponse, MIME } from "./crawl.js";
+import { bridgeDoc } from "./ai-surface.js";
 import { continueMetadataBackfill } from "./record-metadata.js";
 import { identityRouteBody } from "./identity.js";
 import { searchRecords, parseBrowseParams, serveFile, serveFileByHash, normalizeContentHash } from "./library.js";
@@ -533,6 +534,9 @@ export default {
     }
     if (isReadMethod(request.method) && crawlPath === "/cite.json") {
       return crawlResponse(request, JSON.stringify(citeDoc(), null, 2), MIME.json, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
+    }
+    if (isReadMethod(request.method) && crawlPath === "/bridge.json") {
+      return crawlResponse(request, JSON.stringify(bridgeDoc(), null, 2), MIME.json, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
     }
     if (isReadMethod(request.method) && crawlPath === "/lockset.json") {
       return crawlResponse(request, locksetFile(), MIME.json, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });

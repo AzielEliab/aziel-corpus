@@ -93,6 +93,10 @@
   "runtime_docs": "https://github.com/AzielEliab/aziel-runtime/tree/main/docs/2.0",
   "runtime_kernel": "https://github.com/AzielEliab/fraggate",
   "compatible_clients": "ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants",
+  "bridge": "https://www.azielcorpuslibrary.net/bridge.json",
+  "design_pack": "https://www.azielcorpuslibrary.net/v1/design-pack",
+  "ingest": "https://www.azielcorpuslibrary.net/v1/ingest",
+  "library_mcp": "https://www.azielcorpuslibrary.net/mcp",
   "ecosystem": {
     "heading": "Part of the Aziel Eliab ecosystem",
     "links": [

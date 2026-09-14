@@ -108,6 +108,32 @@ Aziel Runtime is not merely an API orchestrator or software aggregator; it is a 
 - Official Runtime (Worker): https://aziel-runtime.vibelock.workers.dev/
 - Kernel: https://github.com/AzielEliab/fraggate
 
+## Dual-surface upload + download (AI clients)
+
+Dual surface: agents run software with outputs shown in the AI and inputs run back (no technical MCP UI required); software side keeps complete human UI (Worker + mobile + download).
+
+- Upload (session/MCP, hub only): POST https://www.azielcorpuslibrary.net/v1/ingest
+- Upload alias: POST https://www.azielcorpuslibrary.net/v1/jeeves/upload
+- Operator live azlibrary (hub token only): POST https://www.azielcorpuslibrary.net/v1/operator/library-ingest
+- Download by hash: GET https://www.azielcorpuslibrary.net/v1/docs/{hash}/download · /download?hash=
+- Download by record: GET https://www.azielcorpuslibrary.net/file/{record_id} · /download?record=
+- Library MCP: POST https://www.azielcorpuslibrary.net/mcp
+- MCP tools: aziel-corpus_health, aziel-corpus_search, aziel-corpus_skill, aziel-corpus_download, aziel-corpus_ingest, aziel-corpus_design_pack, aziel-corpus_receipt
+- OpenAPI: https://www.azielcorpuslibrary.net/openapi.json
+
+Anonymous JSON ingest is refused. Human homepage POST /ingest may still file Corpus as a guest. Operator token writes live Aziel Library on the hub only — never a Cap-7 mesh name.
+
+## Cap-7 semantic bridge (Plane A)
+
+- Plane A hubs stay themselves (azielcorpuslibrary.net, azieleliab.com, godlock.uk, hedidntjump.com).
+- Mesh Cap-7 sites use azcorpus / azlibrary / sister-hub **designs** only. They do NOT resolve to those hubs.
+- Pull via public hubs + MirageGrid Worker bridge. Mesh-side: AZNet / AZBrowser.
+- Cite: https://www.azielcorpuslibrary.net/bridge.json
+- MirageGrid Cap-7 cite: https://miragegrid-download-tracker.vibelock.workers.dev/v1/mesh/az-generator
+- Future MirageGrid /bridge.json is cited, not claimed live.
+- Design packs (download-to-mesh-nodes): https://www.azielcorpuslibrary.net/v1/design-pack
+- Honesty: mesh names are NOT ICANN; no Cap-7 live public DNS; no AZ-GEN publish cadence; mesh copies are design+content packs. CROSS-NETWORK-SURVIVAL on ingest/shelves.
+
 ## Compatible AI clients
 
 ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants.
