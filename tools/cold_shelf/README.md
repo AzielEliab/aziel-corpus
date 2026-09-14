@@ -12,7 +12,7 @@ node tools/cold_shelf/cli.mjs verify --file docs/lockset.json
 node tools/cold_shelf/cli.mjs registry
 ```
 
-Planes (NO-FAN): **A** = one CF/GitHub tunnel (5 published surfaces / 2 family radii, not 5 shelves). **B** = alternate independent forge/archive tip-pack SLOT (`doi` null; Codeberg hash-verify PASS at https://codeberg.org/AzielEliab/aziel-lockset-tip, still SLOT; archive.org / GitFlic RU unverified). LIVE only after all three. Zenodo tip-pack is refused (`CNS-ZENODO-IP-BAN`). **C** = USB airgap tarball + SHA256SUMS + verify script (primary; SLOT until `CNS-OPERATOR-ATTEST`).
+Planes (NO-FAN): **A** = one CF/GitHub tunnel (5 published surfaces / 2 family radii, not 5 shelves). **B** = alternate independent forge/archive tip-pack SLOT (`doi` null; Codeberg PASS at https://codeberg.org/AzielEliab/aziel-lockset-tip; archive.org PASS at https://archive.org/details/aziel-lockset-tip; third = Framagit OR GitLab, unverified). LIVE only after all three hash-verify vs pack `b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37`. GitFlic optional (`CNS-GITFLIC-EMAIL`). Zenodo tip-pack is refused (`CNS-ZENODO-IP-BAN`). **C** = USB airgap tarball + SHA256SUMS + verify script (primary; SLOT until `CNS-OPERATOR-ATTEST`).
 
 - **export** writes lockset tip, ingest-as-receipt JSON, SHA-256 manifests, and the honest registry.
 - **airgap** writes the Plane C pack (tarball + `SHA256SUMS` + `verify-airgap.sh`).

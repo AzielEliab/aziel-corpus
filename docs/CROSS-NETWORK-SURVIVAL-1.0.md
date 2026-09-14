@@ -34,7 +34,7 @@ One shelf dying is not the last tip gone. That is why vault-on-transfer multipli
 
 DOI here means an independent archival deposit of bytes that already hash. It does not assign this repository a DOI. It does not invent a Zenodo record.
 
-Executable companion: [COLD-MULTI-SHELF-1.0](COLD-MULTI-SHELF-1.0.md) — planes A/B/C (A = one CF/GitHub tunnel, 5 surfaces / 2 family radii; B = alt independent forge/archive tip-pack SLOT; Zenodo refused; C = USB airgap SLOT). Export → hash → verify. Never claim live unless verify passes.
+Executable companion: [COLD-MULTI-SHELF-1.0](COLD-MULTI-SHELF-1.0.md) — planes A/B/C (A = one CF/GitHub tunnel, 5 surfaces / 2 family radii; B = alt independent forge/archive tip-pack SLOT — Codeberg / archive.org / Framagit OR GitLab; GitFlic optional CNS-GITFLIC-EMAIL; Zenodo refused; C = USB airgap SLOT). Export → hash → verify. Never claim live unless verify passes.
 
 ## 3. Survival = bytes↔hash
 

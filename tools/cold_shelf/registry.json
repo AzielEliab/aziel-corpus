@@ -28,13 +28,21 @@
       "working_targets": [
         "codeberg",
         "archive.org",
+        "framagit-or-gitlab"
+      ],
+      "third_target_alternates": [
+        "framagit",
+        "gitlab"
+      ],
+      "optional_targets": [
         "gitflic-ru"
       ],
+      "pack_sha256": "b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37",
       "zenodo_working_path": false,
       "live_ready": false,
       "refuse": "CNS-ZENODO-IP-BAN",
       "checklist": "tools/cold_shelf/ALT-FORGE-TIP-PACK-CHECKLIST.md",
-      "note": "Codeberg + archive.org uploaded + hash-verify PASS (still SLOT). GitFlic RU unverified. LIVE only when all three pass (CNS-PLANE-B-ALL-TARGETS). Zenodo refused (CNS-ZENODO-IP-BAN)."
+      "note": "Codeberg + archive.org uploaded + hash-verify PASS (still SLOT). Third target Framagit OR GitLab unverified. LIVE only when all three pass (CNS-PLANE-B-ALL-TARGETS). GitFlic optional later (CNS-GITFLIC-EMAIL). Zenodo refused (CNS-ZENODO-IP-BAN)."
     },
     "C": {
       "name": "USB airgap + optional second forge",
@@ -135,6 +143,7 @@
     "plane-b-alt-forge-archive",
     "plane-b-codeberg-tip-pack",
     "plane-b-archive-org-tip-pack",
+    "plane-b-framagit-or-gitlab-tip-pack",
     "plane-b-gitflic-ru-tip-pack",
     "plane-c-usb-airgap",
     "plane-c-forge-off-github",
@@ -300,11 +309,19 @@
       "working_targets": [
         "codeberg",
         "archive.org",
+        "framagit-or-gitlab"
+      ],
+      "third_target_alternates": [
+        "framagit",
+        "gitlab"
+      ],
+      "optional_targets": [
         "gitflic-ru"
       ],
+      "pack_sha256": "b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37",
       "refuse": "CNS-NO-FORGE-MIRROR",
       "checklist": "tools/cold_shelf/ALT-FORGE-TIP-PACK-CHECKLIST.md",
-      "reason": "Plane B working shelf is an alternate independent forge/archive tip-pack (Codeberg / archive.org / GitFlic RU). Codeberg + archive.org hash-verify PASS; GitFlic still unverified. SLOT until all three pass. cite.json / lockset doi stay null.",
+      "reason": "Plane B working shelf is an alternate independent forge/archive tip-pack (Codeberg / archive.org / Framagit OR GitLab). Codeberg + archive.org hash-verify PASS; third (Framagit OR GitLab) unverified. SLOT until all three pass. GitFlic optional (CNS-GITFLIC-EMAIL). cite.json / lockset doi stay null.",
       "note": "Not Zenodo. Zenodo is not the Plane B working path (CNS-ZENODO-IP-BAN)."
     },
     {
@@ -331,7 +348,7 @@
       "independent": true,
       "lockset_shelf": true,
       "refuse": "CNS-PLANE-B-ALL-TARGETS",
-      "reason": "Codeberg tip-pack uploaded and hash-verify PASS. SLOT until archive.org + GitFlic RU also hash-verify. Plane B LIVE only when all three working targets pass. doi null."
+      "reason": "Codeberg tip-pack uploaded and hash-verify PASS vs pack b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37. SLOT until Framagit OR GitLab also hash-verify. Plane B LIVE only when Codeberg + archive.org + (Framagit OR GitLab) pass (CNS-PLANE-B-ALL-TARGETS). GitFlic does not block. doi null."
     },
     {
       "id": "plane-b-archive-org-tip-pack",
@@ -358,7 +375,31 @@
       "independent": true,
       "lockset_shelf": true,
       "refuse": "CNS-PLANE-B-ALL-TARGETS",
-      "reason": "archive.org tip-pack uploaded and hash-verify PASS. SLOT until GitFlic RU also hash-verify. Plane B LIVE only when Codeberg + archive.org + GitFlic all pass (CNS-PLANE-B-ALL-TARGETS). doi null."
+      "reason": "archive.org tip-pack uploaded and hash-verify PASS vs pack b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37. SLOT until Framagit OR GitLab also hash-verify. Plane B LIVE only when Codeberg + archive.org + (Framagit OR GitLab) pass (CNS-PLANE-B-ALL-TARGETS). GitFlic does not block. doi null."
+    },
+    {
+      "id": "plane-b-framagit-or-gitlab-tip-pack",
+      "plane": "B",
+      "kind": "git_mirror",
+      "status": "slot",
+      "forge": null,
+      "forges": [
+        "framagit",
+        "gitlab"
+      ],
+      "url": null,
+      "pack_sha256": "b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37",
+      "lockset_tip": "c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245",
+      "hash_verify": null,
+      "tip_verified": false,
+      "live_ready": false,
+      "required_for_plane_b_live": true,
+      "doi": null,
+      "blast_radius": "framagit-or-gitlab",
+      "independent": true,
+      "lockset_shelf": true,
+      "refuse": "CNS-PLANE-B-ALL-TARGETS",
+      "reason": "Third Plane B LIVE-promotion target is Framagit OR GitLab. Hash-verify vs pack b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37. No verified URL in-repo. SLOT. Do not invent a URL. Either Framagit or GitLab is enough. GitFlic does not substitute."
     },
     {
       "id": "plane-b-gitflic-ru-tip-pack",
@@ -367,11 +408,14 @@
       "status": "slot",
       "forge": "gitflic-ru",
       "url": null,
+      "optional": true,
+      "optional_later": true,
+      "required_for_plane_b_live": false,
       "blast_radius": "gitflic-ru",
       "independent": true,
       "lockset_shelf": true,
-      "refuse": "CNS-NO-FORGE-MIRROR",
-      "reason": "GitFlic (RU) tip-pack is a Plane B LIVE-promotion target. No verified URL in-repo. SLOT. Do not invent a URL. LIVE only after tip hash-verify."
+      "refuse": "CNS-GITFLIC-EMAIL",
+      "reason": "GitFlic email confirm link missing (CNS-GITFLIC-EMAIL). Optional later. Not required for Plane B LIVE. SLOT. Do not invent a URL. Do not block Plane B."
     },
     {
       "id": "plane-b-zenodo-tip-pack",
@@ -417,7 +461,7 @@
       "independent": true,
       "lockset_shelf": true,
       "refuse": "CNS-NO-FORGE-MIRROR",
-      "reason": "Optional Plane C second-forge slot. Codeberg / archive.org / GitFlic RU are Plane B working targets, not this slot. No account URL here. SLOT. Do not invent a URL."
+      "reason": "Optional Plane C second-forge slot. Codeberg / archive.org / Framagit-OR-GitLab are Plane B working targets, not this slot. GitFlic is optional Plane B later (CNS-GITFLIC-EMAIL). No account URL here. SLOT. Do not invent a URL."
     },
     {
       "id": "ipfs-lockset",
