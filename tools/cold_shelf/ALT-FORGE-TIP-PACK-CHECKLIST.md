@@ -9,17 +9,17 @@ cite.json / lockset `doi`: **null** (do not invent)
 
 This is a checklist, not a deposit. Plane B is an **alternate independent forge/archive** tip-pack shelf (not Zenodo). Status stays **SLOT** until a real upload exists **and** hash-verify proves the uploaded bytes carry the published tip.
 
-Working shelf targets for later LIVE promotion (do not mark Plane B LIVE until **all three** URL + hash-verify):
+Working shelf targets for later LIVE promotion (AZindex-FAIL pivot 2026-09-14; do not mark Plane B LIVE until **all three** URL + hash-verify):
 
 - Codeberg tip-pack — uploaded https://codeberg.org/AzielEliab/aziel-lockset-tip (`main`). Pack SHA-256 `b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37`. Hash-verify PASS. Shelf stays **SLOT**.
-- archive.org tip-pack — uploaded https://archive.org/details/aziel-lockset-tip. Same pack SHA-256. Hash-verify PASS. Shelf stays **SLOT** until Framagit also hash-verifies.
-- Framagit tip-pack — no verified URL yet. SLOT. Do not invent a URL.
+- archive.org tip-pack — uploaded https://archive.org/details/aziel-lockset-tip. Same pack SHA-256. Hash-verify PASS. Shelf stays **SLOT**.
+- Framagit tip-pack — no verified URL yet. `url` null. SLOT. Awaiting tip-pack. Do not invent a URL.
 
-GitFlic stays **SLOT** (`CNS-GITFLIC-EMAIL`). Optional later. **Not** required for Plane B LIVE.
+GitFlic is **not** a LIVE-promotion target. Confirmation mail never arrived (`CNS-GITFLIC-EMAIL`). Do not invent a GitFlic URL.
 
-GitLab stays extra **SLOT** (`CNS-GITLAB-CF-LOOP`). Optional later. **Not** required for Plane B LIVE.
+GitLab is **not** a LIVE-promotion target. Cloudflare-loop blocked (`CNS-GITLAB-CF-LOOP`). Extra SLOT, `url` null. Do not invent a GitLab URL.
 
-Launchpad and AfricArXiv/OSF stay extra D/E SLOTs (`url` null). They are **not** required for Plane B LIVE.
+Extra E/F/G SLOTs (Launchpad, AfricArXiv/OSF, GitLab) stay `url` null. They are **not** required for Plane B LIVE.
 
 Zenodo is **not** the working path. Operator IP banned (`CNS-ZENODO-IP-BAN`). See `ZENODO-TIP-PACK-CHECKLIST.md`.
 
@@ -30,7 +30,7 @@ node tools/cold_shelf/cli.mjs export --out tools/cold_shelf/out
 node tools/cold_shelf/cli.mjs airgap --out tools/cold_shelf/out/airgap
 ```
 
-Deposit the airgap directory or its `.tar` + `SHA256SUMS` + `verify-airgap.sh`. Do not deposit a paraphrase. Do not invent a Codeberg / archive.org / Framagit URL.
+Deposit the airgap directory or its `.tar` + `SHA256SUMS` + `verify-airgap.sh`. Do not deposit a paraphrase. Do not invent a Codeberg / archive.org / Framagit / GitLab / GitFlic URL.
 
 ## Steps (operator)
 
@@ -45,8 +45,7 @@ Deposit the airgap directory or its `.tar` + `SHA256SUMS` + `verify-airgap.sh`. 
 
 - Invent a URL or DOI to fill Plane B.
 - Mark Plane B LIVE because Codeberg and archive.org hash-verified. Need Framagit too (`CNS-PLANE-B-ALL-TARGETS`).
-- Count GitFlic (`CNS-GITFLIC-EMAIL`) or GitLab (`CNS-GITLAB-CF-LOOP`) as Plane B LIVE substitutes.
-- Count Launchpad / OSF extras as Plane B LIVE substitutes.
+- Count Launchpad / OSF / GitLab extras as Plane B LIVE substitutes. GitLab is `CNS-GITLAB-CF-LOOP`.
 - Reuse paper Zenodo records as the tip-pack. They are companion papers (`reuse_as_plane_b: false`).
 - Treat Zenodo as the Plane B working shelf (`CNS-ZENODO-IP-BAN`).
 - Count Plane A hosts as a substitute for this deposit.

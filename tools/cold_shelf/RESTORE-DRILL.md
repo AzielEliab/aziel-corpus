@@ -35,6 +35,6 @@ That print is the four-field ACT-RECEIPT schema (hash / action / output / metada
 - Mark LIVE from a network-only run or from `restore-drill` schema emit.
 - Treat a search snippet, crawl roster, or Lamb Lens hit as re-expand.
 - Invent an attest receipt or fill the schema as if the drill already ran.
-- Invent a second-forge URL (Framagit stays Plane B SLOT with `url` null; Launchpad / OSF / GitLab extras stay SLOT) to stand in for USB.
+- Invent a second-forge URL (Launchpad / OSF extras stay SLOT; GitLab extra is CNS-GITLAB-CF-LOOP) to stand in for USB.
 
 Refuse codes: `CNS-OPERATOR-ATTEST` · `CNS-NO-FAN-FAKE-DEPOSIT` · `CNS-TRAINING-RESIDUE-RUMOR` · `CNS-NO-FORGE-MIRROR`
