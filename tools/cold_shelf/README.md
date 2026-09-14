@@ -12,14 +12,14 @@ node tools/cold_shelf/cli.mjs verify --file docs/lockset.json
 node tools/cold_shelf/cli.mjs registry
 ```
 
-Planes (NO-FAN): **A** = one CF/GitHub tunnel, four host mirrors. **B** = Zenodo tip-pack SLOT (`doi` null). **C** = USB airgap tarball + SHA256SUMS + verify script (primary); optional Codeberg/GitLab SLOT (no URL).
+Planes (NO-FAN): **A** = one CF/GitHub tunnel (5 published surfaces / 2 family radii, not 5 shelves). **B** = alternate independent forge/archive tip-pack SLOT (`doi` null; Codeberg hash-verify PASS at https://codeberg.org/AzielEliab/aziel-lockset-tip, still SLOT; archive.org / GitFlic RU unverified). LIVE only after all three. Zenodo tip-pack is refused (`CNS-ZENODO-IP-BAN`). **C** = USB airgap tarball + SHA256SUMS + verify script (primary; SLOT until `CNS-OPERATOR-ATTEST`).
 
 - **export** writes lockset tip, ingest-as-receipt JSON, SHA-256 manifests, and the honest registry.
 - **airgap** writes the Plane C pack (tarball + `SHA256SUMS` + `verify-airgap.sh`).
 - **verify** is cheap yes/no against the published lockset tip (`AZLOCK-INGEST-REEXPAND-1.0`).
 - **registry** lists planes A/B/C and `live | slot | refused` kinds.
 
-Plane B checklist: `ZENODO-TIP-PACK-CHECKLIST.md`. Do not invent a DOI. Paper Zenodo records are not the tip-pack unless hash-verify proves they carry the tip.
+Plane B checklist: `ALT-FORGE-TIP-PACK-CHECKLIST.md`. Do not invent a URL or DOI. Paper deposits are not tip-pack Plane B. Zenodo refused note: `ZENODO-TIP-PACK-CHECKLIST.md`. USB attest: `USB-AIRGAP-ATTEST.md`.
 
 Do not invent IPFS CIDs or archive.org items. Lockset `doi` stays null. AZ Generator / MirageGrid Cap-7 live ICANN publish is not this repo. Neighbor-vote heal is refused.
 

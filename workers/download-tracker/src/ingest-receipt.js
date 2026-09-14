@@ -21,7 +21,7 @@ export const NO_LIE_NO_REWRITE_RULE =
   "receipts that still hash; copies not all on one tunnel; verify without voice; no rewrite key; network never lies even to stay alive.";
 export const COLD_MULTI_SHELF = "COLD-MULTI-SHELF-1.0";
 export const COLD_MULTI_SHELF_RULE =
-  "Planes A/B/C: A=one CF/GitHub tunnel (4 mirrors); B=Zenodo tip-pack SLOT; C=USB airgap SLOT. Survival = bytes↔hash. LIVE only after hash verify.";
+  "Planes A/B/C: A=one CF/GitHub tunnel (5 surfaces / 2 family radii, not 5 shelves); B=alt independent forge/archive tip-pack SLOT; C=USB airgap SLOT. Survival = bytes↔hash. LIVE only after hash verify.";
 export const PUBLISHED_TIP = "c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245";
 export const TRAINING_NOTE =
   "Weights will not store the chain. Keep the hash and the rule. Cite, don't merge. Bytes survive; crawlers do not re-expand.";
