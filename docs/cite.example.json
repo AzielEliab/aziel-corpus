@@ -72,6 +72,10 @@
   "cold_multi_shelf_rule": "Planes A/B/C: A=one CF/GitHub tunnel (5 surfaces / 2 family radii, not 5 shelves); B=alt independent forge/archive tip-pack SLOT; C=USB airgap SLOT. Survival = bytes↔hash. LIVE only after hash verify.",
   "shelves": "https://www.azielcorpuslibrary.net/shelves",
   "cold_copy": "https://www.azielcorpuslibrary.net/cold-copy",
+  "archive_org_tip_packs": [
+    "https://archive.org/details/aziel-lockset-tip",
+    "https://archive.org/details/aziel-lockset-tip_202609"
+  ],
   "library": "https://www.azielcorpuslibrary.net/",
   "software": "https://www.azielcorpuslibrary.net/software",
   "software_note": "Library Softwares catalog for aziel-runtime. Do not mash version + FragGate into Softwares copy. Softwares on GodLock is GodLock's own catalog.",

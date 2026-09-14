@@ -177,6 +177,11 @@ test("cite.json, llms.txt, ai.txt, robots, sitemap carry the tip and keep crawle
   assert.equal(cite.author, "Aziel Eliab");
   const fields = ingestReceiptCite();
   assert.equal(fields.lockset_tip, LOCKSET_TIP);
+  assert.deepEqual(fields.archive_org_tip_packs, [
+    "https://archive.org/details/aziel-lockset-tip",
+    "https://archive.org/details/aziel-lockset-tip_202609",
+  ]);
+  assert.match(ingestReceiptLlmsBlock(), /aziel-lockset-tip_202609/);
 
   const llms = llmsDoc("LIMIT");
   assert.match(llms, new RegExp(LOCKSET_TIP));
