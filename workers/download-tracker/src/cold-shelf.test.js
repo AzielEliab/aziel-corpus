@@ -20,6 +20,7 @@ import {
   claimShelfLive,
   exportPack,
   hashManifestFromMap,
+  CODEBERG_TIP_PACK,
   FAMILY_BLAST_RADII,
   PLANE_B_WORKING_TARGETS,
   PUBLISHED_SURFACE_IDS,
@@ -36,6 +37,7 @@ import {
   judgeTrainingResidueShelf,
   judgeZenodoTipReuse,
   liveShelves,
+  planeBLiveReady,
   planeRows,
   refusedShelves,
   shelfRegistryDoc,
@@ -122,7 +124,23 @@ test("COLD-MULTI-SHELF planes A/B/C: one LIVE tunnel, alt-forge SLOT, Zenodo ref
   assert.equal(claimShelfLive(alt).live, false);
   assert.match(alt.note, /Not Zenodo/);
 
-  for (const id of ["plane-b-codeberg-tip-pack", "plane-b-archive-org-tip-pack", "plane-b-gitflic-ru-tip-pack"]) {
+  const codeberg = SHELF_REGISTRY.find((s) => s.id === "plane-b-codeberg-tip-pack");
+  assert.equal(codeberg.plane, "B");
+  assert.equal(codeberg.status, "slot");
+  assert.equal(codeberg.url, CODEBERG_TIP_PACK.url);
+  assert.equal(codeberg.branch, "main");
+  assert.equal(codeberg.hash_verify, "pass");
+  assert.equal(codeberg.tip_verified, true);
+  assert.equal(codeberg.live_ready, false);
+  assert.equal(codeberg.doi, null);
+  assert.equal(codeberg.pack_sha256, CODEBERG_TIP_PACK.pack_sha256);
+  assert.equal(codeberg.lockset_tip, CODEBERG_TIP_PACK.lockset_tip);
+  assert.deepEqual(codeberg.files, CODEBERG_TIP_PACK.files);
+  assert.equal(codeberg.refuse, REFUSE.PLANE_B_ALL_TARGETS);
+  assert.equal(claimShelfLive(codeberg).live, false);
+  assert.equal(planeBLiveReady(), false);
+
+  for (const id of ["plane-b-archive-org-tip-pack", "plane-b-gitflic-ru-tip-pack"]) {
     const row = SHELF_REGISTRY.find((s) => s.id === id);
     assert.equal(row.plane, "B", id);
     assert.equal(row.status, "slot", id);
@@ -183,6 +201,7 @@ test("COLD-MULTI-SHELF planes A/B/C: one LIVE tunnel, alt-forge SLOT, Zenodo ref
   assert.equal(reg.planes.B.doi, null);
   assert.equal(reg.planes.B.name, "alternate independent forge/archive tip-pack");
   assert.equal(reg.planes.B.zenodo_working_path, false);
+  assert.equal(reg.planes.B.live_ready, false);
   assert.equal(reg.planes.B.refuse, REFUSE.ZENODO_IP_BAN);
   assert.equal(reg.planes.C.status, "slot");
   assert.ok(reg.planes.C.refuse.includes(REFUSE.OPERATOR_ATTEST));
@@ -317,6 +336,8 @@ test("refuse invented PHY/DNS/ICANN, neighbor-vote heal, Cap-7/AZ-GEN overclaim"
   assert.equal(judgeInventedDeposit({ kind: "zenodo_doi" }).reason, REFUSE.ZENODO_IP_BAN);
   assert.equal(judgeInventedDeposit({ kind: "git_mirror", plane: "C", url: "https://codeberg.org/fake/aziel" }).reason, REFUSE.NO_FORGE);
   assert.equal(judgeInventedDeposit({ kind: "git_mirror", plane: "B", url: "https://codeberg.org/fake/aziel" }).reason, REFUSE.NO_FORGE);
+  assert.equal(judgeInventedDeposit({ kind: "git_mirror", plane: "B", invent_url: true }).reason, REFUSE.NO_FORGE);
+  assert.equal(judgeInventedDeposit({ kind: "git_mirror", plane: "B", url: CODEBERG_TIP_PACK.url }).accept, true);
   assert.equal(judgeInventedDeposit({ kind: "not-a-kind" }).reason, REFUSE.UNKNOWN_KIND);
   assert.equal(judgeTrainingResidueShelf({ training_residue: true }).reason, REFUSE.TRAINING_RUMOR);
   assert.equal(judgeTrainingResidueShelf({ weights: true }).rumor, true);

@@ -48,7 +48,8 @@ Git on the same plane: https://github.com/AzielEliab/aziel-corpus (tags `v2.6.2`
 
 Build the export pack. Upload that pack to an independent forge or archive. Then, and only then, write the real URL after hash-verify.
 
-- Working targets for LIVE promotion: Codeberg, archive.org, GitFlic (RU). Status `slot` until hash-verify. Do not invent a URL.
+- Working targets for LIVE promotion: Codeberg, archive.org, GitFlic (RU). Plane B stays `slot` until **all three** hash-verify. Do not invent a URL.
+- Codeberg tip-pack is uploaded at https://codeberg.org/AzielEliab/aziel-lockset-tip (`main`). Pack SHA-256 `b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37`. Hash-verify PASS against the published lockset tip. Status remains `slot` (`CNS-PLANE-B-ALL-TARGETS`).
 - Zenodo tip-pack is `refused` (`CNS-ZENODO-IP-BAN`, and `CNS-NO-TIP-DOI` remains accurate). Not the working shelf.
 - Lockset / cite `doi` stays `null`.
 - Existing Aziel Eliab paper deposits are companion paper cites. `reuse_as_plane_b: false`. They are not LIVE tip shelves.

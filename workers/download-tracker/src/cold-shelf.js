@@ -145,6 +145,7 @@ export const REFUSE = Object.freeze({
   NO_FORGE: "CNS-NO-FORGE-MIRROR",
   PLANE_A_ONE_TUNNEL: "CNS-PLANE-A-ONE-TUNNEL",
   SURFACES_NOT_INDEPENDENT: "CNS-SURFACES-NOT-INDEPENDENT",
+  PLANE_B_ALL_TARGETS: "CNS-PLANE-B-ALL-TARGETS",
 });
 
 /** Identity / core law docs hashed by the CLI export. Paths are repo-root relative. */
@@ -178,6 +179,14 @@ export const PUBLISHED_SURFACE_IDS = Object.freeze([
 export const FAMILY_BLAST_RADII = Object.freeze(["cloudflare", "github"]);
 
 export const PLANE_B_WORKING_TARGETS = Object.freeze(["codeberg", "archive.org", "gitflic-ru"]);
+
+export const CODEBERG_TIP_PACK = Object.freeze({
+  url: "https://codeberg.org/AzielEliab/aziel-lockset-tip",
+  branch: "main",
+  files: Object.freeze(["aziel-tip-pack.tar", "SHA256SUMS", "lockset.json", "verify-airgap.sh"]),
+  pack_sha256: "b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37",
+  lockset_tip: "c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245",
+});
 
 export const USB_ATTEST_PATH =
   "USB offline-verify before LIVE: copy the airgap pack off-network, run verify-airgap.sh / sha256sum -c SHA256SUMS against the published tip, then operator attest (CNS-OPERATOR-ATTEST).";
@@ -254,7 +263,7 @@ export const SHELF_REGISTRY = Object.freeze([
     working_targets: PLANE_B_WORKING_TARGETS,
     refuse: REFUSE.NO_FORGE,
     checklist: "tools/cold_shelf/ALT-FORGE-TIP-PACK-CHECKLIST.md",
-    reason: "Plane B working shelf is an alternate independent forge/archive tip-pack (Codeberg / archive.org / GitFlic RU). SLOT until a real upload hash-verifies. Do not invent a URL. cite.json / lockset doi stay null.",
+    reason: "Plane B working shelf is an alternate independent forge/archive tip-pack (Codeberg / archive.org / GitFlic RU). Codeberg hash-verify PASS; archive.org + GitFlic still unverified. SLOT until all three pass. cite.json / lockset doi stay null.",
     note: "Not Zenodo. Zenodo is not the Plane B working path (CNS-ZENODO-IP-BAN).",
   }),
   Object.freeze({
@@ -263,12 +272,20 @@ export const SHELF_REGISTRY = Object.freeze([
     kind: "git_mirror",
     status: "slot",
     forge: "codeberg",
-    url: null,
+    url: CODEBERG_TIP_PACK.url,
+    branch: CODEBERG_TIP_PACK.branch,
+    files: CODEBERG_TIP_PACK.files,
+    pack_sha256: CODEBERG_TIP_PACK.pack_sha256,
+    lockset_tip: CODEBERG_TIP_PACK.lockset_tip,
+    hash_verify: "pass",
+    tip_verified: true,
+    live_ready: false,
+    doi: null,
     blast_radius: "codeberg",
     independent: true,
     lockset_shelf: true,
-    refuse: REFUSE.NO_FORGE,
-    reason: "Codeberg tip-pack is a Plane B LIVE-promotion target. No verified URL in-repo. SLOT. Do not invent a URL. LIVE only after tip hash-verify.",
+    refuse: REFUSE.PLANE_B_ALL_TARGETS,
+    reason: "Codeberg tip-pack uploaded and hash-verify PASS. SLOT until archive.org + GitFlic RU also hash-verify. Plane B LIVE only when all three working targets pass. doi null.",
   }),
   Object.freeze({
     id: "plane-b-archive-org-tip-pack",
@@ -393,6 +410,20 @@ export function independentRequirementMet(rows = SHELF_REGISTRY) {
 
 export function planeRows(plane, rows = SHELF_REGISTRY) {
   return rows.filter((s) => s && s.plane === plane);
+}
+
+export const PLANE_B_TARGET_IDS = Object.freeze([
+  "plane-b-codeberg-tip-pack",
+  "plane-b-archive-org-tip-pack",
+  "plane-b-gitflic-ru-tip-pack",
+]);
+
+/** Plane B LIVE only after Codeberg + archive.org + GitFlic all hash-verify. */
+export function planeBLiveReady(rows = SHELF_REGISTRY) {
+  return PLANE_B_TARGET_IDS.every((id) => {
+    const s = rows.find((row) => row && row.id === id);
+    return s && s.hash_verify === "pass" && s.tip_verified === true && s.url;
+  });
 }
 
 export function judgePlaneAMirrors(input) {
@@ -597,14 +628,15 @@ export function judgeInventedDeposit(input) {
     return judgeZenodoTipReuse(src);
   }
   if (kind === "git_mirror" && (src.invent_url === true || String(src.url || "").trim()) && (src.plane === "B" || src.plane === "C")) {
-    const listed = SHELF_REGISTRY.some((s) => s.plane === src.plane && s.kind === "git_mirror" && s.url);
-    if (!listed) {
+    const url = String(src.url || "").trim();
+    const listed = SHELF_REGISTRY.some((s) => s.plane === src.plane && s.kind === "git_mirror" && s.url && s.url === url);
+    if (!listed || src.invent_url === true) {
       return {
         accept: false,
         action: "refuse",
         reason: REFUSE.NO_FORGE,
         note: src.plane === "B"
-          ? "No verified Codeberg / GitFlic URL. Plane B stays SLOT. Do not invent a URL."
+          ? "Only the listed verified forge URL is allowed. Do not invent a Codeberg / GitFlic URL. Plane B stays SLOT until all three targets hash-verify."
           : "No second-forge account. Do not invent a URL.",
       };
     }
@@ -716,9 +748,10 @@ export function shelfRegistryDoc(host = HOST) {
         doi: null,
         working_targets: PLANE_B_WORKING_TARGETS.slice(),
         zenodo_working_path: false,
+        live_ready: planeBLiveReady(),
         refuse: REFUSE.ZENODO_IP_BAN,
         checklist: "tools/cold_shelf/ALT-FORGE-TIP-PACK-CHECKLIST.md",
-        note: "Codeberg / archive.org / GitFlic RU are LIVE-promotion targets. SLOT until tip hash-verify. Do not invent URLs. Zenodo tip-pack is refused (CNS-ZENODO-IP-BAN).",
+        note: "Codeberg uploaded + hash-verify PASS (still SLOT). archive.org + GitFlic RU unverified. LIVE only when all three pass (CNS-PLANE-B-ALL-TARGETS). Zenodo refused (CNS-ZENODO-IP-BAN).",
       },
       C: {
         name: "USB airgap + optional second forge",

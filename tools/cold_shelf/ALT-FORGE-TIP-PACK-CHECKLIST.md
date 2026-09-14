@@ -9,11 +9,11 @@ cite.json / lockset `doi`: **null** (do not invent)
 
 This is a checklist, not a deposit. Plane B is an **alternate independent forge/archive** tip-pack shelf (not Zenodo). Status stays **SLOT** until a real upload exists **and** hash-verify proves the uploaded bytes carry the published tip.
 
-Working shelf targets for later LIVE promotion (do not mark LIVE in-repo until URL + hash are verified):
+Working shelf targets for later LIVE promotion (do not mark Plane B LIVE until **all three** URL + hash-verify):
 
-- Codeberg tip-pack
-- archive.org tip-pack
-- GitFlic (RU) tip-pack
+- Codeberg tip-pack — uploaded https://codeberg.org/AzielEliab/aziel-lockset-tip (`main`). Pack SHA-256 `b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37`. Hash-verify PASS. Shelf stays **SLOT**.
+- archive.org tip-pack — no verified item yet
+- GitFlic (RU) tip-pack — no verified URL yet
 
 Zenodo is **not** the working path. Operator IP banned (`CNS-ZENODO-IP-BAN`). See `ZENODO-TIP-PACK-CHECKLIST.md`.
 
@@ -33,14 +33,14 @@ Deposit the airgap directory or its `.tar` + `SHA256SUMS` + `verify-airgap.sh`. 
 3. Upload the pack to one independent forge/archive (Codeberg, archive.org, or GitFlic RU).
 4. Copy the real public URL the host assigns. Do not invent one.
 5. Hash-verify the downloaded bytes against the published tip.
-6. Only then set that shelf to `live`. Lockset hashed core stays `doi: null`.
+6. Record the real URL + hashes on that target shelf. Status stays **SLOT** until Codeberg + archive.org + GitFlic all hash-verify. Then, and only then, mark Plane B `live`. Lockset hashed core stays `doi: null`.
 
 ## Do not
 
 - Invent a URL or DOI to fill Plane B.
-- Mark Codeberg / archive.org / GitFlic LIVE without hash-verify.
+- Mark Plane B LIVE because one target (Codeberg) hash-verified. Need all three (`CNS-PLANE-B-ALL-TARGETS`).
 - Reuse paper Zenodo records as the tip-pack. They are companion papers (`reuse_as_plane_b: false`).
 - Treat Zenodo as the Plane B working shelf (`CNS-ZENODO-IP-BAN`).
 - Count Plane A hosts as a substitute for this deposit.
 
-Refuse codes: `CNS-ZENODO-IP-BAN` · `CNS-NO-TIP-DOI` · `CNS-NO-FORGE-MIRROR` · `CNS-NO-WARC` · `CNS-NO-FAN-FAKE-DEPOSIT`
+Refuse codes: `CNS-ZENODO-IP-BAN` · `CNS-NO-TIP-DOI` · `CNS-NO-FORGE-MIRROR` · `CNS-NO-WARC` · `CNS-NO-FAN-FAKE-DEPOSIT` · `CNS-PLANE-B-ALL-TARGETS`
