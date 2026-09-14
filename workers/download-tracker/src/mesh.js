@@ -1158,11 +1158,7 @@ export async function handleMeshApi(request, url, env) {
 
 export function meshStatusHtml(doc) {
   const label = liveNodesLabel(doc);
-<<<<<<< HEAD
   return `<a class="pill ok" id="aziel-live-nodes" href="/v1/mesh/status" title="Suite mesh rollup (counts/status). Not the cell. Cold copies survive a pull. CROSS-NETWORK-SURVIVAL-1.0: if the network dies, the chain survives (bytes↔hash). Crawlers are extra shelves, not resurrection. Re-expand is archive restore (MESH-REEXPAND-1.0). Reheal is self tip + trusted pull or phoenix-WAIT, never neighbor majority (MESH-REHEAL-1.0). Read-only QNM ON. GET never enables. Author Aziel Eliab.">${esc(label)}</a>`;
-=======
-  return `<a class="pill ok" id="aziel-live-nodes" href="/v1/mesh/status" title="Suite mesh rollup (counts/status). Not the cell. Cold copies survive a pull. CROSS-NETWORK-SURVIVAL-1.0: if the network dies, the chain survives (bytes↔hash). Crawlers are extra shelves, not resurrection. Read-only QNM ON. GET never enables. Author Aziel Eliab.">${esc(label)}</a>`;
->>>>>>> 0664134 (Keep cold-copy pull wording on Live Nodes chrome.)
 }
 
 export function meshRefreshScript() {
