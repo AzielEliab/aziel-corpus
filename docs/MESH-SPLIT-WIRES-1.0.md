@@ -5,7 +5,7 @@ Spec id: MESH-SPLIT-WIRES-1.0
 Date: 2026-09-14
 License: Apache-2.0
 Amends: MESH-VAULT-1.0, MESH-CONTINUE-1.0, TUN-BOOT-1.0, TUN-WP-0.1
-Neighbors: QNM-WP-1.0, NODE-OPS-1.0, QNM-BUILD-1.0, QNS-CD-1.0, ACT-RECEIPT-1.0, ChainLock CL-0.4, MESH-COLD-COPY-1.0
+Neighbors: QNM-WP-1.0, NODE-OPS-1.0, QNM-BUILD-1.0, QNS-CD-1.0, ACT-RECEIPT-1.0, ChainLock CL-0.4, MESH-COLD-COPY-1.0, MESH-REEXPAND-1.0, MESH-REHEAL-1.0
 Keeps: die-with-pull (PR #87) — sites pulled → public rollup is down; Phoenix does not restore a public hostname
 Not a VPN. Not an IP-mask product. Not an untraceable-origin path. Not a claim that the public Worker is the cell.
 
@@ -56,6 +56,8 @@ Same `prev`, two different tips → lock / isolate that node. Quorum cannot outv
 
 Phoenix is wait / re-seal after poison or isolation. It is local to the failed node only. It does not hunt a controller. It does not restore a public hostname. It does not climb the mesh back onto a pulled site (die-with-pull). Sites pulled → public rollup is down → local node can keep verifying and appending.
 
+MESH-REHEAL-1.0 names that pair: reheal of a poisoned live node is self tip + trusted pull, or phoenix-WAIT. Never neighbor majority. Archive restore is MESH-REEXPAND-1.0 — a different door.
+
 ## 7. Partition
 
 No auto-splice of a split-brain. Rejoin = cite + operator / lockset. Heartbeat loss ≠ poison ≠ apply last packet. Stay on the local vault when named origins miss (MESH-CONTINUE-1.0). Named-host walk finds answers that are still up. It is not cell rejoin and not resurrection of a pulled host.
@@ -66,4 +68,4 @@ This library Worker may cite the law and show Live Nodes · N. It may not run th
 
 ## 9. Cap
 
-Die-with-pull stays. Named hosts only. No VPN. No unmarked tunnel hydra. No sender fan-out of bodies. No timer-as-yes. No quorum over a broken hash. Identity: Aziel Eliab only.
+Die-with-pull stays. Named hosts only. No VPN. No unmarked tunnel hydra. No sender fan-out of bodies. No timer-as-yes. No quorum over a broken hash. Reheal is not neighbor majority. Re-expand is archive restore. Identity: Aziel Eliab only.
