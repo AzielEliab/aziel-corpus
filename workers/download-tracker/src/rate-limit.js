@@ -141,6 +141,7 @@ const SEO_PATHS = new Set([
   "/sigil.png",
   "/humans.txt",
   "/cite.json",
+  "/lockset.json",
   "/person.jsonld",
   "/identity.jsonld",
   "/graph.jsonld",

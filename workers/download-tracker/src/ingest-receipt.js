@@ -69,6 +69,7 @@ export function locksetDoc() {
     no_rewrite: NO_REWRITE,
     no_lie_no_rewrite: NO_LIE_NO_REWRITE,
     no_lie_no_rewrite_rule: NO_LIE_NO_REWRITE_RULE,
+    no_lie_spec: "NO-LIE-NO-REWRITE-1.0",
   };
 }
 
@@ -84,6 +85,7 @@ export function survivalCiteFields() {
     no_rewrite: NO_REWRITE,
     no_lie_no_rewrite: NO_LIE_NO_REWRITE,
     no_lie_no_rewrite_rule: NO_LIE_NO_REWRITE_RULE,
+    no_lie_spec: "NO-LIE-NO-REWRITE-1.0",
   };
 }
 

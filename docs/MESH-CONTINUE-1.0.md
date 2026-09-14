@@ -5,7 +5,7 @@ Spec id: MESH-CONTINUE-1.0
 Date: 2026-09-14
 License: Apache-2.0
 Amends: MESH-VAULT-1.0, MESH-SPLIT-WIRES-1.0, MESH-COLD-COPY-1.0, MESH-REEXPAND-1.0, MESH-REHEAL-1.0
-Neighbors: TUN-WP-0.1, QNM-WP-1.0, NODE-OPS-1.0 phoenix loop, ACT-RECEIPT-1.0, GodLock
+Neighbors: TUN-WP-0.1, QNM-WP-1.0, NODE-OPS-1.0 phoenix loop, ACT-RECEIPT-1.0, GodLock, NO-LIE-NO-REWRITE-1.0
 Umbrella: CROSS-NETWORK-SURVIVAL-1.0 — if the network and live data die tomorrow, the chain still survives on cold copies (bytes↔hash)
 Not a VPN. Not an IP-mask product. Not an untraceable-origin path. Not a hydra of anonymous hosts. Public Worker rollup is counts/status — not the cell. Not live body sync. Not crawler resurrection.
 
