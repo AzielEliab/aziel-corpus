@@ -135,8 +135,9 @@ test("public cite.json / shelves / llms mention FoldLock honestly", () => {
   assert.equal(cite.foldlock.encryption, false);
   assert.match(cite.foldlock.github, /foldlock/);
   assert.match(cite.foldlock.fraggate_describe, /slug=foldlock/);
+  assert.match(cite.foldlock.redline, /not encryption/);
   assert.doesNotMatch(JSON.stringify(cite.foldlock), BANNED);
-  assert.doesNotMatch(JSON.stringify(cite.foldlock), /encrypt/i);
+  assert.doesNotMatch(JSON.stringify(cite.foldlock), /zip encryption/i);
 
   const shelves = shelvesDoc();
   assert.equal(shelves.spec, COLD_MULTI_SHELF_SPEC);
