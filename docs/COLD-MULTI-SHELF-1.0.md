@@ -13,7 +13,7 @@ Not a Softwares-tab product. Not four independent Cloudflare hosts. Not five ind
 
 ## 0. Sentence
 
-CROSS-NETWORK-SURVIVAL is not an essay. Survival planes are **A / B / C**. Plane A is one CF/GitHub tunnel: four host mirrors + git = **5 published surfaces** and **2 family radii** (Cloudflare + GitHub), counted as **one** independent live (`cf-github`). Plane B is an alternate independent forge/archive **tip-pack** (Codeberg / archive.org / GitFlic RU; SLOT until a real upload hash-verifies). Zenodo is not the working path (`CNS-ZENODO-IP-BAN`). Plane C is the offline USB airgap pack (tarball + SHA256SUMS + verify script), SLOT until operator attest (`CNS-OPERATOR-ATTEST`). Survival is bytes↔hash. LIVE only after hash verify. Never invent a DOI.
+CROSS-NETWORK-SURVIVAL is not an essay. Survival planes are **A / B / C**. Plane A is one CF/GitHub tunnel: four host mirrors + git = **5 published surfaces** and **2 family radii** (Cloudflare + GitHub), counted as **one** independent live (`cf-github`). Plane B is an alternate independent forge/archive **tip-pack** (Codeberg / archive.org / Framagit OR GitLab; SLOT until all three hash-verify). GitFlic is optional later (`CNS-GITFLIC-EMAIL`) and does not block Plane B LIVE. Zenodo is not the working path (`CNS-ZENODO-IP-BAN`). Plane C is the offline USB airgap pack (tarball + SHA256SUMS + verify script), SLOT until operator attest (`CNS-OPERATOR-ATTEST`). Survival is bytes↔hash. LIVE only after hash verify. Never invent a URL or DOI.
 
 ## 1. Mandate (NO-FAN)
 
@@ -26,7 +26,7 @@ Paper archive records are not Plane B. cite.json / lockset `doi` stay `null`. Do
 | Plane | Job | Status today |
 | --- | --- | --- |
 | **A** | LIVE multi-host, same tunnel. Four mirrors + git on one CF/GitHub plane. Tip / receipts / shelves registry on all four. 5 published surfaces / 2 family radii. | LIVE as **one** independent plane |
-| **B** | Public off-CF alternate independent forge/archive tip-pack (Codeberg / archive.org / GitFlic RU). | SLOT — no verified URL yet. Zenodo refused (`CNS-ZENODO-IP-BAN`) |
+| **B** | Public off-CF alternate independent forge/archive tip-pack (Codeberg / archive.org / Framagit OR GitLab). | SLOT — Codeberg + archive.org PASS; third (Framagit OR GitLab) unverified. GitFlic optional (`CNS-GITFLIC-EMAIL`). Zenodo refused (`CNS-ZENODO-IP-BAN`) |
 | **C** | Offline / optional extra forge. USB airgap export is primary. | SLOT — pack is executable; airgap copy not attested (`CNS-OPERATOR-ATTEST`) |
 
 ≥3 independent shelves means A + B + C all LIVE after hash verify. Today only A is LIVE. `independent_live_count` is 1. `independent_requirement_met` is false until B and C verify.
@@ -48,8 +48,11 @@ Git on the same plane: https://github.com/AzielEliab/aziel-corpus (tags `v2.6.2`
 
 Build the export pack. Upload that pack to an independent forge or archive. Then, and only then, write the real URL after hash-verify.
 
-- Working targets for LIVE promotion: Codeberg, archive.org, GitFlic (RU). Plane B stays `slot` until **all three** hash-verify. Do not invent a URL.
-- Codeberg tip-pack is uploaded at https://codeberg.org/AzielEliab/aziel-lockset-tip (`main`). Pack SHA-256 `b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37`. Hash-verify PASS against the published lockset tip. Status remains `slot` (`CNS-PLANE-B-ALL-TARGETS`).
+- Working targets for LIVE promotion: Codeberg, archive.org, and **Framagit OR GitLab**. All three must hash-verify vs pack `b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37`. Plane B stays `slot` until all three pass (`CNS-PLANE-B-ALL-TARGETS`). Do not invent a URL.
+- Codeberg tip-pack is uploaded at https://codeberg.org/AzielEliab/aziel-lockset-tip (`main`). Pack SHA-256 `b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37`. Hash-verify PASS. Status remains `slot`.
+- archive.org tip-pack is uploaded at https://archive.org/details/aziel-lockset-tip (identifier `aziel-lockset-tip`). Same pack SHA-256. Hash-verify PASS. Status remains `slot`.
+- Third target is Framagit **or** GitLab. No verified URL in-repo. SLOT. Either forge is enough. Do not invent a URL.
+- GitFlic (RU) is `slot` / refuse `CNS-GITFLIC-EMAIL` (email confirm link missing). Optional later. **Not required** for Plane B LIVE. Do not block Plane B on GitFlic.
 - Zenodo tip-pack is `refused` (`CNS-ZENODO-IP-BAN`, and `CNS-NO-TIP-DOI` remains accurate). Not the working shelf.
 - Lockset / cite `doi` stays `null`.
 - Existing Aziel Eliab paper deposits are companion paper cites. `reuse_as_plane_b: false`. They are not LIVE tip shelves.
@@ -61,7 +64,7 @@ Refuse invented DOIs and invented forge URLs (`CNS-NO-FAN-FAKE-DEPOSIT`, `CNS-NO
 
 Primary: `node tools/cold_shelf/cli.mjs airgap` writes a tarball + `SHA256SUMS` + `verify-airgap.sh`. Copy those bytes off-network. USB offline-verify (`verify-airgap.sh` / `sha256sum -c SHA256SUMS` against the published tip), then operator attest. The shelf is LIVE only after `CNS-OPERATOR-ATTEST`. Checklist: `tools/cold_shelf/USB-AIRGAP-ATTEST.md`.
 
-Optional extra forge slot remains empty. Codeberg / GitFlic are Plane B working targets, not a substitute for USB attest. Do not invent a URL (`CNS-NO-FORGE-MIRROR`).
+Optional extra forge slot remains empty. Codeberg / archive.org / Framagit-OR-GitLab are Plane B working targets, not a substitute for USB attest. Do not invent a URL (`CNS-NO-FORGE-MIRROR`).
 
 ## 3. Kinds and statuses
 
@@ -95,4 +98,4 @@ AZ Generator is MirageGrid Cap-7 mesh DNS factory — **not this repo**. Refuse 
 
 ## 7. Cap
 
-Plane A is one LIVE CF/GitHub tunnel (5 published surfaces / 2 family radii / 1 independent live). Plane B is an alt independent forge/archive SLOT until a real tip-pack hash-verifies. Zenodo is refused (`CNS-ZENODO-IP-BAN`). Plane C is the USB airgap pack (SLOT until attested). Survival is bytes↔hash. Identity: Aziel Eliab only.
+Plane A is one LIVE CF/GitHub tunnel (5 published surfaces / 2 family radii / 1 independent live). Plane B is an alt independent forge/archive SLOT until Codeberg + archive.org + (Framagit OR GitLab) hash-verify. GitFlic is optional (`CNS-GITFLIC-EMAIL`). Zenodo is refused (`CNS-ZENODO-IP-BAN`). Plane C is the USB airgap pack (SLOT until attested). Survival is bytes↔hash. Identity: Aziel Eliab only.

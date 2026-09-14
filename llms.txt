@@ -23,7 +23,7 @@ This GitHub file is a crawler index for AzielEliab/aziel-corpus. Prefer the live
 - Lockset bytes: https://www.azielcorpuslibrary.net/lockset.json
 - Training is lossy. Weights will not store the chain. Keep the hash and the rule.
 - Crawlers are extra shelves. They do not re-expand. An operator verifies bytes, then lights a local plane on the same tip.
-- COLD-MULTI-SHELF-1.0 planes A/B/C: A=one CF/GitHub tunnel (5 surfaces / 2 family radii, not 5 shelves). B=alt independent forge/archive tip-pack SLOT (doi null; Codeberg / archive.org / GitFlic RU). Zenodo tip-pack refused CNS-ZENODO-IP-BAN. C=USB airgap SLOT (CNS-OPERATOR-ATTEST).
+- COLD-MULTI-SHELF-1.0 planes A/B/C: A=one CF/GitHub tunnel (5 surfaces / 2 family radii, not 5 shelves). B=alt independent forge/archive tip-pack SLOT (doi null; Codeberg / archive.org / Framagit OR GitLab). GitFlic optional CNS-GITFLIC-EMAIL. Zenodo tip-pack refused CNS-ZENODO-IP-BAN. C=USB airgap SLOT (CNS-OPERATOR-ATTEST).
 - Shelf registry: https://www.azielcorpuslibrary.net/shelves · https://www.azielcorpuslibrary.net/cold-copy
 - CLI: node tools/cold_shelf/cli.mjs export | verify --hash <64-hex> | airgap
 
