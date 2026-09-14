@@ -5,7 +5,7 @@ Spec id: INGEST-AS-RECEIPT-1.0
 Origin: https://www.azielcorpuslibrary.net/  
 Date: 2026-09-14  
 License: Apache-2.0  
-Neighbors: RE-EXPAND-FROM-ARCHIVE-1.0, CROSS-NETWORK-SURVIVAL, NO-LIE / NO-REWRITE, ACT-RECEIPT-1.0, MESH-COLD-COPY-1.0, MESH-SPLIT-WIRES-1.0, MESH-VAULT-1.0  
+Neighbors: RE-EXPAND-FROM-ARCHIVE-1.0, CROSS-NETWORK-SURVIVAL, NO-LIE-NO-REWRITE-1.0, ACT-RECEIPT-1.0, MESH-COLD-COPY-1.0, MESH-SPLIT-WIRES-1.0, MESH-VAULT-1.0  
 Keeps: ACT-RECEIPT-1.0; die-with-pull; split-wires; cold-copy mesh refuse  
 Not a Softwares-tab product. Not a mesh growth path. Not visible 15:20 identity-lock chrome.
 
