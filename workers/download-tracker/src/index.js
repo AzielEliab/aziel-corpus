@@ -25,7 +25,8 @@ import {
 import { enforceRateLimit, rememberCatalog, isSeoBot } from "./rate-limit.js";
 import { handleDonate, DONATE_PATH } from "./donate.js";
 import { handleDonateQr, isDonateQrPath } from "./donate-qr.js";
-import { handleReceipts, isReceiptsTabPath } from "./action-receipts.js";
+import { handleReceipts, isReceiptsPath } from "./action-receipts.js";
+import { locksetFile } from "./ingest-receipt.js";
 import { serveSoftwareAsset, DEFAULT_ASSET as SOFTWARE_DEFAULT_ASSET } from "./software-download.js";
 
 /** Operator walk APIs must not share the isolate with background backfill/geo or a tunnel hop. */
@@ -344,7 +345,7 @@ export default {
     if (earlyPath === DONATE_PATH && isReadMethod(request.method)) {
       return handleDonate(request);
     }
-    if (isReceiptsTabPath(earlyPath) && isReadMethod(request.method)) {
+    if (isReceiptsPath(earlyPath) && (isReadMethod(request.method) || request.method === "POST")) {
       return handleReceipts(request, env);
     }
 
@@ -531,6 +532,9 @@ export default {
     }
     if (isReadMethod(request.method) && crawlPath === "/cite.json") {
       return crawlResponse(request, JSON.stringify(citeDoc(), null, 2), MIME.json, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
+    }
+    if (isReadMethod(request.method) && crawlPath === "/lockset.json") {
+      return crawlResponse(request, locksetFile(), MIME.json, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
     }
     if (isReadMethod(request.method)) {
       const identity = identityRouteBody(crawlPath);
