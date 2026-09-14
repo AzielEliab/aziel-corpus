@@ -593,7 +593,7 @@ test("public /shelves JSON cites CNS + NO-LIE; no 15:20 chrome; Growth-ON intact
   assert.match(law, /RESTORE-DRILL/);
   assert.match(law, /Framagit/);
   assert.match(law, /aziel-lockset-tip_202609/);
-  assert.match(law, /same blast_radius/);
+  assert.match(law, /Same blast_radius/);
   assert.doesNotMatch(law, VISIBLE_1520);
   assert.doesNotMatch(JSON.stringify(doc), VISIBLE_1520);
   assert.doesNotMatch(law, /live ICANN publish claimed/i);
