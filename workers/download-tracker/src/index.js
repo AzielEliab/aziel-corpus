@@ -4,6 +4,8 @@ import { handleAuth, getSession } from "./auth.js";
 import { page, homeBody, homeSearchActive, streamLcpHtml } from "./ui.js";
 import { handleHosted } from "./hosted.js";
 import { robotsTxt, sitemapXml, sitemapIndexXml, sitemapRecordsXml, citeDoc, llmsDoc, aiTxt, humansTxt, mcpDiscovery, isReadMethod, crawlResponse, MIME } from "./crawl.js";
+import { bridgeDoc, productBySlug } from "./ai-surface.js";
+import { serveDesignPack } from "./design-pack.js";
 import { continueMetadataBackfill } from "./record-metadata.js";
 import { identityRouteBody } from "./identity.js";
 import { searchRecords, parseBrowseParams, serveFile, serveFileByHash, normalizeContentHash } from "./library.js";
@@ -484,6 +486,13 @@ export default {
     }
 
     if ((url.pathname === "/download" || url.pathname.startsWith("/download/")) && (request.method === "GET" || request.method === "HEAD")) {
+      const productSlug = (url.searchParams.get("product") || url.searchParams.get("pack") || "").trim().toLowerCase();
+      if (productSlug && productBySlug(productSlug)) {
+        const dims = parseDims(url.searchParams);
+        dims.asset = "product:" + productSlug;
+        if (request.method === "GET" && env && env.DOWNLOADS) await increment(env, dims);
+        return attachVid(await serveDesignPack(env, productSlug, { attachment: true, head: request.method === "HEAD" }));
+      }
       const recordId = (url.searchParams.get("record") || url.searchParams.get("record_id") || "").trim();
       if (recordId) {
         const dims = parseDims(url.searchParams);
@@ -533,6 +542,9 @@ export default {
     }
     if (isReadMethod(request.method) && crawlPath === "/cite.json") {
       return crawlResponse(request, JSON.stringify(citeDoc(), null, 2), MIME.json, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
+    }
+    if (isReadMethod(request.method) && crawlPath === "/bridge.json") {
+      return crawlResponse(request, JSON.stringify(bridgeDoc(), null, 2), MIME.json, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
     }
     if (isReadMethod(request.method) && crawlPath === "/lockset.json") {
       return crawlResponse(request, locksetFile(), MIME.json, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });

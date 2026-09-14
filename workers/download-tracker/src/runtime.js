@@ -9,6 +9,9 @@ import { loadRecordReview, runReviewBundle, backfillReviews, continueFullBackfil
 import { latticeAnchorTip, LATTICE_NOTE } from "./lattice.js";
 import { handleJeevesApi, JEEVES_LIMITATION } from "./jeeves.js";
 import { handleOperatorIngestApi } from "./operator-ingest.js";
+import { handleLibraryIngestApi, handleLibraryMcp } from "./library-mcp.js";
+import { handleDesignPackApi } from "./design-pack.js";
+import { DUAL_SURFACE, MCP_TOOLS, AI_PATH_NOTE } from "./ai-surface.js";
 import { continueMetadataBackfill, metadataBackfillStatus, receiptForJsonMetadata } from "./record-metadata.js";
 import { receiptForMediaRun, isMediaRunId } from "./media.js";
 import { continueVerifyGeo, geoVerifyStatus, GEO_PIN_NOTE } from "./geo.js";
@@ -89,6 +92,13 @@ Always send \`User-Agent: Mozilla/5.0\`.
 - Pull: \`GET ${HOST}/runtime/v1/pull/{slug}\`
 - Session (advanced/internal): \`POST ${HOST}/runtime/v1/session/open\` then \`POST ${HOST}/runtime/v1/session/{id}/exec\`. Prefer fraggate_call. HTTP /p/{slug}/{op} is a proxy and is not exec.
 - Compatible AI clients: ${AI_CLIENTS}
+- Dual surface: ${DUAL_SURFACE}
+- Library MCP (upload+download): \`POST ${HOST}/mcp\` tools: ${MCP_TOOLS.join(", ")}
+- Cap-7 bridge cite (design_of hubs; resolves_to_hub: false): \`GET ${HOST}/bridge.json\`
+- Plane A UI on this Worker: azcorpus (Corpus / Lamb Lens, ${HOST}/corpus) and azlibrary (royal-purple Aziel Library, ${HOST}/aziel-library). Anyone may download both. Cap-7 names do not resolve to hub hostnames.
+- Products index: \`GET ${HOST}/v1/products\`
+- Design packs (inherit design_of; resolves_to_hub: false; tip/pack hashes): \`GET ${HOST}/v1/design-pack\` · counted \`GET ${HOST}/download?product=azcorpus|azlibrary\`
+- Mesh pull: cite /bridge.json → describe pack → counted pull → hash-verify pack_sha256 fail-closed → land local cold shelf. qnm: https://github.com/AzielEliab/qnm-node
 - Library skill: \`GET ${HOST}/v1/skill\`
 - Live software catalog: \`GET ${HOST}/v1/software\` (origin ${CATALOG}/v1/software; fallback fraggate/list)
 - Installer update check: \`GET ${HOST}/v1/update/check?slug=aziel-corpus&version=\` (origin ${CATALOG}/v1/update/check)
@@ -114,9 +124,9 @@ Ops (do **not** increment downloads):
 - \`GET /v1/verify-backfill?rebuild=1\` (chunked tip reconcile; JSON returns promptly with next_cursor / done; packed shelf refresh is deferred. Repeat with cursor or all=1 until done:true)
 - \`GET /v1/verify-geo?force=1\` / \`?status=1\` (chunked map pins: paper date × event × geolocation)
 - \`GET /v1/document-chain?record_id=\`
-- \`POST /v1/jeeves/chat\`
+- \`POST /v1/ingest\` (AI/JSON upload. Session → Corpus; operator token → live hub azlibrary only. Anonymous JSON refused. Mesh Cap-7 names are not write targets.)
 - \`POST /v1/jeeves/upload\` (signed-in public → Corpus; operator token/session → Aziel Library)
-- \`POST /v1/operator/library-ingest\` (operator token or session only; Aziel Library; SOFTWARE-SITE-DOSSIER-1.0)
+- \`POST /v1/operator/library-ingest\` (header X-Aziel-Operator-Token or operator session; env OPERATOR_TOKEN / GATE_TOKEN / LIBRARY_OPERATOR_TOKEN — names only, never the value; live hub azlibrary only)
 - \`POST /transcribe\` (Whisper + mandatory VibeLock determination; hard A/V blocks HTTP 451; lattice receipt even without library upload)
 - \`GET /media/{sha256}\` (inline playback of allowed A/V only)
 - \`POST /ocr\` (hosted OCR; lattice receipt on every run)
@@ -127,7 +137,9 @@ Ops (do **not** increment downloads):
 
 Catalog aliases: \`GET /p/aziel-corpus/health\`, \`GET /p/aziel-corpus/search\`, \`GET /p/aziel-corpus/skill\`.
 
-Runtime MCP (prefer): \`runtime_skill\`, \`fraggate_list\`, \`fraggate_describe\`, \`fraggate_verify\`, \`fraggate_call\`, \`decisiongate_check\`, \`library_lookup\`.
+Library MCP tools: \`${MCP_TOOLS.join("`, `")}\`. ${AI_PATH_NOTE}
+
+Runtime MCP (prefer for Softwares): \`runtime_skill\`, \`fraggate_list\`, \`fraggate_describe\`, \`fraggate_verify\`, \`fraggate_call\`, \`decisiongate_check\`, \`library_lookup\`.
 
 ${runtimeHowTo(HOST)}
 
@@ -202,8 +214,15 @@ function openapi() {
       "/v1/verify-geo": { get: { summary: "Chunked geography reindex: date × event × geolocation pins for docs with geospatial anchors (paper time, never upload time). force=1 restarts. status=1 progress. Does not increment downloads.", operationId: "verifyGeo", parameters: [{ name: "force", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "status", in: "query", schema: { type: "string", enum: ["0", "1"] } }] } },
       "/v1/document-chain": { get: { summary: "Per-document hash-chain bound to record_id. No orphan chains.", operationId: "documentChain", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
       "/v1/jeeves/chat": { post: { summary: "Ask Jeeves research assistant over public records. Lamb Lens. Cannot change scores.", operationId: "jeevesChat" } },
-      "/v1/jeeves/upload": { post: { summary: "Ask Jeeves Add — same ingest as the shelf (structure, SPRE × CLCE × PhysLing, Bayesian). Signed-in public writes Corpus; operator writes Aziel Library.", operationId: "jeevesUpload" } },
-      "/v1/operator/library-ingest": { post: { summary: "Operator Aziel Library ingest (SOFTWARE-SITE-DOSSIER-1.0). Same ingestRecord pipeline as Jeeves/shelf. Requires X-Aziel-Operator-Token or operator session. Idempotent same-SHA; exact-same-subject supersedes. Writes discovery metadata sidecar in the same ingest. No public write hole.", operationId: "operatorLibraryIngest" } },
+      "/v1/ingest": { post: { summary: "AI/OpenAPI upload (ingest/receipt). Session cookie writes Corpus / azcorpus (Lamb Lens). X-Aziel-Operator-Token writes live hub azlibrary only. Anonymous JSON refused. Plane A UI on this Worker. Cap-7 names inherit design_of hubs; resolves_to_hub: false. CROSS-NETWORK-SURVIVAL on the receipt. Compatible AI clients: " + AI_CLIENTS + ".", operationId: "ingestRecord" } },
+      "/v1/jeeves/upload": { post: { summary: "Ask Jeeves Add — same ingest as the shelf (structure, SPRE × CLCE × PhysLing, Bayesian). Signed-in public writes Corpus / azcorpus; operator writes live hub Aziel Library / azlibrary.", operationId: "jeevesUpload" } },
+      "/v1/operator/library-ingest": { post: { summary: "Operator Aziel Library ingest (SOFTWARE-SITE-DOSSIER-1.0). Same ingestRecord pipeline as Jeeves/shelf. Requires X-Aziel-Operator-Token or operator session. Writes live hub azlibrary only. Idempotent same-SHA; exact-same-subject supersedes. Writes discovery metadata sidecar in the same ingest. No public write hole.", operationId: "operatorLibraryIngest" } },
+      "/v1/products": { get: { summary: "Plane A UI products on this Worker: azcorpus (Corpus / Lamb Lens) and azlibrary (royal-purple Aziel Library). Cap-7 names inherit design_of this hub; resolves_to_hub: false. Anyone may download both. azlibrary upload uses X-Aziel-Operator-Token on the live hub only.", operationId: "websiteProducts" } },
+      "/v1/design-pack": { get: { summary: "Index of Cap-7 design+content packs. Each entry has design_of, resolves_to_hub: false, tip + pack hashes. Plane A UI for azcorpus/azlibrary stays on this Worker. Sister hubs remain azieleliab.com, godlock.uk, hedidntjump.com.", operationId: "designPackIndex" } },
+      "/v1/design-pack/{slug}": { get: { summary: "One Cap-7 website design+content pack (azcorpus, azlibrary, …). design_of a hub. resolves_to_hub: false. Includes mesh_pull hash-verify steps. Pull-only cold copy. Not live public DNS. CROSS-NETWORK-SURVIVAL.", operationId: "designPack", parameters: [{ name: "slug", in: "path", required: true, schema: { type: "string" } }] } },
+      "/v1/design-pack/{slug}/download": { get: { summary: "Attachment of one design+content pack. Does not increment. Counted twin: GET /download?product=azcorpus|azlibrary. Anyone may download. resolves_to_hub: false.", operationId: "designPackDownload", parameters: [{ name: "slug", in: "path", required: true, schema: { type: "string" } }] } },
+      "/bridge.json": { get: { summary: "Cap-7 sites inherit design_of the four hubs. resolves_to_hub: false. name_may_change: true. public_icann: false. No fifth product. Plane A UI: azcorpus + azlibrary on this Worker. No AZ-GEN publish cadence. Future MirageGrid /bridge.json is cited, not claimed live.", operationId: "bridgeJson" } },
+      "/mcp": { post: { summary: "Library MCP JSON-RPC (aziel-corpus_health, search, skill, download, ingest, design_pack, receipt). Dual surface. Upload requires session/operator token. Public, no OAuth.", operationId: "libraryMcp" }, get: { summary: "Library MCP discovery (tool names). Runtime FragGate door stays POST /runtime/mcp.", operationId: "libraryMcpDiscover" } },
       "/v1/metadata-backfill": { get: { summary: "Idempotent discovery-metadata backfill. Writes {library}/{AZDOC}/JSONAZDOC-….json beside the paper and mirrors under .Json/. JSON-prefixed document_ledger receipts copy the paper lattice and never rewrite paper chain_tip. all=1 walks remaining; force=1 restarts; status=1 progress. Cron and request walks also continue. Does not increment downloads.", operationId: "metadataBackfill", parameters: [{ name: "all", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "force", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "status", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "record_id", in: "query", schema: { type: "string" } }] } },
       "/record/{record_id}/metadata.json": { get: { summary: "Public Schema.org discovery metadata for one AZDOC record (no auth). Co-located with the paper package and mirrored under .Json/. Alias: /record/{record_id}.json.", operationId: "recordMetadata", parameters: [{ name: "record_id", in: "path", required: true, schema: { type: "string" } }] } },
       "/record/{record_id}.json": { get: { summary: "Alias of /record/{record_id}/metadata.json.", operationId: "recordMetadataAlias", parameters: [{ name: "record_id", in: "path", required: true, schema: { type: "string" } }] } },
@@ -214,10 +233,10 @@ function openapi() {
       "/media/{sha256}": { get: { summary: "Inline playback of allowed A/V stored at av/{sha256}. Blocked media is never stored.", operationId: "media", parameters: [{ name: "sha256", in: "path", required: true, schema: { type: "string" } }] } },
       "/receipt/{id}": { get: { summary: "Receipt for an AZDOC- paper, JSONAZDOC- discovery sidecar, or AZRUN- media lattice entry.", operationId: "receipt", parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }] } },
       "/ledger/{id}": { get: { summary: "Alias of /receipt/{id} for media lattice and document receipts.", operationId: "ledger", parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }] } },
-      "/file/{record_id}": { get: { summary: "Download any stored record (text or file). HTTP 200. Quarantined poison docs stay downloadable with X-Aziel-Quarantine. Ledger-linked. A 64-hex SHA-256 also resolves the kept matching file.", operationId: "file" } },
-      "/download": { get: { summary: "Counted Softwares zip (asset=), counted record download (record=AZDOC-…), or counted content-hash download (hash=SHA-256). Streams the hosted zip. Honest 200 JSON if the asset is missing. HTTP 200, no silent 302.", operationId: "download", parameters: [{ name: "asset", in: "query", schema: { type: "string" } }, { name: "record", in: "query", schema: { type: "string" } }, { name: "hash", in: "query", schema: { type: "string" } }, { name: "sha256", in: "query", schema: { type: "string" } }] } },
+      "/file/{record_id}": { get: { summary: "Download any stored record (text or file). HTTP 200. Quarantined poison docs stay downloadable with X-Aziel-Quarantine. Ledger-linked. A 64-hex SHA-256 also resolves the kept matching file. AI clients: aziel-corpus_download.", operationId: "file" } },
+      "/download": { get: { summary: "Counted Softwares zip (asset=), counted record (record=), counted hash (hash=), or counted first-class website design pack (product=azcorpus|azlibrary). Anyone may download azcorpus and azlibrary packs. HTTP 200, no silent 302. AI clients: aziel-corpus_download / aziel-corpus_design_pack.", operationId: "download", parameters: [{ name: "asset", in: "query", schema: { type: "string" } }, { name: "record", in: "query", schema: { type: "string" } }, { name: "hash", in: "query", schema: { type: "string" } }, { name: "sha256", in: "query", schema: { type: "string" } }, { name: "product", in: "query", schema: { type: "string", enum: ["azcorpus", "azlibrary", "azeliab", "godlock", "hedidntjump"] } }, { name: "pack", in: "query", schema: { type: "string" } }] } },
       "/v1/download": { get: { summary: "Softwares download descriptor (2xx). Aligns catalog download_url with GET /download. Does not increment. Author Aziel Eliab.", operationId: "softwareDownload" } },
-      "/v1/docs/{hash}/download": { get: { summary: "Download the stored file for a kept record whose content_sha256 matches. Does not increment downloads. Duplicates are not deleted.", operationId: "downloadByHash", parameters: [{ name: "hash", in: "path", required: true, schema: { type: "string" } }] } },
+      "/v1/docs/{hash}/download": { get: { summary: "Download the stored file for a kept record whose content_sha256 matches. Does not increment downloads. Duplicates are not deleted. AI/MCP: aziel-corpus_download.", operationId: "downloadByHash", parameters: [{ name: "hash", in: "path", required: true, schema: { type: "string" } }] } },
       "/v1/runtime": { get: { summary: "Digital Library package discovery (NOT the Aziel Runtime engine manifest). Use /v1/runtime.json or /runtime/v1/runtime.json for Aziel Runtime " + RUNTIME_VERSION + ".", operationId: "runtime" } },
       "/v1/runtime.json": { get: { summary: "Aziel Runtime " + RUNTIME_VERSION + " manifest (proxied). Distinct from /v1/runtime library package discovery.", operationId: "runtimeRoot" } },
       "/AzielEliab": { get: { summary: "Aziel Eliab — author profile page (HTML). Corresponds with https://godlock.uk/AzielEliab. Legacy /about and /aboutme permanently redirect here.", operationId: "azielEliab" } },
@@ -270,6 +289,12 @@ export async function handleRuntimeApi(request, url, env, ctx) {
     if (request.method === "HEAD") return new Response(null, { status: res.status, headers: res.headers });
     return res;
   }
+  const libraryMcp = await handleLibraryMcp(request, url, env);
+  if (libraryMcp) return libraryMcp;
+  const ingest = await handleLibraryIngestApi(request, url, env, null);
+  if (ingest) return ingest;
+  const packs = await handleDesignPackApi(request, url, env);
+  if (packs) return packs;
   const mesh = await handleMeshApi(request, url, env);
   if (mesh) return mesh;
   if (path === "/v1/download" && (request.method === "GET" || request.method === "HEAD" || request.method === "OPTIONS")) {

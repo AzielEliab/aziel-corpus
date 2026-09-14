@@ -30,6 +30,7 @@ import {
 import { MESH_NOTE, QNS_CD_SPEC } from "./mesh.js";
 import { ingestReceiptCite, ingestReceiptLlmsBlock } from "./ingest-receipt.js";
 import { shelvesLlmsBlock } from "./cold-shelf.js";
+import { aiSurfaceLlmsBlock, bridgeDoc, MCP_TOOLS } from "./ai-surface.js";
 import { AZCOHERENCE, AZCLCE_NAME, AZCLCE_SLUG, AZCLCE_GITHUB, AZCLCE_WORKER_HOME, azcoherenceLlmsBlock } from "./azcoherence.js";
 import {
   IDENTITY_ROUTES,
@@ -258,6 +259,11 @@ export function robotsTxt() {
     "Allow: /record/",
     "Allow: /mcp.json",
     "Allow: /.well-known/mcp.json",
+    "Allow: /mcp",
+    "Allow: /bridge.json",
+    "Allow: /v1/products",
+    "Allow: /v1/design-pack",
+    "Allow: /v1/design-pack/",
     "Allow: /runtime/v1/software",
     "Allow: /assets",
     "Allow: /assets/",
@@ -298,6 +304,12 @@ const STATIC_SITEMAP = [
   "/sitemap-records.xml",
   "/mcp.json",
   "/.well-known/mcp.json",
+  "/mcp",
+  "/bridge.json",
+  "/v1/products",
+  "/v1/design-pack",
+  "/v1/design-pack/azcorpus",
+  "/v1/design-pack/azlibrary",
   "/runtime",
   "/runtime/",
   "/runtime/v1/health",
@@ -389,6 +401,11 @@ const SITEMAP_HINTS = {
   "/ai.txt": { changefreq: "weekly", priority: "0.7" },
   "/aziel-library": { changefreq: "daily", priority: "0.8" },
   "/corpus": { changefreq: "daily", priority: "0.8" },
+  "/bridge.json": { changefreq: "weekly", priority: "0.7" },
+  "/v1/products": { changefreq: "weekly", priority: "0.8" },
+  "/v1/design-pack": { changefreq: "weekly", priority: "0.8" },
+  "/v1/design-pack/azcorpus": { changefreq: "weekly", priority: "0.8" },
+  "/v1/design-pack/azlibrary": { changefreq: "weekly", priority: "0.8" },
   "/how-its-scored": { changefreq: "monthly", priority: "0.6" },
   "/donate": { changefreq: "monthly", priority: "0.6" },
 };
@@ -489,9 +506,20 @@ export function mcpDiscovery() {
     cite: HOST + "/cite.json",
     llms: HOST + "/llms.txt",
     sameAs: [CATALOG + "/mcp", CATALOG + "/openapi.json"],
+    library_mcp: HOST + "/mcp",
+    library_mcp_tools: MCP_TOOLS.slice(),
+    bridge: HOST + "/bridge.json",
+    design_pack: HOST + "/v1/design-pack",
+    products: HOST + "/v1/products",
+    azcorpus: HOST + "/corpus",
+    azlibrary: HOST + "/aziel-library",
     mcpServers: {
       "aziel-runtime": {
         url: HOST + "/runtime/mcp",
+        type: "http",
+      },
+      "aziel-corpus": {
+        url: HOST + "/mcp",
         type: "http",
       },
     },
@@ -499,6 +527,11 @@ export function mcpDiscovery() {
       {
         name: "aziel-runtime",
         url: HOST + "/runtime/mcp",
+        transport: "http",
+      },
+      {
+        name: "aziel-corpus",
+        url: HOST + "/mcp",
         transport: "http",
       },
     ],
@@ -643,6 +676,28 @@ export function citeDoc() {
     mesh_note: MESH_NOTE,
     qns_cd_spec: QNS_CD_SPEC,
     mcp_discovery: HOST + "/.well-known/mcp.json",
+    library_mcp: HOST + "/mcp",
+    library_mcp_tools: MCP_TOOLS.slice(),
+    bridge: HOST + "/bridge.json",
+    cap7_sites: {
+      azcorpus: { design_of: HOST + "/", resolves_to_hub: false, name_may_change: true, public_icann: false },
+      azlibrary: { design_of: HOST + "/", resolves_to_hub: false, name_may_change: true, public_icann: false },
+      azeliab: { design_of: "https://www.azieleliab.com/", resolves_to_hub: false, name_may_change: true, public_icann: false },
+      godlock: { design_of: "https://godlock.uk/", resolves_to_hub: false, name_may_change: true, public_icann: false },
+      hedidntjump: { design_of: "https://www.hedidntjump.com/", resolves_to_hub: false, name_may_change: true, public_icann: false },
+    },
+    design_pack: HOST + "/v1/design-pack",
+    products: HOST + "/v1/products",
+    azcorpus: HOST + "/corpus",
+    azlibrary: HOST + "/aziel-library",
+    azcorpus_pack: HOST + "/v1/design-pack/azcorpus",
+    azlibrary_pack: HOST + "/v1/design-pack/azlibrary",
+    azcorpus_counted: HOST + "/download?product=azcorpus",
+    azlibrary_counted: HOST + "/download?product=azlibrary",
+    operator_token_header: "X-Aziel-Operator-Token",
+    operator_token_env: ["OPERATOR_TOKEN", "GATE_TOKEN", "LIBRARY_OPERATOR_TOKEN"],
+    mesh_pull: HOST + "/bridge.json",
+    dual_surface_upload_download: true,
     sitemap_index: HOST + "/sitemap-index.xml",
     sitemap_records: HOST + "/sitemap-records.xml",
     record_metadata: HOST + "/record/{record_id}/metadata.json",
@@ -676,6 +731,7 @@ export function citeDoc() {
     document_chain: HOST + "/v1/document-chain",
     jeeves_chat: HOST + "/v1/jeeves/chat",
     jeeves_upload: HOST + "/v1/jeeves/upload",
+    ingest: HOST + "/v1/ingest",
     jeeves: "Research assistant. Not sovereign. Not operator. Add uses the same ingest path as the shelf. Cannot change scores.",
     vibelock: "Mandatory VibeLock determination on every /transcribe run. Hard blocks porn, nudity, child-sexual content. Not courtroom proof.",
     media_lattice: "Transcript success: LATTICE_TRANSCRIPT_VIBELOCK. Blocked A/V: LATTICE_AV_BLOCKED (HTTP 451, never stored).",
@@ -746,6 +802,7 @@ export function llmsDoc(limitation) {
     + "DOI: none (do not invent)\n\n"
     + ingestReceiptLlmsBlock(HOST) + "\n"
     + shelvesLlmsBlock(HOST) + "\n"
+    + aiSurfaceLlmsBlock() + "\n"
     + "## Priority pages (index first)\n\n"
     + "- Homepage: " + HOST + "/\n"
     + "- Softwares: " + HOST + "/software\n"
@@ -882,7 +939,17 @@ export function llmsDoc(limitation) {
     + "- POST " + HOST + "/v1/score\n"
     + "- POST " + HOST + "/v1/jeeves/chat\n"
     + "- POST " + HOST + "/v1/jeeves/upload\n"
+    + "- POST " + HOST + "/v1/ingest\n"
+    + "- POST " + HOST + "/v1/operator/library-ingest\n"
     + "- GET " + HOST + "/v1/docs/{hash}/download\n"
+    + "- GET " + HOST + "/bridge.json\n"
+    + "- GET " + HOST + "/v1/products\n"
+    + "- GET " + HOST + "/v1/design-pack\n"
+    + "- GET " + HOST + "/v1/design-pack/azcorpus\n"
+    + "- GET " + HOST + "/v1/design-pack/azlibrary\n"
+    + "- GET " + HOST + "/download?product=azcorpus\n"
+    + "- GET " + HOST + "/download?product=azlibrary\n"
+    + "- POST " + HOST + "/mcp\n"
     + "- GET " + HOST + "/v1/runtime\n"
     + "- GET " + HOST + "/v1/runtime.json\n"
     + "- GET " + HOST + "/runtime/v1/health\n"
@@ -1011,6 +1078,11 @@ export function aiTxt(limitation) {
     "Allow: /record/",
     "Allow: /mcp.json",
     "Allow: /.well-known/mcp.json",
+    "Allow: /mcp",
+    "Allow: /bridge.json",
+    "Allow: /v1/products",
+    "Allow: /v1/design-pack",
+    "Allow: /v1/design-pack/",
     "Allow: /runtime/v1/software",
     "Disallow: /signup",
     "Disallow: /logout",
@@ -1042,6 +1114,9 @@ export function aiTxt(limitation) {
     + "- Suite mesh / Live Nodes (read-only QNM ON): " + HOST + "/v1/mesh\n"
     + "- Runtime mesh: " + HOST + "/runtime/v1/mesh\n"
     + "- MCP discovery: " + HOST + "/.well-known/mcp.json\n"
+    + "- Library MCP: POST " + HOST + "/mcp\n"
+    + "- Cap-7 bridge cite: " + HOST + "/bridge.json\n"
+    + "- Design packs: " + HOST + "/v1/design-pack\n"
     + "- Runtime catalog: " + HOST + "/runtime\n"
     + "- Runtime FragGate: " + HOST + "/runtime/v1/fraggate\n"
     + "- Runtime FragGate list: " + HOST + "/runtime/v1/fraggate/list\n"
@@ -1067,6 +1142,7 @@ export function aiTxt(limitation) {
     + runtimeHowTo(HOST) + "\n\n"
     + ingestReceiptLlmsBlock(HOST) + "\n"
     + shelvesLlmsBlock(HOST) + "\n"
+    + aiSurfaceLlmsBlock() + "\n"
     + "## Identity\n\n"
     + "Primary author " + AUTHOR + ". Canonical aka " + ALTERNATE_NAMES.join(" · ") + ". " + LOCK_LINE + " " + WHO_IS_AZIEL_ELIAB + " Also Elias Artista. " + HEBREW_DEFINITION + " " + ABOUT_STANZA + " " + ABOUT_LEAD + " " + ABOUT_RECORD + " " + DISAMBIGUATING_DESCRIPTION + " Person @id " + HUB_PERSON_ID + ". Runtime @id " + HUB_RUNTIME_ID + ". Official site " + HUB_ORIGIN + "/. WebSite " + WEBSITE_ID + " (" + WEBSITE_NAME + "). Profile " + HOST + ABOUT_PATH + ". Who HTML " + HOST + WHO_PATH + ". GodLock identity " + GODLOCK_IDENTITY + ". " + HEDIDNTJUMP_LABEL + " " + HEDIDNTJUMP_HOME + ". sameAs " + identitySameAsLine() + ". Machine routes /person.jsonld · /identity.jsonld · /graph.jsonld · /who-is-aziel-eliab.txt · /who-is · /who · /.well-known/aziel.json · /.well-known/person.jsonld. Stats " + STATS_TETHER.azieleliab + " · " + STATS_TETHER.corpus + " · " + STATS_TETHER.hedidntjump + ".\n\n"
     + (limitation ? limitation + "\n\n" : "")

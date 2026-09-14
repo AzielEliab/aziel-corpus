@@ -36,6 +36,10 @@ Allow: /llms.txt
 Allow: /ai.txt
 Allow: /humans.txt
 Allow: /openapi.json
+Allow: /bridge.json
+Allow: /mcp
+Allow: /mcp.json
+Allow: /.well-known/mcp.json
 Allow: /v1
 Allow: /v1/
 Allow: /v1/software
@@ -44,6 +48,8 @@ Allow: /v1/recollect
 Allow: /v1/poison-learn
 Allow: /v1/pin
 # Adaptive learning via hashchain lattice for recollection and reasoning (HASHCHAIN-LATTICE-LEARN-1.0).
+Allow: /v1/design-pack
+Allow: /v1/products
 Disallow: /signup
 Disallow: /logout
 Disallow: /admin/
@@ -168,6 +174,10 @@ Sitemap: https://www.azielcorpuslibrary.net/sitemap-index.xml
 - GitHub cite example: https://github.com/AzielEliab/aziel-corpus/blob/main/docs/cite.example.json
 - llms.txt: https://www.azielcorpuslibrary.net/llms.txt
 - Cross-tether stats: https://www.azieleliab.com/v1/stats · https://www.azielcorpuslibrary.net/stats · https://www.hedidntjump.com/api/stats
+
+## Dual-surface upload + download
+
+Plane A UI on this Worker: azcorpus = Corpus / Lamb Lens (anyone downloads; session/Lamb Lens writes). azlibrary = royal-purple Aziel Library (anyone downloads; upload header X-Aziel-Operator-Token, env OPERATOR_TOKEN / GATE_TOKEN / LIBRARY_OPERATOR_TOKEN — names only). Cap-7 names inherit design_of the four hubs. resolves_to_hub: false. name_may_change: true. public_icann: false. No fifth product. POST /v1/ingest · POST /v1/jeeves/upload · POST /v1/operator/library-ingest (live hub azlibrary token only). GET /v1/docs/{hash}/download · /download?hash= · /file/{record_id}. Counted packs GET /download?product=azcorpus|azlibrary. Products GET /v1/products. Library MCP POST /mcp. Design packs GET /v1/design-pack. Bridge cite GET /bridge.json (design_of + tip/pack hashes). Sister hubs remain azieleliab.com, godlock.uk, hedidntjump.com. Mesh pull: cite → describe → counted pull → hash-verify fail-closed → local cold shelf. No Cap-7 live public DNS. No fake .az DNS. No AZ-GEN publish cadence. CROSS-NETWORK-SURVIVAL on ingest/shelves.
 
 ## Compatible AI clients
 
