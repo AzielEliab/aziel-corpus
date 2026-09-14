@@ -193,16 +193,9 @@ export function ingestReceiptHead() {
     + "<link rel=" + Q + "alternate" + Q + " href=" + Q + "/receipts/verify" + Q + " title=" + Q + "verify tip" + Q + ">";
 }
 
-/** First-screen receipt. Hash + short rules only. Not 15:20 identity-lock chrome. */
+/** Visible first-screen receipt is off. Machine tip stays in metas / lockset.json / cite. */
 export function ingestReceiptStrip() {
-  return `<aside class="ingest-receipt" id="az-ingest-receipt" aria-label="Published lockset tip">`
-    + `<p class="ingest-id"><code>${esc(LOCKSET_ID)}</code> · <a href="${esc(HOST + "/")}">canonical</a></p>`
-    + `<p class="ingest-hash">SHA-256 <code class="ingest-tip">${esc(LOCKSET_TIP)}</code></p>`
-    + `<p class="ingest-rule">${esc(CITE_RULE)} · ${esc(SURVIVE_RULE)}</p>`
-    + `<p class="ingest-note"><strong>${esc(CROSS_NETWORK_SURVIVAL)}</strong> ${esc(CROSS_NETWORK_SURVIVAL_RULE)}</p>`
-    + `<p class="ingest-note"><strong>${esc(NO_LIE_NO_REWRITE)}</strong> ${esc(NO_LIE_NO_REWRITE_RULE)}</p>`
-    + `<p class="ingest-verify"><a href="/receipts/verify">verify</a> · <a href="/lockset.json">lockset.json</a></p>`
-    + `</aside>`;
+  return "";
 }
 
 export function ingestVerifyForm({ pasted = "", result } = {}) {
