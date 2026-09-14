@@ -32,6 +32,7 @@ import { ingestReceiptCite, ingestReceiptLlmsBlock } from "./ingest-receipt.js";
 import { shelvesLlmsBlock } from "./cold-shelf.js";
 import { aiSurfaceLlmsBlock, bridgeDoc, MCP_TOOLS } from "./ai-surface.js";
 import { AZCOHERENCE, AZCLCE_NAME, AZCLCE_SLUG, AZCLCE_GITHUB, AZCLCE_WORKER_HOME, azcoherenceLlmsBlock } from "./azcoherence.js";
+import { foldlockCiteFields, foldlockLlmsBlock } from "./foldlock.js";
 import {
   IDENTITY_ROUTES,
   identitySameAsLine,
@@ -158,6 +159,7 @@ const PRODUCT_LINES = [
   ["AzielTether lattice", HOST + "/v1/lattice", HOST + "/software"],
   ["ZionPattern Solver", HOST + "/how-its-scored", HOST + "/pattern"],
   ["AZCoherence (azcoherence, AZC-0.1)", HOST + "/software", "https://azcoherence-download-tracker.vibelock.workers.dev/"],
+  ["FoldLock (foldlock)", HOST + "/software", "https://foldlock-download-tracker.vibelock.workers.dev/"],
 ];
 
 function isoDay(value, fallback) {
@@ -578,7 +580,7 @@ export function citeDoc() {
     website_id: WEBSITE_ID,
     website_name: WEBSITE_NAME,
     official_site: HUB_ORIGIN + "/",
-    keywords: [AUTHOR, AKA, "Elias Artista", "The Revealer of The Sealed", "Aziel Digital Library", "Aziel Corpus Library", "aziel-corpus", "aziel-runtime", "FragGate", "GodLock", "AZCoherence", "azcoherence", "AZC-0.1", "AZ-CLCE"],
+    keywords: [AUTHOR, AKA, "Elias Artista", "The Revealer of The Sealed", "Aziel Digital Library", "Aziel Corpus Library", "aziel-corpus", "aziel-runtime", "FragGate", "GodLock", "AZCoherence", "azcoherence", "AZC-0.1", "AZ-CLCE", "FoldLock", "foldlock"],
     title: "Aziel Digital Library",
     version: VERSION,
     doi: null,
@@ -744,6 +746,7 @@ export function citeDoc() {
     zsolver: "ZionPattern Solver secondary public score. Separate from triad. Qualifies for historical, research, investigation, and crime documents; philosophy, software, hardware, and designs omit the line (never 0). Zioncheck Visual Archive vols 1–5 seed baseline display 75. 75 means intentional suppression confidence; lower is more natural. Hard 75 ceiling / 25 uncertainty floor. Provisional. Does not solve cases. A superseding document that proves a pattern break with first-hand / primary materials force-rescores the succession chain; narrative and second-source materials never trigger that rescore.",
     azcoherence: AZCOHERENCE,
     azcoherence_slug: AZCOHERENCE.slug,
+    ...foldlockCiteFields(HOST),
     azclce: {
       slug: AZCLCE_SLUG,
       name: AZCLCE_NAME,
@@ -872,8 +875,9 @@ export function llmsDoc(limitation) {
     + "- Sister archive: " + HEDIDNTJUMP_LABEL + " " + HEDIDNTJUMP_HOME + "\n"
     + "- Alternate name Aziel Elroi Eliab is SEO alternateName only.\n\n"
     + "## Software products (crawl these hubs)\n\n"
-    + "The Software hub mirrors the live runtime catalog. Cards grow with GET /v1/software (fallback fraggate/list). PeaceLock, AZMail, AZBrowser, and later slugs appear automatically. No hard-coded 27 cap. Door extras AZNet and FragGate (separate app Workers) and EmbryoLock are listed without dropping catalog engines. AZCoherence (azcoherence) is a Softwares extra / peer-map fallback (Plain, scoring-review) so cite surfaces stay mapped if the live catalog is thin. Not a second door.\n"
+    + "The Software hub mirrors the live runtime catalog. Cards grow with GET /v1/software (fallback fraggate/list). PeaceLock, AZMail, AZBrowser, and later slugs appear automatically. No hard-coded 27 cap. Door extras AZNet and FragGate (separate app Workers) and EmbryoLock are listed without dropping catalog engines. AZCoherence (azcoherence) is a Softwares extra / peer-map fallback (Plain, scoring-review) so cite surfaces stay mapped if the live catalog is thin. FoldLock (foldlock) is a Softwares Language extra / cold-shelf SLOT hook (not zip; not encryption; never fold the lockset tip). Not a second door.\n"
     + azcoherenceLlmsBlock() + "\n"
+    + foldlockLlmsBlock(HOST) + "\n"
     + productIndex() + "\n"
     + "- Same-origin live software: " + HOST + "/v1/software\n"
     + "- Same-origin catalog: " + HOST + "/runtime/v1/catalog.json\n"
@@ -1110,6 +1114,7 @@ export function aiTxt(limitation) {
     + "- Who is Aziel Eliab: " + HOST + WHO_PATH + "\n"
     + "- Softwares / Software hub: " + HOST + "/software\n"
     + "- AZCoherence (azcoherence, AZC-0.1): " + HOST + "/software · https://azcoherence-download-tracker.vibelock.workers.dev/ · " + HOST + "/runtime/v1/fraggate/describe?slug=azcoherence\n"
+    + "- FoldLock (foldlock): " + HOST + "/software · https://foldlock-download-tracker.vibelock.workers.dev/ · " + HOST + "/runtime/v1/fraggate/describe?slug=foldlock — tether-word suppression on UTF-8; not zip; not encryption; tip SHA-256 stays over raw receipts\n"
     + "- Live software catalog: " + HOST + "/v1/software\n"
     + "- Suite mesh / Live Nodes (read-only QNM ON): " + HOST + "/v1/mesh\n"
     + "- Runtime mesh: " + HOST + "/runtime/v1/mesh\n"
@@ -1175,6 +1180,7 @@ export function humansTxt() {
     "Donate: " + HOST + "/donate",
     "Software hub mirrors runtime /v1/software (fallback fraggate/list): " + HOST + "/v1/software",
     "AZCoherence (azcoherence, AZC-0.1) Softwares Plain / scoring-review: " + HOST + "/software · https://azcoherence-download-tracker.vibelock.workers.dev/ · https://github.com/AzielEliab/AZCoherence",
+    "FoldLock (foldlock) Softwares Language / FOLDLOCK-SHELF-1.0 SLOT hook: " + HOST + "/software · https://foldlock-download-tracker.vibelock.workers.dev/ · https://github.com/AzielEliab/foldlock — not zip; not encryption; never fold the lockset tip",
     "Suite mesh (read-only QNM ON): " + HOST + "/v1/mesh",
     "Lockset tip / ingest-as-receipt: " + HOST + "/lockset.json · " + HOST + "/receipts/verify",
     "Cold multi-shelf: " + HOST + "/shelves · " + HOST + "/cold-copy · COLD-MULTI-SHELF-1.0",

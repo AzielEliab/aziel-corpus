@@ -108,7 +108,7 @@ test("cite.json and llms.txt mention azcoherence with Worker, GitHub, FragGate, 
 
 test("SOFTWARE_EXTRAS lists AZCoherence as Plain extra without a second door", () => {
   assert.ok(SOFTWARE_EXTRAS.some((p) => p.slug === "azcoherence"));
-  assert.equal(SOFTWARE_EXTRAS.length, 4);
+  assert.equal(SOFTWARE_EXTRAS.length, 5);
   assert.equal(softwareKind(AZCOHERENCE_SOFTWARE_EXTRA), "plain");
   assert.equal(displayName({ slug: "azcoherence" }), "AZCoherence");
   const merged = mergeSoftwareExtras(collectCatalogProducts({

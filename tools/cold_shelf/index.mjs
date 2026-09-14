@@ -25,6 +25,13 @@ import {
   judgeNeighborVoteHeal,
   judgeTrainingResidueShelf,
 } from "../../workers/download-tracker/src/cold-shelf.js";
+import {
+  FOLDLOCK_REFUSE,
+  foldlockExportCite,
+  foldShelfHook,
+  judgeFoldLockClaim,
+  judgeFoldLockTarget,
+} from "../../workers/download-tracker/src/foldlock.js";
 
 export {
   COLD_MULTI_SHELF_SPEC,
@@ -42,6 +49,11 @@ export {
   judgeInventedPhyDnsIcann,
   judgeNeighborVoteHeal,
   judgeTrainingResidueShelf,
+  FOLDLOCK_REFUSE,
+  foldlockExportCite,
+  foldShelfHook,
+  judgeFoldLockClaim,
+  judgeFoldLockTarget,
 };
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -75,8 +87,10 @@ export function writeExport(outDir, pack) {
     lockset_id: pack.lockset_id,
     lockset_tip: pack.lockset_tip,
     cold_multi_shelf: pack.cold_multi_shelf,
+    foldlock_shelf: pack.foldlock_shelf,
     manifest: pack.manifest,
   }, null, 2) + "\n");
+  writeFileSync(join(outDir, "foldlock.json"), JSON.stringify(pack.foldlock || foldlockExportCite(), null, 2) + "\n");
   return outDir;
 }
 
@@ -155,6 +169,7 @@ export function writeAirgap(outDir, pack = buildExport()) {
     "ZENODO-TIP-PACK-CHECKLIST.md",
     "ALT-FORGE-TIP-PACK-CHECKLIST.md",
     "USB-AIRGAP-ATTEST.md",
+    "foldlock.json",
   ];
   writeVerifyAirgapScript(outDir);
   content.push("verify-airgap.sh");

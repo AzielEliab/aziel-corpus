@@ -6,7 +6,7 @@ Date: 2026-09-14
 License: Apache-2.0
 Umbrella: CROSS-NETWORK-SURVIVAL-1.0
 Amends: MESH-COLD-COPY-1.0 (makes vault-on-transfer *executable* as planes + export/verify)
-Neighbors: NO-LIE-NO-REWRITE-1.0, INGEST-AS-RECEIPT-1.0, RE-EXPAND-FROM-ARCHIVE-1.0, MESH-REEXPAND-1.0, MESH-REHEAL-1.0, MESH-SPLIT-WIRES-1.0, ACT-RECEIPT-1.0, MESH-VAULT-1.0
+Neighbors: NO-LIE-NO-REWRITE-1.0, INGEST-AS-RECEIPT-1.0, RE-EXPAND-FROM-ARCHIVE-1.0, MESH-REEXPAND-1.0, MESH-REHEAL-1.0, MESH-SPLIT-WIRES-1.0, ACT-RECEIPT-1.0, MESH-VAULT-1.0, FOLDLOCK-SHELF-1.0 (Softwares neighbor cite + SLOT hook; not a shelf plane)
 Live lockset: AZLOCK-INGEST-REEXPAND-1.0 — this paper cites that tip; it does not replace it
 Cited on: GET /shelves · GET /cold-copy · GET /v1/shelves · cite.json · llms.txt · ai.txt
 Not a Softwares-tab product. Not four independent Cloudflare hosts. Not five independent surfaces. Not an invented CID or DOI. Not visible identity-lock chrome. Not AZ Generator / MirageGrid Cap-7 live ICANN publish.
@@ -88,6 +88,12 @@ A copy survives only when the bytes are present and they hash to the published t
 5. **checklist** — Plane B alt-forge deposit steps (no URL invented); Zenodo refused note; USB attest path
 
 Reheal stays MESH-REHEAL-1.0. Neighbor vote is `CNS-NEVER-NEIGHBOR-VOTE`.
+
+### 5.1 FoldLock neighbor (cite + SLOT hook)
+
+FoldLock (https://github.com/AzielEliab/foldlock) is a Softwares Language neighbor: algorithmic tether-word suppression on UTF-8 text. **Not zip. Not encryption.** Spec: [FOLDLOCK-SHELF-1.0](FOLDLOCK-SHELF-1.0.md).
+
+Optional fold applies only to export notes/metadata. Never to lockset tip bytes, `lockset.json`, receipt bodies, or SHA-256 hex fields. Tip SHA-256 stays over raw receipts. The FoldLock engine is not bound in this isolate — the hook is **SLOT** (`FL-ENGINE-UNBOUND`). Attempts to fold the tip or rewrite the chain refuse (`FL-TIP-FOLD-REFUSE`, `FL-CHAIN-REWRITE-REFUSE`, `FL-LOCKSET-BYTES-REFUSE`, `FL-RECEIPT-FOLD-REFUSE`, `FL-HASH-FIELD-REFUSE`, `FL-ZIP-ENCRYPT-CLAIM`). Export writes `foldlock.json` as a cite sidecar. It does not fold the tip.
 
 ## 6. What this repo is not
 

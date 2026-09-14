@@ -265,7 +265,13 @@ test("export → hash → verify roundtrip against published lockset tip", () =>
   assert.ok(live.manifest.files["docs/CROSS-NETWORK-SURVIVAL-1.0.md"]);
   assert.ok(live.manifest.files["docs/NO-LIE-NO-REWRITE-1.0.md"]);
   assert.ok(live.manifest.files["docs/COLD-MULTI-SHELF-1.0.md"]);
+  assert.ok(live.manifest.files["docs/FOLDLOCK-SHELF-1.0.md"]);
   assert.ok(live.manifest.files["docs/lockset.json"]);
+  assert.equal(live.foldlock.slug, "foldlock");
+  assert.equal(live.foldlock.zip, false);
+  assert.equal(live.foldlock.encryption, false);
+  assert.equal(live.foldlock.hook.fold_applied, false);
+  assert.equal(live.lockset_tip, LOCKSET_TIP);
   for (const rel of CORE_DOC_PATHS) {
     const got = sha256File(join(repoRoot, rel));
     const row = verifyManifestEntry(rel, got, live.manifest);
@@ -385,6 +391,11 @@ test("public /shelves JSON cites CNS + NO-LIE; no 15:20 chrome; Growth-ON intact
   assert.equal(doc.registry.softwares_tab, false);
   assert.equal(doc.registry.mesh_radio, false);
   assert.equal(doc.registry.az_gen_live_icann_publish, false);
+  assert.equal(doc.foldlock.slug, "foldlock");
+  assert.equal(doc.foldlock.hook_status, "slot");
+  assert.equal(doc.foldlock.zip, false);
+  assert.equal(doc.foldlock.encryption, false);
+  assert.match(doc.registry.note, /FoldLock/);
   assert.equal(doc.registry.lockset_doi, null);
   assert.equal(doc.planes.A.status, "live");
   assert.equal(doc.planes.B.status, "slot");

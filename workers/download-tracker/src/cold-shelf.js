@@ -28,6 +28,11 @@ import {
 } from "./ingest-receipt.js";
 import { sha256hex } from "./ledger.js";
 import { judgeRehealPoisonedNode } from "./mesh.js";
+import {
+  FOLDLOCK_SHELF_SPEC,
+  foldlockExportCite,
+  foldlockLlmsBlock,
+} from "./foldlock.js";
 
 export { AUTHOR, COLD_MULTI_SHELF_RULE, LOCKSET_ID, LOCKSET_TIP, PUBLISHED_TIP } from "./ingest-receipt.js";
 
@@ -146,6 +151,13 @@ export const REFUSE = Object.freeze({
   PLANE_A_ONE_TUNNEL: "CNS-PLANE-A-ONE-TUNNEL",
   SURFACES_NOT_INDEPENDENT: "CNS-SURFACES-NOT-INDEPENDENT",
   PLANE_B_ALL_TARGETS: "CNS-PLANE-B-ALL-TARGETS",
+  FOLD_TIP: "FL-TIP-FOLD-REFUSE",
+  FOLD_CHAIN: "FL-CHAIN-REWRITE-REFUSE",
+  FOLD_LOCKSET: "FL-LOCKSET-BYTES-REFUSE",
+  FOLD_RECEIPT: "FL-RECEIPT-FOLD-REFUSE",
+  FOLD_HASH: "FL-HASH-FIELD-REFUSE",
+  FOLD_ZIP: "FL-ZIP-ENCRYPT-CLAIM",
+  FOLD_UNBOUND: "FL-ENGINE-UNBOUND",
 });
 
 /** Identity / core law docs hashed by the CLI export. Paths are repo-root relative. */
@@ -160,6 +172,7 @@ export const CORE_DOC_PATHS = Object.freeze([
   "docs/MESH-REHEAL-1.0.md",
   "docs/MESH-SPLIT-WIRES-1.0.md",
   "docs/ACT-RECEIPT-1.0.md",
+  "docs/FOLDLOCK-SHELF-1.0.md",
   "docs/lockset.json",
   "tools/cold_shelf/ZENODO-TIP-PACK-CHECKLIST.md",
   "tools/cold_shelf/ALT-FORGE-TIP-PACK-CHECKLIST.md",
@@ -725,9 +738,11 @@ export function exportPack({ fileHashes = {}, host = HOST } = {}) {
     ingest_as_receipt: ingestReceiptCite(host),
     manifest,
     registry: shelfRegistryDoc(host),
+    foldlock: foldlockExportCite(host),
     ...survivalCiteFields(),
     cold_multi_shelf: COLD_MULTI_SHELF_SPEC,
     cold_multi_shelf_rule: COLD_MULTI_SHELF_RULE,
+    foldlock_shelf: FOLDLOCK_SHELF_SPEC,
   };
 }
 
@@ -813,13 +828,16 @@ export function shelfRegistryDoc(host = HOST) {
     softwares_tab: false,
     mesh_radio: false,
     az_gen_live_icann_publish: false,
+    foldlock: foldlockExportCite(h),
+    foldlock_shelf: FOLDLOCK_SHELF_SPEC,
     note:
       "CROSS-NETWORK-SURVIVAL: " + CROSS_NETWORK_SURVIVAL_RULE + " "
       + "NO-LIE / NO-REWRITE: " + NO_LIE_NO_REWRITE_RULE + " "
       + COLD_MULTI_SHELF_RULE
       + " Plane A is one CF/GitHub tunnel (5 published surfaces / 2 family radii; independent_live_count stays 1). "
       + "Plane B is alt independent forge/archive SLOT; Zenodo tip-pack is refused (CNS-ZENODO-IP-BAN). doi null. "
-      + "Paper deposits are not tip-pack Plane B. Plane C USB stays SLOT until CNS-OPERATOR-ATTEST.",
+      + "Paper deposits are not tip-pack Plane B. Plane C USB stays SLOT until CNS-OPERATOR-ATTEST. "
+      + "FoldLock neighbor is cite + SLOT hook (FOLDLOCK-SHELF-1.0): not zip, not encryption; never fold the lockset tip.",
   };
 }
 
@@ -841,6 +859,8 @@ export function shelvesDoc(host = HOST) {
     lockset: h + "/lockset.json",
     registry: shelfRegistryDoc(h),
     planes: shelfRegistryDoc(h).planes,
+    foldlock: foldlockExportCite(h),
+    foldlock_shelf: FOLDLOCK_SHELF_SPEC,
     verify: verifyHowTo(h),
   };
 }
@@ -876,5 +896,6 @@ export function shelvesLlmsBlock(host = HOST) {
     + "- Do not invent IPFS CIDs, archive.org items, lockset DOIs, or forge URLs.\n"
     + "- Do not count 5 published surfaces as 5 independent shelves.\n"
     + "- AZ Generator / Cap-7 / live ICANN publish is not this repo.\n"
-    + "- Crawlers are extra shelves. They do not re-expand. Training residue is rumor.\n";
+    + "- Crawlers are extra shelves. They do not re-expand. Training residue is rumor.\n"
+    + foldlockLlmsBlock(h) + "\n";
 }
