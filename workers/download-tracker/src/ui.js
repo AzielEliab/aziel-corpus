@@ -32,7 +32,7 @@ import {
   AI_CLIENTS,
 } from "./runtime-copy.js";
 import { meshOnDoc, meshRefreshScript, meshStatusHtml } from "./mesh.js";
-import { ingestReceiptHead, ingestReceiptStrip } from "./ingest-receipt.js";
+import { ingestReceiptHead } from "./ingest-receipt.js";
 import {
   AZCOHERENCE,
   AZCOHERENCE_WORKER_HOME,
@@ -60,11 +60,6 @@ body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;lin
 .nav1,.nav2,.top,.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .nav1{margin-bottom:6px}
 .nav2{margin:8px 0 12px;gap:2px 0}
-.ingest-receipt{margin:0 0 18px;padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink);font-size:14px}
-.ingest-receipt p{margin:0 0 6px}
-.ingest-receipt p:last-child{margin-bottom:0}
-.ingest-receipt .ingest-hash code,.ingest-receipt .ingest-tip{word-break:break-all;font-variant-numeric:tabular-nums}
-.ingest-receipt .ingest-rule{font-weight:700}
 .ingest-verify-form{margin:12px 0}
 .donate-strip{margin:0 0 22px;padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:var(--paper);color:var(--muted);font-size:14px}
 .donate-strip p{margin:0}
@@ -381,7 +376,6 @@ export function page(title, body, { signed, scripts, path, kind, description, wo
 <nav class="nav2 quiet"><a href="/">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/pattern">Pattern</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/how-its-scored">How it's scored</a><span class="sep">|</span><a href="/donate">Donate</a><span class="sep">|</span><a href="/runtime">Runtime</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/forensics">Forensics</a><span class="sep">|</span><a href="/receipts">Receipts</a><span class="sep">|</span><a class="nav-aziel" href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a><span class="sep">|</span>${authLinks}</nav>
 </div></header>
 <div class="wrap">
-${ingestReceiptStrip()}
 ${showDonate ? donateStripHtml() : ""}
 ${body}
 ${showEco ? ecosystemBlockHtml() : ""}</div>${jeevesFabHtml()}${(scripts||[]).map((src)=>"<script src=\""+esc(src)+"\" defer></script>").join("")}${meshRefreshScript()}${jsonLdScript(metaOpts)}</body></html>`;
