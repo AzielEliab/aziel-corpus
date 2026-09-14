@@ -6,7 +6,9 @@ Date: 2026-09-14
 License: Apache-2.0
 Amends: MESH-VAULT-1.0, MESH-CONTINUE-1.0, TUN-BOOT-1.0, TUN-WP-0.1
 Neighbors: QNM-WP-1.0, NODE-OPS-1.0, QNM-BUILD-1.0, QNS-CD-1.0, ACT-RECEIPT-1.0, INGEST-AS-RECEIPT-1.0, RE-EXPAND-FROM-ARCHIVE-1.0, ChainLock CL-0.4, MESH-COLD-COPY-1.0, MESH-REEXPAND-1.0, MESH-REHEAL-1.0
+Umbrella: CROSS-NETWORK-SURVIVAL-1.0 — if the network and live data die tomorrow, the chain still survives on cold copies (bytes↔hash) across independent shelves
 Keeps: die-with-pull (PR #87) — sites pulled → public rollup is down; Phoenix does not restore a public hostname
+Under the same umbrella: MESH-REEXPAND-1.0 (operator verify-from-archive); MESH-REHEAL-1.0 (self tip + trusted pull or phoenix-WAIT — not neighbor majority)
 Not a VPN. Not an IP-mask product. Not an untraceable-origin path. Not a claim that the public Worker is the cell.
 
 ## 0. Sentence
@@ -68,4 +70,4 @@ This library Worker may cite the law and show Live Nodes · N. It may not run th
 
 ## 9. Cap
 
-Die-with-pull stays. Named hosts only. No VPN. No unmarked tunnel hydra. No sender fan-out of bodies. No timer-as-yes. No quorum over a broken hash. Reheal is not neighbor majority. Re-expand is archive restore. Identity: Aziel Eliab only.
+Die-with-pull stays. Named hosts only. No VPN. No unmarked tunnel hydra. No sender fan-out of bodies. No timer-as-yes. No quorum over a broken hash. Survival of the chain if the live network dies is CROSS-NETWORK-SURVIVAL-1.0 (bytes↔hash on independent shelves). Crawlers are extra shelves, not resurrection. Reheal is not neighbor majority (MESH-REHEAL-1.0). Re-expand is archive restore (MESH-REEXPAND-1.0). Identity: Aziel Eliab only.

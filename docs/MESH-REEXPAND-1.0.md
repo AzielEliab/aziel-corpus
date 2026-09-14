@@ -7,6 +7,7 @@ Date: 2026-09-14
 License: Apache-2.0
 Amends: MESH-VAULT-1.0, MESH-CONTINUE-1.0, MESH-COLD-COPY-1.0, MESH-SPLIT-WIRES-1.0
 Neighbors: MESH-REHEAL-1.0, TUN-BOOT-1.0, TUN-WP-0.1, QNM-WP-1.0, NODE-OPS-1.0, ACT-RECEIPT-1.0, ChainLock CL-0.4
+Umbrella: CROSS-NETWORK-SURVIVAL-1.0 — if the network and live data die tomorrow, the chain still survives on cold copies (bytes↔hash); crawlers are extra shelves, not resurrection
 Keeps: die-with-pull (PR #87); split-wires; cold-copy (PR #88)
 Distinct from: MESH-REHEAL-1.0 — reheal of a poisoned live node is self tip + trusted pull or phoenix-WAIT; never neighbor majority
 Not a VPN. Not the mesh growing itself out of an index. Not a claim that crawlers re-expand. Not training residue as a chain. Public Worker rollup is counts/status — not the cell.
@@ -61,4 +62,4 @@ Crawlers may keep a packed vault they already pulled (MESH-VAULT-1.0 reader repl
 
 ## 6. Cap
 
-Restore from archive. Check each prev-hash. Stand a new local node on that tip. Do not treat an index, a snippet, or training residue as the chain. Crawlers do not re-expand. Reheal is a different law. Identity: Aziel Eliab only.
+Restore from archive. Check each prev-hash. Stand a new local node on that tip. Do not treat an index, a snippet, or training residue as the chain. Crawlers do not re-expand. Reheal is a different law. Survival of those bytes if the live network dies is CROSS-NETWORK-SURVIVAL-1.0. Identity: Aziel Eliab only.
