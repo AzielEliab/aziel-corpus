@@ -158,7 +158,7 @@ Sitemap: https://www.azielcorpuslibrary.net/sitemap-index.xml
 - cite.json: https://www.azielcorpuslibrary.net/cite.json
 - lockset.json: https://www.azielcorpuslibrary.net/lockset.json
 - Cold multi-shelf registry: https://www.azielcorpuslibrary.net/shelves · https://www.azielcorpuslibrary.net/cold-copy
-- COLD-MULTI-SHELF-1.0 planes A/B/C: A=one CF/GitHub tunnel (4 mirrors). B=Zenodo tip-pack SLOT (doi null). C=USB airgap SLOT.
+- COLD-MULTI-SHELF-1.0 planes A/B/C: A=one CF/GitHub tunnel (5 surfaces / 2 family radii, not 5 shelves). B=alt independent forge/archive tip-pack SLOT (doi null). Zenodo tip-pack refused CNS-ZENODO-IP-BAN. C=USB airgap SLOT (CNS-OPERATOR-ATTEST).
 - SHA-256: c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245
 - cite, don't merge
 - bytes survive; crawlers do not re-expand

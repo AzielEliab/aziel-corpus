@@ -14,14 +14,27 @@
       "status": "live",
       "independent": true,
       "mirrors": 4,
-      "note": "Four hosts + git = one plane, not four shelves"
+      "published_surfaces": 5,
+      "family_blast_radii": [
+        "cloudflare",
+        "github"
+      ],
+      "note": "4 CF hubs + GitHub = 5 published surfaces / 2 family radii (cloudflare + github). One cf-github plane, not five shelves."
     },
     "B": {
-      "name": "Zenodo tip-pack",
+      "name": "alternate independent forge/archive tip-pack",
       "status": "slot",
       "doi": null,
-      "refuse": "CNS-NO-TIP-DOI",
-      "checklist": "tools/cold_shelf/ZENODO-TIP-PACK-CHECKLIST.md"
+      "working_targets": [
+        "codeberg",
+        "archive.org",
+        "gitflic-ru"
+      ],
+      "zenodo_working_path": false,
+      "live_ready": false,
+      "refuse": "CNS-ZENODO-IP-BAN",
+      "checklist": "tools/cold_shelf/ALT-FORGE-TIP-PACK-CHECKLIST.md",
+      "note": "Codeberg uploaded + hash-verify PASS (still SLOT). archive.org + GitFlic RU unverified. LIVE only when all three pass (CNS-PLANE-B-ALL-TARGETS). Zenodo refused (CNS-ZENODO-IP-BAN)."
     },
     "C": {
       "name": "USB airgap + optional second forge",
@@ -30,7 +43,9 @@
       "refuse": [
         "CNS-OPERATOR-ATTEST",
         "CNS-NO-FORGE-MIRROR"
-      ]
+      ],
+      "checklist": "tools/cold_shelf/USB-AIRGAP-ATTEST.md",
+      "attest": "USB offline-verify before LIVE: copy the airgap pack off-network, run verify-airgap.sh / sha256sum -c SHA256SUMS against the published tip, then operator attest (CNS-OPERATOR-ATTEST)."
     }
   },
   "paper_deposits": [
@@ -73,6 +88,19 @@
       "reuse_as_plane_b": false
     }
   ],
+  "published_surfaces": 5,
+  "published_surface_ids": [
+    "azieleliab-com",
+    "azielcorpuslibrary-net",
+    "godlock-uk",
+    "hedidntjump-com",
+    "github-aziel-corpus"
+  ],
+  "published_surfaces_note": "4 CF hubs + GitHub. Not 5 independent shelves.",
+  "family_blast_radii": [
+    "cloudflare",
+    "github"
+  ],
   "min_independent_shelves": 3,
   "independent_live_blast_radii": [
     "cf-github"
@@ -104,11 +132,16 @@
     "plane-a-host-hedidntjump-com"
   ],
   "slot": [
-    "plane-b-zenodo-tip-pack",
+    "plane-b-alt-forge-archive",
+    "plane-b-codeberg-tip-pack",
+    "plane-b-archive-org-tip-pack",
+    "plane-b-gitflic-ru-tip-pack",
     "plane-c-usb-airgap",
     "plane-c-forge-off-github",
-    "ipfs-lockset",
-    "archive-org-lockset"
+    "ipfs-lockset"
+  ],
+  "refused": [
+    "plane-b-zenodo-tip-pack"
   ],
   "shelves": [
     {
@@ -254,19 +287,95 @@
       "note": "One of four Plane A host mirrors. Not an independent shelf."
     },
     {
+      "id": "plane-b-alt-forge-archive",
+      "plane": "B",
+      "kind": "other",
+      "status": "slot",
+      "doi": null,
+      "url": null,
+      "blast_radius": "alt-forge-archive",
+      "independent": true,
+      "lockset_shelf": true,
+      "lockset_doi": false,
+      "working_targets": [
+        "codeberg",
+        "archive.org",
+        "gitflic-ru"
+      ],
+      "refuse": "CNS-NO-FORGE-MIRROR",
+      "checklist": "tools/cold_shelf/ALT-FORGE-TIP-PACK-CHECKLIST.md",
+      "reason": "Plane B working shelf is an alternate independent forge/archive tip-pack (Codeberg / archive.org / GitFlic RU). Codeberg hash-verify PASS; archive.org + GitFlic still unverified. SLOT until all three pass. cite.json / lockset doi stay null.",
+      "note": "Not Zenodo. Zenodo is not the Plane B working path (CNS-ZENODO-IP-BAN)."
+    },
+    {
+      "id": "plane-b-codeberg-tip-pack",
+      "plane": "B",
+      "kind": "git_mirror",
+      "status": "slot",
+      "forge": "codeberg",
+      "url": "https://codeberg.org/AzielEliab/aziel-lockset-tip",
+      "branch": "main",
+      "files": [
+        "aziel-tip-pack.tar",
+        "SHA256SUMS",
+        "lockset.json",
+        "verify-airgap.sh"
+      ],
+      "pack_sha256": "b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37",
+      "lockset_tip": "c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245",
+      "hash_verify": "pass",
+      "tip_verified": true,
+      "live_ready": false,
+      "doi": null,
+      "blast_radius": "codeberg",
+      "independent": true,
+      "lockset_shelf": true,
+      "refuse": "CNS-PLANE-B-ALL-TARGETS",
+      "reason": "Codeberg tip-pack uploaded and hash-verify PASS. SLOT until archive.org + GitFlic RU also hash-verify. Plane B LIVE only when all three working targets pass. doi null."
+    },
+    {
+      "id": "plane-b-archive-org-tip-pack",
+      "plane": "B",
+      "kind": "archive_org",
+      "status": "slot",
+      "url": null,
+      "item": null,
+      "blast_radius": "archive-org",
+      "independent": true,
+      "lockset_shelf": true,
+      "refuse": "CNS-NO-WARC",
+      "reason": "archive.org tip-pack is a Plane B LIVE-promotion target. No published item in-repo. SLOT. Do not invent a URL. LIVE only after tip hash-verify."
+    },
+    {
+      "id": "plane-b-gitflic-ru-tip-pack",
+      "plane": "B",
+      "kind": "git_mirror",
+      "status": "slot",
+      "forge": "gitflic-ru",
+      "url": null,
+      "blast_radius": "gitflic-ru",
+      "independent": true,
+      "lockset_shelf": true,
+      "refuse": "CNS-NO-FORGE-MIRROR",
+      "reason": "GitFlic (RU) tip-pack is a Plane B LIVE-promotion target. No verified URL in-repo. SLOT. Do not invent a URL. LIVE only after tip hash-verify."
+    },
+    {
       "id": "plane-b-zenodo-tip-pack",
       "plane": "B",
       "kind": "zenodo_doi",
-      "status": "slot",
+      "status": "refused",
       "doi": null,
       "url": null,
       "blast_radius": "zenodo-cern",
       "independent": true,
-      "lockset_shelf": true,
+      "lockset_shelf": false,
       "lockset_doi": false,
-      "refuse": "CNS-NO-TIP-DOI",
+      "refuse": [
+        "CNS-ZENODO-IP-BAN",
+        "CNS-NO-TIP-DOI"
+      ],
       "checklist": "tools/cold_shelf/ZENODO-TIP-PACK-CHECKLIST.md",
-      "reason": "No tip-pack DOI. cite.json / lockset doi stay null. Do not invent. Paper DOIs are not this slot unless hash-verify proves they carry the tip."
+      "reason": "Operator IP banned at Zenodo (CNS-ZENODO-IP-BAN). Zenodo is not the Plane B working shelf. No tip-pack DOI (CNS-NO-TIP-DOI). cite.json / lockset doi stay null. Do not invent. Paper deposits are not this slot."
     },
     {
       "id": "plane-c-usb-airgap",
@@ -279,7 +388,9 @@
       "primary": true,
       "refuse": "CNS-OPERATOR-ATTEST",
       "pack": "node tools/cold_shelf/cli.mjs airgap",
-      "reason": "USB airgap export is the Plane C primary pack (tarball + SHA256SUMS + verify script). Shelf stays SLOT until an operator attests an off-network copy still hashes."
+      "checklist": "tools/cold_shelf/USB-AIRGAP-ATTEST.md",
+      "attest": "USB offline-verify before LIVE: copy the airgap pack off-network, run verify-airgap.sh / sha256sum -c SHA256SUMS against the published tip, then operator attest (CNS-OPERATOR-ATTEST).",
+      "reason": "USB airgap export is the Plane C primary pack (tarball + SHA256SUMS + verify script). Shelf stays SLOT until an operator attests an off-network copy still hashes (CNS-OPERATOR-ATTEST). USB offline-verify before LIVE."
     },
     {
       "id": "plane-c-forge-off-github",
@@ -292,7 +403,7 @@
       "independent": true,
       "lockset_shelf": true,
       "refuse": "CNS-NO-FORGE-MIRROR",
-      "reason": "Optional Codeberg/GitLab mirror. No account yet. SLOT. Do not invent a URL."
+      "reason": "Optional Plane C second-forge slot. Codeberg / archive.org / GitFlic RU are Plane B working targets, not this slot. No account URL here. SLOT. Do not invent a URL."
     },
     {
       "id": "ipfs-lockset",
@@ -305,18 +416,6 @@
       "lockset_shelf": true,
       "refuse": "CNS-NO-CID",
       "reason": "Extra slot, not a named plane. No published CID. Do not invent one."
-    },
-    {
-      "id": "archive-org-lockset",
-      "plane": null,
-      "kind": "archive_org",
-      "status": "slot",
-      "url": null,
-      "item": null,
-      "independent": true,
-      "lockset_shelf": true,
-      "refuse": "CNS-NO-WARC",
-      "reason": "Extra slot, not a named plane. No published archive.org item. Do not invent."
     }
   ],
   "verify": {
@@ -335,5 +434,5 @@
   "softwares_tab": false,
   "mesh_radio": false,
   "az_gen_live_icann_publish": false,
-  "note": "CROSS-NETWORK-SURVIVAL: If network + live data die tomorrow, the chain still survives via cold copies across independent shelves; survival = bytes↔hash. NO-LIE / NO-REWRITE: receipts that still hash; copies not all on one tunnel; verify without voice; no rewrite key; network never lies even to stay alive. Planes A/B/C: A=one CF/GitHub tunnel (4 mirrors); B=Zenodo tip-pack SLOT; C=USB airgap SLOT. Survival = bytes↔hash. LIVE only after hash verify. Plane A is one CF/GitHub tunnel. Plane B tip-pack DOI is null. Paper DOIs do not carry the tip unless hash-verify says so."
+  "note": "CROSS-NETWORK-SURVIVAL: If network + live data die tomorrow, the chain still survives via cold copies across independent shelves; survival = bytes↔hash. NO-LIE / NO-REWRITE: receipts that still hash; copies not all on one tunnel; verify without voice; no rewrite key; network never lies even to stay alive. Planes A/B/C: A=one CF/GitHub tunnel (5 surfaces / 2 family radii, not 5 shelves); B=alt independent forge/archive tip-pack SLOT; C=USB airgap SLOT. Survival = bytes↔hash. LIVE only after hash verify. Plane A is one CF/GitHub tunnel (5 published surfaces / 2 family radii; independent_live_count stays 1). Plane B is alt independent forge/archive SLOT; Zenodo tip-pack is refused (CNS-ZENODO-IP-BAN). doi null. Paper deposits are not tip-pack Plane B. Plane C USB stays SLOT until CNS-OPERATOR-ATTEST."
 }
