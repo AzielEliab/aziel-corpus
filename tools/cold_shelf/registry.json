@@ -45,8 +45,113 @@
         "CNS-NO-FORGE-MIRROR"
       ],
       "checklist": "tools/cold_shelf/USB-AIRGAP-ATTEST.md",
+      "restore_drill": "tools/cold_shelf/RESTORE-DRILL.md",
+      "restore_drill_spec": "RESTORE-DRILL-1.0",
       "attest": "USB offline-verify before LIVE: copy the airgap pack off-network, run verify-airgap.sh / sha256sum -c SHA256SUMS against the published tip, then operator attest (CNS-OPERATOR-ATTEST)."
+    },
+    "D": {
+      "name": "extra independent tip-pack (Framagit)",
+      "status": "slot",
+      "extra_slot": true,
+      "required_for_plane_b_live": false,
+      "url": null,
+      "refuse": "CNS-NO-FORGE-MIRROR",
+      "expect_pack_sha256": "b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37",
+      "expect_lockset_tip": "c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245",
+      "note": "D/E/F-style SLOT. url null. CNS-NO-FORGE-MIRROR until real URL + hash-verify vs pack and tip. Not required for Plane B LIVE."
+    },
+    "E": {
+      "name": "extra independent tip-pack (Launchpad)",
+      "status": "slot",
+      "extra_slot": true,
+      "required_for_plane_b_live": false,
+      "url": null,
+      "refuse": "CNS-NO-FORGE-MIRROR",
+      "expect_pack_sha256": "b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37",
+      "expect_lockset_tip": "c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245",
+      "note": "D/E/F-style SLOT. url null. CNS-NO-FORGE-MIRROR until real URL + hash-verify vs pack and tip. Not required for Plane B LIVE."
+    },
+    "F": {
+      "name": "extra independent tip-pack (AfricArXiv/OSF)",
+      "status": "slot",
+      "extra_slot": true,
+      "required_for_plane_b_live": false,
+      "url": null,
+      "refuse": "CNS-NO-FORGE-MIRROR",
+      "expect_pack_sha256": "b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37",
+      "expect_lockset_tip": "c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245",
+      "note": "D/E/F-style SLOT. url null. CNS-NO-FORGE-MIRROR until real URL + hash-verify vs pack and tip. Not required for Plane B LIVE."
+    },
+    "G": {
+      "name": "extra independent tip-pack (GitLab)",
+      "status": "slot",
+      "extra_slot": true,
+      "required_for_plane_b_live": false,
+      "url": null,
+      "refuse": "CNS-NO-FORGE-MIRROR",
+      "expect_pack_sha256": "b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37",
+      "expect_lockset_tip": "c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245",
+      "note": "D/E/F-style SLOT. url null. CNS-NO-FORGE-MIRROR until real URL + hash-verify vs pack and tip. Not required for Plane B LIVE."
     }
+  },
+  "extra_tip_pack_slots": [
+    "plane-d-framagit-tip-pack",
+    "plane-e-launchpad-tip-pack",
+    "plane-f-osf-africarxiv-tip-pack",
+    "plane-g-gitlab-tip-pack"
+  ],
+  "restore_drill": {
+    "spec": "RESTORE-DRILL-1.0",
+    "status": "slot",
+    "no_fan": true,
+    "live": false,
+    "source": "plane-c-bytes-plus-prev-hash",
+    "not_source": "index",
+    "cites": [
+      "CROSS-NETWORK-SURVIVAL-1.0",
+      "NO-LIE-NO-REWRITE-1.0",
+      "RE-EXPAND-FROM-ARCHIVE-1.0",
+      "MESH-REEXPAND-1.0",
+      "ACT-RECEIPT-1.0",
+      "COLD-MULTI-SHELF-1.0"
+    ],
+    "lamb_lens": "Corpus is the public Lamb Lens shelf. This registry is the cold-copy cite on that shelf; it does not re-expand from Lamb Lens index.",
+    "fields": {
+      "hash": {
+        "type": "sha-256-64hex",
+        "of": "canonical payload including previous_hash"
+      },
+      "action": {
+        "type": "one-sentence",
+        "example": "Operator re-expanded from Plane C airgap bytes and walked each previous_hash."
+      },
+      "output": {
+        "type": "one-sentence",
+        "example": "Pack SHA-256 matched b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37 and lockset tip c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245; LIVE refused until CNS-OPERATOR-ATTEST."
+      },
+      "metadata": {
+        "surface": "cold-shelf",
+        "path": "tools/cold_shelf/RESTORE-DRILL.md",
+        "method": "OPERATOR",
+        "status": "slot",
+        "tool": "restore-drill",
+        "spec": "RESTORE-DRILL-1.0"
+      },
+      "previous_hash": {
+        "type": "sha-256-64hex",
+        "note": "prior receipt or published lockset tip; fail-closed walk"
+      }
+    },
+    "expect_pack_sha256": "b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37",
+    "expect_lockset_tip": "c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245",
+    "plane": "C",
+    "checklist": "tools/cold_shelf/RESTORE-DRILL.md",
+    "refuse": [
+      "CNS-OPERATOR-ATTEST",
+      "CNS-NO-FAN-FAKE-DEPOSIT",
+      "CNS-TRAINING-RESIDUE-RUMOR"
+    ],
+    "note": "NO-FAN. Schema only until an operator runs the drill off-network. Do not invent an attest. Do not re-expand from an index."
   },
   "paper_deposits": [
     {
@@ -138,6 +243,10 @@
     "plane-b-gitflic-ru-tip-pack",
     "plane-c-usb-airgap",
     "plane-c-forge-off-github",
+    "plane-d-framagit-tip-pack",
+    "plane-e-launchpad-tip-pack",
+    "plane-f-osf-africarxiv-tip-pack",
+    "plane-g-gitlab-tip-pack",
     "ipfs-lockset"
   ],
   "refused": [
@@ -331,7 +440,7 @@
       "independent": true,
       "lockset_shelf": true,
       "refuse": "CNS-PLANE-B-ALL-TARGETS",
-      "reason": "Codeberg tip-pack uploaded and hash-verify PASS. SLOT until archive.org + GitFlic RU also hash-verify. Plane B LIVE only when all three working targets pass. doi null."
+      "reason": "Codeberg tip-pack uploaded and hash-verify PASS. SLOT until GitFlic RU also hash-verify. Plane B LIVE only when Codeberg + archive.org + GitFlic all pass (CNS-PLANE-B-ALL-TARGETS). Extra D/E/F-style SLOTs are not required. doi null."
     },
     {
       "id": "plane-b-archive-org-tip-pack",
@@ -403,8 +512,10 @@
       "refuse": "CNS-OPERATOR-ATTEST",
       "pack": "node tools/cold_shelf/cli.mjs airgap",
       "checklist": "tools/cold_shelf/USB-AIRGAP-ATTEST.md",
+      "restore_drill": "tools/cold_shelf/RESTORE-DRILL.md",
+      "restore_drill_spec": "RESTORE-DRILL-1.0",
       "attest": "USB offline-verify before LIVE: copy the airgap pack off-network, run verify-airgap.sh / sha256sum -c SHA256SUMS against the published tip, then operator attest (CNS-OPERATOR-ATTEST).",
-      "reason": "USB airgap export is the Plane C primary pack (tarball + SHA256SUMS + verify script). Shelf stays SLOT until an operator attests an off-network copy still hashes (CNS-OPERATOR-ATTEST). USB offline-verify before LIVE."
+      "reason": "USB airgap export is the Plane C primary pack (tarball + SHA256SUMS + verify script). RESTORE-DRILL proves re-expand from those bytes + prev-hash, not an index. Shelf stays SLOT until an operator attests an off-network copy still hashes (CNS-OPERATOR-ATTEST). USB offline-verify before LIVE. Schema emit is not an attest (NO-FAN)."
     },
     {
       "id": "plane-c-forge-off-github",
@@ -417,7 +528,91 @@
       "independent": true,
       "lockset_shelf": true,
       "refuse": "CNS-NO-FORGE-MIRROR",
-      "reason": "Optional Plane C second-forge slot. Codeberg / archive.org / GitFlic RU are Plane B working targets, not this slot. No account URL here. SLOT. Do not invent a URL."
+      "reason": "Optional Plane C second-forge slot. Codeberg / archive.org / GitFlic RU are Plane B working targets, not this slot. Framagit / Launchpad / OSF / GitLab are extra D/E/F-style SLOTs, not this slot. No account URL here. SLOT. Do not invent a URL."
+    },
+    {
+      "id": "plane-d-framagit-tip-pack",
+      "plane": "D",
+      "kind": "git_mirror",
+      "status": "slot",
+      "forge": "framagit",
+      "url": null,
+      "expect_pack_sha256": "b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37",
+      "expect_lockset_tip": "c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245",
+      "hash_verify": null,
+      "tip_verified": false,
+      "live_ready": false,
+      "required_for_plane_b_live": false,
+      "extra_slot": true,
+      "doi": null,
+      "blast_radius": "framagit",
+      "independent": true,
+      "lockset_shelf": true,
+      "refuse": "CNS-NO-FORGE-MIRROR",
+      "reason": "Extra independent tip-pack SLOT (D/Framagit). url null. Refuse CNS-NO-FORGE-MIRROR until a real URL + hash-verify against pack b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37 and tip c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245. D/E/F-style extra; not required for Plane B LIVE (CNS-PLANE-B-ALL-TARGETS stays Codeberg + archive.org + GitFlic)."
+    },
+    {
+      "id": "plane-e-launchpad-tip-pack",
+      "plane": "E",
+      "kind": "git_mirror",
+      "status": "slot",
+      "forge": "launchpad",
+      "url": null,
+      "expect_pack_sha256": "b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37",
+      "expect_lockset_tip": "c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245",
+      "hash_verify": null,
+      "tip_verified": false,
+      "live_ready": false,
+      "required_for_plane_b_live": false,
+      "extra_slot": true,
+      "doi": null,
+      "blast_radius": "launchpad",
+      "independent": true,
+      "lockset_shelf": true,
+      "refuse": "CNS-NO-FORGE-MIRROR",
+      "reason": "Extra independent tip-pack SLOT (E/Launchpad). url null. Refuse CNS-NO-FORGE-MIRROR until a real URL + hash-verify against pack b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37 and tip c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245. D/E/F-style extra; not required for Plane B LIVE (CNS-PLANE-B-ALL-TARGETS stays Codeberg + archive.org + GitFlic)."
+    },
+    {
+      "id": "plane-f-osf-africarxiv-tip-pack",
+      "plane": "F",
+      "kind": "other",
+      "status": "slot",
+      "forge": "osf-africarxiv",
+      "url": null,
+      "expect_pack_sha256": "b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37",
+      "expect_lockset_tip": "c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245",
+      "hash_verify": null,
+      "tip_verified": false,
+      "live_ready": false,
+      "required_for_plane_b_live": false,
+      "extra_slot": true,
+      "doi": null,
+      "blast_radius": "osf-africarxiv",
+      "independent": true,
+      "lockset_shelf": true,
+      "refuse": "CNS-NO-FORGE-MIRROR",
+      "reason": "Extra independent tip-pack SLOT (F/AfricArXiv/OSF). url null. Refuse CNS-NO-FORGE-MIRROR until a real URL + hash-verify against pack b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37 and tip c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245. D/E/F-style extra; not required for Plane B LIVE (CNS-PLANE-B-ALL-TARGETS stays Codeberg + archive.org + GitFlic)."
+    },
+    {
+      "id": "plane-g-gitlab-tip-pack",
+      "plane": "G",
+      "kind": "git_mirror",
+      "status": "slot",
+      "forge": "gitlab",
+      "url": null,
+      "expect_pack_sha256": "b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37",
+      "expect_lockset_tip": "c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245",
+      "hash_verify": null,
+      "tip_verified": false,
+      "live_ready": false,
+      "required_for_plane_b_live": false,
+      "extra_slot": true,
+      "doi": null,
+      "blast_radius": "gitlab",
+      "independent": true,
+      "lockset_shelf": true,
+      "refuse": "CNS-NO-FORGE-MIRROR",
+      "reason": "Extra independent tip-pack SLOT (G/GitLab). url null. Refuse CNS-NO-FORGE-MIRROR until a real URL + hash-verify against pack b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37 and tip c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245. D/E/F-style extra; not required for Plane B LIVE (CNS-PLANE-B-ALL-TARGETS stays Codeberg + archive.org + GitFlic)."
     },
     {
       "id": "ipfs-lockset",
@@ -440,6 +635,7 @@
     "cli": "node tools/cold_shelf/cli.mjs verify --hash <64-hex> | --file <path>",
     "rule": "yes/no against the published lockset tip c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245. Cheap mismatch. cite, don't merge. bytes survive; crawlers do not re-expand.",
     "reexpand": "original receipts + prev-hash; not index→mesh (RE-EXPAND-FROM-ARCHIVE-1.0)",
+    "restore_drill": "Plane C bytes + prev-hash walk; emit schema only (RESTORE-DRILL-1.0); NO-FAN",
     "reheal": "self tip + trusted pull or phoenix-WAIT; never neighbor vote",
     "crawlers": "extra shelves, not re-expand",
     "training_residue": "rumor"
@@ -448,5 +644,8 @@
   "softwares_tab": false,
   "mesh_radio": false,
   "az_gen_live_icann_publish": false,
-  "note": "CROSS-NETWORK-SURVIVAL: If network + live data die tomorrow, the chain still survives via cold copies across independent shelves; survival = bytes↔hash. NO-LIE / NO-REWRITE: receipts that still hash; copies not all on one tunnel; verify without voice; no rewrite key; network never lies even to stay alive. Planes A/B/C: A=one CF/GitHub tunnel (5 surfaces / 2 family radii, not 5 shelves); B=alt independent forge/archive tip-pack SLOT; C=USB airgap SLOT. Survival = bytes↔hash. LIVE only after hash verify. Plane A is one CF/GitHub tunnel (5 published surfaces / 2 family radii; independent_live_count stays 1). Plane B is alt independent forge/archive SLOT; Zenodo tip-pack is refused (CNS-ZENODO-IP-BAN). doi null. Paper deposits are not tip-pack Plane B. Plane C USB stays SLOT until CNS-OPERATOR-ATTEST."
+  "lamb_lens": "Corpus is the public Lamb Lens shelf. This registry is the cold-copy cite on that shelf; it does not re-expand from Lamb Lens index.",
+  "": "",
+  "": false,
+  "note": "CROSS-NETWORK-SURVIVAL: If network + live data die tomorrow, the chain still survives via cold copies across independent shelves; survival = bytes↔hash. NO-LIE / NO-REWRITE: receipts that still hash; copies not all on one tunnel; verify without voice; no rewrite key; network never lies even to stay alive. Lamb Lens: Corpus is the public Lamb Lens shelf. This registry is the cold-copy cite on that shelf; it does not re-expand from Lamb Lens index. Planes A/B/C: A=one CF/GitHub tunnel (5 surfaces / 2 family radii, not 5 shelves); B=alt independent forge/archive tip-pack SLOT; C=USB airgap SLOT. Survival = bytes↔hash. LIVE only after hash verify. Plane A is one CF/GitHub tunnel (5 published surfaces / 2 family radii; independent_live_count stays 1). Plane B is alt independent forge/archive SLOT; LIVE only after Codeberg + archive.org + GitFlic (CNS-PLANE-B-ALL-TARGETS). Zenodo tip-pack is refused (CNS-ZENODO-IP-BAN). doi null. Extra D/E/F-style SLOTs (Framagit, Launchpad, AfricArXiv/OSF, GitLab) stay url-null until hash-verify; they are not required for Plane B LIVE. Paper deposits are not tip-pack Plane B. Plane C USB stays SLOT until CNS-OPERATOR-ATTEST. RESTORE-DRILL emits attest schema from bytes+prev-hash, not index (NO-FAN). Operator -95. Never publish ."
 }

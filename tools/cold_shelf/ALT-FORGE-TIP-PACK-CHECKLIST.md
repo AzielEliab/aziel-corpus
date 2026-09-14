@@ -12,8 +12,10 @@ This is a checklist, not a deposit. Plane B is an **alternate independent forge/
 Working shelf targets for later LIVE promotion (do not mark Plane B LIVE until **all three** URL + hash-verify):
 
 - Codeberg tip-pack — uploaded https://codeberg.org/AzielEliab/aziel-lockset-tip (`main`). Pack SHA-256 `b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37`. Hash-verify PASS. Shelf stays **SLOT**.
-- archive.org tip-pack — no verified item yet
+- archive.org tip-pack — uploaded https://archive.org/details/aziel-lockset-tip. Same pack SHA-256. Hash-verify PASS. Shelf stays **SLOT**.
 - GitFlic (RU) tip-pack — no verified URL yet
+
+Extra D/E/F-style SLOTs (Framagit, Launchpad, AfricArXiv/OSF, GitLab) stay `url` null and refuse `CNS-NO-FORGE-MIRROR` until a real URL + hash-verify against that pack and tip. They are **not** required for Plane B LIVE.
 
 Zenodo is **not** the working path. Operator IP banned (`CNS-ZENODO-IP-BAN`). See `ZENODO-TIP-PACK-CHECKLIST.md`.
 
@@ -38,7 +40,8 @@ Deposit the airgap directory or its `.tar` + `SHA256SUMS` + `verify-airgap.sh`. 
 ## Do not
 
 - Invent a URL or DOI to fill Plane B.
-- Mark Plane B LIVE because one target (Codeberg) hash-verified. Need all three (`CNS-PLANE-B-ALL-TARGETS`).
+- Mark Plane B LIVE because Codeberg and archive.org hash-verified. Need all three (`CNS-PLANE-B-ALL-TARGETS`).
+- Count Framagit / Launchpad / OSF / GitLab extras as Plane B LIVE substitutes.
 - Reuse paper Zenodo records as the tip-pack. They are companion papers (`reuse_as_plane_b: false`).
 - Treat Zenodo as the Plane B working shelf (`CNS-ZENODO-IP-BAN`).
 - Count Plane A hosts as a substitute for this deposit.
