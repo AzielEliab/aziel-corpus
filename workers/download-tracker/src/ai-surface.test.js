@@ -20,6 +20,8 @@ import {
   UPLOAD_OPS,
   aiSurfaceLlmsBlock,
   bridgeDoc,
+  cap7ShelvesCite,
+  cap7SitesCompact,
   meshPullRecipe,
 } from "./ai-surface.js";
 import { designBySlug, designPackDoc, designPackIndex, handleDesignPackApi } from "./design-pack.js";
@@ -319,6 +321,14 @@ test("llms.txt / cite / MCP discovery carry dual-surface + CNS + no AZ-GEN overc
   assert.equal(cite.cap7_sites.azcorpus.design_of, HOST + "/");
   assert.equal(cite.cap7_sites.azcorpus.resolves_to_hub, false);
   assert.equal(cite.cap7_sites.azeliab.design_of, "https://www.azieleliab.com/");
+  assert.equal(cite.redline.spec, "REDLINE-2026-09-14");
+  assert.equal(cite.redline.pointer, true);
+  assert.match(cite.attack_sim_refuse, /Attack sims refuse/);
+  const shelvesCap7 = cap7ShelvesCite();
+  assert.equal(shelvesCap7.spec, "CAP-7-BRIDGE-CITE-1.0");
+  assert.equal(shelvesCap7.resolves_to_hub, false);
+  assert.equal(shelvesCap7.sites.azcorpus.design_of, HOST + "/");
+  assert.equal(cap7SitesCompact().azlibrary.resolves_to_hub, false);
   assert.ok(cite.library_mcp_tools.includes("aziel-corpus_ingest"));
 
   const mcp = mcpDiscovery();

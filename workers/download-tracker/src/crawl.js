@@ -33,6 +33,7 @@ import { shelvesLlmsBlock } from "./cold-shelf.js";
 import { aiSurfaceLlmsBlock, bridgeDoc, MCP_TOOLS } from "./ai-surface.js";
 import { AZCOHERENCE, AZCLCE_NAME, AZCLCE_SLUG, AZCLCE_GITHUB, AZCLCE_WORKER_HOME, azcoherenceLlmsBlock } from "./azcoherence.js";
 import { foldlockCiteFields, foldlockLlmsBlock } from "./foldlock.js";
+import { redlineCiteFields } from "./redline-cite.js";
 import {
   IDENTITY_ROUTES,
   identitySameAsLine,
@@ -747,6 +748,7 @@ export function citeDoc() {
     azcoherence: AZCOHERENCE,
     azcoherence_slug: AZCOHERENCE.slug,
     ...foldlockCiteFields(HOST),
+    ...redlineCiteFields(),
     azclce: {
       slug: AZCLCE_SLUG,
       name: AZCLCE_NAME,

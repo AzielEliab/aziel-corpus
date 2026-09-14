@@ -324,6 +324,13 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.ok(cite.keywords.includes("foldlock"));
   assert.equal(cite.foldlock.zip, false);
   assert.equal(cite.foldlock.encryption, false);
+  assert.equal(cite.redline.spec, "REDLINE-2026-09-14");
+  assert.equal(cite.redline.pointer, true);
+  assert.match(cite.redline.law, /aziel-runtime\/blob\/main\/docs\/designs\/REDLINE-2026-09-14\.md/);
+  assert.equal(cite.redline.cap7.resolves_to_hub, false);
+  assert.match(cite.attack_sim_refuse, /Attack sims refuse/);
+  assert.match(cite.attack_sim_refuse, /resolves_to_hub:true/);
+  assert.match(cite.redline.attack_sim_refuse, /AZ-GEN as registrar/);
   assert.match(llms, /FoldLock/);
   assert.match(llms, /foldlock-download-tracker\.vibelock\.workers\.dev/);
   assert.match(llms, /FL-TIP-FOLD-REFUSE/);
