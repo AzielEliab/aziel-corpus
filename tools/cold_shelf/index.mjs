@@ -138,6 +138,14 @@ export function writeAirgap(outDir, pack = buildExport()) {
     join(REPO_ROOT, "tools/cold_shelf/ZENODO-TIP-PACK-CHECKLIST.md"),
     join(outDir, "ZENODO-TIP-PACK-CHECKLIST.md"),
   );
+  copyFileSync(
+    join(REPO_ROOT, "tools/cold_shelf/ALT-FORGE-TIP-PACK-CHECKLIST.md"),
+    join(outDir, "ALT-FORGE-TIP-PACK-CHECKLIST.md"),
+  );
+  copyFileSync(
+    join(REPO_ROOT, "tools/cold_shelf/USB-AIRGAP-ATTEST.md"),
+    join(outDir, "USB-AIRGAP-ATTEST.md"),
+  );
   const content = [
     "lockset.json",
     "ingest-as-receipt.json",
@@ -145,6 +153,8 @@ export function writeAirgap(outDir, pack = buildExport()) {
     "registry.json",
     "export.json",
     "ZENODO-TIP-PACK-CHECKLIST.md",
+    "ALT-FORGE-TIP-PACK-CHECKLIST.md",
+    "USB-AIRGAP-ATTEST.md",
   ];
   writeVerifyAirgapScript(outDir);
   content.push("verify-airgap.sh");

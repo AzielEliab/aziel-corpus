@@ -20,6 +20,9 @@ import {
   claimShelfLive,
   exportPack,
   hashManifestFromMap,
+  FAMILY_BLAST_RADII,
+  PLANE_B_WORKING_TARGETS,
+  PUBLISHED_SURFACE_IDS,
   independentLiveBlastRadii,
   independentRequirementMet,
   isShelvesPath,
@@ -29,10 +32,12 @@ import {
   judgeInventedPhyDnsIcann,
   judgeNeighborVoteHeal,
   judgePlaneAMirrors,
+  judgePublishedSurfaces,
   judgeTrainingResidueShelf,
   judgeZenodoTipReuse,
   liveShelves,
   planeRows,
+  refusedShelves,
   shelfRegistryDoc,
   shelvesCiteFields,
   shelvesDoc,
@@ -53,11 +58,13 @@ const VISIBLE_1520 = /15:20/;
 const BANNED_IDENTITY = /Collin Horton|GodLock\.AZ|\+25|quiet (Aziel|triad|boost)/i;
 const CRAWL_NO_TIP_DOI = /10\.5281\/zenodo/i;
 
-test("COLD-MULTI-SHELF planes A/B/C: one LIVE tunnel, Zenodo SLOT, no invented tip DOI", () => {
+test("COLD-MULTI-SHELF planes A/B/C: one LIVE tunnel, alt-forge SLOT, Zenodo refused", () => {
   assert.equal(COLD_MULTI_SHELF_SPEC, "COLD-MULTI-SHELF-1.0");
   assert.equal(COLD_MULTI_SHELF_RULE, INGEST_COLD_RULE);
   assert.match(COLD_MULTI_SHELF_RULE, /Planes A\/B\/C/);
   assert.match(COLD_MULTI_SHELF_RULE, /LIVE only after hash verify/);
+  assert.match(COLD_MULTI_SHELF_RULE, /alt independent forge\/archive/);
+  assert.doesNotMatch(COLD_MULTI_SHELF_RULE, /B=Zenodo/);
   assert.deepEqual(SHELF_KINDS, [
     "zenodo_doi",
     "git_mirror",
@@ -71,6 +78,9 @@ test("COLD-MULTI-SHELF planes A/B/C: one LIVE tunnel, Zenodo SLOT, no invented t
     assert.ok(["live", "slot", "refused"].includes(s.status), s.id);
   }
   assert.equal(PLANE_A_MIRRORS.length, 4);
+  assert.deepEqual(PUBLISHED_SURFACE_IDS.length, 5);
+  assert.deepEqual(FAMILY_BLAST_RADII, ["cloudflare", "github"]);
+  assert.deepEqual(PLANE_B_WORKING_TARGETS, ["codeberg", "archive.org", "gitflic-ru"]);
   assert.ok(PLANE_A_MIRRORS.some((m) => m.origin === "https://www.azieleliab.com"));
   assert.ok(PLANE_A_MIRRORS.some((m) => m.origin === "https://www.azielcorpuslibrary.net"));
   assert.ok(PLANE_A_MIRRORS.some((m) => m.origin === "https://godlock.uk"));
@@ -98,26 +108,55 @@ test("COLD-MULTI-SHELF planes A/B/C: one LIVE tunnel, Zenodo SLOT, no invented t
   assert.equal(four.reason, REFUSE.PLANE_A_ONE_TUNNEL);
   assert.equal(four.independent_count, 1);
 
+  const five = judgePublishedSurfaces({ count_five_surfaces_as_five_shelves: true });
+  assert.equal(five.accept, false);
+  assert.equal(five.reason, REFUSE.SURFACES_NOT_INDEPENDENT);
+  assert.equal(five.published_surfaces, 5);
+  assert.equal(five.independent_live_count, 1);
+
+  const alt = SHELF_REGISTRY.find((s) => s.id === "plane-b-alt-forge-archive");
+  assert.equal(alt.plane, "B");
+  assert.equal(alt.status, "slot");
+  assert.equal(alt.doi, null);
+  assert.equal(alt.url, null);
+  assert.equal(claimShelfLive(alt).live, false);
+  assert.match(alt.note, /Not Zenodo/);
+
+  for (const id of ["plane-b-codeberg-tip-pack", "plane-b-archive-org-tip-pack", "plane-b-gitflic-ru-tip-pack"]) {
+    const row = SHELF_REGISTRY.find((s) => s.id === id);
+    assert.equal(row.plane, "B", id);
+    assert.equal(row.status, "slot", id);
+    assert.equal(row.url, null, id);
+    assert.equal(claimShelfLive(row).live, false, id);
+  }
+
   const tipPack = SHELF_REGISTRY.find((s) => s.id === "plane-b-zenodo-tip-pack");
   assert.equal(tipPack.plane, "B");
   assert.equal(tipPack.kind, "zenodo_doi");
-  assert.equal(tipPack.status, "slot");
+  assert.equal(tipPack.status, "refused");
   assert.equal(tipPack.doi, null);
-  assert.equal(tipPack.refuse, REFUSE.NO_TIP_DOI);
+  assert.deepEqual(tipPack.refuse, [REFUSE.ZENODO_IP_BAN, REFUSE.NO_TIP_DOI]);
   assert.equal(claimShelfLive(tipPack).live, false);
 
   for (const p of PAPER_DEPOSITS) {
     assert.equal(p.tip_verified, false);
     assert.equal(p.reuse_as_plane_b, false);
-    assert.equal(judgeZenodoTipReuse({ doi: p.doi }).reason, REFUSE.TIP_NOT_ON_DEPOSIT);
+    const judged = judgeZenodoTipReuse({ doi: p.doi });
+    assert.equal(judged.reason, REFUSE.TIP_NOT_ON_DEPOSIT);
+    assert.equal(judged.working_path, REFUSE.ZENODO_IP_BAN);
+    assert.equal(judged.reuse_as_plane_b, false);
   }
-  assert.equal(judgeZenodoTipReuse({}).status, "slot");
+  assert.equal(judgeZenodoTipReuse({}).status, "refused");
+  assert.equal(judgeZenodoTipReuse({}).reason, REFUSE.ZENODO_IP_BAN);
+  assert.equal(judgeZenodoTipReuse({}).also, REFUSE.NO_TIP_DOI);
 
   const usb = SHELF_REGISTRY.find((s) => s.id === "plane-c-usb-airgap");
   assert.equal(usb.plane, "C");
   assert.equal(usb.status, "slot");
   assert.equal(usb.primary, true);
   assert.equal(usb.refuse, REFUSE.OPERATOR_ATTEST);
+  assert.match(usb.attest, /CNS-OPERATOR-ATTEST/);
+  assert.match(usb.reason, /offline-verify/);
 
   const forge = SHELF_REGISTRY.find((s) => s.id === "plane-c-forge-off-github");
   assert.equal(forge.status, "slot");
@@ -136,15 +175,26 @@ test("COLD-MULTI-SHELF planes A/B/C: one LIVE tunnel, Zenodo SLOT, no invented t
   assert.equal(LOCKSET.doi, null);
   assert.ok(liveShelves().length >= 1);
   assert.ok(slotShelves().length >= 3);
+  assert.ok(refusedShelves().some((s) => s.id === "plane-b-zenodo-tip-pack"));
 
   const reg = shelfRegistryDoc();
   assert.equal(reg.planes.A.status, "live");
   assert.equal(reg.planes.B.status, "slot");
   assert.equal(reg.planes.B.doi, null);
+  assert.equal(reg.planes.B.name, "alternate independent forge/archive tip-pack");
+  assert.equal(reg.planes.B.zenodo_working_path, false);
+  assert.equal(reg.planes.B.refuse, REFUSE.ZENODO_IP_BAN);
   assert.equal(reg.planes.C.status, "slot");
+  assert.ok(reg.planes.C.refuse.includes(REFUSE.OPERATOR_ATTEST));
+  assert.match(reg.planes.C.attest, /CNS-OPERATOR-ATTEST/);
   assert.equal(reg.lockset_doi, null);
+  assert.equal(reg.published_surfaces, 5);
+  assert.deepEqual(reg.family_blast_radii, ["cloudflare", "github"]);
+  assert.deepEqual(reg.independent_live_blast_radii, ["cf-github"]);
   assert.equal(reg.independent_live_count, 1);
   assert.equal(reg.independent_requirement_met, false);
+  assert.ok(reg.refused.includes("plane-b-zenodo-tip-pack"));
+  assert.doesNotMatch(reg.note, /B=Zenodo tip-pack SLOT/);
 });
 
 test("export → hash → verify roundtrip against published lockset tip", () => {
@@ -263,8 +313,10 @@ test("refuse invented PHY/DNS/ICANN, neighbor-vote heal, Cap-7/AZ-GEN overclaim"
   assert.equal(judgeInventedDeposit({ kind: "archive_org", url: "https://archive.org/details/fake" }).reason, REFUSE.NO_WARC);
   assert.equal(judgeInventedDeposit({ kind: "zenodo_doi", doi: "10.5281/zenodo.99999999" }).reason, REFUSE.FAKE_DEPOSIT);
   assert.equal(judgeInventedDeposit({ kind: "zenodo_doi", doi: "10.5281/zenodo.21435707" }).reason, REFUSE.TIP_NOT_ON_DEPOSIT);
-  assert.equal(judgeInventedDeposit({ kind: "zenodo_doi" }).status, "slot");
+  assert.equal(judgeInventedDeposit({ kind: "zenodo_doi" }).status, "refused");
+  assert.equal(judgeInventedDeposit({ kind: "zenodo_doi" }).reason, REFUSE.ZENODO_IP_BAN);
   assert.equal(judgeInventedDeposit({ kind: "git_mirror", plane: "C", url: "https://codeberg.org/fake/aziel" }).reason, REFUSE.NO_FORGE);
+  assert.equal(judgeInventedDeposit({ kind: "git_mirror", plane: "B", url: "https://codeberg.org/fake/aziel" }).reason, REFUSE.NO_FORGE);
   assert.equal(judgeInventedDeposit({ kind: "not-a-kind" }).reason, REFUSE.UNKNOWN_KIND);
   assert.equal(judgeTrainingResidueShelf({ training_residue: true }).reason, REFUSE.TRAINING_RUMOR);
   assert.equal(judgeTrainingResidueShelf({ weights: true }).rumor, true);
@@ -292,7 +344,13 @@ test("public /shelves JSON cites CNS + NO-LIE; no 15:20 chrome; Growth-ON intact
   assert.equal(doc.planes.A.status, "live");
   assert.equal(doc.planes.B.status, "slot");
   assert.equal(doc.planes.B.doi, null);
+  assert.equal(doc.planes.B.zenodo_working_path, false);
   assert.equal(doc.planes.C.status, "slot");
+  assert.equal(doc.registry.published_surfaces, 5);
+  assert.equal(doc.registry.independent_live_count, 1);
+  assert.match(doc.registry.note, /CNS-ZENODO-IP-BAN/);
+  assert.match(shelvesLlmsBlock(), /CNS-ZENODO-IP-BAN/);
+  assert.doesNotMatch(shelvesLlmsBlock(), /B = Zenodo tip-pack SLOT/);
   assert.match(doc.registry.note, /CROSS-NETWORK-SURVIVAL/);
   assert.match(doc.registry.note, /NO-LIE/);
   assert.doesNotMatch(JSON.stringify(doc.verify), VISIBLE_1520);
