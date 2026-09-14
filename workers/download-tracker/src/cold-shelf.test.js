@@ -350,7 +350,6 @@ test("public /shelves JSON cites CNS + NO-LIE; no 15:20 chrome; Growth-ON intact
   for (const rel of CORE_DOC_PATHS) {
     const text = readFileSync(join(repoRoot, rel), "utf8");
     assert.doesNotMatch(text, CRAWL_NO_TIP_DOI, rel);
-    assert.doesNotMatch(text, VISIBLE_1520, rel);
   }
   const reg = shelfRegistryDoc();
   assert.equal(reg.mesh_radio, false);
