@@ -319,6 +319,14 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(llms, /AZCoherence/);
   assert.match(llms, /azcoherence-download-tracker\.vibelock\.workers\.dev/);
   assert.match(llms, /github\.com\/AzielEliab\/AZCoherence/);
+  assert.equal(cite.foldlock.slug, "foldlock");
+  assert.equal(cite.foldlock_slug, "foldlock");
+  assert.ok(cite.keywords.includes("foldlock"));
+  assert.equal(cite.foldlock.zip, false);
+  assert.equal(cite.foldlock.encryption, false);
+  assert.match(llms, /FoldLock/);
+  assert.match(llms, /foldlock-download-tracker\.vibelock\.workers\.dev/);
+  assert.match(llms, /FL-TIP-FOLD-REFUSE/);
   assert.doesNotMatch(llms, /1\.4\.0 engine-runtime/);
 
   const ai = aiTxt("LIMIT");

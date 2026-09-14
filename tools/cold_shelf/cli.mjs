@@ -21,6 +21,9 @@ import {
   judgeInventedDeposit,
   judgeInventedPhyDnsIcann,
   judgeNeighborVoteHeal,
+  foldShelfHook,
+  judgeFoldLockClaim,
+  FOLDLOCK_REFUSE,
 } from "./index.mjs";
 
 function arg(flag) {
@@ -43,6 +46,8 @@ if (cmd === "export") {
     ok: true,
     spec: pack.spec,
     lockset_tip: pack.lockset_tip,
+    foldlock_shelf: pack.foldlock_shelf,
+    foldlock_hook: pack.foldlock && pack.foldlock.hook_status,
     out,
     files: Object.keys(pack.manifest.files),
     independent_live_count: pack.registry.independent_live_count,
@@ -93,6 +98,22 @@ if (cmd === "registry") {
   process.exit(0);
 }
 
+if (cmd === "fold") {
+  const target = arg("--target") || "notes";
+  const notes = arg("--notes");
+  const r = foldShelfHook({
+    target,
+    notes,
+    fold: true,
+    zip: has("--zip"),
+    encryption: has("--encrypt"),
+    rewrite_chain: has("--rewrite-chain"),
+    fold_tip_hash: has("--tip-hash"),
+  });
+  console.log(JSON.stringify(r, null, 2));
+  process.exit(r.accept && r.status === "slot" ? 0 : 2);
+}
+
 if (cmd === "refuse") {
   const r = {
     neighbor_vote: judgeNeighborVoteHeal({ neighbor_vote: true }),
@@ -101,6 +122,9 @@ if (cmd === "refuse") {
     invented_icann: judgeInventedPhyDnsIcann({ invent_icann: true }),
     az_gen: judgeAzGenOverclaim({ live_icann_publish: true }),
     invented_cid: judgeInventedDeposit({ kind: "ipfs_cid", cid: "QmFake" }),
+    fold_tip: foldShelfHook({ target: "tip", fold: true }),
+    fold_zip: judgeFoldLockClaim({ zip: true }),
+    foldlock_codes: FOLDLOCK_REFUSE,
     codes: REFUSE,
   };
   console.log(JSON.stringify(r, null, 2));
@@ -108,11 +132,13 @@ if (cmd === "refuse") {
 }
 
 console.log(`COLD-MULTI-SHELF-1.0
-  export [--out DIR]     lockset + ingest-as-receipt + SHA-256 manifest + registry
+  export [--out DIR]     lockset + ingest-as-receipt + SHA-256 manifest + registry + foldlock.json cite
   airgap [--out DIR]     Plane C tarball + SHA256SUMS + verify-airgap.sh
   verify --hash HEX      yes/no vs published lockset tip
   verify --file PATH     file SHA-256 vs tip or core-doc manifest
+  fold [--target notes|tip|lockset|receipt] [--notes TEXT]
+                         SLOT hook: notes eligible / tip+chain+zip refuse. Never folds tip bytes.
   registry               planes A/B/C + honest live|slot|refused
-  refuse                 print PHY/DNS/ICANN / neighbor-vote / AZ-GEN refuse codes
+  refuse                 print PHY/DNS/ICANN / neighbor-vote / AZ-GEN / FoldLock refuse codes
 `);
 process.exit(has("--help") || cmd === "help" ? 0 : 1);

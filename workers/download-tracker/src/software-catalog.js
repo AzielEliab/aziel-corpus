@@ -22,6 +22,11 @@ import {
   AZCOHERENCE_COUNT,
 } from "./azcoherence.js";
 import {
+  FOLDLOCK_SOFTWARE_EXTRA,
+  FOLDLOCK_SLUG,
+  FOLDLOCK_COUNT,
+} from "./foldlock.js";
+import {
   SOFTWARE_CATALOG_CACHE_URL,
   SEO_CACHE_CONTROL,
   cacheMatchJson,
@@ -74,6 +79,7 @@ export const SOFTWARE_EXTRAS = [
     one_line: "Catalog-only door. Listed here even before a live engine Worker is published. Author Aziel Eliab.",
   },
   Object.assign({}, AZCOHERENCE_SOFTWARE_EXTRA),
+  Object.assign({}, FOLDLOCK_SOFTWARE_EXTRA),
 ];
 
 function firstText(...vals) {
@@ -97,6 +103,7 @@ const KNOWN_NAMES = {
   azos: "AZ-OS",
   decisiongate: "DecisionGATE",
   embryolock: "EmbryoLock",
+  foldlock: "FoldLock",
   forgereceipts: "ForgeReceipts",
   fraggate: "FragGate",
   glossafilter: "Glossa Filter",
@@ -453,6 +460,7 @@ export function countUrlForProduct(product) {
   if (slug === "fraggate") return firstText(listed, FRAGGATE_COUNT);
   if (slug === "aznet") return firstText(listed, AZNET_COUNT);
   if (slug === AZCOHERENCE_SLUG) return firstText(listed, AZCOHERENCE_COUNT);
+  if (slug === FOLDLOCK_SLUG) return firstText(listed, FOLDLOCK_COUNT);
   if (slug === "aziel-corpus") return firstText(listed, LIBRARY_COUNT);
   return firstText(listed, inferCountUrlFromProduct(product));
 }

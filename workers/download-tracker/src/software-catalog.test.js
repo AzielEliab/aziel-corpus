@@ -151,7 +151,7 @@ test("mergeSoftwareExtras adds AZNet, FragGate, EmbryoLock, and AZCoherence with
   assert.ok(merged.some((p) => p.slug === "aznet" && p.worker_home === AZNET_WORKER_HOME));
   assert.ok(merged.some((p) => p.slug === "fraggate" && p.door));
   assert.ok(merged.some((p) => p.slug === "embryolock" && p.catalog_only));
-  assert.equal(SOFTWARE_EXTRAS.length, 4);
+  assert.equal(SOFTWARE_EXTRAS.length, 5);
   assert.ok(merged.some((p) => p.slug === "azcoherence"));
   const already = mergeSoftwareExtras([{ slug: "fraggate", name: "FragGate", door: true }]);
   assert.equal(already.filter((p) => p.slug === "fraggate").length, 1);
