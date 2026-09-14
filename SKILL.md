@@ -41,8 +41,12 @@ Compatible AI clients: ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity,
 - Session (advanced/internal): `POST https://www.azielcorpuslibrary.net/runtime/v1/session/open` then `POST .../session/{id}/exec`. Prefer fraggate_call.
 - Library skill: `GET https://www.azielcorpuslibrary.net/v1/skill`
 - Library MCP (upload+download): `POST https://www.azielcorpuslibrary.net/mcp`
+- Plane A UI on this Worker: **azcorpus** (`/corpus`) and **azlibrary** (`/aziel-library`). Anyone may download both. Cap-7 names inherit `design_of` this hub; `resolves_to_hub: false`.
+- Products index: `GET https://www.azielcorpuslibrary.net/v1/products`
 - Cap-7 bridge cite (`design_of` hubs; `resolves_to_hub: false`): `GET https://www.azielcorpuslibrary.net/bridge.json`
-- Design packs: `GET https://www.azielcorpuslibrary.net/v1/design-pack`
+- Design packs (tip + pack hashes): `GET https://www.azielcorpuslibrary.net/v1/design-pack`
+- Counted pack pull: `GET https://www.azielcorpuslibrary.net/download?product=azcorpus` · `…?product=azlibrary`
+- Mesh pull: cite `/bridge.json` → describe pack → counted pull → hash-verify `pack_sha256` fail-closed → land local cold shelf. qnm: https://github.com/AzielEliab/qnm-node
 - Suite mesh (read-only QNM ON): `GET https://www.azielcorpuslibrary.net/v1/mesh` · `GET https://www.azielcorpuslibrary.net/runtime/v1/mesh` — Live Nodes payload includes the **QNS-CD-1.0** cross-map (photon QNS1 packet transfer). Cites **CROSS-NETWORK-SURVIVAL-1.0** (bytes↔hash on independent shelves) and **NO-LIE-NO-REWRITE-1.0** (network never lies to stay alive; no rewrite key). Executable cold shelves: **COLD-MULTI-SHELF-1.0** `GET https://www.azielcorpuslibrary.net/shelves`. Live lockset: `GET https://www.azielcorpuslibrary.net/lockset.json` (`AZLOCK-INGEST-REEXPAND-1.0`). Local `qnsd` is coded in https://github.com/AzielEliab/qnm-node. Runtime cites + catalog field live in https://github.com/AzielEliab/aziel-runtime. AZInterface has pair custody. Hub cite only — not a Softwares-tab product. No public `qnsd` proxy. No Node Gate. Public mesh stays ON (disable refused). GET /v1/mesh never enables radios.
 
 Ops (do **not** increment downloads):
@@ -72,11 +76,13 @@ Ops (do **not** increment downloads):
 - `GET /v1/verify-geo?force=1` / `?status=1` (chunked map pins: paper date × event × geolocation)
 - `GET /v1/docs/{hash}/download` (content SHA-256; does not increment)
 - `GET /download?hash=` (counted content-hash download)
-- `POST /v1/ingest` (AI/JSON; session → Corpus; operator token → live hub azlibrary only; anonymous JSON refused)
+- `POST /v1/ingest` (AI/JSON; session → azcorpus / Corpus; operator token → live hub azlibrary only; anonymous JSON refused)
 - `POST /v1/jeeves/upload` (signed-in; same Lamb Lens / operator shelf rules)
-- `POST /v1/operator/library-ingest` (operator token; live hub azlibrary only — not a Cap-7 mesh write)
+- `POST /v1/operator/library-ingest` (header `X-Aziel-Operator-Token` or operator session; env names `OPERATOR_TOKEN` / `GATE_TOKEN` / `LIBRARY_OPERATOR_TOKEN` only — never the value; live hub azlibrary only — not a Cap-7 mesh write)
 - `GET /bridge.json` (Plane A Cap-7 cite; mesh names are not ICANN)
-- `GET /v1/design-pack/{slug}` (design+content packs for mesh nodes)
+- `GET /v1/products` (first-class azcorpus / azlibrary)
+- `GET /v1/design-pack/{slug}` (website design+content packs for mesh nodes)
+- `GET /download?product=azcorpus|azlibrary` (counted design-pack download; anyone)
 
 Catalog aliases: `GET /p/aziel-corpus/health`, `GET /p/aziel-corpus/search`, `GET /p/aziel-corpus/skill`.
 

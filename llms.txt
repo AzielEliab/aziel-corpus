@@ -112,16 +112,44 @@ Aziel Runtime is not merely an API orchestrator or software aggregator; it is a 
 
 Dual surface: agents run software with outputs shown in the AI and inputs run back (no technical MCP UI required); software side keeps complete human UI (Worker + mobile + download).
 
-- Upload (session/MCP, hub only): POST https://www.azielcorpuslibrary.net/v1/ingest
-- Upload alias: POST https://www.azielcorpuslibrary.net/v1/jeeves/upload
-- Operator live azlibrary (hub token only): POST https://www.azielcorpuslibrary.net/v1/operator/library-ingest
+## azcorpus (first-class website — Corpus / Lamb Lens)
+
+- Plane A browse: https://www.azielcorpuslibrary.net/corpus
+- Anyone may DOWNLOAD records and the design pack. Auth: none.
+- Counted pack: https://www.azielcorpuslibrary.net/download?product=azcorpus
+- API pack: https://www.azielcorpuslibrary.net/v1/design-pack/azcorpus
+- Upload (session → Corpus): POST https://www.azielcorpuslibrary.net/v1/ingest · POST /v1/jeeves/upload
+- Human guest HTML: POST /ingest from /#upload-anonymous (Corpus-only / Lamb Lens)
+- Cap-7 mesh name azcorpus is a design — does NOT resolve to azielcorpuslibrary.net
+
+## azlibrary (first-class website — Aziel Library, royal purple)
+
+- Plane A browse: https://www.azielcorpuslibrary.net/aziel-library
+- Anyone may DOWNLOAD records and the design pack. Auth: none.
+- Counted pack: https://www.azielcorpuslibrary.net/download?product=azlibrary
+- API pack: https://www.azielcorpuslibrary.net/v1/design-pack/azlibrary
+- Upload requires header X-Aziel-Operator-Token (env OPERATOR_TOKEN / GATE_TOKEN / LIBRARY_OPERATOR_TOKEN). Never put the token in git/docs/PRs.
+- Upload path: POST https://www.azielcorpuslibrary.net/v1/operator/library-ingest
+- Token writes live hub azlibrary only — not the Cap-7 mesh name
+
 - Download by hash: GET https://www.azielcorpuslibrary.net/v1/docs/{hash}/download · /download?hash=
 - Download by record: GET https://www.azielcorpuslibrary.net/file/{record_id} · /download?record=
+- Products index: GET https://www.azielcorpuslibrary.net/v1/products
 - Library MCP: POST https://www.azielcorpuslibrary.net/mcp
 - MCP tools: aziel-corpus_health, aziel-corpus_search, aziel-corpus_skill, aziel-corpus_download, aziel-corpus_ingest, aziel-corpus_design_pack, aziel-corpus_receipt
 - OpenAPI: https://www.azielcorpuslibrary.net/openapi.json
 
 Anonymous JSON ingest is refused. Human homepage POST /ingest may still file Corpus as a guest. Operator token writes live Aziel Library on the hub only — never a Cap-7 mesh name.
+
+## Mesh pull (qnm / MirageGrid → local cold shelf)
+
+1. GET https://www.azielcorpuslibrary.net/bridge.json
+2. GET https://www.azielcorpuslibrary.net/v1/design-pack/azcorpus or /azlibrary — copy pack_sha256 + lockset_tip
+3. GET https://www.azielcorpuslibrary.net/download?product=azcorpus|azlibrary — counted bytes
+4. Hash-verify pack_sha256 and lockset_tip fail-closed (bytes↔hash; CROSS-NETWORK-SURVIVAL)
+5. Land on the node's local cold shelf. Do not alias Plane A DNS. Do not write the live hub.
+6. Optional: GET /v1/docs/{hash}/download for each content_sha256 (receiver-pull bodies)
+Local qnsd: https://github.com/AzielEliab/qnm-node. Mesh-side: AZNet / AZBrowser.
 
 ## Cap-7 semantic bridge (Plane A)
 
@@ -132,7 +160,7 @@ Anonymous JSON ingest is refused. Human homepage POST /ingest may still file Cor
 - MirageGrid Cap-7 cite: https://miragegrid-download-tracker.vibelock.workers.dev/v1/mesh/az-generator
 - Future MirageGrid /bridge.json is cited, not claimed live.
 - Design packs (download-to-mesh-nodes): https://www.azielcorpuslibrary.net/v1/design-pack
-- Honesty: mesh names are NOT ICANN; no Cap-7 live public DNS; no AZ-GEN publish cadence; mesh copies are design+content packs. CROSS-NETWORK-SURVIVAL on ingest/shelves.
+- Honesty: mesh names are NOT ICANN; azcorpus/azlibrary are first-class website designs; no Cap-7 live public DNS; no AZ-GEN publish cadence; mesh copies are design+content packs. CROSS-NETWORK-SURVIVAL on ingest/shelves.
 
 ## Compatible AI clients
 

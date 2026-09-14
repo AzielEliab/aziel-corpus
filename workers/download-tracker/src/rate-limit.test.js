@@ -65,6 +65,8 @@ test("browse, search, records, and SEO docs are never content-rationed", () => {
   assert.equal(isFanoutPath("/v1/ingest", "POST"), true);
   assert.equal(isFanoutPath("/mcp", "POST"), true);
   assert.equal(isRateExemptPath("/bridge.json"), true);
+  assert.equal(isRateExemptPath("/v1/products"), true);
+  assert.equal(isRateExemptPath("/v1/design-pack"), true);
 });
 
 test("SEO Allow-list bots are never 429, including on fan-out", async () => {

@@ -261,6 +261,7 @@ export function robotsTxt() {
     "Allow: /.well-known/mcp.json",
     "Allow: /mcp",
     "Allow: /bridge.json",
+    "Allow: /v1/products",
     "Allow: /v1/design-pack",
     "Allow: /v1/design-pack/",
     "Allow: /runtime/v1/software",
@@ -305,7 +306,10 @@ const STATIC_SITEMAP = [
   "/.well-known/mcp.json",
   "/mcp",
   "/bridge.json",
+  "/v1/products",
   "/v1/design-pack",
+  "/v1/design-pack/azcorpus",
+  "/v1/design-pack/azlibrary",
   "/runtime",
   "/runtime/",
   "/runtime/v1/health",
@@ -397,6 +401,11 @@ const SITEMAP_HINTS = {
   "/ai.txt": { changefreq: "weekly", priority: "0.7" },
   "/aziel-library": { changefreq: "daily", priority: "0.8" },
   "/corpus": { changefreq: "daily", priority: "0.8" },
+  "/bridge.json": { changefreq: "weekly", priority: "0.7" },
+  "/v1/products": { changefreq: "weekly", priority: "0.8" },
+  "/v1/design-pack": { changefreq: "weekly", priority: "0.8" },
+  "/v1/design-pack/azcorpus": { changefreq: "weekly", priority: "0.8" },
+  "/v1/design-pack/azlibrary": { changefreq: "weekly", priority: "0.8" },
   "/how-its-scored": { changefreq: "monthly", priority: "0.6" },
   "/donate": { changefreq: "monthly", priority: "0.6" },
 };
@@ -501,6 +510,9 @@ export function mcpDiscovery() {
     library_mcp_tools: MCP_TOOLS.slice(),
     bridge: HOST + "/bridge.json",
     design_pack: HOST + "/v1/design-pack",
+    products: HOST + "/v1/products",
+    azcorpus: HOST + "/corpus",
+    azlibrary: HOST + "/aziel-library",
     mcpServers: {
       "aziel-runtime": {
         url: HOST + "/runtime/mcp",
@@ -668,6 +680,16 @@ export function citeDoc() {
     library_mcp_tools: MCP_TOOLS.slice(),
     bridge: HOST + "/bridge.json",
     design_pack: HOST + "/v1/design-pack",
+    products: HOST + "/v1/products",
+    azcorpus: HOST + "/corpus",
+    azlibrary: HOST + "/aziel-library",
+    azcorpus_pack: HOST + "/v1/design-pack/azcorpus",
+    azlibrary_pack: HOST + "/v1/design-pack/azlibrary",
+    azcorpus_counted: HOST + "/download?product=azcorpus",
+    azlibrary_counted: HOST + "/download?product=azlibrary",
+    operator_token_header: "X-Aziel-Operator-Token",
+    operator_token_env: ["OPERATOR_TOKEN", "GATE_TOKEN", "LIBRARY_OPERATOR_TOKEN"],
+    mesh_pull: HOST + "/bridge.json",
     dual_surface_upload_download: true,
     sitemap_index: HOST + "/sitemap-index.xml",
     sitemap_records: HOST + "/sitemap-records.xml",
@@ -914,7 +936,12 @@ export function llmsDoc(limitation) {
     + "- POST " + HOST + "/v1/operator/library-ingest\n"
     + "- GET " + HOST + "/v1/docs/{hash}/download\n"
     + "- GET " + HOST + "/bridge.json\n"
+    + "- GET " + HOST + "/v1/products\n"
     + "- GET " + HOST + "/v1/design-pack\n"
+    + "- GET " + HOST + "/v1/design-pack/azcorpus\n"
+    + "- GET " + HOST + "/v1/design-pack/azlibrary\n"
+    + "- GET " + HOST + "/download?product=azcorpus\n"
+    + "- GET " + HOST + "/download?product=azlibrary\n"
     + "- POST " + HOST + "/mcp\n"
     + "- GET " + HOST + "/v1/runtime\n"
     + "- GET " + HOST + "/v1/runtime.json\n"
@@ -1046,6 +1073,7 @@ export function aiTxt(limitation) {
     "Allow: /.well-known/mcp.json",
     "Allow: /mcp",
     "Allow: /bridge.json",
+    "Allow: /v1/products",
     "Allow: /v1/design-pack",
     "Allow: /v1/design-pack/",
     "Allow: /runtime/v1/software",

@@ -163,6 +163,8 @@ const SEO_PATHS = new Set([
   "/openapi.json",
   "/bridge.json",
   "/mcp",
+  "/v1/products",
+  "/v1/design-pack",
 ]);
 
 export function isRateExemptPath(pathname) {

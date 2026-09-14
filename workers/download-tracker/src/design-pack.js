@@ -9,13 +9,18 @@ import { HOST } from "./runtime-copy.js";
 import { publicSearchCard, readPackedIndex } from "./library-index.js";
 import {
   AUTHOR,
+  AZCORPUS,
+  AZLIBRARY,
   CAP7_DESIGNS,
+  FIRST_CLASS_SLUGS,
   HONESTY,
   MIRAGEGRID_AZ_GENERATOR,
   NO_FAN_PHRASE,
   NO_FAN_SPEC,
   PLANE_A,
   PLANE_A_HUBS,
+  meshPullRecipe,
+  productBySlug,
 } from "./ai-surface.js";
 import {
   CROSS_NETWORK_SURVIVAL,
@@ -47,8 +52,7 @@ function json(body, status = 200) {
 }
 
 export function designBySlug(raw) {
-  const slug = String(raw || "").trim().toLowerCase();
-  return CAP7_DESIGNS.find((d) => d.slug === slug) || null;
+  return productBySlug(raw);
 }
 
 function contentCards(packed, shelf) {
@@ -121,7 +125,17 @@ export function designPackDoc(design, packed) {
     no_fan: NO_FAN_SPEC,
     no_fan_phrase: NO_FAN_PHRASE,
     honesty: HONESTY,
+    website: design.website || null,
+    chrome: design.chrome || null,
+    product: design.product || design.slug,
+    first_class: !!design.first_class,
+    title: design.title || design.slug,
+    upload: design.upload || null,
+    download_anyone: !!(design.download && design.download.anyone !== false),
+    counted_download: HOST + "/download?product=" + design.slug,
+    mesh_pull: meshPullRecipe(design.slug),
     download: HOST + "/v1/design-pack/" + design.slug,
+    download_attachment: HOST + "/v1/design-pack/" + design.slug + "/download",
     bridge: HOST + "/bridge.json",
     doi: null,
     license: "Apache-2.0",
@@ -146,13 +160,23 @@ export function designPackIndex() {
     note:
       "Download-to-mesh-nodes. Cap-7 names are designs. They do not resolve to Plane A hubs. "
       + "Upload token still only writes live azlibrary on the hub.",
+    first_class: FIRST_CLASS_SLUGS.slice(),
+    products: Object.freeze({ azcorpus: AZCORPUS, azlibrary: AZLIBRARY }),
     packs: CAP7_DESIGNS.map((d) => ({
       slug: d.slug,
+      first_class: !!d.first_class,
+      title: d.title || d.slug,
       href: HOST + "/v1/design-pack/" + d.slug,
+      download_attachment: HOST + "/v1/design-pack/" + d.slug + "/download",
+      counted_download: HOST + "/download?product=" + d.slug,
       plane_a_hub: d.plane_a_hub,
       does_not_resolve_to: d.does_not_resolve_to,
       shelf: d.shelf,
     })),
+    mesh_pull: Object.freeze({
+      azcorpus: meshPullRecipe("azcorpus"),
+      azlibrary: meshPullRecipe("azlibrary"),
+    }),
     plane_a_hubs: PLANE_A_HUBS,
     bridge: HOST + "/bridge.json",
     miragegrid_az_generator: MIRAGEGRID_AZ_GENERATOR,
@@ -161,36 +185,77 @@ export function designPackIndex() {
   };
 }
 
+export function productsIndex() {
+  return {
+    ok: true,
+    author: AUTHOR,
+    identity: AUTHOR,
+    first_class: FIRST_CLASS_SLUGS.slice(),
+    products: Object.freeze({ azcorpus: AZCORPUS, azlibrary: AZLIBRARY }),
+    note: "azcorpus = Corpus / Lamb Lens. azlibrary = royal-purple Aziel Library. Anyone may download both. azlibrary upload uses " + (AZLIBRARY.upload && AZLIBRARY.upload.token_header) + " on the live hub only.",
+    honesty: HONESTY,
+    bridge: HOST + "/bridge.json",
+    design_pack: HOST + "/v1/design-pack",
+  };
+}
+
+export async function loadPackedForPack(env) {
+  try {
+    return await readPackedIndex(env);
+  } catch {
+    return { records: [], index_sha256: "" };
+  }
+}
+
+export async function serveDesignPack(env, slug, { attachment = false, head = false } = {}) {
+  const design = designBySlug(slug);
+  if (!design) {
+    return json({
+      error: "unknown design pack",
+      known: CAP7_DESIGNS.map((d) => d.slug),
+      note: "Mesh names are designs, not ICANN. First-class websites: azcorpus, azlibrary.",
+      author: AUTHOR,
+    }, 404);
+  }
+  const packed = await loadPackedForPack(env);
+  const doc = designPackDoc(design, packed);
+  const body = JSON.stringify(doc, null, 2);
+  const headers = {
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": attachment ? "private, no-store" : "public, s-maxage=120, stale-while-revalidate=3600",
+    "X-Aziel-Pack-Sha256": doc.pack_sha256 || "",
+    "X-Aziel-Product": design.slug,
+    ...corsHeaders(),
+  };
+  if (attachment) {
+    headers["Content-Disposition"] = 'attachment; filename="' + design.slug + "-design-pack.json\"";
+  }
+  if (head) return new Response(null, { status: 200, headers });
+  return new Response(body, { status: 200, headers });
+}
+
 export async function handleDesignPackApi(request, url, env) {
   const path = url.pathname.replace(/\/$/, "") || "/";
-  if (request.method === "OPTIONS" && (path === "/v1/design-pack" || path.startsWith("/v1/design-pack/"))) {
+  if (request.method === "OPTIONS" && (path === "/v1/products" || path === "/v1/design-pack" || path.startsWith("/v1/design-pack/"))) {
     return new Response(null, { status: 204, headers: corsHeaders() });
+  }
+  if (path === "/v1/products" && (request.method === "GET" || request.method === "HEAD")) {
+    const res = json(productsIndex());
+    if (request.method === "HEAD") return new Response(null, { status: res.status, headers: res.headers });
+    return res;
   }
   if (path === "/v1/design-pack" && (request.method === "GET" || request.method === "HEAD")) {
     const res = json(designPackIndex());
     if (request.method === "HEAD") return new Response(null, { status: res.status, headers: res.headers });
     return res;
   }
+  const dl = path.match(/^\/v1\/design-pack\/([^/]+)\/download$/);
+  if (dl && (request.method === "GET" || request.method === "HEAD")) {
+    return serveDesignPack(env, decodeURIComponent(dl[1]), { attachment: true, head: request.method === "HEAD" });
+  }
   const m = path.match(/^\/v1\/design-pack\/([^/]+)$/);
   if (m && (request.method === "GET" || request.method === "HEAD")) {
-    const design = designBySlug(decodeURIComponent(m[1]));
-    if (!design) {
-      return json({
-        error: "unknown design pack",
-        known: CAP7_DESIGNS.map((d) => d.slug),
-        note: "Mesh names are designs, not ICANN. Plane A hubs stay themselves.",
-        author: AUTHOR,
-      }, 404);
-    }
-    let packed = { records: [], index_sha256: "" };
-    try {
-      packed = await readPackedIndex(env);
-    } catch {
-      packed = { records: [], index_sha256: "" };
-    }
-    const res = json(designPackDoc(design, packed));
-    if (request.method === "HEAD") return new Response(null, { status: res.status, headers: res.headers });
-    return res;
+    return serveDesignPack(env, decodeURIComponent(m[1]), { attachment: false, head: request.method === "HEAD" });
   }
   return null;
 }

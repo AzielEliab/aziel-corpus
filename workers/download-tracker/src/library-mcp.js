@@ -238,8 +238,8 @@ export function mcpToolsList() {
     {
       name: "aziel-corpus_design_pack",
       description:
-        "Download a Cap-7 design+content pack (azcorpus, azlibrary, sister hubs) for a mesh node. "
-        + "Names are designs — they do not resolve to Plane A hubs.",
+        "Download a first-class website design+content pack (azcorpus Corpus / Lamb Lens, azlibrary royal-purple Aziel Library) "
+        + "or a sister-hub design for a qnm/MirageGrid node. Anyone may download. Hash-verify pack_sha256. Names are not ICANN.",
       inputSchema: {
         type: "object",
         properties: { slug: { type: "string", description: "azcorpus | azlibrary | azeliab | godlock | hedidntjump" } },
@@ -271,11 +271,18 @@ async function callTool(name, args, env, request) {
       version: "2.7.0",
       author: AUTHOR,
       host: HOST,
+      first_class: ["azcorpus", "azlibrary"],
+      products: {
+        azcorpus: { browse: HOST + "/corpus", download: "anyone", upload: "session / Lamb Lens Corpus" },
+        azlibrary: { browse: HOST + "/aziel-library", download: "anyone", upload: "X-Aziel-Operator-Token on live hub only" },
+      },
       dual_surface: DUAL_SURFACE,
       honesty: HONESTY,
       skill: HOST + "/v1/skill",
       openapi: HOST + "/openapi.json",
       mcp: HOST + "/mcp",
+      products_index: HOST + "/v1/products",
+      design_pack: HOST + "/v1/design-pack",
     };
   }
   if (name === "aziel-corpus_search") {

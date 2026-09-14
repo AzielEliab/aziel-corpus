@@ -3,18 +3,24 @@ import assert from "node:assert/strict";
 import {
   AUTHOR,
   AI_PATH_NOTE,
+  AZCORPUS,
+  AZLIBRARY,
   CAP7_DESIGNS,
   DOWNLOAD_OPS,
   DUAL_SURFACE,
+  FIRST_CLASS_SLUGS,
   HONESTY,
   MCP_TOOLS,
   MIRAGEGRID_AZ_GENERATOR,
   MIRAGEGRID_BRIDGE_FUTURE,
   NO_FAN_SPEC,
+  OPERATOR_TOKEN_ENV,
+  OPERATOR_TOKEN_HEADER,
   PLANE_A_HUBS,
   UPLOAD_OPS,
   aiSurfaceLlmsBlock,
   bridgeDoc,
+  meshPullRecipe,
 } from "./ai-surface.js";
 import { designBySlug, designPackDoc, designPackIndex, handleDesignPackApi } from "./design-pack.js";
 import { handleLibraryIngestApi, handleLibraryMcp, mcpToolsList } from "./library-mcp.js";
@@ -73,11 +79,46 @@ test("bridge.json cites Cap-7 via Plane A without DNS or AZ-GEN overclaim", () =
   for (const hub of PLANE_A_HUBS) {
     assert.match(hub.url, /^https:\/\//);
   }
+  assert.deepEqual(FIRST_CLASS_SLUGS, ["azcorpus", "azlibrary"]);
+  assert.equal(doc.products.azcorpus.kind, "website");
+  assert.equal(doc.products.azlibrary.kind, "website");
+  assert.equal(doc.products.azlibrary.chrome.royal_purple, true);
+  assert.equal(doc.upload.azlibrary.token_required, true);
+  assert.equal(doc.upload.azlibrary.header, OPERATOR_TOKEN_HEADER);
+  assert.ok(doc.upload.azlibrary.env_names.includes("OPERATOR_TOKEN"));
+  assert.equal(doc.upload.token_header, OPERATOR_TOKEN_HEADER);
+  assert.equal(doc.upload.token_in_git, false);
+  assert.equal(doc.download.anyone, true);
+  assert.equal(doc.download.azcorpus.anyone, true);
+  assert.equal(doc.download.azlibrary.anyone, true);
+  assert.equal(doc.mesh_pull.azcorpus.receiver_pull, true);
+  assert.equal(doc.mesh_pull.azlibrary.hash_verify, true);
+  assert.equal(doc.mesh_pull.azlibrary.fail_closed_on_mismatch, true);
+  assert.ok(doc.mesh_pull.azlibrary.steps.some((s) => s.op === "hash-verify"));
   for (const d of CAP7_DESIGNS) {
-    assert.equal(d.kind, "mesh-design");
+    assert.ok(d.kind === "website" || d.kind === "mesh-design");
+    assert.equal(d.icann, false);
     assert.ok(d.does_not_resolve_to);
     assert.ok(d.plane_a_hub);
   }
+  assert.equal(CAP7_DESIGNS.find((d) => d.slug === "azcorpus").kind, "website");
+  assert.equal(CAP7_DESIGNS.find((d) => d.slug === "azlibrary").kind, "website");
+  assert.equal(CAP7_DESIGNS.find((d) => d.slug === "azeliab").kind, "mesh-design");
+});
+
+test("first-class: anyone downloads both; only azlibrary token-uploads; no secret in docs", () => {
+  assert.equal(AZCORPUS.download.anyone, true);
+  assert.equal(AZLIBRARY.download.anyone, true);
+  assert.equal(AZCORPUS.upload.token_required, false);
+  assert.equal(AZLIBRARY.upload.token_required, true);
+  assert.equal(AZLIBRARY.upload.header, OPERATOR_TOKEN_HEADER);
+  assert.deepEqual(AZLIBRARY.upload.env_names, [...OPERATOR_TOKEN_ENV]);
+  const dump = JSON.stringify({ AZCORPUS, AZLIBRARY, note: AI_PATH_NOTE });
+  assert.ok(!/sk-[A-Za-z0-9]/.test(dump));
+  assert.doesNotMatch(dump, /password\s*=/i);
+  assert.equal(HONESTY.operator_token_in_git, false);
+  assert.equal(HONESTY.anyone_may_download_azcorpus, true);
+  assert.equal(HONESTY.anyone_may_download_azlibrary, true);
 });
 
 test("design packs are mesh designs and do not alias Plane A hubs", () => {
@@ -98,6 +139,15 @@ test("design packs are mesh designs and do not alias Plane A hubs", () => {
   assert.equal(pack.upload_token_writes_this_name, false);
   assert.equal(pack.live_write, false);
   assert.equal(pack.mesh_name, "azlibrary");
+  assert.equal(pack.first_class, true);
+  assert.equal(pack.kind, "design+content-pack");
+  assert.equal(pack.website.browse, "/aziel-library");
+  assert.equal(pack.chrome.royal_purple, true);
+  assert.equal(pack.download_anyone, true);
+  assert.match(pack.counted_download, /\/download\?product=azlibrary$/);
+  assert.equal(pack.mesh_pull.hash_verify, true);
+  assert.equal(pack.mesh_pull.fail_closed_on_mismatch, true);
+  assert.ok(pack.pack_sha256);
   assert.equal(pack.content.count, 1);
   assert.equal(pack.content.records[0].record_id, "AZDOC-1");
   assert.match(pack.cross_network_survival, /CROSS-NETWORK-SURVIVAL/);
@@ -117,6 +167,15 @@ test("GET /v1/design-pack and /bridge.json are honest 200s", async () => {
   assert.equal(body.icann, false);
   const miss = await handleDesignPackApi(req("/v1/design-pack/www.azielcorpuslibrary.net"), new URL(HOST + "/v1/design-pack/www.azielcorpuslibrary.net"), {});
   assert.equal(miss.status, 404);
+  const products = await handleDesignPackApi(req("/v1/products"), new URL(HOST + "/v1/products"), {});
+  assert.equal(products.status, 200);
+  const catalog = await products.json();
+  assert.deepEqual(catalog.first_class, ["azcorpus", "azlibrary"]);
+  assert.equal(catalog.products.azlibrary.upload.header, "X-Aziel-Operator-Token");
+  const attach = await handleDesignPackApi(req("/v1/design-pack/azlibrary/download"), new URL(HOST + "/v1/design-pack/azlibrary/download"), {});
+  assert.equal(attach.status, 200);
+  assert.match(attach.headers.get("Content-Disposition") || "", /azlibrary-design-pack\.json/);
+  assert.ok(attach.headers.get("X-Aziel-Pack-Sha256"));
 });
 
 test("POST /v1/ingest refuses anonymous JSON and does not write mesh names", async () => {
@@ -144,10 +203,15 @@ test("OpenAPI + MCP expose upload and download ops; full client set", async () =
   assert.ok(spec.paths["/v1/docs/{hash}/download"]);
   assert.ok(spec.paths["/download"]);
   assert.ok(spec.paths["/file/{record_id}"]);
+  assert.ok(spec.paths["/v1/products"]);
   assert.ok(spec.paths["/v1/design-pack"]);
   assert.ok(spec.paths["/v1/design-pack/{slug}"]);
+  assert.ok(spec.paths["/v1/design-pack/{slug}/download"]);
   assert.ok(spec.paths["/bridge.json"]);
   assert.ok(spec.paths["/mcp"]);
+  assert.match(spec.paths["/v1/products"].get.summary, /azcorpus/);
+  assert.match(spec.paths["/v1/products"].get.summary, /azlibrary/);
+  assert.match(spec.paths["/download"].get.summary, /product=azcorpus\|azlibrary/);
   assert.match(spec.paths["/v1/ingest"].post.summary, /live hub azlibrary only/);
   assert.match(spec.paths["/v1/ingest"].post.summary, /ChatGPT, Grok, Venice, Claude, Cursor, Glama/);
   assert.match(spec.paths["/v1/operator/library-ingest"].post.summary, /live hub azlibrary only/);
@@ -191,20 +255,50 @@ test("llms.txt / cite / MCP discovery carry dual-surface + CNS + no AZ-GEN overc
   assert.match(llms, /POST https:\/\/www\.azielcorpuslibrary\.net\/v1\/ingest/);
   assert.match(llms, /aziel-corpus_ingest/);
   assert.match(llms, /\/bridge\.json/);
-  assert.match(llms, /azcorpus\/azlibrary are designs/);
+  assert.match(llms, /## azcorpus/);
+  assert.match(llms, /## azlibrary/);
+  assert.match(llms, /azcorpus\/azlibrary are first-class website designs/);
+  assert.match(llms, /X-Aziel-Operator-Token/);
+  assert.match(llms, /hash-verify/);
+  assert.match(llms, /local cold shelf/);
   assert.match(llms, /CROSS-NETWORK-SURVIVAL/);
   assert.match(llms, /ChatGPT, Grok, Venice, Claude, Cursor, Glama/);
   assert.match(llms, /no AZ-GEN publish cadence/);
   assert.doesNotMatch(llms, AZ_GEN_CADENCE);
+  assert.doesNotMatch(llms, VISIBLE_1520);
   assert.match(DUAL_SURFACE, /Worker \+ mobile \+ download/);
   assert.match(AI_PATH_NOTE, /Anonymous JSON ingest is refused/);
+  assert.match(AI_PATH_NOTE, /Operator token writes live Aziel Library on the hub only/);
 
   const cite = citeDoc();
   assert.equal(cite.bridge, HOST + "/bridge.json");
   assert.equal(cite.ingest, HOST + "/v1/ingest");
+  assert.equal(cite.azcorpus, HOST + "/corpus");
+  assert.equal(cite.azlibrary, HOST + "/aziel-library");
+  assert.equal(cite.azcorpus_counted, HOST + "/download?product=azcorpus");
+  assert.equal(cite.azlibrary_counted, HOST + "/download?product=azlibrary");
   assert.ok(cite.library_mcp_tools.includes("aziel-corpus_ingest"));
 
   const mcp = mcpDiscovery();
   assert.equal(mcp.mcpServers["aziel-corpus"].url, HOST + "/mcp");
   assert.equal(mcp.bridge, HOST + "/bridge.json");
+});
+
+test("mesh pull recipe is receiver-pull + hash-verify fail-closed", () => {
+  const r = meshPullRecipe("azlibrary");
+  assert.equal(r.receiver_pull, true);
+  assert.equal(r.hash_verify, true);
+  assert.equal(r.fail_closed_on_mismatch, true);
+  assert.equal(r.land_on, "local cold shelf");
+  assert.equal(r.steps[3].op, "hash-verify");
+  assert.match(r.counted_download, /\/download\?product=azlibrary$/);
+  const block = aiSurfaceLlmsBlock();
+  assert.match(block, /## azcorpus/);
+  assert.match(block, /## azlibrary/);
+  assert.match(block, /royal purple/);
+  assert.match(block, /X-Aziel-Operator-Token/);
+  assert.match(block, /OPERATOR_TOKEN/);
+  assert.match(block, /\/download\?product=/);
+  assert.ok(!/sk-[A-Za-z0-9]/.test(block));
+  assert.doesNotMatch(block, VISIBLE_1520);
 });
