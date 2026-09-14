@@ -5,6 +5,7 @@
  *   node tools/cold_shelf/cli.mjs verify --hash HEX | --file PATH
  *   node tools/cold_shelf/cli.mjs registry
  *   node tools/cold_shelf/cli.mjs restore-drill
+ *   node tools/cold_shelf/cli.mjs fold [--notes TEXT]
  * Author: Aziel Eliab only. No invented CIDs. No AZ-GEN live ICANN publish.
  */
 import { resolve } from "node:path";
@@ -151,7 +152,7 @@ console.log(`COLD-MULTI-SHELF-1.0
   verify --file PATH     file SHA-256 vs tip or core-doc manifest
   fold [--target notes|tip|lockset|receipt] [--notes TEXT]
                          SLOT hook: notes eligible / tip+chain+zip refuse. Never folds tip bytes.
-  registry               planes A/B/C + extra D/E/F/G SLOTs + honest live|slot|refused
+  registry               planes A/B/C + extra E/F/G SLOTs + honest live|slot|refused
   restore-drill          emit Plane C attest receipt schema (NO-FAN; not an attest)
   refuse                 print PHY/DNS/ICANN / neighbor-vote / AZ-GEN / FoldLock refuse codes
 `);

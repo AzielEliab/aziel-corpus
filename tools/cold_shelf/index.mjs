@@ -181,8 +181,8 @@ export function writeAirgap(outDir, pack = buildExport()) {
     "ZENODO-TIP-PACK-CHECKLIST.md",
     "ALT-FORGE-TIP-PACK-CHECKLIST.md",
     "USB-AIRGAP-ATTEST.md",
-    "foldlock.json",
     "RESTORE-DRILL.md",
+    "foldlock.json",
   ];
   writeVerifyAirgapScript(outDir);
   content.push("verify-airgap.sh");

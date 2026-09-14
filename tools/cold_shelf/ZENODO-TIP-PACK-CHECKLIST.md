@@ -9,7 +9,7 @@ cite.json / lockset `doi`: **null** (do not invent)
 
 Zenodo is **not** the Plane B working shelf. Operator IP banned at Zenodo (`CNS-ZENODO-IP-BAN`). Status is **refused**. There is still no tip-pack DOI (`CNS-NO-TIP-DOI`). Do not invent one.
 
-Plane B working path is an alternate independent forge/archive (Codeberg / archive.org / Framagit). See `ALT-FORGE-TIP-PACK-CHECKLIST.md`. GitFlic is optional (`CNS-GITFLIC-EMAIL`). GitLab is extra (`CNS-GITLAB-CF-LOOP`).
+Plane B working path is an alternate independent forge/archive (Codeberg / archive.org / Framagit). See `ALT-FORGE-TIP-PACK-CHECKLIST.md`. GitFlic is refused (`CNS-GITFLIC-EMAIL`). GitLab is extra (`CNS-GITLAB-CF-LOOP`).
 
 Paper deposits already cited in-repo (ShadowLock, DecisionGATE, TrajectoryLock, WhistleLock/FoldLock, EmployeeLock) stay paper deposits. `reuse_as_plane_b: false`. They are not tip-pack Plane B.
 
