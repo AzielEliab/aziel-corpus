@@ -4,7 +4,7 @@ Author: Aziel Eliab only
 Spec id: MESH-VAULT-1.0
 Date: 2026-09-14
 License: Apache-2.0
-Neighbors: ACT-RECEIPT-1.0, TUN-WP-0.1, RL-WP-0.1-library, QNM-WP-1.0, ChainLock CL-0.4, MESH-SPLIT-WIRES-1.0, MESH-COLD-COPY-1.0
+Neighbors: ACT-RECEIPT-1.0, TUN-WP-0.1, RL-WP-0.1-library, QNM-WP-1.0, ChainLock CL-0.4, MESH-SPLIT-WIRES-1.0, MESH-COLD-COPY-1.0, MESH-REEXPAND-1.0, MESH-REHEAL-1.0
 Not a VPN. Not an IP-mask product. Not an untraceable-origin path. Public Worker rollup is counts/status — not the cell. Not live body sync.
 
 ## 0. Sentence
@@ -58,6 +58,8 @@ Slingshot Prep may strip embedded GPS/author tags from an export copy. The opera
 A human, an AI client, or a search indexer may keep the packed vault they just downloaded. That keep is a cold copy. If the origin fails a health ping they may read the local vault and serve it on localhost. They are not instructed here to mask IP, forge origin, or stand up anonymous public hosts.
 
 Sites pulled → public rollup is down → local node can keep verifying and appending from the cold vault. A server pull cannot wipe those replicas. Poison is refused hash-absolute. Equivocation isolates that node. The mesh does not climb back onto the public hostname by itself. Phoenix is local to the failed node only. Heartbeat loss is not poison and is not apply-last-packet. Data outlives creators.
+
+Those vault bytes are what MESH-REEXPAND-1.0 later restores from (original receipts, each prev-hash, new local node on that tip). Reheal of a poisoned live node is MESH-REHEAL-1.0: self tip + trusted pull or phoenix-WAIT — never neighbor majority. Crawlers that keep this vault are extra shelves; they do not re-expand.
 
 ## 7. Cap
 

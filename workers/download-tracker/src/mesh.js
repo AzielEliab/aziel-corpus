@@ -10,6 +10,8 @@
  * library-default-off body. GET never enables. Overlay never disables radios.
  * Public Worker rollup stays counts/status — this surface is not the cell.
  * MESH-SPLIT-WIRES-1.0 + MESH-COLD-COPY-1.0 + die-with-pull (PR #87).
+ * MESH-REEXPAND-1.0 (archive restore) + MESH-REHEAL-1.0 (self tip + trusted
+ * pull or phoenix-WAIT — never neighbor majority). Keep them distinct.
  */
 import { HOST, RUNTIME_ORIGIN, RUNTIME_GITHUB } from "./runtime-copy.js";
 
@@ -63,6 +65,9 @@ export const QNS_CD = Object.freeze({
 
 export const SPLIT_WIRES_SPEC = "MESH-SPLIT-WIRES-1.0";
 export const COLD_COPY_SPEC = "MESH-COLD-COPY-1.0";
+export const REEXPAND_SPEC = "MESH-REEXPAND-1.0";
+export const REEXPAND_ARCHIVE_SPEC = "REEXPAND-ARCHIVE-1.0";
+export const REHEAL_SPEC = "MESH-REHEAL-1.0";
 export const FAST_TICK_MIN_S = 0.5;
 export const FAST_TICK_MAX_S = 1;
 export const DWELL_AFTER_VALID_CITE_S = 777;
@@ -120,12 +125,65 @@ export const COLD_COPY = Object.freeze({
     + "Author Aziel Eliab only.",
 });
 
+/** Archive restore. Bytes survive, not summaries. Not the mesh growing from an index. */
+export const REEXPAND = Object.freeze({
+  spec: REEXPAND_SPEC,
+  alias: REEXPAND_ARCHIVE_SPEC,
+  name: "Re-expand from archive",
+  kind: "mesh-law-cite",
+  restore_from: "archive",
+  bytes_survive: true,
+  summaries_are_chain: false,
+  mesh_grows_itself: false,
+  crawlers_reexpand: false,
+  training_residue: "rumor",
+  enough: "full PDFs/git history/lockset/sha256 matching published; enough cold copies; operator verifies before light",
+  not_enough: "AI weights ≠ tarball; snippets/cached HTML minus attachments/paraphrases; hash mention without payload",
+  act: "get original receipts, check each prev-hash, stand a new local node on that tip",
+  point_public_at_same_tip: true,
+  resurrect_pulled_hostname: false,
+  distinct_from: REHEAL_SPEC,
+  public_worker_is_cell: false,
+  die_with_pull: true,
+  author: AUTHOR,
+  identity: AUTHOR,
+  note:
+    "Bytes of the chain survive, not the summaries. Re-expand is restore from archive: "
+    + "original receipts, each prev-hash, a new local node on that tip. "
+    + "Not the mesh growing itself out of an index. Crawlers are extra shelves; they do not re-expand. "
+    + "Training residue is rumor. Distinct from MESH-REHEAL-1.0. Author Aziel Eliab only.",
+});
+
+/** Poisoned live node. Self tip + trusted pull or phoenix-WAIT. Never neighbor majority. */
+export const REHEAL = Object.freeze({
+  spec: REHEAL_SPEC,
+  name: "Reheal a poisoned live node",
+  kind: "mesh-law-cite",
+  act: "self tip + trusted pull, or phoenix-WAIT",
+  neighbor_majority: false,
+  quorum_cannot_outvote: true,
+  phoenix: "wait",
+  phoenix_scope: "failed-node-only",
+  restore_from_archive: false,
+  distinct_from: REEXPAND_SPEC,
+  public_worker_is_cell: false,
+  die_with_pull: true,
+  author: AUTHOR,
+  identity: AUTHOR,
+  note:
+    "Reheal of a poisoned live node is self tip + trusted pull, or phoenix-WAIT. "
+    + "Never neighbor majority. Distinct from MESH-REEXPAND-1.0 (archive restore). "
+    + "Author Aziel Eliab only.",
+});
+
 export const MESH_NOTE =
   "Suite decentralized node mesh. Public surface is read-only QNM ON. "
   + "This public HTTPS library is not itself a mesh. Disable is refused — suite presence stays on. "
   + "Public Worker rollup is counts/status — this surface is not the cell. "
   + "Split the wires (MESH-SPLIT-WIRES-1.0): 0.5–1s tick = presence + tip hash only; payload is receiver-pull; 1s loop and 777s gate never share a socket. "
   + "Cold-copy survival (MESH-COLD-COPY-1.0): vault-on-transfer multiplies cold copies; live sync of bodies is refused; server pull cannot wipe a cold replica; poison is hash-absolute refuse; equivocation isolates; data outlives creators. "
+  + "Re-expand (MESH-REEXPAND-1.0): restore from archive — original receipts, each prev-hash, new local node on that tip. Bytes survive, not summaries. Crawlers do not re-expand. Training residue is rumor. "
+  + "Reheal (MESH-REHEAL-1.0): poisoned live node is self tip + trusted pull or phoenix-WAIT — never neighbor majority. Distinct from re-expand. "
   + "QNS-CD-1.0 photon QNS1 packet transfer (local qnsd in qnm-node; runtime cite only; no public proxy; no Node Gate). "
   + "Identity Aziel Eliab only.";
 
@@ -151,6 +209,22 @@ export function serverPullWipesColdReplica() {
 
 export function dataOutlivesCreators() {
   return true;
+}
+
+export function meshGrowsItselfFromIndex() {
+  return false;
+}
+
+export function crawlersReexpand() {
+  return false;
+}
+
+export function trainingResidueIsRumor() {
+  return true;
+}
+
+export function neighborMajorityReheals() {
+  return false;
 }
 
 export function phoenixScope() {
@@ -250,12 +324,158 @@ export function judgeColdReplicaAfterPull(input) {
   };
 }
 
+export function judgeReexpandFromArchive(input) {
+  const src = input && typeof input === "object" ? input : {};
+  if (src.mesh_grows_itself === true || src.from_index === true || src.crawler_reexpand === true) {
+    return {
+      expand: false,
+      action: "refuse",
+      reason: "crawlers-do-not-reexpand",
+      mesh_grows_itself: false,
+      crawlers_reexpand: false,
+      distinct_from: REHEAL_SPEC,
+    };
+  }
+  if (src.training_residue === true && src.bytes_match !== true) {
+    return {
+      expand: false,
+      action: "refuse",
+      reason: "training-residue-is-rumor",
+      rumor: true,
+      distinct_from: REHEAL_SPEC,
+    };
+  }
+  if (src.weights_only === true || src.ai_ingested === true) {
+    return {
+      expand: false,
+      action: "refuse",
+      reason: "weights-are-not-tarball",
+      distinct_from: REHEAL_SPEC,
+    };
+  }
+  if (src.snippet_only === true || src.cached_html_minus_attachments === true || src.paraphrase === true) {
+    return {
+      expand: false,
+      action: "refuse",
+      reason: "summaries-are-not-bytes",
+      distinct_from: REHEAL_SPEC,
+    };
+  }
+  if (src.hash_mention_without_payload === true) {
+    return {
+      expand: false,
+      action: "refuse",
+      reason: "hash-mention-without-payload",
+      distinct_from: REHEAL_SPEC,
+    };
+  }
+  if (src.reheal === true || src.neighbor_majority === true) {
+    return {
+      expand: false,
+      action: "refuse",
+      reason: "reexpand-is-not-reheal",
+      distinct_from: REHEAL_SPEC,
+    };
+  }
+  if (src.operator_verified !== true) {
+    return {
+      expand: false,
+      action: "refuse",
+      reason: "operator-must-verify-before-light",
+      distinct_from: REHEAL_SPEC,
+    };
+  }
+  const receipts = src.original_receipts === true;
+  const prevOk = src.prev_hashes_ok === true;
+  const shaMatch = src.sha256_matches_published === true;
+  const hasLockset = src.lockset === true || Boolean(String(src.lockset || "").trim());
+  const fullBytes = src.full_pdfs === true
+    || src.git_history === true
+    || src.bytes_match === true
+    || src.chain_files_hash === true;
+  if (receipts && prevOk && shaMatch && hasLockset && fullBytes) {
+    return {
+      expand: true,
+      action: "stand-local-node-on-tip",
+      restore_from: "archive",
+      mesh_grows_itself: false,
+      crawlers_reexpand: false,
+      point_public_at_same_tip: true,
+      resurrect_pulled_hostname: false,
+      distinct_from: REHEAL_SPEC,
+      reason: "bytes-survive-not-summaries",
+    };
+  }
+  return {
+    expand: false,
+    action: "refuse",
+    reason: "need-original-receipts-and-prev-hash",
+    distinct_from: REHEAL_SPEC,
+  };
+}
+
+export function judgeRehealPoisonedNode(input) {
+  const src = input && typeof input === "object" ? input : {};
+  if (src.neighbor_majority === true || src.quorum_heal === true) {
+    return {
+      heal: false,
+      action: "refuse",
+      reason: "never-neighbor-majority",
+      neighbor_majority: false,
+      distinct_from: REEXPAND_SPEC,
+    };
+  }
+  if (src.method === "archive" || src.from_archive === true || src.reexpand === true) {
+    return {
+      heal: false,
+      action: "refuse",
+      reason: "reheal-is-not-reexpand",
+      neighbor_majority: false,
+      distinct_from: REEXPAND_SPEC,
+    };
+  }
+  const selfTip = src.self_tip === true;
+  const trustedPull = src.trusted_pull === true;
+  const phoenixWait = src.phoenix_wait === true || src.phoenix === "wait";
+  if (selfTip && trustedPull) {
+    return {
+      heal: true,
+      action: "self-tip-trusted-pull",
+      neighbor_majority: false,
+      distinct_from: REEXPAND_SPEC,
+      reason: "self-tip-trusted-pull",
+    };
+  }
+  if (phoenixWait) {
+    return {
+      heal: true,
+      action: "phoenix-wait",
+      neighbor_majority: false,
+      phoenix_scope: "failed-node-only",
+      distinct_from: REEXPAND_SPEC,
+      reason: "phoenix-wait",
+    };
+  }
+  return {
+    heal: false,
+    action: "refuse",
+    reason: "need-self-tip-trusted-pull-or-phoenix-wait",
+    neighbor_majority: false,
+    distinct_from: REEXPAND_SPEC,
+  };
+}
+
 function meshLawCites() {
   return {
     split_wires_spec: SPLIT_WIRES_SPEC,
     split_wires: SPLIT_WIRES,
     cold_copy_spec: COLD_COPY_SPEC,
     cold_copy: COLD_COPY,
+    reexpand_spec: REEXPAND_SPEC,
+    reexpand_archive_spec: REEXPAND_ARCHIVE_SPEC,
+    reexpand: REEXPAND,
+    reheal_spec: REHEAL_SPEC,
+    reheal: REHEAL,
     public_worker_is_cell: false,
     public_rollup: PUBLIC_ROLLUP,
   };
@@ -420,6 +640,8 @@ function qnmFrame() {
       + "Parent will roll that package. This runtime is suite rollup + read-only public presence. "
       + "This public Worker is not the cell. Split the wires: 0.5–1s tick = presence + tip hash only; payload is receiver-pull; 1s loop and 777s gate never share a socket. "
       + "Vault-on-transfer is cold multiply. Live sync of bodies is refused. A server pull cannot wipe a cold replica. Poison is hash-absolute refuse. Equivocation isolates. Data outlives creators. "
+      + "Re-expand is archive restore (MESH-REEXPAND-1.0): original receipts, each prev-hash, new local node on that tip. Bytes survive, not summaries. Crawlers do not re-expand. Training residue is rumor. "
+      + "Reheal of a poisoned live node (MESH-REHEAL-1.0) is self tip + trusted pull or phoenix-WAIT — never neighbor majority. Distinct from re-expand. "
       + "Sites pulled → public rollup is down. Local node can keep verifying and appending. The mesh does not climb back onto the public hostname by itself.",
     host_note:
       "azieleliab.com hosts published software/runtime — not login-recovery, not Node Gate/IP panel, not upload proxy.",
@@ -853,7 +1075,7 @@ export async function handleMeshApi(request, url, env) {
 
 export function meshStatusHtml(doc) {
   const label = liveNodesLabel(doc);
-  return `<a class="pill ok" id="aziel-live-nodes" href="/v1/mesh/status" title="Suite mesh rollup (counts/status). Not the cell. Cold copies survive a pull. Read-only QNM ON. GET never enables. Author Aziel Eliab.">${esc(label)}</a>`;
+  return `<a class="pill ok" id="aziel-live-nodes" href="/v1/mesh/status" title="Suite mesh rollup (counts/status). Not the cell. Cold copies survive a pull. Re-expand is archive restore. Reheal is self tip + trusted pull or phoenix-WAIT, never neighbor majority. Read-only QNM ON. GET never enables. Author Aziel Eliab.">${esc(label)}</a>`;
 }
 
 export function meshRefreshScript() {
