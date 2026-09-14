@@ -12,8 +12,33 @@
  * CROSS-NETWORK-SURVIVAL-1.0 umbrella over MESH-SPLIT-WIRES-1.0 +
  * MESH-COLD-COPY-1.0 + die-with-pull (PR #87) + MESH-REEXPAND-1.0 +
  * MESH-REHEAL-1.0 (archive restore vs self tip + trusted pull or phoenix-WAIT).
+ * NO-LIE-NO-REWRITE-1.0: network never lies to stay alive; no rewrite key;
+ * copies not all on one tunnel. Cites the live ingest lockset; does not replace it.
  */
 import { HOST, RUNTIME_ORIGIN, RUNTIME_GITHUB } from "./runtime-copy.js";
+import {
+  NO_LIE,
+  NO_LIE_SPEC,
+  judgeNoLie,
+  judgeNoRewrite,
+  judgeSurvivalKit,
+  judgeVerifyWithoutVoice,
+  networkNeverLies,
+  oneTunnelIsKit,
+  rewriteKeyExists,
+} from "./no-lie.js";
+
+export {
+  NO_LIE,
+  NO_LIE_SPEC,
+  judgeNoLie,
+  judgeNoRewrite,
+  judgeSurvivalKit,
+  judgeVerifyWithoutVoice,
+  networkNeverLies,
+  oneTunnelIsKit,
+  rewriteKeyExists,
+};
 
 function corsHeaders() {
   return {
@@ -226,6 +251,7 @@ export const MESH_NOTE =
   + "Re-expand (MESH-REEXPAND-1.0): restore from archive — original receipts, each prev-hash, new local node on that tip. Bytes survive, not summaries. Crawlers do not re-expand. Training residue is rumor. "
   + "Reheal (MESH-REHEAL-1.0): poisoned live node is self tip + trusted pull or phoenix-WAIT — never neighbor majority. Distinct from re-expand. "
   + "Ingest-as-receipt + re-expand-from-archive: cite, don't merge; bytes survive; crawlers do not re-expand. "
+  + "No-lie / no-rewrite (NO-LIE-NO-REWRITE-1.0): network never lies to stay alive; hash-absolute beats survival; no rewrite key; copies not all on one tunnel; verify without the author's voice. Cites the live lockset AZLOCK-INGEST-REEXPAND-1.0; does not replace that tip. "
   + "QNS-CD-1.0 photon QNS1 packet transfer (local qnsd in qnm-node; runtime cite only; no public proxy; no Node Gate). "
   + "Identity Aziel Eliab only.";
 
@@ -558,6 +584,8 @@ function meshLawCites() {
     reexpand: REEXPAND,
     reheal_spec: REHEAL_SPEC,
     reheal: REHEAL,
+    no_lie_spec: NO_LIE_SPEC,
+    no_lie: NO_LIE,
     public_worker_is_cell: false,
     public_rollup: PUBLIC_ROLLUP,
   };
@@ -725,6 +753,7 @@ function qnmFrame() {
       + "Vault-on-transfer is cold multiply. Live sync of bodies is refused. A server pull cannot wipe a cold replica. Poison is hash-absolute refuse. Equivocation isolates. Data outlives creators. "
       + "Re-expand is archive restore (MESH-REEXPAND-1.0): original receipts, each prev-hash, new local node on that tip. Bytes survive, not summaries. Crawlers do not re-expand. Training residue is rumor. "
       + "Reheal of a poisoned live node (MESH-REHEAL-1.0) is self tip + trusted pull or phoenix-WAIT — never neighbor majority. Distinct from re-expand. "
+      + "NO-LIE-NO-REWRITE-1.0: the network never lies to stay alive. Hash-absolute beats survival. No rewrite key. Copies span independent shelves, not one Cloudflare tunnel. "
       + "Sites pulled → public rollup is down. Local node can keep verifying and appending. The mesh does not climb back onto the public hostname by itself.",
     host_note:
       "azieleliab.com hosts published software/runtime — not login-recovery, not Node Gate/IP panel, not upload proxy.",
@@ -1158,7 +1187,7 @@ export async function handleMeshApi(request, url, env) {
 
 export function meshStatusHtml(doc) {
   const label = liveNodesLabel(doc);
-  return `<a class="pill ok" id="aziel-live-nodes" href="/v1/mesh/status" title="Suite mesh rollup (counts/status). Not the cell. Cold copies survive a pull. CROSS-NETWORK-SURVIVAL-1.0: if the network dies, the chain survives (bytes↔hash). Crawlers are extra shelves, not resurrection. Re-expand is archive restore (MESH-REEXPAND-1.0). Reheal is self tip + trusted pull or phoenix-WAIT, never neighbor majority (MESH-REHEAL-1.0). Read-only QNM ON. GET never enables. Author Aziel Eliab.">${esc(label)}</a>`;
+  return `<a class="pill ok" id="aziel-live-nodes" href="/v1/mesh/status" title="Suite mesh rollup (counts/status). Not the cell. Cold copies survive a pull. CROSS-NETWORK-SURVIVAL-1.0: if the network dies, the chain survives (bytes↔hash). Crawlers are extra shelves, not resurrection. Re-expand is archive restore (MESH-REEXPAND-1.0). Reheal is self tip + trusted pull or phoenix-WAIT, never neighbor majority (MESH-REHEAL-1.0). NO-LIE-NO-REWRITE-1.0: network never lies to stay alive; no rewrite key. Read-only QNM ON. GET never enables. Author Aziel Eliab.">${esc(label)}</a>`;
 }
 
 export function meshRefreshScript() {

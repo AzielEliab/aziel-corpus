@@ -5,6 +5,7 @@ Spec id: TUN-BOOT-1.0
 Date: 2026-09-14
 License: Apache-2.0
 Amends: MESH-CONTINUE-1.0, TUN-WP-0.1, MESH-SPLIT-WIRES-1.0, MESH-COLD-COPY-1.0, MESH-REEXPAND-1.0, MESH-REHEAL-1.0
+Neighbors: NO-LIE-NO-REWRITE-1.0
 Umbrella: CROSS-NETWORK-SURVIVAL-1.0 — named-host walk finds answers still up; it does not resurrect a pulled host; the chain survives on cold copies (bytes↔hash)
 Not a VPN. Not an unmarked host. Not a fresh-IP factory. Public Worker rollup is counts/status — not the cell. Not live body sync. Not crawler resurrection.
 
