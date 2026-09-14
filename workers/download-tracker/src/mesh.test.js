@@ -5,6 +5,11 @@ import {
   COLD_COPY,
   COLD_COPY_SPEC,
   DWELL_AFTER_VALID_CITE_S,
+  REEXPAND,
+  REEXPAND_ARCHIVE_SPEC,
+  REEXPAND_SPEC,
+  REHEAL,
+  REHEAL_SPEC,
   EXAMPLE_BEARER,
   LIBRARY_SOURCE,
   MESH_BAD_BEARER,
@@ -31,12 +36,17 @@ import {
   judgeEquivocation,
   judgePartitionEvent,
   judgePoison,
+  judgeReexpandFromArchive,
+  judgeRehealPoisonedNode,
   judgeUpdateProof,
   liveNodesCount,
   liveNodesLabel,
   liveSyncBodiesAllowed,
   mayEmitLast,
   mayUnsendUnverifiedBody,
+  meshGrowsItselfFromIndex,
+  crawlersReexpand,
+  neighborMajorityReheals,
   meshDisableRefuseDoc,
   meshOnDoc,
   meshRefreshScript,
@@ -51,6 +61,7 @@ import {
   sanitizeBearer,
   serverPullWipesColdReplica,
   synthesizeMeshRefuse,
+  trainingResidueIsRumor,
   vaultTransferKind,
 } from "./mesh.js";
 import { handleRuntimeApi } from "./runtime.js";
@@ -174,6 +185,113 @@ test("cold-copy survival: vault-on-transfer multiplies; pull cannot wipe", () =>
   assert.match(refuse.local_node_note, /cold multiply/);
   assert.match(refuse.local_node_note, /cannot wipe a cold replica/);
   assert.equal(refuse.split_wires_spec, "MESH-SPLIT-WIRES-1.0");
+  assert.doesNotMatch(JSON.stringify(refuse), BANNED);
+});
+
+test("re-expand is archive restore; crawlers and residue do not expand", () => {
+  assert.equal(REEXPAND_SPEC, "MESH-REEXPAND-1.0");
+  assert.equal(REEXPAND_ARCHIVE_SPEC, "REEXPAND-ARCHIVE-1.0");
+  assert.equal(REEXPAND.spec, "MESH-REEXPAND-1.0");
+  assert.equal(REEXPAND.alias, "REEXPAND-ARCHIVE-1.0");
+  assert.equal(REEXPAND.restore_from, "archive");
+  assert.equal(REEXPAND.bytes_survive, true);
+  assert.equal(REEXPAND.summaries_are_chain, false);
+  assert.equal(REEXPAND.mesh_grows_itself, false);
+  assert.equal(REEXPAND.crawlers_reexpand, false);
+  assert.equal(REEXPAND.training_residue, "rumor");
+  assert.equal(REEXPAND.resurrect_pulled_hostname, false);
+  assert.equal(REEXPAND.distinct_from, "MESH-REHEAL-1.0");
+  assert.equal(REEXPAND.author, "Aziel Eliab");
+  assert.equal(meshGrowsItselfFromIndex(), false);
+  assert.equal(crawlersReexpand(), false);
+  assert.equal(trainingResidueIsRumor(), true);
+
+  const ok = judgeReexpandFromArchive({
+    original_receipts: true,
+    prev_hashes_ok: true,
+    sha256_matches_published: true,
+    lockset: "L",
+    full_pdfs: true,
+    operator_verified: true,
+  });
+  assert.equal(ok.expand, true);
+  assert.equal(ok.action, "stand-local-node-on-tip");
+  assert.equal(ok.restore_from, "archive");
+  assert.equal(ok.mesh_grows_itself, false);
+  assert.equal(ok.crawlers_reexpand, false);
+  assert.equal(ok.point_public_at_same_tip, true);
+  assert.equal(ok.resurrect_pulled_hostname, false);
+  assert.equal(ok.distinct_from, "MESH-REHEAL-1.0");
+  assert.equal(ok.reason, "bytes-survive-not-summaries");
+
+  assert.equal(judgeReexpandFromArchive({ from_index: true }).reason, "crawlers-do-not-reexpand");
+  assert.equal(judgeReexpandFromArchive({ crawler_reexpand: true }).expand, false);
+  assert.equal(judgeReexpandFromArchive({ training_residue: true }).reason, "training-residue-is-rumor");
+  assert.equal(judgeReexpandFromArchive({ weights_only: true }).reason, "weights-are-not-tarball");
+  assert.equal(judgeReexpandFromArchive({ snippet_only: true }).reason, "summaries-are-not-bytes");
+  assert.equal(judgeReexpandFromArchive({ paraphrase: true }).reason, "summaries-are-not-bytes");
+  assert.equal(judgeReexpandFromArchive({ hash_mention_without_payload: true }).reason, "hash-mention-without-payload");
+  assert.equal(judgeReexpandFromArchive({ reheal: true }).reason, "reexpand-is-not-reheal");
+  assert.equal(judgeReexpandFromArchive({ neighbor_majority: true }).reason, "reexpand-is-not-reheal");
+  assert.equal(judgeReexpandFromArchive({ original_receipts: true }).reason, "operator-must-verify-before-light");
+  assert.equal(judgeReexpandFromArchive({ operator_verified: true }).reason, "need-original-receipts-and-prev-hash");
+
+  assert.match(MESH_NOTE, /MESH-REEXPAND-1\.0/);
+  assert.match(MESH_NOTE, /restore from archive/);
+  assert.match(MESH_NOTE, /Crawlers do not re-expand/);
+  assert.match(MESH_NOTE, /Training residue is rumor/);
+
+  const refuse = meshRefuseDoc(MESH_DISABLE_REFUSED, "Public suite presence stays on.");
+  assert.equal(refuse.reexpand_spec, "MESH-REEXPAND-1.0");
+  assert.equal(refuse.reexpand_archive_spec, "REEXPAND-ARCHIVE-1.0");
+  assert.equal(refuse.reexpand.restore_from, "archive");
+  assert.match(refuse.local_node_note, /archive restore/);
+  assert.match(refuse.local_node_note, /Crawlers do not re-expand/);
+  assert.doesNotMatch(JSON.stringify(refuse), BANNED);
+});
+
+test("reheal is self tip + trusted pull or phoenix-WAIT; never neighbor majority", () => {
+  assert.equal(REHEAL_SPEC, "MESH-REHEAL-1.0");
+  assert.equal(REHEAL.spec, "MESH-REHEAL-1.0");
+  assert.equal(REHEAL.neighbor_majority, false);
+  assert.equal(REHEAL.quorum_cannot_outvote, true);
+  assert.equal(REHEAL.phoenix, "wait");
+  assert.equal(REHEAL.phoenix_scope, "failed-node-only");
+  assert.equal(REHEAL.restore_from_archive, false);
+  assert.equal(REHEAL.distinct_from, "MESH-REEXPAND-1.0");
+  assert.equal(REHEAL.author, "Aziel Eliab");
+  assert.equal(neighborMajorityReheals(), false);
+
+  const pull = judgeRehealPoisonedNode({ self_tip: true, trusted_pull: true });
+  assert.equal(pull.heal, true);
+  assert.equal(pull.action, "self-tip-trusted-pull");
+  assert.equal(pull.neighbor_majority, false);
+  assert.equal(pull.distinct_from, "MESH-REEXPAND-1.0");
+
+  const wait = judgeRehealPoisonedNode({ phoenix_wait: true });
+  assert.equal(wait.heal, true);
+  assert.equal(wait.action, "phoenix-wait");
+  assert.equal(wait.phoenix_scope, "failed-node-only");
+  assert.equal(judgeRehealPoisonedNode({ phoenix: "wait" }).action, "phoenix-wait");
+
+  assert.equal(judgeRehealPoisonedNode({ neighbor_majority: true }).reason, "never-neighbor-majority");
+  assert.equal(judgeRehealPoisonedNode({ quorum_heal: true }).heal, false);
+  assert.equal(judgeRehealPoisonedNode({ from_archive: true }).reason, "reheal-is-not-reexpand");
+  assert.equal(judgeRehealPoisonedNode({ reexpand: true }).reason, "reheal-is-not-reexpand");
+  assert.equal(judgeRehealPoisonedNode({ method: "archive" }).reason, "reheal-is-not-reexpand");
+  assert.equal(judgeRehealPoisonedNode({}).reason, "need-self-tip-trusted-pull-or-phoenix-wait");
+  assert.equal(judgeRehealPoisonedNode({ self_tip: true }).heal, false);
+
+  assert.match(MESH_NOTE, /MESH-REHEAL-1\.0/);
+  assert.match(MESH_NOTE, /never neighbor majority/);
+  assert.match(MESH_NOTE, /Distinct from re-expand/);
+
+  const refuse = meshRefuseDoc(MESH_DISABLE_REFUSED, "Public suite presence stays on.");
+  assert.equal(refuse.reheal_spec, "MESH-REHEAL-1.0");
+  assert.equal(refuse.reheal.neighbor_majority, false);
+  assert.equal(refuse.reheal.distinct_from, "MESH-REEXPAND-1.0");
+  assert.match(refuse.local_node_note, /never neighbor majority/);
+  assert.match(refuse.local_node_note, /Distinct from re-expand/);
   assert.doesNotMatch(JSON.stringify(refuse), BANNED);
 });
 
@@ -304,8 +422,13 @@ test("GET /v1/mesh stays ON when runtime has no mesh", async () => {
   assert.equal(body.qns_cd.public_proxy, false);
   assert.equal(body.split_wires_spec, "MESH-SPLIT-WIRES-1.0");
   assert.equal(body.cold_copy_spec, "MESH-COLD-COPY-1.0");
+  assert.equal(body.reexpand_spec, "MESH-REEXPAND-1.0");
+  assert.equal(body.reexpand_archive_spec, "REEXPAND-ARCHIVE-1.0");
+  assert.equal(body.reheal_spec, "MESH-REHEAL-1.0");
   assert.equal(body.public_worker_is_cell, false);
   assert.equal(body.cold_copy.vault_on_transfer, "cold-multiply");
+  assert.equal(body.reexpand.restore_from, "archive");
+  assert.equal(body.reheal.neighbor_majority, false);
   assert.doesNotMatch(JSON.stringify(body), /mesh_default": "off"/);
   assert.doesNotMatch(JSON.stringify(body), /Live Nodes · off/);
 });
@@ -636,6 +759,8 @@ test("OpenAPI, MCP, llms, cite, robots, sitemap cite mesh paths", async () => {
   assert.match(spec.paths["/v1/mesh"].get.summary, /not the cell/i);
   assert.match(spec.paths["/v1/mesh"].get.summary, /MESH-SPLIT-WIRES-1\.0/);
   assert.match(spec.paths["/v1/mesh"].get.summary, /MESH-COLD-COPY-1\.0/);
+  assert.match(spec.paths["/v1/mesh"].get.summary, /MESH-REEXPAND-1\.0/);
+  assert.match(spec.paths["/v1/mesh"].get.summary, /MESH-REHEAL-1\.0/);
   assert.doesNotMatch(spec.paths["/v1/mesh"].get.summary, /default off/i);
   assert.match(spec.paths["/v1/mesh"].get.summary, /Aziel Eliab/);
 
@@ -695,6 +820,8 @@ test("human chrome shows Live Nodes · N without mesh-off copy", () => {
   assert.match(html, /Suite mesh rollup \(counts\/status\)/);
   assert.match(html, /Not the cell/);
   assert.match(html, /Cold copies survive a pull/);
+  assert.match(html, /Re-expand is archive restore/);
+  assert.match(html, /never neighbor majority/);
   assert.match(html, /Read-only QNM ON/);
   assert.match(html, /GET never enables/);
   assert.doesNotMatch(html, /Default off until runtime enable/i);

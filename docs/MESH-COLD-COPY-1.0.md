@@ -5,8 +5,8 @@ Spec id: MESH-COLD-COPY-1.0
 Date: 2026-09-14
 License: Apache-2.0
 Amends: MESH-VAULT-1.0, MESH-CONTINUE-1.0
-Neighbors: MESH-SPLIT-WIRES-1.0, TUN-BOOT-1.0, TUN-WP-0.1, QNM-WP-1.0, NODE-OPS-1.0, ACT-RECEIPT-1.0, ChainLock CL-0.4
-Keeps: die-with-pull (PR #87); split-wires (MESH-SPLIT-WIRES-1.0)
+Neighbors: MESH-SPLIT-WIRES-1.0, MESH-REEXPAND-1.0, MESH-REHEAL-1.0, TUN-BOOT-1.0, TUN-WP-0.1, QNM-WP-1.0, NODE-OPS-1.0, ACT-RECEIPT-1.0, ChainLock CL-0.4
+Keeps: die-with-pull (PR #87); split-wires (MESH-SPLIT-WIRES-1.0); re-expand ≠ reheal
 Not a VPN. Not live body sync. Not a claim that the public Worker is the cell.
 
 ## 0. Sentence
@@ -40,8 +40,8 @@ Poison is refused hash-absolute — match the hash or refuse. Do not interpret a
 
 ## 5. Data outlives creators
 
-Continuity of records does not require the author, the operator, or the public hostname to remain. Named-host walk and local vault (MESH-CONTINUE-1.0) read cold copies that already exist. Attribution concealment is still refused.
+Continuity of records does not require the author, the operator, or the public hostname to remain. Named-host walk and local vault (MESH-CONTINUE-1.0) read cold copies that already exist. Attribution concealment is still refused. Those bytes are what MESH-REEXPAND-1.0 later restores from — original receipts, each prev-hash, a new local node on that tip. Reheal of a poisoned live node is a different law (MESH-REHEAL-1.0): self tip + trusted pull or phoenix-WAIT, never neighbor majority.
 
 ## 6. Cap
 
-Multiply cold copies on transfer. Do not live-sync bodies. Do not let a pull pretend to wipe a replica. Do not interpret poison. Identity: Aziel Eliab only.
+Multiply cold copies on transfer. Do not live-sync bodies. Do not let a pull pretend to wipe a replica. Do not interpret poison. Re-expand from those bytes; do not reheal by neighbor majority. Identity: Aziel Eliab only.
