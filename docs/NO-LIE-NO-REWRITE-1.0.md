@@ -6,7 +6,7 @@ Aliases: NO-LIE-1.0, NO-REWRITE-1.0
 Date: 2026-09-14
 License: Apache-2.0
 Amends: MESH-VAULT-1.0, MESH-CONTINUE-1.0, MESH-SPLIT-WIRES-1.0, MESH-COLD-COPY-1.0
-Neighbors: CROSS-NETWORK-SURVIVAL-1.0, MESH-REEXPAND-1.0, MESH-REHEAL-1.0, INGEST-AS-RECEIPT-1.0, TUN-BOOT-1.0, TUN-WP-0.1, ACT-RECEIPT-1.0, ChainLock CL-0.4, LS-WP-0.1
+Neighbors: CROSS-NETWORK-SURVIVAL-1.0, COLD-MULTI-SHELF-1.0, MESH-REEXPAND-1.0, MESH-REHEAL-1.0, INGEST-AS-RECEIPT-1.0, TUN-BOOT-1.0, TUN-WP-0.1, ACT-RECEIPT-1.0, ChainLock CL-0.4, LS-WP-0.1
 Cited on: GET /v1/mesh · GET /lockset.json (survival cite after the hashed core)
 Live lockset: AZLOCK-INGEST-REEXPAND-1.0 — this paper cites that tip; it does not replace it
 Keeps: die-with-pull; split-wires; cold-copy; re-expand ≠ reheal

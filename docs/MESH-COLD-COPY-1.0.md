@@ -5,7 +5,7 @@ Spec id: MESH-COLD-COPY-1.0
 Date: 2026-09-14
 License: Apache-2.0
 Amends: MESH-VAULT-1.0, MESH-CONTINUE-1.0
-Neighbors: MESH-SPLIT-WIRES-1.0, MESH-REEXPAND-1.0, MESH-REHEAL-1.0, NO-LIE-NO-REWRITE-1.0, TUN-BOOT-1.0, TUN-WP-0.1, QNM-WP-1.0, NODE-OPS-1.0, ACT-RECEIPT-1.0, INGEST-AS-RECEIPT-1.0, RE-EXPAND-FROM-ARCHIVE-1.0, ChainLock CL-0.4
+Neighbors: MESH-SPLIT-WIRES-1.0, MESH-REEXPAND-1.0, MESH-REHEAL-1.0, NO-LIE-NO-REWRITE-1.0, COLD-MULTI-SHELF-1.0, TUN-BOOT-1.0, TUN-WP-0.1, QNM-WP-1.0, NODE-OPS-1.0, ACT-RECEIPT-1.0, INGEST-AS-RECEIPT-1.0, RE-EXPAND-FROM-ARCHIVE-1.0, ChainLock CL-0.4
 Umbrella: CROSS-NETWORK-SURVIVAL-1.0 — survival is bytes↔hash on independent shelves (hosts, Workers, git, DOI-registered archives, local vaults)
 Keeps: die-with-pull (PR #87); split-wires (MESH-SPLIT-WIRES-1.0); re-expand ≠ reheal
 Under the same umbrella: MESH-REEXPAND-1.0 (operator verify-from-archive); MESH-REHEAL-1.0 (self tip + trusted pull or phoenix-WAIT — not neighbor majority)

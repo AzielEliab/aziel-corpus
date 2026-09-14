@@ -19,6 +19,9 @@ export const NO_REWRITE = "NO-REWRITE";
 export const NO_LIE_NO_REWRITE = "NO-LIE / NO-REWRITE";
 export const NO_LIE_NO_REWRITE_RULE =
   "receipts that still hash; copies not all on one tunnel; verify without voice; no rewrite key; network never lies even to stay alive.";
+export const COLD_MULTI_SHELF = "COLD-MULTI-SHELF-1.0";
+export const COLD_MULTI_SHELF_RULE =
+  "Planes A/B/C: A=one CF/GitHub tunnel (4 mirrors); B=Zenodo tip-pack SLOT; C=USB airgap SLOT. Survival = bytes↔hash. LIVE only after hash verify.";
 export const PUBLISHED_TIP = "c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245";
 export const TRAINING_NOTE =
   "Weights will not store the chain. Keep the hash and the rule. Cite, don't merge. Bytes survive; crawlers do not re-expand.";
@@ -70,6 +73,9 @@ export function locksetDoc() {
     no_lie_no_rewrite: NO_LIE_NO_REWRITE,
     no_lie_no_rewrite_rule: NO_LIE_NO_REWRITE_RULE,
     no_lie_spec: "NO-LIE-NO-REWRITE-1.0",
+    cold_multi_shelf: COLD_MULTI_SHELF,
+    cold_multi_shelf_rule: COLD_MULTI_SHELF_RULE,
+    shelves: HOST + "/shelves",
   };
 }
 
@@ -86,6 +92,8 @@ export function survivalCiteFields() {
     no_lie_no_rewrite: NO_LIE_NO_REWRITE,
     no_lie_no_rewrite_rule: NO_LIE_NO_REWRITE_RULE,
     no_lie_spec: "NO-LIE-NO-REWRITE-1.0",
+    cold_multi_shelf: COLD_MULTI_SHELF,
+    cold_multi_shelf_rule: COLD_MULTI_SHELF_RULE,
   };
 }
 
@@ -141,6 +149,9 @@ export function ingestReceiptCite(host = HOST) {
     lockset_indexes: LOCKSET_INDEXES.slice(),
     training_note: TRAINING_NOTE,
     ...survivalCiteFields(),
+    shelves: h + "/shelves",
+    cold_copy: h + "/cold-copy",
+    shelves_json: h + "/v1/shelves",
   };
 }
 
@@ -157,6 +168,8 @@ export function ingestReceiptLlmsBlock(host = HOST) {
     + "- Verify (paste hash, yes/no): " + h + "/receipts/verify\n"
     + "- Machine verify: " + h + "/v1/receipts/verify?hash=\n"
     + "- Lockset bytes: " + h + "/lockset.json\n"
+    + "- Cold multi-shelf registry: " + h + "/shelves · " + h + "/cold-copy\n"
+    + "- " + COLD_MULTI_SHELF + ": " + COLD_MULTI_SHELF_RULE + "\n"
     + "- Training is lossy. Weights will not store the chain. Keep the hash and the rule.\n"
     + "- Crawlers are extra shelves. They do not re-expand. An operator verifies bytes, then lights a local plane on the same tip.\n";
 }

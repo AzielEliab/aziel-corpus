@@ -29,6 +29,7 @@ import {
 } from "./runtime-copy.js";
 import { MESH_NOTE, QNS_CD_SPEC } from "./mesh.js";
 import { ingestReceiptCite, ingestReceiptLlmsBlock } from "./ingest-receipt.js";
+import { shelvesLlmsBlock } from "./cold-shelf.js";
 import { AZCOHERENCE, AZCLCE_NAME, AZCLCE_SLUG, AZCLCE_GITHUB, AZCLCE_WORKER_HOME, azcoherenceLlmsBlock } from "./azcoherence.js";
 import {
   IDENTITY_ROUTES,
@@ -204,6 +205,10 @@ export function robotsTxt() {
     "Allow: /v1/receipts",
     "Allow: /v1/receipts/verify",
     "Allow: /lockset.json",
+    "Allow: /shelves",
+    "Allow: /cold-copy",
+    "Allow: /v1/shelves",
+    "Allow: /v1/cold-copy",
     "Allow: /ledger",
     "Allow: /historical",
     "Allow: /verify",
@@ -311,6 +316,10 @@ const STATIC_SITEMAP = [
   "/corpus",
   "/cite.json",
   "/lockset.json",
+  "/shelves",
+  "/cold-copy",
+  "/v1/shelves",
+  "/v1/cold-copy",
   "/receipts",
   "/receipts/verify",
   "/v1/receipts",
@@ -360,6 +369,8 @@ const SITEMAP_HINTS = {
   "/runtime": { changefreq: "weekly", priority: "0.8" },
   "/cite.json": { changefreq: "weekly", priority: "0.7" },
   "/lockset.json": { changefreq: "weekly", priority: "0.8" },
+  "/shelves": { changefreq: "weekly", priority: "0.8" },
+  "/cold-copy": { changefreq: "weekly", priority: "0.8" },
   "/receipts": { changefreq: "daily", priority: "0.8" },
   "/receipts/verify": { changefreq: "daily", priority: "0.8" },
   "/person.jsonld": { changefreq: "monthly", priority: "0.8" },
@@ -723,6 +734,7 @@ export function llmsDoc(limitation) {
     + "License: Apache-2.0\n"
     + "DOI: none (do not invent)\n\n"
     + ingestReceiptLlmsBlock(HOST) + "\n"
+    + shelvesLlmsBlock(HOST) + "\n"
     + "## Priority pages (index first)\n\n"
     + "- Homepage: " + HOST + "/\n"
     + "- Softwares: " + HOST + "/software\n"
@@ -731,6 +743,7 @@ export function llmsDoc(limitation) {
     + "- Softwares live catalog: " + HOST + "/v1/software\n"
     + "- cite.json: " + HOST + "/cite.json\n"
     + "- lockset.json: " + HOST + "/lockset.json\n"
+    + "- Cold multi-shelf registry: " + HOST + "/shelves · " + HOST + "/cold-copy\n"
     + "- Action receipts (ACT-RECEIPT-1.0): " + HOST + "/receipts · " + HOST + "/v1/receipts\n"
     + "- Tip verify: " + HOST + "/receipts/verify\n"
     + "- llms.txt: " + HOST + "/llms.txt\n"
@@ -942,6 +955,10 @@ export function aiTxt(limitation) {
     "Allow: /corpus",
     "Allow: /cite.json",
     "Allow: /lockset.json",
+    "Allow: /shelves",
+    "Allow: /cold-copy",
+    "Allow: /v1/shelves",
+    "Allow: /v1/cold-copy",
     "Allow: /receipts",
     "Allow: /receipts/verify",
     "Allow: /v1/receipts",
@@ -1018,6 +1035,7 @@ export function aiTxt(limitation) {
     + "- Corpus: " + HOST + "/corpus\n"
     + "- cite.json: " + HOST + "/cite.json\n"
     + "- lockset.json: " + HOST + "/lockset.json\n"
+    + "- Cold multi-shelf registry: " + HOST + "/shelves · " + HOST + "/cold-copy\n"
     + "- Action receipts (ACT-RECEIPT-1.0): " + HOST + "/receipts · " + HOST + "/v1/receipts\n"
     + "- Tip verify: " + HOST + "/receipts/verify\n"
     + "- llms.txt: " + HOST + "/llms.txt\n"
@@ -1029,6 +1047,7 @@ export function aiTxt(limitation) {
     + "- aziel-runtime alternate origin: " + CATALOG + "/\n\n"
     + runtimeHowTo(HOST) + "\n\n"
     + ingestReceiptLlmsBlock(HOST) + "\n"
+    + shelvesLlmsBlock(HOST) + "\n"
     + "## Identity\n\n"
     + "Primary author " + AUTHOR + ". Canonical aka " + ALTERNATE_NAMES.join(" · ") + ". " + LOCK_LINE + " " + WHO_IS_AZIEL_ELIAB + " Also Elias Artista. " + HEBREW_DEFINITION + " " + ABOUT_STANZA + " " + ABOUT_LEAD + " " + ABOUT_RECORD + " " + DISAMBIGUATING_DESCRIPTION + " Person @id " + HUB_PERSON_ID + ". Runtime @id " + HUB_RUNTIME_ID + ". Official site " + HUB_ORIGIN + "/. WebSite " + WEBSITE_ID + " (" + WEBSITE_NAME + "). Profile " + HOST + ABOUT_PATH + ". Who HTML " + HOST + WHO_PATH + ". GodLock identity " + GODLOCK_IDENTITY + ". " + HEDIDNTJUMP_LABEL + " " + HEDIDNTJUMP_HOME + ". sameAs " + identitySameAsLine() + ". Machine routes /person.jsonld · /identity.jsonld · /graph.jsonld · /who-is-aziel-eliab.txt · /who-is · /who · /.well-known/aziel.json · /.well-known/person.jsonld. Stats " + STATS_TETHER.azieleliab + " · " + STATS_TETHER.corpus + " · " + STATS_TETHER.hedidntjump + ".\n\n"
     + (limitation ? limitation + "\n\n" : "")
@@ -1063,6 +1082,7 @@ export function humansTxt() {
     "AZCoherence (azcoherence, AZC-0.1) Softwares Plain / scoring-review: " + HOST + "/software · https://azcoherence-download-tracker.vibelock.workers.dev/ · https://github.com/AzielEliab/AZCoherence",
     "Suite mesh (read-only QNM ON): " + HOST + "/v1/mesh",
     "Lockset tip / ingest-as-receipt: " + HOST + "/lockset.json · " + HOST + "/receipts/verify",
+    "Cold multi-shelf: " + HOST + "/shelves · " + HOST + "/cold-copy · COLD-MULTI-SHELF-1.0",
     "cite, don't merge · bytes survive; crawlers do not re-expand",
     "CROSS-NETWORK-SURVIVAL: If network + live data die tomorrow, the chain still survives via cold copies across independent shelves; survival = bytes↔hash.",
     "NO-LIE / NO-REWRITE: receipts that still hash; copies not all on one tunnel; verify without voice; no rewrite key; network never lies even to stay alive.",

@@ -61,6 +61,7 @@ test("published lockset tip is SHA-256 of the lockset bytes", () => {
   assert.match(locksetFile(), /CROSS-NETWORK-SURVIVAL/);
   assert.match(locksetFile(), /NO-LIE \/ NO-REWRITE/);
   assert.match(locksetFile(), /NO-LIE-NO-REWRITE-1\.0/);
+  assert.match(locksetFile(), /COLD-MULTI-SHELF-1\.0/);
   assert.match(locksetFile(), /bytes↔hash/);
   const githubBytes = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../../../docs/lockset.json"), "utf8");
   assert.equal(githubBytes, locksetFile());
@@ -164,6 +165,9 @@ test("cite.json, llms.txt, ai.txt, robots, sitemap carry the tip and keep crawle
   assert.equal(cite.no_lie_spec, "NO-LIE-NO-REWRITE-1.0");
   assert.equal(cite.no_lie_no_rewrite, NO_LIE_NO_REWRITE);
   assert.equal(cite.no_lie_no_rewrite_rule, NO_LIE_NO_REWRITE_RULE);
+  assert.equal(cite.cold_multi_shelf, "COLD-MULTI-SHELF-1.0");
+  assert.match(cite.shelves, /\/shelves$/);
+  assert.match(cite.cold_copy, /\/cold-copy$/);
   assert.equal(cite.lockset_tip, LOCKSET_TIP);
   assert.equal(cite.lockset_tip, PUBLISHED_TIP);
   assert.equal(cite.lockset_id, LOCKSET_ID);
@@ -180,6 +184,8 @@ test("cite.json, llms.txt, ai.txt, robots, sitemap carry the tip and keep crawle
   assert.match(llms, /bytes survive; crawlers do not re-expand/);
   assert.match(llms, /CROSS-NETWORK-SURVIVAL/);
   assert.match(llms, /NO-LIE \/ NO-REWRITE/);
+  assert.match(llms, /COLD-MULTI-SHELF-1\.0/);
+  assert.match(llms, /\/shelves/);
   assert.match(llms, /INGEST-AS-RECEIPT-1\.0/);
   assert.match(llms, /RE-EXPAND-FROM-ARCHIVE-1\.0/);
   assert.match(ingestReceiptLlmsBlock(), /crawlers do not re-expand/);
@@ -195,11 +201,15 @@ test("cite.json, llms.txt, ai.txt, robots, sitemap carry the tip and keep crawle
   const robots = robotsTxt();
   assert.match(robots, /User-agent: GPTBot\nAllow: \//);
   assert.match(robots, /Allow: \/lockset\.json/);
+  assert.match(robots, /Allow: \/shelves/);
+  assert.match(robots, /Allow: \/cold-copy/);
   assert.match(robots, /Allow: \/receipts\/verify/);
   assert.match(robots, /ai-input=yes, ai-train=yes/);
 
   const xml = await sitemapXml({});
   assert.match(xml, /\/lockset\.json</);
+  assert.match(xml, /\/shelves</);
+  assert.match(xml, /\/cold-copy</);
   assert.match(xml, /\/receipts\/verify</);
   assert.doesNotMatch(JSON.stringify(cite) + llms + ai, BANNED);
 });

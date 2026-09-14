@@ -59,6 +59,7 @@ test("published lockset tip is unchanged; law spec sits after the hashed core", 
   assert.match(file, /c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245/);
   assert.match(file, /NO-LIE-NO-REWRITE-1\.0/);
   assert.match(file, /CROSS-NETWORK-SURVIVAL/);
+  assert.match(file, /COLD-MULTI-SHELF-1\.0/);
   assert.doesNotMatch(file, /AZLOCK-NO-LIE-NO-REWRITE/);
   const here = dirname(fileURLToPath(import.meta.url));
   const raw = readFileSync(join(here, "../../../docs/lockset.json"), "utf8");
