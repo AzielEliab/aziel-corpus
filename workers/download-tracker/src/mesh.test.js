@@ -4,6 +4,8 @@ import {
   AUTHOR,
   COLD_COPY,
   COLD_COPY_SPEC,
+  CROSS_NETWORK_SURVIVAL,
+  CROSS_NETWORK_SURVIVAL_SPEC,
   DWELL_AFTER_VALID_CITE_S,
   REEXPAND,
   REEXPAND_ARCHIVE_SPEC,
@@ -33,11 +35,13 @@ import {
   isMeshRuntimePath,
   isMeshStatusReadPath,
   judgeColdReplicaAfterPull,
+  judgeCrawlerNotResurrection,
   judgeEquivocation,
   judgePartitionEvent,
   judgePoison,
   judgeReexpandFromArchive,
   judgeRehealPoisonedNode,
+  judgeSurvivalBytesHash,
   judgeUpdateProof,
   liveNodesCount,
   liveNodesLabel,
@@ -295,6 +299,85 @@ test("reheal is self tip + trusted pull or phoenix-WAIT; never neighbor majority
   assert.doesNotMatch(JSON.stringify(refuse), BANNED);
 });
 
+test("CROSS-NETWORK-SURVIVAL-1.0 umbrella: bytes↔hash; crawlers are not resurrection", () => {
+  assert.equal(CROSS_NETWORK_SURVIVAL_SPEC, "CROSS-NETWORK-SURVIVAL-1.0");
+  assert.equal(CROSS_NETWORK_SURVIVAL.spec, "CROSS-NETWORK-SURVIVAL-1.0");
+  assert.equal(CROSS_NETWORK_SURVIVAL.umbrella, true);
+  assert.equal(CROSS_NETWORK_SURVIVAL.survival, "bytes↔hash");
+  assert.deepEqual(CROSS_NETWORK_SURVIVAL.shelves, ["hosts", "workers", "git", "doi", "local-vaults"]);
+  assert.equal(CROSS_NETWORK_SURVIVAL.crawlers, "extra-shelf-not-resurrection");
+  assert.equal(CROSS_NETWORK_SURVIVAL.reexpand, "operator-verify-from-archive");
+  assert.equal(CROSS_NETWORK_SURVIVAL.reheal, "self-tip+trusted-pull-or-phoenix-WAIT");
+  assert.equal(CROSS_NETWORK_SURVIVAL.neighbor_majority_heals, false);
+  assert.equal(CROSS_NETWORK_SURVIVAL.live_network_required, false);
+  assert.equal(CROSS_NETWORK_SURVIVAL.die_with_pull, true);
+  assert.equal(CROSS_NETWORK_SURVIVAL.author, "Aziel Eliab");
+  assert.equal(CROSS_NETWORK_SURVIVAL.identity, "Aziel Eliab");
+  assert.deepEqual(CROSS_NETWORK_SURVIVAL.covers, [
+    "MESH-SPLIT-WIRES-1.0",
+    "MESH-COLD-COPY-1.0",
+    "die-with-pull",
+    "MESH-REEXPAND-1.0",
+    "MESH-REHEAL-1.0",
+  ]);
+  assert.equal(CROSS_NETWORK_SURVIVAL.upcoming, undefined);
+  assert.equal(SPLIT_WIRES.umbrella, "CROSS-NETWORK-SURVIVAL-1.0");
+  assert.equal(COLD_COPY.umbrella, "CROSS-NETWORK-SURVIVAL-1.0");
+  assert.equal(REEXPAND.umbrella, "CROSS-NETWORK-SURVIVAL-1.0");
+  assert.equal(REHEAL.umbrella, "CROSS-NETWORK-SURVIVAL-1.0");
+  assert.match(MESH_NOTE, /CROSS-NETWORK-SURVIVAL-1\.0/);
+  assert.match(MESH_NOTE, /bytes↔hash/);
+  assert.match(MESH_NOTE, /Crawlers are extra shelves, not resurrection/);
+  assert.match(MESH_NOTE, /operator verify-from-archive/);
+  assert.match(MESH_NOTE, /phoenix-WAIT/);
+  assert.match(MESH_NOTE, /not neighbor majority/);
+  assert.match(MESH_NOTE, /MESH-REEXPAND-1\.0/);
+  assert.match(MESH_NOTE, /MESH-REHEAL-1\.0/);
+  assert.doesNotMatch(MESH_NOTE, /upcoming/i);
+  assert.doesNotMatch(MESH_NOTE, BANNED);
+
+  assert.equal(judgeSurvivalBytesHash({
+    has_bytes: true,
+    expected_hash: "aa",
+    got_hash: "aa",
+  }).survive, true);
+  assert.equal(judgeSurvivalBytesHash({
+    snippet: true,
+    expected_hash: "aa",
+    got_hash: "aa",
+  }).survive, false);
+  assert.equal(judgeSurvivalBytesHash({
+    training_residue: true,
+    has_bytes: true,
+    expected_hash: "aa",
+    got_hash: "aa",
+  }).reason, "survival-is-bytes-hash");
+  assert.equal(judgeSurvivalBytesHash({
+    has_bytes: true,
+    expected_hash: "aa",
+    got_hash: "bb",
+  }).reason, "hash-mismatch");
+  assert.equal(judgeCrawlerNotResurrection({ crawler: true }).resurrection, false);
+  assert.equal(judgeCrawlerNotResurrection({ crawler: true }).role, "extra-shelf");
+  assert.equal(judgeCrawlerNotResurrection({ crawler: true }).reexpand, false);
+
+  const on = meshOnDoc();
+  assert.equal(on.cross_network_survival_spec, "CROSS-NETWORK-SURVIVAL-1.0");
+  assert.equal(on.cross_network_survival.umbrella, true);
+  assert.equal(on.cross_network_survival.survival, "bytes↔hash");
+  assert.equal(on.cross_network_survival.neighbor_majority_heals, false);
+  assert.equal(on.cross_network_survival.upcoming, undefined);
+  assert.equal(on.reexpand_spec, "MESH-REEXPAND-1.0");
+  assert.equal(on.reheal_spec, "MESH-REHEAL-1.0");
+  assert.doesNotMatch(JSON.stringify(on), BANNED);
+  assert.doesNotMatch(JSON.stringify(on), /upcoming/i);
+
+  const refuse = meshRefuseDoc(MESH_DISABLE_REFUSED, "Public suite presence stays on.");
+  assert.equal(refuse.cross_network_survival_spec, "CROSS-NETWORK-SURVIVAL-1.0");
+  assert.match(refuse.local_node_note, /CROSS-NETWORK-SURVIVAL-1\.0/);
+  assert.match(refuse.local_node_note, /not neighbor majority/);
+});
+
 test("mesh default ON; identity Aziel Eliab only", () => {
   const on = meshOnDoc();
   assert.equal(on.enabled, true);
@@ -425,6 +508,8 @@ test("GET /v1/mesh stays ON when runtime has no mesh", async () => {
   assert.equal(body.reexpand_spec, "MESH-REEXPAND-1.0");
   assert.equal(body.reexpand_archive_spec, "REEXPAND-ARCHIVE-1.0");
   assert.equal(body.reheal_spec, "MESH-REHEAL-1.0");
+  assert.equal(body.cross_network_survival_spec, "CROSS-NETWORK-SURVIVAL-1.0");
+  assert.equal(body.cross_network_survival.umbrella, true);
   assert.equal(body.public_worker_is_cell, false);
   assert.equal(body.cold_copy.vault_on_transfer, "cold-multiply");
   assert.equal(body.reexpand.restore_from, "archive");
@@ -757,6 +842,7 @@ test("OpenAPI, MCP, llms, cite, robots, sitemap cite mesh paths", async () => {
   assert.ok(spec.paths["/runtime/v1/mesh"]);
   assert.match(spec.paths["/v1/mesh"].get.summary, /read-only QNM ON/i);
   assert.match(spec.paths["/v1/mesh"].get.summary, /not the cell/i);
+  assert.match(spec.paths["/v1/mesh"].get.summary, /CROSS-NETWORK-SURVIVAL-1\.0/);
   assert.match(spec.paths["/v1/mesh"].get.summary, /MESH-SPLIT-WIRES-1\.0/);
   assert.match(spec.paths["/v1/mesh"].get.summary, /MESH-COLD-COPY-1\.0/);
   assert.match(spec.paths["/v1/mesh"].get.summary, /MESH-REEXPAND-1\.0/);
@@ -819,6 +905,8 @@ test("human chrome shows Live Nodes · N without mesh-off copy", () => {
   assert.match(html, /href="\/v1\/mesh\/status"/);
   assert.match(html, /Suite mesh rollup \(counts\/status\)/);
   assert.match(html, /Not the cell/);
+  assert.match(html, /CROSS-NETWORK-SURVIVAL-1\.0/);
+  assert.match(html, /Crawlers are extra shelves, not resurrection/);
   assert.match(html, /Cold copies survive a pull/);
   assert.match(html, /Re-expand is archive restore/);
   assert.match(html, /never neighbor majority/);

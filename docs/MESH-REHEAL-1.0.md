@@ -7,6 +7,7 @@ Date: 2026-09-14
 License: Apache-2.0
 Amends: MESH-SPLIT-WIRES-1.0, MESH-COLD-COPY-1.0, MESH-VAULT-1.0, MESH-CONTINUE-1.0
 Neighbors: MESH-REEXPAND-1.0, TUN-BOOT-1.0, TUN-WP-0.1, QNM-WP-1.0, NODE-OPS-1.0, ACT-RECEIPT-1.0, ChainLock CL-0.4
+Umbrella: CROSS-NETWORK-SURVIVAL-1.0 — if the network and live data die tomorrow, the chain still survives on cold copies (bytes↔hash); crawlers are extra shelves, not resurrection
 Keeps: die-with-pull (PR #87); split-wires + cold-copy (PR #88)
 Distinct from: MESH-REEXPAND-1.0 — re-expand is archive restore (original receipts, each prev-hash, new local node on that tip). Not this law.
 Not a VPN. Not neighbor-majority heal. Not quorum over a broken hash. Public Worker rollup is counts/status — not the cell.
@@ -51,4 +52,4 @@ Do not collapse the two. A node that still has a self tip reheals. A plane that 
 
 ## 5. Cap
 
-Self tip + trusted pull, or phoenix-WAIT. Never neighbor majority. Re-expand is archive restore — keep it distinct. Identity: Aziel Eliab only.
+Self tip + trusted pull, or phoenix-WAIT. Never neighbor majority. Re-expand is archive restore — keep it distinct. Survival of the chain if the live network dies is CROSS-NETWORK-SURVIVAL-1.0. Identity: Aziel Eliab only.

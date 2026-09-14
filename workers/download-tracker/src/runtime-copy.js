@@ -198,7 +198,7 @@ export function runtimeHowTo(host) {
     "- FragGate call: POST " + h + "/runtime/v1/fraggate/call",
     "- Health: " + h + "/runtime/v1/health",
     "- Uses (this door): " + h + "/runtime/v1/uses",
-    "- Suite mesh (read-only QNM ON): " + h + "/runtime/v1/mesh  (also " + h + "/v1/mesh). Counts/status rollup — not the cell. QNS-CD-1.0 + MESH-SPLIT-WIRES-1.0 + MESH-COLD-COPY-1.0 + MESH-REEXPAND-1.0 + MESH-REHEAL-1.0. Re-expand is archive restore. Reheal is never neighbor majority. GET never enables. Disable is refused.",
+    "- Suite mesh (read-only QNM ON): " + h + "/runtime/v1/mesh  (also " + h + "/v1/mesh). Counts/status rollup — not the cell. QNS-CD-1.0 + CROSS-NETWORK-SURVIVAL-1.0 + MESH-SPLIT-WIRES-1.0 + MESH-COLD-COPY-1.0 + MESH-REEXPAND-1.0 + MESH-REHEAL-1.0. Re-expand is archive restore. Reheal is never neighbor majority. GET never enables. Disable is refused.",
     "- Manifest: " + h + "/runtime/v1/runtime.json",
     "- Skill: " + h + "/runtime/v1/skill",
     "- OpenAPI: " + h + "/runtime/openapi.json",

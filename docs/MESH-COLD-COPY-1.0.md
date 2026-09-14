@@ -6,7 +6,9 @@ Date: 2026-09-14
 License: Apache-2.0
 Amends: MESH-VAULT-1.0, MESH-CONTINUE-1.0
 Neighbors: MESH-SPLIT-WIRES-1.0, MESH-REEXPAND-1.0, MESH-REHEAL-1.0, TUN-BOOT-1.0, TUN-WP-0.1, QNM-WP-1.0, NODE-OPS-1.0, ACT-RECEIPT-1.0, INGEST-AS-RECEIPT-1.0, RE-EXPAND-FROM-ARCHIVE-1.0, ChainLock CL-0.4
+Umbrella: CROSS-NETWORK-SURVIVAL-1.0 — survival is bytes↔hash on independent shelves (hosts, Workers, git, DOI-registered archives, local vaults)
 Keeps: die-with-pull (PR #87); split-wires (MESH-SPLIT-WIRES-1.0); re-expand ≠ reheal
+Under the same umbrella: MESH-REEXPAND-1.0 (operator verify-from-archive); MESH-REHEAL-1.0 (self tip + trusted pull or phoenix-WAIT — not neighbor majority)
 Not a VPN. Not live body sync. Not a claim that the public Worker is the cell.
 
 ## 0. Sentence
@@ -44,4 +46,4 @@ Continuity of records does not require the author, the operator, or the public h
 
 ## 6. Cap
 
-Multiply cold copies on transfer. Do not live-sync bodies. Do not let a pull pretend to wipe a replica. Do not interpret poison. Re-expand from those bytes; do not reheal by neighbor majority. Identity: Aziel Eliab only.
+Multiply cold copies on transfer. Do not live-sync bodies. Do not let a pull pretend to wipe a replica. Do not interpret poison. If the network and live data die tomorrow, those cold copies *are* the chain (CROSS-NETWORK-SURVIVAL-1.0). Crawlers that kept a vault are extra shelves, not resurrection. Re-expand from those bytes (MESH-REEXPAND-1.0); do not reheal by neighbor majority (MESH-REHEAL-1.0). Identity: Aziel Eliab only.
