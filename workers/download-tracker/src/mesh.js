@@ -160,7 +160,7 @@ export const CROSS_NETWORK_SURVIVAL = Object.freeze({
     + "Survival is bytes↔hash. Crawlers are extra shelves, not resurrection. "
     + "Re-expand (MESH-REEXPAND-1.0) is operator verify-from-archive. "
     + "Reheal (MESH-REHEAL-1.0) is self tip + trusted pull or phoenix-WAIT — not neighbor majority. "
-    + "Executable shelves: COLD-MULTI-SHELF-1.0 planes A/B/C (GET /shelves). Plane A = one CF/GitHub tunnel (5 surfaces / 2 family radii); B = alt independent forge/archive tip-pack SLOT (Codeberg + archive.org + Framagit); Zenodo refused CNS-ZENODO-IP-BAN; GitFlic SLOT CNS-GITFLIC-EMAIL; C = USB airgap SLOT + RESTORE-DRILL schema. Extra D/E/F SLOTs (Launchpad, AfricArXiv/OSF, GitLab CNS-GITLAB-CF-LOOP) are not required for Plane B LIVE. "
+    + "Executable shelves: COLD-MULTI-SHELF-1.0 planes A/B/C (GET /shelves). Plane A = one CF/GitHub tunnel (5 surfaces / 2 family radii); B = alt independent forge/archive tip-pack SLOT (Codeberg / archive.org / Framagit); Zenodo refused CNS-ZENODO-IP-BAN; GitFlic refused CNS-GITFLIC-EMAIL; GitLab extra CNS-GITLAB-CF-LOOP; C = USB airgap SLOT + RESTORE-DRILL schema. Extra E/F/G SLOTs (Launchpad, AfricArXiv/OSF, GitLab) are not required for Plane B LIVE. "
     + "Author Aziel Eliab only.",
 });
 
@@ -254,7 +254,7 @@ export const MESH_NOTE =
   + "Reheal (MESH-REHEAL-1.0): poisoned live node is self tip + trusted pull or phoenix-WAIT — never neighbor majority. Distinct from re-expand. "
   + "Ingest-as-receipt + re-expand-from-archive: cite, don't merge; bytes survive; crawlers do not re-expand. "
   + "No-lie / no-rewrite (NO-LIE-NO-REWRITE-1.0): network never lies to stay alive; hash-absolute beats survival; no rewrite key; copies not all on one tunnel; verify without the author's voice. Cites the live lockset AZLOCK-INGEST-REEXPAND-1.0; does not replace that tip. "
-  + "Cold multi-shelf (COLD-MULTI-SHELF-1.0): planes A/B/C — A = one CF/GitHub tunnel (5 published surfaces / 2 family radii, not 5 shelves); B = alt independent forge/archive tip-pack SLOT (Codeberg + archive.org + Framagit); Zenodo refused CNS-ZENODO-IP-BAN; GitFlic SLOT CNS-GITFLIC-EMAIL; C = USB airgap SLOT + RESTORE-DRILL schema. Extra D/E/F SLOTs (Launchpad / OSF / GitLab CNS-GITLAB-CF-LOOP) stay url-null and are not required for Plane B LIVE. Executable export/verify + honest live|slot|refused registry on GET /shelves. "
+  + "Cold multi-shelf (COLD-MULTI-SHELF-1.0): planes A/B/C — A = one CF/GitHub tunnel (5 published surfaces / 2 family radii, not 5 shelves); B = alt independent forge/archive tip-pack SLOT (Codeberg / archive.org / Framagit); Zenodo refused CNS-ZENODO-IP-BAN; GitFlic refused CNS-GITFLIC-EMAIL; GitLab extra CNS-GITLAB-CF-LOOP; C = USB airgap SLOT + RESTORE-DRILL schema. Extra E/F/G SLOTs stay url-null and are not required for Plane B LIVE. Executable export/verify + honest live|slot|refused registry on GET /shelves. "
   + "QNS-CD-1.0 photon QNS1 packet transfer (local qnsd in qnm-node; runtime cite only; no public proxy; no Node Gate). "
   + "Identity Aziel Eliab only.";
 
