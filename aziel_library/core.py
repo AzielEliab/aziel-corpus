@@ -10,7 +10,12 @@ from .exporters import write_xlsx, write_pdf
 from .gazetteer import WorldGazetteer
 
 from .historical_geo import HistoricalGeography
-from .review import review_document, verify_bytes, lattice_anchor_tip, triad_composite, collection_triad, triad_coverage_points
+from .review import review_document, verify_bytes, lattice_anchor_tip, triad_composite, collection_triad, triad_coverage_points, poison_scan
+from .lattice_learn import (
+    apply_pin_from_upload, HASHCHAIN_LEARN_LAW, verify_chain_walk, poison_feature_receipt,
+    match_learned_poison, load_poison_features, append_poison_learn, load_learn_stamps,
+    possibility_score, compact_possibility, PoisonLearnedRefuse, MAP4D_CITE,
+)
 from .succession import (
     cite_from_chain, compact_record, new_link_id, propose_all_links, work_version_pairs,
 )
@@ -219,6 +224,22 @@ class AzielLibrary:
         try: stored.chmod(stat.S_IRUSR|stat.S_IRGRP|stat.S_IROTH)
         except OSError: pass
         text,status,extra=self.extractor.extract(stored,mc); model_results=self.models.classify_text(source.name+' '+text[:250000]); primary,secondary,why=classify_subject(source.name,text,model_results)
+        try:
+            poison=poison_scan(title=source.stem,body=text,filename=source.name,library='aziel')
+            feat=poison_feature_receipt(title=source.stem,filename=source.name,sha256=digest,markers=poison.get('markers') or [])
+            mem=load_poison_features(self)
+            if not mem.get('ok') and (poison.get('suspected') or poison.get('markers')):
+                stored.unlink(missing_ok=True)
+                raise PoisonLearnedRefuse(feature_id=feat.get('feature_id'), sha256=digest, reason='LATTICE_BREAK')
+            hit=match_learned_poison(feat, mem.get('features') if mem.get('ok') else [])
+            if hit.get('match'):
+                stored.unlink(missing_ok=True)
+                append_poison_learn(self, sha256=digest, title=source.stem, filename=source.name, markers=poison.get('markers') or [], extra={'reason':'learned_repeat','body_retained':False})
+                raise PoisonLearnedRefuse(feature_id=hit.get('feature_id') or feat.get('feature_id'), sha256=digest, reason=hit.get('reason'))
+        except PoisonLearnedRefuse:
+            raise
+        except Exception:
+            pass
         common=', '.join(x for x,c in Counter(terms(source.stem+' '+text[:300000])).most_common(30)); meta={'dates':extract_dates(text[:500000]),'original_mtime':datetime.fromtimestamp(st.st_mtime,timezone.utc).isoformat(timespec='seconds'),'extractor':extra}
         prev_version_rid=''
         with self._connect() as c:
@@ -533,7 +554,7 @@ class AzielLibrary:
             d=dict(r); d['entities']=[dict(x) for x in c.execute('SELECT e.*,m.context,m.confidence,m.source FROM mentions m JOIN entities e USING(entity_id) WHERE m.record_id=? ORDER BY e.entity_type,e.name',(rid,))]; d['relationships']=[dict(x) for x in c.execute('SELECT * FROM relationships WHERE source_id=? ORDER BY score DESC',(rid,))]; d['derived']=[dict(x) for x in c.execute('SELECT * FROM derived_artifacts WHERE record_id=? ORDER BY created_utc',(rid,))]; d['events']=[dict(x) for x in c.execute('SELECT * FROM events WHERE record_id=? ORDER BY event_date',(rid,))]
             try: md=json.loads(d.get('metadata_json') or '{}')
             except Exception: md={}
-            d['review']=md.get('aziel_review'); d['lattice_tip']=md.get('lattice_tip'); d['quarantine_status']=md.get('quarantine_status','CLEAR'); d['bayesian']= (d['review'] or {}).get('bayesian'); d['triad']=(d['review'] or {}).get('triad'); d['triad_combined']=md.get('triad_combined') if md.get('triad_combined') is not None else ((d['triad'] or {}).get('combined')); d['chain_tip']=md.get('chain_tip'); d['chain_sequence']=md.get('chain_sequence')
+            d['review']=md.get('aziel_review'); d['lattice_tip']=md.get('lattice_tip'); d['quarantine_status']=md.get('quarantine_status','CLEAR'); d['bayesian']= (d['review'] or {}).get('bayesian'); d['possibility']=(d['review'] or {}).get('possibility') or md.get('possibility'); d['pin']=md.get('pin'); d['triad']=(d['review'] or {}).get('triad'); d['triad_combined']=md.get('triad_combined') if md.get('triad_combined') is not None else ((d['triad'] or {}).get('combined')); d['chain_tip']=md.get('chain_tip'); d['chain_sequence']=md.get('chain_sequence')
             d['succession']=md.get('succession') or self._succession_cite(rid, conn=c)
             d['zsolver']=md.get('zsolver'); d['zsolver_score']=(md.get('zsolver') or {}).get('capped_confidence'); d['zsolver_status']=(md.get('zsolver') or {}).get('status')
             try: d['peer_reviews']=[dict(x) for x in c.execute('SELECT * FROM peer_reviews WHERE record_id=? ORDER BY created_utc',(rid,))]
@@ -691,13 +712,14 @@ class AzielLibrary:
         struct_payload={'record_id':record_id,'sha256':digest,'event':event,'ok':structure['ok'],'file_count':len(structure.get('files') or []),'errors':structure.get('errors') or []}
         entry=self._ledger('STRUCTURE_VERIFY',struct_payload)
         self._document_ledger(record_id,'STRUCTURE_VERIFY',struct_payload)
-        score_payload={'record_id':record_id,'sha256':digest,'event':event,'spre_pc':review['spre']['pc'],'clce_triple':review['clce']['triple'],'plr_status':review['plr']['status'],'triad_combined':(review.get('triad') or {}).get('combined'),'triad_ready':bool((review.get('triad') or {}).get('ready')),'bayesian_posterior':review['bayesian']['posterior'],'unranked':True,'lights':review['lights']}
+        score_payload={'record_id':record_id,'sha256':digest,'event':event,'spre_pc':review['spre']['pc'],'clce_triple':review['clce']['triple'],'plr_status':review['plr']['status'],'triad_combined':(review.get('triad') or {}).get('combined'),'triad_ready':bool((review.get('triad') or {}).get('ready')),'bayesian_posterior':review['bayesian']['posterior'],'unranked':True,'lights':review['lights'],'law':HASHCHAIN_LEARN_LAW}
         self._ledger('REVIEW_SCORE',score_payload)
         self._document_ledger(record_id,'REVIEW_SCORE',score_payload)
         if review['quarantine_status']!='CLEAR':
             q_payload={'record_id':record_id,'sha256':digest,'status':review['quarantine_status'],'markers':review['poison']['markers'],'immutable':True,'never_delete':True}
             self._ledger('POISON_QUARANTINE',q_payload)
             self._document_ledger(record_id,'POISON_QUARANTINE',q_payload)
+            append_poison_learn(self, record_id=record_id, sha256=digest, title=Path(filename).stem, filename=filename, markers=review['poison'].get('markers') or [])
         tip=None
         if structure['ok']:
             tip=lattice_anchor_tip(record_id=record_id,library=library,content_sha256=digest,ledger_entry_hash=entry['entry_hash'],structure=structure,review=review,event=event)
@@ -723,13 +745,47 @@ class AzielLibrary:
                 md.pop('zsolver_queue', None)
             md['aziel_review']=review; md['lattice_tip']=tip; md['quarantine_status']=review['quarantine_status']; md['triad_combined']=(review.get('triad') or {}).get('combined')
             md['zsolver']=zsolver; md['succession']=self._succession_cite(record_id)
+            md['law']=HASHCHAIN_LEARN_LAW
             c.execute('UPDATE records SET metadata_json=? WHERE record_id=?',(json.dumps(md),record_id))
         cite=md.get('succession')
         for item in (cite or {}).get('chain') or []:
             if item.get('record_id') and item['record_id']!=record_id:
                 try: self._apply_triad_coverage(item['record_id'])
                 except Exception: pass
+        try:
+            pin=apply_pin_from_upload(self, record_id, structure=structure, poison=review.get('poison'), sha256=digest, lib=library)
+            review=dict(review); review['possibility']=pin.get('possibility')
+            with self._write_lock, self._connect() as c:
+                row=c.execute('SELECT metadata_json FROM records WHERE record_id=?',(record_id,)).fetchone()
+                try: md=json.loads(row['metadata_json'] if row else '{}')
+                except Exception: md={}
+                md['aziel_review']=review; md['pin']=pin; md['possibility']=(pin or {}).get('possibility'); md['law']=HASHCHAIN_LEARN_LAW
+                if row: c.execute('UPDATE records SET metadata_json=? WHERE record_id=?',(json.dumps(md),record_id))
+        except Exception:
+            pin=None
         return review
+    def recollect(self, record_id, depth=32, tip=None):
+        chain=self.document_chain(record_id)
+        walk=verify_chain_walk(chain.get('entries') or [], tip=tip or chain.get('tip'), depth=depth)
+        if not chain.get('ok') or not walk.get('ok'):
+            return {'ok':False,'refuse':'LATTICE_BREAK','record_id':record_id,'errors':(chain.get('errors') or [])+(walk.get('errors') or []),'stamps':[],'law':HASHCHAIN_LEARN_LAW}
+        return {'ok':True,'record_id':record_id,'tip':chain.get('tip'),'sequence':chain.get('sequence'),'stamps':walk.get('stamps') or [],'law':HASHCHAIN_LEARN_LAW}
+    def poison_learn_memory(self):
+        return load_poison_features(self)
+    def possibility_for(self, record_id):
+        rec=self.get_record(record_id)
+        walk=self.recollect(record_id, depth=64)
+        anchors=[{'date':e.get('event_date'),'lat':e.get('lat'),'lon':e.get('lon'),'place':e.get('place_name')} for e in (rec.get('events') or [])]
+        local=[{'kind':(s.get('payload') or {}).get('kind') or 'accept','anchors':(s.get('payload') or {}).get('anchors') or []} for s in (walk.get('stamps') or []) if s.get('action')=='LEARN']
+        derived=possibility_score(anchors=anchors, learn_stamps=(load_learn_stamps(self, exclude_record_id=record_id)+local), lattice_ok=bool(walk.get('ok')), poison=str(rec.get('quarantine_status') or '')=='POISON_SUSPECT')
+        stored=(rec.get('possibility') or (rec.get('review') or {}).get('possibility'))
+        bayes=rec.get('bayesian') or (rec.get('review') or {}).get('bayesian')
+        return {'ok':bool(walk.get('ok')),'record_id':record_id,'possibility':derived,'stored':compact_possibility(stored),'bayesian':({'posterior':bayes.get('posterior'),'unranked':True,'schema':'aziel.bayesian.v1'} if bayes and bayes.get('posterior') is not None else None),'tip':walk.get('tip'),'map4d':MAP4D_CITE,'law':HASHCHAIN_LEARN_LAW}
+    def pin_for(self, record_id):
+        rec=self.get_record(record_id)
+        walk=self.recollect(record_id, depth=64)
+        pins=[s for s in (walk.get('stamps') or []) if s.get('action') in {'MAP_PIN','MAP_PIN_REFUSED'}]
+        return {'ok':bool(walk.get('ok')),'record_id':record_id,'events':rec.get('events') or [],'pin_stamps':pins,'tip':walk.get('tip'),'map4d':MAP4D_CITE,'law':HASHCHAIN_LEARN_LAW}
     def inspect_original(self, record_id):
         rec=self.get_record(record_id)
         stored=(self.root/rec['stored_path']).resolve()

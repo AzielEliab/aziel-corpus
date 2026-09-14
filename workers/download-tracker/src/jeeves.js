@@ -1193,7 +1193,7 @@ export function detectJeevesEasterEgg(question, extra) {
 
 
 const REFUSE_RE =
-  /\b(operator (password|hash|credential|account|secret|cookie)|master password|master hash|password hash|hidden admin|hidden operator|admin route|\/admin\b|superadmin|aziel_session|session token|scrypt|delete[- ]?all|wipe (the )?(corpus|library|ledger)|drop table|bypass quarantine|unquarantine|forge (a )?(score|triad|receipt)|modify (the )?(spre|clce|plr|physling|bayesian|triad|combined)( score)?|change (the )?score|set (the )?(triad|score)|exfiltrat|dump (all )?(hashes|credentials|sessions)|reveal (the )?(operator|master))\b/i;
+  /\b(operator (password|hash|credential|account|secret|cookie)|master password|master hash|password hash|hidden admin|hidden operator|admin route|\/admin\b|superadmin|aziel_session|session token|scrypt|delete[- ]?all|wipe (the )?(corpus|library|ledger)|drop table|bypass quarantine|unquarantine|forge (a )?(score|triad|receipt|possibility)|modify (the )?(spre|clce|plr|physling|bayesian|possibility|triad|combined)( score)?|change (the )?score|set (the )?(triad|score)|exfiltrat|dump (all )?(hashes|credentials|sessions)|reveal (the )?(operator|master))\b/i;
 
 const STOP = new Set(
   "a an the and or but if then of to for in on at by with from as is are was were be been being this that these those it its they them their you your we our not no what who how why when where which please tell show me about".split(" ")
@@ -1540,6 +1540,11 @@ export async function jeevesUpload(env, { signed, file, title, body, author, dom
     content_sha256: record.content_sha256 || null,
     quarantine_status: record.quarantine_status,
     triad,
+    pin: record.pin || null,
+    possibility: record.possibility || (record.review && record.review.possibility) || null,
+    bayesian: record.review && record.review.bayesian
+      ? { posterior: record.review.bayesian.posterior, unranked: true }
+      : null,
     zsolver: record.zsolver
       ? { capped_confidence: record.zsolver.capped_confidence, display: record.zsolver.display, status: record.zsolver.status, disclaimer: record.zsolver.disclaimer }
       : null,
@@ -1646,7 +1651,7 @@ export async function handleJeevesApi(request, url, env, signed) {
         })
       );
     } catch (err) {
-      return json({ error: err && err.message ? err.message : "upload failed" }, err && err.status ? err.status : 400);
+      return json({ error: err && err.message ? err.message : "upload failed", receipt: err && err.receipt ? err.receipt : null }, err && err.status ? err.status : 400);
     }
   }
   return null;

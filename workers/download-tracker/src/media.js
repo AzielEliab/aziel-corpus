@@ -443,6 +443,17 @@ export async function persistMediaRun(env, args) {
   const action = String((args && args.action) || kind);
   payload.ledger_action = action;
   const entry = await appendLedger(env, action, payload);
+  if (payload.blocked) {
+    try {
+      const { appendPoisonLearn } = await import("./lattice-learn.js");
+      await appendPoisonLearn(env, {
+        sha256: contentSha,
+        filename,
+        markers: ["av_blocked"],
+        extra: { reason: "av_block", body_retained: false, ledger_action: action },
+      });
+    } catch { /* feature receipt optional */ }
+  }
   const tip = latticeAnchorTip({
     record_id: recordId || runId,
     library: "media-run",

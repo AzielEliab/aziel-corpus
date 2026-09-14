@@ -50,6 +50,15 @@ export function latticeAnchorTip({
     bayesian: r.bayesian
       ? { posterior: r.bayesian.posterior, unranked: true, note: r.bayesian.note }
       : null,
+    possibility: r.possibility
+      ? {
+          possibility: r.possibility.possibility,
+          kind: r.possibility.kind || "HEURISTIC",
+          refuse: r.possibility.refuse || null,
+          unranked: true,
+          not_truth: true,
+        }
+      : null,
     quarantine: r.quarantine_status && r.quarantine_status !== "CLEAR" ? r.quarantine_status : null,
     zsolver: zsolver && typeof zsolver === "object" ? zsolver : null,
     ledger_entry_hash: ledger_entry_hash || null,

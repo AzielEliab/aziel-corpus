@@ -7,6 +7,7 @@ from pathlib import Path
 from .core import AzielLibrary
 from .external import ExternalRuntime, BootstrapManager
 from .jeeves import chat as jeeves_chat, JEEVES_LIMITATION
+from .lattice_learn import HASHCHAIN_LEARN_LAW, PoisonLearnedRefuse, POSSIBILITY_NOTE, MAP4D_CITE
 
 from .mirror import publish_mirror, read_manifest
 APP_VERSION='2.7.0'
@@ -59,6 +60,34 @@ class Handler(BaseHTTPRequestHandler):
             date=q.get('date',[''])[0]
             data=json.dumps(self.vault.historical_geojson(date),separators=(',',':')).encode()
             self.send_response(200); self.send_header('Content-Type','application/geo+json'); self._security_headers(); self.send_header('Cache-Control','no-store'); self.send_header('Content-Length',str(len(data))); self.end_headers(); return self.wfile.write(data)
+        if u.path=='/v1/recollect':
+            rid=(q.get('record_id') or q.get('id') or [''])[0].strip()
+            if not rid: return self.send_json({'error':'record_id required','law':HASHCHAIN_LEARN_LAW},status=400)
+            try: depth=int((q.get('depth') or ['32'])[0])
+            except Exception: depth=32
+            tip=(q.get('tip') or [''])[0].strip() or None
+            rec=self.vault.recollect(rid, depth=depth, tip=tip)
+            return self.send_json(rec, status=200 if rec.get('ok') else 409)
+        if u.path=='/v1/possibility':
+            rid=(q.get('record_id') or q.get('id') or [''])[0].strip()
+            if not rid: return self.send_json({'error':'record_id required','note':POSSIBILITY_NOTE},status=400)
+            try:
+                rec=self.vault.possibility_for(rid)
+                rec['note']=POSSIBILITY_NOTE
+                return self.send_json(rec, status=200 if rec.get('ok') else 409)
+            except KeyError:
+                return self.send_json({'error':'not found','law':HASHCHAIN_LEARN_LAW},status=404)
+        if u.path=='/v1/poison-learn':
+            mem=self.vault.poison_learn_memory()
+            return self.send_json({**mem,'body_retained':False,'note':'Poison-learn is a feature receipt lattice. Repeats refuse faster. No poison payloads.'}, status=200 if mem.get('ok') else 409)
+        if u.path=='/v1/pin':
+            rid=(q.get('record_id') or q.get('id') or [''])[0].strip()
+            if not rid: return self.send_json({'error':'record_id required','map4d':MAP4D_CITE},status=400)
+            try:
+                rec=self.vault.pin_for(rid)
+                return self.send_json(rec, status=200 if rec.get('ok') else 409)
+            except KeyError:
+                return self.send_json({'error':'not found','map4d':MAP4D_CITE},status=404)
         if u.path=='/':
             rows=self.vault.search(query,media,subject); subjects=sorted({r['primary_subject'] for r in self.vault.search()})
             media_options=''.join(f"<option value='{x}' {'selected' if media==x else ''}>{x}</option>" for x in ['pdf','document','spreadsheet','presentation','image','video','audio','text','archive','other'])
@@ -178,7 +207,9 @@ class Handler(BaseHTTPRequestHandler):
             qbadge="<span class='q-badge stop'>Quarantine — poison suspect (kept, not deleted)</span>" if q in {'POISON_SUSPECT','QUARANTINE'} else "<span class='q-badge slow'>Operator flag</span>" if q in {'OPERATOR_FLAG','FLAGGED'} else "<span class='q-badge go'>Clear</span>"
             lights_html=lamp('structure','Structure')+lamp('spre','SPRE',(review.get('spre') or {}).get('kid_plain',''))+lamp('clce','CLCE',(review.get('clce') or {}).get('kid_plain',''))+lamp('plr','PhysLing Review',(review.get('plr') or {}).get('kid_plain',''))+lamp('poison','Poison',(review.get('poison') or {}).get('kid_plain',''))
             bayes=(review.get('bayesian') or r.get('bayesian') or {})
-            bayes_html=f"<div class='card'><h3>Bayesian peer score</h3><div class='metric'>{float(bayes.get('posterior') or 0):.3f}</div><p class='muted'>Unranked metadata. This number does not sort the shelf. For manual peer-to-peer review if the operator is gone one day.</p></div>" if bayes.get('posterior') is not None else ''
+            poss=(review.get('possibility') or r.get('possibility') or {})
+            bayes_html=f"<div class='card'><h3>Bayesian peer score</h3><div class='metric'>{float(bayes.get('posterior') or 0):.3f}</div><p class='muted'>Unranked metadata. This number does not sort the shelf. Posterior ≠ truth. Separate from possibility.</p></div>" if bayes.get('posterior') is not None else ''
+            poss_html=f"<div class='card'><h3>Possibility score</h3><div class='metric'>{float(poss['possibility']):.3f}</div><p class='muted'>HEURISTIC over lattice time×geo pins. possibility ≠ probability ≠ triad ≠ ZionPattern. Not courtroom proof. Adaptive learning via hashchain lattice for recollection and reasoning.</p></div>" if poss.get('possibility') is not None else (f"<div class='card'><h3>Possibility score</h3><p class='muted'>Refused: {html.escape(str(poss.get('refuse') or 'PENDING_ANCHORS'))}. Not invented as truth.</p></div>" if poss else '')
             peers=''.join(f"<p><b>{html.escape(p['stance'])}</b> · {html.escape(p.get('created_by') or 'peer')} · {html.escape(str(p.get('created_utc') or ''))}<br>{html.escape(p.get('body') or '')}</p>" for p in r.get('peer_reviews') or []) or "<p class='muted'>No peer notes yet.</p>"
             peer_form=f"<form method='post' action='/record/{urllib.parse.quote(r['record_id'],safe='')}/peer'><select name='stance'><option value='note'>Note</option><option value='endorse'>Endorse</option><option value='challenge'>Challenge</option></select><input name='body' placeholder='Peer note' required> <button>Append peer review</button></form>" if self.mode=='master' else "<p class='muted'>Mirror is read-only. Peer notes stay on the master hash-chain.</p>"
             spre=review.get('spre') or {}; clce=review.get('clce') or {}; plr=review.get('plr') or {}; triad=review.get('triad') or r.get('triad') or {}
@@ -199,7 +230,7 @@ class Handler(BaseHTTPRequestHandler):
             review_html=f"<div class='card'><h3>Status lights</h3><p class='muted'>Green means go. Yellow means read again. Red means stop and check.</p><div class='lights'>{lights_html}</div><p><b>SPRE PC</b> {spre.get('pc','—')} · <b>CLCE</b> {clce.get('triple','—')} · <b>PhysLing</b> {html.escape(str(plr.get('status') or '—'))}</p><p class='muted'>SPRE does not assert criminal guilt. Official narrative is not merged into evidence.</p></div>"
             sha=str(r.get('sha256') or '')
             hash_btn=f" <a class='button' href='/download?hash={urllib.parse.quote(sha,safe='')}'>By hash</a>" if sha else ''
-            body=f"<div class='card'><h2>{html.escape(r['original_name'])}</h2><p>{qbadge}</p>{qbanner}<p><b>{html.escape(r['primary_subject'])}</b> -> {html.escape(r['secondary_subject'])}</p><p>{html.escape(r['classification_reason'])}</p><p><b>Original SHA-256</b><br><span class='hash'>{r['sha256']}</span></p>{("<p><b>Object path</b><br><span class='hash'>"+html.escape(r['stored_path'])+"</span></p>") if self.mode=='master' else ''}<p><a class='button' href='/original/{urllib.parse.quote(r['record_id'],safe='')}'>Download</a>{hash_btn}</p><p><b>Extraction</b> {html.escape(r['extraction_status'])}</p></div>{triad_html}{zsolver_html}{succession_html}{review_html}{bayes_html}<div class='card'><h3>Peer-to-peer review</h3>{peers}{peer_form}</div><div class='card'><h3>Entities</h3>{ents}<h3>Temporal–Geospatial events</h3>{events_html}<h3>Connections</h3><ul>{rel}</ul><h3>Derived provenance</h3><table><tr><th>Artifact</th><th>Processor</th><th>Model</th><th>Content SHA-256</th></tr>{der}</table><h3>Indexed text</h3><pre>{html.escape(r['extracted_text'][:30000])}</pre></div>"
+            body=f"<div class='card'><h2>{html.escape(r['original_name'])}</h2><p>{qbadge}</p>{qbanner}<p><b>{html.escape(r['primary_subject'])}</b> -> {html.escape(r['secondary_subject'])}</p><p>{html.escape(r['classification_reason'])}</p><p><b>Original SHA-256</b><br><span class='hash'>{r['sha256']}</span></p>{("<p><b>Object path</b><br><span class='hash'>"+html.escape(r['stored_path'])+"</span></p>") if self.mode=='master' else ''}<p><a class='button' href='/original/{urllib.parse.quote(r['record_id'],safe='')}'>Download</a>{hash_btn}</p><p><b>Extraction</b> {html.escape(r['extraction_status'])}</p></div>{triad_html}{zsolver_html}{succession_html}{review_html}{bayes_html}{poss_html}<div class='card'><h3>Peer-to-peer review</h3>{peers}{peer_form}</div><div class='card'><h3>Entities</h3>{ents}<h3>Temporal–Geospatial events</h3>{events_html}<h3>Connections</h3><ul>{rel}</ul><h3>Derived provenance</h3><table><tr><th>Artifact</th><th>Processor</th><th>Model</th><th>Content SHA-256</th></tr>{der}</table><h3>Indexed text</h3><pre>{html.escape(r['extracted_text'][:30000])}</pre></div>"
             return self.send_html(page(r['original_name'],body))
         if u.path in {'/download','/download/'} or (u.path.startswith('/v1/docs/') and u.path.rstrip('/').endswith('/download')):
             hid=(q.get('hash') or q.get('sha256') or q.get('content_sha256') or [''])[0]
@@ -345,7 +376,9 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 p=self._stream_raw_file(name); result=self.vault.ingest([p],rebuild=False)[0]
                 if rel: self.vault.add_ingest_origin(result['record_id'],rel)
-                return self.send_json({'ok':True,'record_id':result['record_id'],'sha256':result['sha256'],'name':result['original_name']})
+                return self.send_json({'ok':True,'record_id':result['record_id'],'sha256':result['sha256'],'name':result['original_name'],'possibility':(result.get('possibility') or (result.get('review') or {}).get('possibility')),'law':HASHCHAIN_LEARN_LAW})
+            except PoisonLearnedRefuse as e:
+                return self.send_json({'ok':False,'refuse':e.refuse,'feature_id':e.feature_id,'content_sha256':e.sha256,'body_retained':False,'error':str(e),'law':HASHCHAIN_LEARN_LAW},status=422)
             except Exception as e:
                 return self.send_json({'ok':False,'error':str(e)},status=400)
             finally:

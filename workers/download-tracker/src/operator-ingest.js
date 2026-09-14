@@ -147,6 +147,11 @@ export async function operatorLibraryIngest(env, { signed, request, file, title,
     succession: record.succession || null,
     quarantine_status: record.quarantine_status,
     triad,
+    pin: record.pin || null,
+    possibility: record.possibility || (record.review && record.review.possibility) || null,
+    bayesian: record.review && record.review.bayesian
+      ? { posterior: record.review.bayesian.posterior, unranked: true }
+      : null,
     href: "/record/" + record.id,
     metadata_url: "/record/" + record.id + "/metadata.json",
     json_record_id: record.json_record_id || null,

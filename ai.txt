@@ -39,6 +39,11 @@ Allow: /openapi.json
 Allow: /v1
 Allow: /v1/
 Allow: /v1/software
+Allow: /v1/possibility
+Allow: /v1/recollect
+Allow: /v1/poison-learn
+Allow: /v1/pin
+# Adaptive learning via hashchain lattice for recollection and reasoning (HASHCHAIN-LATTICE-LEARN-1.0).
 Disallow: /signup
 Disallow: /logout
 Disallow: /admin/

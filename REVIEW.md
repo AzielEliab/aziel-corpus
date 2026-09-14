@@ -66,7 +66,23 @@ Quarantine status is hash-chained (`POISON_QUARANTINE`). Operator Aziel Library 
 
 Beta-Bernoulli posterior from five priors: evidence completeness, physics coherence, linguistic neutrality, SPRE PC, CLCE consistency.
 
-Stored as **unranked** metadata. Never used to sort the shelf. Shown on the record page for manual peer-to-peer review (continuity if the operator is gone one day).
+Stored as **unranked** metadata. Never used to sort the shelf. Shown on the record page for manual peer-to-peer review (continuity if the operator is gone one day). Posterior ≠ truth.
+
+### Possibility score (HEURISTIC)
+
+`possibility ∈ [0,1]` or refuse, derived from hashchain lattice time×geo pins: support density, contradiction density, travel/plausibility. Asks: could this have occurred as stated given the anchors?
+
+**possibility ≠ probability ≠ triad ≠ ZionPattern.** Labeled `HEURISTIC`. Not a guilt verdict. Not courtroom proof. `GET /v1/possibility?record_id=`.
+
+### Adaptive learning via hashchain lattice
+
+Law: **HASHCHAIN-LATTICE-LEARN-1.0** — adaptive learning via hashchain lattice for recollection and reasoning.
+
+LEARN / POISON_LEARN / MAP_PIN / POSSIBILITY_SCORE append to `document_ledger` (and the global ledger). Recollection is tip + depth / prev-hash verify (fail closed on break). Reasoning walks lattice receipts + anchors. History is never rewritten. No opaque memory store. No LLM-as-memory.
+
+Poison-learn writes a feature receipt (hash + markers + token hashes) so later similar inputs refuse faster. Poison payloads/bodies are not stored on that stamp. `GET /v1/poison-learn`. `GET /v1/recollect?record_id=`.
+
+Upload→pin extracts paper date × place, pins the Temporal Map / verify-geo lattice, and receipts sha256. Fail closed if structure or poison blocks. Sister cite: [4DMap 4DM-WP-1.0](https://github.com/AzielEliab/4dmap) — inspection frame, not a live ICANN mesh DNS. `GET /v1/pin?record_id=`.
 
 ### Peer review
 
@@ -171,8 +187,12 @@ Fixed bottom-right research assistant. Drawer, not a full-page takeover. Answers
 
 ## API
 
-- `GET /v1/review?record_id=` — leads with triad combined score; includes succession cites when present
+- `GET /v1/review?record_id=` — leads with triad combined score; includes succession cites, Bayesian, and possibility when present
 - `GET /v1/lattice?record_id=`
+- `GET /v1/possibility?record_id=`
+- `GET /v1/recollect?record_id=`
+- `GET /v1/poison-learn`
+- `GET /v1/pin?record_id=`
 - `GET /v1/verify-backfill`
 - `GET /v1/verify-geo?force=1` / `?status=1` — chunked map pins (paper date × event × geolocation; never upload time)
 - `GET /v1/document-chain?record_id=`

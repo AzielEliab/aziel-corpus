@@ -113,3 +113,15 @@ Aziel Runtime is not merely an API orchestrator or software aggregator; it is a 
 ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants.
 
 Always send User-Agent Mozilla/5.0. Public, no OAuth. Author Aziel Eliab only.
+
+## Hashchain lattice learning (HASHCHAIN-LATTICE-LEARN-1.0)
+
+Adaptive learning via hashchain lattice for recollection and reasoning. LEARN / POISON_LEARN / MAP_PIN / POSSIBILITY_SCORE append to document hashchains. Recollection is tip + prev-hash verify (fail closed). Possibility is HEURISTIC over time×geo pins — not Bayesian, not triad, not ZionPattern, not courtroom truth. Posterior ≠ truth. Poison-learn stores hash + feature receipts only (no poison bodies). Growth-ON: AI crawlers stay Allowed.
+
+- GET https://www.azielcorpuslibrary.net/v1/possibility?record_id=
+- GET https://www.azielcorpuslibrary.net/v1/recollect?record_id=
+- GET https://www.azielcorpuslibrary.net/v1/poison-learn
+- GET https://www.azielcorpuslibrary.net/v1/pin?record_id=
+- GET https://www.azielcorpuslibrary.net/v1/verify-geo?status=1
+- 4DMap cite: https://github.com/AzielEliab/4dmap (4DM-WP-1.0; inspection frame, not a live ICANN mesh DNS)
+- Spec: docs/HASHCHAIN-LATTICE-LEARN-1.0.md

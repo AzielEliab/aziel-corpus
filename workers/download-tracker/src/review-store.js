@@ -7,6 +7,7 @@ import { appendLedger, appendDocumentLedger, ensureLedger, hashPayload, isDocume
 import { reviewDocument, triadComposite, collectionTriad } from "./review.js";
 import { verifyBytes, verifyTextRecord, sha256hex } from "./structure.js";
 import { latticeAnchorTip } from "./lattice.js";
+import { appendPoisonLearn, HASHCHAIN_LEARN_LAW } from "./lattice-learn.js";
 import {
   applySuccessionForRecord,
   backfillSuccession,
@@ -48,6 +49,7 @@ export async function ensureReviewSchema(env) {
     "quarantine_status TEXT",
     "review_json TEXT",
     "bayesian_posterior REAL",
+    "possibility_score REAL",
     "lattice_tip_json TEXT",
     "triad_combined REAL",
     "chain_tip TEXT",
@@ -183,9 +185,12 @@ export async function persistReview(env, { recordId, library, sha256, title, cre
     triad_combined: combined,
     triad_ready: !!(triad && triad.ready),
     bayesian_posterior: posterior,
+    possibility: review.possibility && review.possibility.possibility != null ? review.possibility.possibility : null,
+    possibility_kind: (review.possibility && review.possibility.kind) || "HEURISTIC",
     unranked: true,
     lights: review.lights,
     created_by: createdBy || null,
+    law: HASHCHAIN_LEARN_LAW,
   });
 
   if (qStatus !== "CLEAR") {
@@ -198,6 +203,14 @@ export async function persistReview(env, { recordId, library, sha256, title, cre
       immutable: true,
       never_delete: true,
     });
+    try {
+      await appendPoisonLearn(env, {
+        recordId,
+        sha256,
+        title,
+        markers: (review.poison && review.poison.markers) || [],
+      });
+    } catch { /* feature receipt optional */ }
   }
 
   let tip = null;
@@ -249,6 +262,21 @@ export async function reviewAndStore(env, args) {
     review: bundle.review,
   });
   return { ...bundle, ...stored };
+}
+
+export async function persistPossibilityOnReview(env, recordId, possibility, review) {
+  if (!env || !env.DB || !recordId || !possibility) return review || null;
+  const next = { ...(review || {}), possibility };
+  try {
+    await env.DB.prepare(
+      "UPDATE records SET review_json=?, possibility_score=? WHERE record_id=?"
+    ).bind(JSON.stringify(next), possibility.possibility, recordId).run();
+  } catch {
+    try {
+      await env.DB.prepare("UPDATE records SET review_json=? WHERE record_id=?").bind(JSON.stringify(next), recordId).run();
+    } catch { /* schema */ }
+  }
+  return next;
 }
 
 export async function parseReviewJson(raw) {

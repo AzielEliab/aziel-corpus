@@ -7,7 +7,7 @@ description: Use when an assistant should search the Aziel Digital Library maste
 
 Self-contained immutable local digital library and intelligence runtime. Public site is MASTER. Anonymous GET is read-only. Signed-in accounts may ingest. Author: **Aziel Eliab** (aka Aziel Elroi Eliab is `alternateName` only) — publisher of Aziel Digital Library. Person `@id` https://www.azieleliab.com/#aziel. Runtime `@id` https://www.azieleliab.com/runtime#runtime. Not scripture concordance entries named Aziel or Eliab.
 
-**THIS IS:** Aziel Digital Library v2.7.0 (search, records, map, gazetteer, counted zip, poison immunity, PhysLing Review, unranked Bayesian scores, exact-same-subject succession cites). Library Softwares catalog lives at `/software`.
+**THIS IS:** Aziel Digital Library v2.7.0 (search, records, map, gazetteer, counted zip, poison immunity, PhysLing Review, unranked Bayesian scores, HEURISTIC possibility, hashchain-lattice LEARN / poison-learn, exact-same-subject succession cites). Adaptive learning via hashchain lattice for recollection and reasoning. Library Softwares catalog lives at `/software`.
 
 **THIS IS NOT:** a 26-card software index. Not Zenodo. Not Horton. Do not mash Aziel Runtime version + FragGate into Softwares blurbs.
 
@@ -48,8 +48,12 @@ Ops (do **not** increment downloads):
 - `GET /v1/search?q=`
 - `GET /v1/example`
 - `GET /v1/skill`
-- `GET /v1/review?record_id=` (triad + ZionPattern Solver secondary score + succession cites)
+- `GET /v1/review?record_id=` (triad + ZionPattern Solver secondary score + succession cites + Bayesian + possibility)
 - `GET /v1/lattice?record_id=`
+- `GET /v1/possibility?record_id=` (HEURISTIC possibility over lattice time×geo pins; not Bayesian)
+- `GET /v1/recollect?record_id=` (tip + depth / prev-hash verify; fail closed)
+- `GET /v1/poison-learn` (feature receipts only; no poison bodies)
+- `GET /v1/pin?record_id=` (upload→pin receipt; fail closed on structure/poison)
 - `GET /v1/runtime`
 - `GET /v1/runtime.json` (Aziel Runtime 2.0.0-rc1 manifest; distinct from `/v1/runtime`)
 - `GET /runtime` (Aziel Runtime page; FragGate is the single door; HEAD + GET return 200)
