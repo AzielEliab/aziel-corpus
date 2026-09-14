@@ -2,6 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   AUTHOR,
+  COLD_COPY,
+  COLD_COPY_SPEC,
+  DWELL_AFTER_VALID_CITE_S,
   EXAMPLE_BEARER,
   LIBRARY_SOURCE,
   MESH_BAD_BEARER,
@@ -12,25 +15,43 @@ import {
   MESH_OK,
   QNS_CD,
   QNS_CD_SPEC,
+  SPLIT_WIRES,
+  SPLIT_WIRES_SPEC,
   collectDeclaredBearers,
+  dataOutlivesCreators,
   destMeshPath,
   decorateMeshDoc,
   handleMeshApi,
+  isFastTickEnvelope,
   isMeshEnabled,
   isMeshLibraryPath,
   isMeshRuntimePath,
   isMeshStatusReadPath,
+  judgeColdReplicaAfterPull,
+  judgeEquivocation,
+  judgePartitionEvent,
+  judgePoison,
+  judgeUpdateProof,
   liveNodesCount,
   liveNodesLabel,
+  liveSyncBodiesAllowed,
+  mayEmitLast,
+  mayUnsendUnverifiedBody,
   meshDisableRefuseDoc,
   meshOnDoc,
   meshRefreshScript,
   meshRefuseDoc,
   meshRefuseHttpStatus,
   meshStatusHtml,
+  phoenixScope,
+  planesMayShareSocket,
   proxyMeshRequest,
+  publicWorkerIsCell,
+  publicWorkerRollupKind,
   sanitizeBearer,
+  serverPullWipesColdReplica,
   synthesizeMeshRefuse,
+  vaultTransferKind,
 } from "./mesh.js";
 import { handleRuntimeApi } from "./runtime.js";
 import { fallbackKind, handleRuntimeRoot, runtimeManifest, runtimeSkillMd } from "./runtime-root.js";
@@ -67,9 +88,93 @@ test("phoenix is wait/re-seal, not restore of a public hostname", () => {
   assert.match(refuse.phoenix_lock, /not restore public hostname/);
   assert.match(refuse.local_node_note, /not restore of a public \.uk/);
   assert.match(refuse.local_node_note, /does not climb back onto the public hostname/);
+  assert.match(refuse.phoenix_lock, /local to failed node only/);
+  assert.equal(phoenixScope(), "failed-node-only");
   assert.doesNotMatch(refuse.phoenix_lock, /bring (the )?\.?uk (node )?back/i);
   assert.doesNotMatch(refuse.local_node_note, /resume on the named fabric/i);
   assert.doesNotMatch(JSON.stringify(refuse), /mesh brings the public/i);
+});
+
+test("split-wires law: public Worker is counts/status, not the cell", () => {
+  assert.equal(SPLIT_WIRES_SPEC, "MESH-SPLIT-WIRES-1.0");
+  assert.equal(SPLIT_WIRES.spec, "MESH-SPLIT-WIRES-1.0");
+  assert.equal(SPLIT_WIRES.public_worker_is_cell, false);
+  assert.equal(SPLIT_WIRES.public_rollup, "counts-status");
+  assert.equal(SPLIT_WIRES.live_sync_bodies, false);
+  assert.equal(SPLIT_WIRES.die_with_pull, true);
+  assert.equal(SPLIT_WIRES.unsend_unverified_body, false);
+  assert.equal(SPLIT_WIRES.author, "Aziel Eliab");
+  assert.equal(publicWorkerIsCell(), false);
+  assert.equal(publicWorkerRollupKind(), "counts-status");
+  assert.equal(mayUnsendUnverifiedBody(), false);
+  assert.equal(mayEmitLast({ verified_locally: false }), false);
+  assert.equal(mayEmitLast({ verified_locally: true }), true);
+  assert.equal(isFastTickEnvelope({ presence: "live", tip_hash: "abc" }), true);
+  assert.equal(isFastTickEnvelope({ presence: "live", tip_hash: "abc", body: "no" }), false);
+  assert.equal(isFastTickEnvelope({ presence: "live", tip_hash: "abc", diff: {} }), false);
+  assert.equal(isFastTickEnvelope({ presence: "live", tip_hash: "abc", file: "x" }), false);
+  assert.equal(planesMayShareSocket("1s-loop", "777s-gate"), false);
+  assert.equal(planesMayShareSocket("fast-tick", "payload"), false);
+  assert.equal(planesMayShareSocket("1s-loop", "1s-loop"), true);
+  assert.equal(judgeUpdateProof({ prev: "p", lockset: "L" }).accept, true);
+  assert.equal(judgeUpdateProof({ prev: "p", lockset: "L" }).dwell_s, DWELL_AFTER_VALID_CITE_S);
+  assert.equal(judgeUpdateProof({ clock_desync: true, prev: "p", lockset: "L" }).accept, false);
+  assert.equal(judgeUpdateProof({ ambiguous_tip: true }).action, "isolate");
+  assert.equal(judgeUpdateProof({}).reason, "fail-closed-need-cite");
+  const eq = judgeEquivocation({ prev: "p", tip_a: "t1", tip_b: "t2" });
+  assert.equal(eq.end_peer, true);
+  assert.equal(eq.quorum_cannot_outvote, true);
+  const part = judgePartitionEvent({ split_brain: true, heartbeat_lost: true });
+  assert.equal(part.auto_splice, false);
+  assert.equal(part.heartbeat_loss_is_poison, false);
+  assert.equal(part.apply_last_packet, false);
+  assert.match(MESH_NOTE, /MESH-SPLIT-WIRES-1\.0/);
+  assert.match(MESH_NOTE, /not the cell/);
+  assert.match(MESH_NOTE, /never share a socket/);
+
+  const on = meshOnDoc();
+  assert.equal(on.public_worker_is_cell, false);
+  assert.equal(on.public_rollup, "counts-status");
+  assert.equal(on.split_wires_spec, "MESH-SPLIT-WIRES-1.0");
+  assert.equal(on.split_wires.public_worker_is_cell, false);
+  assert.doesNotMatch(JSON.stringify(on), BANNED);
+});
+
+test("cold-copy survival: vault-on-transfer multiplies; pull cannot wipe", () => {
+  assert.equal(COLD_COPY_SPEC, "MESH-COLD-COPY-1.0");
+  assert.equal(COLD_COPY.spec, "MESH-COLD-COPY-1.0");
+  assert.equal(COLD_COPY.vault_on_transfer, "cold-multiply");
+  assert.equal(COLD_COPY.tip_expensive_to_erase, true);
+  assert.equal(COLD_COPY.live_sync_bodies, false);
+  assert.equal(COLD_COPY.server_pull_wipes_cold, false);
+  assert.equal(COLD_COPY.poison, "hash-absolute-refuse");
+  assert.equal(COLD_COPY.equivocation, "isolate");
+  assert.equal(COLD_COPY.data_outlives_creators, true);
+  assert.equal(COLD_COPY.die_with_pull, true);
+  assert.equal(COLD_COPY.author, "Aziel Eliab");
+  assert.equal(vaultTransferKind(), "cold-multiply");
+  assert.equal(liveSyncBodiesAllowed(), false);
+  assert.equal(serverPullWipesColdReplica(), false);
+  assert.equal(dataOutlivesCreators(), true);
+  const afterPull = judgeColdReplicaAfterPull({ server_pulled: true, cold_replica: true });
+  assert.equal(afterPull.wiped, false);
+  assert.equal(afterPull.replica_survives, true);
+  assert.equal(afterPull.live_sync_bodies, false);
+  assert.equal(judgePoison({ expected_hash: "aa", got_hash: "bb" }).action, "refuse");
+  assert.equal(judgePoison({ expected_hash: "aa", got_hash: "bb" }).interpret, false);
+  assert.equal(judgePoison({ poison: true }).reason, "hash-absolute");
+  assert.match(MESH_NOTE, /MESH-COLD-COPY-1\.0/);
+  assert.match(MESH_NOTE, /cold copies/);
+  assert.match(MESH_NOTE, /cannot wipe a cold replica/);
+  assert.match(MESH_NOTE, /data outlives creators/);
+
+  const refuse = meshRefuseDoc(MESH_DISABLE_REFUSED, "Public suite presence stays on.");
+  assert.equal(refuse.cold_copy_spec, "MESH-COLD-COPY-1.0");
+  assert.equal(refuse.cold_copy.vault_on_transfer, "cold-multiply");
+  assert.match(refuse.local_node_note, /cold multiply/);
+  assert.match(refuse.local_node_note, /cannot wipe a cold replica/);
+  assert.equal(refuse.split_wires_spec, "MESH-SPLIT-WIRES-1.0");
+  assert.doesNotMatch(JSON.stringify(refuse), BANNED);
 });
 
 test("mesh default ON; identity Aziel Eliab only", () => {
@@ -197,6 +302,10 @@ test("GET /v1/mesh stays ON when runtime has no mesh", async () => {
   assert.equal(body.qns_cd.spec, "QNS-CD-1.0");
   assert.equal(body.qns_cd.softwares_tab, false);
   assert.equal(body.qns_cd.public_proxy, false);
+  assert.equal(body.split_wires_spec, "MESH-SPLIT-WIRES-1.0");
+  assert.equal(body.cold_copy_spec, "MESH-COLD-COPY-1.0");
+  assert.equal(body.public_worker_is_cell, false);
+  assert.equal(body.cold_copy.vault_on_transfer, "cold-multiply");
   assert.doesNotMatch(JSON.stringify(body), /mesh_default": "off"/);
   assert.doesNotMatch(JSON.stringify(body), /Live Nodes · off/);
 });
@@ -524,6 +633,9 @@ test("OpenAPI, MCP, llms, cite, robots, sitemap cite mesh paths", async () => {
   assert.ok(spec.paths["/v1/mesh/nodes"]);
   assert.ok(spec.paths["/runtime/v1/mesh"]);
   assert.match(spec.paths["/v1/mesh"].get.summary, /read-only QNM ON/i);
+  assert.match(spec.paths["/v1/mesh"].get.summary, /not the cell/i);
+  assert.match(spec.paths["/v1/mesh"].get.summary, /MESH-SPLIT-WIRES-1\.0/);
+  assert.match(spec.paths["/v1/mesh"].get.summary, /MESH-COLD-COPY-1\.0/);
   assert.doesNotMatch(spec.paths["/v1/mesh"].get.summary, /default off/i);
   assert.match(spec.paths["/v1/mesh"].get.summary, /Aziel Eliab/);
 
@@ -580,7 +692,10 @@ test("human chrome shows Live Nodes · N without mesh-off copy", () => {
   assert.match(html, /Live Nodes · 0/);
   assert.doesNotMatch(html, /Live Nodes · off/);
   assert.match(html, /href="\/v1\/mesh\/status"/);
-  assert.match(html, /Suite mesh\. Read-only QNM ON/);
+  assert.match(html, /Suite mesh rollup \(counts\/status\)/);
+  assert.match(html, /Not the cell/);
+  assert.match(html, /Cold copies survive a pull/);
+  assert.match(html, /Read-only QNM ON/);
   assert.match(html, /GET never enables/);
   assert.doesNotMatch(html, /Default off until runtime enable/i);
   assert.match(meshStatusHtml(meshOnDoc()), /Live Nodes · 0/);

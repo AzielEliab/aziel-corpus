@@ -4,7 +4,7 @@ Author: **Aziel Eliab** only.
 
 Status: local specification (2026-09-14). Not a Softwares-tab product. Not a VPN. Not a Node Gate. Not an untraceable-origin claim.
 
-Canonical design: [aziel-runtime `docs/designs/TUN-WP-0.1.md`](https://github.com/AzielEliab/aziel-runtime/blob/main/docs/designs/TUN-WP-0.1.md). Companion: [RL-WP-0.1-library](RL-WP-0.1-library.md).
+Canonical design: [aziel-runtime `docs/designs/TUN-WP-0.1.md`](https://github.com/AzielEliab/aziel-runtime/blob/main/docs/designs/TUN-WP-0.1.md). Companion: [RL-WP-0.1-library](RL-WP-0.1-library.md). Neighbor law: [MESH-SPLIT-WIRES-1.0](MESH-SPLIT-WIRES-1.0.md) — public Worker is counts/status, not the cell; 1s loop and 777s gate never share a socket. [MESH-COLD-COPY-1.0](MESH-COLD-COPY-1.0.md) — vault-on-transfer is cold multiply; server pull cannot wipe a cold replica.
 
 Origin in scope: **https://www.azielcorpuslibrary.net** only.
 
@@ -46,6 +46,7 @@ This repository implements the **Worker standby** path fully. Tunnel-primary top
 - Not rate limits on godlock.uk or on local ChainLock.
 - Not a second catalog of truth. The Worker remains the record of public AZDOC cards. The tunnel serves a replica.
 - Not a promise that tunnel plus Worker relaunch a pulled site. Not an unmarked tunnel hydra.
+- Not the cell. Named-host HTTP failover is not the 0.5–1s presence tick and not the 777s dwell gate. Those two never share a socket. Tunnel and Worker may share a hostname; they do not share the cell sockets. Sender fan-out of bodies is refused.
 
 ## 4. Target topology
 
@@ -127,7 +128,7 @@ Two different events. Do not collapse them.
 
 A process supervisor on the box can restart cloudflared. That is operator kit. It is not in the public contract, and it fails if the credential or hostname is gone.
 
-**Site / token / DNS / Worker pull.** Pull the site, revoke the token, drop the Worker, or kill DNS and cloudflared has nowhere legal to land. Public rollup is dead. Local node can keep verifying and appending. The mesh does not climb back onto the public hostname by itself. Phoenix is a wait / re-seal after poison or isolation, not "bring the .uk node back."
+**Site / token / DNS / Worker pull.** Pull the site, revoke the token, drop the Worker, or kill DNS and cloudflared has nowhere legal to land. Public rollup is dead. Local node can keep verifying and appending. The mesh does not climb back onto the public hostname by itself. Phoenix is a wait / re-seal after poison or isolation, local to the failed node only, not "bring the .uk node back." Tunnel-return is not auto-splice of a split-brain and not apply-last-packet after heartbeat loss.
 
 Local ChainLock vault / `library.jsonl` is the site-fail shelf for the operator and for any client that already synced. That path does not need the tunnel.
 

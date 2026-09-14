@@ -85,7 +85,7 @@ ${runtimeHowTo(HOST)}
 - Pull: \`GET ${HOST}/runtime/v1/pull/{slug}\`
 - Bundle: \`GET ${HOST}/runtime/v1/bundle/{slug}\`
 - Catalog: \`GET ${HOST}/runtime/v1/catalog.json\`
-- Suite mesh (read-only QNM ON): \`GET ${HOST}/runtime/v1/mesh\` · \`GET ${HOST}/v1/mesh\` — QNS-CD-1.0 photon QNS1 cross-map (hub cite; local qnsd in qnm-node; no public proxy)
+- Suite mesh (read-only QNM ON): \`GET ${HOST}/runtime/v1/mesh\` · \`GET ${HOST}/v1/mesh\` — counts/status rollup, not the cell. QNS-CD-1.0 + MESH-SPLIT-WIRES-1.0 + MESH-COLD-COPY-1.0 (hub cite; local qnsd in qnm-node; no public proxy)
 - OpenAPI: \`GET ${HOST}/runtime/openapi.json\`
 - MCP: \`POST ${HOST}/runtime/mcp\`
 - Runtime llms.txt: ${HOST}/runtime/llms.txt

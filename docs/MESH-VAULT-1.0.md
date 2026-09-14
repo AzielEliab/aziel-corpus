@@ -4,12 +4,12 @@ Author: Aziel Eliab only
 Spec id: MESH-VAULT-1.0
 Date: 2026-09-14
 License: Apache-2.0
-Neighbors: ACT-RECEIPT-1.0, TUN-WP-0.1, RL-WP-0.1-library, QNM-WP-1.0, ChainLock CL-0.4
-Not a VPN. Not an IP-mask product. Not an untraceable-origin path.
+Neighbors: ACT-RECEIPT-1.0, TUN-WP-0.1, RL-WP-0.1-library, QNM-WP-1.0, ChainLock CL-0.4, MESH-SPLIT-WIRES-1.0, MESH-COLD-COPY-1.0
+Not a VPN. Not an IP-mask product. Not an untraceable-origin path. Public Worker rollup is counts/status — not the cell. Not live body sync.
 
 ## 0. Sentence
 
-Every upload or download of library, software, runtime, or receipt material refreshes a content-addressed vault of the current public versions of the four official sites. If the official origin fails a ping, standby is the existing Worker packed index and an operator-run Cloudflare Tunnel to the same hostname — only while the token, DNS name, Worker, and account still exist. Pull the site, revoke the token, drop the Worker, or kill DNS and cloudflared has nowhere legal to land. That is not automatic lawful relaunch. Downloaders keep a local replica. They do not become a masked host network.
+Every upload or download of library, software, runtime, or receipt material refreshes a content-addressed vault of the current public versions of the four official sites. That refresh is cold multiply (MESH-COLD-COPY-1.0): the tip becomes expensive to erase because each lawful transfer adds another cold copy. Live sync of bodies across the network is refused. If the official origin fails a ping, standby is the existing Worker packed index and an operator-run Cloudflare Tunnel to the same hostname — only while the token, DNS name, Worker, and account still exist. Pull the site, revoke the token, drop the Worker, or kill DNS and cloudflared has nowhere legal to land. That is not automatic lawful relaunch. A server pull cannot wipe the cold replicas already taken. Downloaders keep a local replica. They do not become a masked host network. Data outlives creators.
 
 ## 1. Four official surfaces
 
@@ -22,7 +22,7 @@ Runtime catalog and software doors are included as objects under those origins, 
 
 ## 2. What the vault stores
 
-On significant transfer (upload to Corpus, counted software/library download, receipt append, catalog pull):
+On significant transfer (upload to Corpus, counted software/library download, receipt append, catalog pull) — each event is one cold multiply:
 
 - packed library index (AZDOC id, title, shelf, content_sha256, chain_tip)
 - action-receipt chain tip + last N public receipts (four fields only)
@@ -31,13 +31,15 @@ On significant transfer (upload to Corpus, counted software/library download, re
 - per-origin health + index hash
 - this spec hash
 
-Bodies of papers already on the shelf may be included when the operator requested a full zip. Hot path stores hashes and tips, not a silent re-download of every PDF on every click.
+Bodies of papers already on the shelf may be included when the operator requested a full zip. That zip is a cold replica the receiver pulled, not a live sync of bodies across the network. Hot path stores hashes and tips, not a silent re-download of every PDF on every click.
 
 Each vault write mints an ACT-RECEIPT-1.0 row.
 
 ## 3. Mesh bake
 
 QNM / ChainLock treat the vault tip as a library-chain stamp. Card cap 4096B. No stamp dumps. No remote body pull required to verify the tip.
+
+MESH-SPLIT-WIRES-1.0: the fast 0.5–1s tick is presence + tip hash only (fixed-size; no body, no diff, no file). Payload is a second plane the receiver pulls — never sender fan-out. The public Worker mesh rollup stays counts/status. This Worker is not the cell. The 1s loop and the 777s gate never share a socket.
 
 ## 4. Standby when origin ping fails
 
@@ -53,10 +55,10 @@ Slingshot Prep may strip embedded GPS/author tags from an export copy. The opera
 
 ## 6. Reader replicas
 
-A human, an AI client, or a search indexer may keep the packed vault they just downloaded. If the origin fails a health ping they may read the local vault and serve it on localhost. They are not instructed here to mask IP, forge origin, or stand up anonymous public hosts.
+A human, an AI client, or a search indexer may keep the packed vault they just downloaded. That keep is a cold copy. If the origin fails a health ping they may read the local vault and serve it on localhost. They are not instructed here to mask IP, forge origin, or stand up anonymous public hosts.
 
-Sites pulled → public rollup is down → local node can keep verifying and appending. The mesh does not climb back onto the public hostname by itself.
+Sites pulled → public rollup is down → local node can keep verifying and appending from the cold vault. A server pull cannot wipe those replicas. Poison is refused hash-absolute. Equivocation isolates that node. The mesh does not climb back onto the public hostname by itself. Phoenix is local to the failed node only. Heartbeat loss is not poison and is not apply-last-packet. Data outlives creators.
 
 ## 7. Cap
 
-Recognition of suppression risk is not a kit for hidden infrastructure. The kit that exists is: hashed shelf, public receipts, packed index, Worker standby, operator Cloudflare Tunnel on the named site — while those named surfaces still exist. After a pull, the public rollup is dead. Local verify and append remain. Phoenix is a wait / re-seal after poison or isolation, not "bring the .uk node back."
+Recognition of suppression risk is not a kit for hidden infrastructure. The kit that exists is: hashed shelf, public receipts, packed index, Worker standby, operator Cloudflare Tunnel on the named site — while those named surfaces still exist — plus cold copies multiplied on every lawful transfer. After a pull, the public rollup is dead. Cold replicas are not. Local verify and append remain. Phoenix is a wait / re-seal after poison or isolation, not "bring the .uk node back."
