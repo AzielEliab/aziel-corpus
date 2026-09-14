@@ -181,6 +181,9 @@ test("GET /v1/health is failover-ready standby and does not list KV", async () =
   assert.equal(body.kv_list_hot_path, false);
   assert.equal(body.author, "Aziel Eliab");
   assert.match(body.note, /Not a VPN/);
+  assert.match(body.note, /nowhere legal to land/);
+  assert.match(body.note, /Supervisor restart is operator kit/);
+  assert.doesNotMatch(body.note, /climb back/i);
   assert.equal(kv.calls.list, 0);
   assert.doesNotMatch(JSON.stringify(body), BANNED);
 });
@@ -238,6 +241,9 @@ test("libraryHealthFields stay Aziel Eliab only", () => {
   const fields = libraryHealthFields(emptyPackedIndex(), {});
   assert.equal(fields.role, "standby");
   assert.match(fields.note, /Aziel Eliab/);
+  assert.match(fields.note, /only while token, DNS, Worker, and account still exist/);
+  assert.match(fields.note, /nowhere legal to land/);
+  assert.doesNotMatch(fields.note, /automatic lawful relaunch/i);
   assert.doesNotMatch(fields.note, BANNED);
 });
 

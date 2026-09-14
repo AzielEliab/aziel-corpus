@@ -511,7 +511,7 @@ export function libraryHealthFields(packed, env) {
     kv_list_hot_path: false,
     tunnel_origin_configured: !!(env && env.TUNNEL_ORIGIN),
     records_packed: Array.isArray(doc.records) ? doc.records.length : 0,
-    note: "Tunnel is primary when a named cloudflared frontend is healthy. This Worker is standby catalog of truth. Not a VPN. Not untraceable-origin. Author Aziel Eliab only.",
+    note: "Tunnel is primary when a named cloudflared frontend is healthy. This Worker is standby catalog of truth only while token, DNS, Worker, and account still exist. Pull the site, revoke the token, drop the Worker, or kill DNS and cloudflared has nowhere legal to land. Supervisor restart is operator kit, not the public contract. Not a VPN. Not untraceable-origin. Author Aziel Eliab only.",
   };
 }
 
