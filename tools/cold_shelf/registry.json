@@ -34,7 +34,7 @@
       "live_ready": false,
       "refuse": "CNS-ZENODO-IP-BAN",
       "checklist": "tools/cold_shelf/ALT-FORGE-TIP-PACK-CHECKLIST.md",
-      "note": "AZindex-FAIL pivot 2026-09-14: LIVE targets are Codeberg + archive.org + Framagit. Codeberg + archive.org hash-verify PASS (still SLOT). Framagit awaiting tip-pack. GitFlic refused (CNS-GITFLIC-EMAIL). GitLab extra (CNS-GITLAB-CF-LOOP). LIVE only when all three pass (CNS-PLANE-B-ALL-TARGETS). Zenodo refused (CNS-ZENODO-IP-BAN)."
+      "note": "AZindex-FAIL pivot 2026-09-14: LIVE targets are Codeberg + archive.org + Framagit. Codeberg + archive.org hash-verify PASS (still SLOT). archive.org has two items (aziel-lockset-tip + aziel-lockset-tip_202609), same blast_radius — not a second independent shelf. Zip wrap on the 202609 item: flat IA sha256 on the zip may be null; inner aziel-tip-pack.tar hash-verifies. Framagit awaiting tip-pack. GitFlic refused (CNS-GITFLIC-EMAIL). GitLab extra (CNS-GITLAB-CF-LOOP). LIVE only when all three pass (CNS-PLANE-B-ALL-TARGETS). Zenodo refused (CNS-ZENODO-IP-BAN)."
     },
     "C": {
       "name": "USB airgap + optional second forge",
@@ -228,6 +228,7 @@
     "plane-b-alt-forge-archive",
     "plane-b-codeberg-tip-pack",
     "plane-b-archive-org-tip-pack",
+    "plane-b-archive-org-tip-pack-202609",
     "plane-b-framagit-tip-pack",
     "plane-c-usb-airgap",
     "plane-c-forge-off-github",
@@ -401,7 +402,7 @@
       ],
       "refuse": "CNS-NO-FORGE-MIRROR",
       "checklist": "tools/cold_shelf/ALT-FORGE-TIP-PACK-CHECKLIST.md",
-      "reason": "Plane B working shelf is an alternate independent forge/archive tip-pack (Codeberg / archive.org / Framagit). Codeberg + archive.org hash-verify PASS; Framagit awaiting tip-pack. SLOT until all three pass. cite.json / lockset doi stay null.",
+      "reason": "Plane B working shelf is an alternate independent forge/archive tip-pack (Codeberg / archive.org / Framagit). Codeberg + archive.org hash-verify PASS; Framagit awaiting tip-pack. archive.org lists two items (primary aziel-lockset-tip + secondary aziel-lockset-tip_202609) under one working_targets kind. SLOT until all three pass. cite.json / lockset doi stay null.",
       "note": "Not Zenodo. Zenodo is not the Plane B working path (CNS-ZENODO-IP-BAN). GitFlic refused (CNS-GITFLIC-EMAIL). GitLab is not a LIVE target (CNS-GITLAB-CF-LOOP)."
     },
     {
@@ -454,8 +455,66 @@
       "blast_radius": "archive-org",
       "independent": true,
       "lockset_shelf": true,
+      "secondary_items": [
+        {
+          "id": "plane-b-archive-org-tip-pack-202609",
+          "url": "https://archive.org/details/aziel-lockset-tip_202609",
+          "identifier": "aziel-lockset-tip_202609",
+          "item": "aziel-lockset-tip_202609",
+          "download_base": "https://archive.org/download/aziel-lockset-tip_202609/",
+          "zip": "https://archive.org/download/aziel-lockset-tip_202609/aziel-lockset-tip.zip",
+          "zip_alt": "https://archive.org/download/aziel-lockset-tip_202609/aziel-lockset-tip%202.zip",
+          "wrap": "zip",
+          "ia_flat_sha256": null,
+          "sha256sums_flat_check": "incomplete",
+          "inner_pack": "aziel-tip-pack.tar",
+          "pack_sha256": "b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37",
+          "lockset_tip": "c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245",
+          "hash_verify": "pass",
+          "same_blast_radius": "archive-org",
+          "independent_shelf": false
+        }
+      ],
       "refuse": "CNS-PLANE-B-ALL-TARGETS",
-      "reason": "archive.org tip-pack uploaded and hash-verify PASS. SLOT until Framagit also hash-verify. Plane B LIVE only when Codeberg + archive.org + Framagit pass (CNS-PLANE-B-ALL-TARGETS). doi null."
+      "reason": "archive.org tip-pack uploaded and hash-verify PASS (primary item aziel-lockset-tip). A second IA item (aziel-lockset-tip_202609) is the same blast_radius archive-org, listed under secondary_items — not a new independent shelf. SLOT until Framagit also hash-verify. Plane B LIVE only when Codeberg + archive.org + Framagit pass (CNS-PLANE-B-ALL-TARGETS). doi null."
+    },
+    {
+      "id": "plane-b-archive-org-tip-pack-202609",
+      "plane": "B",
+      "kind": "archive_org",
+      "status": "slot",
+      "url": "https://archive.org/details/aziel-lockset-tip_202609",
+      "identifier": "aziel-lockset-tip_202609",
+      "item": "aziel-lockset-tip_202609",
+      "download_base": "https://archive.org/download/aziel-lockset-tip_202609/",
+      "zip": "https://archive.org/download/aziel-lockset-tip_202609/aziel-lockset-tip.zip",
+      "zip_alt": "https://archive.org/download/aziel-lockset-tip_202609/aziel-lockset-tip%202.zip",
+      "wrap": "zip",
+      "ia_flat_sha256": null,
+      "sha256sums_flat_check": "incomplete",
+      "inner_pack": "aziel-tip-pack.tar",
+      "files": [
+        "aziel-lockset-tip.zip"
+      ],
+      "inner_files": [
+        "aziel-tip-pack.tar",
+        "SHA256SUMS",
+        "lockset.json",
+        "verify-airgap.sh"
+      ],
+      "pack_sha256": "b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37",
+      "lockset_tip": "c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245",
+      "hash_verify": "pass",
+      "tip_verified": true,
+      "live_ready": false,
+      "doi": null,
+      "blast_radius": "archive-org",
+      "independent": false,
+      "lockset_shelf": true,
+      "same_pack_as": "plane-b-archive-org-tip-pack",
+      "required_for_plane_b_live": false,
+      "refuse": "CNS-PLANE-B-ALL-TARGETS",
+      "reason": "Second archive.org tip-pack item (aziel-lockset-tip_202609). Same blast_radius archive-org as the primary item — not a new independent shelf. Zip wraps the tip files; flat IA metadata sha256 on the zip may be null. SHA256SUMS flat-check incomplete at IA file list is OK because inner aziel-tip-pack.tar SHA-256 b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37 hash-verifies (AZBot PASS; same pack as Codeberg + primary archive.org). SLOT until Framagit also hash-verify. Plane B LIVE only when Codeberg + archive.org + Framagit pass (CNS-PLANE-B-ALL-TARGETS). doi null."
     },
     {
       "id": "plane-b-framagit-tip-pack",
@@ -698,5 +757,5 @@
   "lamb_lens": "Corpus is the public Lamb Lens shelf. This registry is the cold-copy cite on that shelf; it does not re-expand from Lamb Lens index.",
   "operator_preempt": "80-95",
   "fielded_100": false,
-  "note": "CROSS-NETWORK-SURVIVAL: If network + live data die tomorrow, the chain still survives via cold copies across independent shelves; survival = bytes↔hash. NO-LIE / NO-REWRITE: receipts that still hash; copies not all on one tunnel; verify without voice; no rewrite key; network never lies even to stay alive. Lamb Lens: Corpus is the public Lamb Lens shelf. This registry is the cold-copy cite on that shelf; it does not re-expand from Lamb Lens index. Planes A/B/C: A=one CF/GitHub tunnel (5 surfaces / 2 family radii, not 5 shelves); B=alt independent forge/archive tip-pack SLOT; C=USB airgap SLOT. Survival = bytes↔hash. LIVE only after hash verify. Plane A is one CF/GitHub tunnel (5 published surfaces / 2 family radii; independent_live_count stays 1). Plane B is alt independent forge/archive SLOT; LIVE only after Codeberg + archive.org + Framagit (CNS-PLANE-B-ALL-TARGETS). Zenodo tip-pack is refused (CNS-ZENODO-IP-BAN). doi null. GitFlic refused CNS-GITFLIC-EMAIL. GitLab extra CNS-GITLAB-CF-LOOP. Extra E/F/G SLOTs (Launchpad, AfricArXiv/OSF, GitLab) stay url-null; they are not required for Plane B LIVE. Paper deposits are not tip-pack Plane B. Plane C USB stays SLOT until CNS-OPERATOR-ATTEST. RESTORE-DRILL emits attest schema from bytes+prev-hash, not index (NO-FAN). FoldLock neighbor is cite + SLOT hook (FOLDLOCK-SHELF-1.0): not zip, not encryption; never fold the lockset tip. Operator PREEMPT toward 80-95. Never publish fielded 100."
+  "note": "CROSS-NETWORK-SURVIVAL: If network + live data die tomorrow, the chain still survives via cold copies across independent shelves; survival = bytes↔hash. NO-LIE / NO-REWRITE: receipts that still hash; copies not all on one tunnel; verify without voice; no rewrite key; network never lies even to stay alive. Lamb Lens: Corpus is the public Lamb Lens shelf. This registry is the cold-copy cite on that shelf; it does not re-expand from Lamb Lens index. Planes A/B/C: A=one CF/GitHub tunnel (5 surfaces / 2 family radii, not 5 shelves); B=alt independent forge/archive tip-pack SLOT; C=USB airgap SLOT. Survival = bytes↔hash. LIVE only after hash verify. Plane A is one CF/GitHub tunnel (5 published surfaces / 2 family radii; independent_live_count stays 1). Plane B is alt independent forge/archive SLOT; LIVE only after Codeberg + archive.org + Framagit (CNS-PLANE-B-ALL-TARGETS). archive.org items: https://archive.org/details/aziel-lockset-tip and https://archive.org/details/aziel-lockset-tip_202609 (same blast_radius; zip wrap on 202609 — flat IA sha256 may be null; inner tar hash-verifies). Not two independent shelves. Zenodo tip-pack is refused (CNS-ZENODO-IP-BAN). doi null. GitFlic refused CNS-GITFLIC-EMAIL. GitLab extra CNS-GITLAB-CF-LOOP. Extra E/F/G SLOTs (Launchpad, AfricArXiv/OSF, GitLab) stay url-null; they are not required for Plane B LIVE. Paper deposits are not tip-pack Plane B. Plane C USB stays SLOT until CNS-OPERATOR-ATTEST. RESTORE-DRILL emits attest schema from bytes+prev-hash, not index (NO-FAN). FoldLock neighbor is cite + SLOT hook (FOLDLOCK-SHELF-1.0): not zip, not encryption; never fold the lockset tip. Operator PREEMPT toward 80-95. Never publish fielded 100."
 }
