@@ -24,6 +24,10 @@ import {
   judgeInventedPhyDnsIcann,
   judgeNeighborVoteHeal,
   judgeTrainingResidueShelf,
+  emitRestoreDrillReceipt,
+  restoreDrillReceiptSchema,
+  judgePlaneBFromExtras,
+  judgeCompletenessClaim,
 } from "../../workers/download-tracker/src/cold-shelf.js";
 import {
   FOLDLOCK_REFUSE,
@@ -54,6 +58,10 @@ export {
   foldShelfHook,
   judgeFoldLockClaim,
   judgeFoldLockTarget,
+  emitRestoreDrillReceipt,
+  restoreDrillReceiptSchema,
+  judgePlaneBFromExtras,
+  judgeCompletenessClaim,
 };
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -160,6 +168,10 @@ export function writeAirgap(outDir, pack = buildExport()) {
     join(REPO_ROOT, "tools/cold_shelf/USB-AIRGAP-ATTEST.md"),
     join(outDir, "USB-AIRGAP-ATTEST.md"),
   );
+  copyFileSync(
+    join(REPO_ROOT, "tools/cold_shelf/RESTORE-DRILL.md"),
+    join(outDir, "RESTORE-DRILL.md"),
+  );
   const content = [
     "lockset.json",
     "ingest-as-receipt.json",
@@ -170,6 +182,7 @@ export function writeAirgap(outDir, pack = buildExport()) {
     "ALT-FORGE-TIP-PACK-CHECKLIST.md",
     "USB-AIRGAP-ATTEST.md",
     "foldlock.json",
+    "RESTORE-DRILL.md",
   ];
   writeVerifyAirgapScript(outDir);
   content.push("verify-airgap.sh");

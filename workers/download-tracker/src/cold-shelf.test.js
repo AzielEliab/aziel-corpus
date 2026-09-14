@@ -22,21 +22,31 @@ import {
   hashManifestFromMap,
   ARCHIVE_ORG_TIP_PACK,
   CODEBERG_TIP_PACK,
+  EXTRA_PLANES,
+  EXTRA_TIP_PACK_TARGETS,
   FAMILY_BLAST_RADII,
+  LAMB_LENS_CITE,
   PLANE_B_WORKING_TARGETS,
   PUBLISHED_SURFACE_IDS,
+  RESTORE_DRILL_SPEC,
+  TIP_PACK_EXPECT,
   independentLiveBlastRadii,
   independentRequirementMet,
   isShelvesPath,
   isShelfKind,
+  emitRestoreDrillReceipt,
+  extraTipPackRows,
   judgeAzGenOverclaim,
+  judgeCompletenessClaim,
   judgeInventedDeposit,
   judgeInventedPhyDnsIcann,
   judgeNeighborVoteHeal,
   judgePlaneAMirrors,
+  judgePlaneBFromExtras,
   judgePublishedSurfaces,
   judgeTrainingResidueShelf,
   judgeZenodoTipReuse,
+  restoreDrillReceiptSchema,
   liveShelves,
   planeBLiveReady,
   planeRows,
@@ -83,7 +93,7 @@ test("COLD-MULTI-SHELF planes A/B/C: one LIVE tunnel, alt-forge SLOT, Zenodo ref
   assert.equal(PLANE_A_MIRRORS.length, 4);
   assert.deepEqual(PUBLISHED_SURFACE_IDS.length, 5);
   assert.deepEqual(FAMILY_BLAST_RADII, ["cloudflare", "github"]);
-  assert.deepEqual(PLANE_B_WORKING_TARGETS, ["codeberg", "archive.org", "gitflic-ru"]);
+  assert.deepEqual(PLANE_B_WORKING_TARGETS, ["codeberg", "archive.org", "framagit"]);
   assert.ok(PLANE_A_MIRRORS.some((m) => m.origin === "https://www.azieleliab.com"));
   assert.ok(PLANE_A_MIRRORS.some((m) => m.origin === "https://www.azielcorpuslibrary.net"));
   assert.ok(PLANE_A_MIRRORS.some((m) => m.origin === "https://godlock.uk"));
@@ -159,10 +169,20 @@ test("COLD-MULTI-SHELF planes A/B/C: one LIVE tunnel, alt-forge SLOT, Zenodo ref
   assert.equal(claimShelfLive(archiveOrg).live, false);
   assert.equal(planeBLiveReady(), false);
 
+  const framagit = SHELF_REGISTRY.find((s) => s.id === "plane-b-framagit-tip-pack");
+  assert.equal(framagit.plane, "B");
+  assert.equal(framagit.status, "slot");
+  assert.equal(framagit.url, null);
+  assert.equal(framagit.required_for_plane_b_live, true);
+  assert.equal(framagit.refuse, REFUSE.NO_FORGE);
+  assert.equal(claimShelfLive(framagit).live, false);
+
   const gitflic = SHELF_REGISTRY.find((s) => s.id === "plane-b-gitflic-ru-tip-pack");
   assert.equal(gitflic.plane, "B");
   assert.equal(gitflic.status, "slot");
   assert.equal(gitflic.url, null);
+  assert.equal(gitflic.required_for_plane_b_live, false);
+  assert.equal(gitflic.refuse, REFUSE.GITFLIC_EMAIL);
   assert.equal(claimShelfLive(gitflic).live, false);
 
   const tipPack = SHELF_REGISTRY.find((s) => s.id === "plane-b-zenodo-tip-pack");
@@ -192,6 +212,8 @@ test("COLD-MULTI-SHELF planes A/B/C: one LIVE tunnel, alt-forge SLOT, Zenodo ref
   assert.equal(usb.refuse, REFUSE.OPERATOR_ATTEST);
   assert.match(usb.attest, /CNS-OPERATOR-ATTEST/);
   assert.match(usb.reason, /offline-verify/);
+  assert.equal(usb.restore_drill_spec, RESTORE_DRILL_SPEC);
+  assert.match(usb.restore_drill, /RESTORE-DRILL/);
 
   const forge = SHELF_REGISTRY.find((s) => s.id === "plane-c-forge-off-github");
   assert.equal(forge.status, "slot");
@@ -221,11 +243,19 @@ test("COLD-MULTI-SHELF planes A/B/C: one LIVE tunnel, alt-forge SLOT, Zenodo ref
   assert.equal(reg.planes.B.live_ready, false);
   assert.equal(reg.planes.B.refuse, REFUSE.ZENODO_IP_BAN);
   assert.match(reg.planes.B.note, /Codeberg \+ archive\.org uploaded \+ hash-verify PASS \(still SLOT\)/);
-  assert.match(reg.planes.B.note, /GitFlic RU unverified/);
+  assert.match(reg.planes.B.note, /Framagit url null/);
+  assert.match(reg.planes.B.note, /CNS-GITFLIC-EMAIL/);
+  assert.match(reg.planes.B.note, /CNS-GITLAB-CF-LOOP/);
   assert.match(reg.planes.B.note, /CNS-ZENODO-IP-BAN/);
   assert.equal(reg.planes.C.status, "slot");
   assert.ok(reg.planes.C.refuse.includes(REFUSE.OPERATOR_ATTEST));
   assert.match(reg.planes.C.attest, /CNS-OPERATOR-ATTEST/);
+  assert.equal(reg.planes.C.restore_drill_spec, RESTORE_DRILL_SPEC);
+  assert.equal(reg.growth_on, true);
+  assert.equal(reg., false);
+  assert.equal(reg., "");
+  assert.match(reg.lamb_lens, /Lamb Lens/);
+  assert.match(reg.note, /Lamb Lens/);
   assert.equal(reg.lockset_doi, null);
   assert.equal(reg.published_surfaces, 5);
   assert.deepEqual(reg.family_blast_radii, ["cloudflare", "github"]);
@@ -368,6 +398,10 @@ test("refuse invented PHY/DNS/ICANN, neighbor-vote heal, Cap-7/AZ-GEN overclaim"
   assert.equal(judgeInventedDeposit({ kind: "git_mirror", plane: "B", url: "https://codeberg.org/fake/aziel" }).reason, REFUSE.NO_FORGE);
   assert.equal(judgeInventedDeposit({ kind: "git_mirror", plane: "B", invent_url: true }).reason, REFUSE.NO_FORGE);
   assert.equal(judgeInventedDeposit({ kind: "git_mirror", plane: "B", url: CODEBERG_TIP_PACK.url }).accept, true);
+  assert.equal(judgeInventedDeposit({ kind: "git_mirror", plane: "D", url: "https://launchpad.net/fake/aziel" }).reason, REFUSE.NO_FORGE);
+  assert.equal(judgeInventedDeposit({ kind: "git_mirror", plane: "F", url: "https://gitlab.com/fake/aziel" }).reason, REFUSE.GITLAB_CF_LOOP);
+  assert.equal(judgeInventedDeposit({ kind: "git_mirror", forge: "gitflic-ru" }).reason, REFUSE.GITFLIC_EMAIL);
+  assert.equal(judgeInventedDeposit({ kind: "other", plane: "E", url: "https://osf.io/fake" }).reason, REFUSE.NO_FORGE);
   assert.equal(judgeInventedDeposit({ kind: "not-a-kind" }).reason, REFUSE.UNKNOWN_KIND);
   assert.equal(judgeTrainingResidueShelf({ training_residue: true }).reason, REFUSE.TRAINING_RUMOR);
   assert.equal(judgeTrainingResidueShelf({ weights: true }).rumor, true);
@@ -409,6 +443,13 @@ test("public /shelves JSON cites CNS + NO-LIE; no 15:20 chrome; Growth-ON intact
   assert.doesNotMatch(shelvesLlmsBlock(), /B = Zenodo tip-pack SLOT/);
   assert.match(doc.registry.note, /CROSS-NETWORK-SURVIVAL/);
   assert.match(doc.registry.note, /NO-LIE/);
+  assert.match(doc.registry.note, /Lamb Lens/);
+  assert.match(doc.registry.lamb_lens, /Lamb Lens/);
+  assert.equal(doc.registry.growth_on, true);
+  assert.equal(doc.registry., false);
+  assert.equal(doc.registry., "");
+  assert.match(shelvesLlmsBlock(), /RESTORE-DRILL/);
+  assert.match(shelvesLlmsBlock(), /Lamb Lens/);
   assert.doesNotMatch(JSON.stringify(doc.verify), VISIBLE_1520);
   assert.doesNotMatch(JSON.stringify(doc.verify) + shelvesLlmsBlock(), VISIBLE_1520);
   assert.doesNotMatch(JSON.stringify(doc.verify), BANNED_IDENTITY);
@@ -457,6 +498,8 @@ test("public /shelves JSON cites CNS + NO-LIE; no 15:20 chrome; Growth-ON intact
   assert.match(law, /Plane A/);
   assert.match(law, /Plane B/);
   assert.match(law, /Plane C/);
+  assert.match(law, /RESTORE-DRILL/);
+  assert.match(law, /Framagit/);
   assert.doesNotMatch(law, VISIBLE_1520);
   assert.doesNotMatch(JSON.stringify(doc), VISIBLE_1520);
   assert.doesNotMatch(law, /live ICANN publish claimed/i);
@@ -469,4 +512,133 @@ test("public /shelves JSON cites CNS + NO-LIE; no 15:20 chrome; Growth-ON intact
   assert.equal(reg.mesh_radio, false);
   assert.ok(reg.paper_deposits.every((p) => p.tip_verified === false));
   assert.ok(JSON.stringify(doc.registry.paper_deposits).includes("10.5281/zenodo"));
+});
+
+test("extra D/E/F SLOTs stay url-null; Plane B LIVE is Codeberg+archive.org+Framagit", () => {
+  assert.deepEqual(EXTRA_PLANES, ["D", "E", "F"]);
+  assert.equal(EXTRA_TIP_PACK_TARGETS.length, 3);
+  assert.equal(TIP_PACK_EXPECT.pack_sha256, CODEBERG_TIP_PACK.pack_sha256);
+  assert.equal(TIP_PACK_EXPECT.lockset_tip, CODEBERG_TIP_PACK.lockset_tip);
+  assert.equal(TIP_PACK_EXPECT.pack_sha256, "b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37");
+  assert.equal(TIP_PACK_EXPECT.lockset_tip, "c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245");
+
+  const extras = extraTipPackRows();
+  assert.equal(extras.length, 3);
+  const byId = Object.fromEntries(extras.map((s) => [s.id, s]));
+  assert.ok(byId["plane-d-launchpad-tip-pack"]);
+  assert.ok(byId["plane-e-osf-africarxiv-tip-pack"]);
+  assert.ok(byId["plane-f-gitlab-tip-pack"]);
+  assert.equal(SHELF_REGISTRY.some((s) => s.id === "plane-d-framagit-tip-pack"), false);
+  for (const s of extras) {
+    assert.equal(s.status, "slot", s.id);
+    assert.equal(s.url, null, s.id);
+    assert.equal(s.required_for_plane_b_live, false, s.id);
+    assert.equal(s.extra_slot, true, s.id);
+    assert.equal(s.expect_pack_sha256, TIP_PACK_EXPECT.pack_sha256, s.id);
+    assert.equal(s.expect_lockset_tip, TIP_PACK_EXPECT.lockset_tip, s.id);
+    assert.equal(s.hash_verify, null, s.id);
+    assert.equal(claimShelfLive(s).live, false, s.id);
+    assert.ok(EXTRA_PLANES.includes(s.plane), s.id);
+  }
+  assert.equal(byId["plane-d-launchpad-tip-pack"].refuse, REFUSE.NO_FORGE);
+  assert.equal(byId["plane-e-osf-africarxiv-tip-pack"].kind, "other");
+  assert.equal(byId["plane-f-gitlab-tip-pack"].refuse, REFUSE.GITLAB_CF_LOOP);
+
+  const codeberg = SHELF_REGISTRY.find((s) => s.id === "plane-b-codeberg-tip-pack");
+  const archiveOrg = SHELF_REGISTRY.find((s) => s.id === "plane-b-archive-org-tip-pack");
+  const framagit = SHELF_REGISTRY.find((s) => s.id === "plane-b-framagit-tip-pack");
+  const gitflic = SHELF_REGISTRY.find((s) => s.id === "plane-b-gitflic-ru-tip-pack");
+  assert.equal(codeberg.hash_verify, "pass");
+  assert.equal(archiveOrg.hash_verify, "pass");
+  assert.equal(archiveOrg.url, "https://archive.org/details/aziel-lockset-tip");
+  assert.equal(archiveOrg.pack_sha256, "b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37");
+  assert.equal(framagit.url, null);
+  assert.equal(framagit.required_for_plane_b_live, true);
+  assert.equal(gitflic.refuse, REFUSE.GITFLIC_EMAIL);
+  assert.equal(gitflic.required_for_plane_b_live, false);
+  assert.equal(planeBLiveReady(), false);
+  assert.equal(judgePlaneBFromExtras({ extras_make_plane_b_live: true }).reason, REFUSE.PLANE_B_ALL_TARGETS);
+  assert.equal(judgePlaneBFromExtras({ count_gitflic_as_plane_b: true }).reason, REFUSE.GITFLIC_EMAIL);
+  assert.equal(judgePlaneBFromExtras({ count_gitlab_as_plane_b: true }).reason, REFUSE.GITLAB_CF_LOOP);
+  assert.equal(judgePlaneBFromExtras({}).extras_required, false);
+  assert.deepEqual(judgePlaneBFromExtras({}).working_targets, ["codeberg", "archive.org", "framagit"]);
+  assert.equal(judgeCompletenessClaim({ claim_100: true }).reason, REFUSE.NO_CLAIM_COMPLETE);
+  assert.equal(judgeCompletenessClaim({})., false);
+  assert.equal(judgeCompletenessClaim({})., "");
+
+  const reg = shelfRegistryDoc();
+  assert.equal(reg.planes.D.status, "slot");
+  assert.equal(reg.planes.E.url, null);
+  assert.equal(reg.planes.F.refuse, REFUSE.GITLAB_CF_LOOP);
+  assert.equal(reg.planes.G, undefined);
+  assert.deepEqual(reg.extra_tip_pack_slots, extras.map((s) => s.id));
+  assert.ok(reg.slot.includes("plane-b-framagit-tip-pack"));
+  assert.ok(reg.slot.includes("plane-f-gitlab-tip-pack"));
+  assert.equal(reg.published_surfaces, 5);
+  assert.deepEqual(reg.family_blast_radii, ["cloudflare", "github"]);
+});
+
+test("RESTORE-DRILL emits attest schema from Plane C bytes+prev-hash; NO-FAN", () => {
+  assert.equal(RESTORE_DRILL_SPEC, "RESTORE-DRILL-1.0");
+  assert.match(LAMB_LENS_CITE, /Lamb Lens/);
+  const schema = restoreDrillReceiptSchema();
+  assert.equal(schema.spec, RESTORE_DRILL_SPEC);
+  assert.equal(schema.status, "slot");
+  assert.equal(schema.no_fan, true);
+  assert.equal(schema.live, false);
+  assert.equal(schema.source, "plane-c-bytes-plus-prev-hash");
+  assert.equal(schema.not_source, "index");
+  assert.equal(schema.expect_pack_sha256, TIP_PACK_EXPECT.pack_sha256);
+  assert.equal(schema.expect_lockset_tip, TIP_PACK_EXPECT.lockset_tip);
+  assert.ok(schema.fields.hash);
+  assert.ok(schema.fields.action);
+  assert.ok(schema.fields.output);
+  assert.ok(schema.fields.metadata);
+  assert.ok(schema.fields.previous_hash);
+  assert.match(schema.lamb_lens, /Lamb Lens/);
+  assert.ok(schema.cites.includes("CROSS-NETWORK-SURVIVAL-1.0"));
+  assert.ok(schema.cites.includes("NO-LIE-NO-REWRITE-1.0"));
+
+  const emit = emitRestoreDrillReceipt();
+  assert.equal(emit.accept, true);
+  assert.equal(emit.action, "emit-schema");
+  assert.equal(emit.live, false);
+  assert.equal(emit.receipt.spec, RESTORE_DRILL_SPEC);
+
+  assert.equal(emitRestoreDrillReceipt({ from_index: true }).reason, REFUSE.TRAINING_RUMOR);
+  assert.equal(emitRestoreDrillReceipt({ invent_attest: true }).reason, REFUSE.FAKE_DEPOSIT);
+  assert.equal(emitRestoreDrillReceipt({ mark_live: true }).also, REFUSE.OPERATOR_ATTEST);
+
+  const cli = spawnSync("node", ["tools/cold_shelf/cli.mjs", "restore-drill"], {
+    cwd: repoRoot,
+    encoding: "utf8",
+  });
+  assert.equal(cli.status, 0, cli.stderr);
+  assert.match(cli.stdout, /"spec": "RESTORE-DRILL-1.0"/);
+  assert.match(cli.stdout, /"action": "emit-schema"/);
+  assert.match(cli.stdout, /plane-c-bytes-plus-prev-hash/);
+
+  const fan = spawnSync("node", ["tools/cold_shelf/cli.mjs", "restore-drill", "--invent-attest"], {
+    cwd: repoRoot,
+    encoding: "utf8",
+  });
+  assert.equal(fan.status, 2);
+  assert.match(fan.stdout, /CNS-NO-FAN-FAKE-DEPOSIT/);
+
+  const idx = spawnSync("node", ["tools/cold_shelf/cli.mjs", "restore-drill", "--from-index"], {
+    cwd: repoRoot,
+    encoding: "utf8",
+  });
+  assert.equal(idx.status, 2);
+  assert.match(idx.stdout, /CNS-TRAINING-RESIDUE-RUMOR/);
+
+  const drill = readFileSync(join(repoRoot, "tools/cold_shelf/RESTORE-DRILL.md"), "utf8");
+  assert.match(drill, /previous_hash/);
+  assert.match(drill, /NO-FAN/);
+  assert.doesNotMatch(drill, CRAWL_NO_TIP_DOI);
+  const spec = readFileSync(join(repoRoot, "docs/RESTORE-DRILL-1.0.md"), "utf8");
+  assert.match(spec, /CROSS-NETWORK-SURVIVAL/);
+  assert.match(spec, /NO-LIE-NO-REWRITE/);
+  assert.match(spec, /Lamb Lens/);
+  assert.doesNotMatch(spec, VISIBLE_1520);
 });

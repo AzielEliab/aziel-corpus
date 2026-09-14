@@ -4,6 +4,7 @@
  *   node tools/cold_shelf/cli.mjs export [--out DIR]
  *   node tools/cold_shelf/cli.mjs verify --hash HEX | --file PATH
  *   node tools/cold_shelf/cli.mjs registry
+ *   node tools/cold_shelf/cli.mjs restore-drill
  * Author: Aziel Eliab only. No invented CIDs. No AZ-GEN live ICANN publish.
  */
 import { resolve } from "node:path";
@@ -24,6 +25,7 @@ import {
   foldShelfHook,
   judgeFoldLockClaim,
   FOLDLOCK_REFUSE,
+  emitRestoreDrillReceipt,
 } from "./index.mjs";
 
 function arg(flag) {
@@ -114,6 +116,17 @@ if (cmd === "fold") {
   process.exit(r.accept && r.status === "slot" ? 0 : 2);
 }
 
+if (cmd === "restore-drill") {
+  const r = emitRestoreDrillReceipt({
+    from_index: has("--from-index"),
+    invent_attest: has("--invent-attest"),
+    mark_live: has("--mark-live"),
+    fan: has("--fan"),
+  });
+  console.log(JSON.stringify(r, null, 2));
+  process.exit(r.accept ? 0 : 2);
+}
+
 if (cmd === "refuse") {
   const r = {
     neighbor_vote: judgeNeighborVoteHeal({ neighbor_vote: true }),
@@ -138,7 +151,8 @@ console.log(`COLD-MULTI-SHELF-1.0
   verify --file PATH     file SHA-256 vs tip or core-doc manifest
   fold [--target notes|tip|lockset|receipt] [--notes TEXT]
                          SLOT hook: notes eligible / tip+chain+zip refuse. Never folds tip bytes.
-  registry               planes A/B/C + honest live|slot|refused
+  registry               planes A/B/C + extra D/E/F/G SLOTs + honest live|slot|refused
+  restore-drill          emit Plane C attest receipt schema (NO-FAN; not an attest)
   refuse                 print PHY/DNS/ICANN / neighbor-vote / AZ-GEN / FoldLock refuse codes
 `);
 process.exit(has("--help") || cmd === "help" ? 0 : 1);

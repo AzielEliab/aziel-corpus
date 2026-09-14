@@ -271,7 +271,7 @@ function openapi() {
       "/runtime/llms.txt": { get: { summary: "Runtime llms.txt via same-origin proxy.", operationId: "runtimeLlms" } },
       "/runtime/cite.json": { get: { summary: "Runtime cite.json via same-origin proxy.", operationId: "runtimeCite" } },
       "/runtime/robots.txt": { get: { summary: "Runtime robots.txt via same-origin proxy.", operationId: "runtimeRobots" } },
-      "/shelves": { get: { summary: "COLD-MULTI-SHELF-1.0 honest registry. Plane B=alt forge/archive SLOT. Zenodo tip-pack refused CNS-ZENODO-IP-BAN. doi null. 5 surfaces / 2 family radii, 1 independent live. No invented CIDs. Not AZ-GEN live ICANN publish.", operationId: "coldShelves" } },
+      "/shelves": { get: { summary: "COLD-MULTI-SHELF-1.0 honest registry. Plane B=alt forge/archive SLOT (LIVE only Codeberg+archive.org+Framagit). GitFlic SLOT CNS-GITFLIC-EMAIL. GitLab extra SLOT CNS-GITLAB-CF-LOOP. Extra D/E/F SLOTs url-null. Zenodo tip-pack refused CNS-ZENODO-IP-BAN. doi null. RESTORE-DRILL schema. 5 surfaces / 2 family radii, 1 independent live. No invented CIDs. Not AZ-GEN live ICANN publish.", operationId: "coldShelves" } },
       "/cold-copy": { get: { summary: "Alias of /shelves (COLD-MULTI-SHELF-1.0).", operationId: "coldCopy" } },
       "/v1/shelves": { get: { summary: "Alias of /shelves (COLD-MULTI-SHELF-1.0).", operationId: "v1Shelves" } },
       "/v1/cold-copy": { get: { summary: "Alias of /shelves (COLD-MULTI-SHELF-1.0).", operationId: "v1ColdCopy" } },
