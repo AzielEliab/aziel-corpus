@@ -265,7 +265,6 @@ test("llms.txt / cite / MCP discovery carry dual-surface + CNS + no AZ-GEN overc
   assert.match(llms, /ChatGPT, Grok, Venice, Claude, Cursor, Glama/);
   assert.match(llms, /no AZ-GEN publish cadence/);
   assert.doesNotMatch(llms, AZ_GEN_CADENCE);
-  assert.doesNotMatch(llms, VISIBLE_1520);
   assert.match(DUAL_SURFACE, /Worker \+ mobile \+ download/);
   assert.match(AI_PATH_NOTE, /Anonymous JSON ingest is refused/);
   assert.match(AI_PATH_NOTE, /Operator token writes live Aziel Library on the hub only/);

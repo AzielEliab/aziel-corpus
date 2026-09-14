@@ -146,7 +146,7 @@ Anonymous JSON ingest is refused. Human homepage POST /ingest may still file Cor
 1. GET https://www.azielcorpuslibrary.net/bridge.json
 2. GET https://www.azielcorpuslibrary.net/v1/design-pack/azcorpus or /azlibrary — copy pack_sha256 + lockset_tip
 3. GET https://www.azielcorpuslibrary.net/download?product=azcorpus|azlibrary — counted bytes
-4. Hash-verify pack_sha256 and lockset_tip fail-closed (bytes↔hash; CROSS-NETWORK-SURVIVAL)
+4. hash-verify pack_sha256 and lockset_tip fail-closed (bytes↔hash; CROSS-NETWORK-SURVIVAL)
 5. Land on the node's local cold shelf. Do not alias Plane A DNS. Do not write the live hub.
 6. Optional: GET /v1/docs/{hash}/download for each content_sha256 (receiver-pull bodies)
 Local qnsd: https://github.com/AzielEliab/qnm-node. Mesh-side: AZNet / AZBrowser.

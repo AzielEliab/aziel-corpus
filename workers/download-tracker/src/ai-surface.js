@@ -508,7 +508,7 @@ export function aiSurfaceLlmsBlock() {
     "1. GET " + HOST + "/bridge.json",
     "2. GET " + HOST + "/v1/design-pack/azcorpus or /azlibrary — copy pack_sha256 + lockset_tip",
     "3. GET " + HOST + "/download?product=azcorpus|azlibrary — counted bytes",
-    "4. Hash-verify pack_sha256 and lockset_tip fail-closed (bytes↔hash; CROSS-NETWORK-SURVIVAL)",
+    "4. hash-verify pack_sha256 and lockset_tip fail-closed (bytes↔hash; CROSS-NETWORK-SURVIVAL)",
     "5. Land on the node's local cold shelf. Do not alias Plane A DNS. Do not write the live hub.",
     "6. Optional: GET " + HOST + "/v1/docs/{hash}/download for each content_sha256 (receiver-pull bodies)",
     "Local qnsd: https://github.com/AzielEliab/qnm-node. Mesh-side: AZNet / AZBrowser. MirageGrid cite: " + MIRAGEGRID_AZ_GENERATOR,
