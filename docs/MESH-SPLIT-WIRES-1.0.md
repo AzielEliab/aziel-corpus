@@ -5,7 +5,7 @@ Spec id: MESH-SPLIT-WIRES-1.0
 Date: 2026-09-14
 License: Apache-2.0
 Amends: MESH-VAULT-1.0, MESH-CONTINUE-1.0, TUN-BOOT-1.0, TUN-WP-0.1
-Neighbors: QNM-WP-1.0, NODE-OPS-1.0, QNM-BUILD-1.0, QNS-CD-1.0, ACT-RECEIPT-1.0, ChainLock CL-0.4, MESH-COLD-COPY-1.0, MESH-REEXPAND-1.0, MESH-REHEAL-1.0
+Neighbors: QNM-WP-1.0, NODE-OPS-1.0, QNM-BUILD-1.0, QNS-CD-1.0, ACT-RECEIPT-1.0, INGEST-AS-RECEIPT-1.0, RE-EXPAND-FROM-ARCHIVE-1.0, ChainLock CL-0.4, MESH-COLD-COPY-1.0, MESH-REEXPAND-1.0, MESH-REHEAL-1.0
 Keeps: die-with-pull (PR #87) — sites pulled → public rollup is down; Phoenix does not restore a public hostname
 Not a VPN. Not an IP-mask product. Not an untraceable-origin path. Not a claim that the public Worker is the cell.
 
