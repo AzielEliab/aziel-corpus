@@ -4,7 +4,7 @@ Author: **Aziel Eliab** only.
 
 Status: local specification (2026-09-14). Not a Softwares-tab product. Not a VPN. Not a Node Gate. Not an untraceable-origin claim.
 
-Canonical design: [aziel-runtime `docs/designs/TUN-WP-0.1.md`](https://github.com/AzielEliab/aziel-runtime/blob/main/docs/designs/TUN-WP-0.1.md). Companion: [RL-WP-0.1-library](RL-WP-0.1-library.md). Neighbor law: [MESH-SPLIT-WIRES-1.0](MESH-SPLIT-WIRES-1.0.md) — public Worker is counts/status, not the cell; 1s loop and 777s gate never share a socket. [MESH-COLD-COPY-1.0](MESH-COLD-COPY-1.0.md) — vault-on-transfer is cold multiply; server pull cannot wipe a cold replica. [MESH-REEXPAND-1.0](MESH-REEXPAND-1.0.md) — re-expand is archive restore, not the mesh growing itself from an index. [MESH-REHEAL-1.0](MESH-REHEAL-1.0.md) — poisoned live node is self tip + trusted pull or phoenix-WAIT; never neighbor majority.
+Canonical design: [aziel-runtime `docs/designs/TUN-WP-0.1.md`](https://github.com/AzielEliab/aziel-runtime/blob/main/docs/designs/TUN-WP-0.1.md). Companion: [RL-WP-0.1-library](RL-WP-0.1-library.md). Umbrella: [CROSS-NETWORK-SURVIVAL-1.0](CROSS-NETWORK-SURVIVAL-1.0.md) — if the network and live data die tomorrow, the chain still survives on cold copies (bytes↔hash); crawlers are extra shelves, not resurrection. Neighbor law: [MESH-SPLIT-WIRES-1.0](MESH-SPLIT-WIRES-1.0.md) — public Worker is counts/status, not the cell; 1s loop and 777s gate never share a socket. [MESH-COLD-COPY-1.0](MESH-COLD-COPY-1.0.md) — vault-on-transfer is cold multiply; server pull cannot wipe a cold replica. [MESH-REEXPAND-1.0](MESH-REEXPAND-1.0.md) — re-expand is archive restore, not the mesh growing itself from an index. [MESH-REHEAL-1.0](MESH-REHEAL-1.0.md) — poisoned live node is self tip + trusted pull or phoenix-WAIT; never neighbor majority.
 
 Origin in scope: **https://www.azielcorpuslibrary.net** only.
 
@@ -134,7 +134,7 @@ Local ChainLock vault / `library.jsonl` is the site-fail shelf for the operator 
 
 ## 10. Cap
 
-This is a plan. It is not a cloudflared install script and not a new public panel. Connector IP is hidden from visitors, not from Cloudflare. Untraceable-origin hosting is refused. Named hosts only. No VPN. No unmarked tunnel hydra. Sites pulled → public rollup is down. Supervisor restart is operator kit, not the public contract.
+This is a plan. It is not a cloudflared install script and not a new public panel. Connector IP is hidden from visitors, not from Cloudflare. Untraceable-origin hosting is refused. Named hosts only. No VPN. No unmarked tunnel hydra. Sites pulled → public rollup is down. Supervisor restart is operator kit, not the public contract. Survival of the chain after that pull is CROSS-NETWORK-SURVIVAL-1.0 — bytes↔hash on independent shelves, not crawler resurrection.
 
 This repository implements the Worker standby path:
 

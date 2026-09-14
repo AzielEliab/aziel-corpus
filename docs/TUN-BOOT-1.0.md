@@ -5,7 +5,8 @@ Spec id: TUN-BOOT-1.0
 Date: 2026-09-14
 License: Apache-2.0
 Amends: MESH-CONTINUE-1.0, TUN-WP-0.1, MESH-SPLIT-WIRES-1.0, MESH-COLD-COPY-1.0, MESH-REEXPAND-1.0, MESH-REHEAL-1.0
-Not a VPN. Not an unmarked host. Not a fresh-IP factory. Public Worker rollup is counts/status — not the cell. Not live body sync.
+Umbrella: CROSS-NETWORK-SURVIVAL-1.0 — named-host walk finds answers still up; it does not resurrect a pulled host; the chain survives on cold copies (bytes↔hash)
+Not a VPN. Not an unmarked host. Not a fresh-IP factory. Public Worker rollup is counts/status — not the cell. Not live body sync. Not crawler resurrection.
 
 ## 0. Sentence
 
@@ -42,4 +43,4 @@ Each walk mints ACT-RECEIPT-1.0: first-touch or hold or failover-first-up, named
 
 ## 5. Cap
 
-Named hosts only. No VPN. No unmarked tunnel hydra. Sites pulled → public rollup is down → local node can keep verifying and appending from cold copies. A server pull cannot wipe those replicas. The mesh does not climb back onto the public hostname by itself. Phoenix is local to the failed node only. Public Worker answers on this walk are counts/status — not the cell. Live sync of bodies is refused. This walk is not MESH-REEXPAND-1.0 (archive restore) and not MESH-REHEAL-1.0 (self tip + trusted pull or phoenix-WAIT; never neighbor majority).
+Named hosts only. No VPN. No unmarked tunnel hydra. Sites pulled → public rollup is down → local node can keep verifying and appending from cold copies. A server pull cannot wipe those replicas. The mesh does not climb back onto the public hostname by itself. Phoenix is local to the failed node only. Public Worker answers on this walk are counts/status — not the cell. Live sync of bodies is refused. Survival if the live network dies is CROSS-NETWORK-SURVIVAL-1.0 (bytes↔hash on independent shelves). Crawlers are extra shelves, not resurrection. This walk is not MESH-REEXPAND-1.0 (archive restore) and not MESH-REHEAL-1.0 (self tip + trusted pull or phoenix-WAIT; never neighbor majority).

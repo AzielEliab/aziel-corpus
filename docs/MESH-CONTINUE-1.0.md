@@ -6,7 +6,8 @@ Date: 2026-09-14
 License: Apache-2.0
 Amends: MESH-VAULT-1.0, MESH-SPLIT-WIRES-1.0, MESH-COLD-COPY-1.0, MESH-REEXPAND-1.0, MESH-REHEAL-1.0
 Neighbors: TUN-WP-0.1, QNM-WP-1.0, NODE-OPS-1.0 phoenix loop, ACT-RECEIPT-1.0, GodLock
-Not a VPN. Not an IP-mask product. Not an untraceable-origin path. Not a hydra of anonymous hosts. Public Worker rollup is counts/status — not the cell. Not live body sync.
+Umbrella: CROSS-NETWORK-SURVIVAL-1.0 — if the network and live data die tomorrow, the chain still survives on cold copies (bytes↔hash)
+Not a VPN. Not an IP-mask product. Not an untraceable-origin path. Not a hydra of anonymous hosts. Public Worker rollup is counts/status — not the cell. Not live body sync. Not crawler resurrection.
 
 ## 0. Sentence
 
@@ -51,4 +52,4 @@ Each failover walk mints ACT-RECEIPT-1.0: which official origin missed, which of
 
 ## 6. Cap
 
-Decentralized continuity of records is in scope. Decentralized concealment of hosts is not. Named hosts only. No VPN. No unmarked tunnel hydra. No live body sync. Cold copies survive a pull. Re-expand is archive restore. Reheal is not neighbor majority.
+Decentralized continuity of records is in scope. Decentralized concealment of hosts is not. Named hosts only. No VPN. No unmarked tunnel hydra. No live body sync. Cold copies survive a pull. If the network and live data die tomorrow, those copies on independent shelves *are* the chain (CROSS-NETWORK-SURVIVAL-1.0). Survival is bytes↔hash. Crawlers are extra shelves, not resurrection. Re-expand is archive restore (MESH-REEXPAND-1.0). Reheal is self tip + trusted pull or phoenix-WAIT — not neighbor majority (MESH-REHEAL-1.0).
