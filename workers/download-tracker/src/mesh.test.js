@@ -333,6 +333,8 @@ test("CROSS-NETWORK-SURVIVAL-1.0 umbrella: bytes↔hash; crawlers are not resurr
   assert.match(MESH_NOTE, /not neighbor majority/);
   assert.match(MESH_NOTE, /MESH-REEXPAND-1\.0/);
   assert.match(MESH_NOTE, /MESH-REHEAL-1\.0/);
+  assert.match(MESH_NOTE, /Ingest-as-receipt \+ re-expand-from-archive/);
+  assert.match(MESH_NOTE, /cite, don't merge/);
   assert.doesNotMatch(MESH_NOTE, /upcoming/i);
   assert.doesNotMatch(MESH_NOTE, BANNED);
 
