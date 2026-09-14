@@ -68,11 +68,6 @@
   "no_lie_no_rewrite": "NO-LIE / NO-REWRITE",
   "no_lie_no_rewrite_rule": "receipts that still hash; copies not all on one tunnel; verify without voice; no rewrite key; network never lies even to stay alive.",
   "no_lie_spec": "NO-LIE-NO-REWRITE-1.0",
-  "cold_multi_shelf": "COLD-MULTI-SHELF-1.0",
-  "cold_multi_shelf_rule": "Planes A/B/C: A=one CF/GitHub tunnel (4 mirrors); B=Zenodo tip-pack SLOT; C=USB airgap SLOT. Survival = bytes↔hash. LIVE only after hash verify.",
-  "shelves": "https://www.azielcorpuslibrary.net/shelves",
-  "cold_copy": "https://www.azielcorpuslibrary.net/cold-copy",
-  "shelves_json": "https://www.azielcorpuslibrary.net/v1/shelves",
   "library": "https://www.azielcorpuslibrary.net/",
   "software": "https://www.azielcorpuslibrary.net/software",
   "software_note": "Library Softwares catalog for aziel-runtime. Do not mash version + FragGate into Softwares copy. Softwares on GodLock is GodLock's own catalog.",
@@ -94,6 +89,17 @@
   "runtime_kernel": "https://github.com/AzielEliab/fraggate",
   "compatible_clients": "ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants",
   "bridge": "https://www.azielcorpuslibrary.net/bridge.json",
+  "resolves_to_hub": false,
+  "name_may_change": true,
+  "public_icann": false,
+  "fifth_product": false,
+  "cap7_sites": {
+    "azcorpus": { "design_of": "https://www.azielcorpuslibrary.net/", "resolves_to_hub": false, "name_may_change": true, "public_icann": false },
+    "azlibrary": { "design_of": "https://www.azielcorpuslibrary.net/", "resolves_to_hub": false, "name_may_change": true, "public_icann": false },
+    "azeliab": { "design_of": "https://www.azieleliab.com/", "resolves_to_hub": false, "name_may_change": true, "public_icann": false },
+    "godlock": { "design_of": "https://godlock.uk/", "resolves_to_hub": false, "name_may_change": true, "public_icann": false },
+    "hedidntjump": { "design_of": "https://www.hedidntjump.com/", "resolves_to_hub": false, "name_may_change": true, "public_icann": false }
+  },
   "products": "https://www.azielcorpuslibrary.net/v1/products",
   "azcorpus": "https://www.azielcorpuslibrary.net/corpus",
   "azlibrary": "https://www.azielcorpuslibrary.net/aziel-library",
@@ -119,12 +125,5 @@
       { "href": "https://godlock.uk", "label": "GodLock.uk" }
     ]
   },
-  "hashchain_learn": "HASHCHAIN-LATTICE-LEARN-1.0",
-  "hashchain_learn_rule": "adaptive learning via hashchain lattice for recollection and reasoning",
-  "possibility": "https://www.azielcorpuslibrary.net/v1/possibility",
-  "recollect": "https://www.azielcorpuslibrary.net/v1/recollect",
-  "poison_learn": "https://www.azielcorpuslibrary.net/v1/poison-learn",
-  "pin": "https://www.azielcorpuslibrary.net/v1/pin",
-  "map4d": "https://github.com/AzielEliab/4dmap",
   "how_to_cite": "Eliab, Aziel. (2026). Aziel Digital Library v2.7.0 [Software]. Apache-2.0. https://www.azielcorpuslibrary.net/"
 }

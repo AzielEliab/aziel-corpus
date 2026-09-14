@@ -79,7 +79,7 @@ Ops (do **not** increment downloads):
 - `POST /v1/ingest` (AI/JSON; session → azcorpus / Corpus; operator token → live hub azlibrary only; anonymous JSON refused)
 - `POST /v1/jeeves/upload` (signed-in; same Lamb Lens / operator shelf rules)
 - `POST /v1/operator/library-ingest` (header `X-Aziel-Operator-Token` or operator session; env names `OPERATOR_TOKEN` / `GATE_TOKEN` / `LIBRARY_OPERATOR_TOKEN` only — never the value; live hub azlibrary only — not a Cap-7 mesh write)
-- `GET /bridge.json` (Plane A Cap-7 cite; mesh names are not ICANN)
+- `GET /bridge.json` (Cap-7 `design_of` hubs; `resolves_to_hub: false`)
 - `GET /v1/products` (first-class azcorpus / azlibrary)
 - `GET /v1/design-pack/{slug}` (website design+content packs for mesh nodes)
 - `GET /download?product=azcorpus|azlibrary` (counted design-pack download; anyone)

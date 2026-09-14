@@ -1,4 +1,4 @@
-# CAP-7-BRIDGE-CITE-1.0 — Plane A semantic bridge (designs, not hub DNS)
+# CAP-7-BRIDGE-CITE-1.0 — design_of hubs, resolves_to_hub: false
 
 Author: Aziel Eliab only  
 Spec id: CAP-7-BRIDGE-CITE-1.0  
@@ -10,22 +10,27 @@ Not a Softwares-tab product. Not visible 15:20 identity-lock chrome.
 
 ## 0. Sentence
 
-Cite MirageGrid Cap-7 from Plane A. Mesh names are designs. Plane A hubs stay themselves. **azcorpus** and **azlibrary** are first-class website products.
+Cap-7 mesh sites inherit **design_of** the four hubs only. `resolves_to_hub: false`. They are not aliases, not “ARE the hubs”, and not CNAME/redirect onto hub hostnames. `name_may_change: true`. `public_icann: false`. No fifth product.
 
-## 1. Two planes
+## 1. Four hubs (Plane A ICANN) + Cap-7 inherit
 
-**Plane A** (this cite): public hubs and Workers.
+These hostnames stay themselves. Cap-7 names do **not** resolve to them.
 
-- https://www.azielcorpuslibrary.net/
-- https://www.azieleliab.com/
-- https://godlock.uk/
-- https://www.hedidntjump.com/
+| Cap-7 name | `design_of` | `resolves_to_hub` | Plane A UI |
+|---|---|---|---|
+| `azcorpus` | https://www.azielcorpuslibrary.net/ | false | `/corpus` on this Worker |
+| `azlibrary` | https://www.azielcorpuslibrary.net/ | false | `/aziel-library` on this Worker |
+| `azeliab` | https://www.azieleliab.com/ | false | — |
+| `godlock` | https://godlock.uk/ | false | — |
+| `hedidntjump` | https://www.hedidntjump.com/ | false | — |
 
-These hostnames stay themselves. They are ICANN / Worker names.
+`azcorpus` + `azlibrary` remain designs **inside** the library Worker for Plane A UI. That is not hostname aliasing. The Cap-7 mesh names still have `resolves_to_hub: false`.
 
-**Cap-7 mesh sites** use **azcorpus**, **azlibrary**, and sister-hub **designs** only. They do **not** resolve to azielcorpuslibrary.net or the other hubs. Pull via public hubs + the MirageGrid Worker bridge. Mesh-side access is AZNet / AZBrowser. Names are not ICANN. No fake `.az` DNS.
+Each `/bridge.json` `cap7_sites` entry carries `design_of`, `resolves_to_hub: false`, `name_may_change: true`, `public_icann: false`, `tip` / `lockset_id`, `pack`, and `pack_sha256`.
 
-## 2. First-class website products
+No fake `.az` DNS. No Cap-7 live public DNS claim. No AZ-GEN publish cadence.
+
+## 2. First-class Plane A UI on this Worker
 
 Machine surfaces (`/llms.txt`, `/ai.txt`, `/cite.json`, `/openapi.json`, `/bridge.json`, `/v1/products`) name these two products clearly.
 
@@ -35,54 +40,50 @@ Machine surfaces (`/llms.txt`, `/ai.txt`, `/cite.json`, `/openapi.json`, `/bridg
 - Anyone may **DOWNLOAD** records and the website design pack. Auth: none.
 - Public/anonymous writes stay Corpus-only (Lamb Lens). JSON ingest needs a signed-in session. Human homepage `POST /ingest` may file Corpus as a guest. That is not an anonymous JSON write hole.
 - Counted pack: `GET /download?product=azcorpus`
-- API pack: `GET /v1/design-pack/azcorpus` · `GET /v1/design-pack/azcorpus/download`
 
 ### azlibrary — Aziel Library (royal purple)
 
 - Plane A browse: https://www.azielcorpuslibrary.net/aziel-library
 - Chrome: royal purple (`--royal:#6b3fa0`)
-- Anyone may **DOWNLOAD** records and the website design pack. Auth: none.
-- **Upload requires the operator token** on the live hub. Do not weaken auth. Do not put the token in git, docs, or PRs.
-- Header name only: `X-Aziel-Operator-Token`
-- Env names only: `OPERATOR_TOKEN` / `GATE_TOKEN` / `LIBRARY_OPERATOR_TOKEN`
+- Anyone may **DOWNLOAD**. Auth: none.
+- **Upload requires the operator token**. Header name only: `X-Aziel-Operator-Token`. Env names only: `OPERATOR_TOKEN` / `GATE_TOKEN` / `LIBRARY_OPERATOR_TOKEN`. Never put the token in git, docs, or PRs.
 - Path: `POST /v1/operator/library-ingest` (alias `POST /v1/ingest` with the same header)
-- Token writes **live hub azlibrary only** — never the Cap-7 mesh name
+- Token writes **live hub azlibrary only** — never a Cap-7 mesh write
 - Counted pack: `GET /download?product=azlibrary`
 - API pack: `GET /v1/design-pack/azlibrary` · `GET /v1/design-pack/azlibrary/download`
 
 Sister-hub designs (`azeliab`, `godlock`, `hedidntjump`) are cite-only packs. They are not live write targets on this hub.
 
-## 3. Design packs (exist in the mesh)
+## 3. Design packs
 
-`GET /v1/products` lists first-class websites. `GET /v1/design-pack` and `GET /v1/design-pack/{slug}` export design+content packs (website routes, chrome, tip hashes, record hashes+titles; no PDF bodies). `pack_sha256` is on the JSON and on `X-Aziel-Pack-Sha256`.
+`GET /v1/products` lists first-class websites. `GET /v1/design-pack` and `GET /v1/design-pack/{slug}` export design+content packs. Each pack repeats `design_of`, `resolves_to_hub: false`, `tip`, and `pack_sha256`. `pack_sha256` is on the JSON and on `X-Aziel-Pack-Sha256`.
 
 - Slugs: `azcorpus`, `azlibrary`, `azeliab`, `godlock`, `hedidntjump`
-- Counted download-to-node: `GET /download?product={slug}` (increments). Uncounted attachment: `GET /v1/design-pack/{slug}/download`
-- Content is a packed-index cold copy (hashes + titles; no live body sync)
+- Counted: `GET /download?product={slug}` (increments)
+- Uncounted attachment: `GET /v1/design-pack/{slug}/download`
 - CROSS-NETWORK-SURVIVAL: survival = bytes↔hash on independent shelves
 - A pack is not a live hub alias and not public DNS
 
-## 4. Mesh pull (qnm / MirageGrid → local cold shelf)
+## 4. Mesh pull
 
 A node **pulls**. It does not become the hub hostname. Sender fan-out is off.
 
-1. `GET https://www.azielcorpuslibrary.net/bridge.json` — Plane A cite. Mesh names are not ICANN.
-2. `GET https://www.azielcorpuslibrary.net/v1/design-pack/azcorpus` or `/azlibrary` — copy `pack_sha256` + `lockset_tip` + website design.
-3. `GET https://www.azielcorpuslibrary.net/download?product=azcorpus` or `azlibrary` — counted bytes.
-4. **Hash-verify** `pack_sha256` and `lockset_tip` fail-closed (bytes↔hash; CROSS-NETWORK-SURVIVAL). Refuse on mismatch.
-5. Land on the node's **local cold shelf**. Do not alias Plane A DNS. Do not write the live hub.
-6. Optional: `GET /v1/docs/{hash}/download` for each `content_sha256` (receiver-pull bodies). Still pull-only.
+1. `GET /bridge.json` — Cap-7 sites: `design_of` + `resolves_to_hub: false` + tip/pack hashes
+2. `GET /v1/design-pack/azcorpus` or `/azlibrary`
+3. Counted pull `GET /download?product=`
+4. hash-verify `pack_sha256` + `lockset_tip` fail-closed
+5. Land on the node's local cold shelf. Do not CNAME a mesh name onto a hub hostname.
+6. Optional bodies: `GET /v1/docs/{hash}/download`
 
 Local `qnsd`: https://github.com/AzielEliab/qnm-node — no public qnsd proxy, no Node Gate. Mesh-side: AZNet / AZBrowser. MirageGrid cite: https://miragegrid-download-tracker.vibelock.workers.dev/v1/mesh/az-generator
 
-## 5. Upload honesty
+## 5. Honesty
 
-`X-Aziel-Operator-Token` / operator session writes **live azlibrary on the hub**. It does not write Cap-7 mesh names. Mesh copies are packs, not hub writes.
-
-AI/JSON ingest without a session is refused. Human homepage `POST /ingest` may still file Corpus as a guest.
-
-## 6. Honesty
-
+- inherit: designs only
+- `resolves_to_hub: false`
+- `name_may_change: true`
+- `public_icann: false`
+- `fifth_product: false`
 - Do not invent Cap-7 live public DNS
 - Do not claim AZ-GEN publish cadence
 - Do not claim MirageGrid `/bridge.json` is live (cite the future URL; this corpus `/bridge.json` is the Plane A cite)
@@ -90,12 +91,4 @@ AI/JSON ingest without a session is refused. Human homepage `POST /ingest` may s
 - NO-FAN: no falsification, no ambiguity, no misleading; no fake `.az` DNS
 - NO-LIE / NO-REWRITE: receipts that still hash; no rewrite key
 - Growth-ON: robots Allow AI crawlers (including GPTBot)
-- No visible 15:20 identity-lock chrome on these surfaces
-
-## 7. Dual surface
-
-Agents run software with outputs shown in the AI and inputs run back (no technical MCP UI required). The software side keeps complete human UI (Worker + mobile + download).
-
-Compatible AI clients: ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants.
-
-Library MCP: `POST /mcp` — `aziel-corpus_health`, `aziel-corpus_search`, `aziel-corpus_skill`, `aziel-corpus_download`, `aziel-corpus_ingest`, `aziel-corpus_design_pack`, `aziel-corpus_receipt`.
+- Dual-surface MCP/OpenAPI upload + download unchanged

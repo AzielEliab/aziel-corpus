@@ -1,7 +1,7 @@
 /**
  * Cap-7 design+content packs for download-to-mesh-nodes.
- * azcorpus / azlibrary / sister-hub designs do NOT resolve to Plane A hubs.
- * Packs are pull-only cold copies. Upload token never writes these names.
+ * azcorpus / azlibrary are the two designs inside azielcorpuslibrary.net.
+ * Packs hash to the original hubs. Upload token writes live hub azlibrary only.
  * Author: Aziel Eliab only. No visible 15:20 identity-lock chrome.
  */
 import { createHash } from "node:crypto";
@@ -87,12 +87,21 @@ export function designPackDoc(design, packed) {
     icann: false,
     public_icann: false,
     live_public_dns: false,
-    resolves_to_plane_a_hub: false,
-    does_not_resolve_to: design.does_not_resolve_to,
+    new_domain: false,
+    fifth_product: false,
+    inherit: "designs",
+    design_of: design.design_of || design.plane_a_hub,
+    resolves_to_hub: false,
+    name_may_change: true,
+    public_icann: false,
+    alias: false,
+    tip: design.tip,
+    pack_cite_sha256: design.pack_sha256,
+    inside_corpus_hub: !!design.inside_corpus_hub,
     plane_a_hub: design.plane_a_hub,
     plane_a_path: design.plane_a_path,
     plane_a_hubs_are_themselves: true,
-    upload_token_writes_this_name: false,
+    upload_token_writes_this_name: design.slug === "azlibrary",
     upload_token_hub_azlibrary_only: true,
     live_write: false,
     pull_only: true,
@@ -142,7 +151,10 @@ export function designPackDoc(design, packed) {
   };
   pack.pack_sha256 = createHash("sha256").update(JSON.stringify({
     slug: pack.slug,
+    design_of: pack.design_of,
+    resolves_to_hub: false,
     index_sha256: indexSha,
+    lockset_tip: LOCKSET_TIP,
     count: cards.length,
     records: cards.map((c) => c.content_sha256 || c.record_id),
   })).digest("hex");
@@ -158,8 +170,8 @@ export function designPackIndex() {
     plane: PLANE_A,
     kind: "design-pack-index",
     note:
-      "Download-to-mesh-nodes. Cap-7 names are designs. They do not resolve to Plane A hubs. "
-      + "Upload token still only writes live azlibrary on the hub.",
+      "Download-to-mesh-nodes. Cap-7 names inherit design_of the four hubs. resolves_to_hub: false. "
+      + "Plane A UI: azcorpus + azlibrary stay on this Worker. Upload token still only writes live azlibrary on the hub.",
     first_class: FIRST_CLASS_SLUGS.slice(),
     products: Object.freeze({ azcorpus: AZCORPUS, azlibrary: AZLIBRARY }),
     packs: CAP7_DESIGNS.map((d) => ({
@@ -170,7 +182,11 @@ export function designPackIndex() {
       download_attachment: HOST + "/v1/design-pack/" + d.slug + "/download",
       counted_download: HOST + "/download?product=" + d.slug,
       plane_a_hub: d.plane_a_hub,
-      does_not_resolve_to: d.does_not_resolve_to,
+      design_of: d.design_of || d.plane_a_hub,
+      resolves_to_hub: false,
+      tip: d.tip,
+      pack_sha256: d.pack_sha256,
+      inside_corpus_hub: !!d.inside_corpus_hub,
       shelf: d.shelf,
     })),
     mesh_pull: Object.freeze({
@@ -192,7 +208,7 @@ export function productsIndex() {
     identity: AUTHOR,
     first_class: FIRST_CLASS_SLUGS.slice(),
     products: Object.freeze({ azcorpus: AZCORPUS, azlibrary: AZLIBRARY }),
-    note: "azcorpus = Corpus / Lamb Lens. azlibrary = royal-purple Aziel Library. Anyone may download both. azlibrary upload uses " + (AZLIBRARY.upload && AZLIBRARY.upload.token_header) + " on the live hub only.",
+    note: "Plane A UI designs on this Worker. Cap-7 names inherit design_of the library hub; resolves_to_hub: false. Anyone may download both. azlibrary upload uses " + (AZLIBRARY.upload && AZLIBRARY.upload.token_header) + " on the live hub only.",
     honesty: HONESTY,
     bridge: HOST + "/bridge.json",
     design_pack: HOST + "/v1/design-pack",
@@ -213,7 +229,7 @@ export async function serveDesignPack(env, slug, { attachment = false, head = fa
     return json({
       error: "unknown design pack",
       known: CAP7_DESIGNS.map((d) => d.slug),
-      note: "Mesh names are designs, not ICANN. First-class websites: azcorpus, azlibrary.",
+      note: "Unknown Cap-7 name. Known: azcorpus, azlibrary, azeliab, godlock, hedidntjump. resolves_to_hub: false.",
       author: AUTHOR,
     }, 404);
   }

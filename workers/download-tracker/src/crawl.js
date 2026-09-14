@@ -679,6 +679,13 @@ export function citeDoc() {
     library_mcp: HOST + "/mcp",
     library_mcp_tools: MCP_TOOLS.slice(),
     bridge: HOST + "/bridge.json",
+    cap7_sites: {
+      azcorpus: { design_of: HOST + "/", resolves_to_hub: false, name_may_change: true, public_icann: false },
+      azlibrary: { design_of: HOST + "/", resolves_to_hub: false, name_may_change: true, public_icann: false },
+      azeliab: { design_of: "https://www.azieleliab.com/", resolves_to_hub: false, name_may_change: true, public_icann: false },
+      godlock: { design_of: "https://godlock.uk/", resolves_to_hub: false, name_may_change: true, public_icann: false },
+      hedidntjump: { design_of: "https://www.hedidntjump.com/", resolves_to_hub: false, name_may_change: true, public_icann: false },
+    },
     design_pack: HOST + "/v1/design-pack",
     products: HOST + "/v1/products",
     azcorpus: HOST + "/corpus",

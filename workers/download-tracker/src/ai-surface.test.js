@@ -58,6 +58,22 @@ test("bridge.json cites Cap-7 via Plane A without DNS or AZ-GEN overclaim", () =
   assert.equal(doc.mesh_dns.icann, false);
   assert.equal(doc.mesh_dns.live_public_dns, false);
   assert.equal(doc.mesh_dns.names_are_not_icann, true);
+  assert.equal(doc.mesh_dns.names_may_change, true);
+  assert.equal(doc.resolves_to_hub, false);
+  assert.equal(doc.inherit, "designs");
+  assert.equal(doc.name_may_change, true);
+  assert.equal(doc.fifth_product, false);
+  assert.equal(doc.cap7_sites.azcorpus.design_of, HOST + "/");
+  assert.equal(doc.cap7_sites.azlibrary.design_of, HOST + "/");
+  assert.equal(doc.cap7_sites.azcorpus.resolves_to_hub, false);
+  assert.equal(doc.cap7_sites.azlibrary.resolves_to_hub, false);
+  assert.equal(doc.cap7_sites.azeliab.design_of, "https://www.azieleliab.com/");
+  assert.equal(doc.cap7_sites.godlock.design_of, "https://godlock.uk/");
+  assert.equal(doc.cap7_sites.hedidntjump.design_of, "https://www.hedidntjump.com/");
+  assert.ok(doc.cap7_sites.azcorpus.tip);
+  assert.ok(doc.cap7_sites.azcorpus.pack_sha256);
+  assert.equal(doc.cap7_sites.azcorpus.alias, false);
+  assert.equal(typeof doc.cap7_aliases, "undefined");
   assert.deepEqual(doc.mesh_dns.designs, ["azcorpus", "azlibrary", "azeliab", "godlock", "hedidntjump"]);
   assert.equal(doc.az_generator.callable, false);
   assert.equal(doc.az_generator.publish_cadence_claimed, false);
@@ -67,7 +83,12 @@ test("bridge.json cites Cap-7 via Plane A without DNS or AZ-GEN overclaim", () =
   assert.equal(doc.upload.token_writes, "live hub azlibrary only");
   assert.equal(doc.upload.mesh_write, false);
   assert.equal(doc.mesh_copies.kind, "design+content-pack");
-  assert.match(doc.plane_note, /do not resolve to azielcorpuslibrary\.net/);
+  assert.equal(doc.mesh_copies.resolves_to_hub, false);
+  assert.equal(doc.mesh_copies.new_domain, false);
+  assert.match(doc.plane_note, /design_of the four hubs/);
+  assert.match(doc.plane_note, /resolves_to_hub: false/);
+  assert.doesNotMatch(doc.plane_note, /ultimately ARE the original/);
+  assert.doesNotMatch(doc.plane_note, /aliases → canonical/);
   assert.match(doc.cross_network_survival, /CROSS-NETWORK-SURVIVAL/);
   assert.equal(doc.no_fan, NO_FAN_SPEC);
   assert.equal(HONESTY.cap7_live_public_dns, false);
@@ -98,9 +119,21 @@ test("bridge.json cites Cap-7 via Plane A without DNS or AZ-GEN overclaim", () =
   for (const d of CAP7_DESIGNS) {
     assert.ok(d.kind === "website" || d.kind === "mesh-design");
     assert.equal(d.icann, false);
-    assert.ok(d.does_not_resolve_to);
+    assert.equal(d.new_domain, false);
+    assert.ok(d.design_of);
+    assert.equal(d.resolves_to_hub, false);
+    assert.ok(d.tip);
+    assert.ok(d.pack_sha256);
     assert.ok(d.plane_a_hub);
   }
+  assert.equal(AZCORPUS.inside_corpus_hub, true);
+  assert.equal(AZLIBRARY.inside_corpus_hub, true);
+  assert.equal(AZCORPUS.design_of, HOST + "/");
+  assert.equal(AZLIBRARY.design_of, HOST + "/");
+  assert.equal(AZCORPUS.resolves_to_hub, false);
+  assert.equal(HONESTY.azcorpus_azlibrary_plane_a_ui, true);
+  assert.equal(HONESTY.resolves_to_hub, false);
+  assert.equal(HONESTY.fifth_product, false);
   assert.equal(CAP7_DESIGNS.find((d) => d.slug === "azcorpus").kind, "website");
   assert.equal(CAP7_DESIGNS.find((d) => d.slug === "azlibrary").kind, "website");
   assert.equal(CAP7_DESIGNS.find((d) => d.slug === "azeliab").kind, "mesh-design");
@@ -121,7 +154,7 @@ test("first-class: anyone downloads both; only azlibrary token-uploads; no secre
   assert.equal(HONESTY.anyone_may_download_azlibrary, true);
 });
 
-test("design packs are mesh designs and do not alias Plane A hubs", () => {
+test("design packs inherit design_of; resolves_to_hub is false", () => {
   const idx = designPackIndex();
   assert.equal(idx.kind, "design-pack-index");
   assert.ok(idx.packs.some((p) => p.slug === "azcorpus"));
@@ -135,8 +168,12 @@ test("design packs are mesh designs and do not alias Plane A hubs", () => {
       { record_id: "AZDOC-2", title: "Public", library: "corpus", content_sha256: "bb".repeat(32) },
     ],
   });
-  assert.equal(pack.resolves_to_plane_a_hub, false);
-  assert.equal(pack.upload_token_writes_this_name, false);
+  assert.equal(pack.resolves_to_hub, false);
+  assert.equal(pack.design_of, HOST + "/");
+  assert.equal(pack.inside_corpus_hub, true);
+  assert.equal(pack.new_domain, false);
+  assert.equal(pack.fifth_product, false);
+  assert.equal(pack.upload_token_writes_this_name, true);
   assert.equal(pack.live_write, false);
   assert.equal(pack.mesh_name, "azlibrary");
   assert.equal(pack.first_class, true);
@@ -192,7 +229,7 @@ test("POST /v1/ingest refuses anonymous JSON and does not write mesh names", asy
   assert.match(body.error, /sign in or operator token/i);
   assert.equal(body.mesh_write, false);
   assert.equal(body.honesty.upload_token_hub_azlibrary_only, true);
-  assert.match(body.ai_path, /Operator token writes live Aziel Library on the hub only/);
+  assert.match(body.ai_path, /Operator token writes live Aziel Library \(azlibrary\) on this hub only/);
 });
 
 test("OpenAPI + MCP expose upload and download ops; full client set", async () => {
@@ -257,7 +294,10 @@ test("llms.txt / cite / MCP discovery carry dual-surface + CNS + no AZ-GEN overc
   assert.match(llms, /\/bridge\.json/);
   assert.match(llms, /## azcorpus/);
   assert.match(llms, /## azlibrary/);
-  assert.match(llms, /azcorpus\/azlibrary are first-class website designs/);
+  assert.match(llms, /design_of the four hubs/);
+  assert.match(llms, /resolves_to_hub: false/);
+  assert.doesNotMatch(llms, /ultimately ARE the original/);
+  assert.doesNotMatch(llms, /aliases → canonical/);
   assert.match(llms, /X-Aziel-Operator-Token/);
   assert.match(llms, /hash-verify/);
   assert.match(llms, /local cold shelf/);
@@ -267,7 +307,7 @@ test("llms.txt / cite / MCP discovery carry dual-surface + CNS + no AZ-GEN overc
   assert.doesNotMatch(llms, AZ_GEN_CADENCE);
   assert.match(DUAL_SURFACE, /Worker \+ mobile \+ download/);
   assert.match(AI_PATH_NOTE, /Anonymous JSON ingest is refused/);
-  assert.match(AI_PATH_NOTE, /Operator token writes live Aziel Library on the hub only/);
+  assert.match(AI_PATH_NOTE, /Operator token writes live Aziel Library \(azlibrary\) on this hub only/);
 
   const cite = citeDoc();
   assert.equal(cite.bridge, HOST + "/bridge.json");
@@ -276,6 +316,9 @@ test("llms.txt / cite / MCP discovery carry dual-surface + CNS + no AZ-GEN overc
   assert.equal(cite.azlibrary, HOST + "/aziel-library");
   assert.equal(cite.azcorpus_counted, HOST + "/download?product=azcorpus");
   assert.equal(cite.azlibrary_counted, HOST + "/download?product=azlibrary");
+  assert.equal(cite.cap7_sites.azcorpus.design_of, HOST + "/");
+  assert.equal(cite.cap7_sites.azcorpus.resolves_to_hub, false);
+  assert.equal(cite.cap7_sites.azeliab.design_of, "https://www.azieleliab.com/");
   assert.ok(cite.library_mcp_tools.includes("aziel-corpus_ingest"));
 
   const mcp = mcpDiscovery();

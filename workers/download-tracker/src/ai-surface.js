@@ -1,9 +1,13 @@
 /**
  * Dual-surface AI upload/download + Cap-7 semantic bridge cite.
- * Plane A hubs stay themselves. Mesh Cap-7 names are designs, not ICANN.
- * Upload token writes live hub azlibrary only. Mesh copies are design+content packs.
- * Author: Aziel Eliab only. No visible 15:20 identity-lock chrome.
+ * Cap-7 mesh sites inherit design_of the four hubs only.
+ * resolves_to_hub: false — not aliases, not “ARE the hubs”, not CNAME/redirect.
+ * name_may_change: true. public_icann: false. No fifth product.
+ * Plane A UI: azcorpus + azlibrary are designs inside this Worker (/corpus, /aziel-library).
+ * Upload token writes live hub azlibrary only. Anyone may download.
+ * Author: Aziel Eliab only. No visible 15:20 chrome.
  */
+import { createHash } from "node:crypto";
 import { AI_CLIENTS, HOST } from "./runtime-copy.js";
 import {
   CROSS_NETWORK_SURVIVAL,
@@ -27,6 +31,57 @@ export const PLANE_A = "A";
 export const MIRAGEGRID_WORKER = "https://miragegrid-download-tracker.vibelock.workers.dev/";
 export const MIRAGEGRID_AZ_GENERATOR = MIRAGEGRID_WORKER + "v1/mesh/az-generator";
 export const MIRAGEGRID_BRIDGE_FUTURE = MIRAGEGRID_WORKER + "bridge.json";
+export const LIBRARY_HUB = HOST + "/";
+export const HUB_AZELIELIAB = "https://www.azieleliab.com/";
+export const HUB_GODLOCK = "https://godlock.uk/";
+export const HUB_HEDIDNTJUMP = "https://www.hedidntjump.com/";
+/** Plane A Worker origin. Cap-7 names do not resolve to this hostname. */
+export const CANONICAL_TIP = LIBRARY_HUB;
+
+export const CAP7_INHERIT = "designs";
+export const CAP7_RESOLVES_TO_HUB = false;
+export const CAP7_NAME_MAY_CHANGE = true;
+export const CAP7_FIFTH_PRODUCT = false;
+
+export function cap7PackCiteHash(slug, designOf) {
+  return createHash("sha256").update(JSON.stringify({
+    slug,
+    design_of: designOf,
+    resolves_to_hub: false,
+    tip: LOCKSET_TIP,
+    lockset_id: LOCKSET_ID,
+  })).digest("hex");
+}
+
+/** Cap-7 mesh site: inherits design_of a hub. Does not resolve to that hostname. */
+export function cap7SiteEntry(slug, designOf, extra) {
+  return Object.freeze({
+    name: slug,
+    slug,
+    design_of: designOf,
+    resolves_to_hub: CAP7_RESOLVES_TO_HUB,
+    name_may_change: CAP7_NAME_MAY_CHANGE,
+    public_icann: false,
+    fifth_product: CAP7_FIFTH_PRODUCT,
+    inherit: CAP7_INHERIT,
+    alias: false,
+    cname: false,
+    redirect: false,
+    tip: LOCKSET_TIP,
+    lockset_id: LOCKSET_ID,
+    pack: HOST + "/v1/design-pack/" + slug,
+    pack_sha256: cap7PackCiteHash(slug, designOf),
+    ...(extra || {}),
+  });
+}
+
+export const CAP7_SITES = Object.freeze({
+  azcorpus: cap7SiteEntry("azcorpus", LIBRARY_HUB, { plane_a_ui: "/corpus" }),
+  azlibrary: cap7SiteEntry("azlibrary", LIBRARY_HUB, { plane_a_ui: "/aziel-library" }),
+  azeliab: cap7SiteEntry("azeliab", HUB_AZELIELIAB),
+  godlock: cap7SiteEntry("godlock", HUB_GODLOCK),
+  hedidntjump: cap7SiteEntry("hedidntjump", HUB_HEDIDNTJUMP),
+});
 
 export const DUAL_SURFACE =
   "Dual surface: agents run software with outputs shown in the AI and inputs run back "
@@ -44,7 +99,7 @@ export const AI_PATH_NOTE =
   + "Human homepage POST /ingest may still file Corpus as a guest. "
   + "azlibrary upload requires " + OPERATOR_TOKEN_HEADER + " (or operator session) on the live hub — "
   + "env names " + OPERATOR_TOKEN_ENV.join(" / ") + ". Never put the token in git, docs, or PRs. "
-  + "Operator token writes live Aziel Library on the hub only — never a Cap-7 mesh name.";
+  + "Operator token writes live Aziel Library (azlibrary) on this hub only.";
 
 export const HONESTY = Object.freeze({
   author: AUTHOR,
@@ -52,6 +107,18 @@ export const HONESTY = Object.freeze({
   person_id: PERSON_ID,
   plane_a_hubs_are_themselves: true,
   mesh_names_are_not_icann: true,
+  mesh_names_may_change: true,
+  name_may_change: true,
+  inherit: CAP7_INHERIT,
+  design_of_hubs_only: true,
+  resolves_to_hub: false,
+  alias: false,
+  cname: false,
+  redirect: false,
+  ultimately_are_original_sites: false,
+  azcorpus_azlibrary_plane_a_ui: true,
+  new_domains: false,
+  fifth_product: false,
   cap7_live_public_dns: false,
   unbounded_public_dns: false,
   public_icann: false,
@@ -96,9 +163,9 @@ export const PLANE_A_HUBS = Object.freeze([
 ]);
 
 /**
- * First-class website products. azcorpus = public Corpus / Lamb Lens.
+ * Plane A UI products on this Worker. azcorpus = Corpus / Lamb Lens.
  * azlibrary = royal-purple operator collection. Anyone downloads both.
- * Cap-7 mesh names are designs, not ICANN, and do not resolve to Plane A hubs.
+ * Cap-7 mesh names inherit design_of this hub and do not resolve to it.
  */
 export const AZCORPUS = Object.freeze({
   slug: "azcorpus",
@@ -145,12 +212,25 @@ export const AZCORPUS = Object.freeze({
     token_in_git: false,
     note: "Public/anonymous writes stay Corpus-only (Lamb Lens). JSON ingest needs a session; homepage POST /ingest may file as guest.",
   }),
-  plane_a_hub: HOST + "/",
+  plane_a_hub: LIBRARY_HUB,
   plane_a_path: "/corpus",
-  does_not_resolve_to: HOST,
+  plane_a_ui: true,
+  design_of: LIBRARY_HUB,
+  resolves_to_hub: false,
+  name_may_change: true,
+  public_icann: false,
+  fifth_product: false,
+  inherit: CAP7_INHERIT,
+  alias: false,
+  inside_corpus_hub: true,
+  new_domain: false,
   mesh_name: "azcorpus",
   icann: false,
-  note: "Public Corpus / Lamb Lens website. Cap-7 name azcorpus is a design — not www.azielcorpuslibrary.net.",
+  live_public_dns: false,
+  tip: LOCKSET_TIP,
+  pack: HOST + "/v1/design-pack/azcorpus",
+  pack_sha256: cap7PackCiteHash("azcorpus", LIBRARY_HUB),
+  note: "Plane A UI: Corpus / Lamb Lens at /corpus on this Worker. Cap-7 name azcorpus inherits design_of the library hub. resolves_to_hub: false.",
 });
 
 export const AZLIBRARY = Object.freeze({
@@ -201,12 +281,25 @@ export const AZLIBRARY = Object.freeze({
     path: "/v1/operator/library-ingest",
     note: "Upload requires " + OPERATOR_TOKEN_HEADER + " or operator session on the live hub. Header/env names only — never the token value.",
   }),
-  plane_a_hub: HOST + "/",
+  plane_a_hub: LIBRARY_HUB,
   plane_a_path: "/aziel-library",
-  does_not_resolve_to: HOST,
+  plane_a_ui: true,
+  design_of: LIBRARY_HUB,
+  resolves_to_hub: false,
+  name_may_change: true,
+  public_icann: false,
+  fifth_product: false,
+  inherit: CAP7_INHERIT,
+  alias: false,
+  inside_corpus_hub: true,
+  new_domain: false,
   mesh_name: "azlibrary",
   icann: false,
-  note: "Royal-purple operator collection. Anyone may download. Cap-7 name azlibrary is a design — not the hub hostname.",
+  live_public_dns: false,
+  tip: LOCKSET_TIP,
+  pack: HOST + "/v1/design-pack/azlibrary",
+  pack_sha256: cap7PackCiteHash("azlibrary", LIBRARY_HUB),
+  note: "Plane A UI: royal-purple Aziel Library at /aziel-library on this Worker. Cap-7 name azlibrary inherits design_of the library hub. resolves_to_hub: false. Anyone may download. Upload token writes this shelf on the live hub.",
 });
 
 export const FIRST_CLASS_PRODUCTS = Object.freeze([AZCORPUS, AZLIBRARY]);
@@ -222,25 +315,37 @@ function sisterDesign(slug, hub, path, note) {
     shelf: null,
     plane_a_hub: hub,
     plane_a_path: path,
-    does_not_resolve_to: hub.replace(/\/$/, ""),
+    design_of: hub,
+    resolves_to_hub: false,
+    name_may_change: true,
+    public_icann: false,
+    fifth_product: false,
+    inherit: CAP7_INHERIT,
+    alias: false,
+    tip: LOCKSET_TIP,
+    pack: HOST + "/v1/design-pack/" + slug,
+    pack_sha256: cap7PackCiteHash(slug, hub),
+    inside_corpus_hub: false,
+    new_domain: false,
     mesh_name: slug,
     icann: false,
+    live_public_dns: false,
     download: Object.freeze({ anyone: true, counted_pack: "/download?product=" + slug, pack: "/v1/design-pack/" + slug }),
-    upload: Object.freeze({ operator_token: false, token_required: false, note: "Cite-only sister design. Not a live write target on this hub." }),
+    upload: Object.freeze({ operator_token: false, token_required: false, note: "Cite-only sister hub. Not a live write target on this corpus Worker." }),
     note,
   });
 }
 
 /**
- * Cap-7 mesh site designs. Names are NOT ICANN and do not resolve to Plane A hubs.
- * Nodes pull design+content packs; they do not become the hub hostname.
+ * Cap-7 mesh sites inherit design_of the four hubs. resolves_to_hub: false.
+ * Plane A UI for azcorpus/azlibrary stays on this Worker. No fifth product.
  */
 export const CAP7_DESIGNS = Object.freeze([
   AZCORPUS,
   AZLIBRARY,
-  sisterDesign("azeliab", "https://www.azieleliab.com/", "/", "Sister-hub design pack. Plane A hub stays https://www.azieleliab.com/."),
-  sisterDesign("godlock", "https://godlock.uk/", "/", "Sister-hub design pack. Plane A hub stays https://godlock.uk/."),
-  sisterDesign("hedidntjump", "https://www.hedidntjump.com/", "/", "Sister-hub design pack. Plane A hub stays https://www.hedidntjump.com/."),
+  sisterDesign("azeliab", HUB_AZELIELIAB, "/", "Sister hub remains https://www.azieleliab.com/. Cap-7 name azeliab inherits that hub's design. resolves_to_hub: false."),
+  sisterDesign("godlock", HUB_GODLOCK, "/", "Sister hub remains https://godlock.uk/. Cap-7 name godlock inherits that hub's design. resolves_to_hub: false."),
+  sisterDesign("hedidntjump", HUB_HEDIDNTJUMP, "/", "Sister hub remains https://www.hedidntjump.com/. Cap-7 name hedidntjump inherits that hub's design. resolves_to_hub: false."),
 ]);
 
 export function productBySlug(raw) {
@@ -261,17 +366,23 @@ export function meshPullRecipe(slug) {
     sender_fanout: false,
     live_hub_write: false,
     icann: false,
+    design_of: product.design_of || (CAP7_SITES[name] && CAP7_SITES[name].design_of) || LIBRARY_HUB,
+    resolves_to_hub: false,
+    name_may_change: true,
+    public_icann: false,
+    tip: LOCKSET_TIP,
+    pack_sha256: product.pack_sha256 || cap7PackCiteHash(name, product.design_of || LIBRARY_HUB),
     hash_verify: true,
     fail_closed_on_mismatch: true,
     land_on: "local cold shelf",
     counted_download: HOST + "/download?product=" + name,
     describe: HOST + "/v1/design-pack/" + name,
     steps: Object.freeze([
-      Object.freeze({ n: 1, op: "cite", url: HOST + "/bridge.json", note: "Plane A cite. Mesh names are not ICANN." }),
-      Object.freeze({ n: 2, op: "describe", url: HOST + "/v1/design-pack/" + name, note: "Read pack_sha256 + lockset_tip + website design." }),
+      Object.freeze({ n: 1, op: "cite", url: HOST + "/bridge.json", note: "Cap-7 names inherit design_of the four hubs. resolves_to_hub: false. name_may_change: true." }),
+      Object.freeze({ n: 2, op: "describe", url: HOST + "/v1/design-pack/" + name, note: "Read pack_sha256 + lockset_tip + design_of. Not a hostname alias." }),
       Object.freeze({ n: 3, op: "counted-pull", url: HOST + "/download?product=" + name, note: "Counted bytes of the design+content pack. Anyone may download." }),
-      Object.freeze({ n: 4, op: "hash-verify", check: Object.freeze(["pack_sha256", "lockset_tip"]), fail: "closed", note: "bytes↔hash. CROSS-NETWORK-SURVIVAL. Refuse on mismatch." }),
-      Object.freeze({ n: 5, op: "land", shelf: "local cold shelf", note: "MESH-COLD-COPY. qnm/MirageGrid node keeps the pack. Do not alias Plane A DNS. Do not write the live hub." }),
+      Object.freeze({ n: 4, op: "hash-verify", check: Object.freeze(["pack_sha256", "lockset_tip", "design_of"]), fail: "closed", note: "bytes↔hash. CROSS-NETWORK-SURVIVAL. Refuse on mismatch. Still resolves_to_hub: false." }),
+      Object.freeze({ n: 5, op: "land", shelf: "local cold shelf", note: "MESH-COLD-COPY. Node keeps the pack. Do not invent a new public domain. Do not CNAME the mesh name onto a hub hostname." }),
       Object.freeze({ n: 6, op: "optional-bodies", url: HOST + "/v1/docs/{hash}/download", note: "Receiver-pull each content_sha256 if the node wants bodies. Still pull-only." }),
     ]),
     qnm: "Local qnsd in https://github.com/AzielEliab/qnm-node. No public qnsd proxy. No Node Gate.",
@@ -347,7 +458,7 @@ export const DOWNLOAD_OPS = Object.freeze([
     path: "/v1/design-pack/{slug}",
     auth: "none",
     increments: false,
-    note: "Cap-7 design+content pack for mesh nodes. Not a live hub alias.",
+    note: "Cap-7 design+content pack. inherit design_of a hub. resolves_to_hub: false.",
   }),
   Object.freeze({
     op: "countedDesignPack",
@@ -379,9 +490,11 @@ export function bridgeDoc() {
     person_id: PERSON_ID,
     plane: PLANE_A,
     plane_note:
-      "Plane A is the public hub / Worker cite plane. Hubs stay themselves. "
-      + "Cap-7 mesh names (azcorpus, azlibrary, sister-hub designs) are not ICANN "
-      + "and do not resolve to azielcorpuslibrary.net or the other hubs.",
+      "Cap-7 mesh sites inherit design_of the four hubs only. resolves_to_hub: false. "
+      + "They are not aliases, not CNAME/redirect, and do not resolve to hub hostnames. "
+      + "name_may_change: true. public_icann: false. No fifth product. "
+      + "Plane A UI: azcorpus + azlibrary stay designs on this Worker (/corpus, /aziel-library). "
+      + "Sister hubs remain azieleliab.com, godlock.uk, hedidntjump.com. No fake .az DNS.",
     dual_surface: DUAL_SURFACE,
     dual_surface_azcoherence: AZCOHERENCE_DUAL_SURFACE,
     compatible_clients: AI_CLIENTS,
@@ -392,8 +505,18 @@ export function bridgeDoc() {
       live_public_dns: false,
       unbounded_public_dns: false,
       names_are_not_icann: true,
+      names_may_change: true,
+      name_may_change: true,
+      resolves_to_hub: false,
+      inherit: CAP7_INHERIT,
+      fifth_product: false,
       designs: CAP7_DESIGNS.map((d) => d.slug),
     },
+    cap7_sites: CAP7_SITES,
+    resolves_to_hub: false,
+    inherit: CAP7_INHERIT,
+    name_may_change: true,
+    fifth_product: false,
     plane_a_hubs: PLANE_A_HUBS,
     products: Object.freeze({
       azcorpus: AZCORPUS,
@@ -451,7 +574,10 @@ export function bridgeDoc() {
       law: "Cap-7",
       download: HOST + "/v1/design-pack",
       counted: HOST + "/download?product=azcorpus|azlibrary",
-      live_hub_alias: false,
+      inherit: CAP7_INHERIT,
+      resolves_to_hub: false,
+      new_domain: false,
+      fifth_product: false,
     },
     ops: {
       upload: UPLOAD_OPS,
@@ -491,7 +617,7 @@ export function aiSurfaceLlmsBlock() {
     "- API pack: " + HOST + "/v1/design-pack/azcorpus  ·  " + HOST + "/v1/design-pack/azcorpus/download",
     "- Upload (session → Corpus): POST " + HOST + "/v1/ingest  ·  POST " + HOST + "/v1/jeeves/upload",
     "- Human guest HTML: POST /ingest from " + HOST + "/#upload-anonymous (Corpus-only / Lamb Lens).",
-    "- Cap-7 mesh name azcorpus is a design — does NOT resolve to azielcorpuslibrary.net.",
+    "- Plane A UI on this Worker. Cap-7 name inherits design_of the library hub. resolves_to_hub: false.",
     "",
     "## azlibrary (first-class website — Aziel Library, royal purple)",
     "",
@@ -501,15 +627,15 @@ export function aiSurfaceLlmsBlock() {
     "- API pack: " + HOST + "/v1/design-pack/azlibrary  ·  " + HOST + "/v1/design-pack/azlibrary/download",
     "- Upload requires header " + OPERATOR_TOKEN_HEADER + " (env " + OPERATOR_TOKEN_ENV.join(" / ") + "). Never put the token in git/docs/PRs.",
     "- Upload path: POST " + HOST + "/v1/operator/library-ingest  (alias POST " + HOST + "/v1/ingest with the same header)",
-    "- Token writes live hub azlibrary only — not the Cap-7 mesh name.",
+    "- Token writes live hub azlibrary (this site's Aziel Library shelf) only.",
     "",
     "## Mesh pull (qnm / MirageGrid → local cold shelf)",
     "",
-    "1. GET " + HOST + "/bridge.json",
-    "2. GET " + HOST + "/v1/design-pack/azcorpus or /azlibrary — copy pack_sha256 + lockset_tip",
+    "1. GET " + HOST + "/bridge.json — Cap-7 sites: design_of + resolves_to_hub:false + tip/pack hashes",
+    "2. GET " + HOST + "/v1/design-pack/azcorpus or /azlibrary — copy pack_sha256 + lockset_tip + design_of",
     "3. GET " + HOST + "/download?product=azcorpus|azlibrary — counted bytes",
     "4. hash-verify pack_sha256 and lockset_tip fail-closed (bytes↔hash; CROSS-NETWORK-SURVIVAL)",
-    "5. Land on the node's local cold shelf. Do not alias Plane A DNS. Do not write the live hub.",
+    "5. Land on the node's local cold shelf. Do not invent a new public domain. Do not CNAME a mesh name onto a hub hostname.",
     "6. Optional: GET " + HOST + "/v1/docs/{hash}/download for each content_sha256 (receiver-pull bodies)",
     "Local qnsd: https://github.com/AzielEliab/qnm-node. Mesh-side: AZNet / AZBrowser. MirageGrid cite: " + MIRAGEGRID_AZ_GENERATOR,
     "",
@@ -518,11 +644,13 @@ export function aiSurfaceLlmsBlock() {
     "- Products index: GET " + HOST + "/v1/products",
     "- Library MCP: POST " + HOST + "/mcp  tools: " + MCP_TOOLS.join(", "),
     "- Runtime MCP (FragGate door): POST " + HOST + "/runtime/mcp",
-    "- Cap-7 bridge cite (Plane A): " + HOST + "/bridge.json",
+    "- Cap-7 bridge cite (design_of hubs; resolves_to_hub: false): " + HOST + "/bridge.json",
     "- Future MirageGrid /bridge.json (not claimed live): " + MIRAGEGRID_BRIDGE_FUTURE,
-    "Honesty: mesh names are NOT ICANN; azcorpus/azlibrary are first-class website designs; Plane A hubs stay themselves; "
-      + "no Cap-7 live public DNS; no AZ-GEN publish cadence; " + OPERATOR_TOKEN_HEADER + " = live hub azlibrary only; "
-      + "mesh copies = design+content packs. " + CROSS_NETWORK_SURVIVAL + ": " + CROSS_NETWORK_SURVIVAL_RULE,
+    "Honesty: Cap-7 names inherit design_of the four hubs; resolves_to_hub: false; name_may_change: true; public_icann: false; no fifth product; "
+      + "Plane A UI azcorpus/azlibrary stay on this Worker; sister hubs remain azieleliab.com, godlock.uk, hedidntjump.com; "
+      + "no Cap-7 live public DNS; no AZ-GEN publish cadence; "
+      + OPERATOR_TOKEN_HEADER + " = live hub azlibrary only. "
+      + CROSS_NETWORK_SURVIVAL + ": " + CROSS_NETWORK_SURVIVAL_RULE,
     "",
   ].join("\n");
 }
