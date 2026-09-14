@@ -4,7 +4,7 @@ Author: Aziel Eliab only
 Spec id: MESH-CONTINUE-1.0
 Date: 2026-09-14
 License: Apache-2.0
-Amends: MESH-VAULT-1.0, MESH-SPLIT-WIRES-1.0, MESH-COLD-COPY-1.0
+Amends: MESH-VAULT-1.0, MESH-SPLIT-WIRES-1.0, MESH-COLD-COPY-1.0, MESH-REEXPAND-1.0, MESH-REHEAL-1.0
 Neighbors: TUN-WP-0.1, QNM-WP-1.0, NODE-OPS-1.0 phoenix loop, ACT-RECEIPT-1.0, GodLock
 Not a VPN. Not an IP-mask product. Not an untraceable-origin path. Not a hydra of anonymous hosts. Public Worker rollup is counts/status — not the cell. Not live body sync.
 
@@ -39,7 +39,7 @@ No raw A-record hunting. No unmarked IP as a public origin. Pulled hosts are not
 
 Cloudflare already anycasts the Worker. A replacement Worker the operator publishes still answers on the official name only if that name, the Worker, and the account still exist. That Worker remains a counts/status rollup — not the cell. Phoenix is a wait / re-seal after poison or isolation, local to the failed node only, not "bring the .uk node back." QNM / NODE-OPS phoenix does not restore a public .uk or other official hostname and does not climb the mesh back onto the public name.
 
-Sites pulled → public rollup is down → local node can keep verifying and appending from cold copies. A server pull cannot wipe those replicas. The mesh does not climb back onto the public hostname by itself. Data outlives creators.
+Sites pulled → public rollup is down → local node can keep verifying and appending from cold copies. A server pull cannot wipe those replicas. The mesh does not climb back onto the public hostname by itself. Data outlives creators. Re-expand from those archive bytes is MESH-REEXPAND-1.0. Reheal of a poisoned live node is MESH-REHEAL-1.0 (self tip + trusted pull or phoenix-WAIT; never neighbor majority). Do not collapse the two.
 
 ## 4. Optional public pin
 
@@ -51,4 +51,4 @@ Each failover walk mints ACT-RECEIPT-1.0: which official origin missed, which of
 
 ## 6. Cap
 
-Decentralized continuity of records is in scope. Decentralized concealment of hosts is not. Named hosts only. No VPN. No unmarked tunnel hydra. No live body sync. Cold copies survive a pull.
+Decentralized continuity of records is in scope. Decentralized concealment of hosts is not. Named hosts only. No VPN. No unmarked tunnel hydra. No live body sync. Cold copies survive a pull. Re-expand is archive restore. Reheal is not neighbor majority.
