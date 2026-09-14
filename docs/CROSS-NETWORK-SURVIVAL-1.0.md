@@ -6,7 +6,7 @@ Date: 2026-09-14
 License: Apache-2.0
 Umbrella over: MESH-SPLIT-WIRES-1.0, MESH-COLD-COPY-1.0, die-with-pull (PR #87), MESH-REEXPAND-1.0, MESH-REHEAL-1.0
 Amends: MESH-VAULT-1.0, MESH-CONTINUE-1.0, TUN-BOOT-1.0, TUN-WP-0.1
-Neighbors: ACT-RECEIPT-1.0, ChainLock CL-0.4, QNM-WP-1.0, NODE-OPS-1.0, QNS-CD-1.0, QNM-BUILD-1.0
+Neighbors: ACT-RECEIPT-1.0, ChainLock CL-0.4, QNM-WP-1.0, NODE-OPS-1.0, QNS-CD-1.0, QNM-BUILD-1.0, NO-LIE-NO-REWRITE-1.0
 Cited on: GET /v1/mesh · /v1/mesh/status · /v1/mesh/nodes (library Worker rollup)
 Not a VPN. Not crawler resurrection. Not neighbor-majority heal. Not a claim that the public Worker is the cell.
 

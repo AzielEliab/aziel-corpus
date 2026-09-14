@@ -3,8 +3,10 @@
 Author: Aziel Eliab  
 Origin: https://www.azielcorpuslibrary.net/receipts  
 Spec id: ACT-RECEIPT-1.0  
-Neighbors: INGEST-AS-RECEIPT-1.0, RE-EXPAND-FROM-ARCHIVE-1.0, MESH-COLD-COPY-1.0, MESH-SPLIT-WIRES-1.0  
+Neighbors: INGEST-AS-RECEIPT-1.0, RE-EXPAND-FROM-ARCHIVE-1.0, MESH-COLD-COPY-1.0, MESH-SPLIT-WIRES-1.0, NO-LIE-NO-REWRITE-1.0  
 Not a Softwares-tab product. Not GodLock. Not TemporalLock. Not local ChainLock.
+Neighbors: NO-LIE-NO-REWRITE-1.0, CROSS-NETWORK-SURVIVAL-1.0, MESH-REEXPAND-1.0, MESH-REHEAL-1.0, INGEST-AS-RECEIPT-1.0
+No rewrite key. A published receipt is not mutated in place.
 
 ## What already existed
 

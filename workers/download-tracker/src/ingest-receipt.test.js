@@ -60,6 +60,7 @@ test("published lockset tip is SHA-256 of the lockset bytes", () => {
   assert.equal(locksetBytes(), canonicalJson(LOCKSET));
   assert.match(locksetFile(), /CROSS-NETWORK-SURVIVAL/);
   assert.match(locksetFile(), /NO-LIE \/ NO-REWRITE/);
+  assert.match(locksetFile(), /NO-LIE-NO-REWRITE-1\.0/);
   assert.match(locksetFile(), /bytes↔hash/);
   const githubBytes = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../../../docs/lockset.json"), "utf8");
   assert.equal(githubBytes, locksetFile());
@@ -160,6 +161,7 @@ test("cite.json, llms.txt, ai.txt, robots, sitemap carry the tip and keep crawle
   assert.equal(cite.survive_rule, SURVIVE_RULE);
   assert.equal(cite.cross_network_survival, CROSS_NETWORK_SURVIVAL);
   assert.equal(cite.cross_network_survival_rule, CROSS_NETWORK_SURVIVAL_RULE);
+  assert.equal(cite.no_lie_spec, "NO-LIE-NO-REWRITE-1.0");
   assert.equal(cite.no_lie_no_rewrite, NO_LIE_NO_REWRITE);
   assert.equal(cite.no_lie_no_rewrite_rule, NO_LIE_NO_REWRITE_RULE);
   assert.equal(cite.lockset_tip, LOCKSET_TIP);

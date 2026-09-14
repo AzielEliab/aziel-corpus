@@ -20,6 +20,8 @@ import {
   MESH_NEED_BEARER,
   MESH_NOTE,
   MESH_OK,
+  NO_LIE,
+  NO_LIE_SPEC,
   QNS_CD,
   QNS_CD_SPEC,
   SPLIT_WIRES,
@@ -38,8 +40,12 @@ import {
   judgeCrawlerNotResurrection,
   judgeEquivocation,
   judgePartitionEvent,
+  judgeNoLie,
+  judgeNoRewrite,
   judgePoison,
   judgeReexpandFromArchive,
+  judgeSurvivalKit,
+  judgeVerifyWithoutVoice,
   judgeRehealPoisonedNode,
   judgeSurvivalBytesHash,
   judgeUpdateProof,
@@ -49,6 +55,8 @@ import {
   mayEmitLast,
   mayUnsendUnverifiedBody,
   meshGrowsItselfFromIndex,
+  networkNeverLies,
+  oneTunnelIsKit,
   crawlersReexpand,
   neighborMajorityReheals,
   meshDisableRefuseDoc,
@@ -62,6 +70,7 @@ import {
   proxyMeshRequest,
   publicWorkerIsCell,
   publicWorkerRollupKind,
+  rewriteKeyExists,
   sanitizeBearer,
   serverPullWipesColdReplica,
   synthesizeMeshRefuse,
@@ -380,6 +389,36 @@ test("CROSS-NETWORK-SURVIVAL-1.0 umbrella: bytes↔hash; crawlers are not resurr
   assert.match(refuse.local_node_note, /not neighbor majority/);
 });
 
+test("NO-LIE-NO-REWRITE-1.0: never lie to survive; cites live ingest tip", () => {
+  assert.equal(NO_LIE_SPEC, "NO-LIE-NO-REWRITE-1.0");
+  assert.equal(NO_LIE.spec, "NO-LIE-NO-REWRITE-1.0");
+  assert.equal(NO_LIE.network_never_lies, true);
+  assert.equal(NO_LIE.rewrite_key, false);
+  assert.equal(NO_LIE.live_lockset_id, "AZLOCK-INGEST-REEXPAND-1.0");
+  assert.equal(networkNeverLies(), true);
+  assert.equal(rewriteKeyExists(), false);
+  assert.equal(oneTunnelIsKit(), false);
+  assert.equal(judgeNoLie({ lie_to_survive: true }).reason, "network-never-lies");
+  assert.equal(judgeNoRewrite({ mutate_published_tip: true }).reason, "no-privileged-mutate-of-published-tip");
+  assert.equal(judgeSurvivalKit({ one_cloudflare_tunnel_only: true }).reason, "copies-must-span-independent-shelves");
+  assert.equal(judgeVerifyWithoutVoice({ author_voice_required: true }).reason, "verify-without-author-voice");
+  assert.match(MESH_NOTE, /NO-LIE-NO-REWRITE-1\.0/);
+  assert.match(MESH_NOTE, /never lies to stay alive/);
+  assert.match(MESH_NOTE, /AZLOCK-INGEST-REEXPAND-1\.0/);
+  assert.match(MESH_NOTE, /CROSS-NETWORK-SURVIVAL-1\.0/);
+  assert.doesNotMatch(MESH_NOTE, /AZLOCK-NO-LIE-NO-REWRITE/);
+  assert.doesNotMatch(MESH_NOTE, /15:20/);
+  const on = meshOnDoc();
+  assert.equal(on.no_lie_spec, "NO-LIE-NO-REWRITE-1.0");
+  assert.equal(on.no_lie.rewrite_key, false);
+  assert.equal(on.cross_network_survival_spec, "CROSS-NETWORK-SURVIVAL-1.0");
+  const refuse = meshRefuseDoc(MESH_DISABLE_REFUSED, "Public suite presence stays on.");
+  assert.equal(refuse.no_lie_spec, "NO-LIE-NO-REWRITE-1.0");
+  assert.match(refuse.local_node_note, /never lies to stay alive/);
+  assert.doesNotMatch(JSON.stringify(refuse), /15:20/);
+  assert.doesNotMatch(JSON.stringify(refuse), BANNED);
+});
+
 test("mesh default ON; identity Aziel Eliab only", () => {
   const on = meshOnDoc();
   assert.equal(on.enabled, true);
@@ -511,6 +550,7 @@ test("GET /v1/mesh stays ON when runtime has no mesh", async () => {
   assert.equal(body.reexpand_archive_spec, "REEXPAND-ARCHIVE-1.0");
   assert.equal(body.reheal_spec, "MESH-REHEAL-1.0");
   assert.equal(body.cross_network_survival_spec, "CROSS-NETWORK-SURVIVAL-1.0");
+  assert.equal(body.no_lie_spec, "NO-LIE-NO-REWRITE-1.0");
   assert.equal(body.cross_network_survival.umbrella, true);
   assert.equal(body.public_worker_is_cell, false);
   assert.equal(body.cold_copy.vault_on_transfer, "cold-multiply");
@@ -849,6 +889,7 @@ test("OpenAPI, MCP, llms, cite, robots, sitemap cite mesh paths", async () => {
   assert.match(spec.paths["/v1/mesh"].get.summary, /MESH-COLD-COPY-1\.0/);
   assert.match(spec.paths["/v1/mesh"].get.summary, /MESH-REEXPAND-1\.0/);
   assert.match(spec.paths["/v1/mesh"].get.summary, /MESH-REHEAL-1\.0/);
+  assert.match(spec.paths["/v1/mesh"].get.summary, /NO-LIE-NO-REWRITE-1\.0/);
   assert.doesNotMatch(spec.paths["/v1/mesh"].get.summary, /default off/i);
   assert.match(spec.paths["/v1/mesh"].get.summary, /Aziel Eliab/);
 
@@ -912,6 +953,7 @@ test("human chrome shows Live Nodes · N without mesh-off copy", () => {
   assert.match(html, /Cold copies survive a pull/);
   assert.match(html, /Re-expand is archive restore/);
   assert.match(html, /never neighbor majority/);
+  assert.match(html, /NO-LIE-NO-REWRITE-1\.0/);
   assert.match(html, /Read-only QNM ON/);
   assert.match(html, /GET never enables/);
   assert.doesNotMatch(html, /Default off until runtime enable/i);
