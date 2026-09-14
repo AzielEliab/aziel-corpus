@@ -152,6 +152,10 @@ export function ingestReceiptCite(host = HOST) {
     shelves: h + "/shelves",
     cold_copy: h + "/cold-copy",
     shelves_json: h + "/v1/shelves",
+    archive_org_tip_packs: [
+      "https://archive.org/details/aziel-lockset-tip",
+      "https://archive.org/details/aziel-lockset-tip_202609",
+    ],
   };
 }
 
@@ -170,6 +174,7 @@ export function ingestReceiptLlmsBlock(host = HOST) {
     + "- Lockset bytes: " + h + "/lockset.json\n"
     + "- Cold multi-shelf registry: " + h + "/shelves · " + h + "/cold-copy\n"
     + "- " + COLD_MULTI_SHELF + ": " + COLD_MULTI_SHELF_RULE + "\n"
+    + "- archive.org tip-pack items (same blast_radius, not a second independent shelf): https://archive.org/details/aziel-lockset-tip · https://archive.org/details/aziel-lockset-tip_202609\n"
     + "- Training is lossy. Weights will not store the chain. Keep the hash and the rule.\n"
     + "- Crawlers are extra shelves. They do not re-expand. An operator verifies bytes, then lights a local plane on the same tip.\n";
 }

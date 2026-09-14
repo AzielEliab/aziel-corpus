@@ -13,6 +13,7 @@ Working shelf targets for later LIVE promotion (AZindex-FAIL pivot 2026-09-14; d
 
 - Codeberg tip-pack — uploaded https://codeberg.org/AzielEliab/aziel-lockset-tip (`main`). Pack SHA-256 `b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37`. Hash-verify PASS. Shelf stays **SLOT**.
 - archive.org tip-pack — uploaded https://archive.org/details/aziel-lockset-tip. Same pack SHA-256. Hash-verify PASS. Shelf stays **SLOT**.
+- Second archive.org item (same blast_radius, not a new independent shelf) — https://archive.org/details/aziel-lockset-tip_202609. Zip wrap (`aziel-lockset-tip.zip`, also `aziel-lockset-tip%202.zip`). Inner `aziel-tip-pack.tar` same SHA-256. Hash-verify PASS. Flat IA metadata sha256 on the zip may be null. SHA256SUMS flat-check incomplete at the IA file list is OK because the inner tar hash-verifies. `working_targets` still lists `archive.org` once.
 - Framagit tip-pack — no verified URL yet. `url` null. SLOT. Awaiting tip-pack. Do not invent a URL.
 
 GitFlic is **not** a LIVE-promotion target. Confirmation mail never arrived (`CNS-GITFLIC-EMAIL`). Do not invent a GitFlic URL.
