@@ -3,10 +3,11 @@
  * COLD-MULTI-SHELF-1.0 CLI helpers.
  * Author: Aziel Eliab only.
  */
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, copyFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import {
   COLD_MULTI_SHELF_SPEC,
   CORE_DOC_PATHS,
@@ -84,4 +85,81 @@ export function verifyFileAgainstPack(absPath, pack, relPath) {
   const tip = verifyPasteHash(got);
   if (tip.yes) return { ...tip, path: relPath || absPath, via: "lockset-tip" };
   return { ...verifyManifestEntry(relPath, got, pack.manifest), via: "manifest", file_sha256: got };
+}
+
+export function writeSha256Sums(dir, names) {
+  const lines = [];
+  for (const name of names) {
+    lines.push(sha256File(join(dir, name)) + "  " + name);
+  }
+  const body = lines.join("\n") + "\n";
+  writeFileSync(join(dir, "SHA256SUMS"), body);
+  return body;
+}
+
+export function verifySha256Sums(dir) {
+  const raw = readFileSync(join(dir, "SHA256SUMS"), "utf8");
+  const rows = [];
+  for (const line of raw.split("\n")) {
+    const m = line.match(/^([0-9a-f]{64})  (.+)$/);
+    if (!m) continue;
+    const got = sha256File(join(dir, m[2]));
+    rows.push({ file: m[2], published: m[1], pasted: got, yes: got === m[1] });
+  }
+  return { ok: rows.length > 0 && rows.every((r) => r.yes), rows };
+}
+
+export function writeVerifyAirgapScript(dir) {
+  const script = `#!/bin/sh
+# COLD-MULTI-SHELF-1.0 Plane C verify — Aziel Eliab only
+# Survival = bytes↔hash. No invented DOI. No AZ-GEN live ICANN publish.
+set -e
+DIR=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+cd "$DIR"
+TIP="${LOCKSET_TIP}"
+if command -v sha256sum >/dev/null 2>&1; then
+  sha256sum -c SHA256SUMS
+else
+  node --input-type=module -e "import { verifySha256Sums } from 'file://$DIR/../../index.mjs'; const r = verifySha256Sums('$DIR'); if (!r.ok) { console.error(r); process.exit(2); }"
+fi
+if [ -f lockset.json ]; then
+  echo "lockset present; published tip $TIP"
+fi
+echo "yes — SHA256SUMS match (Plane C airgap verify)"
+`;
+  writeFileSync(join(dir, "verify-airgap.sh"), script, { mode: 0o755 });
+  return join(dir, "verify-airgap.sh");
+}
+
+export function writeAirgap(outDir, pack = buildExport()) {
+  mkdirSync(outDir, { recursive: true });
+  writeExport(outDir, pack);
+  copyFileSync(
+    join(REPO_ROOT, "tools/cold_shelf/ZENODO-TIP-PACK-CHECKLIST.md"),
+    join(outDir, "ZENODO-TIP-PACK-CHECKLIST.md"),
+  );
+  const content = [
+    "lockset.json",
+    "ingest-as-receipt.json",
+    "manifest.json",
+    "registry.json",
+    "export.json",
+    "ZENODO-TIP-PACK-CHECKLIST.md",
+  ];
+  writeVerifyAirgapScript(outDir);
+  content.push("verify-airgap.sh");
+  writeSha256Sums(outDir, content);
+  const tarName = "aziel-tip-pack.tar";
+  const tar = spawnSync("tar", ["-cf", tarName, ...content, "SHA256SUMS"], { cwd: outDir, encoding: "utf8" });
+  if (tar.status !== 0) {
+    throw new Error(tar.stderr || "tar failed");
+  }
+  return {
+    dir: outDir,
+    tar: join(outDir, tarName),
+    sums: join(outDir, "SHA256SUMS"),
+    verify: join(outDir, "verify-airgap.sh"),
+    lockset_tip: pack.lockset_tip,
+    files: content.slice(),
+  };
 }

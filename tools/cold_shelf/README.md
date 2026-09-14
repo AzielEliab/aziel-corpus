@@ -6,14 +6,20 @@ Executable CROSS-NETWORK-SURVIVAL pack. Survival is bytes↔hash. This is not an
 
 ```bash
 node tools/cold_shelf/cli.mjs export [--out DIR]
+node tools/cold_shelf/cli.mjs airgap [--out DIR]
 node tools/cold_shelf/cli.mjs verify --hash <64-hex>
 node tools/cold_shelf/cli.mjs verify --file docs/lockset.json
 node tools/cold_shelf/cli.mjs registry
 ```
 
-- **export** writes lockset tip, ingest-as-receipt JSON, SHA-256 manifests for identity/core law docs, and the honest shelf registry.
+Planes (NO-FAN): **A** = one CF/GitHub tunnel, four host mirrors. **B** = Zenodo tip-pack SLOT (`doi` null). **C** = USB airgap tarball + SHA256SUMS + verify script (primary); optional Codeberg/GitLab SLOT (no URL).
+
+- **export** writes lockset tip, ingest-as-receipt JSON, SHA-256 manifests, and the honest registry.
+- **airgap** writes the Plane C pack (tarball + `SHA256SUMS` + `verify-airgap.sh`).
 - **verify** is cheap yes/no against the published lockset tip (`AZLOCK-INGEST-REEXPAND-1.0`).
-- **registry** lists `zenodo_doi | git_mirror | ipfs_cid | archive_org | usb_airgap | other` with `live | slot | refused`.
+- **registry** lists planes A/B/C and `live | slot | refused` kinds.
+
+Plane B checklist: `ZENODO-TIP-PACK-CHECKLIST.md`. Do not invent a DOI. Paper Zenodo records are not the tip-pack unless hash-verify proves they carry the tip.
 
 Do not invent IPFS CIDs or archive.org items. Lockset `doi` stays null. AZ Generator / MirageGrid Cap-7 live ICANN publish is not this repo. Neighbor-vote heal is refused.
 

@@ -23,9 +23,9 @@ This GitHub file is a crawler index for AzielEliab/aziel-corpus. Prefer the live
 - Lockset bytes: https://www.azielcorpuslibrary.net/lockset.json
 - Training is lossy. Weights will not store the chain. Keep the hash and the rule.
 - Crawlers are extra shelves. They do not re-expand. An operator verifies bytes, then lights a local plane on the same tip.
-- COLD-MULTI-SHELF-1.0: ≥3 independent shelves; survival = bytes↔hash; crawlers are extra shelves not re-expand; training residue is rumor; never claim live unless verify passes.
+- COLD-MULTI-SHELF-1.0 planes A/B/C: A=one CF/GitHub tunnel (4 host mirrors, not 4 shelves). B=Zenodo tip-pack SLOT (doi null). C=USB airgap SLOT + optional forge SLOT.
 - Shelf registry: https://www.azielcorpuslibrary.net/shelves · https://www.azielcorpuslibrary.net/cold-copy
-- CLI: node tools/cold_shelf/cli.mjs export | verify --hash <64-hex>
+- CLI: node tools/cold_shelf/cli.mjs export | verify --hash <64-hex> | airgap
 
 ## Identity / entity graph
 

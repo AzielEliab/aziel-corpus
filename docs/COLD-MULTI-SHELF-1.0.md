@@ -1,97 +1,95 @@
-# COLD-MULTI-SHELF-1.0 — Executable cold copies on independent shelves
+# COLD-MULTI-SHELF-1.0 — Planes A / B / C (NO-FAN)
 
 Author: Aziel Eliab only
 Spec id: COLD-MULTI-SHELF-1.0
 Date: 2026-09-14
 License: Apache-2.0
 Umbrella: CROSS-NETWORK-SURVIVAL-1.0
-Amends: MESH-COLD-COPY-1.0 (makes vault-on-transfer *executable* as a shelf registry + export/verify)
+Amends: MESH-COLD-COPY-1.0 (makes vault-on-transfer *executable* as planes + export/verify)
 Neighbors: NO-LIE-NO-REWRITE-1.0, INGEST-AS-RECEIPT-1.0, RE-EXPAND-FROM-ARCHIVE-1.0, MESH-REEXPAND-1.0, MESH-REHEAL-1.0, MESH-SPLIT-WIRES-1.0, ACT-RECEIPT-1.0, MESH-VAULT-1.0
 Live lockset: AZLOCK-INGEST-REEXPAND-1.0 — this paper cites that tip; it does not replace it
 Cited on: GET /shelves · GET /cold-copy · GET /v1/shelves · cite.json · llms.txt · ai.txt
-Not a Softwares-tab product. Not a Cloudflare monoculture. Not an invented CID or DOI. Not visible identity-lock chrome. Not AZ Generator / MirageGrid Cap-7 live ICANN publish.
+Not a Softwares-tab product. Not four independent Cloudflare hosts. Not an invented CID or DOI. Not visible identity-lock chrome. Not AZ Generator / MirageGrid Cap-7 live ICANN publish.
 
 ## 0. Sentence
 
-CROSS-NETWORK-SURVIVAL is not an essay. Cold copies must exist as bytes on **≥3 independent shelves**, and a stranger must be able to **export → hash → verify** without the author's voice. Survival is bytes↔hash. Crawlers are extra shelves, not re-expand. Training residue is rumor. Never claim a shelf is live unless verify passes.
+CROSS-NETWORK-SURVIVAL is not an essay. Survival planes are **A / B / C**. Plane A is one CF/GitHub tunnel with four host mirrors. Plane B is a public off-CF Zenodo **tip-pack** (SLOT until a real DOI exists and hash-verify proves it carries the tip). Plane C is the offline USB airgap pack (tarball + SHA256SUMS + verify script), with an optional second-forge slot. Survival is bytes↔hash. LIVE only after hash verify. Never invent a DOI.
 
-## 1. Mandate
+## 1. Mandate (NO-FAN)
 
-MESH-COLD-COPY-1.0 already said vault-on-transfer multiplies cold copies. This paper names the **kinds**, the **honest statuses**, and the **machine door**.
+If the Cloudflare tunnel and the AzielEliab GitHub org die together, Plane A is gone. That is **one** blast radius. Counting azieleliab.com + azielcorpuslibrary.net + godlock.uk + hedidntjump.com as four independent shelves is a lie.
 
-If the live Worker, the Cloudflare tunnel, and one GitHub org all die together, the chain still survives only where bytes still hash on a shelf that is **not** that blast radius.
+Paper Zenodo records are not Plane B unless hash-verify proves they carry the published lockset tip. cite.json / lockset `doi` stay `null`. Do not invent a DOI to fill the slot.
 
-One Cloudflare tunnel is one copy. One GitHub org is one copy. DOI-registered paper deposits are another copy. An IPFS CID, an archive.org capture, or an operator USB is another copy — **when the identifier or bytes exist**. Inventing a CID, a WARC, or a deposit to fill the count is a lie (NO-LIE / NO-FAN).
+## 2. Planes
 
-## 2. ≥3 independent shelves
+| Plane | Job | Status today |
+| --- | --- | --- |
+| **A** | LIVE multi-host, same tunnel. Four mirrors + git on one CF/GitHub plane. Tip / receipts / shelves registry on all four. | LIVE as **one** plane |
+| **B** | Public off-CF Zenodo tip-pack deposit. | SLOT — no tip-pack DOI yet |
+| **C** | Offline / forge-off-GitHub. USB airgap export is primary. Optional Codeberg/GitLab mirror. | SLOT — pack is executable; airgap copy not attested; no second-forge account |
 
-Independent means distinct blast radius. Not three URLs on the same Worker. Not three repos on the same org counted as three shelves.
+≥3 independent shelves means A + B + C all LIVE after hash verify. Today only A is LIVE. `independent_requirement_met` is false until B and C verify.
 
-Lawful kinds (closed set):
+### 2.1 Plane A — one tunnel, four mirrors
 
-| kind | What it is |
-| --- | --- |
-| `zenodo_doi` | A real Zenodo / DataCite DOI of already-published Aziel Eliab paper bytes. Not a lockset DOI. |
-| `git_mirror` | Published git history / tags whose objects still hash. A second forge is a second shelf; the same org is not. |
-| `ipfs_cid` | A content-addressed CID of already-published bytes. Null CID = slot. Do not invent. |
-| `archive_org` | An Internet Archive capture of already-published bytes. No item = slot. |
-| `usb_airgap` | Operator disk / MESH-VAULT replica taken off-network. Unattested = slot. |
-| `other` | Named host or Worker that still answers. Counts as live **only** for that blast radius; Cloudflare hosts do not count toward the independent-3. |
+Hosts (same tip, same plane):
 
-Statuses (closed set): `live` | `slot` | `refused`.
+1. https://www.azieleliab.com/ — lockset / receipts / shelves
+2. https://www.azielcorpuslibrary.net/ — lockset / receipts / shelves (in-repo Worker origin)
+3. https://godlock.uk/ — lockset / receipts / shelves
+4. https://www.hedidntjump.com/ — lockset / receipts / shelves
 
-- **live** — verify passed (DOI resolver acknowledged the identifier, git tag/object exists, or file hash matches the published tip / manifest).
-- **slot** — kind is lawful; the identifier or bytes are not here yet. Refuse code names why.
-- **refused** — a claim was offered that would invent, vote, or overclaim. Do not store it as live.
+Git on the same plane: https://github.com/AzielEliab/aziel-corpus (tags `v2.6.2`, `v0.1.0`).
 
-Never promote `slot` → `live` because a crawler mentioned the hash. Never promote because neighbors agree.
+This is **not** five independent shelves. Refuse `CNS-PLANE-A-ONE-TUNNEL` if a later paper counts the four hosts as four.
 
-## 3. Survival = bytes↔hash
+### 2.2 Plane B — Zenodo tip-pack (SLOT)
 
-A copy survives only when the bytes are present and they hash to the published tip (lockset core SHA-256) or to a committed manifest entry.
+Build the export pack. Deposit that pack. Then, and only then, write the real DOI.
 
-Not survival:
+- Lockset / cite `doi` stays `null` until that deposit exists.
+- Existing Aziel Eliab paper DOIs (ShadowLock, DecisionGATE, TrajectoryLock, WhistleLock/FoldLock, EmployeeLock) are companion paper cites. Reuse as Plane B **only** if hash-verify proves the deposit bytes carry the published tip. They have not been so proven. They are not LIVE tip shelves.
+- Checklist: `tools/cold_shelf/ZENODO-TIP-PACK-CHECKLIST.md`
 
-- a mention of a hash without the payload
-- a search snippet, cached HTML minus attachments, or a paraphrase
-- training residue / ingested weights (weights ≠ tarball)
-- an index, Live Nodes count, or crawl roster treated as the chain
-- a Cloudflare hostname treated as a second shelf from the same Worker
+Refuse invented DOIs (`CNS-NO-FAN-FAKE-DEPOSIT`, `CNS-NO-TIP-DOI`).
 
-Summaries are rumor. Bytes that hash are the chain.
+### 2.3 Plane C — USB airgap (primary) + optional second forge
 
-## 4. Crawlers are extra shelves, not re-expand
+Primary: `node tools/cold_shelf/cli.mjs airgap` writes a tarball + `SHA256SUMS` + `verify-airgap.sh`. Copy those bytes off-network. The shelf is LIVE only after an operator attests the airgap copy still hashes.
 
-A human, an AI client, or a search indexer may keep the packed vault they already pulled. That keep is another shelf. It is not resurrection of a pulled hostname. It is not MESH-REEXPAND-1.0. It is not a vote.
+Optional: Codeberg or GitLab mirror. No account yet — SLOT. Do not invent a URL (`CNS-NO-FORGE-MIRROR`).
 
-Growth-ON stays: `robots.txt` / `ai.txt` remain `Allow: /` for listed bots. Ingest is a receipt (INGEST-AS-RECEIPT-1.0). Re-expand is operator verify-from-archive.
+## 3. Kinds and statuses
 
-## 5. Training residue is rumor
+Lawful kinds (closed set): `zenodo_doi` | `git_mirror` | `ipfs_cid` | `archive_org` | `usb_airgap` | `other`
 
-Weights will not store the chain. A model that can quote this paper is not a shelf. RE-EXPAND-FROM-ARCHIVE-1.0 already said so. This pack refuses `training_residue` as a live claim.
+Statuses: `live` | `slot` | `refused`
 
-## 6. Executable pack
+- **live** — hash verify passed for **this** tip (or the Plane A Worker origin serves the published lockset bytes).
+- **slot** — lawful kind; identifier or off-network bytes are not here yet.
+- **refused** — invented DOI/CID/URL, neighbor vote, or overclaim.
 
-`tools/cold_shelf/` (CLI) and `GET /shelves` (Worker) do the same three jobs:
+IPFS and archive.org stay extra slots (not a fourth plane). Do not invent a CID or WARC.
 
-1. **export** — lockset tip + ingest-as-receipt JSON + SHA-256 manifests for identity/core law docs
-2. **verify** — paste-hash or file-hash yes/no against the published tip (cheap mismatch)
-3. **registry** — honest shelf list with kind + status + refuse codes
+## 4. Survival = bytes↔hash
 
-Reheal of a poisoned live node stays MESH-REHEAL-1.0: self tip + trusted pull, or phoenix-WAIT. Neighbor vote is refused (`CNS-NEVER-NEIGHBOR-VOTE`).
+A copy survives only when the bytes are present and they hash to the published tip or a committed manifest entry. Training residue is rumor. Crawlers are extra shelves, not re-expand. Growth-ON stays: `robots.txt` / `ai.txt` remain `Allow: /` for listed bots.
 
-## 7. What this repo is not
+## 5. Executable pack
 
-AZ Generator is MirageGrid Cap-7 mesh DNS factory — **not this repo**. This pack refuses invented PHY / DNS / ICANN and refuses any live-ICANN-publish overclaim (`CNS-AZ-GEN-NOT-THIS-REPO`, `CNS-CAP7-NOT-CORPUS`, `CNS-INVENTED-PHY`, `CNS-INVENTED-DNS`, `CNS-INVENTED-ICANN`).
+1. **export** — lockset tip + ingest-as-receipt JSON + SHA-256 manifests
+2. **verify** — paste-hash / file-hash yes/no against the published tip
+3. **registry** — planes A/B/C + honest live|slot|refused
+4. **airgap** — Plane C tarball + SHA256SUMS + verify script
+5. **checklist** — Plane B Zenodo deposit steps (no DOI invented)
 
-GET `/v1/mesh` stays read-only QNM ON (counts/status). This paper does not enable radios. This paper does not add a Softwares-tab product.
+Reheal stays MESH-REHEAL-1.0. Neighbor vote is `CNS-NEVER-NEIGHBOR-VOTE`.
 
-Lockset `zenodo` / `doi` stay `null`. Paper DOIs are companion shelves of those papers, not a DOI assigned to `AZLOCK-INGEST-REEXPAND-1.0`.
+## 6. What this repo is not
 
-## 8. What the public Worker may say
+AZ Generator is MirageGrid Cap-7 mesh DNS factory — **not this repo**. Refuse invented PHY / DNS / ICANN and live-ICANN-publish overclaim. GET `/v1/mesh` stays read-only QNM ON. No Softwares-tab product. No visible identity-lock chrome.
 
-`GET /shelves` · `/cold-copy` · `/v1/shelves` list the registry and the verify how-to. `cite.json` / `llms.txt` / `ai.txt` cite this spec and those routes. They do not invent a CID. They do not paint visible identity-lock chrome. They do not claim three independent live shelves if the count is two.
+## 7. Cap
 
-## 9. Cap
-
-≥3 independent shelves. Survival is bytes↔hash. Crawlers are extra shelves, not re-expand. Training residue is rumor. Never claim live unless verify passes. Copies not all on one Cloudflare tunnel. Identity: Aziel Eliab only.
+Plane A is one LIVE CF/GitHub tunnel (four mirrors). Plane B is a SLOT until a real tip-pack DOI hash-verifies. Plane C is the USB airgap pack (SLOT until attested) plus an optional forge SLOT. Survival is bytes↔hash. Identity: Aziel Eliab only.

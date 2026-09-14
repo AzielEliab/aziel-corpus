@@ -12,8 +12,10 @@ import {
   REFUSE,
   buildExport,
   writeExport,
+  writeAirgap,
   verifyFileAgainstPack,
   verifyPasteHash,
+  verifySha256Sums,
   shelfRegistryDoc,
   judgeAzGenOverclaim,
   judgeInventedDeposit,
@@ -45,8 +47,26 @@ if (cmd === "export") {
     files: Object.keys(pack.manifest.files),
     independent_live_count: pack.registry.independent_live_count,
     independent_requirement_met: pack.registry.independent_requirement_met,
+    planes: pack.registry.planes,
   }, null, 2));
   process.exit(0);
+}
+
+if (cmd === "airgap") {
+  const out = arg("--out") || resolve(REPO_ROOT, "tools/cold_shelf/out/airgap");
+  const pack = buildExport();
+  const air = writeAirgap(out, pack);
+  const sums = verifySha256Sums(out);
+  console.log(JSON.stringify({
+    ok: sums.ok,
+    spec: pack.spec,
+    plane: "C",
+    lockset_tip: air.lockset_tip,
+    out,
+    tar: air.tar,
+    sums_yes: sums.ok,
+  }, null, 2));
+  process.exit(sums.ok ? 0 : 2);
 }
 
 if (cmd === "verify") {
@@ -89,9 +109,10 @@ if (cmd === "refuse") {
 
 console.log(`COLD-MULTI-SHELF-1.0
   export [--out DIR]     lockset + ingest-as-receipt + SHA-256 manifest + registry
+  airgap [--out DIR]     Plane C tarball + SHA256SUMS + verify-airgap.sh
   verify --hash HEX      yes/no vs published lockset tip
   verify --file PATH     file SHA-256 vs tip or core-doc manifest
-  registry               honest live|slot|refused shelves
+  registry               planes A/B/C + honest live|slot|refused
   refuse                 print PHY/DNS/ICANN / neighbor-vote / AZ-GEN refuse codes
 `);
 process.exit(has("--help") || cmd === "help" ? 0 : 1);

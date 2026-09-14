@@ -7,6 +7,7 @@
 import {
   AUTHOR,
   CITE_RULE,
+  COLD_MULTI_SHELF_RULE,
   CROSS_NETWORK_SURVIVAL,
   CROSS_NETWORK_SURVIVAL_RULE,
   INGEST_SPEC,
@@ -28,13 +29,90 @@ import {
 import { sha256hex } from "./ledger.js";
 import { judgeRehealPoisonedNode } from "./mesh.js";
 
-export { AUTHOR, LOCKSET_ID, LOCKSET_TIP, PUBLISHED_TIP } from "./ingest-receipt.js";
+export { AUTHOR, COLD_MULTI_SHELF_RULE, LOCKSET_ID, LOCKSET_TIP, PUBLISHED_TIP } from "./ingest-receipt.js";
 
 export const COLD_MULTI_SHELF_SPEC = "COLD-MULTI-SHELF-1.0";
-export const COLD_MULTI_SHELF_RULE =
-  "≥3 independent shelves; survival = bytes↔hash; crawlers are extra shelves not re-expand; training residue is rumor; never claim live unless verify passes.";
 
 const HOST = "https://www.azielcorpuslibrary.net";
+
+export const PLANES = Object.freeze(["A", "B", "C"]);
+
+export const PLANE_A_MIRRORS = Object.freeze([
+  Object.freeze({
+    id: "azieleliab-com",
+    origin: "https://www.azieleliab.com",
+    lockset: "https://www.azieleliab.com/lockset.json",
+    receipts: "https://www.azieleliab.com/receipts",
+    shelves: "https://www.azieleliab.com/shelves",
+    verified_in_this_repo: false,
+  }),
+  Object.freeze({
+    id: "azielcorpuslibrary-net",
+    origin: HOST,
+    lockset: HOST + "/lockset.json",
+    receipts: HOST + "/receipts",
+    shelves: HOST + "/shelves",
+    verified_in_this_repo: true,
+  }),
+  Object.freeze({
+    id: "godlock-uk",
+    origin: "https://godlock.uk",
+    lockset: "https://godlock.uk/lockset.json",
+    receipts: "https://godlock.uk/receipts",
+    shelves: "https://godlock.uk/shelves",
+    verified_in_this_repo: false,
+  }),
+  Object.freeze({
+    id: "hedidntjump-com",
+    origin: "https://www.hedidntjump.com",
+    lockset: "https://www.hedidntjump.com/lockset.json",
+    receipts: "https://www.hedidntjump.com/receipts",
+    shelves: "https://www.hedidntjump.com/shelves",
+    verified_in_this_repo: false,
+  }),
+]);
+
+/** Paper DOIs cited in-repo. Not Plane B unless hash-verify proves they carry the tip. */
+export const PAPER_DEPOSITS = Object.freeze([
+  Object.freeze({
+    doi: "10.5281/zenodo.21435707",
+    payload: "ShadowLock paper",
+    in_repo_cite: "dossiers/shadowlock-aziel-dossier-1.0.md",
+    tip_verified: false,
+    reuse_as_plane_b: false,
+  }),
+  Object.freeze({
+    doi: "10.5281/zenodo.21435730",
+    payload: "DecisionGATE paper",
+    in_repo_cite: "dossiers/decisiongate-aziel-dossier-1.0.md",
+    tip_verified: false,
+    reuse_as_plane_b: false,
+  }),
+  Object.freeze({
+    doi: "10.5281/zenodo.22258015",
+    payload: "TrajectoryLock TL-WP-0.1",
+    in_repo_cite: "dossiers/trajectorylock-aziel-dossier-1.0.md",
+    tip_verified: false,
+    reuse_as_plane_b: false,
+  }),
+  Object.freeze({
+    doi: "10.5281/zenodo.22257762",
+    payload: "WhistleLock WL-WP-0.1 / FoldLock FL-WP-0.3",
+    in_repo_cite: Object.freeze([
+      "dossiers/whistlelock-aziel-dossier-1.0.md",
+      "dossiers/foldlock-aziel-dossier-1.0.md",
+    ]),
+    tip_verified: false,
+    reuse_as_plane_b: false,
+  }),
+  Object.freeze({
+    doi: "10.5281/zenodo.22257493",
+    payload: "EmployeeLock EL-WP-0.1",
+    in_repo_cite: "dossiers/employeelock-aziel-dossier-1.0.md",
+    tip_verified: false,
+    reuse_as_plane_b: false,
+  }),
+]);
 
 export const SHELF_KINDS = Object.freeze([
   "zenodo_doi",
@@ -61,6 +139,10 @@ export const REFUSE = Object.freeze({
   SHELF_NOT_LIVE: "CNS-SHELF-NOT-LIVE",
   FAKE_DEPOSIT: "CNS-NO-FAN-FAKE-DEPOSIT",
   UNKNOWN_KIND: "CNS-UNKNOWN-KIND",
+  NO_TIP_DOI: "CNS-NO-TIP-DOI",
+  TIP_NOT_ON_DEPOSIT: "CNS-TIP-NOT-ON-DEPOSIT",
+  NO_FORGE: "CNS-NO-FORGE-MIRROR",
+  PLANE_A_ONE_TUNNEL: "CNS-PLANE-A-ONE-TUNNEL",
 });
 
 /** Identity / core law docs hashed by the CLI export. Paths are repo-root relative. */
@@ -76,103 +158,111 @@ export const CORE_DOC_PATHS = Object.freeze([
   "docs/MESH-SPLIT-WIRES-1.0.md",
   "docs/ACT-RECEIPT-1.0.md",
   "docs/lockset.json",
+  "tools/cold_shelf/ZENODO-TIP-PACK-CHECKLIST.md",
 ]);
 
 /**
- * Honest registry. Paper DOIs are in-repo cites + doi.org 302 (2026-09-14).
- * They are not a lockset DOI. IPFS / archive.org / USB stay slots until real bytes exist.
+ * Honest registry. Planes A/B/C (NO-FAN).
+ * Plane A = one CF/GitHub tunnel, four host mirrors. Not four shelves.
+ * Plane B = Zenodo tip-pack SLOT (doi null). Paper DOIs are not the tip.
+ * Plane C = USB airgap pack + optional second-forge SLOT.
  */
 export const SHELF_REGISTRY = Object.freeze([
   Object.freeze({
-    id: "git-aziel-corpus",
+    id: "plane-a-cf-github",
+    plane: "A",
+    kind: "other",
+    status: "live",
+    blast_radius: "cf-github",
+    independent: true,
+    lockset_shelf: true,
+    mirrors: PLANE_A_MIRRORS,
+    git: "https://github.com/AzielEliab/aziel-corpus",
+    tags: Object.freeze([
+      Object.freeze({ name: "v2.6.2", commit: "8ba6d9331da4854858e8e4c94319d402c36508e5" }),
+      Object.freeze({ name: "v0.1.0", commit: "176172847f828ec4f20bfbb388c1edfcace64b8b" }),
+    ]),
+    verify: "in-repo Worker serves lockset.json whose core SHA-256 is the published tip; four hosts are mirrors of that tip, not four shelves",
+    note: "LIVE multi-host, same tunnel. Count as one CF/GitHub plane.",
+  }),
+  Object.freeze({
+    id: "plane-a-git-aziel-corpus",
+    plane: "A",
     kind: "git_mirror",
     status: "live",
     url: "https://github.com/AzielEliab/aziel-corpus",
-    blast_radius: "github-org-AzielEliab",
-    independent: true,
+    blast_radius: "cf-github",
+    independent: false,
     lockset_shelf: true,
     tags: Object.freeze([
       Object.freeze({ name: "v2.6.2", commit: "8ba6d9331da4854858e8e4c94319d402c36508e5" }),
       Object.freeze({ name: "v0.1.0", commit: "176172847f828ec4f20bfbb388c1edfcace64b8b" }),
     ]),
-    verify: "git tag objects exist on origin; SHA of named commits published",
-    note: "One GitHub org is one blast radius. A second forge would be a second git shelf.",
+    verify: "git tag objects exist on origin",
+    note: "Same Plane A blast radius as the four CF hosts. Not a second independent shelf.",
   }),
-  Object.freeze({
-    id: "zenodo-shadowlock",
-    kind: "zenodo_doi",
+  ...PLANE_A_MIRRORS.map((m) => Object.freeze({
+    id: "plane-a-host-" + m.id,
+    plane: "A",
+    kind: "other",
     status: "live",
-    doi: "10.5281/zenodo.21435707",
-    url: "https://doi.org/10.5281/zenodo.21435707",
-    record: "https://zenodo.org/records/21435707",
-    payload: "ShadowLock paper (not lockset)",
-    in_repo_cite: "dossiers/shadowlock-aziel-dossier-1.0.md",
+    origin: m.origin,
+    lockset: m.lockset,
+    receipts: m.receipts,
+    shelves: m.shelves,
+    blast_radius: "cf-github",
+    independent: false,
+    lockset_shelf: true,
+    verified_in_this_repo: m.verified_in_this_repo,
+    verify: m.verified_in_this_repo
+      ? "Worker origin serves published lockset tip"
+      : "Named Plane A mirror of the same tip; sister /shelves may still be operator-published",
+    note: "One of four Plane A host mirrors. Not an independent shelf.",
+  })),
+  Object.freeze({
+    id: "plane-b-zenodo-tip-pack",
+    plane: "B",
+    kind: "zenodo_doi",
+    status: "slot",
+    doi: null,
+    url: null,
     blast_radius: "zenodo-cern",
     independent: true,
+    lockset_shelf: true,
     lockset_doi: false,
-    verify: "doi.org 302 → zenodo.org/doi/10.5281/zenodo.21435707",
+    refuse: REFUSE.NO_TIP_DOI,
+    checklist: "tools/cold_shelf/ZENODO-TIP-PACK-CHECKLIST.md",
+    reason: "No tip-pack DOI. cite.json / lockset doi stay null. Do not invent. Paper DOIs are not this slot unless hash-verify proves they carry the tip.",
   }),
   Object.freeze({
-    id: "zenodo-decisiongate",
-    kind: "zenodo_doi",
-    status: "live",
-    doi: "10.5281/zenodo.21435730",
-    url: "https://doi.org/10.5281/zenodo.21435730",
-    record: "https://zenodo.org/records/21435730",
-    payload: "DecisionGATE paper (not lockset)",
-    in_repo_cite: "dossiers/decisiongate-aziel-dossier-1.0.md",
-    blast_radius: "zenodo-cern",
+    id: "plane-c-usb-airgap",
+    plane: "C",
+    kind: "usb_airgap",
+    status: "slot",
+    blast_radius: "operator-airgap",
     independent: true,
-    lockset_doi: false,
-    verify: "doi.org 302 → zenodo.org/doi/10.5281/zenodo.21435730",
+    lockset_shelf: true,
+    primary: true,
+    refuse: REFUSE.OPERATOR_ATTEST,
+    pack: "node tools/cold_shelf/cli.mjs airgap",
+    reason: "USB airgap export is the Plane C primary pack (tarball + SHA256SUMS + verify script). Shelf stays SLOT until an operator attests an off-network copy still hashes.",
   }),
   Object.freeze({
-    id: "zenodo-trajectorylock",
-    kind: "zenodo_doi",
-    status: "live",
-    doi: "10.5281/zenodo.22258015",
-    url: "https://doi.org/10.5281/zenodo.22258015",
-    record: "https://zenodo.org/records/22258015",
-    payload: "TrajectoryLock TL-WP-0.1 (not lockset)",
-    in_repo_cite: "dossiers/trajectorylock-aziel-dossier-1.0.md",
-    blast_radius: "zenodo-cern",
+    id: "plane-c-forge-off-github",
+    plane: "C",
+    kind: "git_mirror",
+    status: "slot",
+    url: null,
+    forge: null,
+    blast_radius: "second-forge",
     independent: true,
-    lockset_doi: false,
-    verify: "doi.org 302 → zenodo.org/doi/10.5281/zenodo.22258015",
-  }),
-  Object.freeze({
-    id: "zenodo-whistlelock-foldlock",
-    kind: "zenodo_doi",
-    status: "live",
-    doi: "10.5281/zenodo.22257762",
-    url: "https://doi.org/10.5281/zenodo.22257762",
-    record: "https://zenodo.org/records/22257762",
-    payload: "WhistleLock WL-WP-0.1 / FoldLock FL-WP-0.3 (same in-repo DOI; not lockset)",
-    in_repo_cite: Object.freeze([
-      "dossiers/whistlelock-aziel-dossier-1.0.md",
-      "dossiers/foldlock-aziel-dossier-1.0.md",
-    ]),
-    blast_radius: "zenodo-cern",
-    independent: true,
-    lockset_doi: false,
-    verify: "doi.org 302 → zenodo.org/doi/10.5281/zenodo.22257762",
-  }),
-  Object.freeze({
-    id: "zenodo-employeelock",
-    kind: "zenodo_doi",
-    status: "live",
-    doi: "10.5281/zenodo.22257493",
-    url: "https://doi.org/10.5281/zenodo.22257493",
-    record: "https://zenodo.org/records/22257493",
-    payload: "EmployeeLock EL-WP-0.1 (not lockset)",
-    in_repo_cite: "dossiers/employeelock-aziel-dossier-1.0.md",
-    blast_radius: "zenodo-cern",
-    independent: true,
-    lockset_doi: false,
-    verify: "doi.org 302 → zenodo.org/doi/10.5281/zenodo.22257493",
+    lockset_shelf: true,
+    refuse: REFUSE.NO_FORGE,
+    reason: "Optional Codeberg/GitLab mirror. No account yet. SLOT. Do not invent a URL.",
   }),
   Object.freeze({
     id: "ipfs-lockset",
+    plane: null,
     kind: "ipfs_cid",
     status: "slot",
     cid: null,
@@ -180,10 +270,11 @@ export const SHELF_REGISTRY = Object.freeze([
     independent: true,
     lockset_shelf: true,
     refuse: REFUSE.NO_CID,
-    reason: "No published CID. Do not invent one. Slot until a real CID of already-published bytes exists.",
+    reason: "Extra slot, not a named plane. No published CID. Do not invent one.",
   }),
   Object.freeze({
     id: "archive-org-lockset",
+    plane: null,
     kind: "archive_org",
     status: "slot",
     url: null,
@@ -191,27 +282,7 @@ export const SHELF_REGISTRY = Object.freeze([
     independent: true,
     lockset_shelf: true,
     refuse: REFUSE.NO_WARC,
-    reason: "No published archive.org item. Do not invent a capture URL. Slot until a real item exists.",
-  }),
-  Object.freeze({
-    id: "usb-airgap-operator",
-    kind: "usb_airgap",
-    status: "slot",
-    independent: true,
-    lockset_shelf: true,
-    refuse: REFUSE.OPERATOR_ATTEST,
-    reason: "Operator airgap replica is not attested on this public surface. Slot until bytes exist off-network and hash.",
-  }),
-  Object.freeze({
-    id: "cf-azielcorpuslibrary",
-    kind: "other",
-    status: "live",
-    url: HOST + "/lockset.json",
-    blast_radius: "cloudflare",
-    independent: false,
-    lockset_shelf: true,
-    verify: "serves lockset.json whose core SHA-256 is the published tip",
-    note: "Cloudflare Worker host. Live for the tip. Does not count toward independent-3.",
+    reason: "Extra slot, not a named plane. No published archive.org item. Do not invent.",
   }),
 ]);
 
@@ -247,6 +318,59 @@ export function independentLiveBlastRadii(rows = SHELF_REGISTRY) {
 
 export function independentRequirementMet(rows = SHELF_REGISTRY) {
   return independentLiveBlastRadii(rows).length >= MIN_INDEPENDENT_SHELVES;
+}
+
+export function planeRows(plane, rows = SHELF_REGISTRY) {
+  return rows.filter((s) => s && s.plane === plane);
+}
+
+export function judgePlaneAMirrors(input) {
+  const src = input && typeof input === "object" ? input : {};
+  if (
+    src.count_four_hosts_as_four_shelves === true
+    || src.four_independent_cf_hosts === true
+    || src.plane_a_is_four_shelves === true
+  ) {
+    return {
+      accept: false,
+      action: "refuse",
+      reason: REFUSE.PLANE_A_ONE_TUNNEL,
+      independent_count: 1,
+      mirrors: PLANE_A_MIRRORS.length,
+      note: "Plane A is one CF/GitHub tunnel with four host mirrors. Not four independent shelves.",
+    };
+  }
+  return {
+    accept: true,
+    action: "ok",
+    plane: "A",
+    independent_count: 1,
+    mirrors: PLANE_A_MIRRORS.length,
+  };
+}
+
+export function judgeZenodoTipReuse(input) {
+  const src = input && typeof input === "object" ? input : {};
+  const doi = String(src.doi || "").trim();
+  const paper = PAPER_DEPOSITS.find((p) => p.doi === doi);
+  if (paper) {
+    if (src.tip_verified === true && src.bytes_hash_match === true) {
+      return { accept: true, action: "ok", reuse_as_plane_b: true, doi };
+    }
+    return {
+      accept: false,
+      action: "refuse",
+      reason: REFUSE.TIP_NOT_ON_DEPOSIT,
+      reuse_as_plane_b: false,
+      tip_verified: false,
+      doi,
+      payload: paper.payload,
+    };
+  }
+  if (doi) {
+    return { accept: false, action: "refuse", reason: REFUSE.FAKE_DEPOSIT, note: "DOI is not a verified tip-pack and not a listed paper cite." };
+  }
+  return { accept: true, action: "slot", reason: REFUSE.NO_TIP_DOI, status: "slot" };
 }
 
 export function claimShelfLive(shelf) {
@@ -356,10 +480,12 @@ export function judgeInventedDeposit(input) {
     return { accept: true, action: "slot", reason: REFUSE.NO_WARC, status: "slot" };
   }
   if (kind === "zenodo_doi") {
-    const doi = String(src.doi || "").trim();
-    const known = SHELF_REGISTRY.some((s) => s.kind === "zenodo_doi" && s.doi === doi);
-    if (doi && !known) {
-      return { accept: false, action: "refuse", reason: REFUSE.FAKE_DEPOSIT, note: "DOI not in the honest registry. Do not invent a deposit." };
+    return judgeZenodoTipReuse(src);
+  }
+  if (kind === "git_mirror" && (src.invent_url === true || String(src.url || "").trim()) && src.plane === "C") {
+    const listed = SHELF_REGISTRY.some((s) => s.id === "plane-c-forge-off-github" && s.url);
+    if (!listed) {
+      return { accept: false, action: "refuse", reason: REFUSE.NO_FORGE, note: "No second-forge account. Do not invent a Codeberg/GitLab URL." };
     }
   }
   return { accept: true, action: "ok" };
@@ -453,6 +579,29 @@ export function shelfRegistryDoc(host = HOST) {
     lockset_tip: LOCKSET_TIP,
     lockset_zenodo: LOCKSET.zenodo,
     lockset_doi: LOCKSET.doi,
+    planes: {
+      A: {
+        name: "CF/GitHub tunnel",
+        status: "live",
+        independent: true,
+        mirrors: PLANE_A_MIRRORS.length,
+        note: "Four hosts + git = one plane, not four shelves",
+      },
+      B: {
+        name: "Zenodo tip-pack",
+        status: "slot",
+        doi: null,
+        refuse: REFUSE.NO_TIP_DOI,
+        checklist: "tools/cold_shelf/ZENODO-TIP-PACK-CHECKLIST.md",
+      },
+      C: {
+        name: "USB airgap + optional second forge",
+        status: "slot",
+        primary: "usb_airgap",
+        refuse: [REFUSE.OPERATOR_ATTEST, REFUSE.NO_FORGE],
+      },
+    },
+    paper_deposits: PAPER_DEPOSITS.map((p) => ({ ...p })),
     min_independent_shelves: MIN_INDEPENDENT_SHELVES,
     independent_live_blast_radii: radii,
     independent_live_count: radii.length,
@@ -474,7 +623,7 @@ export function shelfRegistryDoc(host = HOST) {
       "CROSS-NETWORK-SURVIVAL: " + CROSS_NETWORK_SURVIVAL_RULE + " "
       + "NO-LIE / NO-REWRITE: " + NO_LIE_NO_REWRITE_RULE + " "
       + COLD_MULTI_SHELF_RULE
-      + " Paper DOIs are not a lockset DOI. IPFS/archive/USB stay slots until real bytes exist.",
+      + " Plane A is one CF/GitHub tunnel. Plane B tip-pack DOI is null. Paper DOIs do not carry the tip unless hash-verify says so.",
   };
 }
 
@@ -495,6 +644,7 @@ export function shelvesDoc(host = HOST) {
     ai: h + "/ai.txt",
     lockset: h + "/lockset.json",
     registry: shelfRegistryDoc(h),
+    planes: shelfRegistryDoc(h).planes,
     verify: verifyHowTo(h),
   };
 }
@@ -525,8 +675,10 @@ export function shelvesLlmsBlock(host = HOST) {
     + "- Registry (honest live|slot|refused): " + h + "/shelves\n"
     + "- Alias: " + h + "/cold-copy · " + h + "/v1/shelves\n"
     + "- Verify (paste hash, yes/no): " + h + "/receipts/verify\n"
-    + "- CLI: node tools/cold_shelf/cli.mjs export | verify --hash <64-hex>\n"
+    + "- Planes: A = CF/GitHub four-host mirrors (one tunnel). B = Zenodo tip-pack SLOT (doi null). C = USB airgap + optional forge SLOT.\n"
+    + "- CLI: node tools/cold_shelf/cli.mjs export | verify --hash <64-hex> | airgap\n"
     + "- Do not invent IPFS CIDs, archive.org items, or lockset DOIs.\n"
+    + "- Do not count the four Plane A hosts as four independent shelves.\n"
     + "- AZ Generator / Cap-7 / live ICANN publish is not this repo.\n"
     + "- Crawlers are extra shelves. They do not re-expand. Training residue is rumor.\n";
 }

@@ -69,7 +69,7 @@
   "no_lie_no_rewrite_rule": "receipts that still hash; copies not all on one tunnel; verify without voice; no rewrite key; network never lies even to stay alive.",
   "no_lie_spec": "NO-LIE-NO-REWRITE-1.0",
   "cold_multi_shelf": "COLD-MULTI-SHELF-1.0",
-  "cold_multi_shelf_rule": "≥3 independent shelves; survival = bytes↔hash; crawlers are extra shelves not re-expand; training residue is rumor; never claim live unless verify passes.",
+  "cold_multi_shelf_rule": "Planes A/B/C: A=one CF/GitHub tunnel (4 mirrors); B=Zenodo tip-pack SLOT; C=USB airgap SLOT. Survival = bytes↔hash. LIVE only after hash verify.",
   "shelves": "https://www.azielcorpuslibrary.net/shelves",
   "cold_copy": "https://www.azielcorpuslibrary.net/cold-copy",
   "shelves_json": "https://www.azielcorpuslibrary.net/v1/shelves",
