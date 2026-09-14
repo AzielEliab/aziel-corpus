@@ -245,6 +245,10 @@ export function robotsTxt() {
     "Allow: /v1/library-index",
     "Allow: /v1/stats",
     "Allow: /v1/update/check",
+    "Allow: /v1/possibility",
+    "Allow: /v1/recollect",
+    "Allow: /v1/poison-learn",
+    "Allow: /v1/pin",
     "Allow: /v1/mesh",
     "Allow: /v1/mesh/",
     "Allow: /runtime/v1/mesh",
@@ -662,6 +666,13 @@ export function citeDoc() {
     lattice: HOST + "/v1/lattice",
     verify_backfill: HOST + "/v1/verify-backfill",
     verify_geo: HOST + "/v1/verify-geo",
+    possibility: HOST + "/v1/possibility",
+    recollect: HOST + "/v1/recollect",
+    poison_learn: HOST + "/v1/poison-learn",
+    pin: HOST + "/v1/pin",
+    hashchain_learn: "adaptive learning via hashchain lattice for recollection and reasoning",
+    possibility_note: "possibility ≠ probability ≠ triad ≠ ZionPattern. HEURISTIC over lattice time×geo pins. Not courtroom truth. Posterior ≠ truth.",
+    map4d: { spec: "4DM-WP-1.0", cite: "https://github.com/AzielEliab/4dmap", note: "Inspection frame, not a live ICANN mesh DNS." },
     document_chain: HOST + "/v1/document-chain",
     jeeves_chat: HOST + "/v1/jeeves/chat",
     jeeves_upload: HOST + "/v1/jeeves/upload",
@@ -748,7 +759,7 @@ export function llmsDoc(limitation) {
     + "- Tip verify: " + HOST + "/receipts/verify\n"
     + "- llms.txt: " + HOST + "/llms.txt\n"
     + "- ai.txt: " + HOST + "/ai.txt\n\n"
-    + "Purpose: Public MASTER digital library by " + AUTHOR + ". Aziel Library (royal purple) is the operator collection of the author's work. Corpus is the public Lamb Lens shelf. Hosted tools include search, map, gazetteer, triad scoring (SPRE × CLCE × PhysLing), ZionPattern Solver, and hosted OCR.\n\n"
+    + "Purpose: Public MASTER digital library by " + AUTHOR + ". Aziel Library (royal purple) is the operator collection of the author's work. Corpus is the public Lamb Lens shelf. Hosted tools include search, map, gazetteer, triad scoring (SPRE × CLCE × PhysLing), ZionPattern Solver, hosted OCR, upload→pin (GET /v1/pin · /v1/verify-geo), HEURISTIC possibility (GET /v1/possibility), and poison-learn (GET /v1/poison-learn). Adaptive learning via hashchain lattice for recollection and reasoning (GET /v1/recollect). Growth-ON: AI crawlers stay Allowed. possibility ≠ probability ≠ triad ≠ ZionPattern. Posterior ≠ truth. Scores are not courtroom proof. 4DMap cite: https://github.com/AzielEliab/4dmap (4DM-WP-1.0; not a live ICANN mesh DNS).\n\n"
     + limitation + "\n\n"
     + "Hosted tools run on this Worker. Visitors do not download Python, Tesseract, Poppler, or Whisper to use Map, Tree, Health, Forensics, Historical Geography, Verify, OCR, or transcription. Gazetteer lookup stays hosted in the background for map pins and APIs.\n\n"
     + "## Identity\n\n"
@@ -855,6 +866,10 @@ export function llmsDoc(limitation) {
     + "- GET " + HOST + "/v1/example\n"
     + "- GET " + HOST + "/v1/review?record_id=\n"
     + "- GET " + HOST + "/v1/lattice?record_id=\n"
+    + "- GET " + HOST + "/v1/possibility?record_id=\n"
+    + "- GET " + HOST + "/v1/recollect?record_id=\n"
+    + "- GET " + HOST + "/v1/poison-learn\n"
+    + "- GET " + HOST + "/v1/pin?record_id=\n"
     + "- GET " + HOST + "/v1/mesh\n"
     + "- GET " + HOST + "/v1/mesh/status\n"
     + "- GET " + HOST + "/v1/mesh/nodes\n"
@@ -983,6 +998,10 @@ export function aiTxt(limitation) {
     "Allow: /v1/library-index",
     "Allow: /v1/stats",
     "Allow: /v1/update/check",
+    "Allow: /v1/possibility",
+    "Allow: /v1/recollect",
+    "Allow: /v1/poison-learn",
+    "Allow: /v1/pin",
     "Allow: /v1/mesh",
     "Allow: /v1/mesh/",
     "Allow: /runtime/v1/mesh",

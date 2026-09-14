@@ -18,7 +18,7 @@ PLR_LIMITATION = "PhysLing Review (PLR) flags physics-impossible or linguistical
 POISON_LIMITATION = "Poison immunity quarantines suspected shells. Status is hash-chained. Records are never silently deleted. Official narrative is not merged into evidence."
 LATTICE_NOTE = "Public HTTPS site is not a mesh. AzielTether carries this tip. Survival interdependence with GodLock and other Aziel software is via downloadable tether + Worker bootstrap APIs."
 TRIAD_SCHEMA = "aziel.triad.v1"
-TRIAD_FORMULA = "TRIAD_V1 geometric mean: combined = (spre_pc × clce_consistency × plr_coherence)^(1/3). clce_consistency = CLCE.triple if triple ≥ 0.7 else pairwise_avg. plr_coherence = 0.6×physics_coherence + 0.4×linguistic_neutrality. Equal engine weight. Components stay stored for audit. Bayesian peer score is a separate unranked field."
+TRIAD_FORMULA = "TRIAD_V1 geometric mean: combined = (spre_pc × clce_consistency × plr_coherence)^(1/3). clce_consistency = CLCE.triple if triple ≥ 0.7 else pairwise_avg. plr_coherence = 0.6×physics_coherence + 0.4×linguistic_neutrality. Equal engine weight. Components stay stored for audit. Bayesian peer score and HEURISTIC possibility are separate unranked fields."
 TRIAD_KID = "This one number is the report card from three checkers: SPRE, CLCE, and PhysLing. They all have to run first."
 
 STOP = set("a an the and or but if then of to for in on at by with from as is are was were be been being this that these those it its they them their you your we our not no".split())
@@ -215,7 +215,7 @@ def bayesian_posterior(priors):
     for k in keys:
         p=clamp01(priors.get(k,0.5)); used[k]=round4(p); alpha+=p; beta+=1-p
     posterior=alpha/(alpha+beta)
-    return {"schema":"aziel.bayesian.v1","unranked":True,"sort_key":None,"note":"Unranked metadata for manual peer-to-peer review. Never used to sort the shelf.","priors":used,"alpha":round4(alpha),"beta":round4(beta),"posterior":round4(posterior),"kid_plain":"This number is a confidence guess. It does not move the books on the shelf.","continuity":"Peers may endorse or challenge later. History is append-only if the operator is gone one day."}
+    return {"schema":"aziel.bayesian.v1","unranked":True,"sort_key":None,"note":"Unranked metadata for manual peer-to-peer review. Never used to sort the shelf.","priors":used,"alpha":round4(alpha),"beta":round4(beta),"posterior":round4(posterior),"kid_plain":"This number is a confidence guess. It does not move the books on the shelf.","continuity":"Peers may endorse or challenge later. History is append-only if the operator is gone one day.","possibility_separate":True,"not_truth":True}
 
 def verify_bytes(data, filename="file"):
     raw=data if isinstance(data,(bytes,bytearray)) else bytes(data or b"")
@@ -265,7 +265,18 @@ def review_document(*, title="", body="", filename="", sha256="", author="", lib
     }
     q="POISON_SUSPECT" if poison["status"]=="QUARANTINE" else "OPERATOR_FLAG" if poison["status"]=="FLAGGED" else "CLEAR"
     triad=collection_triad(triad_composite(spre=spre,clce=clce,plr=plr), library, coverage)
-    return {"schema":REVIEW_SCHEMA,"author":"Aziel Eliab","library":library,"lights":lights,"structure":{"ok":bool(structure.get("ok")),"files":structure.get("files") or [],"errors":structure.get("errors") or []},"spre":spre,"clce":clce,"plr":plr,"poison":poison,"bayesian":bayes,"triad":triad,"quarantine_status":q,"limitation":" ".join([SPRE_LIMITATION,CLCE_LIMITATION,PLR_LIMITATION,POISON_LIMITATION,TRIAD_FORMULA])}
+    possibility = {
+        "schema": "aziel.possibility.v1",
+        "kind": "HEURISTIC",
+        "possibility": None,
+        "refuse": "PENDING_ANCHORS",
+        "unranked": True,
+        "sort_key": None,
+        "note": "possibility ≠ probability ≠ triad ≠ ZionPattern. HEURISTIC over lattice time×geo pins. Not courtroom proof. Posterior ≠ truth.",
+        "bayesian_separate": True,
+        "not_truth": True,
+    }
+    return {"schema":REVIEW_SCHEMA,"author":"Aziel Eliab","library":library,"lights":lights,"structure":{"ok":bool(structure.get("ok")),"files":structure.get("files") or [],"errors":structure.get("errors") or []},"spre":spre,"clce":clce,"plr":plr,"poison":poison,"bayesian":bayes,"possibility":possibility,"triad":triad,"quarantine_status":q,"limitation":" ".join([SPRE_LIMITATION,CLCE_LIMITATION,PLR_LIMITATION,POISON_LIMITATION,TRIAD_FORMULA])}
 
 def lattice_anchor_tip(*, record_id=None, library=None, content_sha256=None, ledger_entry_hash=None, structure=None, review=None, event="verified_ingest", verified_utc=None):
     from datetime import datetime, timezone
@@ -285,6 +296,7 @@ def lattice_anchor_tip(*, record_id=None, library=None, content_sha256=None, led
         "plr":{"status":r.get("plr",{}).get("status"),"lights":r.get("plr",{}).get("lights")} if r.get("plr") else None,
         "triad":{"combined":(r.get("triad") or {}).get("combined"),"display":(r.get("triad") or {}).get("display"),"ready":(r.get("triad") or {}).get("ready"),"formula":(r.get("triad") or {}).get("formula")} if r.get("triad") else None,
         "bayesian":{"posterior":r.get("bayesian",{}).get("posterior"),"unranked":True,"note":r.get("bayesian",{}).get("note")} if r.get("bayesian") else None,
+        "possibility":{"possibility":(r.get("possibility") or {}).get("possibility"),"kind":(r.get("possibility") or {}).get("kind") or "HEURISTIC","refuse":(r.get("possibility") or {}).get("refuse"),"unranked":True,"not_truth":True} if r.get("possibility") else None,
         "quarantine":None if (r.get("quarantine_status") or "CLEAR")=="CLEAR" else r.get("quarantine_status"),
         "ledger_entry_hash":ledger_entry_hash,
         "verified_utc":verified_utc or datetime.now(timezone.utc).isoformat(timespec="seconds"),

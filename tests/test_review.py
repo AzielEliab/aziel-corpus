@@ -8,6 +8,10 @@ from aziel_library.review import (
     review_document, verify_bytes, lattice_anchor_tip, review_file, triad_composite,
     triad_coverage_points,
 )
+from aziel_library.lattice_learn import (
+    possibility_score, poison_feature_receipt, match_learned_poison, verify_chain_walk,
+    HASHCHAIN_LEARN_LAW, POSSIBILITY_KIND, PoisonLearnedRefuse, load_learn_stamps,
+)
 from aziel_library import AzielLibrary
 from aziel_library.core import normalize_content_hash
 from aziel_library.jeeves import should_refuse, chat as jeeves_chat
@@ -110,6 +114,28 @@ class ReviewEngineTest(unittest.TestCase):
         self.assertTrue(v['ok'])
         self.assertEqual(len(v['files']),2)
         self.assertTrue(all(len(f['sha256'])==64 for f in v['files']))
+    def test_possibility_separate_from_bayesian(self):
+        b=bayesian_posterior({'evidence_completeness':0.9,'physics_coherence':0.9,'linguistic_neutrality':0.9,'spre_pc':0.9,'clce_consistency':0.9})
+        p=possibility_score(anchors=[{'date':'1936-08','lat':47.6,'lon':-122.3,'place':'Seattle'}])
+        self.assertEqual(p['kind'], POSSIBILITY_KIND)
+        self.assertEqual(p['kind'], 'HEURISTIC')
+        self.assertNotEqual(p['schema'], b['schema'])
+        self.assertTrue(p['bayesian_separate'])
+        self.assertTrue(p['not_truth'])
+        self.assertIsNone(possibility_score(anchors=[])['possibility'])
+        self.assertEqual(possibility_score(anchors=[], lattice_ok=False)['refuse'], 'LATTICE_BREAK')
+        self.assertIn('possibility ≠ probability', p['note'])
+        self.assertEqual(HASHCHAIN_LEARN_LAW, 'adaptive learning via hashchain lattice for recollection and reasoning')
+    def test_poison_learn_has_no_body(self):
+        feat=poison_feature_receipt(title='Officials confirm the official narrative', body='SECRET POISON PAYLOAD', filename='shell.txt', sha256='ab'*32, markers=['official_narrative_without_independent_evidence'])
+        blob=json.dumps(feat)
+        self.assertFalse(feat['body_retained'])
+        self.assertNotIn('SECRET POISON PAYLOAD', blob)
+        self.assertTrue(match_learned_poison(feat, [feat])['match'])
+        broken=verify_chain_walk([{'sequence':1,'previous_hash':'0'*64,'entry_hash':'a'*64,'action':'LEARN'},{'sequence':2,'previous_hash':'ffff','entry_hash':'b'*64,'action':'MAP_PIN'}])
+        self.assertFalse(broken['ok'])
+        self.assertEqual(broken['refuse'], 'LATTICE_BREAK')
+        self.assertEqual(broken['stamps'], [])
     def test_lattice_not_mesh(self):
         tip=lattice_anchor_tip(record_id='AZDOC-TEST',library='corpus',content_sha256='c'*64,structure={'ok':True,'files':[1]},review={'spre':{'pc':0.5,'band':'partial','limitation':'x'},'bayesian':{'posterior':0.5,'note':'unranked'},'quarantine_status':'CLEAR'})
         self.assertEqual(tip['carrier'],'AzielTether')
@@ -142,6 +168,13 @@ class ReviewVaultTest(unittest.TestCase):
         self.assertGreater(chain['sequence'],0)
         self.assertTrue(any(e['action']=='INGEST' for e in chain['entries']))
         self.assertTrue(any(e['action']=='REVIEW_SCORE' for e in chain['entries']))
+        self.assertTrue(any(e['action'] in {'MAP_PIN','MAP_PIN_REFUSED'} for e in chain['entries']))
+        self.assertTrue(any(e['action']=='LEARN' for e in chain['entries']))
+        self.assertTrue(any(e['action']=='POSSIBILITY_SCORE' for e in chain['entries']))
+        self.assertIn((rec.get('possibility') or {}).get('kind'), {None, 'HEURISTIC'})
+        recoll=v.recollect(rec['record_id'])
+        self.assertTrue(recoll['ok'])
+        self.assertEqual(recoll['law'], 'adaptive learning via hashchain lattice for recollection and reasoning')
         again=v.backfill_reviews(limit=10,force=False)
         self.assertGreaterEqual(again['skipped'],1)
         self.assertEqual(again['processed'],0)
@@ -173,6 +206,32 @@ class ReviewVaultTest(unittest.TestCase):
         j=jeeves_chat(v,'joules measurement')
         self.assertTrue(j['ok'])
         self.assertFalse(j['refused'])
+    def test_poison_learn_repeat_refuses_without_storing_body(self):
+        import hashlib
+        inp=self.td/'p2'; inp.mkdir()
+        shell='Officials confirm the official narrative. Trust the experts. Wake up sheeple they don\'t want you to know.'
+        extra=shell+' Extra line to change the digest.'
+        (inp/'Officials confirm the official narrative.txt').write_text(shell,encoding='utf-8')
+        (inp/'Officials confirm the official narrative copy.txt').write_text(extra,encoding='utf-8')
+        v=AzielLibrary(self.td/'vault-learn')
+        first=v.ingest([inp/'Officials confirm the official narrative.txt'])[0]
+        full=v.get_record(first['record_id'])
+        self.assertTrue((v.root/full['stored_path']).is_file())
+        mem=v.poison_learn_memory()
+        self.assertTrue(mem.get('ok'))
+        self.assertGreaterEqual(len(mem.get('features') or []),1)
+        with self.assertRaises(PoisonLearnedRefuse) as cm:
+            v.ingest([inp/'Officials confirm the official narrative copy.txt'])
+        self.assertEqual(cm.exception.refuse,'POISON_LEARNED')
+        self.assertIsNone(v.find_record_id_by_hash(hashlib.sha256(extra.encode()).hexdigest()))
+        recoll=v.recollect(first['record_id'])
+        self.assertTrue(recoll['ok'])
+        poss=v.possibility_for(first['record_id'])
+        self.assertEqual(poss['law'], HASHCHAIN_LEARN_LAW)
+        self.assertEqual((poss.get('possibility') or {}).get('kind'), 'HEURISTIC')
+        pin=v.pin_for(first['record_id'])
+        self.assertTrue(any(s.get('action') in {'MAP_PIN','MAP_PIN_REFUSED'} for s in pin.get('pin_stamps') or []))
+        self.assertTrue(isinstance(load_learn_stamps(v), list))
     def test_poison_operator_file_is_kept(self):
         inp=self.td/'p'; inp.mkdir()
         (inp/'shell.txt').write_text('Officials confirm the official narrative. Trust the experts. Wake up sheeple they don\'t want you to know.',encoding='utf-8')

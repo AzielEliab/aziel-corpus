@@ -7,6 +7,7 @@
  * PLR   — PhysLing Review (physics × linguistics third review).
  * Poison — quarantine-or-flag filter. Never silently deletes. Hardest on public Corpus.
  * Bayesian — unranked Beta-Bernoulli posterior. Never used to sort the shelf.
+ * Possibility — HEURISTIC time×geo lattice score. Separate from Bayesian / triad / ZionPattern.
  */
 export const REVIEW_SCHEMA = "aziel.review.v1";
 export const SPRE_LIMITATION =
@@ -19,7 +20,7 @@ export const POISON_LIMITATION =
   "Poison immunity quarantines suspected shells. Status is hash-chained. Records are never silently deleted. Official narrative is not merged into evidence.";
 export const TRIAD_SCHEMA = "aziel.triad.v1";
 export const TRIAD_FORMULA =
-  "TRIAD_V1 geometric mean: combined = (spre_pc × clce_consistency × plr_coherence)^(1/3). clce_consistency = CLCE.triple if triple ≥ 0.7 else pairwise_avg. plr_coherence = 0.6×physics_coherence + 0.4×linguistic_neutrality. Equal engine weight. Components stay stored for audit. Bayesian peer score is a separate unranked field.";
+  "TRIAD_V1 geometric mean: combined = (spre_pc × clce_consistency × plr_coherence)^(1/3). clce_consistency = CLCE.triple if triple ≥ 0.7 else pairwise_avg. plr_coherence = 0.6×physics_coherence + 0.4×linguistic_neutrality. Equal engine weight. Components stay stored for audit. Bayesian peer score and HEURISTIC possibility are separate unranked fields.";
 export const TRIAD_KID =
   "This one number is the report card from three checkers: SPRE, CLCE, and PhysLing. They all have to run first.";
 
@@ -420,6 +421,8 @@ export function bayesianPosterior(priors) {
     posterior: round4(posterior),
     kid_plain: "This number is a confidence guess. It does not move the books on the shelf.",
     continuity: "Peers may endorse or challenge later. History is append-only if the operator is gone one day.",
+    possibility_separate: true,
+    not_truth: true,
   };
 }
 
@@ -467,6 +470,17 @@ export function reviewDocument(input = {}) {
     bayesian,
     triad: collectionTriad(triadComposite({ spre, clce, plr }), library, input.coverage),
     quarantine_status: poison.status === "QUARANTINE" ? "POISON_SUSPECT" : poison.status === "FLAGGED" ? "OPERATOR_FLAG" : "CLEAR",
+    possibility: input.possibility || {
+      schema: "aziel.possibility.v1",
+      kind: "HEURISTIC",
+      possibility: null,
+      refuse: "PENDING_ANCHORS",
+      unranked: true,
+      sort_key: null,
+      note: "possibility ≠ probability ≠ triad ≠ ZionPattern. HEURISTIC over lattice time×geo pins. Not courtroom proof. Posterior ≠ truth.",
+      bayesian_separate: true,
+      not_truth: true,
+    },
     limitation: [SPRE_LIMITATION, CLCE_LIMITATION, PLR_LIMITATION, POISON_LIMITATION, TRIAD_FORMULA].join(" "),
   };
 }

@@ -768,7 +768,7 @@ export function whoBody() {
 
 export function howItsScoredBody() {
   return `<section class="hero"><h1>How it's scored</h1>
-<p class="muted">Public scoring on Aziel Digital Library. Author Aziel Eliab. Two published numbers: the triad (primary) and ZionPattern Solver (secondary). Neither is a guilt verdict or a courtroom finding.</p></section>
+<p class="muted">Public scoring on Aziel Digital Library. Author Aziel Eliab. Published numbers: the triad (primary), ZionPattern Solver (secondary), unranked Bayesian posterior, and HEURISTIC possibility. None is a guilt verdict or a courtroom finding. Posterior ≠ truth.</p></section>
 <div class="card">
 <h2>Triad — SPRE × CLCE × PhysLing</h2>
 <p>When <strong>SPRE</strong>, <strong>CLCE</strong>, and <strong>PhysLing Review</strong> have all run on a record, one combined score is shown first. That is TRIAD_V1, an auditable geometric mean:</p>
@@ -778,7 +778,7 @@ export function howItsScoredBody() {
 <li><strong>CLCE</strong> — claim-to-claim consistency (AZ-CLCE). Triple agreement when it is strong; otherwise pairwise average.</li>
 <li><strong>PhysLing</strong> — physics coherence mixed with linguistic neutrality.</li>
 </ul>
-<p>Equal one-third weight. Display is <code>round(combined × 100)</code>. Component scores stay stored for audit. The unranked Bayesian peer number is <em>not</em> inside this mean and never sorts the shelf.</p>
+<p>Equal one-third weight. Display is <code>round(combined × 100)</code>. Component scores stay stored for audit. The unranked Bayesian peer number and the HEURISTIC possibility score are <em>not</em> inside this mean and never sort the shelf.</p>
 <p class="muted">See a record page, or <code>GET /v1/review?record_id=</code>, for the live triad and lights.</p>
 </div>
 <div class="card">
@@ -786,6 +786,13 @@ export function howItsScoredBody() {
 <p><strong>AZCoherence</strong> (AZC-0.1, slug <code>azcoherence</code>) is Softwares Plain / scoring-review. After the primary triad, it reviews primary vs alternate → PASS / FLAG / NEUTRALIZE / REFUSE. Peer <strong>AZ-CLCE</strong> detects R/D/P inconsistency. This second pass is not inside the triad geometric mean. Never invents evidence. Confidence ≠ truth. Not AKM-TRIAD fabric. FragGate is the single door. Author Aziel Eliab.</p>
 <p class="soft-links"><a class="button" href="${esc(AZCOHERENCE_WORKER_HOME)}">Worker</a> <a class="button ghost" href="${esc(AZCOHERENCE_GITHUB)}">GitHub</a> <a class="button ghost" href="/runtime/v1/fraggate/describe?slug=azcoherence">FragGate describe</a> <a class="button ghost" href="/software">Software</a></p>
 <p class="muted">${esc(AZCOHERENCE.dual_surface)} Compatible AI clients: ${esc(AI_CLIENTS)}.</p>
+</div>
+<div class="card">
+<h2>Possibility vs Bayesian</h2>
+<p><strong>Bayesian</strong> is an unranked Beta-Bernoulli posterior from review priors (evidence, physics, language, SPRE, CLCE). It is belief, not truth.</p>
+<p><strong>Possibility</strong> is a labeled <code>HEURISTIC</code> in [0,1] (or refuse) derived from hashchain lattice time×geo pins: support density, contradiction density, travel/plausibility. It asks: could this have occurred as stated given the anchors? It is not probability, not the triad, and not ZionPattern.</p>
+<p>Adaptive learning via hashchain lattice for recollection and reasoning. LEARN / POISON_LEARN / MAP_PIN / POSSIBILITY_SCORE append. Recollection is tip + prev-hash verify (fail closed). No opaque memory store. No LLM-as-memory. Sister cite: <a href="https://github.com/AzielEliab/4dmap">4DMap 4DM-WP-1.0</a>.</p>
+<p class="muted"><code>GET /v1/possibility?record_id=</code> · <code>GET /v1/recollect?record_id=</code> · <code>GET /v1/pin?record_id=</code> · <code>GET /v1/poison-learn</code></p>
 </div>
 <div class="card">
 <h2>ZionPattern Solver — honest reading</h2>

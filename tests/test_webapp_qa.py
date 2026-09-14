@@ -36,7 +36,7 @@ class WebAppQATest(unittest.TestCase):
 
         return urllib.request.urlopen(req,timeout=30)
     def test_all_primary_routes_exports_and_errors(self):
-        for route in ['/','/tree','/map','/historical','/gazetteer','/intelligence','/health','/verify','/ingest','/mirror','/assets/world_110m.geojson','/api/historical?date=1500']:
+        for route in ['/','/tree','/map','/historical','/gazetteer','/intelligence','/health','/verify','/ingest','/mirror','/assets/world_110m.geojson','/api/historical?date=1500','/v1/poison-learn']:
             with self.get(route) as r:
                 self.assertEqual(r.status,200,route); self.assertGreater(len(r.read()),10)
                 if r.headers.get('Content-Type','').startswith('text/html'):

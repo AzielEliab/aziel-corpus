@@ -12,6 +12,17 @@ import { handleOperatorIngestApi } from "./operator-ingest.js";
 import { continueMetadataBackfill, metadataBackfillStatus, receiptForJsonMetadata } from "./record-metadata.js";
 import { receiptForMediaRun, isMediaRunId } from "./media.js";
 import { continueVerifyGeo, geoVerifyStatus, GEO_PIN_NOTE } from "./geo.js";
+import {
+  HASHCHAIN_LEARN_LAW,
+  LEARN_LIMITATION,
+  POSSIBILITY_NOTE,
+  MAP4D_CITE,
+  recollectLattice,
+  possibilityScore,
+  compactPossibility,
+  loadPoisonLearnMemory,
+  loadLearnStamps,
+} from "./lattice-learn.js";
 import { RUNTIME_VERSION, RUNTIME_NOTE, runtimeHowTo, AI_CLIENTS, LIBRARY_DOWNLOAD, LIBRARY_V1_DOWNLOAD } from "./runtime-copy.js";
 import { checkLibraryUpdate, LIBRARY_SLUG, LIBRARY_VERSION } from "./update-check.js";
 import { fetchLiveSoftwareCatalog, softwareTabCatalog } from "./software-catalog.js";
@@ -90,8 +101,12 @@ Ops (do **not** increment downloads):
 - \`GET /v1/search?q=\`
 - \`GET /v1/example\`
 - \`GET /v1/skill\`
-- \`GET /v1/review?record_id=\` (triad + ZionPattern Solver secondary score + succession cites)
+- \`GET /v1/review?record_id=\` (triad + ZionPattern Solver secondary score + succession cites + Bayesian + possibility)
 - \`GET /v1/lattice?record_id=\`
+- \`GET /v1/possibility?record_id=\` (HEURISTIC possibility over lattice time×geo pins; not Bayesian)
+- \`GET /v1/recollect?record_id=\` (tip + depth / prev-hash verify; fail closed)
+- \`GET /v1/poison-learn\` (feature receipts only; no poison bodies)
+- \`POST /v1/pin\` (operator/record pin-from-upload receipt; fail closed on structure/poison)
 - \`GET /v1/mesh\` · \`GET /v1/mesh/status\` · \`GET /v1/mesh/nodes\` (suite mesh; read-only QNM ON; counts/status rollup, not the cell; QNS-CD-1.0 + CROSS-NETWORK-SURVIVAL-1.0 + MESH-SPLIT-WIRES-1.0 + MESH-COLD-COPY-1.0 + MESH-REEXPAND-1.0 + MESH-REHEAL-1.0 + NO-LIE-NO-REWRITE-1.0 on the payload)
 - \`GET /runtime/v1/mesh\` (same-origin proxy of runtime mesh; not a public qnsd proxy)
 - \`POST /v1/score\` (document review preview)
@@ -170,8 +185,12 @@ function openapi() {
       "/v1/search": { get: { summary: "Filter packed library:index:v1 in memory (one KV get). AZDOC cards only — no PDF bodies. ChainLock library-sync client. Author Aziel Eliab.", operationId: "search", parameters: [{ name: "q", in: "query", schema: { type: "string" } }, { name: "lib", in: "query", schema: { type: "string", enum: ["all", "aziel", "corpus"] } }, { name: "sort", in: "query", schema: { type: "string", enum: ["newest", "oldest", "alpha", "title", "author", "domain"] } }, { name: "author", in: "query", schema: { type: "string" } }, { name: "domain", in: "query", schema: { type: "string" } }, { name: "subject", in: "query", schema: { type: "string" } }, { name: "keyword", in: "query", schema: { type: "string" } }] } },
       "/v1/example": { get: { summary: "Sample search payload.", operationId: "example" } },
       "/v1/skill": { get: { summary: "Skill markdown.", operationId: "skill" } },
-      "/v1/review": { get: { summary: "Triad composite (SPRE × CLCE × PhysLing geometric mean) plus component scores, Bayesian (unranked), quarantine, document chain tip, and exact-same-subject succession cites when present. Does not increment downloads.", operationId: "review", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
-      "/v1/lattice": { get: { summary: "AzielTether lattice anchor tip for a verified record. Public site is not a mesh.", operationId: "lattice", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
+      "/v1/review": { get: { summary: "Triad composite (SPRE × CLCE × PhysLing geometric mean) plus component scores, Bayesian (unranked), HEURISTIC possibility (separate), quarantine, document chain tip, and exact-same-subject succession cites when present. Does not increment downloads.", operationId: "review", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
+      "/v1/lattice": { get: { summary: "AzielTether lattice anchor tip for a verified record. Public site is not a mesh. Adaptive learning via hashchain lattice for recollection and reasoning.", operationId: "lattice", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
+      "/v1/possibility": { get: { summary: "HEURISTIC possibility score derived from lattice time×geo pin receipts. possibility ≠ probability ≠ triad ≠ ZionPattern. Not courtroom truth.", operationId: "possibility", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
+      "/v1/recollect": { get: { summary: "Recollection = walk document hashchain from tip + depth. Prev-hash verify. Fail closed on break. Not LLM memory.", operationId: "recollect", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }, { name: "depth", in: "query", schema: { type: "integer", default: 32 } }, { name: "tip", in: "query", schema: { type: "string" } }] } },
+      "/v1/poison-learn": { get: { summary: "Poison-learn feature lattice (AZDOC-POISONLEARN). Hash + markers + token hashes only. No poison bodies.", operationId: "poisonLearn" } },
+      "/v1/pin": { get: { summary: "Pin receipt for a record (time×geo anchors + possibility). Same lattice as upload→pin.", operationId: "pinGet", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
       "/v1/mesh": { get: { summary: "Suite decentralized node mesh status. Read-only QNM ON. Counts/status rollup — not the cell. Proxies /v1/mesh. Cites QNS-CD-1.0, CROSS-NETWORK-SURVIVAL-1.0, MESH-SPLIT-WIRES-1.0, MESH-COLD-COPY-1.0, MESH-REEXPAND-1.0, MESH-REHEAL-1.0, NO-LIE-NO-REWRITE-1.0. Author Aziel Eliab.", operationId: "mesh" } },
       "/v1/mesh/status": { get: { summary: "Suite mesh status alias. Read-only QNM ON. Counts/status — not the cell. QNS-CD-1.0 + CROSS-NETWORK-SURVIVAL-1.0 + split-wires + cold-copy + re-expand + reheal. Author Aziel Eliab.", operationId: "meshStatus" } },
       "/v1/mesh/nodes": { get: { summary: "Live Nodes list for the suite mesh. Live Nodes · N while mesh on. Rollup counts only — not the cell. Author Aziel Eliab.", operationId: "meshNodes" } },
@@ -389,7 +408,11 @@ export async function handleRuntimeApi(request, url, env, ctx) {
         clce: "AZ-CLCE Jaccard port + optional live /v1/score",
         plr: "PhysLing Review",
         poison: "hash-chained quarantine, never silent delete",
-        bayesian: "unranked peer score, never default shelf sort",
+        bayesian: "unranked peer score, never default shelf sort. Posterior ≠ truth.",
+        possibility: "HEURISTIC possibility ∈ [0,1] or refuse, derived from lattice time×geo pins. possibility ≠ probability ≠ triad ≠ ZionPattern. GET /v1/possibility?record_id=",
+        learn: HASHCHAIN_LEARN_LAW + ". LEARN / POISON_LEARN / MAP_PIN / POSSIBILITY_SCORE append to document_ledger. Recollection is tip + prev-hash. " + LEARN_LIMITATION,
+        poison_learn: "GET /v1/poison-learn — feature receipts only (hash + markers). No poison bodies. Repeats refuse faster.",
+        pin: "Upload→pin on successful ingest. GET /v1/pin?record_id= · GET /v1/verify-geo. Fail closed on structure/poison. 4DMap cite 4DM-WP-1.0 (not a live ICANN mesh DNS).",
         triad: "TRIAD_V1 geometric mean of SPRE PC, CLCE consistency, PhysLing coherence — primary visible score",
         backfill: "GET /v1/verify-backfill scores older unscored records",
         document_chain: "hash-chain bound to AZDOC- id; uploads/downloads/rescores/quarantine/peer notes append",
@@ -471,6 +494,9 @@ export async function handleRuntimeApi(request, url, env, ctx) {
       zsolver: extra.zsolver || null,
       succession: extra.succession || null,
       bayesian_unranked: true,
+      possibility: (extra.review && extra.review.possibility) || null,
+      possibility_note: POSSIBILITY_NOTE,
+      law: HASHCHAIN_LEARN_LAW,
       document_chain: receipt.document_chain || null,
       ...extra,
       limitation: LIMITATION,
@@ -514,7 +540,16 @@ export async function handleRuntimeApi(request, url, env, ctx) {
       library: body.library || "corpus",
       liveClce: false,
     });
-    return json({ ok: true, triad: bundle.review && bundle.review.triad, ...bundle, bayesian_unranked: true, limitation: LIMITATION });
+    return json({
+      ok: true,
+      triad: bundle.review && bundle.review.triad,
+      ...bundle,
+      bayesian_unranked: true,
+      possibility: bundle.review && bundle.review.possibility,
+      possibility_note: POSSIBILITY_NOTE,
+      law: HASHCHAIN_LEARN_LAW,
+      limitation: LIMITATION,
+    });
   }
   if (path === "/v1/verify-geo" && request.method === "GET") {
     const force = url.searchParams.get("force") === "1" || url.searchParams.get("force") === "true";
@@ -531,10 +566,13 @@ export async function handleRuntimeApi(request, url, env, ctx) {
         stats: report,
         events_live: live.events,
         note: GEO_PIN_NOTE,
+        map4d: MAP4D_CITE,
+        law: HASHCHAIN_LEARN_LAW,
+        possibility_note: POSSIBILITY_NOTE,
         limitation: LIMITATION,
       });
     }
-    return json({ ...report, events_live: live.events, note: GEO_PIN_NOTE, limitation: LIMITATION });
+    return json({ ...report, events_live: live.events, note: GEO_PIN_NOTE, map4d: MAP4D_CITE, law: HASHCHAIN_LEARN_LAW, possibility_note: POSSIBILITY_NOTE, limitation: LIMITATION });
   }
   if (path === "/v1/verify-backfill" && request.method === "GET") {
     const force = url.searchParams.get("force") === "1" || url.searchParams.get("force") === "true";
@@ -589,6 +627,86 @@ export async function handleRuntimeApi(request, url, env, ctx) {
     }
     const report = await backfillReviews(env, { limit, force, recordId });
     return json({ ...report, limitation: LIMITATION });
+  }
+  if (path === "/v1/recollect" && request.method === "GET") {
+    const recordId = (url.searchParams.get("record_id") || url.searchParams.get("id") || "").trim();
+    if (!recordId) return json({ error: "record_id required", law: HASHCHAIN_LEARN_LAW }, 400);
+    const depth = Number(url.searchParams.get("depth") || 32);
+    const tip = (url.searchParams.get("tip") || "").trim() || null;
+    const rec = await recollectLattice(env, { record_id: recordId, depth, tip });
+    return json({ ...rec, limitation: LIMITATION }, rec.ok ? 200 : 409);
+  }
+  if (path === "/v1/possibility" && request.method === "GET") {
+    const recordId = (url.searchParams.get("record_id") || url.searchParams.get("id") || "").trim();
+    if (!recordId) return json({ error: "record_id required", note: POSSIBILITY_NOTE }, 400);
+    const extra = await loadRecordReview(env, { record_id: recordId });
+    const rec = await recollectLattice(env, { record_id: recordId, depth: 64 });
+    let events = [];
+    try {
+      const { recordEvents } = await import("./geo.js");
+      events = await recordEvents(env, recordId);
+    } catch { events = []; }
+    const stored = extra.review && extra.review.possibility;
+    const prior = rec.ok ? await loadLearnStamps(env, { excludeRecordId: recordId }) : [];
+    const local = (rec.stamps || [])
+      .filter((s) => s.action === "LEARN")
+      .map((s) => ({ kind: (s.payload && s.payload.kind) || "accept", anchors: (s.payload && s.payload.anchors) || [] }));
+    const derived = rec.ok
+      ? possibilityScore({
+          anchors: (events || []).map((e) => ({ date: e.event_date, lat: e.lat, lon: e.lon, place: e.place_name })),
+          learnStamps: prior.concat(local),
+          latticeOk: rec.ok,
+          poison: String(extra.quarantine_status || "") === "POISON_SUSPECT",
+        })
+      : possibilityScore({ latticeOk: false });
+    return json({
+      ok: rec.ok,
+      record_id: recordId,
+      possibility: derived,
+      stored: compactPossibility(stored),
+      bayesian: extra.review && extra.review.bayesian
+        ? { posterior: extra.review.bayesian.posterior, unranked: true, schema: "aziel.bayesian.v1" }
+        : null,
+      tip: rec.tip,
+      map4d: MAP4D_CITE,
+      law: HASHCHAIN_LEARN_LAW,
+      note: POSSIBILITY_NOTE,
+      limitation: LIMITATION,
+    }, rec.ok ? 200 : 409);
+  }
+  if (path === "/v1/poison-learn" && request.method === "GET") {
+    const mem = await loadPoisonLearnMemory(env);
+    return json({
+      ok: !!mem.ok,
+      features: mem.features || [],
+      tip: mem.tip || null,
+      body_retained: false,
+      law: HASHCHAIN_LEARN_LAW,
+      note: "Poison-learn is a feature receipt lattice. Repeats refuse faster. No poison payloads.",
+      limitation: LIMITATION,
+    }, mem.ok === false ? 409 : 200);
+  }
+  if (path === "/v1/pin" && request.method === "GET") {
+    const recordId = (url.searchParams.get("record_id") || url.searchParams.get("id") || "").trim();
+    if (!recordId) return json({ error: "record_id required", map4d: MAP4D_CITE }, 400);
+    const rec = await recollectLattice(env, { record_id: recordId, depth: 64 });
+    let events = [];
+    try {
+      const { recordEvents } = await import("./geo.js");
+      events = await recordEvents(env, recordId);
+    } catch { events = []; }
+    const pins = (rec.stamps || []).filter((s) => s.action === "MAP_PIN" || s.action === "MAP_PIN_REFUSED");
+    return json({
+      ok: rec.ok,
+      record_id: recordId,
+      events,
+      pin_stamps: pins,
+      tip: rec.tip,
+      map4d: MAP4D_CITE,
+      law: HASHCHAIN_LEARN_LAW,
+      note: GEO_PIN_NOTE,
+      limitation: LIMITATION,
+    }, rec.ok ? 200 : 409);
   }
   if (path === "/v1/document-chain" && request.method === "GET") {
     const recordId = (url.searchParams.get("record_id") || url.searchParams.get("id") || "").trim();
