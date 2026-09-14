@@ -215,12 +215,14 @@ function qnmFrame() {
     qnm_s_note: "Views, MCP, and downloads do not enter QNM-S.",
     scores: false,
     leaderboard: false,
-    phoenix_lock: "local wait — no controller hunt",
+    phoenix_lock: "local wait / re-seal after poison or isolation — not restore public hostname",
     local_node: "qnm-node/",
     local_node_note:
       "Full node process is local qnm-node/ (boot/chain/apg/bearers/outbox/phoenix/score/memorial/tethers). "
+      + "Phoenix is wait / re-seal after poison or isolation, not restore of a public .uk or other hostname. "
       + "Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). "
-      + "Parent will roll that package. This runtime is suite rollup + read-only public presence.",
+      + "Parent will roll that package. This runtime is suite rollup + read-only public presence. "
+      + "Sites pulled → public rollup is down. Local node can keep verifying and appending. The mesh does not climb back onto the public hostname by itself.",
     host_note:
       "azieleliab.com hosts published software/runtime — not login-recovery, not Node Gate/IP panel, not upload proxy.",
     qns_cd: QNS_CD,
