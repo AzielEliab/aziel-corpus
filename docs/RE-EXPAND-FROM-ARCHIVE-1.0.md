@@ -5,7 +5,7 @@ Spec id: RE-EXPAND-FROM-ARCHIVE-1.0
 Origin: https://www.azielcorpuslibrary.net/  
 Date: 2026-09-14  
 License: Apache-2.0  
-Neighbors: INGEST-AS-RECEIPT-1.0, ACT-RECEIPT-1.0, MESH-COLD-COPY-1.0, MESH-SPLIT-WIRES-1.0, MESH-VAULT-1.0, MESH-CONTINUE-1.0  
+Neighbors: INGEST-AS-RECEIPT-1.0, CROSS-NETWORK-SURVIVAL, NO-LIE / NO-REWRITE, ACT-RECEIPT-1.0, MESH-COLD-COPY-1.0, MESH-SPLIT-WIRES-1.0, MESH-VAULT-1.0, MESH-CONTINUE-1.0  
 Keeps: ACT-RECEIPT-1.0; die-with-pull; split-wires; cold-copy mesh refuse  
 Not a Softwares-tab product. Not the mesh growing itself out of an index. Not visible 15:20 identity-lock chrome.
 
@@ -43,7 +43,11 @@ Die-with-pull stays: a pulled public hostname is down. Phoenix does not restore 
 
 Put this next to the published hash on the first screen and in `llms.txt` / `cite.json`:
 
-**cite, don't merge** · **bytes survive; crawlers do not re-expand**
+**cite, don't merge** · **bytes survive; crawlers do not re-expand** · **CROSS-NETWORK-SURVIVAL** · **NO-LIE / NO-REWRITE**
+
+**CROSS-NETWORK-SURVIVAL:** If network + live data die tomorrow, the chain still survives via cold copies across independent shelves; survival = bytes↔hash.
+
+**NO-LIE / NO-REWRITE:** receipts that still hash; copies not all on one tunnel; verify without voice; no rewrite key; network never lies even to stay alive.
 
 ## 6. Cap
 

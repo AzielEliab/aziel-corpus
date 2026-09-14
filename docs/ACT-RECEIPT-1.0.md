@@ -28,7 +28,7 @@ A new library tab `/receipts` plus machine endpoints:
 - `GET /receipts/{hash|AZACT-…}`
 - `GET /receipts/verify` — fail-closed chain check; paste `?hash=` for yes/no against the published lockset tip (INGEST-AS-RECEIPT-1.0)
 - `GET /v1/receipts/verify` — machine yes/no + chain
-- `GET /lockset.json` — canonical lockset bytes (SHA-256 is the published tip)
+- `GET /lockset.json` — lockset core + CROSS-NETWORK-SURVIVAL + NO-LIE / NO-REWRITE (SHA-256 of the core is the published tip)
 - `POST /v1/receipts/append` — gated (`x-aziel-receipt` = `RECEIPT_APPEND_TOKEN`)
 
 Each receipt stores exactly four public things:

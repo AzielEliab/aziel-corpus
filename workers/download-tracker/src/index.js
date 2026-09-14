@@ -26,7 +26,7 @@ import { enforceRateLimit, rememberCatalog, isSeoBot } from "./rate-limit.js";
 import { handleDonate, DONATE_PATH } from "./donate.js";
 import { handleDonateQr, isDonateQrPath } from "./donate-qr.js";
 import { handleReceipts, isReceiptsPath } from "./action-receipts.js";
-import { locksetBytes } from "./ingest-receipt.js";
+import { locksetFile } from "./ingest-receipt.js";
 import { serveSoftwareAsset, DEFAULT_ASSET as SOFTWARE_DEFAULT_ASSET } from "./software-download.js";
 
 /** Operator walk APIs must not share the isolate with background backfill/geo or a tunnel hop. */
@@ -534,7 +534,7 @@ export default {
       return crawlResponse(request, JSON.stringify(citeDoc(), null, 2), MIME.json, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
     }
     if (isReadMethod(request.method) && crawlPath === "/lockset.json") {
-      return crawlResponse(request, locksetBytes(), MIME.json, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
+      return crawlResponse(request, locksetFile(), MIME.json, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
     }
     if (isReadMethod(request.method)) {
       const identity = identityRouteBody(crawlPath);

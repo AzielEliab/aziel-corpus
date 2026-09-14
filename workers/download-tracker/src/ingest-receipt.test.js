@@ -7,11 +7,16 @@ import { dirname, join } from "node:path";
 import {
   AUTHOR,
   CITE_RULE,
+  CROSS_NETWORK_SURVIVAL,
+  CROSS_NETWORK_SURVIVAL_RULE,
   INGEST_SPEC,
   LOCKSET,
   LOCKSET_ID,
   LOCKSET_INDEXES,
   LOCKSET_TIP,
+  NO_LIE_NO_REWRITE,
+  NO_LIE_NO_REWRITE_RULE,
+  PUBLISHED_TIP,
   REEXPAND_SPEC,
   SURVIVE_RULE,
   TRAINING_NOTE,
@@ -22,6 +27,7 @@ import {
   ingestVerifyForm,
   ingestVerifyJson,
   locksetBytes,
+  locksetFile,
   matchPublishedTip,
   normalizeTipHash,
 } from "./ingest-receipt.js";
@@ -45,14 +51,19 @@ test("published lockset tip is SHA-256 of the lockset bytes", () => {
   assert.equal(LOCKSET.zenodo, null);
   assert.equal(LOCKSET.doi, null);
   assert.equal(LOCKSET_TIP, hashPayload(LOCKSET));
+  assert.equal(LOCKSET_TIP, PUBLISHED_TIP);
   assert.match(LOCKSET_TIP, /^[0-9a-f]{64}$/);
   assert.equal(createHash("sha256").update(canonicalJson(LOCKSET), "utf8").digest("hex"), LOCKSET_TIP);
   assert.ok(LOCKSET_INDEXES.includes("https://www.azielcorpuslibrary.net/"));
   assert.ok(LOCKSET_INDEXES.includes("https://github.com/AzielEliab/aziel-corpus"));
   assert.match(TRAINING_NOTE, /Weights will not store the chain/);
   assert.equal(locksetBytes(), canonicalJson(LOCKSET));
+  assert.match(locksetFile(), /CROSS-NETWORK-SURVIVAL/);
+  assert.match(locksetFile(), /NO-LIE \/ NO-REWRITE/);
+  assert.match(locksetFile(), /bytes↔hash/);
   const githubBytes = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../../../docs/lockset.json"), "utf8");
-  assert.equal(githubBytes, locksetBytes());
+  assert.equal(githubBytes, locksetFile());
+  assert.notEqual(locksetFile(), locksetBytes());
 });
 
 test("paste hash is yes/no against the published tip", () => {
@@ -78,6 +89,10 @@ test("first-screen strip carries hash + short rules and no 15:20 chrome", () => 
   assert.match(strip, new RegExp(LOCKSET_TIP));
   assert.match(strip, /cite, don't merge/);
   assert.match(strip, /bytes survive; crawlers do not re-expand/);
+  assert.match(strip, /CROSS-NETWORK-SURVIVAL/);
+  assert.match(strip, /NO-LIE \/ NO-REWRITE/);
+  assert.match(strip, /bytes↔hash/);
+  assert.match(strip, /network never lies even to stay alive/);
   assert.match(strip, /AZLOCK-INGEST-REEXPAND-1\.0/);
   assert.match(strip, /href="\/receipts\/verify"/);
   assert.doesNotMatch(strip, BOTH_MUSICIANS_P);
@@ -91,6 +106,8 @@ test("first-screen strip carries hash + short rules and no 15:20 chrome", () => 
   assert.match(home, new RegExp(LOCKSET_TIP));
   assert.match(home, /cite, don't merge/);
   assert.match(home, /bytes survive; crawlers do not re-expand/);
+  assert.match(home, /CROSS-NETWORK-SURVIVAL/);
+  assert.match(home, /NO-LIE \/ NO-REWRITE/);
   assert.match(home, /id="az-ingest-receipt"/);
   assert.doesNotMatch(home, BOTH_MUSICIANS_P);
   const form = ingestVerifyForm({ pasted: LOCKSET_TIP, result: matchPublishedTip(LOCKSET_TIP) });
@@ -141,7 +158,12 @@ test("cite.json, llms.txt, ai.txt, robots, sitemap carry the tip and keep crawle
   assert.equal(cite.reexpand_from_archive, REEXPAND_SPEC);
   assert.equal(cite.cite_rule, CITE_RULE);
   assert.equal(cite.survive_rule, SURVIVE_RULE);
+  assert.equal(cite.cross_network_survival, CROSS_NETWORK_SURVIVAL);
+  assert.equal(cite.cross_network_survival_rule, CROSS_NETWORK_SURVIVAL_RULE);
+  assert.equal(cite.no_lie_no_rewrite, NO_LIE_NO_REWRITE);
+  assert.equal(cite.no_lie_no_rewrite_rule, NO_LIE_NO_REWRITE_RULE);
   assert.equal(cite.lockset_tip, LOCKSET_TIP);
+  assert.equal(cite.lockset_tip, PUBLISHED_TIP);
   assert.equal(cite.lockset_id, LOCKSET_ID);
   assert.match(cite.lockset, /\/lockset\.json$/);
   assert.match(cite.lockset_verify, /\/receipts\/verify$/);
@@ -154,6 +176,8 @@ test("cite.json, llms.txt, ai.txt, robots, sitemap carry the tip and keep crawle
   assert.match(llms, new RegExp(LOCKSET_TIP));
   assert.match(llms, /cite, don't merge/);
   assert.match(llms, /bytes survive; crawlers do not re-expand/);
+  assert.match(llms, /CROSS-NETWORK-SURVIVAL/);
+  assert.match(llms, /NO-LIE \/ NO-REWRITE/);
   assert.match(llms, /INGEST-AS-RECEIPT-1\.0/);
   assert.match(llms, /RE-EXPAND-FROM-ARCHIVE-1\.0/);
   assert.match(ingestReceiptLlmsBlock(), /crawlers do not re-expand/);
@@ -161,6 +185,8 @@ test("cite.json, llms.txt, ai.txt, robots, sitemap carry the tip and keep crawle
   const ai = aiTxt("LIMIT");
   assert.match(ai, /cite, don't merge/);
   assert.match(ai, /bytes survive; crawlers do not re-expand/);
+  assert.match(ai, /CROSS-NETWORK-SURVIVAL/);
+  assert.match(ai, /NO-LIE \/ NO-REWRITE/);
   assert.match(ai, /GPTBot/);
   assert.match(ai, /User-agent: GPTBot\nAllow: \//);
 
