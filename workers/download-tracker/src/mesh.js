@@ -184,6 +184,7 @@ export const MESH_NOTE =
   + "Cold-copy survival (MESH-COLD-COPY-1.0): vault-on-transfer multiplies cold copies; live sync of bodies is refused; server pull cannot wipe a cold replica; poison is hash-absolute refuse; equivocation isolates; data outlives creators. "
   + "Re-expand (MESH-REEXPAND-1.0): restore from archive — original receipts, each prev-hash, new local node on that tip. Bytes survive, not summaries. Crawlers do not re-expand. Training residue is rumor. "
   + "Reheal (MESH-REHEAL-1.0): poisoned live node is self tip + trusted pull or phoenix-WAIT — never neighbor majority. Distinct from re-expand. "
+  + "Ingest-as-receipt + re-expand-from-archive: cite, don't merge; bytes survive; crawlers do not re-expand. "
   + "QNS-CD-1.0 photon QNS1 packet transfer (local qnsd in qnm-node; runtime cite only; no public proxy; no Node Gate). "
   + "Identity Aziel Eliab only.";
 

@@ -3,6 +3,7 @@
 Author: Aziel Eliab  
 Origin: https://www.azielcorpuslibrary.net/receipts  
 Spec id: ACT-RECEIPT-1.0  
+Neighbors: INGEST-AS-RECEIPT-1.0, RE-EXPAND-FROM-ARCHIVE-1.0, MESH-COLD-COPY-1.0, MESH-SPLIT-WIRES-1.0  
 Not a Softwares-tab product. Not GodLock. Not TemporalLock. Not local ChainLock.
 
 ## What already existed
@@ -25,7 +26,9 @@ A new library tab `/receipts` plus machine endpoints:
 - `GET /receipts.jsonl` — crawl/index stream
 - `GET /v1/receipts` — JSON + JSON-LD Dataset
 - `GET /receipts/{hash|AZACT-…}`
-- `GET /receipts/verify` — fail-closed chain check
+- `GET /receipts/verify` — fail-closed chain check; paste `?hash=` for yes/no against the published lockset tip (INGEST-AS-RECEIPT-1.0)
+- `GET /v1/receipts/verify` — machine yes/no + chain
+- `GET /lockset.json` — canonical lockset bytes (SHA-256 is the published tip)
 - `POST /v1/receipts/append` — gated (`x-aziel-receipt` = `RECEIPT_APPEND_TOKEN`)
 
 Each receipt stores exactly four public things:
@@ -50,7 +53,7 @@ Runtime nodes push the same four-field body to `/v1/receipts/append` after a loc
 
 ## Mesh / crawlers
 
-`robots.txt`, `llms.txt`, `ai.txt`, and `sitemap.xml` allow `/receipts`. JSON-LD `@type: Dataset` is on the tab. Humans and crawlers stay uncapped on HTML/search/SEO.
+`robots.txt`, `llms.txt`, `ai.txt`, and `sitemap.xml` allow `/receipts` and `/lockset.json`. JSON-LD `@type: Dataset` is on the tab. Humans and crawlers stay uncapped on HTML/search/SEO. Ingest is a receipt (INGEST-AS-RECEIPT-1.0). Re-expand is from archive bytes, not crawler memory (RE-EXPAND-FROM-ARCHIVE-1.0). Die-with-pull / split-wires / cold-copy mesh refuse stay.
 
 ## Identity lock
 

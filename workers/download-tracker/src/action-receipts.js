@@ -9,6 +9,14 @@ import { page } from "./ui.js";
 import { corsHeaders, json } from "./runtime.js";
 import { hashPayload } from "./ledger.js";
 import { CANON_HOST, HUB_PERSON_ID } from "./seo.js";
+import {
+  CITE_RULE,
+  LOCKSET_TIP,
+  SURVIVE_RULE,
+  ingestVerifyForm,
+  ingestVerifyJson,
+  matchPublishedTip,
+} from "./ingest-receipt.js";
 
 export const RECEIPTS_SPEC = "ACT-RECEIPT-1.0";
 export const RECEIPTS_PATH = "/receipts";
@@ -372,12 +380,15 @@ export function receiptsBody({ rows = [], isolated = [], verify, sisters = SISTE
   const verifyHtml = verify
     ? `<p class="pill ${verify.ok ? "ok" : ""}">${verify.ok ? "chain verifies" : "chain failed"} · ${Number(verify.entries) || 0} entries</p>`
     : "";
+  const tipMatch = verify && verify.tip_match ? verify.tip_match : null;
   const dataset = receiptsDataset(chainTipHash);
   return `<section class="hero">
 <p class="pill">${esc(RECEIPTS_SPEC)}</p>
 <h1>Receipts</h1>
 <p>Public action receipts. Each row is four fields: hash, one sentence of the requested action, one sentence of the output given, and event metadata. previous_hash is the chain link. Not a Softwares-tab product. Not GodLock challenge receipts. Not TemporalLock. Not local ChainLock.</p>
+<p class="muted">Published lockset tip <code>${esc(LOCKSET_TIP)}</code>. ${esc(CITE_RULE)}. ${esc(SURVIVE_RULE)}.</p>
 ${verifyHtml}
+${ingestVerifyForm({ pasted: tipMatch && tipMatch.pasted, result: tipMatch })}
 </section>
 <h2>Chain tip</h2>
 ${tipHtml}
@@ -440,6 +451,9 @@ function jsonldBundle(tip, receipts) {
   return {
     spec: RECEIPTS_SPEC,
     tip,
+    lockset_tip: LOCKSET_TIP,
+    cite_rule: CITE_RULE,
+    survive_rule: SURVIVE_RULE,
     receipts,
     lattice: SISTER_SITES.map((site) => ({ origin: site.origin, receipts: site.origin + site.path })),
     jsonld: receiptsDataset(tip),
@@ -468,16 +482,31 @@ export async function handleReceipts(request, env) {
     return json({ ok: false, error: "method not allowed" }, 405);
   }
 
-  if (path === "/receipts/verify") {
+  if (path === "/receipts/verify" || path === "/v1/receipts/verify") {
     const verify = await verifyActionChain(env);
-    if (wantsJson(request)) return json(verify, verify.ok ? 200 : 409);
+    const pasted = url.searchParams.get("hash") || url.searchParams.get("tip") || url.searchParams.get("sha256") || "";
+    const extras = [];
+    if (verify.tip && verify.tip !== ZERO) extras.push({ hash: verify.tip, kind: "act-receipt" });
+    const tipMatch = pasted ? matchPublishedTip(pasted, extras) : null;
+    const machine = ingestVerifyJson(tipMatch || matchPublishedTip(""), { chain: verify });
+    if (wantsJson(request) || path === "/v1/receipts/verify") {
+      if (tipMatch && !tipMatch.ok) return json(machine, 400);
+      if (pasted) return json(machine, 200);
+      return json(machine, verify.ok ? 200 : 409);
+    }
     const rows = await listReceipts(env, 20);
-    const html = page("Receipts verify", receiptsBody({ rows, verify, sisters: await loadSisterTips(env), tip: verify.tip }), {
+    const html = page("Receipts verify", receiptsBody({
+      rows,
+      verify: { ...verify, tip_match: tipMatch },
+      sisters: await loadSisterTips(env),
+      tip: verify.tip,
+    }), {
       path: "/receipts/verify",
       kind: "receipts",
     });
-    if (method === "HEAD") return new Response(null, { status: verify.ok ? 200 : 409, headers: htmlHeaders() });
-    return new Response(html, { status: verify.ok ? 200 : 409, headers: htmlHeaders() });
+    const status = tipMatch && !tipMatch.ok ? 400 : (verify.ok ? 200 : 409);
+    if (method === "HEAD") return new Response(null, { status, headers: htmlHeaders() });
+    return new Response(html, { status, headers: htmlHeaders() });
   }
 
   if (path === "/receipts.jsonl") {

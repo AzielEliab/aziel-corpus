@@ -16,6 +16,11 @@ Allow: /runtime
 Allow: /runtime/
 Allow: /how-its-scored
 Allow: /cite.json
+Allow: /lockset.json
+Allow: /receipts
+Allow: /receipts/verify
+Allow: /v1/receipts
+Allow: /v1/receipts/verify
 Allow: /person.jsonld
 Allow: /identity.jsonld
 Allow: /graph.jsonld
@@ -136,6 +141,11 @@ Sitemap: https://www.azielcorpuslibrary.net/sitemap-index.xml
 - GodLock.uk: https://godlock.uk · https://godlock.uk/AzielEliab
 - He Didn't Jump: https://www.hedidntjump.com/
 - cite.json: https://www.azielcorpuslibrary.net/cite.json
+- lockset.json: https://www.azielcorpuslibrary.net/lockset.json
+- SHA-256: c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245
+- cite, don't merge
+- bytes survive; crawlers do not re-expand
+- Tip verify: https://www.azielcorpuslibrary.net/receipts/verify
 - person.jsonld: https://www.azielcorpuslibrary.net/person.jsonld
 - identity.jsonld: https://www.azielcorpuslibrary.net/identity.jsonld
 - graph.jsonld: https://www.azielcorpuslibrary.net/graph.jsonld
