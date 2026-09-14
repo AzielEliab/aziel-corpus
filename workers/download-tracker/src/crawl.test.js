@@ -27,7 +27,7 @@ function assertPublicIdentity(text) {
 test("robots.txt allows research surfaces and major AI bots", () => {
   const txt = robotsTxt();
   assertPublicIdentity(txt);
-  for (const path of ["/ai.txt", "/how-its-scored", "/humans.txt", "/software", "/donate", "/runtime", "/runtime/v1/uses", "/AzielEliab", "/aboutme", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/search", "/.well-known/aziel.json", "/.well-known/person.jsonld"]) {
+  for (const path of ["/ai.txt", "/how-its-scored", "/humans.txt", "/software", "/donate", "/runtime", "/runtime/v1/uses", "/AzielEliab", "/aboutme", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/search", "/.well-known/aziel.json", "/.well-known/person.jsonld", "/shelves", "/cold-copy"]) {
     assert.match(txt, new RegExp("Allow: " + path.replace("/", "\\/")));
   }
   assert.match(txt, /Content-Signal: search=yes, ai-input=yes, ai-train=yes/);
@@ -123,7 +123,7 @@ test("sitemap.xml lists key routes and uses XML mime helper", async () => {
   };
   const xml = await sitemapXml(env);
   assert.match(xml, /<\?xml version="1.0"/);
-  for (const path of ["/", "/search", "/login", "/signup", "/AzielEliab", "/software", "/donate", "/v1/software", "/v1/download", "/v1/library-index", "/v1/stats", "/v1/update/check", "/sitemap-index.xml", "/sitemap-records.xml", "/mcp.json", "/.well-known/mcp.json", "/runtime", "/runtime/", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/software", "/runtime/v1/uses", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/forensics", "/aziel-library", "/corpus", "/cite.json", "/lockset.json", "/receipts", "/receipts/verify", "/v1/receipts", "/v1/receipts/verify", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/.well-known/aziel.json", "/.well-known/person.jsonld", "/llms.txt", "/ai.txt"]) {
+  for (const path of ["/", "/search", "/login", "/signup", "/AzielEliab", "/software", "/donate", "/v1/software", "/v1/download", "/v1/library-index", "/v1/stats", "/v1/update/check", "/sitemap-index.xml", "/sitemap-records.xml", "/mcp.json", "/.well-known/mcp.json", "/runtime", "/runtime/", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/software", "/runtime/v1/uses", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/forensics", "/aziel-library", "/corpus", "/cite.json", "/lockset.json", "/shelves", "/cold-copy", "/receipts", "/receipts/verify", "/v1/receipts", "/v1/receipts/verify", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/.well-known/aziel.json", "/.well-known/person.jsonld", "/llms.txt", "/ai.txt"]) {
     assert.match(xml, new RegExp("<loc>https://www\\.azielcorpuslibrary\\.net" + path.replace("/", "\\/") + "</loc>"));
   }
   assert.doesNotMatch(xml, /azielcorpuslibrary\.net\/about</);

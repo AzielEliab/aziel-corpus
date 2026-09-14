@@ -6,8 +6,8 @@ Date: 2026-09-14
 License: Apache-2.0
 Umbrella over: MESH-SPLIT-WIRES-1.0, MESH-COLD-COPY-1.0, die-with-pull (PR #87), MESH-REEXPAND-1.0, MESH-REHEAL-1.0
 Amends: MESH-VAULT-1.0, MESH-CONTINUE-1.0, TUN-BOOT-1.0, TUN-WP-0.1
-Neighbors: ACT-RECEIPT-1.0, ChainLock CL-0.4, QNM-WP-1.0, NODE-OPS-1.0, QNS-CD-1.0, QNM-BUILD-1.0, NO-LIE-NO-REWRITE-1.0
-Cited on: GET /v1/mesh · /v1/mesh/status · /v1/mesh/nodes (library Worker rollup)
+Neighbors: ACT-RECEIPT-1.0, ChainLock CL-0.4, QNM-WP-1.0, NODE-OPS-1.0, QNS-CD-1.0, QNM-BUILD-1.0, NO-LIE-NO-REWRITE-1.0, COLD-MULTI-SHELF-1.0
+Cited on: GET /v1/mesh · /v1/mesh/status · /v1/mesh/nodes (library Worker rollup) · GET /shelves (COLD-MULTI-SHELF-1.0)
 Not a VPN. Not crawler resurrection. Not neighbor-majority heal. Not a claim that the public Worker is the cell.
 
 ## 0. Sentence
@@ -33,6 +33,8 @@ Lawful shelves are named and content-addressed. They do not have to stay up toge
 One shelf dying is not the last tip gone. That is why vault-on-transfer multiplies cold copies. Live sync of bodies across the network is still refused.
 
 DOI here means an independent archival deposit of bytes that already hash. It does not assign this repository a DOI. It does not invent a Zenodo record.
+
+Executable companion: [COLD-MULTI-SHELF-1.0](COLD-MULTI-SHELF-1.0.md) — ≥3 independent shelves; export → hash → verify; honest `live|slot|refused` registry. Never claim live unless verify passes.
 
 ## 3. Survival = bytes↔hash
 

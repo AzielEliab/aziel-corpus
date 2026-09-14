@@ -1,0 +1,203 @@
+{
+  "spec": "COLD-MULTI-SHELF-1.0",
+  "author": "Aziel Eliab",
+  "identity": "Aziel Eliab",
+  "umbrella": "CROSS-NETWORK-SURVIVAL-1.0",
+  "no_lie_spec": "NO-LIE-NO-REWRITE-1.0",
+  "lockset_id": "AZLOCK-INGEST-REEXPAND-1.0",
+  "lockset_tip": "c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245",
+  "lockset_zenodo": null,
+  "lockset_doi": null,
+  "min_independent_shelves": 3,
+  "independent_live_blast_radii": [
+    "github-org-AzielEliab",
+    "zenodo-cern"
+  ],
+  "independent_live_count": 2,
+  "independent_requirement_met": false,
+  "survival": "bytes↔hash",
+  "crawlers": "extra-shelf-not-reexpand",
+  "training_residue": "rumor",
+  "kinds": [
+    "zenodo_doi",
+    "git_mirror",
+    "ipfs_cid",
+    "archive_org",
+    "usb_airgap",
+    "other"
+  ],
+  "statuses": [
+    "live",
+    "slot",
+    "refused"
+  ],
+  "live": [
+    "git-aziel-corpus",
+    "zenodo-shadowlock",
+    "zenodo-decisiongate",
+    "zenodo-trajectorylock",
+    "zenodo-whistlelock-foldlock",
+    "zenodo-employeelock",
+    "cf-azielcorpuslibrary"
+  ],
+  "slot": [
+    "ipfs-lockset",
+    "archive-org-lockset",
+    "usb-airgap-operator"
+  ],
+  "shelves": [
+    {
+      "id": "git-aziel-corpus",
+      "kind": "git_mirror",
+      "status": "live",
+      "url": "https://github.com/AzielEliab/aziel-corpus",
+      "blast_radius": "github-org-AzielEliab",
+      "independent": true,
+      "lockset_shelf": true,
+      "tags": [
+        {
+          "name": "v2.6.2",
+          "commit": "8ba6d9331da4854858e8e4c94319d402c36508e5"
+        },
+        {
+          "name": "v0.1.0",
+          "commit": "176172847f828ec4f20bfbb388c1edfcace64b8b"
+        }
+      ],
+      "verify": "git tag objects exist on origin; SHA of named commits published",
+      "note": "One GitHub org is one blast radius. A second forge would be a second git shelf."
+    },
+    {
+      "id": "zenodo-shadowlock",
+      "kind": "zenodo_doi",
+      "status": "live",
+      "doi": "10.5281/zenodo.21435707",
+      "url": "https://doi.org/10.5281/zenodo.21435707",
+      "record": "https://zenodo.org/records/21435707",
+      "payload": "ShadowLock paper (not lockset)",
+      "in_repo_cite": "dossiers/shadowlock-aziel-dossier-1.0.md",
+      "blast_radius": "zenodo-cern",
+      "independent": true,
+      "lockset_doi": false,
+      "verify": "doi.org 302 → zenodo.org/doi/10.5281/zenodo.21435707"
+    },
+    {
+      "id": "zenodo-decisiongate",
+      "kind": "zenodo_doi",
+      "status": "live",
+      "doi": "10.5281/zenodo.21435730",
+      "url": "https://doi.org/10.5281/zenodo.21435730",
+      "record": "https://zenodo.org/records/21435730",
+      "payload": "DecisionGATE paper (not lockset)",
+      "in_repo_cite": "dossiers/decisiongate-aziel-dossier-1.0.md",
+      "blast_radius": "zenodo-cern",
+      "independent": true,
+      "lockset_doi": false,
+      "verify": "doi.org 302 → zenodo.org/doi/10.5281/zenodo.21435730"
+    },
+    {
+      "id": "zenodo-trajectorylock",
+      "kind": "zenodo_doi",
+      "status": "live",
+      "doi": "10.5281/zenodo.22258015",
+      "url": "https://doi.org/10.5281/zenodo.22258015",
+      "record": "https://zenodo.org/records/22258015",
+      "payload": "TrajectoryLock TL-WP-0.1 (not lockset)",
+      "in_repo_cite": "dossiers/trajectorylock-aziel-dossier-1.0.md",
+      "blast_radius": "zenodo-cern",
+      "independent": true,
+      "lockset_doi": false,
+      "verify": "doi.org 302 → zenodo.org/doi/10.5281/zenodo.22258015"
+    },
+    {
+      "id": "zenodo-whistlelock-foldlock",
+      "kind": "zenodo_doi",
+      "status": "live",
+      "doi": "10.5281/zenodo.22257762",
+      "url": "https://doi.org/10.5281/zenodo.22257762",
+      "record": "https://zenodo.org/records/22257762",
+      "payload": "WhistleLock WL-WP-0.1 / FoldLock FL-WP-0.3 (same in-repo DOI; not lockset)",
+      "in_repo_cite": [
+        "dossiers/whistlelock-aziel-dossier-1.0.md",
+        "dossiers/foldlock-aziel-dossier-1.0.md"
+      ],
+      "blast_radius": "zenodo-cern",
+      "independent": true,
+      "lockset_doi": false,
+      "verify": "doi.org 302 → zenodo.org/doi/10.5281/zenodo.22257762"
+    },
+    {
+      "id": "zenodo-employeelock",
+      "kind": "zenodo_doi",
+      "status": "live",
+      "doi": "10.5281/zenodo.22257493",
+      "url": "https://doi.org/10.5281/zenodo.22257493",
+      "record": "https://zenodo.org/records/22257493",
+      "payload": "EmployeeLock EL-WP-0.1 (not lockset)",
+      "in_repo_cite": "dossiers/employeelock-aziel-dossier-1.0.md",
+      "blast_radius": "zenodo-cern",
+      "independent": true,
+      "lockset_doi": false,
+      "verify": "doi.org 302 → zenodo.org/doi/10.5281/zenodo.22257493"
+    },
+    {
+      "id": "ipfs-lockset",
+      "kind": "ipfs_cid",
+      "status": "slot",
+      "cid": null,
+      "url": null,
+      "independent": true,
+      "lockset_shelf": true,
+      "refuse": "CNS-NO-CID",
+      "reason": "No published CID. Do not invent one. Slot until a real CID of already-published bytes exists."
+    },
+    {
+      "id": "archive-org-lockset",
+      "kind": "archive_org",
+      "status": "slot",
+      "url": null,
+      "item": null,
+      "independent": true,
+      "lockset_shelf": true,
+      "refuse": "CNS-NO-WARC",
+      "reason": "No published archive.org item. Do not invent a capture URL. Slot until a real item exists."
+    },
+    {
+      "id": "usb-airgap-operator",
+      "kind": "usb_airgap",
+      "status": "slot",
+      "independent": true,
+      "lockset_shelf": true,
+      "refuse": "CNS-OPERATOR-ATTEST",
+      "reason": "Operator airgap replica is not attested on this public surface. Slot until bytes exist off-network and hash."
+    },
+    {
+      "id": "cf-azielcorpuslibrary",
+      "kind": "other",
+      "status": "live",
+      "url": "https://www.azielcorpuslibrary.net/lockset.json",
+      "blast_radius": "cloudflare",
+      "independent": false,
+      "lockset_shelf": true,
+      "verify": "serves lockset.json whose core SHA-256 is the published tip",
+      "note": "Cloudflare Worker host. Live for the tip. Does not count toward independent-3."
+    }
+  ],
+  "verify": {
+    "paste_hash": "https://www.azielcorpuslibrary.net/receipts/verify?hash=",
+    "machine": "https://www.azielcorpuslibrary.net/v1/receipts/verify?hash=",
+    "lockset": "https://www.azielcorpuslibrary.net/lockset.json",
+    "shelves": "https://www.azielcorpuslibrary.net/shelves",
+    "cli": "node tools/cold_shelf/cli.mjs verify --hash <64-hex> | --file <path>",
+    "rule": "yes/no against the published lockset tip c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245. Cheap mismatch. cite, don't merge. bytes survive; crawlers do not re-expand.",
+    "reexpand": "original receipts + prev-hash; not index→mesh (RE-EXPAND-FROM-ARCHIVE-1.0)",
+    "reheal": "self tip + trusted pull or phoenix-WAIT; never neighbor vote",
+    "crawlers": "extra shelves, not re-expand",
+    "training_residue": "rumor"
+  },
+  "growth_on": true,
+  "softwares_tab": false,
+  "mesh_radio": false,
+  "az_gen_live_icann_publish": false,
+  "note": "CROSS-NETWORK-SURVIVAL: If network + live data die tomorrow, the chain still survives via cold copies across independent shelves; survival = bytes↔hash. NO-LIE / NO-REWRITE: receipts that still hash; copies not all on one tunnel; verify without voice; no rewrite key; network never lies even to stay alive. ≥3 independent shelves; survival = bytes↔hash; crawlers are extra shelves not re-expand; training residue is rumor; never claim live unless verify passes. Paper DOIs are not a lockset DOI. IPFS/archive/USB stay slots until real bytes exist."
+}

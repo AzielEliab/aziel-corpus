@@ -147,6 +147,7 @@ export const CROSS_NETWORK_SURVIVAL = Object.freeze({
   reexpand: "operator-verify-from-archive",
   reheal: "self-tip+trusted-pull-or-phoenix-WAIT",
   neighbor_majority_heals: false,
+  cold_multi_shelf: "COLD-MULTI-SHELF-1.0",
   live_network_required: false,
   die_with_pull: true,
   public_worker_is_cell: false,
@@ -159,6 +160,7 @@ export const CROSS_NETWORK_SURVIVAL = Object.freeze({
     + "Survival is bytes↔hash. Crawlers are extra shelves, not resurrection. "
     + "Re-expand (MESH-REEXPAND-1.0) is operator verify-from-archive. "
     + "Reheal (MESH-REHEAL-1.0) is self tip + trusted pull or phoenix-WAIT — not neighbor majority. "
+    + "Executable shelves: COLD-MULTI-SHELF-1.0 (GET /shelves). "
     + "Author Aziel Eliab only.",
 });
 
@@ -252,6 +254,7 @@ export const MESH_NOTE =
   + "Reheal (MESH-REHEAL-1.0): poisoned live node is self tip + trusted pull or phoenix-WAIT — never neighbor majority. Distinct from re-expand. "
   + "Ingest-as-receipt + re-expand-from-archive: cite, don't merge; bytes survive; crawlers do not re-expand. "
   + "No-lie / no-rewrite (NO-LIE-NO-REWRITE-1.0): network never lies to stay alive; hash-absolute beats survival; no rewrite key; copies not all on one tunnel; verify without the author's voice. Cites the live lockset AZLOCK-INGEST-REEXPAND-1.0; does not replace that tip. "
+  + "Cold multi-shelf (COLD-MULTI-SHELF-1.0): executable export/verify + honest live|slot|refused registry on GET /shelves. "
   + "QNS-CD-1.0 photon QNS1 packet transfer (local qnsd in qnm-node; runtime cite only; no public proxy; no Node Gate). "
   + "Identity Aziel Eliab only.";
 
