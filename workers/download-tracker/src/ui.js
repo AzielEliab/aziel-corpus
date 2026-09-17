@@ -133,13 +133,14 @@ input[type=file]{width:100%;min-height:44px;padding:10px;background:#16130f;colo
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 8px}
 .chip{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 16px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink);text-decoration:none;font-weight:650}
 .chip.on{background:var(--gold);color:#14110a;border-color:var(--gold)}
-.doc{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 20px 16px;margin:14px 0;overflow:visible;min-width:0;max-width:100%;content-visibility:auto;contain-intrinsic-size:auto 280px}
+.doc{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 20px 16px;margin:14px 0;overflow:hidden;min-width:0;max-width:100%;content-visibility:auto;contain-intrinsic-size:auto 280px}
 .doc.doc-aziel{border-color:var(--royal);box-shadow:inset 3px 0 0 var(--royal)}
-.doc h3{margin:8px 0 6px;font-size:20px;letter-spacing:-.02em;overflow:visible;overflow-wrap:anywhere;word-break:break-word}
-.doc h3 a{color:var(--ink);text-decoration:none;overflow-wrap:anywhere}
+.doc h3{margin:8px 0 6px;font-size:20px;letter-spacing:-.02em;overflow:hidden;overflow-wrap:anywhere;word-break:break-word;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2}
+.doc h3 a{color:var(--ink);text-decoration:none;overflow-wrap:anywhere;word-break:break-word}
 .doc h3 a:hover{color:var(--gold)}
-.doc .meta{color:var(--muted);font-size:14px;margin:0 0 8px;overflow-wrap:anywhere;word-break:break-word}
-.doc p{margin:8px 0 12px;overflow-wrap:anywhere;word-break:break-word}
+.doc .meta{color:var(--muted);font-size:14px;margin:0 0 8px;overflow:hidden;overflow-wrap:anywhere;word-break:break-word;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2}
+.doc p{margin:8px 0 12px;overflow:hidden;overflow-wrap:anywhere;word-break:break-word;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3}
+.doc p.byline,.doc p.triad,.doc p.muted,.doc p.doc-actions{display:block;overflow:visible;-webkit-line-clamp:unset;line-clamp:unset}
 .doc .byline{margin:0 0 8px;font-weight:650;min-width:0;max-width:100%}
 .lib-tag{display:inline-block;font-size:12px;font-weight:750;padding:4px 10px;border-radius:999px;letter-spacing:.02em}
 .lib-tag.aziel{background:var(--royal);color:#f3e9ff;border:1px solid var(--royal-deep)}
@@ -385,6 +386,20 @@ function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
 
+/** Display-only card snippet length. Does not rewrite stored documents. */
+export const CARD_EXCERPT_CHARS = 180;
+
+/** Shorten browse/search/library card blurbs. Ellipsis is chrome only. */
+export function cardExcerpt(text, max = CARD_EXCERPT_CHARS) {
+  const s = String(text == null ? "" : text).replace(/\s+/g, " ").trim();
+  const lim = Math.max(24, Number(max) || CARD_EXCERPT_CHARS);
+  if (s.length <= lim) return s;
+  const cut = s.slice(0, lim);
+  const sp = cut.lastIndexOf(" ");
+  const base = sp >= Math.floor(lim * 0.7) ? cut.slice(0, sp) : cut;
+  return base.replace(/[\s.,;:!?…—–-]+$/, "") + "…";
+}
+
 function libTag(library) {
   const lib = String(library || "corpus").toLowerCase() === "aziel" ? "aziel" : "corpus";
   const label = lib === "aziel" ? "Aziel Library" : "Corpus";
@@ -551,7 +566,7 @@ function docCards(rows, state = {}, path = "/") {
       const aziel = isAzielRow(r);
       const { triadRow, zRow } = shelfScoreRows(r);
       const sha = String(r.content_sha256 || "").trim();
-      const open = `<p><a class="button" href="/file/${esc(r.record_id)}">Download</a>` + (sha ? ` <a class="button ghost" href="/download?hash=${esc(sha)}">By hash</a>` : "") + `</p>`;
+      const open = `<p class="doc-actions"><a class="button" href="/file/${esc(r.record_id)}">Download</a>` + (sha ? ` <a class="button ghost" href="/download?hash=${esc(sha)}">By hash</a>` : "") + `</p>`;
       const file = r.filename ? esc(r.filename) : "text record";
       const when = r.created_utc ? esc(String(r.created_utc).replace("T", " ").slice(0, 16)) : "";
       const authorName = String(r.author || "").trim();
@@ -577,7 +592,7 @@ function docCards(rows, state = {}, path = "/") {
           : "";
       const extraRow = extra ? `<div class="mini-chips">${extra}</div>` : "";
       const docCls = aziel ? "doc doc-aziel" : "doc";
-      return `<article class="${docCls}">${libTag(r.library)}${qBadge}<h3><a href="/record/${esc(r.record_id)}">${esc(r.title)}</a></h3>${byline}${extraRow}${triadRow}${zRow}<p class="meta">${file}${when ? " · " + when : ""}</p>${shaRow}<p>${esc(r.snippet || r.body || "")}</p>${open}</article>`;
+      return `<article class="${docCls}">${libTag(r.library)}${qBadge}<h3><a href="/record/${esc(r.record_id)}">${esc(r.title)}</a></h3>${byline}${extraRow}${triadRow}${zRow}<p class="meta">${file}${when ? " · " + when : ""}</p>${shaRow}<p class="excerpt">${esc(cardExcerpt(r.snippet || r.body || ""))}</p>${open}</article>`;
     })
     .join("")}</div>`;
 }

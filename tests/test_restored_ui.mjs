@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { CSS, page, donateStripHtml, aboutBody, whoBody, howItsScoredBody, patternBody, softwareBody, runtimeBody, azielLibraryBody, homeBody, homeSearchActive, corpusBody, brandMarkHtml, LCP_FOLD, splitLcpHtml } from "../workers/download-tracker/src/ui.js";
+import { CSS, page, donateStripHtml, aboutBody, whoBody, howItsScoredBody, patternBody, softwareBody, runtimeBody, azielLibraryBody, homeBody, homeSearchActive, corpusBody, brandMarkHtml, LCP_FOLD, splitLcpHtml, cardExcerpt, CARD_EXCERPT_CHARS } from "../workers/download-tracker/src/ui.js";
 import { guestSession, isOperator, libraryFor, quarantineHiddenFromPublic, ingestRecord, searchRecords } from "../workers/download-tracker/src/library.js";
 import { ocrPageBody, mapBody, SPECTRAL_LENSES } from "../workers/download-tracker/src/hosted-pages.js";
 import { dedupeShelfRows } from "../workers/download-tracker/src/library.js";
@@ -228,7 +228,7 @@ test("file and library cards grow with the page instead of a clipped overflow sh
     assert.doesNotMatch(rule, /58vh/);
   }
   assert.doesNotMatch(CSS, /\.shelf\{[^}]*max-height:min\(58vh,520px\)/);
-  assert.match(CSS, /\.doc\{[^}]*overflow:visible/);
+  assert.match(CSS, /\.doc\{[^}]*overflow:hidden/);
   assert.match(CSS, /\.mini-chips\{[^}]*flex-wrap:wrap/);
   assert.match(CSS, /\.mini-chips\{[^}]*overflow:visible/);
   assert.match(CSS, /\.doc\.doc-aziel\{border-color:var\(--royal\)/);
@@ -278,6 +278,56 @@ test("file and library cards grow with the page instead of a clipped overflow sh
   assert.match(corpus, /AZBot anonymous Corpus smoke/);
   assert.match(corpus, /class="doc"/);
   assert.doesNotMatch(corpus, /doc-aziel/);
+});
+
+test("browse cards clamp titles and shorten bleed-over snippets without rewriting stored docs", () => {
+  assert.match(CSS, /\.doc\{[^}]*overflow:hidden/);
+  assert.ok(CSS.includes(".doc h3{"));
+  assert.ok(CSS.includes(".doc p{"));
+  assert.ok(CSS.includes(".doc .meta{"));
+  assert.ok(CSS.includes("-webkit-line-clamp:2"));
+  assert.ok(CSS.includes("-webkit-line-clamp:3"));
+  assert.ok(CSS.includes("overflow-wrap:anywhere"));
+  assert.equal(CARD_EXCERPT_CHARS, 180);
+  assert.equal(cardExcerpt("Short note."), "Short note.");
+  assert.equal(cardExcerpt("   spaced   words   "), "spaced words");
+  const spam = "Watch my Instagram growth course and unlock secret SEO traffic with this exclusive 280+ character pitch about brand deals, affiliate codes, drip funnels, comment pods, and a never-ending list of hashtags that should not blow past the card chrome on mobile or desktop browse. Book a consult today and scale your personal brand with recycled captions.";
+  assert.ok(spam.length > 280);
+  const clipped = cardExcerpt(spam);
+  assert.ok(clipped.endsWith("…"));
+  assert.ok(clipped.length <= CARD_EXCERPT_CHARS + 1);
+  assert.doesNotMatch(clipped, /hashtags that should not blow/);
+
+  const longTitle = "FREE Instagram SEO growth bible plus secret traffic hacks and brand-deal scripts that go on and on past two lines of card chrome on a phone";
+  const row = {
+    record_id: "AZDOC-spam-blurb",
+    title: longTitle,
+    library: "corpus",
+    author: "anonymous",
+    filename: "instagram-seo-pitch.txt",
+    created_utc: "2026-09-17T12:00:00Z",
+    content_sha256: "c".repeat(64),
+    snippet: spam,
+    body: spam,
+    triad_combined: 0.12,
+  };
+  const home = homeBody({ q: "Instagram", rows: [row] });
+  const corpus = corpusBody({ signed: null, rows: [row] });
+  const aziel = azielLibraryBody({
+    signed: null,
+    rows: [{ ...row, record_id: "AZDOC-spam-aziel", library: "aziel" }],
+  });
+  for (const html of [home, corpus, aziel]) {
+    assert.match(html, /class="excerpt"/);
+    assert.match(html, /class="doc-actions"/);
+    assert.match(html, new RegExp(clipped.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+    assert.doesNotMatch(html, /hashtags that should not blow/);
+    assert.match(html, /FREE Instagram SEO growth bible/);
+    assert.doesNotMatch(html, /15:20/);
+    assert.match(html, /Download/);
+  }
+  assert.equal(row.snippet, spam);
+  assert.equal(row.body, spam);
 });
 
 test("OCR page still ships all eight SpectralLock lenses", () => {
