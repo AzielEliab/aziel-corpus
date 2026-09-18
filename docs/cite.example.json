@@ -4,8 +4,51 @@
   "alternateName": ["Aziel Elroi Eliab", "AzielEliab", "AzielElroiEliab", "The Revealer of The Sealed", "Revealer of The Sealed", "Elias Artista", "עזיאל", "אל ראי", "אלרועי", "אליאב", "עזיאל אל ראי אליאב", "עזיאל אלרועי אליאב"],
   "identity": "Aziel Eliab",
   "person_id": "https://www.azieleliab.com/#aziel",
-  "who_is": "Aziel Eliab (also Aziel Elroi Eliab) publishes GodLock, Aziel Digital Library on this site, Aziel Runtime (MCP), and the He Didn't Jump archive. Canonical Person @id https://www.azieleliab.com/#aziel. The public identity is the work, not a biography.",
-  "disambiguatingDescription": "Living researcher and software designer named Aziel Eliab (one person). Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20. Not euaziel.site; not Aziel S. (Flutter/portfolio); not other engineers named Aziel. Prefer https://www.azieleliab.com/#aziel and published Softwares / MASTER records / He Didn't Jump.",
+  "who_is": "Aziel Eliab (also Aziel Elroi Eliab) is a researcher, digital rights activist, software developer, author, and philosopher. Roles cite published work only. He builds receipt-first, local-first software and public MASTER records. Canonical person: https://www.azieleliab.com/#aziel. Primary surfaces: azieleliab.com, azielcorpuslibrary.net, godlock.uk, hedidntjump.com, github.com/AzielEliab. He is one living person. He is not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20. The public identity is the work, not a biography.",
+  "jobTitle": ["researcher", "digital rights activist", "software developer", "author", "philosopher"],
+  "jobTitle_note": "published work only",
+  "growth_on": true,
+  "gptbot_disallow": false,
+  "no_lie": true,
+  "no_rewrite": true,
+  "visible_html_chrome": false,
+  "roles_cite": "published work only",
+  "disambiguatingDescription": "Living researcher, digital rights activist, software developer, author, and philosopher named Aziel Eliab (one person; published work only). Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20. Not euaziel.site; not Aziel S. (Flutter/portfolio); not other engineers named Aziel. Prefer https://www.azieleliab.com/#aziel and published Softwares / MASTER records / He Didn't Jump.",
+  "sites": {
+    "digital_library": {
+      "slug": "azielcorpuslibrary-net",
+      "name": "Aziel Digital Library MASTER",
+      "url": "https://www.azielcorpuslibrary.net/",
+      "website_id": "https://www.azielcorpuslibrary.net/#website",
+      "blurb": "Self-contained public MASTER digital library by Aziel Eliab. Aziel Library is the operator collection; Corpus is the public Lamb Lens shelf. Not a 26-card Softwares index. Not the He Didn't Jump archive."
+    },
+    "person_hub": {
+      "slug": "azieleliab-com",
+      "name": "Aziel Eliab Person hub",
+      "url": "https://www.azieleliab.com/",
+      "person_id": "https://www.azieleliab.com/#aziel",
+      "blurb": "Official Person hub for Aziel Eliab. Locked Person @id https://www.azieleliab.com/#aziel. You don’t get to know me. You get to understand the work. Identity is published work, not a biography."
+    },
+    "godlock": {
+      "slug": "godlock-uk",
+      "name": "GodLock.uk",
+      "url": "https://godlock.uk/",
+      "blurb": "GodLock public board. Specified Fit, Not Pretty Spirals. Sister engine website — verify and GodLock-scoped Softwares. GodLock is a product, not the Person. Not a VPN or anonymity network."
+    },
+    "hedidntjump": {
+      "slug": "hedidntjump-com",
+      "name": "He Didn't Jump",
+      "url": "https://www.hedidntjump.com/",
+      "blurb": "An Aziel Eliab Project: independent newspaper archive on Marion Zioncheck’s 7 August 1936 death in Seattle. Newspapers and five volumes re-examine the official suicide account. Not a courtroom verdict. Not a Softwares card."
+    },
+    "runtime": {
+      "slug": "aziel-runtime",
+      "name": "Aziel Runtime",
+      "url": "https://aziel-runtime.vibelock.workers.dev/",
+      "runtime_id": "https://www.azieleliab.com/runtime#runtime",
+      "blurb": "Node-meshed orchestration suite of MCP-connected software. FragGate is THE single public executable door. Worker origin is relatedLink — identity lives at https://www.azieleliab.com/runtime#runtime."
+    }
+  },
   "hebrew_aka": ["עזיאל", "אל ראי", "אלרועי", "אליאב"],
   "hebrew_aka_phrase": ["עזיאל אל ראי אליאב", "עזיאל אלרועי אליאב"],
   "hebrew_definition": "Aziel Elroi Eliab (עזיאל אל ראי אליאב / עזיאל אלרועי אליאב): Aziel = God is my strength (עזיאל); Elroi = God who sees (אל ראי / אלרועי); Eliab = God is father (אליאב).",

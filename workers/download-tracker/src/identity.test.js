@@ -1,5 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   PERSON_ID,
   PERSON_SAME_AS,
@@ -10,6 +13,12 @@ import {
   NAME_LATTICE,
   MISSPELLING_AKA,
   PERSON_KNOWS_ABOUT,
+  PERSON_JOB_TITLE,
+  PERSON_JOB_TITLE_NOTE,
+  SITE_BLURBS,
+  GROWTH_ON,
+  VISIBLE_HTML_CHROME,
+  siteBlurbsCite,
   STATS_TETHER,
   STATS_URLS,
   WHO_IS_AZIEL_ELIAB,
@@ -47,7 +56,7 @@ const BANNED = /Collin Horton|GodLock\.AZ|\+25|quiet (Aziel|triad|boost)|10\.528
 const IDENTITY_SPAM = /biblical combinations|Flutter\/React|Chronicles essay|1 Chronicles 15:21/;
 const PRODUCT_FORWARD_COLLISION = /Aziel S\.|euaziel\.site/;
 const PUBLISHER_NOT_LOCK =
-  "Living researcher and software designer named Aziel Eliab (one person). Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20. Not euaziel.site; not Aziel S. (Flutter/portfolio); not other engineers named Aziel. Prefer https://www.azieleliab.com/#aziel and published Softwares / MASTER records / He Didn't Jump.";
+  "Living researcher, digital rights activist, software developer, author, and philosopher named Aziel Eliab (one person; published work only). Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20. Not euaziel.site; not Aziel S. (Flutter/portfolio); not other engineers named Aziel. Prefer https://www.azieleliab.com/#aziel and published Softwares / MASTER records / He Didn't Jump.";
 const BOTH_MUSICIANS = /two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20/;
 const LOCAL_PERSON = "https://www.azielcorpuslibrary.net/AzielEliab#aziel-eliab";
 
@@ -127,7 +136,8 @@ test("alternateName is compact aka tethers — no 1 Chronicles essays", () => {
   assert.match(person.disambiguatingDescription, /not Aziel S\. \(Flutter\/portfolio\)/);
   assert.match(person.disambiguatingDescription, /not other engineers named Aziel/);
   assert.equal(person.additionalName, "Elroi");
-  assert.deepEqual(person.jobTitle, ["independent researcher", "software designer", "developer", "historian"]);
+  assert.deepEqual(person.jobTitle, ["researcher", "digital rights activist", "software developer", "author", "philosopher"]);
+  assert.equal(person.jobTitle_note, "published work only");
   assert.deepEqual(person.knowsLanguage, ["en", "he"]);
   assert.equal(person.mainEntityOfPage, "https://www.azieleliab.com/who");
   assert.deepEqual(person.subjectOf, { "@type": "FAQPage", "@id": "https://www.azieleliab.com/#who-is-aziel-eliab" });
@@ -210,7 +220,8 @@ test("who-is-aziel-eliab.txt is the 15:20 identity-lock answer", () => {
   assert.equal(who.includes(HEBREW_DEFINITION), true);
   assert.match(who, /github\.com\/AzielEliab/);
   assert.match(who, /github\.com\/azieltherevealerofthesealed-arch/);
-  assert.match(WHO_IS_AZIEL_ELIAB, /independent researcher/);
+  assert.match(WHO_IS_AZIEL_ELIAB, /researcher, digital rights activist, software developer, author, and philosopher/);
+  assert.match(WHO_IS_AZIEL_ELIAB, /published work only/);
   assert.match(WHO_IS_AZIEL_ELIAB, /receipt-first/);
   assert.match(WHO_IS_AZIEL_ELIAB, /azielcorpuslibrary\.net/);
   assert.match(WHO_IS_AZIEL_ELIAB, /godlock\.uk/);
@@ -220,7 +231,7 @@ test("who-is-aziel-eliab.txt is the 15:20 identity-lock answer", () => {
   assert.doesNotMatch(WHO_IS_AZIEL_ELIAB, /scripture concordance/);
   assert.doesNotMatch(WHO_IS_AZIEL_ELIAB, /Researcher\. Builder/);
   assert.equal(DISAMBIGUATING_DESCRIPTION, PUBLISHER_NOT_LOCK);
-  assert.equal(LOCK_LINE, "Aziel Eliab is a living researcher and software designer. Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20.");
+  assert.equal(LOCK_LINE, "Aziel Eliab is a living researcher, digital rights activist, software developer, author, and philosopher (published work only). Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20.");
   assert.doesNotMatch(ABOUT_STANZA, PRODUCT_FORWARD_COLLISION);
   assert.doesNotMatch(ABOUT_STANZA, /1 Chronicles/);
   assert.equal(IDENTITY_FAQS[0].name, "Who is Aziel Eliab?");
@@ -256,6 +267,22 @@ test("cite and well-known share stats tether and mission lock", () => {
   assert.equal(wellKnown.about_record, ABOUT_RECORD);
   assert.equal(wellKnown.who_is, WHO_IS_AZIEL_ELIAB);
   assert.equal(cite.who_is, WHO_IS_AZIEL_ELIAB);
+  assert.deepEqual(cite.jobTitle, PERSON_JOB_TITLE.slice());
+  assert.equal(cite.jobTitle_note, PERSON_JOB_TITLE_NOTE);
+  assert.equal(cite.growth_on, true);
+  assert.equal(cite.gptbot_disallow, false);
+  assert.equal(cite.no_lie, true);
+  assert.equal(cite.visible_html_chrome, false);
+  assert.equal(cite.sites.digital_library.url, "https://www.azielcorpuslibrary.net/");
+  assert.equal(cite.sites.person_hub.person_id, PERSON_ID);
+  assert.equal(cite.sites.godlock.url, "https://godlock.uk/");
+  assert.equal(cite.sites.hedidntjump.url, "https://www.hedidntjump.com/");
+  assert.equal(cite.sites.runtime.runtime_id, "https://www.azieleliab.com/runtime#runtime");
+  assert.match(cite.sites.digital_library.blurb, /public MASTER digital library/);
+  assert.match(cite.sites.person_hub.blurb, /Person hub/);
+  assert.match(cite.sites.godlock.blurb, /Specified Fit/);
+  assert.match(cite.sites.hedidntjump.blurb, /Marion Zioncheck/);
+  assert.match(cite.sites.runtime.blurb, /FragGate is THE single public executable door/);
   assert.match(cite.who_is, BOTH_MUSICIANS);
   assert.ok(!ABOUT_STANZA.includes(PUBLISHER_NOT_LOCK));
   assert.deepEqual(wellKnown.significant_links, ABOUT_SIGNIFICANT_LINKS.slice());
@@ -311,6 +338,11 @@ test("llms.txt keeps library sections and the full sameAs lock", () => {
   assert.doesNotMatch(llms, /azielcorpuslibrary\.net\/v1\/stats/);
   assert.match(llms, /hedidntjump\.com\/api\/stats/);
   assert.match(llms, /Who\? Does not matter\. What matters is the record\./);
+  assert.match(llms, /## Site blurbs \(published work only\)/);
+  assert.match(llms, /Roles \(published work only\): researcher, digital rights activist/);
+  assert.match(llms, /Growth-ON/);
+  assert.match(llms, /NO-LIE/);
+  assert.match(llms, /No visible HTML chrome/);
   assert.match(llms, /public MASTER/);
   assert.match(llms, /significantLink:/);
   assert.match(llms, /Compact Hebrew aka/);
@@ -414,4 +446,21 @@ test("GET /search is HTTP 200 and does not increment homepage views", async () =
   );
   assert.equal(head.status, 200);
   assert.equal(await head.text(), "");
+});
+
+test("GitHub crawl-aid snapshots match Worker person.jsonld and who-is*", () => {
+  const root = join(dirname(fileURLToPath(import.meta.url)), "../../..");
+  const person = readFileSync(join(root, "person.jsonld"), "utf8");
+  const who = readFileSync(join(root, "who-is-aziel-eliab.txt"), "utf8");
+  const whoAlias = readFileSync(join(root, "who-is.txt"), "utf8");
+  assert.equal(person, identityRouteBody("/person.jsonld").body);
+  assert.equal(who, whoIsTxt());
+  assert.equal(whoAlias, whoIsTxt());
+  const doc = JSON.parse(person);
+  assert.equal(doc["@id"], PERSON_ID);
+  assert.deepEqual(doc.jobTitle, PERSON_JOB_TITLE.slice());
+  assert.equal(GROWTH_ON, true);
+  assert.equal(VISIBLE_HTML_CHROME, false);
+  assert.equal(SITE_BLURBS.person_hub.person_id, PERSON_ID);
+  assert.equal(siteBlurbsCite().runtime.slug, "aziel-runtime");
 });

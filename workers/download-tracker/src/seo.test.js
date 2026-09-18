@@ -321,7 +321,7 @@ test("page-specific descriptions and share images", () => {
   assert.match(defaultDescription("about"), /1 Chronicles 15:20/);
   assert.doesNotMatch(defaultDescription("about"), /Researcher\. Builder/);
   assert.doesNotMatch(defaultDescription("about"), /Aziel S\.|Flutter\/React/);
-  assert.equal(defaultDescription("who"), "Aziel Eliab is a living researcher and software designer. Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20.");
+  assert.equal(defaultDescription("who"), "Aziel Eliab is a living researcher, digital rights activist, software developer, author, and philosopher (published work only). Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20.");
   assert.match(defaultDescription("software"), /Software|aziel-runtime/i);
   assert.match(defaultDescription("scored"), /intentional suppression/);
   assert.match(defaultDescription("search"), /Aziel Digital Library by Aziel Eliab/);
