@@ -14,6 +14,8 @@ Allow: /software
 Allow: /donate
 Allow: /runtime
 Allow: /runtime/
+Allow: /survival
+Allow: /v1/survival
 Allow: /runtime/survival
 Allow: /runtime/v1/survival
 Allow: /how-its-scored
@@ -168,7 +170,7 @@ Sitemap: https://www.azielcorpuslibrary.net/sitemap-index.xml
 - cite, don't merge
 - bytes survive; crawlers do not re-expand
 - CROSS-NETWORK-SURVIVAL: If network + live data die tomorrow, the chain still survives via cold copies across independent shelves; survival = bytes↔hash.
-- BAN-SURVIVAL-1.0: prefer GET https://aziel-runtime.vibelock.workers.dev/v1/survival (short TTL) · same door https://www.azielcorpuslibrary.net/runtime/survival. Mutual shelves↔ban. Cap-7 MirageGrid shuffle https://miragegrid.vibelock.workers.dev/bridge · /v1/shuffle (resolves_to_hub: false). Platforms: prefer pulled platforms.all_live. Calling-name: mesh nodes pull `*new name alert: ` from /survival. Person @id https://www.azieleliab.com/#aziel. Lamb Lens. NO-LIE. No visible 15:20 chrome.
+- BAN-SURVIVAL-1.0: prefer GET https://aziel-runtime.vibelock.workers.dev/v1/survival (short TTL) · same door https://www.azielcorpuslibrary.net/runtime/survival · hub map https://www.azielcorpuslibrary.net/survival · https://www.azielcorpuslibrary.net/v1/survival. Mutual shelves↔ban. Cap-7 MirageGrid shuffle https://miragegrid.vibelock.workers.dev/bridge · /v1/shuffle (resolves_to_hub: false). Platforms: prefer pulled platforms.all_live. Calling-name: mesh nodes pull `*new name alert: ` from /survival. Person @id https://www.azieleliab.com/#aziel. Lamb Lens. NO-LIE. No visible 15:20 chrome.
 - NO-LIE / NO-REWRITE: receipts that still hash; copies not all on one tunnel; verify without voice; no rewrite key; network never lies even to stay alive.
 - Tip verify: https://www.azielcorpuslibrary.net/receipts/verify
 - person.jsonld: https://www.azielcorpuslibrary.net/person.jsonld

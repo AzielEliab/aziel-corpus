@@ -66,6 +66,8 @@ test("browse, search, records, and SEO docs are never content-rationed", () => {
   assert.equal(isFanoutPath("/v1/ingest", "POST"), true);
   assert.equal(isFanoutPath("/mcp", "POST"), true);
   assert.equal(isRateExemptPath("/bridge.json"), true);
+  assert.equal(isRateExemptPath("/survival"), true);
+  assert.equal(isRateExemptPath("/v1/survival"), true);
   assert.equal(isRateExemptPath("/runtime/survival"), true);
   assert.equal(isRateExemptPath("/runtime/v1/survival"), true);
   assert.equal(isRateExemptPath("/v1/products"), true);
