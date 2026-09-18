@@ -286,6 +286,7 @@ export function softwareTabCatalog(catalog) {
     live_count: Number(norm.live_count || collected.length) || collected.length,
     framing: norm.framing || "",
     sort_law: norm.sort_law || "",
+    git_sha: firstText(norm.git_sha, catalog && catalog.git_sha),
   };
 }
 
@@ -313,7 +314,7 @@ export function mergeSoftwareExtras(products) {
       count: firstText(prev.count, door.count),
       mcp: firstText(prev.mcp, door.mcp),
       fraggate_engine: prev.fraggate_engine != null ? prev.fraggate_engine : door.fraggate_engine,
-      one_line: hubSoftwareCopy(aznetBrowserCatalogLine(door.slug, prev, door)),
+      one_line: hubSoftwareCopy(preferWorkerSoftwareCopy(prev, door)),
       name: prev.name || door.name,
       version: prev.version || door.version,
     });
@@ -328,12 +329,29 @@ export function hubSoftwareCopy(text) {
     .replace(/\bseparate engine\b/gi, (m) => (m[0] === "S" ? "Separate software" : "separate software"));
 }
 
-function aznetBrowserCatalogLine(slug, prev, door) {
-  const want = String(slug || "").toLowerCase();
-  if (want === "aznet" || want === "azbrowser") {
-    return firstText(prev && prev.one_line, prev && prev.banner, door && door.one_line);
-  }
-  return firstText(door && door.one_line, prev && prev.one_line, prev && prev.banner);
+const THIS_IS_COPY = /^\s*THIS[\s-]+IS\b/i;
+
+export function productCopyText(product) {
+  return firstText(product && product.one_line, product && product.banner);
+}
+
+export function copyLooksStale(text) {
+  return THIS_IS_COPY.test(String(text || ""));
+}
+
+/** Worker /v1/software one_line wins. Local extras are fallback only — never overwrite plain SSoT. */
+export function preferWorkerSoftwareCopy(live, fallback) {
+  const liveCopy = productCopyText(live);
+  const fallCopy = productCopyText(fallback);
+  if (liveCopy && !copyLooksStale(liveCopy)) return liveCopy;
+  if (fallCopy && !copyLooksStale(fallCopy)) return fallCopy;
+  return liveCopy || fallCopy || "";
+}
+
+export function catalogCopyLooksStale(doc) {
+  const products = collectCatalogProducts(normalizeSoftwareDoc(doc && doc.catalog ? doc.catalog : doc));
+  if (!products.length) return true;
+  return products.some((p) => copyLooksStale(productCopyText(p)));
 }
 
 function extraWorkerHome(product) {
@@ -526,7 +544,7 @@ function withTimeout(promise, ms) {
 async function readCachedSoftwareCatalog() {
   try {
     const hit = await cacheMatchJson(SOFTWARE_CATALOG_CACHE_URL);
-    if (hit && catalogHasProducts(hit.catalog || hit)) {
+    if (hit && catalogHasProducts(hit.catalog || hit) && !catalogCopyLooksStale(hit.catalog || hit)) {
       return hit.catalog ? hit : { catalog: hit, source: "cache" };
     }
   } catch {
@@ -536,7 +554,7 @@ async function readCachedSoftwareCatalog() {
 }
 
 async function writeCachedSoftwareCatalog(live) {
-  if (!live || !catalogHasProducts(live.catalog)) return;
+  if (!live || !catalogHasProducts(live.catalog) || catalogCopyLooksStale(live.catalog)) return;
   try {
     await cachePutJson(SOFTWARE_CATALOG_CACHE_URL, live, undefined, { cacheControl: SEO_CACHE_CONTROL });
   } catch {
@@ -636,7 +654,7 @@ function mergeCatalogDocs(primary, enrich) {
     bySlug.set(slug, mapSoftwareProduct(Object.assign({}, prev, p, {
       slug,
       name: firstText(prev.name, p.name),
-      one_line: firstText(prev.one_line, p.one_line, prev.banner, p.banner),
+      one_line: preferWorkerSoftwareCopy(prev, p),
       github: firstText(prev.github, p.github),
       download: firstText(prev.download, prev.download_url, p.download, p.download_url),
       download_url: firstText(prev.download_url, p.download_url, prev.download, p.download),
@@ -660,6 +678,7 @@ function mergeCatalogDocs(primary, enrich) {
     framing: firstText(aDoc.framing, bDoc.framing),
     sort_law: firstText(aDoc.sort_law, bDoc.sort_law),
     live_count: aDoc.live_count || bDoc.live_count || bySlug.size,
+    git_sha: firstText(aDoc.git_sha, bDoc.git_sha, primary && primary.git_sha, enrich && enrich.git_sha),
   };
 }
 
@@ -669,18 +688,19 @@ export async function fetchLiveSoftwareCatalog(env, opts = {}) {
   const timeoutMs = Number(opts.timeoutMs) || 0;
   if (opts.preferCache) {
     const cached = await readCachedSoftwareCatalog();
-    if (cached) return cached;
+    if (cached && !catalogCopyLooksStale(cached.catalog)) return cached;
   }
 
   const run = async () => {
     const software = await fetchRuntimeJson(env, SOFTWARE_LIVE_PATH);
-    if (catalogHasProducts(software)) {
-      if (skipEnrich) return { catalog: normalizeSoftwareDoc(software), source: "software" };
+    if (catalogHasProducts(software) && !catalogCopyLooksStale(software)) {
+      const norm = normalizeSoftwareDoc(software);
+      if (skipEnrich) return { catalog: norm, source: "software", git_sha: firstText(software.git_sha, norm.git_sha) };
       const enrich = await fetchRuntimeJson(env, CATALOG_JSON_PATH);
       const catalog = catalogHasProducts(enrich)
-        ? mergeCatalogDocs(normalizeSoftwareDoc(software), enrich)
-        : normalizeSoftwareDoc(software);
-      return { catalog, source: "software" };
+        ? mergeCatalogDocs(norm, enrich)
+        : norm;
+      return { catalog, source: "software", git_sha: firstText(software.git_sha, catalog.git_sha) };
     }
     const list = await fetchRuntimeJson(env, FRAGGATE_LIST_PATH);
     if (catalogHasProducts(list)) {

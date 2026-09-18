@@ -115,6 +115,8 @@ test("GET /who is 200 with H1 Who is Aziel Eliab and no visible 15:20 lock parag
   assert.doesNotMatch(whoBody(), /Elias Artista/);
   assert.doesNotMatch(whoBody(), /God is my strength/);
   assert.doesNotMatch(whoBody(), /Everblooming Flower/);
+  assert.doesNotMatch(whoBody(), /Dog Leash|Web-Sling|PLA Recycler|attorney-work-product/);
+  assert.doesNotMatch(whoBody(), /Book of the Knowledge/);
   assert.match(html, /Is Aziel Eliab the two musicians named in 1 Chronicles 15:20\?/);
   assert.match(html, /https:\/\/www\.azieleliab\.com\/#aziel/);
   assert.doesNotMatch(html, /azielcorpuslibrary\.net\/AzielEliab#aziel-eliab/);
