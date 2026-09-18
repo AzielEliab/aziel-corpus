@@ -43,6 +43,7 @@ import {
   AZCOHERENCE_WORKER_HOME,
   AZCOHERENCE_GITHUB,
 } from "./azcoherence.js";
+import { isMachineFileTag, visibleTagEntries } from "./visible-tags.js";
 
 /** Master UI chrome from Aziel Digital Library v2.7.0 webapp. Author: Aziel Eliab. */
 export const CSS = `
@@ -53,12 +54,12 @@ export const CSS = `
   --yes:#7dcea0;--no:#e07a7a;--rev:#e0b15a
 }
 *{box-sizing:border-box}
-html,body{background:var(--bg);color:var(--ink);overflow:auto;height:auto;min-height:100%}
-body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;line-height:1.5}
-.wrap{max-width:920px;margin:auto;padding:8px 22px 72px}
-.sitehead{background:var(--bg)}
-.sitehead-inner{max-width:920px;margin:auto;padding:28px 22px 0}
-.brandrow{display:flex;flex-wrap:nowrap;gap:12px;align-items:center;margin-bottom:6px;min-height:48px}
+html,body{background:var(--bg);color:var(--ink);overflow-x:hidden;overflow-y:auto;height:auto;min-height:100%;max-width:100%}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;line-height:1.5;overflow-wrap:anywhere;word-break:break-word}
+.wrap{max-width:920px;margin:auto;padding:8px 22px 72px;min-width:0;overflow-x:hidden}
+.sitehead{background:var(--bg);max-width:100%;overflow-x:hidden}
+.sitehead-inner{max-width:920px;margin:auto;padding:28px 22px 0;min-width:0;max-width:100%}
+.brandrow{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:6px;min-height:48px;min-width:0;max-width:100%}
 .brandmark-link{display:block;flex:0 0 40px;width:40px;height:40px;line-height:0;order:-1}
 .brandmark{width:40px;height:40px;border-radius:10px;object-fit:cover;flex:0 0 40px;box-shadow:0 0 0 1px #0003,0 0 0 1px var(--gold)}
 .brand{font-size:23px;font-weight:800;letter-spacing:-.02em;line-height:1.2;color:var(--ink)}
@@ -106,7 +107,7 @@ a{color:var(--gold)}
 .pill.ok{background:#14261c;color:var(--yes);border-color:#2e6b45}
 a.pill:hover{color:var(--gold)}
 .pill span{color:var(--muted);font-weight:650;margin-left:6px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin:18px 0;box-shadow:0 1px 0 #00000040}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin:18px 0;box-shadow:0 1px 0 #00000040;min-width:0;max-width:100%;overflow-x:hidden;overflow-wrap:anywhere;word-break:break-word}
 .button,button{background:var(--gold);color:#14110a;border:0;padding:12px 16px;border-radius:10px;text-decoration:none;cursor:pointer;min-height:44px;display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:700}
 .button.ghost,a.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
 .search,input,select,textarea{padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:#16130f;color:var(--ink);font:inherit}
@@ -130,15 +131,16 @@ input[type=file]{width:100%;min-height:44px;padding:10px;background:#16130f;colo
 .drop form > input[type=file]{margin:0}
 .field-label{display:block;margin:10px 0 6px;font-size:14px;font-weight:700;color:var(--ink)}
 .field-label .req{color:var(--gold)}
-.hero{padding:8px 0 4px;content-visibility:visible}
+.hero{padding:8px 0 4px;content-visibility:visible;min-width:0;max-width:100%;overflow-x:hidden}
+.hero h1,.hero p,.card h1,.card h2,.card h3,.card p,.card li,.card .meta,.meta,.muted{overflow-wrap:anywhere;word-break:break-word;max-width:100%;min-width:0}
 .hero h1{font-size:28px;margin:0 0 8px;letter-spacing:-.03em;color:var(--ink);content-visibility:visible}
 .library-count{margin:10px 0 0;font-size:15px;font-variant-numeric:tabular-nums;line-height:1.45}
 .library-count strong{color:var(--gold);font-size:18px;font-weight:800}
 .hero-search{display:flex;gap:10px;flex-wrap:wrap;align-items:stretch;margin:18px 0 8px}
 .hero-search .search{flex:1 1 220px}
 .hero-search button{flex:0 0 auto}
-.chips{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 8px}
-.chip{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 16px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink);text-decoration:none;font-weight:650}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 8px;min-width:0;max-width:100%;overflow-x:hidden}
+.chip{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 16px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink);text-decoration:none;font-weight:650;min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere;word-break:break-word}
 .chip.on{background:var(--gold);color:#14110a;border-color:var(--gold)}
 .doc{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 20px 16px;margin:14px 0;overflow:hidden;min-width:0;max-width:100%;content-visibility:auto;contain-intrinsic-size:auto 280px}
 .doc.doc-aziel{border-color:var(--royal);box-shadow:inset 3px 0 0 var(--royal)}
@@ -170,7 +172,7 @@ label.showpw{font-size:14px;color:var(--muted);white-space:nowrap;min-height:44p
 .facet{margin:10px 0}
 .facet-label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin:0 0 4px;letter-spacing:.02em}
 .facet .chips{margin:0}
-.mini-chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;min-width:0;max-width:100%;overflow:visible}
+.mini-chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;min-width:0;max-width:100%;overflow:visible;overflow-x:hidden}
 .mini-chip{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink);text-decoration:none;font-size:13px;font-weight:600;max-width:100%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;overflow-wrap:anywhere;word-break:break-word}
 .mini-chip.on{background:var(--gold);color:#14110a;border-color:var(--gold)}
 .q-badge{display:inline-block;font-size:12px;font-weight:750;padding:4px 10px;border-radius:999px;margin-left:6px}
@@ -247,12 +249,12 @@ a.runtime-muted:hover{color:var(--ink)}
 .jeeves-log{min-height:80px;max-height:28vh;overflow:auto;margin:8px 0;border:1px solid var(--line);border-radius:10px;padding:8px;background:#16130f}
 .jeeves-msg{margin:0 0 8px;font-size:14px}
 .jeeves-egg-img{display:block;max-width:100%;width:min(280px,100%);height:auto;margin:10px 0 4px;border-radius:12px;border:1px solid var(--line);background:#0f0d0a}
-.jeeves-snake{display:block;margin:8px 0 0;padding:8px;overflow:auto;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.15;white-space:pre;color:#c8f5c0;background:#0b120b;border:1px solid var(--line);border-radius:8px}
+.jeeves-snake{display:block;margin:8px 0 0;padding:8px;overflow:auto;max-width:100%;overflow-x:hidden;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.15;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;color:#c8f5c0;background:#0b120b;border:1px solid var(--line);border-radius:8px}
 .jeeves-note{margin:6px 0 8px}
 .jeeves-ask,.jeeves-up{display:flex;flex-direction:column;gap:8px;margin:8px 0}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
 @media (max-width:720px){
-  html,body{overflow:auto;height:auto;min-height:100%}
+  html,body{overflow-x:hidden;overflow-y:auto;height:auto;min-height:100%;max-width:100%}
   .sitehead-inner{padding:16px 14px 0}
   .wrap{padding:8px 14px max(120px, calc(env(safe-area-inset-bottom, 0px) + 100px))}
   .brand{width:auto;font-size:20px;flex:1 1 auto;min-width:0}
@@ -286,9 +288,11 @@ a.runtime-muted:hover{color:var(--ink)}
 input[type=range]{width:100%;min-height:44px;accent-color:var(--gold)}
 #worldMap{width:100%;height:auto;background:#16130f;border:1px solid var(--line);border-radius:10px;touch-action:none;display:block}
 .event-row{padding:10px 0;border-bottom:1px solid var(--line);min-height:44px}
-table.plain{width:100%;border-collapse:collapse}
-table.plain th,table.plain td{text-align:left;vertical-align:top;padding:10px 8px;border-bottom:1px solid var(--line);color:var(--ink)}
-pre.verify{white-space:pre-wrap;word-break:break-word;background:#16130f;border:1px solid var(--line);border-radius:12px;padding:14px;overflow:auto;color:var(--ink)}
+table.plain{width:100%;max-width:100%;border-collapse:collapse;table-layout:fixed}
+table.plain th,table.plain td{text-align:left;vertical-align:top;padding:10px 8px;border-bottom:1px solid var(--line);color:var(--ink);overflow-wrap:anywhere;word-break:break-word}
+pre,code,pre.verify{max-width:100%;min-width:0;overflow-x:hidden;overflow-wrap:anywhere;word-break:break-word}
+pre.verify{white-space:pre-wrap;word-break:break-word;background:#16130f;border:1px solid var(--line);border-radius:12px;padding:14px;overflow:auto;overflow-x:hidden;color:var(--ink)}
+code{white-space:pre-wrap}
 .media-options{display:flex;flex-direction:column;gap:6px;margin:8px 0 14px}
 .media-actions{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0}
 .media-form input[type=checkbox]{width:auto;min-height:18px;min-width:18px;flex:0 0 auto}
@@ -296,7 +300,8 @@ pre.verify{white-space:pre-wrap;word-break:break-word;background:#16130f;border:
 @media (max-width:720px){
   .map-tools{flex-direction:column;align-items:stretch}
   .map-tools label,.map-tools button,.map-tools input,.map-tools select{width:100%}
-  table.plain{display:block;overflow-x:auto}
+  table.plain{display:block;overflow-x:hidden;max-width:100%}
+  table.plain th,table.plain td{overflow-wrap:anywhere;word-break:break-word}
   .media-actions .button,.media-actions button{width:100%}
 }
 `;
@@ -441,13 +446,6 @@ function browseHref(path, state, extra = {}) {
   return qs ? path + "?" + qs : path;
 }
 
-function splitTokens(value) {
-  return String(value || "")
-    .split(/[,;]+/)
-    .map((p) => p.trim())
-    .filter(Boolean);
-}
-
 function chip(label, href, on, cls = "chip") {
   return `<a class="${cls}${on ? " on" : ""}" href="${href}">${esc(label)}</a>`;
 }
@@ -497,10 +495,10 @@ ${libChips}
 function facetRow(label, items, param, state, path) {
   if (!items || !items.length) return "";
   const current = String(state[param] || "").trim();
-  const chips = items
-    .map((token) => {
-      const on = current.toLowerCase() === String(token).toLowerCase();
-      return chip(token, browseHref(path, state, { [param]: on ? "" : token }), on);
+  const chips = visibleTagEntries(items)
+    .map((entry) => {
+      const on = current.toLowerCase() === entry.value.toLowerCase();
+      return chip(entry.label, browseHref(path, state, { [param]: on ? "" : entry.value }), on);
     })
     .join("");
   return `<div class="facet"><span class="facet-label">${esc(label)}</span><div class="chips">${chips}</div></div>`;
@@ -581,20 +579,20 @@ function docCards(rows, state = {}, path = "/") {
       const { triadRow, zRow } = shelfScoreRows(r);
       const sha = String(r.content_sha256 || "").trim();
       const open = `<p class="doc-actions"><a class="button" href="/file/${esc(r.record_id)}">Download</a>` + (sha ? ` <a class="button ghost" href="/download?hash=${esc(sha)}">By hash</a>` : "") + `</p>`;
-      const file = r.filename ? esc(r.filename) : "text record";
+      const file = r.filename && !isMachineFileTag(r.filename) ? esc(r.filename) : "text record";
       const when = r.created_utc ? esc(String(r.created_utc).replace("T", " ").slice(0, 16)) : "";
       const authorName = String(r.author || "").trim();
       const byline = authorName
         ? `<p class="byline">${miniChip(authorName, browseHref(path, st, { author: authorName }), String(st.author).toLowerCase() === authorName.toLowerCase())}</p>`
         : "";
-      const domainChips = splitTokens(r.domain)
-        .map((t) => miniChip(t, browseHref(path, st, { domain: t }), String(st.domain).toLowerCase() === t.toLowerCase()))
+      const domainChips = visibleTagEntries(r.domain)
+        .map((t) => miniChip(t.label, browseHref(path, st, { domain: t.value }), String(st.domain).toLowerCase() === t.value.toLowerCase()))
         .join("");
-      const subjectChips = splitTokens(r.subjects)
-        .map((t) => miniChip(t, browseHref(path, st, { subject: t }), String(st.subject).toLowerCase() === t.toLowerCase()))
+      const subjectChips = visibleTagEntries(r.subjects)
+        .map((t) => miniChip(t.label, browseHref(path, st, { subject: t.value }), String(st.subject).toLowerCase() === t.value.toLowerCase()))
         .join("");
-      const keywordChips = splitTokens(r.keywords)
-        .map((t) => miniChip(t, browseHref(path, st, { keyword: t }), String(st.keyword).toLowerCase() === t.toLowerCase()))
+      const keywordChips = visibleTagEntries(r.keywords)
+        .map((t) => miniChip(t.label, browseHref(path, st, { keyword: t.value }), String(st.keyword).toLowerCase() === t.value.toLowerCase()))
         .join("");
       const extra = [domainChips, subjectChips, keywordChips].filter(Boolean).join("");
       const shaRow = sha ? `<p class="meta">SHA-256 ${esc(sha.slice(0,12))}… · <a href="/receipt/${esc(r.record_id)}">receipt</a></p>` : `<p class="meta"><a href="/receipt/${esc(r.record_id)}">receipt</a></p>`;
