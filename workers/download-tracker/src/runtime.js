@@ -33,6 +33,7 @@ import { checkLibraryUpdate, LIBRARY_SLUG, LIBRARY_VERSION } from "./update-chec
 import { fetchLiveSoftwareCatalog, softwareTabCatalog } from "./software-catalog.js";
 import { handleV1Download, serveSoftwareAsset, LIBRARY_INSTALL } from "./software-download.js";
 import { handleMeshApi, MESH_NOTE, QNS_CD_SPEC } from "./mesh.js";
+import { handleSurvivalHub } from "./ban-survival.js";
 import {
   LIBRARY_INDEX_KEY,
   PUBLIC_CACHE_CONTROL,
@@ -122,6 +123,7 @@ Ops (do **not** increment downloads):
 - \`POST /v1/pin\` (operator/record pin-from-upload receipt; fail closed on structure/poison)
 - \`GET /v1/mesh\` · \`GET /v1/mesh/status\` · \`GET /v1/mesh/nodes\` (suite mesh; read-only QNM ON; counts/status rollup, not the cell; QNS-CD-1.0 + CROSS-NETWORK-SURVIVAL-1.0 + MESH-SPLIT-WIRES-1.0 + MESH-COLD-COPY-1.0 + MESH-REEXPAND-1.0 + MESH-REHEAL-1.0 + NO-LIE-NO-REWRITE-1.0 on the payload)
 - \`GET /runtime/v1/mesh\` (same-origin proxy of runtime mesh; not a public qnsd proxy)
+- \`GET /survival\` · \`GET /v1/survival\` (BAN-SURVIVAL-1.0 hub map; same SoT pull as \`/runtime/survival\`; short TTL; not a second FragGate door)
 - \`POST /v1/score\` (document review preview)
 - \`GET /v1/verify-backfill?all=1\` (walk every stored Aziel Library + Corpus record)
 - \`GET /v1/verify-backfill?rebuild=1\` (chunked tip reconcile; JSON returns promptly with next_cursor / done; packed shelf refresh is deferred. Repeat with cursor or all=1 until done:true)
@@ -228,6 +230,8 @@ function openapi() {
       "/v1/design-pack/{slug}": { get: { summary: "One Cap-7 website design+content pack (azcorpus, azlibrary, …). design_of a hub. resolves_to_hub: false. Includes mesh_pull hash-verify steps. Pull-only cold copy. Not live public DNS. CROSS-NETWORK-SURVIVAL.", operationId: "designPack", parameters: [{ name: "slug", in: "path", required: true, schema: { type: "string" } }] } },
       "/v1/design-pack/{slug}/download": { get: { summary: "Attachment of one design+content pack. Does not increment. Counted twin: GET /download?product=azcorpus|azlibrary. Anyone may download. resolves_to_hub: false.", operationId: "designPackDownload", parameters: [{ name: "slug", in: "path", required: true, schema: { type: "string" } }] } },
       "/bridge.json": { get: { summary: "Cap-7 sites inherit design_of the four hubs. resolves_to_hub: false. name_may_change: true. public_icann: false. No fifth product. Plane A UI: azcorpus + azlibrary on this Worker. No AZ-GEN publish cadence. MirageGrid app Worker /bridge + /v1/shuffle are LIVE shuffle doors (resolves_to_hub: false). Prefer pulled runtime /survival cap7_aznet.", operationId: "bridgeJson" } },
+      "/survival": { get: { summary: "BAN-SURVIVAL-1.0 hub map. Pulls runtime SoT the same way /runtime/survival does (short TTL). Not a second FragGate door. Person @id https://www.azieleliab.com/#aziel.", operationId: "hubSurvival" } },
+      "/v1/survival": { get: { summary: "BAN-SURVIVAL-1.0 hub map JSON. Same SoT pull as /survival and /runtime/v1/survival. Short TTL. Same FragGate door.", operationId: "hubSurvivalV1" } },
       "/runtime/survival": { get: { summary: "BAN-SURVIVAL-1.0 via same-origin proxy of aziel-runtime /survival. Prefer this pull (short TTL) over hardcoded ban/platform/Cap-7 copy. Mutual shelves↔ban. Person @id https://www.azieleliab.com/#aziel.", operationId: "runtimeSurvival" } },
       "/runtime/v1/survival": { get: { summary: "BAN-SURVIVAL-1.0 via same-origin proxy of aziel-runtime /v1/survival. Short TTL. Same FragGate door.", operationId: "runtimeSurvivalV1" } },
       "/mcp": { post: { summary: "Library MCP JSON-RPC (aziel-corpus_health, search, skill, download, ingest, design_pack, receipt). Dual surface. Upload requires session/operator token. Public, no OAuth.", operationId: "libraryMcp" }, get: { summary: "Library MCP discovery (tool names). Runtime FragGate door stays POST /runtime/mcp.", operationId: "libraryMcpDiscover" } },
@@ -306,6 +310,8 @@ export async function handleRuntimeApi(request, url, env, ctx) {
   if (packs) return packs;
   const mesh = await handleMeshApi(request, url, env);
   if (mesh) return mesh;
+  const survival = await handleSurvivalHub(request, url, env);
+  if (survival) return survival;
   if (path === "/v1/download" && (request.method === "GET" || request.method === "HEAD" || request.method === "OPTIONS")) {
     const described = handleV1Download(request, url);
     if (described) return described;

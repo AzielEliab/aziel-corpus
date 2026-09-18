@@ -307,7 +307,7 @@ export function runtimeHowTo(host) {
     "- Runtime llms.txt: " + h + "/runtime/llms.txt",
     "- Runtime cite.json: " + h + "/runtime/cite.json",
     "- Runtime robots.txt: " + h + "/runtime/robots.txt",
-    "- Ban survival (BAN-SURVIVAL-1.0; prefer pull, short TTL): " + h + "/runtime/survival · " + h + "/runtime/v1/survival",
+    "- Ban survival (BAN-SURVIVAL-1.0; prefer pull, short TTL): " + h + "/survival · " + h + "/v1/survival · " + h + "/runtime/survival · " + h + "/runtime/v1/survival",
     "- Softwares download: " + h + "/download  ·  " + h + "/v1/download",
     "- " + RUNTIME_GLAMA_LABEL + ": " + RUNTIME_GLAMA,
     "- Source on GitHub: " + RUNTIME_GITHUB,

@@ -511,6 +511,8 @@ export function headMeta(opts) {
     linkRel("alternate", "/mcp.json", " type=" + Q + "application/json" + Q + " title=" + Q + "MCP discovery" + Q),
     linkRel("alternate", "/mcp", " type=" + Q + "application/json" + Q + " title=" + Q + "Library MCP" + Q),
     linkRel("alternate", "/bridge.json", " type=" + Q + "application/json" + Q + " title=" + Q + "Cap-7 bridge cite" + Q),
+    linkRel("alternate", "/survival", " type=" + Q + "application/json" + Q + " title=" + Q + "BAN-SURVIVAL-1.0" + Q),
+    linkRel("alternate", "/v1/survival", " type=" + Q + "application/json" + Q + " title=" + Q + "BAN-SURVIVAL-1.0" + Q),
     linkRel("alternate", "/runtime/survival", " type=" + Q + "application/json" + Q + " title=" + Q + "BAN-SURVIVAL-1.0" + Q),
     linkRel("alternate", "/runtime/v1/survival", " type=" + Q + "application/json" + Q + " title=" + Q + "BAN-SURVIVAL-1.0" + Q),
     linkRel("alternate", "/v1/products", " type=" + Q + "application/json" + Q + " title=" + Q + "azcorpus / azlibrary products" + Q),

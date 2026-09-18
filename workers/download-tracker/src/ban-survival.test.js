@@ -8,11 +8,16 @@ import {
   MIRAGEGRID_BRIDGE,
   MIRAGEGRID_SHUFFLE,
   PERSON_ID,
+  SURVIVAL_LOCAL,
+  SURVIVAL_LOCAL_V1,
   SURVIVAL_ORIGIN,
   SURVIVAL_SEO_CACHE_CONTROL,
   SURVIVAL_TTL_S,
   callingNameAlertLine,
+  destSurvivalPath,
+  handleSurvivalHub,
   isSurvivalDoc,
+  isSurvivalHubPath,
   isSurvivalSeoPath,
   platformsLine,
   projectSurvival,
@@ -21,6 +26,7 @@ import {
   survivalLlmsBlock,
   survivalWhoIsBlock,
 } from "./ban-survival.js";
+import { handleRuntimeApi } from "./runtime.js";
 import { citeDoc, llmsDoc, aiTxt, humansTxt, robotsTxt } from "./crawl.js";
 import { whoIsTxt } from "./identity.js";
 import { bridgeDoc } from "./ai-surface.js";
@@ -45,7 +51,10 @@ test("fallback cites the pull and does not invent LIVE doors", () => {
   assert.equal(fb.cap7_aznet.app_worker, MIRAGEGRID_APP);
   assert.equal(fb.visible_1520_chrome, false);
   assert.equal(fb.software_runtime_ssot, true);
+  assert.equal(fb.local, SURVIVAL_LOCAL);
+  assert.equal(fb.local_v1, SURVIVAL_LOCAL_V1);
   assert.match(fb.note, /short TTL/);
+  assert.match(fb.note, /not a second door/i);
   assert.equal(isSurvivalDoc(fb), true);
   assert.equal(isSurvivalDoc({}), false);
 });
@@ -112,6 +121,8 @@ test("machine LLM/SEO surfaces cite pull + Cap-7 shuffle + platforms + calling-n
   assert.equal(cite.ban_survival_pull, true);
   assert.equal(cite.ban_survival_ttl_s, SURVIVAL_TTL_S);
   assert.equal(cite.survival, SURVIVAL_ORIGIN);
+  assert.equal(cite.survival_local, SURVIVAL_LOCAL);
+  assert.equal(cite.survival_local_v1, SURVIVAL_LOCAL_V1);
   assert.equal(cite.mutual_backup, true);
   assert.equal(cite.cap7_aznet.resolves_to_hub, false);
   assert.equal(cite.miragegrid_bridge, MIRAGEGRID_BRIDGE);
@@ -146,8 +157,12 @@ test("machine LLM/SEO surfaces cite pull + Cap-7 shuffle + platforms + calling-n
   assert.match(humans, /v1\/survival/);
 
   const robots = robotsTxt();
+  assert.match(robots, /Allow: \/survival/);
+  assert.match(robots, /Allow: \/v1\/survival/);
   assert.match(robots, /Allow: \/runtime\/survival/);
   assert.match(robots, /Allow: \/runtime\/v1\/survival/);
+  assert.match(ai, /Allow: \/survival/);
+  assert.match(llms, /azielcorpuslibrary\.net\/survival/);
 });
 
 test("who-is is machine-only BAN-SURVIVAL awareness without Whitestone or extra 15:20 chrome", () => {
@@ -178,4 +193,140 @@ test("bridge.json cites LIVE MirageGrid app Worker without claiming hub alias", 
   assert.equal(doc.resolves_to_hub, false);
   assert.match(JSON.stringify(doc.miragegrid), /prefer.*survival|cap7_aznet/i);
   assert.doesNotMatch(JSON.stringify(doc), VISIBLE_1520);
+});
+
+const HOST = "https://www.azielcorpuslibrary.net";
+
+function sotDoc() {
+  return {
+    spec: BAN_SURVIVAL_SPEC,
+    author: AUTHOR,
+    identity: AUTHOR,
+    person_id: PERSON_ID,
+    mode: "LIVE",
+    second_door: false,
+    fraggate_is_the_door: true,
+    mutual_backup: true,
+    live_doors: [{ id: "library-runtime", origin: HOST + "/runtime", via: "service-binding", status: "live" }],
+    platforms: { spec: "BAN-PLATFORMS-1.0", all_live: true },
+    calling_name: { calling_name: "Aziel Runtime", identity: AUTHOR, identity_unchanged: true },
+    lie_to_survive: false,
+    visible_1520: false,
+  };
+}
+
+function survivalEnv(doc, destWant) {
+  return {
+    AZIEL_RUNTIME: {
+      fetch: async (req) => {
+        const dest = new URL(req.url);
+        if (destWant) assert.equal(dest.pathname, destWant);
+        return new Response(JSON.stringify(doc), {
+          status: 200,
+          headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=120" },
+        });
+      },
+    },
+  };
+}
+
+test("hub /survival and /v1/survival pull runtime SoT; not a second door; no 15:20 chrome", async () => {
+  assert.equal(isSurvivalHubPath("/survival"), true);
+  assert.equal(isSurvivalHubPath("/v1/survival"), true);
+  assert.equal(isSurvivalHubPath("/runtime/survival"), false);
+  assert.equal(isSurvivalHubPath("/v1/mesh"), false);
+  assert.equal(destSurvivalPath("/survival", ""), "/survival");
+  assert.equal(destSurvivalPath("/v1/survival", "?x=1"), "/v1/survival?x=1");
+  assert.equal(destSurvivalPath("/runtime/survival", ""), null);
+
+  const sot = sotDoc();
+  const env = survivalEnv(sot, "/survival");
+  const res = await handleSurvivalHub(
+    new Request(HOST + "/survival", { headers: { Accept: "application/json" } }),
+    new URL(HOST + "/survival"),
+    env
+  );
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get("cache-control") || "", /s-maxage=60/);
+  assert.equal(res.headers.get("x-aziel-survival-via"), "service-binding");
+  assert.equal(res.headers.get("x-aziel-survival-local"), SURVIVAL_LOCAL);
+  const body = await res.json();
+  assert.equal(body.spec, BAN_SURVIVAL_SPEC);
+  assert.equal(body.mode, "LIVE");
+  assert.equal(body.second_door, false);
+  assert.equal(body.fraggate_is_the_door, true);
+  assert.equal(body.author, AUTHOR);
+  assert.equal(body.person_id, PERSON_ID);
+  assert.doesNotMatch(JSON.stringify(body), VISIBLE_1520);
+
+  const v1 = await handleSurvivalHub(
+    new Request(HOST + "/v1/survival"),
+    new URL(HOST + "/v1/survival"),
+    survivalEnv(sot, "/v1/survival")
+  );
+  assert.equal(v1.status, 200);
+  assert.equal((await v1.json()).spec, BAN_SURVIVAL_SPEC);
+
+  const head = await handleSurvivalHub(
+    new Request(HOST + "/survival", { method: "HEAD" }),
+    new URL(HOST + "/survival"),
+    survivalEnv(sot, "/survival")
+  );
+  assert.equal(head.status, 200);
+  assert.equal(await head.text(), "");
+
+  const post = await handleSurvivalHub(
+    new Request(HOST + "/survival", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }),
+    new URL(HOST + "/survival"),
+    env
+  );
+  assert.equal(post.status, 405);
+  const refused = await post.json();
+  assert.equal(refused.second_door, false);
+  assert.equal(refused.fraggate_is_the_door, true);
+  assert.match(refused.hint, /fraggate\/call/);
+});
+
+test("hub /survival fail-soft cites the pull and does not invent LIVE doors", async () => {
+  const env = {
+    AZIEL_RUNTIME: {
+      fetch: async () => new Response(JSON.stringify({ error: "not found" }), { status: 404 }),
+    },
+  };
+  const res = await handleSurvivalHub(
+    new Request(HOST + "/survival"),
+    new URL(HOST + "/survival"),
+    env
+  );
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.spec, BAN_SURVIVAL_SPEC);
+  assert.equal(body.kind, "hub_cite");
+  assert.equal(body.second_door, false);
+  assert.equal(body.fraggate_is_the_door, true);
+  assert.equal(body.pulled, false);
+  assert.equal(body.live_doors, null);
+  assert.equal(body.local, SURVIVAL_LOCAL);
+  assert.equal(body.visible_1520_chrome, false);
+  assert.doesNotMatch(JSON.stringify(body), VISIBLE_1520);
+
+  const viaApi = await handleRuntimeApi(
+    new Request(HOST + "/v1/survival"),
+    new URL(HOST + "/v1/survival"),
+    env
+  );
+  assert.equal(viaApi.status, 200);
+  assert.equal((await viaApi.json()).spec, BAN_SURVIVAL_SPEC);
+
+  const spec = await (await handleRuntimeApi(
+    new Request(HOST + "/openapi.json"),
+    new URL(HOST + "/openapi.json"),
+    {}
+  )).json();
+  assert.ok(spec.paths["/survival"]);
+  assert.ok(spec.paths["/v1/survival"]);
+  assert.ok(spec.paths["/runtime/survival"]);
+  assert.match(spec.paths["/survival"].get.summary, /BAN-SURVIVAL-1\.0/);
+  assert.match(spec.paths["/survival"].get.summary, /not a second FragGate door/i);
+  assert.doesNotMatch(JSON.stringify(spec.paths["/survival"]), VISIBLE_1520);
 });

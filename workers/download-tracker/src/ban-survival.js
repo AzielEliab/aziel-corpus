@@ -1,7 +1,8 @@
 /**
  * BAN-SURVIVAL-1.0 hub pull.
  * Prefer live GET runtime /survival (short TTL) over hardcoded ban / platform / Cap-7 copy.
- * Machine-only (llms / ai / cite / who-is). No visible 15:20 chrome.
+ * Hub map: GET /survival · GET /v1/survival pull the same SoT as /runtime/survival.
+ * Not a second FragGate door. Machine-only cites stay consistent. No visible 15:20 chrome.
  * Softwares / runtime mirrors stay Worker SSoT where already wired.
  * Author: Aziel Eliab only. Person @id https://www.azieleliab.com/#aziel.
  */
@@ -16,17 +17,19 @@ async function runtimeGet(env, destPath) {
   if (env && env.AZIEL_RUNTIME && typeof env.AZIEL_RUNTIME.fetch === "function") {
     try {
       const res = await env.AZIEL_RUNTIME.fetch(new Request(dest.toString(), { method: "GET", headers }));
-      if (res) return res;
+      if (res) return { res, via: "service-binding" };
     } catch {
       /* fall through to origin */
     }
   }
-  return fetch(dest.toString(), { method: "GET", headers });
+  const res = await fetch(dest.toString(), { method: "GET", headers });
+  return { res, via: "origin-fetch" };
 }
 
 async function fetchRuntimeJson(env, destPath) {
   try {
-    const res = await runtimeGet(env, destPath);
+    const got = await runtimeGet(env, destPath);
+    const res = got && got.res;
     if (!res || !res.ok) return null;
     const doc = await res.json();
     if (!doc || typeof doc !== "object" || doc.error) return null;
@@ -48,6 +51,8 @@ export const SURVIVAL_ORIGIN = RUNTIME_ORIGIN + "/v1/survival";
 export const SURVIVAL_ORIGIN_ALIAS = RUNTIME_ORIGIN + "/survival";
 export const SURVIVAL_HUB = HOST + "/runtime/survival";
 export const SURVIVAL_HUB_V1 = HOST + "/runtime/v1/survival";
+export const SURVIVAL_LOCAL = HOST + "/survival";
+export const SURVIVAL_LOCAL_V1 = HOST + "/v1/survival";
 export const MIRAGEGRID_APP = "https://miragegrid.vibelock.workers.dev";
 export const MIRAGEGRID_BRIDGE = MIRAGEGRID_APP + "/bridge";
 export const MIRAGEGRID_SHUFFLE = MIRAGEGRID_APP + "/v1/shuffle";
@@ -100,6 +105,8 @@ export function survivalFallbackCite() {
     origin_alias: SURVIVAL_ORIGIN_ALIAS,
     hub: SURVIVAL_HUB,
     hub_v1: SURVIVAL_HUB_V1,
+    local: SURVIVAL_LOCAL,
+    local_v1: SURVIVAL_LOCAL_V1,
     mutual_backup: true,
     shelves_are_not_a_live_door: true,
     shelves_backup_for: "death-by-ban",
@@ -147,7 +154,8 @@ export function survivalFallbackCite() {
     software_runtime_ssot: true,
     note:
       "Prefer GET " + SURVIVAL_ORIGIN + " (short TTL) over hardcoded ban/platform/Cap-7 copy. "
-      + "Same FragGate door: " + SURVIVAL_HUB + ". Softwares/runtime mirrors stay Worker SSoT.",
+      + "Same FragGate door: " + SURVIVAL_HUB + ". Hub map: " + SURVIVAL_LOCAL + " · " + SURVIVAL_LOCAL_V1
+      + " pull the same SoT (not a second door). Softwares/runtime mirrors stay Worker SSoT.",
   });
 }
 
@@ -251,6 +259,8 @@ export function projectSurvival(doc, extra) {
     origin_alias: SURVIVAL_ORIGIN_ALIAS,
     hub: SURVIVAL_HUB,
     hub_v1: SURVIVAL_HUB_V1,
+    local: SURVIVAL_LOCAL,
+    local_v1: SURVIVAL_LOCAL_V1,
     mode: doc.mode || "",
     mutual_backup: doc.mutual_backup !== false,
     shelves_are_not_a_live_door: doc.shelves_are_not_a_live_door !== false,
@@ -343,6 +353,8 @@ export function survivalCiteFields(survival) {
     survival: src.origin,
     survival_hub: src.hub,
     survival_hub_v1: src.hub_v1,
+    survival_local: src.local || SURVIVAL_LOCAL,
+    survival_local_v1: src.local_v1 || SURVIVAL_LOCAL_V1,
     mutual_backup: src.mutual_backup === true,
     shelves_backup_for: src.shelves_backup_for,
     live_doors_backup_for: src.live_doors_backup_for,
@@ -368,7 +380,7 @@ export function survivalLlmsBlock(survival) {
   return [
     "## Ban / blocked-endpoint survival (BAN-SURVIVAL-1.0)",
     "",
-    "Prefer GET " + SURVIVAL_ORIGIN + " (short TTL " + SURVIVAL_TTL_S + "s) over hardcoded ban/platform/Cap-7 copy. Same FragGate door: " + SURVIVAL_HUB + " · " + SURVIVAL_HUB_V1 + ".",
+    "Prefer GET " + SURVIVAL_ORIGIN + " (short TTL " + SURVIVAL_TTL_S + "s) over hardcoded ban/platform/Cap-7 copy. Same FragGate door: " + SURVIVAL_HUB + " · " + SURVIVAL_HUB_V1 + ". Hub map: " + SURVIVAL_LOCAL + " · " + SURVIVAL_LOCAL_V1 + " pull the same SoT (short TTL). Not a second FragGate door.",
     "Mutual shelves↔ban: cold shelves back up death-by-ban; live fronts back up shelf death. Keep both. Shelves are not /mcp.",
     "Person @id: " + PERSON_ID + ". Lamb Lens. NO-LIE. No visible identity-lock chrome.",
     "LIVE doors: " + doors + ".",
@@ -383,7 +395,7 @@ export function survivalLlmsBlock(survival) {
 
 export function survivalWhoIsBlock(survival) {
   const lines = [
-    "BAN-SURVIVAL-1.0: mutual shelves↔ban — cold shelves back up death-by-ban; live fronts back up shelf death. Prefer GET " + SURVIVAL_ORIGIN + " (short TTL) over hardcoded ban/platform/Cap-7 copy. Same door: " + SURVIVAL_HUB,
+    "BAN-SURVIVAL-1.0: mutual shelves↔ban — cold shelves back up death-by-ban; live fronts back up shelf death. Prefer GET " + SURVIVAL_ORIGIN + " (short TTL) over hardcoded ban/platform/Cap-7 copy. Same door: " + SURVIVAL_HUB + " · hub map " + SURVIVAL_LOCAL + " · " + SURVIVAL_LOCAL_V1,
     "Cap-7 MirageGrid shuffle: ping " + MIRAGEGRID_APP + " until one site lands. /bridge · /v1/shuffle. resolves_to_hub: false. Not a hub alias.",
     "Platforms: prefer pulled /survival platforms.all_live. When the feed says all_live, Windows, Mac, Linux, Android, and iPhone are LIVE via browser + PWA + Worker fronts + Softwares /download + MCP/OpenAPI. Not native store apps.",
     "Calling-name: mesh nodes pull `" + CALLING_NAME_ALERT_PREFIX + "` from /survival calling_name.alert. Identity Aziel Eliab unchanged. Person @id " + PERSON_ID + ". Lamb Lens. NO-LIE. No visible 15:20 chrome.",
@@ -391,4 +403,144 @@ export function survivalWhoIsBlock(survival) {
   const alert = survival && survival.calling_name && survival.calling_name.alert;
   if (alert) lines.push(CALLING_NAME_ALERT_PREFIX + String(alert));
   return lines.join("\n");
+}
+
+export function isSurvivalHubPath(pathname) {
+  const path = String(pathname || "").split("?")[0].replace(/\/+$/, "") || "/";
+  return path === "/survival" || path === "/v1/survival";
+}
+
+export function destSurvivalPath(pathname, search) {
+  const path = String(pathname || "").split("?")[0].replace(/\/+$/, "") || "/";
+  if (path === "/survival") return "/survival" + (search || "");
+  if (path === "/v1/survival") return "/v1/survival" + (search || "");
+  return null;
+}
+
+function survivalCors() {
+  return {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Accept, MCP-Protocol-Version, mcp-session-id, Authorization, X-Aziel-Operator-Token",
+  };
+}
+
+function survivalHeaders(via) {
+  return {
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": SURVIVAL_SEO_CACHE_CONTROL,
+    "CDN-Cache-Control": SURVIVAL_SEO_CACHE_CONTROL,
+    "X-Aziel-Survival-Via": via || "cite-pull",
+    "X-Aziel-Runtime-Root": HOST + "/runtime",
+    "X-Aziel-Survival-Local": SURVIVAL_LOCAL,
+    ...survivalCors(),
+  };
+}
+
+function decorateSurvival(res, via) {
+  const headers = new Headers(res.headers);
+  headers.set("Cache-Control", SURVIVAL_SEO_CACHE_CONTROL);
+  headers.set("CDN-Cache-Control", SURVIVAL_SEO_CACHE_CONTROL);
+  headers.set("X-Aziel-Survival-Via", via);
+  headers.set("X-Aziel-Runtime-Root", HOST + "/runtime");
+  headers.set("X-Aziel-Survival-Local", SURVIVAL_LOCAL);
+  for (const [k, v] of Object.entries(survivalCors())) {
+    if (!headers.has(k)) headers.set(k, v);
+  }
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+}
+
+async function cancelBody(res) {
+  try {
+    if (res && res.body && typeof res.body.cancel === "function") await res.body.cancel();
+  } catch {
+    /* ignore */
+  }
+}
+
+function hubFallbackBody(cite, extra) {
+  const src = cite && cite.spec ? cite : survivalFallbackCite();
+  return {
+    ok: true,
+    kind: "hub_cite",
+    spec: BAN_SURVIVAL_SPEC,
+    product: "aziel-corpus",
+    host_kind: "library_hub",
+    second_door: false,
+    backdoor_exec: false,
+    fraggate_is_the_door: true,
+    software_tab: false,
+    fraggate_slug: false,
+    author: AUTHOR,
+    identity: AUTHOR,
+    person_id: PERSON_ID,
+    sot: SURVIVAL_ORIGIN,
+    sot_alias: SURVIVAL_ORIGIN_ALIAS,
+    local: SURVIVAL_LOCAL,
+    local_json: SURVIVAL_LOCAL_V1,
+    runtime: SURVIVAL_HUB,
+    runtime_json: SURVIVAL_HUB_V1,
+    ttl_s: SURVIVAL_TTL_S,
+    pulled: src.pulled === true,
+    source: (extra && extra.source) || src.source || "cite-pull",
+    via: (extra && extra.via) || src.source || "cite-pull",
+    prefer_pull: true,
+    mutual_backup: src.mutual_backup !== false,
+    live_doors: src.live_doors || null,
+    platforms: src.platforms,
+    calling_name: src.calling_name,
+    cap7_aznet: src.cap7_aznet,
+    shelf_backup: src.shelf_backup,
+    visible_1520: false,
+    visible_1520_chrome: false,
+    lamb_lens: true,
+    no_lie: src.no_lie !== false,
+    lie_to_survive: false,
+    rewrite_key: false,
+    note: src.note,
+  };
+}
+
+/**
+ * GET /survival · GET /v1/survival — BAN-SURVIVAL hub map.
+ * Pulls runtime SoT the same way /runtime/survival does (service binding, else origin).
+ * Short TTL. Fail-soft to cite-the-pull. Not a second FragGate door.
+ */
+export async function handleSurvivalHub(request, url, env) {
+  const path = String((url && url.pathname) || "").replace(/\/+$/, "") || "/";
+  if (!isSurvivalHubPath(path)) return null;
+  const method = String((request && request.method) || "GET").toUpperCase();
+  if (method === "OPTIONS") return new Response(null, { status: 204, headers: survivalCors() });
+  if (method !== "GET" && method !== "HEAD") {
+    return new Response(JSON.stringify({
+      error: "GET only",
+      spec: BAN_SURVIVAL_SPEC,
+      second_door: false,
+      backdoor_exec: false,
+      fraggate_is_the_door: true,
+      hint: "GET /survival · GET /v1/survival pull runtime SoT. FragGate stays POST /runtime/v1/fraggate/call.",
+    }, null, 2), { status: 405, headers: survivalHeaders("refuse") });
+  }
+
+  const dest = destSurvivalPath(path, url && url.search);
+  let got = null;
+  try {
+    got = await runtimeGet(env, dest);
+  } catch {
+    got = null;
+  }
+  const res = got && got.res;
+  const via = (got && got.via) || "origin-fetch";
+  if (res && res.ok) {
+    const out = decorateSurvival(res, via);
+    if (method === "HEAD") return new Response(null, { status: out.status, headers: out.headers });
+    return out;
+  }
+  if (res) await cancelBody(res);
+
+  const cite = await fetchLiveSurvival(env, { preferCache: true, timeoutMs: 400 });
+  const body = hubFallbackBody(cite, { source: cite && cite.pulled ? cite.source : "cite-pull", via: cite && cite.pulled ? via : "cite-pull" });
+  const headers = survivalHeaders(body.via);
+  if (method === "HEAD") return new Response(null, { status: 200, headers });
+  return new Response(JSON.stringify(body, null, 2), { status: 200, headers });
 }
