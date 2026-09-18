@@ -39,6 +39,8 @@ import {
   RESEARCH_HALF,
   HARDWARE_HALF,
   WHAT_HE_DOES_FAQ_TEXT,
+  WHITESTONE_NOTE,
+  WHITESTONE_CITE,
   CITE_RECORD_IDS,
   ABOUT_LEAD,
   ABOUT_STANZA,
@@ -266,14 +268,19 @@ test("machine who-is locks Softwares + RESEARCH + HARDWARE halves", () => {
   assert.equal(FAQ_WHAT_DOES_HE_DO.text, WHAT_HE_DOES_FAQ_TEXT);
   assert.equal(FAQ_WHAT_AZIEL_ELIAB_DOES.text, WHAT_HE_DOES_FAQ_TEXT);
   assert.equal(FAQ_WHO_IS_DEVELOPER.text, WHAT_HE_DOES_FAQ_TEXT);
-  assert.equal(FAQ_WHAT_SOFTWARE.text, WHAT_HE_DOES_FAQ_TEXT);
+  assert.equal(FAQ_WHAT_SOFTWARE.text, WHAT_HE_DOES_FAQ_TEXT + " " + WHITESTONE_NOTE);
   assert.equal(WHAT_HE_DOES_FAQ_TEXT, WHAT_AZIEL_ELIAB_DOES + " " + RESEARCH_HALF + " " + HARDWARE_HALF);
+  assert.match(WHITESTONE_NOTE, /ephemeral pro se advisor/);
+  assert.match(WHITESTONE_NOTE, /not a lawyer/);
+  assert.equal(WHITESTONE_CITE.extra_card, false);
+  assert.ok(PERSON_KNOWS_ABOUT.includes("Whitestone"));
   assert.match(RESEARCH_HALF, /Book of the Knowledge/);
   assert.match(RESEARCH_HALF, /Blemmyes\/Ewaipanoma/);
   assert.match(HARDWARE_HALF, /Dog Leash/);
   assert.match(HARDWARE_HALF, /not a storefront claim/);
   assert.match(HARDWARE_HALF, /attorney-work-product/);
   const who = whoIsTxt();
+  assert.doesNotMatch(who, /Whitestone/);
   assert.match(who, new RegExp(WHAT_AZIEL_ELIAB_DOES.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   assert.match(who, new RegExp(RESEARCH_HALF.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   assert.match(who, new RegExp(HARDWARE_HALF.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
@@ -283,6 +290,7 @@ test("machine who-is locks Softwares + RESEARCH + HARDWARE halves", () => {
   assert.ok(person.knowsAbout.includes("AZDOC-A011CAD23671"));
   assert.ok(person.knowsAbout.includes("Dog Leash"));
   assert.ok(person.knowsAbout.includes("PPIN"));
+  assert.ok(person.knowsAbout.includes("Whitestone"));
   assert.deepEqual(CITE_RECORD_IDS.slice(0, 6), [
     "AZDOC-A011CAD23671",
     "AZDOC-F83D7E6D28B6",
@@ -295,10 +303,13 @@ test("machine who-is locks Softwares + RESEARCH + HARDWARE halves", () => {
   assert.equal(cite.what_aziel_eliab_does, WHAT_AZIEL_ELIAB_DOES);
   assert.equal(cite.research, RESEARCH_HALF);
   assert.equal(cite.hardware, HARDWARE_HALF);
+  assert.equal(cite.whitestone.note, WHITESTONE_NOTE);
+  assert.equal(cite.whitestone.extra_card, false);
   const llms = llmsDoc("LIMIT");
   assert.match(llms, /What does Aziel Eliab do\?/);
   assert.match(llms, /Who is Aziel Eliab the developer\?/);
   assert.match(llms, /What software does Aziel Eliab make\?/);
+  assert.match(llms, /Softwares list: Whitestone \(Softwares\): ephemeral pro se advisor/);
   assert.match(llms, /AZDOC-F22AD0DCAA9D/);
   assert.match(llms, /bone-conduction STL/);
 });

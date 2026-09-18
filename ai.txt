@@ -149,6 +149,7 @@ Sitemap: https://www.azielcorpuslibrary.net/sitemap-index.xml
 - Donate: https://www.azielcorpuslibrary.net/donate · https://www.azieleliab.com/donate
 - Live software catalog: https://www.azielcorpuslibrary.net/v1/software
 - Trades-Runtime (trades-runtime): https://www.azielcorpuslibrary.net/software · https://github.com/AzielEliab/trades-runtime · https://trades-runtime.vibelock.workers.dev/download · MCP https://trades-runtime.vibelock.workers.dev/mcp — local-first BYO field-trades runtime; not FragGate; live_backends false; GitHub Pages off
+- Softwares list: Whitestone (Softwares): ephemeral pro se advisor; not a lawyer. Catalog entry ships on aziel-runtime GET /v1/software; this library Softwares tab refreshes from that Worker SSoT after that merge.
 - Runtime catalog: https://www.azielcorpuslibrary.net/runtime
 - Try on Glama: https://glama.ai/mcp/servers/AzielEliab/aziel-runtime
 - Aziel Runtime on GitHub: https://github.com/AzielEliab/aziel-runtime

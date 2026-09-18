@@ -226,6 +226,10 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(cite.what_aziel_eliab_does, /Softwares through Aziel Runtime/);
   assert.match(cite.research, /Book of the Knowledge/);
   assert.match(cite.hardware, /Dog Leash/);
+  assert.equal(cite.whitestone.name, "Whitestone");
+  assert.match(cite.whitestone.note, /ephemeral pro se advisor/);
+  assert.match(cite.whitestone.note, /not a lawyer/);
+  assert.equal(cite.whitestone.extra_card, false);
   assert.ok(cite.cite_records.includes("AZDOC-A011CAD23671"));
   assert.match(cite.who_is, /receipt-first/);
   assert.match(cite.who_is, /1 Chronicles 15:20/);
@@ -301,6 +305,8 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(llms, /fraggate\/list/);
   assert.match(llms, /\/\.well-known\/mcp\.json/);
   assert.match(llms, /No hard-coded 27 cap/);
+  assert.match(llms, /Softwares list: Whitestone \(Softwares\): ephemeral pro se advisor/);
+  assert.match(llms, /not a lawyer/);
   assert.match(llms, /https:\/\/www\.azielcorpuslibrary\.net\/AzielEliab/);
   assert.match(llms, /Person @id: https:\/\/www\.azieleliab\.com\/#aziel/);
   assert.match(llms, /Runtime @id: https:\/\/www\.azieleliab\.com\/runtime#runtime/);
@@ -447,6 +453,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.doesNotMatch(ai, /azielcorpuslibrary\.net\/v1\/stats/);
   assert.match(ai, /hedidntjump\.com\/api\/stats/);
   assert.match(ai, /Who\? Does not matter\. What matters is the record\./);
+  assert.match(ai, /Softwares list: Whitestone \(Softwares\): ephemeral pro se advisor/);
   assert.doesNotMatch(ai, /Researcher\. Builder/);
   assert.match(ai, /Disallow: \/signup/);
   assert.match(ai, /Disallow: \/logout/);
@@ -470,6 +477,8 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(humans, /He Didn't Jump: https:\/\/www\.hedidntjump\.com\//);
   assert.match(humans, /Software hub mirrors runtime \/v1\/software/);
   assert.match(humans, /azcoherence/);
+  assert.match(humans, /Whitestone \(Softwares\): ephemeral pro se advisor/);
+  assert.match(humans, /not a lawyer/);
 
   const index = sitemapIndexXml();
   assert.match(index, /<sitemapindex /);
