@@ -386,7 +386,7 @@ test("Pattern, Software, About, and runtime pages render live copy", () => {
   assert.match(runtime, /POST \/runtime\/mcp/);
   assert.match(runtime, /THIS IS NOT<\/strong> an API aggregator or a second software index/);
   assert.match(runtime, /2\.0\.0-rc1/);
-  assert.match(runtime, /37 live/);
+  assert.match(runtime, /41 live/);
   assert.match(runtime, /not merely an API orchestrator/);
   assert.match(runtime, /FragGate/);
   assert.match(runtime, /fraggate_list/);

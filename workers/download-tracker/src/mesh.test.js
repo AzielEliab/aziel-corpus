@@ -445,6 +445,11 @@ test("mesh default ON; identity Aziel Eliab only", () => {
   assert.match(MESH_NOTE, /no public proxy/);
   assert.match(MESH_NOTE, /no Node Gate/);
   assert.match(MESH_NOTE, /Aziel Eliab only/);
+  assert.match(MESH_NOTE, /HTTPS\/WS REAL/);
+  assert.match(MESH_NOTE, /worker_hardware:false/);
+  assert.equal(on.vpn.https_ws, "REAL");
+  assert.equal(on.vpn.wireguard, "SLOT");
+  assert.equal(on.channel_plane.worker_hardware, false);
   assert.doesNotMatch(MESH_NOTE, /default off/i);
   assert.doesNotMatch(MESH_NOTE, BANNED);
   assert.equal(isMeshEnabled(on), true);

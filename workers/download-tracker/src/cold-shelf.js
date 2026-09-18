@@ -34,6 +34,7 @@ import {
   foldlockLlmsBlock,
 } from "./foldlock.js";
 import { cap7ShelvesCite, cap7SitesCompact } from "./ai-surface.js";
+import { runtimeLaunchCite } from "./runtime-copy.js";
 
 export { AUTHOR, COLD_MULTI_SHELF_RULE, LOCKSET_ID, LOCKSET_TIP, PUBLISHED_TIP } from "./ingest-receipt.js";
 
@@ -1184,6 +1185,7 @@ export function shelfRegistryDoc(host = HOST) {
     foldlock: foldlockExportCite(h),
     foldlock_shelf: FOLDLOCK_SHELF_SPEC,
     lamb_lens: LAMB_LENS_CITE,
+    runtime_launch: runtimeLaunchCite(),
     operator_preempt: "80-95",
     fielded_100: false,
     note:
@@ -1220,6 +1222,7 @@ export function shelvesDoc(host = HOST) {
     planes: shelfRegistryDoc(h).planes,
     foldlock: foldlockExportCite(h),
     foldlock_shelf: FOLDLOCK_SHELF_SPEC,
+    runtime_launch: runtimeLaunchCite(),
     cap7: cap7ShelvesCite(),
     cap7_sites: cap7SitesCompact(),
     resolves_to_hub: false,
@@ -1270,5 +1273,6 @@ export function shelvesLlmsBlock(host = HOST) {
     + "- AZ Generator / Cap-7 live ICANN publish is not this repo.\n"
     + "- Crawlers are extra shelves. They do not re-expand. Training residue is rumor.\n"
     + "- Operator PREEMPT toward 80-95. Never publish fielded 100. Growth-ON.\n"
+    + "- Runtime launch cite does not flip Plane B or Plane C. Framagit stays SLOT CNS-NO-FORGE-MIRROR. USB stays SLOT CNS-OPERATOR-ATTEST.\n"
     + foldlockLlmsBlock(h) + "\n";
 }

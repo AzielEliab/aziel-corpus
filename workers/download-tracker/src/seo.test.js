@@ -184,7 +184,7 @@ test("runtime JSON-LD and discovery links advertise Aziel Runtime 2.0.0-rc1 abst
   assert.ok(runtimeApp.sameAs.includes("https://glama.ai/mcp/servers/AzielEliab/aziel-runtime"));
   assert.ok(runtimeApp.sameAs.includes("https://github.com/AzielEliab/aziel-runtime/tree/main/docs/2.0"));
   assert.match(runtimeApp.description, /not merely an API orchestrator/);
-  assert.match(runtimeApp.description, /37 live/);
+  assert.match(runtimeApp.description, /41 live/);
   assert.doesNotMatch(runtimeApp.description, /aziel-runtime 1\.9\.0 FragGate/);
   assertSharedIdentity(ld);
   const api = ld["@graph"].find((n) => n["@type"] === "WebAPI");
@@ -204,7 +204,7 @@ test("runtime JSON-LD and discovery links advertise Aziel Runtime 2.0.0-rc1 abst
   assert.match(html, /href="\/runtime\/v1\/fraggate"/);
   assert.match(html, /node-meshed MCP Softwares suite/);
   assert.match(defaultDescription("runtime"), /not merely an API orchestrator/);
-  assert.match(defaultDescription("runtime"), /37 live/);
+  assert.match(defaultDescription("runtime"), /41 live/);
   assert.match(defaultDescription("runtime"), /FragGate is the single door/);
   assert.doesNotMatch(defaultDescription("runtime"), /aziel-runtime 1\.9\.0 FragGate/);
   assert.doesNotMatch(defaultDescription("runtime"), /1\.6\.2/);
