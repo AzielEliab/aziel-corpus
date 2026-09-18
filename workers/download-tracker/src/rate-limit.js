@@ -179,7 +179,7 @@ export function isFanoutPath(pathname, method = "GET") {
   const path = String(pathname || "").replace(/\/+$/, "") || "/";
   const verb = String(method || "GET").toUpperCase();
   if (path === "/event" && verb === "POST") return true;
-  if (path === "/v1/verify-backfill" || path === "/v1/verify-geo" || path === "/v1/metadata-backfill") return true;
+  if (path === "/v1/verify-backfill" || path === "/v1/verify-geo" || path === "/v1/metadata-backfill" || path === "/v1/content-hash-repair") return true;
   if (path === "/v1/score" && verb === "POST") return true;
   if (path.startsWith("/v1/jeeves/") && verb === "POST") return true;
   if (path.startsWith("/v1/operator/") && verb === "POST") return true;

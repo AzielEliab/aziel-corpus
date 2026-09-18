@@ -19,6 +19,7 @@ Custom domains: www.azielcorpuslibrary.net and azielcorpuslibrary.net
 - GET /record/{record_id}/metadata.json and GET /record/{record_id}.json: public Schema.org discovery sidecar (no auth). Stored with the paper package as `{library}/{AZDOC}/JSONAZDOC-….json` and mirrored under `.Json/`. JSON-prefixed document_ledger receipts copy the paper lattice and never rewrite paper `chain_tip`.
 - GET /sitemap-records.xml: record HTML + metadata.json + `.json` alias URLs (linked from sitemap-index.xml).
 - GET /v1/metadata-backfill: idempotent sidecar backfill for every existing AZDOC. Repeat until `done:true`. `?all=1` walks remaining, `?force=1` restarts, `?status=1` progress. Cron and request walks also continue.
+- GET /v1/content-hash-repair: recompute `content_sha256` from the exact bytes GET `/file` serves. Dry-run by default. `?apply=1` is operator-only (updates D1 + packed `library:index:v1`, append-only `JSON_HASH_REPAIR` tip, never rewrites file bytes). `?sample=1` is the cron/CI integrity sample. See `CONTENT_SHA256.md`.
 - GET /v1/library-index: packed shelf cards (`library:index:v1`). One KV get + Cache-Control. No PDF bodies. Cards include `metadata_url`.
 - GET /v1/search: filters packed `library:index:v1` in memory (one KV get). AZDOC cards: id, title, shelf, content_sha256, chain_tip, triad_display, zsolver_display (omitted when ZionPattern is not_applicable). Also returns `records_packed` / `records_aziel` / `records_corpus`. ChainLock library-sync client. `Cache-Control: public, s-maxage=120, stale-while-revalidate=3600`.
 - GET /v1/health: standby / tunnel-primary failover fields (`role=standby`, `index_sha256`, `records_packed`). File counts come from packed `library:index:v1` (same numbers the homepage / Aziel Library / Corpus chrome show). See `docs/TUN-WP-0.1.md` and `docs/RL-WP-0.1-library.md`.
@@ -44,6 +45,7 @@ Custom domains: www.azielcorpuslibrary.net and azielcorpuslibrary.net
 - POST /v1/jeeves/chat  Ask Jeeves (research assistant)
 - POST /v1/jeeves/upload  same ingest/score path as the shelf (public → Corpus; operator → Aziel Library)
 - POST /v1/operator/library-ingest  operator token/session only; Aziel Library; one-file software/site dossiers (SOFTWARE-SITE-DOSSIER-1.0)
+- POST /v1/operator/hash-resync  operator token; `{record_ids:[AZDOC-…]}` or `{all:true}` or `{known:true}`; sets `content_sha256` to sha256 of live `/file` bytes; refreshes packed `library:index:v1`. After deploy, POST `tools/nine_fix_plan.json`.
 - POST /transcribe  hosted Whisper + mandatory VibeLock determination; hard A/V blocks (HTTP 451)
 - GET /media/{sha256}  inline playback of allowed A/V only (blocked media is never stored)
 - POST /ocr  hosted OCR; lattice receipt always

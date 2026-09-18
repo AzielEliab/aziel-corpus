@@ -7,6 +7,7 @@ import { robotsTxt, sitemapXml, sitemapIndexXml, sitemapRecordsXml, citeDoc, llm
 import { bridgeDoc, productBySlug } from "./ai-surface.js";
 import { serveDesignPack } from "./design-pack.js";
 import { continueMetadataBackfill } from "./record-metadata.js";
+import { continueContentHashRepair, sampleContentHashIntegrity } from "./content-hash-repair.js";
 import { identityRouteBody } from "./identity.js";
 import { searchRecords, parseBrowseParams, serveFile, serveFileByHash, normalizeContentHash } from "./library.js";
 import { continueFullBackfill } from "./review-store.js";
@@ -35,7 +36,7 @@ import { serveSoftwareAsset, DEFAULT_ASSET as SOFTWARE_DEFAULT_ASSET } from "./s
 /** Operator walk APIs must not share the isolate with background backfill/geo or a tunnel hop. */
 export function shouldBackgroundWalk(pathname) {
   const path = String(pathname || "").replace(/\/+$/, "") || "/";
-  return path !== "/v1/verify-backfill" && path !== "/v1/verify-geo" && path !== "/v1/metadata-backfill";
+  return path !== "/v1/verify-backfill" && path !== "/v1/verify-geo" && path !== "/v1/metadata-backfill" && path !== "/v1/content-hash-repair";
 }
 
 /**
@@ -332,6 +333,8 @@ export default {
       await refreshGithubIntoIndex(env).catch(() => null);
       await continueFullBackfill(env, { ms: 12000, all: false, background: true }).catch(() => null);
       await continueMetadataBackfill(env, { ms: 8000, all: false }).catch(() => null);
+      await sampleContentHashIntegrity(env, { limit: 8 }).catch(() => null);
+      await continueContentHashRepair(env, { ms: 4000, apply: false, all: false }).catch(() => null);
       await continueVerifyGeo(env, { ms: 12000, force: false }).catch(() => null);
     };
     if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(walk());

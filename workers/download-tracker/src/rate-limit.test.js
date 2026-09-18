@@ -62,6 +62,7 @@ test("browse, search, records, and SEO docs are never content-rationed", () => {
   assert.equal(isFanoutPath("/event", "POST"), true);
   assert.equal(isFanoutPath("/v1/search", "GET"), false);
   assert.equal(isFanoutPath("/v1/metadata-backfill", "GET"), true);
+  assert.equal(isFanoutPath("/v1/content-hash-repair", "GET"), true);
   assert.equal(isFanoutPath("/v1/ingest", "POST"), true);
   assert.equal(isFanoutPath("/mcp", "POST"), true);
   assert.equal(isRateExemptPath("/bridge.json"), true);

@@ -291,8 +291,61 @@ function isR2(store) {
   return !!(store && typeof store.head === "function");
 }
 
-function digestBytes(bytes) {
-  return createHash("sha256").update(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes)).digest("hex");
+/** Exact bytes that object storage and GET /file must share. Never a normalized string. */
+export function asUint8(bytes) {
+  if (bytes instanceof Uint8Array) return bytes;
+  if (bytes instanceof ArrayBuffer) return new Uint8Array(bytes);
+  if (ArrayBuffer.isView(bytes)) return new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  if (typeof bytes === "string") return new TextEncoder().encode(bytes);
+  if (bytes == null) return new Uint8Array(0);
+  return new Uint8Array(bytes);
+}
+
+/** Canonical content_sha256: SHA-256 of the exact Uint8Array written to FILES and returned by GET /file. */
+export function digestBytes(bytes) {
+  return createHash("sha256").update(asUint8(bytes)).digest("hex");
+}
+
+export function hashMismatchError(live, stored) {
+  const err = new Error("content_sha256 does not match served file bytes");
+  err.status = 422;
+  err.live_sha256 = live;
+  err.stored_sha256 = stored || null;
+  return err;
+}
+
+export function assertServedHash(bytes, digest) {
+  const live = digestBytes(bytes);
+  const want = String(digest || "").trim().toLowerCase();
+  if (!want || live !== want) throw hashMismatchError(live, want);
+  return live;
+}
+
+/** Re-read object storage and refuse if those bytes are not the advertised hash. */
+export async function verifyStoredObject(env, key, digest) {
+  if (!key) throw hashMismatchError("", digest);
+  const obj = await getObject(env, key);
+  if (!obj) throw hashMismatchError("", digest);
+  const bytes = await readObjectBytes(obj);
+  if (!bytes) throw hashMismatchError("", digest);
+  return assertServedHash(bytes, digest);
+}
+
+/**
+ * Bytes GET /file will return for this row: R2/KV object when object_key is set,
+ * otherwise UTF-8 of the stored body (legacy text-only). Never metadata excerpts.
+ */
+export async function loadServedFileBytes(env, row) {
+  if (!row) return null;
+  if (row.object_key) {
+    if (!env || !env.FILES) return null;
+    const obj = await getObject(env, row.object_key);
+    if (!obj) return null;
+    const bytes = await readObjectBytes(obj);
+    return bytes ? asUint8(bytes) : null;
+  }
+  const text = String(row.body || row.title || row.record_id || "");
+  return new TextEncoder().encode(text);
 }
 
 export function normalizeContentHash(value) {
@@ -476,20 +529,27 @@ export async function ingestRecord(env, args) {
     }
     filename = safeFilename(f.name);
     contentType = f.type || "application/octet-stream";
-    byteSize = f.size;
-    const bytes = await f.arrayBuffer();
+    const bytes = asUint8(await f.arrayBuffer());
     fileBytes = bytes;
+    byteSize = bytes.byteLength;
     contentSha = digestBytes(bytes);
     let existing = null;
     try {
       existing = await env.DB.prepare("SELECT record_id, object_key FROM records WHERE content_sha256=? AND object_key IS NOT NULL LIMIT 1").bind(contentSha).first();
     } catch { existing = null; }
     if (existing && existing.object_key) {
-      objectKey = existing.object_key;
-      duplicateOf = existing.record_id;
-    } else {
+      try {
+        await verifyStoredObject(env, existing.object_key, contentSha);
+        objectKey = existing.object_key;
+        duplicateOf = existing.record_id;
+      } catch {
+        existing = null;
+      }
+    }
+    if (!objectKey) {
       objectKey = library + "/" + id + "/" + filename;
       await putObject(env, objectKey, bytes, contentType);
+      await verifyStoredObject(env, objectKey, contentSha);
     }
     if (looksText(filename, contentType)) {
       const text = new TextDecoder("utf-8", { fatal: false }).decode(bytes).slice(0, TEXT_CAP);
@@ -500,9 +560,6 @@ export async function ingestRecord(env, args) {
     if (!args.skipOcrHint && String(contentType).toLowerCase().startsWith("image/")) {
       ocrHint = { bytes, contentType };
     }
-  } else {
-    contentSha = digestBytes(new TextEncoder().encode(notes || title || id));
-    byteSize = new TextEncoder().encode(notes || "").length;
   }
   let finalTitle = String(title || "").trim();
   if (!finalTitle) finalTitle = filename || id;
@@ -530,6 +587,23 @@ export async function ingestRecord(env, args) {
   const metaBits = [biblioAuthor, domainIn, subjectsIn, keywordsIn].filter(Boolean);
   if (metaBits.length) {
     searchBody = [searchBody, metaBits.join("\n")].filter(Boolean).join("\n\n");
+  }
+  // Text-only: hash the exact final body that is inserted and served. Never title-only
+  // when author/domain/subjects were appended (AZDOC-697F4E1D8C34 / AZDOC-498664EBE53C).
+  if (!f) {
+    const servedText = searchBody || notes || finalTitle || id;
+    searchBody = servedText;
+    const textBytes = new TextEncoder().encode(servedText);
+    fileBytes = textBytes;
+    byteSize = textBytes.byteLength;
+    contentSha = digestBytes(textBytes);
+    filename = filename || safeFilename(finalTitle + ".txt");
+    contentType = contentType || "text/plain; charset=utf-8";
+    if (env && env.FILES) {
+      objectKey = library + "/" + id + "/" + filename;
+      await putObject(env, objectKey, textBytes, contentType);
+      await verifyStoredObject(env, objectKey, contentSha);
+    }
   }
   let preflight = null;
   try {
@@ -565,6 +639,16 @@ export async function ingestRecord(env, args) {
     };
     throw err;
   }
+  const servedBytes = f
+    ? asUint8(fileBytes)
+    : new TextEncoder().encode(searchBody || notes || finalTitle || id);
+  const liveSha = digestBytes(servedBytes);
+  if (!contentSha || contentSha !== liveSha) throw hashMismatchError(liveSha, contentSha);
+  if (objectKey) {
+    await verifyStoredObject(env, objectKey, liveSha);
+  }
+  contentSha = liveSha;
+  byteSize = servedBytes.byteLength;
   await env.DB.prepare(
     "INSERT INTO records(record_id,title,body,created_by,created_utc,library,filename,content_type,object_key,byte_size,author,domain,subjects,keywords,content_sha256) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
   ).bind(
@@ -724,10 +808,13 @@ export async function serveFile(env, recordId) {
     if (!bytes) return jsonErr("stored file unreadable", 500);
   }
   if (!bytes) {
-    // Text-only records (no object_key) may serve notes; never substitute notes for a missing binary.
+    // Legacy text-only (no object_key): serve stored body bytes, never a normalized excerpt.
     const text = String(row.body || row.title || row.record_id);
     bytes = new TextEncoder().encode(text);
   }
+  bytes = asUint8(bytes);
+  const liveSha = digestBytes(bytes);
+  const storedSha = normalizeContentHash(row.content_sha256);
   const ct = row.object_key
     ? (row.content_type || (obj && obj.httpMetadata && obj.httpMetadata.contentType) || "application/octet-stream")
     : "text/plain; charset=utf-8";
@@ -741,7 +828,7 @@ export async function serveFile(env, recordId) {
       body: row.body,
       filename: name,
       contentType: ct,
-      sha256: row.content_sha256,
+      sha256: liveSha,
       author: row.author,
       bytes,
       createdBy: "download",
@@ -753,7 +840,7 @@ export async function serveFile(env, recordId) {
     await appendDocumentLedger(env, row.record_id, "DOWNLOAD", {
       record_id: row.record_id,
       library: row.library,
-      sha256: row.content_sha256,
+      sha256: liveSha,
       filename: name,
       quarantine_status: (verify && verify.quarantine_status) || row.quarantine_status || "CLEAR",
     });
@@ -765,7 +852,8 @@ export async function serveFile(env, recordId) {
   headers.set("Content-Disposition", `${inline ? "inline" : "attachment"}; filename="${name.replaceAll('"', "")}"`);
   headers.set("Cache-Control", "public, max-age=3600");
   headers.set("Content-Length", String(bytes.byteLength || bytes.length));
-  if (row.content_sha256) headers.set("X-Aziel-SHA256", row.content_sha256);
+  headers.set("X-Aziel-SHA256", liveSha);
+  if (storedSha && storedSha !== liveSha) headers.set("X-Aziel-Hash-Mismatch", storedSha);
   if (verify && verify.structure) headers.set("X-Aziel-Structure", verify.structure.ok ? "VERIFIED" : "FAILED");
   headers.set("X-Aziel-Quarantine", q);
   const triad = verify && verify.review && verify.review.triad;

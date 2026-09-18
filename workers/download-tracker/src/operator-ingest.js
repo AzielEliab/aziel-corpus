@@ -159,8 +159,49 @@ export async function operatorLibraryIngest(env, { signed, request, file, title,
   };
 }
 
+export async function handleOperatorHashResync(env, { signed, request, record_ids, all, known }) {
+  const who = operatorWho(signed, request, env);
+  if (!who) {
+    const err = new Error("operator token or operator session required");
+    err.status = signed ? 403 : 401;
+    throw err;
+  }
+  const { continueContentHashRepair, KNOWN_HASH_MISMATCH_IDS } = await import("./content-hash-repair.js");
+  const ids = Array.isArray(record_ids) ? record_ids : [];
+  return continueContentHashRepair(env, {
+    apply: true,
+    all: !!all && !ids.length && !known,
+    known: !!known || (!all && !ids.length),
+    recordIds: ids,
+    refreshPacked: true,
+  }).then((report) => ({
+    ok: true,
+    apply: true,
+    operator: true,
+    known_ids: KNOWN_HASH_MISMATCH_IDS,
+    ...report,
+  }));
+}
+
 export async function handleOperatorIngestApi(request, url, env, signed) {
   const path = url.pathname.replace(/\/$/, "") || "/";
+  if (path === "/v1/operator/hash-resync") {
+    if (request.method === "OPTIONS") return json({ ok: true }, 200);
+    if (request.method !== "POST") return json({ error: "POST required" }, 405);
+    let body = {};
+    try { body = await request.json(); } catch { body = {}; }
+    try {
+      return json(await handleOperatorHashResync(env, {
+        signed,
+        request,
+        record_ids: body.record_ids || body.ids || body.updates,
+        all: body.all === true,
+        known: body.known === true,
+      }));
+    } catch (err) {
+      return json({ error: err && err.message ? err.message : "hash resync failed" }, err && err.status ? err.status : 400);
+    }
+  }
   if (path !== "/v1/operator/library-ingest") return null;
   if (request.method === "OPTIONS") return json({ ok: true }, 200);
   if (request.method !== "POST") return json({ error: "POST required" }, 405);
