@@ -27,6 +27,12 @@ import {
   FOLDLOCK_COUNT,
 } from "./foldlock.js";
 import {
+  TRADES_RUNTIME_SOFTWARE_EXTRA,
+  TRADES_RUNTIME_SLUG,
+  TRADES_RUNTIME_STATS,
+  isTradesRuntimeSlug,
+} from "./trades-runtime.js";
+import {
   SOFTWARE_CATALOG_CACHE_URL,
   SEO_CACHE_CONTROL,
   cacheMatchJson,
@@ -80,6 +86,7 @@ export const SOFTWARE_EXTRAS = [
   },
   Object.assign({}, AZCOHERENCE_SOFTWARE_EXTRA),
   Object.assign({}, FOLDLOCK_SOFTWARE_EXTRA),
+  Object.assign({}, TRADES_RUNTIME_SOFTWARE_EXTRA),
 ];
 
 function firstText(...vals) {
@@ -111,8 +118,17 @@ const KNOWN_NAMES = {
   miragegrid: "MirageGrid",
   peacelock: "PeaceLock",
   postking: "Post-King Chess",
+  "trades-runtime": "Trades-Runtime",
+  tradesruntime: "Trades-Runtime",
+  trades_runtime: "Trades-Runtime",
   zsolver: "ZionPattern Solver",
 };
+
+export function canonicalSoftwareSlug(slug) {
+  const s = String(slug || "").toLowerCase().trim();
+  if (isTradesRuntimeSlug(s)) return TRADES_RUNTIME_SLUG;
+  return s;
+}
 
 const KIND_RANK = { plain: 0, gate: 1, lock: 2 };
 
@@ -154,7 +170,7 @@ export function collectCatalogProducts(catalog) {
   const bySlug = new Map();
   function add(raw) {
     if (!raw) return;
-    const slug = String(raw.slug || "").toLowerCase();
+    const slug = canonicalSoftwareSlug(raw.slug);
     if (!slug) return;
     const prev = bySlug.get(slug) || {};
     bySlug.set(slug, mapSoftwareProduct(Object.assign({}, prev, raw, { slug })));
@@ -190,14 +206,14 @@ export function collectCatalogProducts(catalog) {
 function addExtraItem(bySlug, raw, extraBits) {
   if (raw == null) return;
   if (typeof raw === "string") {
-    const slug = raw.toLowerCase();
+    const slug = canonicalSoftwareSlug(raw);
     if (!slug) return;
     const prev = bySlug.get(slug) || { slug, extra: true };
     bySlug.set(slug, Object.assign({}, prev, extraBits || {}, { slug, extra: true }));
     return;
   }
   if (typeof raw !== "object") return;
-  const slug = String(raw.slug || raw.name || "").toLowerCase();
+  const slug = canonicalSoftwareSlug(raw.slug || raw.name);
   if (!slug) return;
   const prev = bySlug.get(slug) || {};
   bySlug.set(slug, Object.assign({}, prev, raw, extraBits || {}, { slug, extra: true }));
@@ -240,7 +256,7 @@ export function collectCatalogExtras(catalog) {
 
 export function mapSoftwareProduct(raw) {
   if (!raw || typeof raw !== "object") return raw;
-  const slug = String(raw.slug || "").toLowerCase();
+  const slug = canonicalSoftwareSlug(raw.slug);
   const download = firstText(raw.download, raw.download_url);
   let downloadUrl = firstText(raw.download_url, raw.download);
   if (slug === "aziel-corpus") {
@@ -256,7 +272,8 @@ export function mapSoftwareProduct(raw) {
 /** Softwares-tab products[] plus kernel extras[] only. */
 export function softwareTabCatalog(catalog) {
   const norm = normalizeSoftwareDoc(catalog);
-  const products = collectCatalogProducts(norm).map(mapSoftwareProduct);
+  const collected = collectCatalogProducts(norm).map(mapSoftwareProduct);
+  const products = mergeSoftwareExtras(collected).filter((p) => !isKernelExtraSlug(p.slug));
   const extras = collectCatalogExtras(norm);
   return {
     version: firstText(norm.version, catalog && catalog.version),
@@ -266,7 +283,7 @@ export function softwareTabCatalog(catalog) {
     engines: norm.engines,
     engine_slugs: norm.engine_slugs,
     true_engine_slugs: norm.true_engine_slugs,
-    live_count: Number(norm.live_count || products.length) || products.length,
+    live_count: Number(norm.live_count || collected.length) || collected.length,
     framing: norm.framing || "",
     sort_law: norm.sort_law || "",
   };
@@ -275,23 +292,27 @@ export function softwareTabCatalog(catalog) {
 export function mergeSoftwareExtras(products) {
   const list = Array.isArray(products) ? products.slice() : [];
   const index = new Map();
-  list.forEach((p, i) => index.set(String(p.slug || "").toLowerCase(), i));
+  list.forEach((p, i) => index.set(canonicalSoftwareSlug(p.slug), i));
   for (const door of SOFTWARE_EXTRAS) {
-    const i = index.get(door.slug);
+    const slug = canonicalSoftwareSlug(door.slug);
+    const i = index.get(slug);
     if (i == null) {
-      list.push(Object.assign({ extra: true }, door, { one_line: hubSoftwareCopy(door.one_line) }));
-      index.set(door.slug, list.length - 1);
+      list.push(Object.assign({ extra: true }, door, { slug, one_line: hubSoftwareCopy(door.one_line) }));
+      index.set(slug, list.length - 1);
       continue;
     }
     const prev = list[i] || {};
     list[i] = Object.assign({}, door, prev, {
       extra: true,
+      slug,
       door: prev.door || door.door,
       github: firstText(prev.github, door.github),
       download: firstText(prev.download, door.download),
       worker: firstText(prev.worker, door.worker),
       worker_home: firstText(prev.worker_home, door.worker_home),
       count: firstText(prev.count, door.count),
+      mcp: firstText(prev.mcp, door.mcp),
+      fraggate_engine: prev.fraggate_engine != null ? prev.fraggate_engine : door.fraggate_engine,
       one_line: hubSoftwareCopy(aznetBrowserCatalogLine(door.slug, prev, door)),
       name: prev.name || door.name,
       version: prev.version || door.version,
@@ -317,7 +338,7 @@ function aznetBrowserCatalogLine(slug, prev, door) {
 
 function extraWorkerHome(product) {
   const slug = String((product && product.slug) || "").toLowerCase();
-  if (!(slug === "fraggate" || slug === "aznet" || slug === "azhub" || slug === "azinterface" || slug === AZCOHERENCE_SLUG || (product && product.extra))) {
+  if (!(slug === "fraggate" || slug === "aznet" || slug === "azhub" || slug === "azinterface" || slug === AZCOHERENCE_SLUG || slug === FOLDLOCK_SLUG || isTradesRuntimeSlug(slug) || (product && product.extra))) {
     return "";
   }
   const listed = firstText(product && product.worker_home);
@@ -359,10 +380,15 @@ export function productLinks(product) {
   if (product && product.github) links.push({ href: product.github, label: "GitHub" });
   links.push({ href: "/runtime", label: "Runtime" });
   links.push({ href: "/runtime/v1/fraggate/list", label: "fraggate/list" });
-  links.push({ href: "/runtime/mcp", label: "MCP" });
+  if (product && product.mcp) {
+    links.push({ href: product.mcp, label: "MCP" });
+  } else {
+    links.push({ href: "/runtime/mcp", label: "MCP" });
+  }
+  const fraggateEngine = !(product && product.fraggate_engine === false);
   if (slug === "fraggate") {
     links.push({ href: "/runtime/v1/fraggate", label: "Call fraggate" });
-  } else if (slug) {
+  } else if (slug && fraggateEngine) {
     links.push({ href: "/runtime/v1/fraggate/describe?slug=" + encodeURIComponent(slug), label: "Call " + slug });
   }
   if (slug === "azieltether") links.push({ href: "/v1/lattice", label: "Lattice API" });
@@ -461,6 +487,7 @@ export function countUrlForProduct(product) {
   if (slug === "aznet") return firstText(listed, AZNET_COUNT);
   if (slug === AZCOHERENCE_SLUG) return firstText(listed, AZCOHERENCE_COUNT);
   if (slug === FOLDLOCK_SLUG) return firstText(listed, FOLDLOCK_COUNT);
+  if (isTradesRuntimeSlug(slug)) return firstText(listed, TRADES_RUNTIME_STATS);
   if (slug === "aziel-corpus") return firstText(listed, LIBRARY_COUNT);
   return firstText(listed, inferCountUrlFromProduct(product));
 }

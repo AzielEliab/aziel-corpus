@@ -109,6 +109,15 @@ Softwares on this repo is the Digital Library catalog for aziel-runtime. Heading
 - Unique title: Softwares — Aziel Eliab catalog | Aziel Digital Library
 - Live catalog JSON: https://www.azielcorpuslibrary.net/v1/software
 - Author Aziel Eliab only. Do not invent a second software index.
+- Trades-Runtime (trades-runtime) Softwares extra: shadow-first local BYO runtime for HVAC, plumbing, electrical, sewer, and cross-trades. Operators bring their own ServiceTitan + ProBooks. Human authority wins. Not a hosted multi-tenant company OS. live_backends: false. Not a FragGate-exec true engine. GitHub Pages off. Public get = Worker download.
+  - Softwares card: https://www.azielcorpuslibrary.net/software
+  - GitHub: https://github.com/AzielEliab/trades-runtime
+  - Worker: https://trades-runtime.vibelock.workers.dev/
+  - Download: https://trades-runtime.vibelock.workers.dev/download
+  - Stats: https://trades-runtime.vibelock.workers.dev/v1/stats
+  - MCP: https://trades-runtime.vibelock.workers.dev/mcp
+  - Cite: https://trades-runtime.vibelock.workers.dev/cite.json
+  - llms: https://trades-runtime.vibelock.workers.dev/llms.txt
 
 ## Aziel Runtime
 

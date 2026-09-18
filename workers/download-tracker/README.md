@@ -13,7 +13,7 @@ Custom domains: www.azielcorpuslibrary.net and azielcorpuslibrary.net
 - GET /download?record=AZDOC-…: counted + ledger-linked document download
 - GET /download?hash=SHA-256 and GET /v1/docs/{hash}/download: serve the kept file for that content hash (duplicates are not deleted)
 - GET /v1/runtime: package/runtime version 2.7.0 for catalog discovery
-- GET /software: Softwares heading then list only (Software → Gate → Lock). Live product cards from packed/cached aziel-runtime `GET /v1/software` (prefer service binding AZIEL_RUNTIME; do not block SSR on a slow origin). SEO abstract leads. Distribution: Try on Glama is the primary Runtime CTA (owner/repo listing — no invented server id); Source on GitHub; Documentation (docs/2.0); Official Runtime Worker stays a muted text link at aziel-runtime.vibelock.workers.dev (online via AZIEL_RUNTIME binding — not the hero CTA). Mirrors the Softwares-tab catalog; no hard-coded 27 cap. Door extras AZNet, FragGate, and EmbryoLock stay on the HTML hub. FragGate and mesh are extras[] only on `GET /v1/software` (not products[]). Softwares extra AZCoherence (Plain, scoring-review; peer AZ-CLCE; not a second door). Sort Software A–Z → Gate A–Z → Lock A–Z (Clock is not Lock). AZNet is Plain. Stats on this tab read packed `library:index:v1` (no `KV.list()`). Remain-OFF untouched.
+- GET /software: Softwares heading then list only (Software → Gate → Lock). Live product cards from packed/cached aziel-runtime `GET /v1/software` (prefer service binding AZIEL_RUNTIME; do not block SSR on a slow origin). SEO abstract leads. Distribution: Try on Glama is the primary Runtime CTA (owner/repo listing — no invented server id); Source on GitHub; Documentation (docs/2.0); Official Runtime Worker stays a muted text link at aziel-runtime.vibelock.workers.dev (online via AZIEL_RUNTIME binding — not the hero CTA). Mirrors the Softwares-tab catalog; no hard-coded 27 cap. Door extras AZNet, FragGate, and EmbryoLock stay on the HTML hub. FragGate and mesh are extras[] only on `GET /v1/software` (not products[]). Softwares extra AZCoherence (Plain, scoring-review; peer AZ-CLCE; not a second door). Softwares extra Trades-Runtime (Plain, local-first BYO field-trades; own MCP host; not a FragGate-exec engine; live_backends false; count URL is `/v1/stats`). Sort Software A–Z → Gate A–Z → Lock A–Z (Clock is not Lock). AZNet is Plain. Stats on this tab read packed `library:index:v1` (no `KV.list()`). Remain-OFF untouched.
 - GET /download and GET /v1/download: counted Softwares zip (streamed HTTP 200) or honest 2xx descriptor when the asset is missing. Catalog `download_url` is `/download`.
 - GET /donate: AZL-DONATE-1.0 static Donate door + chrome strip. Exodus rails (BTC/ETH/LTC/XRP/DOGE/SOL/TRX). Copy, open-in-wallet, solid black-on-white PNG payment-URI QR. Does not touch KV. Not a catalog item.
 - GET /record/{record_id}/metadata.json and GET /record/{record_id}.json: public Schema.org discovery sidecar (no auth). Stored with the paper package as `{library}/{AZDOC}/JSONAZDOC-….json` and mirrored under `.Json/`. JSON-prefixed document_ledger receipts copy the paper lattice and never rewrite paper `chain_tip`.
@@ -55,3 +55,23 @@ Custom domains: www.azielcorpuslibrary.net and azielcorpuslibrary.net
 - Hidden operator account is not listed in HTML or user directories
 
 Author: Aziel Eliab
+
+## Deploy (operator box)
+
+This Worker is `aziel-corpus-download-tracker` (`wrangler.toml`). Softwares extras, `/cite.json`, `/llms.txt`, `/ai.txt`, and `/.well-known/mcp.json` are generated in-process — deploy this Worker for the library host to show Trades-Runtime.
+
+```bash
+cd workers/download-tracker
+npx wrangler whoami
+npx wrangler deploy
+```
+
+Secrets stay in Wrangler (`OPERATOR_TOKEN` / `GATE_TOKEN` / `LIBRARY_OPERATOR_TOKEN`). Do not commit tokens. After deploy, confirm machine surfaces only:
+
+- `GET https://www.azielcorpuslibrary.net/v1/software` includes `trades-runtime` with github + download + mcp
+- `GET https://www.azielcorpuslibrary.net/cite.json` has `trades_runtime` / `github_trades_runtime`
+- `GET https://www.azielcorpuslibrary.net/llms.txt` cites Trades-Runtime
+- `GET https://www.azielcorpuslibrary.net/.well-known/mcp.json` lists `trades-runtime` MCP
+- Homepage / About / who-is HTML stay unchanged (no new human chrome)
+
+The product giveaway Worker (`trades-runtime.vibelock.workers.dev`) is a separate deploy. GitHub Pages for `AzielEliab/trades-runtime` stay off.
