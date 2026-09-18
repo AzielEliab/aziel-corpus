@@ -29,6 +29,11 @@ import {
   softwareChip,
   resolveRuntimeVersion,
   runtimeDistributionLinks,
+  runtimeLaunchNote,
+  RUNTIME_GIT_SHA,
+  RUNTIME_VERSION_ID,
+  RUNTIME_SOT_BRANCH,
+  LAMB_LENS_PATH,
   AI_CLIENTS,
 } from "./runtime-copy.js";
 import { meshOnDoc, meshRefreshScript, meshStatusHtml } from "./mesh.js";
@@ -820,7 +825,8 @@ export function runtimeBody(version) {
 <p class="muted"><strong>THIS IS NOT</strong> an API aggregator or a second software index. Softwares stay heading then list on <a href="/software">Softwares</a>. Scoring is explained on <a href="/how-its-scored">How it's scored</a>. HTTP <code>/p/{slug}/{op}</code> is a proxy and is not exec. Session tools are advanced/internal. Hosted AZAI is protocol mirror + Lamb check, not the blend. Suite mesh is read-only QNM ON — <a href="/v1/mesh"><code>/v1/mesh</code></a> · <a href="/runtime/v1/mesh"><code>/runtime/v1/mesh</code></a>. GET <code>/v1/mesh</code> never enables. Disable is refused. This public HTTPS surface is not itself a mesh and is not the cell (counts/status rollup only). Cold copies survive a pull. Re-expand is archive restore. Reheal is self tip + trusted pull or phoenix-WAIT, never neighbor majority. Network never lies to stay alive. No rewrite key. Remain-OFF untouched. No invented Zenodo DOIs. Author Aziel Eliab (aka Aziel Elroi Eliab; primary credit Aziel Eliab). GodLock is one catalog engine; identity at <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a>.</p></section>
 <div class="card">
 <h2>Version ${esc(ver)}</h2>
-<p>Cite live <a href="/runtime/v1/health"><code>/runtime/v1/health</code></a> (fallback ${esc(RUNTIME_VERSION)}). Engine count must match: <strong>${esc(String(RUNTIME_LIVE_COUNT))} live advisory engines</strong>; <strong>${esc(RUNTIME_LOCAL_ONLY)} local_only</strong>; stubs refuse. Prefer same-origin <code>/runtime/*</code>. One door — discover, route, refuse. Kernel: <a href="${esc(RUNTIME_KERNEL)}">github.com/AzielEliab/fraggate</a> (FG-0.1). Engine manifest: <code>/runtime/v1/runtime.json</code> (not library <code>/v1/runtime</code>). Author Aziel Eliab.</p>
+<p>Cite live <a href="/runtime/v1/health"><code>/runtime/v1/health</code></a> (fallback ${esc(RUNTIME_VERSION)}). SoT LIVE: <code>${esc(RUNTIME_SOT_BRANCH)}</code> <code>${esc(RUNTIME_GIT_SHA)}</code> / version_id <code>${esc(RUNTIME_VERSION_ID)}</code>. Engine count must match: <strong>${esc(String(RUNTIME_LIVE_COUNT))} live advisory engines</strong>; <strong>${esc(RUNTIME_LOCAL_ONLY)} local_only</strong>; stubs refuse. Prefer same-origin <code>/runtime/*</code>. One door — discover, route, refuse. Kernel: <a href="${esc(RUNTIME_KERNEL)}">github.com/AzielEliab/fraggate</a> (FG-0.1). Engine manifest: <code>/runtime/v1/runtime.json</code> (not library <code>/v1/runtime</code>). Author Aziel Eliab.</p>
+<p class="muted">${esc(runtimeLaunchNote())} VPN HTTPS/WS REAL; WireGuard/OpenVPN SLOT; channel_plane <code>worker_hardware:false</code>. Plane B Framagit stays SLOT (<code>CNS-NO-FORGE-MIRROR</code>). Plane C stays SLOT (<code>CNS-OPERATOR-ATTEST</code>).</p>
 <ul>${changelog}</ul>
 </div>
 <div class="card">
@@ -911,6 +917,7 @@ ${softSection("Software", groups.plain)}
 ${softSection("Gate", groups.gate)}
 ${softSection("Lock", groups.lock)}
 <div class="card"><p class="soft-links runtime-dist">${runtimeDistributionButtons()}</p>
+<p class="muted">Softwares heading then list — Plain → Gate → Lock (Clock ≠ Lock). MCP Softwares via <code>fraggate_call</code> only. FragGate is THE single door. Human UI on the Runtime Worker (<code>#op-panel</code> <code>#dashboard</code> <code>#fg-console</code> <code>#task-*</code> + About Aziel + hashtags + <code>/download</code>). SoT LIVE <code>${esc(RUNTIME_SOT_BRANCH)}</code> <code>${esc(RUNTIME_GIT_SHA)}</code> / version_id <code>${esc(RUNTIME_VERSION_ID)}</code>. Lamb Lens ${esc(LAMB_LENS_PATH)}. Dual surface. NO-LIE. Growth-ON. Never .</p>
 <p class="soft-links"><a class="button" href="/runtime">${esc(chip)}</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="/runtime/v1/software">/v1/software</a> <a class="button ghost" href="/runtime/mcp">MCP</a> <a class="button ghost" href="/runtime/v1/uses">uses</a> <a class="button ghost" href="/v1/mesh">Live Nodes</a> <a class="button ghost" href="/v1/lattice">Lattice API</a> <a class="button ghost" href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a> <a class="button ghost" href="${HEDIDNTJUMP_HOME}">${esc(HEDIDNTJUMP_LABEL)}</a> <a class="button ghost" href="https://github.com/AzielEliab/aziel-corpus">aziel-corpus</a> <a class="button ghost" href="${esc(RUNTIME_GITHUB)}">aziel-runtime</a></p></div>`;
 }
 

@@ -15,7 +15,7 @@
  * NO-LIE-NO-REWRITE-1.0: network never lies to stay alive; no rewrite key;
  * copies not all on one tunnel. Cites the live ingest lockset; does not replace it.
  */
-import { HOST, RUNTIME_ORIGIN, RUNTIME_GITHUB } from "./runtime-copy.js";
+import { HOST, RUNTIME_ORIGIN, RUNTIME_GITHUB, RUNTIME_GIT_SHA, RUNTIME_VERSION_ID, RUNTIME_VERSION } from "./runtime-copy.js";
 import {
   NO_LIE,
   NO_LIE_SPEC,
@@ -256,7 +256,53 @@ export const MESH_NOTE =
   + "No-lie / no-rewrite (NO-LIE-NO-REWRITE-1.0): network never lies to stay alive; hash-absolute beats survival; no rewrite key; copies not all on one tunnel; verify without the author's voice. Cites the live lockset AZLOCK-INGEST-REEXPAND-1.0; does not replace that tip. "
   + "Cold multi-shelf (COLD-MULTI-SHELF-1.0): planes A/B/C — A = one CF/GitHub tunnel (5 published surfaces / 2 family radii, not 5 shelves); B = alt independent forge/archive tip-pack SLOT (Codeberg / archive.org / Framagit); Zenodo refused CNS-ZENODO-IP-BAN; GitFlic refused CNS-GITFLIC-EMAIL; GitLab extra CNS-GITLAB-CF-LOOP; C = USB airgap SLOT + RESTORE-DRILL schema. Extra E/F/G SLOTs stay url-null and are not required for Plane B LIVE. Executable export/verify + honest live|slot|refused registry on GET /shelves. "
   + "QNS-CD-1.0 photon QNS1 packet transfer (local qnsd in qnm-node; runtime cite only; no public proxy; no Node Gate). "
+  + "Public VPN / channel plane as on live aziel-runtime GET /v1/mesh (SoT " + RUNTIME_VERSION + " " + RUNTIME_GIT_SHA + " / version_id " + RUNTIME_VERSION_ID + "): vpn HTTPS/WS REAL; WireGuard/OpenVPN/L3 SLOT; default_vpn_backend azvpn auto_use true; channel_plane worker_hardware:false (wifi/bluetooth/rf/photon cites ON on local qnm-node). GET never enables radios beyond suite-presence. "
   + "Identity Aziel Eliab only.";
+
+/** Live GET /v1/mesh VPN kinds. Cite only — this hub is not a kernel concentrator. */
+export const VPN_CITE = Object.freeze({
+  spec: "OPERATOR-OVERRIDE-2026-09-17-VPN",
+  author: AUTHOR,
+  identity: AUTHOR,
+  vpn: true,
+  public_vpn: true,
+  tunnel_concentrator: true,
+  concentrator_slug: "azvpn",
+  default_vpn_backend: "azvpn",
+  auto_use: true,
+  https_ws: "REAL",
+  wireguard: "SLOT",
+  openvpn: "SLOT",
+  l3_exit: "SLOT",
+  origin_hiding: false,
+  worker_terminates_kernel_udp: false,
+  note:
+    "AZVPN is the automatic public-VPN / tunnel-concentrator backend. "
+    + "REAL path is application-layer HTTPS/FragGate envelopes (+ optional WS attach). "
+    + "WireGuard UDP, OpenVPN, and L3 exit-IP pools stay SLOT. Author Aziel Eliab only.",
+});
+
+/** Live GET /v1/mesh channel_plane. Worker hardware is false. */
+export const CHANNEL_PLANE = Object.freeze({
+  spec: "QNM-CHANNEL-PLANE-1.0",
+  author: AUTHOR,
+  identity: AUTHOR,
+  plane: "channel",
+  wifi: "on",
+  bluetooth: "on",
+  rf: "on",
+  photon: "on",
+  worker_hardware: false,
+  invented_hardware: false,
+  public_proxy: false,
+  local_process: "qnm-node / qnsd",
+  local: "https://github.com/AzielEliab/qnm-node",
+  vpn: true,
+  public_vpn: true,
+  note:
+    "Channel plane cites ON (wifi / bluetooth / rf / photon) on local qnm-node. "
+    + "Worker hardware is false. Invented hardware is false. Pairing ≠ tunnel.",
+});
 
 export function publicWorkerIsCell() {
   return false;
@@ -591,6 +637,9 @@ function meshLawCites() {
     no_lie: NO_LIE,
     public_worker_is_cell: false,
     public_rollup: PUBLIC_ROLLUP,
+    vpn: VPN_CITE,
+    channel_plane: CHANNEL_PLANE,
+    worker_hardware: false,
   };
 }
 
