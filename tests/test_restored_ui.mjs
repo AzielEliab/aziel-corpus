@@ -191,14 +191,16 @@ test("homepage LCP fold keeps hero first and leaves entity-graph plus doors inta
   assert.match(html, /"@id":"https:\/\/www\.azieleliab\.com\/#aziel"/);
   assert.match(CSS, /\.doc\{[^}]*content-visibility:auto/);
   assert.match(CSS, /\.hero h1\{[^}]*content-visibility:visible/);
-  assert.match(CSS, /html,body\{[^}]*overflow:auto/);
+  assert.match(CSS, /html,body\{[^}]*overflow-x:hidden/);
+  assert.match(CSS, /html,body\{[^}]*overflow-y:auto/);
 });
 
 test("black/gold theme and royal purple Aziel Library text are in CSS", () => {
   assert.match(CSS, /--bg:#12100c/);
   assert.match(CSS, /--gold:#c9a227/);
   assert.match(CSS, /--royal:#6b3fa0/);
-  assert.match(CSS, /html,body\{[^}]*overflow:auto/);
+  assert.match(CSS, /html,body\{[^}]*overflow-x:hidden/);
+  assert.match(CSS, /html,body\{[^}]*overflow-y:auto/);
   assert.match(CSS, /\.about-aziel/);
   assert.match(CSS, /\.about-prose,.about-prose p,.about-sign\{color:var\(--royal\)/);
   assert.match(CSS, /\.about-record\{background:var\(--paper\)/);

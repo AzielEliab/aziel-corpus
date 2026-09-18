@@ -1,5 +1,6 @@
 import { isOperator } from "./library.js";
 import { shelfScoreState, zsolverFromRow } from "./zsolver.js";
+import { isMachineFileTag, visibleTagEntries } from "./visible-tags.js";
 
 function esc(s) {
   const q = String.fromCharCode(34);
@@ -169,7 +170,11 @@ export function recordBody(payload) {
       const link = d.object_key || /overlay/i.test(String(d.artifact_type || ""))
         ? " · <a href=\"/derived/" + esc(d.derived_id) + "\">open artifact</a>"
         : "";
-      return "<li>" + esc(d.artifact_type || "derived") + " · " + esc(d.processor || "") + " " + esc(d.processor_version || "") + link + (d.note ? "<br><span class=\"muted\">" + esc(String(d.note).slice(0, 280)) + "</span>" : "") + "</li>";
+      const note = String(d.note || "").trim();
+      const noteHtml = note && !isMachineFileTag(note)
+        ? "<br><span class=\"muted\">" + esc(note.slice(0, 280)) + "</span>"
+        : "";
+      return "<li>" + esc(d.artifact_type || "derived") + " · " + esc(d.processor || "") + " " + esc(d.processor_version || "") + link + noteHtml + "</li>";
     }).join("") + "</ul>"
     : "<p class=\"muted\">No derived OCR or spectral artifacts stored for this record.</p>";
   const succession = payload.succession || null;
@@ -196,10 +201,16 @@ export function recordBody(payload) {
       "</p></div>"
     : "";
   const azielCls = String(row.library || "").toLowerCase() === "aziel" ? " record-aziel" : "";
-  return "<section class=\"hero" + azielCls + "\">" + libTag(row.library) + " " + qBadge + "<h1>" + esc(row.title) + "</h1><p class=\"muted\">" + esc(row.author || "") + (row.domain ? " · " + esc(row.domain) : "") + (row.subjects ? " · " + esc(row.subjects) : "") + "</p></section>" +
+  const fileLabel = row.filename && !isMachineFileTag(row.filename) ? String(row.filename) : "text record";
+  const heroBits = [row.author].filter((x) => String(x || "").trim());
+  const tagEntries = visibleTagEntries([row.domain, row.subjects, row.keywords]);
+  const tagStrip = tagEntries.length
+    ? "<div class=\"mini-chips record-tags\">" + tagEntries.map((t) => "<span class=\"mini-chip\">" + esc(t.label) + "</span>").join("") + "</div>"
+    : "";
+  return "<section class=\"hero" + azielCls + "\">" + libTag(row.library) + " " + qBadge + "<h1>" + esc(row.title) + "</h1>" + (heroBits.length ? "<p class=\"muted\">" + esc(heroBits.join(" · ")) + "</p>" : "") + tagStrip + "</section>" +
     qBanner + triadHtml + zsolverHtml + successionHtml +
     "<div class=\"card\"><h2>Status lights</h2><p class=\"muted\">Green means go. Yellow means read again. Red means stop and check. Easy enough for a 6th grader; kept for government use.</p>" + lightsHtml + "</div>" +
-    "<div class=\"card\"><p class=\"meta\">" + esc(row.filename || "text record") + (row.created_utc ? " · " + esc(String(row.created_utc).replace("T", " ").slice(0, 16)) : "") + "</p>" + shaHtml + open +
+    "<div class=\"card\"><p class=\"meta\">" + esc(fileLabel) + (row.created_utc ? " · " + esc(String(row.created_utc).replace("T", " ").slice(0, 16)) : "") + "</p>" + shaHtml + open +
     "<h3>SPRE + CLCE + PhysLing</h3>" + spreHtml + clceHtml + plrHtml +
     "<h3>Snippet</h3><p>" + esc(String(row.body || row.snippet || "").slice(0, 2000)) + "</p>" +
     "<h3>Derived artifacts</h3>" + der +
