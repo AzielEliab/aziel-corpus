@@ -477,6 +477,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.equal(mcp.author, "Aziel Eliab");
   assert.match(mcp.url, /\/runtime\/mcp$/);
   assert.equal(mcp.mcpServers["aziel-runtime"].url, "https://www.azielcorpuslibrary.net/runtime/mcp");
+  assert.equal(mcp.mcpServers["trades-runtime"].url, "https://trades-runtime.vibelock.workers.dev/mcp");
   assert.match(mcp.software, /\/v1\/software$/);
 });
 

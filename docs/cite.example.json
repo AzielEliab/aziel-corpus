@@ -69,6 +69,45 @@
   "github_secondary": "https://github.com/azieltherevealerofthesealed-arch",
   "github_runtime": "https://github.com/AzielEliab/aziel-runtime",
   "github_fraggate": "https://github.com/AzielEliab/fraggate",
+  "github_trades_runtime": "https://github.com/AzielEliab/trades-runtime",
+  "trades_runtime_slug": "trades-runtime",
+  "trades_runtime_mcp": "https://trades-runtime.vibelock.workers.dev/mcp",
+  "trades_runtime": {
+    "slug": "trades-runtime",
+    "name": "Trades-Runtime",
+    "version": "0.3.3",
+    "one_line": "Shadow-first local BYO runtime for HVAC, plumbing, electrical, sewer, and cross-trades. Operators bring their own ServiceTitan + ProBooks. Human authority wins. Not a hosted multi-tenant company OS. live_backends: false.",
+    "live_backends": false,
+    "pages": "off",
+    "fraggate_engine": false,
+    "github": "https://github.com/AzielEliab/trades-runtime",
+    "worker": "https://trades-runtime.vibelock.workers.dev/",
+    "download": "https://trades-runtime.vibelock.workers.dev/download",
+    "stats": "https://trades-runtime.vibelock.workers.dev/v1/stats",
+    "mcp": "https://trades-runtime.vibelock.workers.dev/mcp",
+    "doi": null,
+    "license": "Apache-2.0",
+    "how_to_cite": "Eliab, Aziel. (2026). Trades-Runtime 0.3.3 [Software]. Apache-2.0. https://github.com/AzielEliab/trades-runtime · https://trades-runtime.vibelock.workers.dev/",
+    "sameAs": [
+      "https://github.com/AzielEliab/trades-runtime",
+      "https://trades-runtime.vibelock.workers.dev/",
+      "https://trades-runtime.vibelock.workers.dev/download",
+      "https://trades-runtime.vibelock.workers.dev/mcp",
+      "https://www.azielcorpuslibrary.net/software"
+    ]
+  },
+  "products_trades_runtime": {
+    "slug": "trades-runtime",
+    "name": "Trades-Runtime",
+    "version": "0.3.3",
+    "description": "Shadow-first local BYO runtime for HVAC, plumbing, electrical, sewer, and cross-trades. Operators bring their own ServiceTitan + ProBooks. Human authority wins. Not a hosted multi-tenant company OS. live_backends: false.",
+    "github": "https://github.com/AzielEliab/trades-runtime",
+    "download": "https://trades-runtime.vibelock.workers.dev/download",
+    "mcp": "https://trades-runtime.vibelock.workers.dev/mcp",
+    "stats": "https://trades-runtime.vibelock.workers.dev/v1/stats",
+    "live_backends": false,
+    "pages": "off"
+  },
   "sameAs": [
     "https://github.com/AzielEliab",
     "https://github.com/azieltherevealerofthesealed-arch",
@@ -90,7 +129,9 @@
     "aziel-corpus",
     "aziel-runtime",
     "FragGate",
-    "GodLock"
+    "GodLock",
+    "Trades-Runtime",
+    "trades-runtime"
   ],
   "purpose": "Public MASTER digital library and intelligence runtime by Aziel Eliab. GitHub-side cite example for crawlers. Live Worker copy: https://www.azielcorpuslibrary.net/cite.json",
   "ingest_as_receipt": "INGEST-AS-RECEIPT-1.0",

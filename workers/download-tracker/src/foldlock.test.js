@@ -166,7 +166,7 @@ test("public cite.json / shelves / llms mention FoldLock honestly", () => {
 
 test("SOFTWARE_EXTRAS lists FoldLock fallback without claiming zip", () => {
   assert.ok(SOFTWARE_EXTRAS.some((p) => p.slug === "foldlock"));
-  assert.equal(SOFTWARE_EXTRAS.length, 5);
+  assert.equal(SOFTWARE_EXTRAS.length, 6);
   assert.equal(softwareKind(FOLDLOCK_SOFTWARE_EXTRA), "lock");
   assert.equal(displayName({ slug: "foldlock" }), "FoldLock");
   const merged = mergeSoftwareExtras(collectCatalogProducts({

@@ -39,6 +39,7 @@ import { shelvesLlmsBlock } from "./cold-shelf.js";
 import { aiSurfaceLlmsBlock, bridgeDoc, MCP_TOOLS } from "./ai-surface.js";
 import { AZCOHERENCE, AZCLCE_NAME, AZCLCE_SLUG, AZCLCE_GITHUB, AZCLCE_WORKER_HOME, azcoherenceLlmsBlock } from "./azcoherence.js";
 import { foldlockCiteFields, foldlockLlmsBlock } from "./foldlock.js";
+import { tradesRuntimeCiteFields, tradesRuntimeLlmsBlock, tradesRuntimeMcpDiscovery } from "./trades-runtime.js";
 import { redlineCiteFields } from "./redline-cite.js";
 import {
   IDENTITY_ROUTES,
@@ -173,6 +174,7 @@ const PRODUCT_LINES = [
   ["ZionPattern Solver", HOST + "/how-its-scored", HOST + "/pattern"],
   ["AZCoherence (azcoherence, AZC-0.1)", HOST + "/software", "https://azcoherence-download-tracker.vibelock.workers.dev/"],
   ["FoldLock (foldlock)", HOST + "/software", "https://foldlock-download-tracker.vibelock.workers.dev/"],
+  ["Trades-Runtime (trades-runtime)", HOST + "/software", "https://trades-runtime.vibelock.workers.dev/"],
 ];
 
 function isoDay(value, fallback) {
@@ -500,10 +502,11 @@ export function sitemapIndexXml() {
 }
 
 export function mcpDiscovery() {
+  const trades = tradesRuntimeMcpDiscovery();
   return {
     name: "aziel-runtime",
     title: "Aziel Eliab Runtime",
-    description: "FragGate door over Aziel Eliab software. Public, no OAuth. Author Aziel Eliab only.",
+    description: "FragGate door over Aziel Eliab software. Public, no OAuth. Author Aziel Eliab only. Sister product MCP hosts are cited, not executed here.",
     author: AUTHOR,
     url: HOST + "/runtime/mcp",
     transport: "http",
@@ -523,6 +526,15 @@ export function mcpDiscovery() {
     sameAs: [CATALOG + "/mcp", CATALOG + "/openapi.json"],
     library_mcp: HOST + "/mcp",
     library_mcp_tools: MCP_TOOLS.slice(),
+    sister_mcp: {
+      "trades-runtime": {
+        url: trades.url,
+        type: "http",
+        openapi: trades.openapi,
+        cite: trades.cite,
+        note: trades.note,
+      },
+    },
     bridge: HOST + "/bridge.json",
     design_pack: HOST + "/v1/design-pack",
     products: HOST + "/v1/products",
@@ -537,6 +549,10 @@ export function mcpDiscovery() {
         url: HOST + "/mcp",
         type: "http",
       },
+      "trades-runtime": {
+        url: trades.url,
+        type: "http",
+      },
     },
     servers: [
       {
@@ -548,6 +564,12 @@ export function mcpDiscovery() {
         name: "aziel-corpus",
         url: HOST + "/mcp",
         transport: "http",
+      },
+      {
+        name: "trades-runtime",
+        url: trades.url,
+        transport: "http",
+        note: trades.note,
       },
     ],
   };
@@ -593,7 +615,7 @@ export function citeDoc() {
     website_id: WEBSITE_ID,
     website_name: WEBSITE_NAME,
     official_site: HUB_ORIGIN + "/",
-    keywords: [AUTHOR, AKA, "Elias Artista", "The Revealer of The Sealed", "Aziel Digital Library", "Aziel Corpus Library", "aziel-corpus", "aziel-runtime", "FragGate", "GodLock", "AZCoherence", "azcoherence", "AZC-0.1", "AZ-CLCE", "FoldLock", "foldlock"],
+    keywords: [AUTHOR, AKA, "Elias Artista", "The Revealer of The Sealed", "Aziel Digital Library", "Aziel Corpus Library", "aziel-corpus", "aziel-runtime", "FragGate", "GodLock", "AZCoherence", "azcoherence", "AZC-0.1", "AZ-CLCE", "FoldLock", "foldlock", "Trades-Runtime", "trades-runtime"],
     title: "Aziel Digital Library",
     version: VERSION,
     doi: null,
@@ -602,6 +624,7 @@ export function citeDoc() {
     github_secondary: GITHUB_SECONDARY,
     github_runtime: RUNTIME_GITHUB,
     github_fraggate: "https://github.com/AzielEliab/fraggate",
+    github_trades_runtime: "https://github.com/AzielEliab/trades-runtime",
     sameAs: PERSON_SAME_AS.slice(),
     who_is: WHO_IS_AZIEL_ELIAB,
     jobTitle: PERSON_JOB_TITLE.slice(),
@@ -775,6 +798,7 @@ export function citeDoc() {
     azcoherence: AZCOHERENCE,
     azcoherence_slug: AZCOHERENCE.slug,
     ...foldlockCiteFields(HOST),
+    ...tradesRuntimeCiteFields(HOST),
     ...redlineCiteFields(),
     azclce: {
       slug: AZCLCE_SLUG,
@@ -910,9 +934,10 @@ export function llmsDoc(limitation) {
     + "- Sister archive: " + HEDIDNTJUMP_LABEL + " " + HEDIDNTJUMP_HOME + "\n"
     + "- Alternate name Aziel Elroi Eliab is SEO alternateName only.\n\n"
     + "## Software products (crawl these hubs)\n\n"
-    + "The Software hub mirrors the live runtime catalog. Cards grow with GET /v1/software (fallback fraggate/list). PeaceLock, AZMail, AZBrowser, and later slugs appear automatically. No hard-coded 27 cap. Door extras AZNet and FragGate (separate app Workers) and EmbryoLock are listed without dropping catalog engines. AZCoherence (azcoherence) is a Softwares extra / peer-map fallback (Plain, scoring-review) so cite surfaces stay mapped if the live catalog is thin. FoldLock (foldlock) is a Softwares Language extra / cold-shelf SLOT hook (not zip; not encryption; never fold the lockset tip). Not a second door.\n"
+    + "The Software hub mirrors the live runtime catalog. Cards grow with GET /v1/software (fallback fraggate/list). PeaceLock, AZMail, AZBrowser, and later slugs appear automatically. No hard-coded 27 cap. Door extras AZNet and FragGate (separate app Workers) and EmbryoLock are listed without dropping catalog engines. AZCoherence (azcoherence) is a Softwares extra / peer-map fallback (Plain, scoring-review) so cite surfaces stay mapped if the live catalog is thin. FoldLock (foldlock) is a Softwares Language extra / cold-shelf SLOT hook (not zip; not encryption; never fold the lockset tip). Trades-Runtime (trades-runtime) is a Softwares extra: local-first BYO field-trades runtime; not a FragGate-exec true engine; live_backends false. Not a second door.\n"
     + azcoherenceLlmsBlock() + "\n"
     + foldlockLlmsBlock(HOST) + "\n"
+    + tradesRuntimeLlmsBlock(HOST) + "\n"
     + productIndex() + "\n"
     + "- Same-origin live software: " + HOST + "/v1/software\n"
     + "- Same-origin catalog: " + HOST + "/runtime/v1/catalog.json\n"
@@ -1151,6 +1176,7 @@ export function aiTxt(limitation) {
     + "- Softwares / Software hub: " + HOST + "/software\n"
     + "- AZCoherence (azcoherence, AZC-0.1): " + HOST + "/software · https://azcoherence-download-tracker.vibelock.workers.dev/ · " + HOST + "/runtime/v1/fraggate/describe?slug=azcoherence\n"
     + "- FoldLock (foldlock): " + HOST + "/software · https://foldlock-download-tracker.vibelock.workers.dev/ · " + HOST + "/runtime/v1/fraggate/describe?slug=foldlock — tether-word suppression on UTF-8; not zip; not encryption; tip SHA-256 stays over raw receipts\n"
+    + "- Trades-Runtime (trades-runtime): " + HOST + "/software · https://trades-runtime.vibelock.workers.dev/ · https://trades-runtime.vibelock.workers.dev/mcp — local-first BYO field-trades runtime; not FragGate; live_backends false; GitHub Pages off\n"
     + "- Live software catalog: " + HOST + "/v1/software\n"
     + "- Suite mesh / Live Nodes (read-only QNM ON): " + HOST + "/v1/mesh\n"
     + "- Runtime mesh: " + HOST + "/runtime/v1/mesh\n"
@@ -1220,6 +1246,7 @@ export function humansTxt() {
     "Software hub mirrors runtime /v1/software (fallback fraggate/list): " + HOST + "/v1/software",
     "AZCoherence (azcoherence, AZC-0.1) Softwares Plain / scoring-review: " + HOST + "/software · https://azcoherence-download-tracker.vibelock.workers.dev/ · https://github.com/AzielEliab/AZCoherence",
     "FoldLock (foldlock) Softwares Language / FOLDLOCK-SHELF-1.0 SLOT hook: " + HOST + "/software · https://foldlock-download-tracker.vibelock.workers.dev/ · https://github.com/AzielEliab/foldlock — not zip; not encryption; never fold the lockset tip",
+    "Trades-Runtime (trades-runtime) Softwares extra: " + HOST + "/software · https://trades-runtime.vibelock.workers.dev/ · https://github.com/AzielEliab/trades-runtime · MCP POST https://trades-runtime.vibelock.workers.dev/mcp — local-first BYO field-trades; not FragGate; live_backends false; Pages off",
     "Suite mesh (read-only QNM ON): " + HOST + "/v1/mesh",
     "Lockset tip / ingest-as-receipt: " + HOST + "/lockset.json · " + HOST + "/receipts/verify",
     "Cold multi-shelf: " + HOST + "/shelves · " + HOST + "/cold-copy · COLD-MULTI-SHELF-1.0",
