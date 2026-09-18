@@ -152,6 +152,7 @@ export const PERSON_KNOWS_ABOUT = Object.freeze([
   "AZ Mandible family",
   "bone-conduction STL",
   "Whitestone",
+  "The ARK",
 ]);
 
 /** Cite these MASTER record ids — not DOIs. */
@@ -198,6 +199,30 @@ export const WHITESTONE_NOTE =
 export const WHITESTONE_CITE = Object.freeze({
   name: "Whitestone",
   note: WHITESTONE_NOTE,
+  extra_card: false,
+});
+
+/** Softwares-list cite only. Not a hardcoded catalog card. Catalog is Worker SSoT. */
+export const ARK_NAME = "The ARK";
+export const ARK_SLUG = "ark";
+export const ARK_ONE_LINE = "Keep a local deniable vault; one phrase opens one vault.";
+export const ARK_WORKER_HOME = "https://ark-download-tracker.vibelock.workers.dev/";
+export const ARK_DOWNLOAD = "https://ark-download-tracker.vibelock.workers.dev/download";
+export const ARK_STATS = "https://ark-download-tracker.vibelock.workers.dev/stats";
+
+export const ARK_NOTE =
+  "The ARK (Softwares): local deniable vault; one phrase opens one vault. "
+  + "Download " + ARK_DOWNLOAD + ". Views/Downloads counters " + ARK_STATS + ".";
+
+/** Cite-only Softwares mention. Not a SOFTWARE_EXTRAS card. */
+export const ARK_CITE = Object.freeze({
+  name: ARK_NAME,
+  slug: ARK_SLUG,
+  one_line: ARK_ONE_LINE,
+  note: ARK_NOTE,
+  download: ARK_DOWNLOAD,
+  stats: ARK_STATS,
+  worker_home: ARK_WORKER_HOME,
   extra_card: false,
 });
 
@@ -316,7 +341,7 @@ export const FAQ_WHO_IS_DEVELOPER = Object.freeze({
 
 export const FAQ_WHAT_SOFTWARE = Object.freeze({
   name: "What software does Aziel Eliab make?",
-  text: WHAT_HE_DOES_FAQ_TEXT + " " + WHITESTONE_NOTE,
+  text: WHAT_HE_DOES_FAQ_TEXT + " " + WHITESTONE_NOTE + " " + ARK_NOTE,
 });
 
 export const IDENTITY_FAQS = Object.freeze([
@@ -426,6 +451,7 @@ export function whatHeDoesLlmsBlock() {
     + "- FAQ title “Who is Aziel Eliab the developer?”: " + WHAT_HE_DOES_FAQ_TEXT + "\n"
     + "- FAQ title “What software does Aziel Eliab make?”: " + FAQ_WHAT_SOFTWARE.text + "\n"
     + "- Softwares list: " + WHITESTONE_NOTE + "\n"
+    + "- Softwares list: " + ARK_NOTE + "\n"
     + "- Research: " + RESEARCH_HALF + "\n"
     + "- Hardware designs: " + HARDWARE_HALF + "\n"
     + "- Cite records (not DOIs): " + CITE_RECORD_IDS.join(", ") + "\n"
@@ -653,6 +679,7 @@ export function whoIsTxt() {
     WHO_IS_AZIEL_ELIAB,
     "",
     WHAT_AZIEL_ELIAB_DOES,
+    "Softwares list: " + ARK_NOTE,
     RESEARCH_HALF,
     HARDWARE_HALF,
     "Cite records (not DOIs): " + CITE_RECORD_IDS.join(", ") + ".",

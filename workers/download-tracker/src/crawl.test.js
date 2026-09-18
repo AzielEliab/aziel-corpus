@@ -230,6 +230,14 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(cite.whitestone.note, /ephemeral pro se advisor/);
   assert.match(cite.whitestone.note, /not a lawyer/);
   assert.equal(cite.whitestone.extra_card, false);
+  assert.equal(cite.ark.name, "The ARK");
+  assert.equal(cite.ark.slug, "ark");
+  assert.match(cite.ark.note, /local deniable vault/);
+  assert.match(cite.ark.note, /one phrase opens one vault/);
+  assert.equal(cite.ark.download, "https://ark-download-tracker.vibelock.workers.dev/download");
+  assert.equal(cite.ark.stats, "https://ark-download-tracker.vibelock.workers.dev/stats");
+  assert.equal(cite.ark.extra_card, false);
+  assert.ok(cite.keywords.includes("The ARK"));
   assert.ok(cite.cite_records.includes("AZDOC-A011CAD23671"));
   assert.match(cite.who_is, /receipt-first/);
   assert.match(cite.who_is, /1 Chronicles 15:20/);
@@ -307,6 +315,9 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(llms, /No hard-coded 27 cap/);
   assert.match(llms, /Softwares list: Whitestone \(Softwares\): ephemeral pro se advisor/);
   assert.match(llms, /not a lawyer/);
+  assert.match(llms, /Softwares list: The ARK \(Softwares\): local deniable vault/);
+  assert.match(llms, /ark-download-tracker\.vibelock\.workers\.dev\/download/);
+  assert.match(llms, /ark-download-tracker\.vibelock\.workers\.dev\/stats/);
   assert.match(llms, /https:\/\/www\.azielcorpuslibrary\.net\/AzielEliab/);
   assert.match(llms, /Person @id: https:\/\/www\.azieleliab\.com\/#aziel/);
   assert.match(llms, /Runtime @id: https:\/\/www\.azieleliab\.com\/runtime#runtime/);
@@ -454,6 +465,9 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(ai, /hedidntjump\.com\/api\/stats/);
   assert.match(ai, /Who\? Does not matter\. What matters is the record\./);
   assert.match(ai, /Softwares list: Whitestone \(Softwares\): ephemeral pro se advisor/);
+  assert.match(ai, /Softwares list: The ARK \(Softwares\): local deniable vault/);
+  assert.match(ai, /ark-download-tracker\.vibelock\.workers\.dev\/download/);
+  assert.match(ai, /ark-download-tracker\.vibelock\.workers\.dev\/stats/);
   assert.doesNotMatch(ai, /Researcher\. Builder/);
   assert.match(ai, /Disallow: \/signup/);
   assert.match(ai, /Disallow: \/logout/);
@@ -479,6 +493,8 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(humans, /azcoherence/);
   assert.match(humans, /Whitestone \(Softwares\): ephemeral pro se advisor/);
   assert.match(humans, /not a lawyer/);
+  assert.match(humans, /The ARK \(Softwares\): local deniable vault/);
+  assert.match(humans, /ark-download-tracker\.vibelock\.workers\.dev\/stats/);
 
   const index = sitemapIndexXml();
   assert.match(index, /<sitemapindex /);
