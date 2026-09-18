@@ -170,6 +170,16 @@
     "note": "Whitestone (Softwares): ephemeral pro se advisor; not a lawyer. Catalog entry ships on aziel-runtime GET /v1/software; this library Softwares tab refreshes from that Worker SSoT after that merge.",
     "extra_card": false
   },
+  "ark": {
+    "name": "The ARK",
+    "slug": "ark",
+    "one_line": "Keep a local deniable vault; one phrase opens one vault.",
+    "note": "The ARK (Softwares): local deniable vault; one phrase opens one vault. Download https://ark-download-tracker.vibelock.workers.dev/download. Views/Downloads counters https://ark-download-tracker.vibelock.workers.dev/stats.",
+    "download": "https://ark-download-tracker.vibelock.workers.dev/download",
+    "stats": "https://ark-download-tracker.vibelock.workers.dev/stats",
+    "worker_home": "https://ark-download-tracker.vibelock.workers.dev/",
+    "extra_card": false
+  },
   "foldlock_slug": "foldlock",
   "foldlock_shelf": "FOLDLOCK-SHELF-1.0",
   "foldlock": {
