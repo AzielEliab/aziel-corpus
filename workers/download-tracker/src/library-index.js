@@ -22,7 +22,7 @@ export const SOFTWARE_HTML_CACHE_CONTROL = SEO_CACHE_CONTROL;
 export const SOFTWARE_CATALOG_CACHE_URL = "https://azielcorpuslibrary.net/__cache/software-catalog-v1";
 export const AUTHOR = "Aziel Eliab";
 export const INDEX_CACHE_URL = "https://azielcorpuslibrary.net/__cache/library-index-v1";
-export const HTML_CACHE_PREFIX = "https://azielcorpuslibrary.net/__cache/html-home-v5";
+export const HTML_CACHE_PREFIX = "https://azielcorpuslibrary.net/__cache/html-home-v6";
 
 const PROJECT = "aziel-corpus";
 
@@ -221,8 +221,26 @@ export async function readPackedIndex(env, { cache, cacheTtl = KV_CACHE_TTL } = 
   return doc;
 }
 
+/** Honest shelf file counts from packed library:index:v1. Never a vanity number. */
+export function packedRecordCounts(doc) {
+  const records = Array.isArray(doc && doc.records) ? doc.records : [];
+  let records_aziel = 0;
+  let records_corpus = 0;
+  for (const row of records) {
+    if (shelfOf(row) === "aziel") records_aziel += 1;
+    else records_corpus += 1;
+  }
+  return {
+    records_packed: records.length,
+    records_aziel,
+    records_corpus,
+    count_source: LIBRARY_INDEX_KEY,
+  };
+}
+
 export function statsFromPacked(doc) {
   const packed = sealPackedIndex(doc || {});
+  const counts = packedRecordCounts(packed);
   return {
     project: PROJECT,
     views: Number(packed.views) || 0,
@@ -236,7 +254,8 @@ export function statsFromPacked(doc) {
     index_sha256: packed.index_sha256,
     index_ts: packed.ts,
     kv_list_hot_path: false,
-    note: "Forks identified by GitHub owner/repo. Packed key " + LIBRARY_INDEX_KEY + ". Views are separate from downloads. /v1 does not increment. Hot path does not KV.list().",
+    ...counts,
+    note: "Forks identified by GitHub owner/repo. Packed key " + LIBRARY_INDEX_KEY + ". Views are separate from downloads. records_packed is the stored library file count (Aziel Library + Corpus). /v1 does not increment. Hot path does not KV.list().",
   };
 }
 
@@ -501,6 +520,7 @@ export async function refreshPackedIndex(env, { cache, github } = {}) {
 
 export function libraryHealthFields(packed, env) {
   const doc = packed || emptyPackedIndex();
+  const counts = packedRecordCounts(doc);
   return {
     role: "standby",
     topology: "tunnel-primary",
@@ -510,7 +530,7 @@ export function libraryHealthFields(packed, env) {
     ts: doc.ts || new Date().toISOString(),
     kv_list_hot_path: false,
     tunnel_origin_configured: !!(env && env.TUNNEL_ORIGIN),
-    records_packed: Array.isArray(doc.records) ? doc.records.length : 0,
+    ...counts,
     note: "Tunnel is primary when a named cloudflared frontend is healthy. This Worker is standby catalog of truth only while token, DNS, Worker, and account still exist. Pull the site, revoke the token, drop the Worker, or kill DNS and cloudflared has nowhere legal to land. Supervisor restart is operator kit, not the public contract. Not a VPN. Not untraceable-origin. Author Aziel Eliab only.",
   };
 }

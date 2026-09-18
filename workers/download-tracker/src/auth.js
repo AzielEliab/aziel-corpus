@@ -4,7 +4,24 @@ import { page, pwField, azielLibraryBody, corpusBody, homeBody } from "./ui.js";
 import { isOperator, ingestRecord, searchRecords, listFacets, parseBrowseParams, asFile, guestSession } from "./library.js";
 import { extractEventsForRecord } from "./geo.js";
 import { ocrIngestHint } from "./ocr.js";
-import { refreshPackedIndex, HTML_CACHE_CONTROL } from "./library-index.js";
+import { collectStats, refreshPackedIndex, HTML_CACHE_CONTROL } from "./library-index.js";
+
+function fileCountsFromStats(stats) {
+  if (!stats) return {};
+  return {
+    records_packed: stats.records_packed,
+    records_aziel: stats.records_aziel,
+    records_corpus: stats.records_corpus,
+  };
+}
+
+async function packedFileCounts(env) {
+  try {
+    return fileCountsFromStats(await collectStats(env));
+  } catch {
+    return {};
+  }
+}
 
 
 function formMeta(form) {
@@ -152,7 +169,8 @@ export async function handleAuth(request, url, env, ctx) {
     const browse = parseBrowseParams(url);
     const rows = request.method === "HEAD" ? [] : await searchRecords(env, { q: browse.q, library: "aziel", sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300, includeQuarantine: isOperator(signed) });
     const facets = request.method === "HEAD" ? {} : await listFacets(env, { library: "aziel" });
-    return html(page("Aziel Library", azielLibraryBody({ rows, facets, ...browse, lib: "aziel", signed }), { signed, path: "/aziel-library", kind: "aziel-library" }), { signed, head: request.method === "HEAD" });
+    const counts = request.method === "HEAD" ? {} : await packedFileCounts(env);
+    return html(page("Aziel Library", azielLibraryBody({ rows, facets, ...browse, lib: "aziel", signed, ...counts }), { signed, path: "/aziel-library", kind: "aziel-library" }), { signed, head: request.method === "HEAD" });
   }
   if (path === "/aziel-library" && request.method === "POST") {
     if (!signed) return loginGate(signed, "Operator sign-in is required for Aziel Library upload.");
@@ -182,7 +200,8 @@ export async function handleAuth(request, url, env, ctx) {
     const browse = parseBrowseParams(url);
     const rows = request.method === "HEAD" ? [] : await searchRecords(env, { q: browse.q, library: "corpus", sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300 });
     const facets = request.method === "HEAD" ? {} : await listFacets(env, { library: "corpus" });
-    return html(page("Corpus library", corpusBody({ signed, rows, facets, ...browse, lib: "corpus" }), { signed, path: "/corpus", kind: "corpus" }), { signed, head: request.method === "HEAD" });
+    const counts = request.method === "HEAD" ? {} : await packedFileCounts(env);
+    return html(page("Corpus library", corpusBody({ signed, rows, facets, ...browse, lib: "corpus", ...counts }), { signed, path: "/corpus", kind: "corpus" }), { signed, head: request.method === "HEAD" });
   }
 
   if (path === "/ingest" && request.method === "GET") {
@@ -193,7 +212,8 @@ export async function handleAuth(request, url, env, ctx) {
     const browse = parseBrowseParams(url);
     const rows = await searchRecords(env, { q: browse.q, library: "corpus", sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300 });
     const facets = await listFacets(env, { library: "corpus" });
-    return html(page("Corpus library", corpusBody({ signed, rows, facets, ...browse, lib: "corpus" }), { signed, path: "/corpus", kind: "corpus" }), { signed });
+    const counts = await packedFileCounts(env);
+    return html(page("Corpus library", corpusBody({ signed, rows, facets, ...browse, lib: "corpus", ...counts }), { signed, path: "/corpus", kind: "corpus" }), { signed });
   }
   if (path === "/ingest" && request.method === "POST") {
     if (isOperator(signed)) {

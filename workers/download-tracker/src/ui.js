@@ -132,6 +132,8 @@ input[type=file]{width:100%;min-height:44px;padding:10px;background:#16130f;colo
 .field-label .req{color:var(--gold)}
 .hero{padding:8px 0 4px;content-visibility:visible}
 .hero h1{font-size:28px;margin:0 0 8px;letter-spacing:-.03em;color:var(--ink);content-visibility:visible}
+.library-count{margin:10px 0 0;font-size:15px;font-variant-numeric:tabular-nums;line-height:1.45}
+.library-count strong{color:var(--gold);font-size:18px;font-weight:800}
 .hero-search{display:flex;gap:10px;flex-wrap:wrap;align-items:stretch;margin:18px 0 8px}
 .hero-search .search{flex:1 1 220px}
 .hero-search button{flex:0 0 auto}
@@ -601,6 +603,32 @@ export function homeSearchActive(state = {}) {
   return !!(s.q || s.domain || s.subject || s.keyword || s.author);
 }
 
+function formatFileCount(n) {
+  return Number(n).toLocaleString("en-US");
+}
+
+/** Visible file count from packed library:index:v1. Omit when the index was not read. */
+export function libraryFileCountHtml({ records_packed, records_aziel, records_corpus, shelf } = {}) {
+  const total = Number(records_packed);
+  if (!Number.isFinite(total)) return "";
+  const az = Number(records_aziel);
+  const co = Number(records_corpus);
+  const attrs = [`data-source="library:index:v1"`, `data-records-packed="${total}"`];
+  if (Number.isFinite(az)) attrs.push(`data-records-aziel="${az}"`);
+  if (Number.isFinite(co)) attrs.push(`data-records-corpus="${co}"`);
+  if (shelf === "aziel" && Number.isFinite(az)) {
+    return `<p class="library-count" ${attrs.join(" ")}><strong>${formatFileCount(az)}</strong> files in Aziel Library <span class="muted">of ${formatFileCount(total)} in the libraries</span>.</p>`;
+  }
+  if (shelf === "corpus" && Number.isFinite(co)) {
+    return `<p class="library-count" ${attrs.join(" ")}><strong>${formatFileCount(co)}</strong> files in Corpus <span class="muted">of ${formatFileCount(total)} in the libraries</span>.</p>`;
+  }
+  let extra = "";
+  if (Number.isFinite(az) && Number.isFinite(co)) {
+    extra = ` · <a href="/aziel-library">Aziel Library ${formatFileCount(az)}</a> · <a href="/corpus">Corpus ${formatFileCount(co)}</a>`;
+  }
+  return `<p class="library-count" ${attrs.join(" ")}><strong>${formatFileCount(total)}</strong> files in the libraries${extra}.</p>`;
+}
+
 function homeLibraryChips(state) {
   const st = browseState(state);
   return `<div class="chips">${chip("All", "/", !st.q && !st.domain && !st.subject && !st.keyword && !st.author)}${chip("Aziel Library", "/aziel-library", false)}${chip("Corpus", "/corpus", false)}</div>`;
@@ -640,7 +668,7 @@ ${metaInputs({ authorPlaceholder: "Author (optional)" })}
 </div>`;
 }
 
-export function homeBody({ q, lib, sort, domain, subject, keyword, author, rows, error } = {}) {
+export function homeBody({ q, lib, sort, domain, subject, keyword, author, rows, error, records_packed, records_aziel, records_corpus } = {}) {
   const state = browseState({ q, lib, sort, domain, subject, keyword, author });
   const searching = homeSearchActive(state);
   const tools = browseTools({ action: "/", showLibChips: false, ...state });
@@ -650,6 +678,7 @@ export function homeBody({ q, lib, sort, domain, subject, keyword, author, rows,
   return `<section class="hero">
 <h1>Search the libraries</h1>
 <p class="muted">Public search across Aziel Library and Corpus. Author <span class="aziel-name">Aziel Eliab</span>.</p>
+${libraryFileCountHtml({ records_packed, records_aziel, records_corpus })}
 </section>
 ${tools}
 ${homeLibraryChips(state)}
@@ -658,7 +687,7 @@ ${results}
 <div class="home-doors">${homeSignupCard()}${homeAnonymousUploadCard({ error })}</div>`;
 }
 
-export function azielLibraryBody({ rows, error, q, sort, domain, subject, keyword, author, facets, signed } = {}) {
+export function azielLibraryBody({ rows, error, q, sort, domain, subject, keyword, author, facets, signed, records_packed, records_aziel, records_corpus } = {}) {
   const err = error ? `<p class="bad">${esc(error)}</p>` : "";
   const state = browseState({ q, lib: "aziel", sort, domain, subject, keyword, author });
   const op = isOperator(signed);
@@ -676,14 +705,14 @@ ${metaInputs({ authorPlaceholder: "Aziel Eliab" })}
 </form>
 </div>`
     : `<div class="card"><p class="muted">Anyone can browse Aziel Library. Uploads are operator-only.</p></div>`;
-  return `<section class="hero about-aziel"><h1>Aziel Library</h1><p class="muted">Aziel Eliab's work across domains.</p></section>
+  return `<section class="hero about-aziel"><h1>Aziel Library</h1><p class="muted">Aziel Eliab's work across domains.</p>${libraryFileCountHtml({ records_packed, records_aziel, records_corpus, shelf: "aziel" })}</section>
 ${browseTools({ action: "/aziel-library", showLibChips: false, ...state })}
 ${facetBlock(facets, state, "/aziel-library")}
 ${upload}
 ${docCards(rows, state, "/aziel-library")}`;
 }
 
-export function corpusBody({ signed, rows, error, q, sort, domain, subject, keyword, author, facets } = {}) {
+export function corpusBody({ signed, rows, error, q, sort, domain, subject, keyword, author, facets, records_packed, records_aziel, records_corpus } = {}) {
   const op = isOperator(signed);
   const err = error ? `<p class="bad">${esc(error)}</p>` : "";
   const state = browseState({ q, lib: "corpus", sort, domain, subject, keyword, author });
@@ -706,7 +735,7 @@ ${metaInputs({ authorPlaceholder: "Author" })}
   } else {
     form = `<div class="card"><p>Anyone can view this library. <a href="/signup">Sign up</a> to post under a name, or <a href="/#upload-anonymous">upload anonymously</a> from Search. Corpus uploads are reviewed for safety before they appear. Aziel Library stays operator-only.</p><p><a class="button" href="/signup">Sign up</a> <a class="button ghost" href="/#upload-anonymous">Upload anonymously</a></p></div>`;
   }
-  return `<section class="hero"><h1>Corpus library</h1><p class="muted">Files from every other account.</p></section>
+  return `<section class="hero"><h1>Corpus library</h1><p class="muted">Files from every other account.</p>${libraryFileCountHtml({ records_packed, records_aziel, records_corpus, shelf: "corpus" })}</section>
 ${browseTools({ action: "/corpus", showLibChips: false, ...state })}
 ${facetBlock(facets, state, "/corpus")}
 ${form}
