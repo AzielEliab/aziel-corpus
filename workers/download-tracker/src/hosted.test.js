@@ -46,7 +46,7 @@ test("GET /AzielEliab serves the About HTML at the canonical path", async () => 
   assert.match(html, /Who\? Does not matter/);
   assert.doesNotMatch(html, /Who does not matter/);
   assert.ok(html.includes(LOCK_LINE));
-  assert.doesNotMatch(html, /<p>Aziel Eliab is a living researcher and software designer\. Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20\.<\/p>/);
+  assert.doesNotMatch(html, new RegExp("<p>" + LOCK_LINE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "</p>"));
   assert.doesNotMatch(html, /Researcher\. Builder/);
   assert.doesNotMatch(html, /Flutter\/React/);
   assert.ok(html.includes(DISAMBIGUATING_DESCRIPTION));
@@ -108,7 +108,7 @@ test("GET /who is 200 with H1 Who is Aziel Eliab and no visible 15:20 lock parag
   assert.match(html, /<h1>Who is Aziel Eliab<\/h1>/);
   assert.match(html, /<title>Who is Aziel Eliab<\/title>/);
   assert.ok(html.includes(LOCK_LINE));
-  assert.doesNotMatch(html, /<p>Aziel Eliab is a living researcher and software designer\. Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20\.<\/p>/);
+  assert.doesNotMatch(html, new RegExp("<p>" + LOCK_LINE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "</p>"));
   assert.ok(html.includes(WHO_IS_AZIEL_ELIAB));
   assert.doesNotMatch(whoBody(), new RegExp(LOCK_LINE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   assert.ok(whoBody().includes(WHO_IS_AZIEL_ELIAB));

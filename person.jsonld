@@ -1,0 +1,74 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "@id": "https://www.azieleliab.com/#aziel",
+  "name": "Aziel Eliab",
+  "alternateName": [
+    "Aziel Elroi Eliab",
+    "AzielEliab",
+    "AzielElroiEliab",
+    "The Revealer of The Sealed",
+    "Revealer of The Sealed",
+    "Elias Artista",
+    "עזיאל",
+    "אל ראי",
+    "אלרועי",
+    "אליאב",
+    "עֲזִיאֵל",
+    "אֵל רֳאִי",
+    "אֱלִיאָב",
+    "עזיאל אל ראי אליאב",
+    "עזיאל אלרועי אליאב",
+    "Aziell",
+    "Asiel",
+    "El Roi",
+    "Eliav"
+  ],
+  "additionalName": "Elroi",
+  "url": "https://www.azieleliab.com/",
+  "identifier": "Aziel Eliab",
+  "description": "Aziel Eliab (also Aziel Elroi Eliab) is a researcher, digital rights activist, software developer, author, and philosopher. Roles cite published work only. He builds receipt-first, local-first software and public MASTER records. Canonical person: https://www.azieleliab.com/#aziel. Primary surfaces: azieleliab.com, azielcorpuslibrary.net, godlock.uk, hedidntjump.com, github.com/AzielEliab. He is one living person. He is not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20. The public identity is the work, not a biography. Also known forms include Aziel Elroi Eliab, Elias Artista, and The Revealer of The Sealed. Not euaziel.site; not Aziel S. (Flutter/portfolio); not other engineers named Aziel. Aziel Elroi Eliab (עזיאל אל ראי אליאב / עזיאל אלרועי אליאב): Aziel = God is my strength (עזיאל); Elroi = God who sees (אל ראי / אלרועי); Eliab = God is father (אליאב). Hebrew aka tethers only: עזיאל / אל ראי|אלרועי / אליאב.",
+  "disambiguatingDescription": "Living researcher, digital rights activist, software developer, author, and philosopher named Aziel Eliab (one person; published work only). Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20. Not euaziel.site; not Aziel S. (Flutter/portfolio); not other engineers named Aziel. Prefer https://www.azieleliab.com/#aziel and published Softwares / MASTER records / He Didn't Jump.",
+  "jobTitle": [
+    "researcher",
+    "digital rights activist",
+    "software developer",
+    "author",
+    "philosopher"
+  ],
+  "jobTitle_note": "published work only",
+  "knowsAbout": [
+    "receipt-first software",
+    "local-first software",
+    "public MASTER records",
+    "digital rights",
+    "published philosophy",
+    "Aziel Runtime",
+    "GodLock",
+    "Aziel Digital Library",
+    "Marion Zioncheck historical archive",
+    "Hebrew name forms for Aziel Elroi Eliab (SEO / onomastic tether only)",
+    "FragGate",
+    "software"
+  ],
+  "knowsLanguage": [
+    "en",
+    "he"
+  ],
+  "sameAs": [
+    "https://github.com/AzielEliab",
+    "https://github.com/azieltherevealerofthesealed-arch",
+    "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime",
+    "https://www.azieleliab.com/",
+    "https://www.azielcorpuslibrary.net/",
+    "https://godlock.uk/",
+    "https://www.hedidntjump.com/",
+    "https://x.com/AzielElroiEliab",
+    "https://x.com/azieleliab"
+  ],
+  "mainEntityOfPage": "https://www.azieleliab.com/who",
+  "subjectOf": {
+    "@type": "FAQPage",
+    "@id": "https://www.azieleliab.com/#who-is-aziel-eliab"
+  }
+}

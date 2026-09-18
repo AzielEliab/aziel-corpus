@@ -15,6 +15,7 @@ import {
   ZERO,
 } from "./action-receipts.js";
 import { page, homeBody } from "./ui.js";
+import { LOCK_LINE } from "./identity.js";
 
 test("one sentence clips to first sentence", () => {
   assert.equal(oneSentence("Mint a receipt. Then publish."), "Mint a receipt.");
@@ -168,5 +169,5 @@ test("receipts nav does not regress homepage Title*", () => {
   assert.match(home, /<h1>Search the libraries<\/h1>/);
   assert.match(home, /cite, don't merge/);
   assert.match(home, /bytes survive; crawlers do not re-expand/);
-  assert.doesNotMatch(home, /<p>Aziel Eliab is a living researcher and software designer\. Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20\.<\/p>/);
+  assert.doesNotMatch(home, new RegExp("<p>" + LOCK_LINE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "</p>"));
 });

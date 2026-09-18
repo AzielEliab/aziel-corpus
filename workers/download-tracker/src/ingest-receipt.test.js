@@ -36,7 +36,8 @@ import { page, homeBody } from "./ui.js";
 import { handleReceipts } from "./action-receipts.js";
 import { citeDoc, llmsDoc, aiTxt, robotsTxt, sitemapXml } from "./crawl.js";
 
-const BOTH_MUSICIANS_P = /<p>Aziel Eliab is a living researcher and software designer\. Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20\.<\/p>/;
+import { LOCK_LINE } from "./identity.js";
+const BOTH_MUSICIANS_P = new RegExp("<p>" + LOCK_LINE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "</p>");
 const BANNED = /Collin Horton|GodLock\.AZ|\+25|quiet (Aziel|triad|boost)|10\.5281\/zenodo/i;
 
 test("published lockset tip is SHA-256 of the lockset bytes", () => {
