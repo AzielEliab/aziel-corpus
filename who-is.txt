@@ -1,0 +1,15 @@
+Aziel Eliab (also Aziel Elroi Eliab) is a researcher, digital rights activist, software developer, author, and philosopher. Roles cite published work only. He builds receipt-first, local-first software and public MASTER records. Canonical person: https://www.azieleliab.com/#aziel. Primary surfaces: azieleliab.com, azielcorpuslibrary.net, godlock.uk, hedidntjump.com, github.com/AzielEliab. He is one living person. He is not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20. The public identity is the work, not a biography.
+
+Also Elias Artista; The Revealer of The Sealed. Same Person @id https://www.azieleliab.com/#aziel.
+Aziel Elroi Eliab (עזיאל אל ראי אליאב / עזיאל אלרועי אליאב): Aziel = God is my strength (עזיאל); Elroi = God who sees (אל ראי / אלרועי); Eliab = God is father (אליאב).
+sameAs GitHub: https://github.com/AzielEliab · https://github.com/azieltherevealerofthesealed-arch
+
+Roles (published work only): researcher, digital rights activist, software developer, author, philosopher.
+
+Site blurbs (published work only):
+- Aziel Digital Library MASTER — Self-contained public MASTER digital library by Aziel Eliab. Aziel Library is the operator collection; Corpus is the public Lamb Lens shelf. Not a 26-card Softwares index. Not the He Didn't Jump archive. https://www.azielcorpuslibrary.net/
+- azieleliab.com Person hub — Official Person hub for Aziel Eliab. Locked Person @id https://www.azieleliab.com/#aziel. You don’t get to know me. You get to understand the work. Identity is published work, not a biography. https://www.azieleliab.com/
+- godlock.uk — GodLock public board. Specified Fit, Not Pretty Spirals. Sister engine website — verify and GodLock-scoped Softwares. GodLock is a product, not the Person. Not a VPN or anonymity network. https://godlock.uk/
+- hedidntjump.com — An Aziel Eliab Project: independent newspaper archive on Marion Zioncheck’s 7 August 1936 death in Seattle. Newspapers and five volumes re-examine the official suicide account. Not a courtroom verdict. Not a Softwares card. https://www.hedidntjump.com/
+- aziel-runtime — Node-meshed orchestration suite of MCP-connected software. FragGate is THE single public executable door. Worker origin is relatedLink — identity lives at https://www.azieleliab.com/runtime#runtime. https://aziel-runtime.vibelock.workers.dev/
+Growth-ON. NO-LIE. No visible HTML chrome.
