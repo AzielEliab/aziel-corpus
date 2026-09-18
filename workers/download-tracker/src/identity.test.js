@@ -271,7 +271,8 @@ test("cite and well-known share stats tether and mission lock", () => {
   assert.equal(cite.jobTitle_note, PERSON_JOB_TITLE_NOTE);
   assert.equal(cite.growth_on, true);
   assert.equal(cite.gptbot_disallow, false);
-  assert.equal(cite.no_lie, true);
+  assert.equal(cite.no_lie, "NO-LIE");
+  assert.equal(cite.no_lie_spec, "NO-LIE-NO-REWRITE-1.0");
   assert.equal(cite.visible_html_chrome, false);
   assert.equal(cite.sites.digital_library.url, "https://www.azielcorpuslibrary.net/");
   assert.equal(cite.sites.person_hub.person_id, PERSON_ID);

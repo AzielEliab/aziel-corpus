@@ -609,8 +609,6 @@ export function citeDoc() {
     sites: siteBlurbsCite(),
     growth_on: GROWTH_ON,
     gptbot_disallow: false,
-    no_lie: true,
-    no_rewrite: true,
     visible_html_chrome: VISIBLE_HTML_CHROME,
     roles_cite: PERSON_JOB_TITLE_NOTE,
     hebrew_aka: HEBREW_AKA.slice(),
