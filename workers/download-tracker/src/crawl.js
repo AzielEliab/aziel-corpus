@@ -24,10 +24,16 @@ import {
   RUNTIME_GLAMA_LABEL,
   RUNTIME_WORKER_LABEL,
   RUNTIME_ABSTRACT,
+  RUNTIME_GIT_SHA,
+  RUNTIME_GIT_FULL,
+  RUNTIME_VERSION_ID,
+  RUNTIME_SOT_BRANCH,
+  LAMB_LENS_PATH,
   AI_CLIENTS,
   runtimeHowTo,
+  runtimeLaunchCite,
 } from "./runtime-copy.js";
-import { MESH_NOTE, QNS_CD_SPEC } from "./mesh.js";
+import { MESH_NOTE, QNS_CD_SPEC, VPN_CITE, CHANNEL_PLANE } from "./mesh.js";
 import { ingestReceiptCite, ingestReceiptLlmsBlock } from "./ingest-receipt.js";
 import { shelvesLlmsBlock } from "./cold-shelf.js";
 import { aiSurfaceLlmsBlock, bridgeDoc, MCP_TOOLS } from "./ai-surface.js";
@@ -712,12 +718,20 @@ export function citeDoc() {
     runtime_origin: CATALOG + "/",
     runtime_sameAs: [CATALOG + "/", RUNTIME_GITHUB, RUNTIME_GLAMA, RUNTIME_DOCS],
     runtime_version: RUNTIME_VERSION,
+    runtime_git: RUNTIME_GIT_SHA,
+    runtime_git_full: RUNTIME_GIT_FULL,
+    runtime_version_id: RUNTIME_VERSION_ID,
+    runtime_sot_branch: RUNTIME_SOT_BRANCH,
     runtime_official: CATALOG + "/",
     runtime_github: RUNTIME_GITHUB,
     runtime_glama: RUNTIME_GLAMA,
     runtime_docs: RUNTIME_DOCS,
     runtime_live_count: RUNTIME_LIVE_COUNT,
     runtime_local_only: RUNTIME_LOCAL_ONLY,
+    runtime_launch: runtimeLaunchCite(),
+    lamb_lens: LAMB_LENS_PATH,
+    vpn: VPN_CITE,
+    channel_plane: CHANNEL_PLANE,
     compatible_clients: AI_CLIENTS,
     runtime_note: RUNTIME_NOTE,
     review: HOST + "/v1/review",
@@ -783,7 +797,7 @@ export function llmsDoc(limitation) {
     + "Runtime catalog: " + HOST + "/runtime\n"
     + "Runtime FragGate: " + HOST + "/runtime/v1/fraggate\n"
     + RUNTIME_ABSTRACT + "\n"
-    + "Runtime version: Aziel Runtime " + RUNTIME_VERSION + " (" + RUNTIME_LIVE_COUNT + " live; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse). Cite live GET /runtime/v1/health. FragGate is the single door. Remain-OFF untouched.\n"
+    + "Runtime version: Aziel Runtime " + RUNTIME_VERSION + " (" + RUNTIME_LIVE_COUNT + " live; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse). SoT LIVE: " + RUNTIME_SOT_BRANCH + " " + RUNTIME_GIT_SHA + " / version_id " + RUNTIME_VERSION_ID + ". Cite live GET /runtime/v1/health. FragGate is the single door. MCP Softwares via fraggate_call only. Human UI on the Runtime Worker (#op-panel #dashboard #fg-console #task-* + About Aziel + hashtags + /download). Lamb Lens " + LAMB_LENS_PATH + ". Remain-OFF untouched.\n"
     + RUNTIME_GLAMA_LABEL + ": " + RUNTIME_GLAMA + "\n"
     + "Source on GitHub: " + RUNTIME_GITHUB + "\n"
     + "Documentation: " + RUNTIME_DOCS + "\n"
@@ -895,7 +909,8 @@ export function llmsDoc(limitation) {
     + "- Software: " + HOST + "/software\n"
     + "- How it's scored: " + HOST + "/how-its-scored\n"
     + "- Runtime root: " + HOST + "/runtime\n"
-    + "- Runtime health: " + HOST + "/runtime/v1/health  (Aziel Runtime " + RUNTIME_VERSION + "; " + RUNTIME_LIVE_COUNT + " live; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse)\n"
+    + "- Runtime health: " + HOST + "/runtime/v1/health  (Aziel Runtime " + RUNTIME_VERSION + "; " + RUNTIME_LIVE_COUNT + " live; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse; SoT " + RUNTIME_SOT_BRANCH + " " + RUNTIME_GIT_SHA + " / version_id " + RUNTIME_VERSION_ID + ")\n"
+    + "- Launch cite: human UI on Runtime Worker (#op-panel #dashboard #fg-console #task-* + About Aziel + hashtags + /download). MCP Softwares via fraggate_call only. Lamb Lens " + LAMB_LENS_PATH + ".\n"
     + "- Softwares download: " + HOST + "/download  ·  " + HOST + "/v1/download\n"
     + "- Runtime uses (this door): " + HOST + "/runtime/v1/uses\n"
     + "- Suite mesh / Live Nodes (read-only QNM ON): " + HOST + "/v1/mesh\n"

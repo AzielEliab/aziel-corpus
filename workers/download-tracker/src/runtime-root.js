@@ -24,6 +24,10 @@ import {
   runtimeHowTo,
   resolveRuntimeVersion,
   runtimeDescription,
+  runtimeLaunchCite,
+  RUNTIME_GIT_SHA,
+  RUNTIME_VERSION_ID,
+  RUNTIME_SOT_BRANCH,
 } from "./runtime-copy.js";
 import {
   RUNTIME_VIA,
@@ -31,7 +35,7 @@ import {
   runtimeUsesPayload,
   runtimeUsesResponse,
 } from "./runtime-uses.js";
-import { MESH_NOTE, QNS_CD_SPEC, meshOnDoc, proxyMeshRequest } from "./mesh.js";
+import { MESH_NOTE, QNS_CD_SPEC, VPN_CITE, CHANNEL_PLANE, meshOnDoc, proxyMeshRequest } from "./mesh.js";
 import { fetchLiveRuntimeVersion } from "./software-catalog.js";
 
 export {
@@ -63,6 +67,7 @@ ${RUNTIME_ABSTRACT}
 **THIS IS:** Aziel Runtime ${RUNTIME_VERSION} on the Digital Library at ${HOST}/runtime.
 Not an API aggregator. One door — discover, route, refuse. Prefer same-origin \`/runtime/*\`.
 ${RUNTIME_LIVE_COUNT} live advisory engines; ${RUNTIME_LOCAL_ONLY} stays local_only; stub verbs refuse.
+SoT LIVE: ${RUNTIME_SOT_BRANCH} ${RUNTIME_GIT_SHA} / version_id ${RUNTIME_VERSION_ID}.
 Catalog slugs (\`${ENGINE_SLUGS.join("`, `")}\`) are true engines. HTTP \`/p/{slug}/{op}\` is a proxy and is not exec.
 Do **not** treat \`${HOST}/v1/runtime\` as the engine manifest (that is Digital Library package discovery).
 Engine manifest: \`${HOST}/runtime/v1/runtime.json\` or \`${HOST}/v1/runtime.json\`.
@@ -132,6 +137,10 @@ export function runtimeManifest(via = "library") {
     door: RUNTIME_DOOR,
     kernel: RUNTIME_KERNEL,
     version: RUNTIME_VERSION,
+    git: RUNTIME_GIT_SHA,
+    version_id: RUNTIME_VERSION_ID,
+    sot_branch: RUNTIME_SOT_BRANCH,
+    launch: runtimeLaunchCite(),
     layer: "catalog+pull+proxy+session+in-process-engines+fraggate",
     live_count: RUNTIME_LIVE_COUNT,
     product_count: RUNTIME_PRODUCT_COUNT,
@@ -172,6 +181,8 @@ export function runtimeManifest(via = "library") {
     mesh_library: HOST + "/v1/mesh",
     mesh_origin: RUNTIME_ORIGIN + "/v1/mesh",
     mesh_note: MESH_NOTE,
+    vpn: VPN_CITE,
+    channel_plane: CHANNEL_PLANE,
     qns_cd_spec: QNS_CD_SPEC,
     llms: HOST + "/runtime/llms.txt",
     library_llms: HOST + "/llms.txt",

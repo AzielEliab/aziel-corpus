@@ -7,6 +7,12 @@
 export const HOST = "https://www.azielcorpuslibrary.net";
 export const RUNTIME_ORIGIN = "https://aziel-runtime.vibelock.workers.dev";
 export const RUNTIME_VERSION = "2.0.0-rc1";
+/** Operator SoT: aziel-runtime main tip that the live Worker serves. */
+export const RUNTIME_GIT_SHA = "6a3798a";
+export const RUNTIME_GIT_FULL = "6a3798af3a94bfba3ed2e7aaadeed8777ea32bb4";
+/** Cloudflare Workers deployment id for that LIVE Worker (operator SoT; not health.version). */
+export const RUNTIME_VERSION_ID = "105fa1ee";
+export const RUNTIME_SOT_BRANCH = "main";
 export const RUNTIME_DOOR = "fraggate";
 export const RUNTIME_KERNEL = "https://github.com/AzielEliab/fraggate";
 export const RUNTIME_GITHUB = "https://github.com/AzielEliab/aziel-runtime";
@@ -19,14 +25,17 @@ export const RUNTIME_DOCS = RUNTIME_GITHUB + "/tree/main/docs/2.0";
 export const RUNTIME_GLAMA = "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime";
 export const RUNTIME_GLAMA_LABEL = "Try on Glama";
 export const RUNTIME_WORKER_LABEL = "Official Runtime";
-export const RUNTIME_LIVE_COUNT = 37;
-export const RUNTIME_PRODUCT_COUNT = 37;
+/** Must match live GET /v1/health count (41 true-engine slugs, including VeilLock local_only). */
+export const RUNTIME_LIVE_COUNT = 41;
+export const RUNTIME_PRODUCT_COUNT = 41;
 export const RUNTIME_LOCAL_ONLY = "VeilLock";
 export const LIBRARY_DOWNLOAD = HOST + "/download";
 export const LIBRARY_V1_DOWNLOAD = HOST + "/v1/download";
 export const LIBRARY_COUNT = HOST + "/count";
+export const LAMB_LENS_PATH = "Service → Clarity → Peace";
+export const PERSON_ID = "https://www.azieleliab.com/#aziel";
 
-/** Softwares-tab engines. Must match live GET /runtime/v1/health count (37). */
+/** Softwares-tab engines. Must match live GET /runtime/v1/health true_engine_slugs (41). */
 export const ENGINE_SLUGS = [
   "4dmap",
   "ark",
@@ -43,6 +52,7 @@ export const ENGINE_SLUGS = [
   "azmail",
   "aznet",
   "azos",
+  "azvpn",
   "chronolock",
   "codelock",
   "decisiongate",
@@ -54,16 +64,19 @@ export const ENGINE_SLUGS = [
   "godlock",
   "mialock",
   "miragegrid",
+  "mmconsensus",
   "peacelock",
   "postking",
   "shadowlock",
   "spectrallock",
   "staticclock",
   "temporallock",
+  "toolbench",
   "trajectorylock",
   "veillock",
   "vibelock",
   "whistlelock",
+  "zkattest",
   "zsolver",
 ];
 
@@ -166,6 +179,94 @@ export const RUNTIME_LIMITATION =
 
 export const RUNTIME_NOTE = runtimeNote();
 
+/** Hub cite of live Runtime launch surfaces. Does not flip shelves. Does not invent fielded_100. */
+export function runtimeLaunchCite() {
+  return {
+    spec: "AZRT-HUB-LAUNCH-CITE-1.0",
+    status: "ready",
+    sot: {
+      live: true,
+      branch: RUNTIME_SOT_BRANCH,
+      git: RUNTIME_GIT_SHA,
+      git_full: RUNTIME_GIT_FULL,
+      version_id: RUNTIME_VERSION_ID,
+      version: RUNTIME_VERSION,
+      origin: RUNTIME_ORIGIN + "/",
+      health: RUNTIME_ORIGIN + "/v1/health",
+      cite: RUNTIME_ORIGIN + "/cite.json",
+      engine_count: RUNTIME_LIVE_COUNT,
+      local_only: RUNTIME_LOCAL_ONLY,
+      note:
+        "Operator SoT LIVE: aziel-runtime " + RUNTIME_SOT_BRANCH + " " + RUNTIME_GIT_SHA
+        + " / version_id " + RUNTIME_VERSION_ID + " / " + RUNTIME_VERSION
+        + " at " + RUNTIME_ORIGIN + ". Cite live GET /v1/health for the engine snapshot. "
+        + "version_id is the Cloudflare Workers deployment id (not health.version).",
+    },
+    human_ui: {
+      host: RUNTIME_ORIGIN + "/",
+      anchors: ["#op-panel", "#dashboard", "#fg-console", "#task-*"],
+      about_aziel: true,
+      hashtags: true,
+      download_suite_pack: "/download",
+      note:
+        "Human UI lives on the Runtime Worker (#op-panel / #dashboard / #fg-console + #task-* + About Aziel + hashtags + /download suite pack). "
+        + "This hub cites those surfaces. It does not re-host that chrome.",
+    },
+    mcp: {
+      door: "fraggate",
+      softwares: "fraggate_call only",
+      discover: "fraggate_list",
+      describe: "fraggate_describe",
+      call: "fraggate_call",
+      glama: RUNTIME_GLAMA,
+      glama_label: RUNTIME_GLAMA_LABEL,
+      proxy_is_not_exec: true,
+      note:
+        "MCP Softwares exec is fraggate_call only. FragGate is THE single door. "
+        + "HTTP /p/{slug}/{op} is a proxy and is not exec. Try on Glama is the primary MCP CTA.",
+    },
+    softwares: {
+      heading_then_list: true,
+      sort: "Plain → Gate → Lock",
+      clock_is_not_lock: true,
+      path: HOST + "/software",
+      live: HOST + "/v1/software",
+      origin: RUNTIME_ORIGIN + "/v1/software",
+    },
+    dual_surface: true,
+    lamb_lens: LAMB_LENS_PATH,
+    no_lie: true,
+    growth_on: true,
+    fielded_100: false,
+    chrome_15_20: false,
+    identity: "Aziel Eliab",
+    person_id: PERSON_ID,
+    nav: {
+      forensics_not_intelligence_tab: true,
+      aziel_library_purple: true,
+    },
+    shelves: {
+      plane_b_framagit: "slot",
+      plane_b_refuse: "CNS-NO-FORGE-MIRROR",
+      plane_b_live: false,
+      plane_c: "slot",
+      plane_c_refuse: "CNS-OPERATOR-ATTEST",
+      fielded_100: false,
+      note: "Launch readiness does not flip Plane B or Plane C. Do not invent a Framagit URL or USB attest.",
+    },
+    author: "Aziel Eliab",
+  };
+}
+
+export function runtimeLaunchNote() {
+  const cite = runtimeLaunchCite();
+  return "Launch cite: Runtime SoT LIVE " + cite.sot.branch + " " + cite.sot.git
+    + " / version_id " + cite.sot.version_id + " / " + cite.sot.version
+    + ". Human UI on the Runtime Worker (" + cite.human_ui.anchors.join(" ")
+    + " + About Aziel + hashtags + /download). MCP Softwares via fraggate_call only. "
+    + "FragGate is THE single door. Lamb Lens " + cite.lamb_lens + ". NO-LIE. Growth-ON. Never fielded_100.";
+}
+
 export function runtimeHowTo(host) {
   const h = host || HOST;
   return [
@@ -211,5 +312,9 @@ export function runtimeHowTo(host) {
     "- Source on GitHub: " + RUNTIME_GITHUB,
     "- Documentation: " + RUNTIME_DOCS,
     "- " + RUNTIME_WORKER_LABEL + " (Worker): " + RUNTIME_ORIGIN + "/",
+    "- SoT LIVE: " + RUNTIME_SOT_BRANCH + " " + RUNTIME_GIT_SHA + " / version_id " + RUNTIME_VERSION_ID + " / " + RUNTIME_VERSION,
+    "- Human UI (Runtime Worker): #op-panel #dashboard #fg-console #task-* + About Aziel + hashtags + /download suite pack",
+    "- MCP Softwares: fraggate_call only. FragGate is THE single door.",
+    "- Lamb Lens: " + LAMB_LENS_PATH + ". Dual surface. NO-LIE. Growth-ON. Never fielded_100.",
   ].join("\n");
 }
