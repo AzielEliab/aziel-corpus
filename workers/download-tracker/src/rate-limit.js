@@ -162,6 +162,8 @@ const SEO_PATHS = new Set([
   "/favicon.ico",
   "/openapi.json",
   "/bridge.json",
+  "/runtime/survival",
+  "/runtime/v1/survival",
   "/mcp",
   "/v1/products",
   "/v1/design-pack",

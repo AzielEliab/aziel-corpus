@@ -29,7 +29,10 @@ export const NO_FAN_SPEC = "NO-FAN-1.0";
 export const NO_FAN_PHRASE = "No falsification. No ambiguity. No misleading.";
 export const PLANE_A = "A";
 export const MIRAGEGRID_WORKER = "https://miragegrid-download-tracker.vibelock.workers.dev/";
+export const MIRAGEGRID_APP = "https://miragegrid.vibelock.workers.dev";
 export const MIRAGEGRID_AZ_GENERATOR = MIRAGEGRID_WORKER + "v1/mesh/az-generator";
+export const MIRAGEGRID_BRIDGE = MIRAGEGRID_APP + "/bridge";
+export const MIRAGEGRID_SHUFFLE = MIRAGEGRID_APP + "/v1/shuffle";
 export const MIRAGEGRID_BRIDGE_FUTURE = MIRAGEGRID_WORKER + "bridge.json";
 export const LIBRARY_HUB = HOST + "/";
 export const HUB_AZELIELIAB = "https://www.azieleliab.com/";
@@ -588,10 +591,18 @@ export function bridgeDoc() {
     },
     miragegrid: {
       worker: MIRAGEGRID_WORKER,
+      app_worker: MIRAGEGRID_APP,
       az_generator: MIRAGEGRID_AZ_GENERATOR,
+      bridge: MIRAGEGRID_BRIDGE,
+      shuffle: MIRAGEGRID_SHUFFLE,
       bridge_future: MIRAGEGRID_BRIDGE_FUTURE,
-      bridge_live: false,
-      note: "Future MirageGrid /bridge.json is cited, not claimed live. This corpus /bridge.json is the Plane A cite.",
+      bridge_live: true,
+      resolves_to_hub: false,
+      prefer_pull: "GET runtime /survival cap7_aznet",
+      note:
+        "Named app Worker is LIVE Cap-7 shuffle ( /bridge · /v1/shuffle ). resolves_to_hub: false. "
+        + "Download-tracker stays the counted download plane. Prefer pulled /survival cap7_aznet for hosted/SLOT honesty. "
+        + "This corpus /bridge.json remains the Plane A design_of cite.",
     },
     upload: {
       azcorpus: AZCORPUS.upload,
@@ -686,7 +697,8 @@ export function aiSurfaceLlmsBlock() {
     "- Library MCP: POST " + HOST + "/mcp  tools: " + MCP_TOOLS.join(", "),
     "- Runtime MCP (FragGate door): POST " + HOST + "/runtime/mcp",
     "- Cap-7 bridge cite (design_of hubs; resolves_to_hub: false): " + HOST + "/bridge.json",
-    "- Future MirageGrid /bridge.json (not claimed live): " + MIRAGEGRID_BRIDGE_FUTURE,
+    "- Cap-7 MirageGrid shuffle LIVE (app Worker; resolves_to_hub: false): " + MIRAGEGRID_BRIDGE + " · " + MIRAGEGRID_SHUFFLE,
+    "- MirageGrid counted download plane: " + MIRAGEGRID_BRIDGE_FUTURE,
     "Honesty: Cap-7 names inherit design_of the four hubs; resolves_to_hub: false; name_may_change: true; public_icann: false; no fifth product; "
       + "Plane A UI azcorpus/azlibrary stay on this Worker; sister hubs remain azieleliab.com, godlock.uk, hedidntjump.com; "
       + "no Cap-7 live public DNS; no AZ-GEN publish cadence; "
