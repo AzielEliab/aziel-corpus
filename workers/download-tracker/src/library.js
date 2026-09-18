@@ -5,6 +5,7 @@ import { preflightIngest, pinFromUpload, appendPoisonLearn } from "./lattice-lea
 import { applySuccessionForRecord, maybeRescoreZsolverOnFirstHandPatternBreak, rescoreSuccessionMembers, successionCoverageFor, subjectKey } from "./succession.js";
 import { patchTipZsolver, scoreZsolverForRecord } from "./zsolver.js";
 import { applyAutoClassification } from "./domain-classify.js";
+import { isHumanTag, normalizeTag } from "./visible-tags.js";
 
 const MAX_BYTES = 25 * 1024 * 1024;
 const TEXT_CAP = 200000;
@@ -217,9 +218,10 @@ function countTokens(rows, getter, cap) {
     const parts = String(getter(r) || "").split(/[,;]+/);
     for (const part of parts) {
       const token = part.trim();
-      if (!token) continue;
-      const key = token.toLowerCase();
-      const cur = map.get(key) || { label: token, n: 0 };
+      if (!isHumanTag(token)) continue;
+      const label = normalizeTag(token);
+      const key = label.toLowerCase();
+      const cur = map.get(key) || { label, n: 0 };
       cur.n += 1;
       map.set(key, cur);
     }
@@ -234,8 +236,8 @@ export async function patternClusters(env, { limit = 400 } = {}) {
   const keywords = countTokens(rows, (r) => r.keywords, 24);
   const pairs = new Map();
   for (const r of rows) {
-    const ds = String(r.domain || "").split(/[,;]+/).map((s) => s.trim()).filter(Boolean);
-    const ss = String(r.subjects || "").split(/[,;]+/).map((s) => s.trim()).filter(Boolean);
+    const ds = String(r.domain || "").split(/[,;]+/).map((s) => s.trim()).filter((s) => isHumanTag(s)).map((s) => normalizeTag(s));
+    const ss = String(r.subjects || "").split(/[,;]+/).map((s) => s.trim()).filter((s) => isHumanTag(s)).map((s) => normalizeTag(s));
     for (const d of ds) {
       for (const s of ss) {
         const key = d.toLowerCase() + "\0" + s.toLowerCase();
@@ -255,10 +257,11 @@ function collectTokens(values, cap) {
     const parts = String(raw || "").split(/[,;]+/);
     for (const part of parts) {
       const token = part.trim();
-      if (!token) continue;
-      const key = token.toLowerCase();
+      if (!isHumanTag(token)) continue;
+      const label = normalizeTag(token);
+      const key = label.toLowerCase();
       if (seen.has(key)) continue;
-      seen.set(key, token);
+      seen.set(key, label);
       if (seen.size >= cap) return [...seen.values()];
     }
   }
