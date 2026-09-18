@@ -23,7 +23,9 @@ import {
   writePackedIndex,
   cardFromRecord,
   libraryHealthFields,
+  packedRecordCounts,
 } from "./library-index.js";
+import { homeBody, azielLibraryBody, corpusBody, libraryFileCountHtml } from "./ui.js";
 import { handleRuntimeApi } from "./runtime.js";
 import { RUNTIME_USES_INDEX, recordRuntimeUse, runtimeUsesPayload } from "./runtime-uses.js";
 
@@ -80,6 +82,10 @@ test("hot-path collectStats is one packed get and never KV.list", async () => {
   assert.equal(kv.calls.get[0].opts.cacheTtl, KV_CACHE_TTL);
   assert.equal(stats.views, 12);
   assert.equal(stats.downloads, 4);
+  assert.equal(stats.records_packed, 1);
+  assert.equal(stats.records_aziel, 1);
+  assert.equal(stats.records_corpus, 0);
+  assert.equal(stats.count_source, LIBRARY_INDEX_KEY);
   assert.equal(stats.kv_list_hot_path, false);
   assert.match(stats.index_sha256, /^[0-9a-f]{64}$/);
   assert.doesNotMatch(JSON.stringify(stats), BANNED);
@@ -180,6 +186,10 @@ test("GET /v1/health is failover-ready standby and does not list KV", async () =
   assert.equal(body.index_key, LIBRARY_INDEX_KEY);
   assert.equal(body.kv_list_hot_path, false);
   assert.equal(body.author, "Aziel Eliab");
+  assert.equal(body.records_packed, 0);
+  assert.equal(body.records_aziel, 0);
+  assert.equal(body.records_corpus, 0);
+  assert.equal(body.count_source, LIBRARY_INDEX_KEY);
   assert.match(body.note, /Not a VPN/);
   assert.match(body.note, /nowhere legal to land/);
   assert.match(body.note, /Supervisor restart is operator kit/);
@@ -204,6 +214,10 @@ test("GET /v1/stats returns packed views and downloads without listing KV", asyn
   assert.equal(body.identity, "Aziel Eliab");
   assert.equal(body.views, 12);
   assert.equal(body.downloads, 4);
+  assert.equal(body.records_packed, 0);
+  assert.equal(body.records_aziel, 0);
+  assert.equal(body.records_corpus, 0);
+  assert.equal(body.count_source, LIBRARY_INDEX_KEY);
   assert.equal(body.kv_list_hot_path, false);
   assert.equal(kv.calls.list, 0);
   assert.doesNotMatch(JSON.stringify(body), BANNED);
@@ -224,6 +238,9 @@ test("GET /v1/library-index is the packed key and never lists", async () => {
   const body = await res.json();
   assert.equal(body.key, LIBRARY_INDEX_KEY);
   assert.equal(body.records[0].record_id, "AZDOC-9");
+  assert.equal(body.records_packed, 1);
+  assert.equal(body.records_aziel, 1);
+  assert.equal(body.records_corpus, 0);
   assert.equal(kv.calls.list, 0);
 });
 
@@ -283,6 +300,10 @@ test("GET /v1/search filters packed index even when D1 is bound", async () => {
   assert.equal(body.source, "packed");
   assert.equal(body.index_key, LIBRARY_INDEX_KEY);
   assert.equal(body.kv_list_hot_path, false);
+  assert.equal(body.records_packed, 1);
+  assert.equal(body.records_aziel, 0);
+  assert.equal(body.records_corpus, 1);
+  assert.equal(body.count_source, LIBRARY_INDEX_KEY);
   assert.equal(body.results.length, 1);
   assert.equal(body.results[0].id, "AZDOC-1");
   assert.equal(body.results[0].record_id, "AZDOC-1");
@@ -301,11 +322,11 @@ test("public HTML cache helpers share crawler and human Cache-Control", async ()
   assert.match(HTML_EDGE_CACHE_CONTROL, /max-age=3600/);
   assert.match(SOFTWARE_HTML_CACHE_CONTROL, /s-maxage=3600/);
   assert.equal(SOFTWARE_HTML_CACHE_CONTROL, SEO_CACHE_CONTROL);
-  assert.match(HTML_CACHE_PREFIX, /html-home-v5$/);
+  assert.match(HTML_CACHE_PREFIX, /html-home-v6$/);
   const cache = memoryCache();
   const req = new Request("https://www.azielcorpuslibrary.net/?q=Florence");
   const url = htmlCacheUrl(req);
-  assert.match(url, /\/__cache\/html-home-v5\/\?q=Florence$/);
+  assert.match(url, /\/__cache\/html-home-v6\/\?q=Florence$/);
   await cachePutText(url, "<html>packed search</html>", cache);
   const hit = await cacheMatchText(url, cache);
   assert.match(hit, /packed search/);
@@ -317,4 +338,123 @@ test("writePackedIndex then collectStats still never lists", async () => {
   const stats = await collectStats({ DOWNLOADS: kv }, { cache: memoryCache() });
   assert.equal(stats.views, 3);
   assert.equal(kv.calls.list, 0);
+});
+
+test("packedRecordCounts derive Aziel Library vs Corpus from the index", () => {
+  const counts = packedRecordCounts({
+    records: [
+      cardFromRecord({ record_id: "AZDOC-A", title: "A", library: "aziel" }),
+      cardFromRecord({ record_id: "AZDOC-B", title: "B", library: "aziel" }),
+      cardFromRecord({ record_id: "AZDOC-C", title: "C", library: "corpus" }),
+    ],
+  });
+  assert.equal(counts.records_packed, 3);
+  assert.equal(counts.records_aziel, 2);
+  assert.equal(counts.records_corpus, 1);
+  assert.equal(counts.count_source, LIBRARY_INDEX_KEY);
+  const empty = packedRecordCounts(emptyPackedIndex());
+  assert.equal(empty.records_packed, 0);
+  assert.equal(empty.records_aziel, 0);
+  assert.equal(empty.records_corpus, 0);
+});
+
+test("GET /v1/health reports packed shelf file counts from the index", async () => {
+  const packed = sealPackedIndex({
+    records: [
+      cardFromRecord({ record_id: "AZDOC-A", title: "A", library: "aziel", author: "Aziel Eliab" }),
+      cardFromRecord({ record_id: "AZDOC-C", title: "C", library: "corpus", author: "Aziel Eliab" }),
+    ],
+  });
+  const kv = throwingListKv(new Map([[LIBRARY_INDEX_KEY, JSON.stringify(packed)]]));
+  const res = await handleRuntimeApi(
+    new Request("https://www.azielcorpuslibrary.net/v1/health"),
+    new URL("https://www.azielcorpuslibrary.net/v1/health"),
+    { DOWNLOADS: kv }
+  );
+  const body = await res.json();
+  assert.equal(body.records_packed, 2);
+  assert.equal(body.records_aziel, 1);
+  assert.equal(body.records_corpus, 1);
+  assert.equal(body.count_source, LIBRARY_INDEX_KEY);
+  assert.equal(body.author, "Aziel Eliab");
+  assert.doesNotMatch(JSON.stringify(body), /fielded_100|15:20/);
+  assert.equal(kv.calls.list, 0);
+});
+
+test("GET / renders packed file counts from library:index:v1", async () => {
+  const packed = sealPackedIndex({
+    views: 9,
+    downloads: 2,
+    records: [
+      cardFromRecord({ record_id: "AZDOC-A", title: "A", library: "aziel", author: "Aziel Eliab" }),
+      cardFromRecord({ record_id: "AZDOC-B", title: "B", library: "aziel", author: "Aziel Eliab" }),
+      cardFromRecord({ record_id: "AZDOC-C", title: "C", library: "corpus", author: "Aziel Eliab" }),
+    ],
+  });
+  const kv = throwingListKv(new Map([[LIBRARY_INDEX_KEY, JSON.stringify(packed)]]));
+  const { default: worker } = await import("./index.js");
+  const res = await worker.fetch(
+    new Request("https://www.azielcorpuslibrary.net/", { headers: { "User-Agent": "Mozilla/5.0" } }),
+    { DOWNLOADS: kv },
+    {}
+  );
+  assert.equal(res.status, 200);
+  const html = await res.text();
+  assert.match(html, /class="library-count"/);
+  assert.match(html, /data-source="library:index:v1"/);
+  assert.match(html, /data-records-packed="3"/);
+  assert.match(html, /data-records-aziel="2"/);
+  assert.match(html, /data-records-corpus="1"/);
+  assert.match(html, /<strong>3<\/strong> files in the libraries/);
+  assert.match(html, /Aziel Library 2/);
+  assert.match(html, /Corpus 1/);
+  const countAt = html.indexOf('class="library-count"');
+  const foldAt = html.indexOf("<!--az-lcp-fold-->");
+  assert.ok(countAt > 0 && foldAt > countAt, "file count sits in the homepage hero before the LCP fold");
+  const countHtml = html.slice(countAt, foldAt);
+  assert.doesNotMatch(countHtml, /15:20/);
+  assert.doesNotMatch(countHtml, /fielded_100/);
+  assert.equal(kv.calls.list, 0);
+});
+
+test("homepage and shelf chrome show packed file counts and invent none", () => {
+  const bare = homeBody({ rows: [] });
+  assert.doesNotMatch(bare, /files in the libraries/);
+  assert.doesNotMatch(bare, /library-count/);
+  assert.doesNotMatch(bare, /212/);
+  assert.doesNotMatch(libraryFileCountHtml(), /files in the libraries/);
+
+  const home = homeBody({
+    rows: [],
+    records_packed: 3,
+    records_aziel: 2,
+    records_corpus: 1,
+  });
+  assert.match(home, /class="library-count"/);
+  assert.match(home, /data-source="library:index:v1"/);
+  assert.match(home, /data-records-packed="3"/);
+  assert.match(home, /<strong>3<\/strong> files in the libraries/);
+  assert.match(home, /href="\/aziel-library">Aziel Library 2</);
+  assert.match(home, /href="\/corpus">Corpus 1</);
+  assert.doesNotMatch(home, /15:20/);
+  assert.doesNotMatch(home, /fielded_100/);
+
+  const aziel = azielLibraryBody({
+    rows: [],
+    records_packed: 3,
+    records_aziel: 2,
+    records_corpus: 1,
+  });
+  assert.match(aziel, /<strong>2<\/strong> files in Aziel Library/);
+  assert.match(aziel, /of 3 in the libraries/);
+
+  const corpus = corpusBody({
+    signed: null,
+    rows: [],
+    records_packed: 3,
+    records_aziel: 2,
+    records_corpus: 1,
+  });
+  assert.match(corpus, /<strong>1<\/strong> files in Corpus/);
+  assert.match(corpus, /of 3 in the libraries/);
 });

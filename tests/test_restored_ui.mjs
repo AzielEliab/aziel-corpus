@@ -151,6 +151,7 @@ test("homepage LCP fold keeps hero first and leaves entity-graph plus doors inta
     host: "https://www.azielcorpuslibrary.net",
   });
   assert.match(home, /<h1>Search the libraries<\/h1>/);
+  assert.doesNotMatch(home, /files in the libraries/);
   assert.ok(home.includes(LCP_FOLD), "homepage body marks the LCP fold");
   assert.doesNotMatch(home, /Shelf card stays after the fold/);
   assert.match(home, /id="signup"/);
@@ -420,6 +421,7 @@ test("Aziel Library is publicly browseable and shelf SHA-dedupes", () => {
   });
   assert.match(html, /about-aziel/);
   assert.match(html, /Anyone can browse Aziel Library/);
+  assert.doesNotMatch(html, /files in Aziel Library/);
   assert.match(html, /AZDOC-2/);
   assert.doesNotMatch(html, /AZDOC-1/);
   assert.match(html, /doc-aziel/);
