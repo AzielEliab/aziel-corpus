@@ -384,6 +384,7 @@ test("rebuild with ctx.waitUntil returns JSON before packed refresh", async () =
 test("shouldBackgroundWalk skips verify-backfill and verify-geo", () => {
   assert.equal(shouldBackgroundWalk("/v1/verify-backfill"), false);
   assert.equal(shouldBackgroundWalk("/v1/verify-geo"), false);
+  assert.equal(shouldBackgroundWalk("/v1/content-hash-repair"), false);
   assert.equal(shouldBackgroundWalk("/v1/health"), true);
   assert.equal(shouldBackgroundWalk("/"), true);
 });

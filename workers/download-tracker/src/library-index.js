@@ -285,7 +285,7 @@ export function cardFromRecord(row) {
     shelf,
     library: shelf,
     author: String(row.author || ""),
-    content_sha256: String(row.content_sha256 || ""),
+    content_sha256: String(row.content_sha256 || ""), // verified SHA-256 of GET /file bytes
     chain_tip: String(row.chain_tip || ""),
     updated,
     ts: updated,
@@ -496,6 +496,18 @@ export async function notePackedIncrement(env, { views, downloads, dims, count }
     return writePackedIndex(env, Object.assign({}, current, patch), opts);
   }
   return patchPackedStats(env, patch, opts);
+}
+
+/** Patch one packed card's verified file-bytes hash. Does not rewrite file bytes. */
+export async function patchPackedRecordSha(env, recordId, sha, { cache } = {}) {
+  const current = await readPackedIndex(env, { cache, cacheTtl: 60 });
+  const id = String(recordId || "").trim();
+  const want = String(sha || "").trim().toLowerCase();
+  const records = (current.records || []).map((r) => {
+    if (String(r.record_id || r.id) !== id) return r;
+    return Object.assign({}, r, { content_sha256: want });
+  });
+  return writePackedIndex(env, Object.assign({}, current, { records }), { cache });
 }
 
 /** Cron / ingest / operator refresh. D1 + known counter keys. No KV.list(). */

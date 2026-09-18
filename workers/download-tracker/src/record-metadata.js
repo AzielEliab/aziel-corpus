@@ -29,6 +29,7 @@ export const HOST = "https://www.azielcorpuslibrary.net";
 export const JSON_RECEIPT_PREFIX = "JSON";
 export const JSON_TREE_SEGMENT = ".Json";
 export const JSON_DISCOVERY_ACTION = "JSON_DISCOVERY";
+export const JSON_HASH_REPAIR_ACTION = "JSON_HASH_REPAIR";
 export const JSON_ARTIFACT_TYPE = "JSON_DISCOVERY";
 export const CONTENT_EXCERPT_CHARS = 8000;
 export const PUBLIC_AUTHOR = "Aziel Eliab";
@@ -215,6 +216,8 @@ export function buildDiscoveryMetadata(row, extras = {}) {
   if (row.filename) doc.filename = String(row.filename);
   if (row.domain) doc.domain = String(row.domain);
   if (row.library || lib) doc.library = lib;
+  if (extras.hash_repair) doc.hash_repair = extras.hash_repair;
+  if (extras.content_sha256_previous) doc.content_sha256_previous = extras.content_sha256_previous;
   return doc;
 }
 
@@ -411,6 +414,103 @@ export async function persistRecordDiscoveryMetadata(env, hint = {}) {
     };
   } catch (err) {
     return { ok: false, error: err && err.message ? err.message : "metadata persist failed", record_id: paper, json_record_id: jsonId };
+  }
+}
+
+/**
+ * Append-only hash repair tip. Writes a new JSON sidecar (current tip) and always
+ * appends JSON_HASH_REPAIR to the JSONAZDOC- chain. Never deletes prior receipts
+ * and never rewrites the paper AZDOC chain_tip.
+ */
+export async function persistHashRepairDiscovery(env, hint = {}) {
+  const paper = paperRecordId(hint.record_id || hint.id);
+  if (!paper) return { ok: false, error: "record_id required" };
+  const jsonId = jsonRecordId(paper);
+  try {
+    const row = await loadPaperRow(env, paper, hint);
+    if (!row || !row.record_id) return { ok: false, error: "not found" };
+    const paperTip = hint.lattice_tip || row.lattice_tip || null;
+    const previous = String(hint.previous_content_sha256 || "").trim() || null;
+    const live = String(hint.content_sha256 || row.content_sha256 || "").trim() || null;
+    const hashRepair = {
+      previous_content_sha256: previous,
+      content_sha256: live,
+      repaired_utc: isoStamp(hint.repaired_utc),
+      no_rewrite_bytes: true,
+      live_byte_size: hint.byte_size != null ? Number(hint.byte_size) : null,
+      unverified: !!hint.unverified,
+    };
+    const extras = {
+      generated_at: hint.generated_at,
+      lattice_tip: paperTip,
+      paper_chain_tip: hint.chain_tip || row.chain_tip || (paperTip && paperTip.ledger_entry_hash) || null,
+      paper_chain_sequence: hint.chain_sequence != null ? hint.chain_sequence : row.chain_sequence,
+      content_sha256: live,
+      content_sha256_previous: previous,
+      hash_repair: hashRepair,
+    };
+    let doc = buildDiscoveryMetadata({ ...row, content_sha256: live }, extras);
+    const body = JSON.stringify(doc, null, 2) + "\n";
+    const metadataSha = sha256hex(body);
+    doc = buildDiscoveryMetadata({ ...row, content_sha256: live }, { ...extras, metadata_sha256: metadataSha });
+    doc.metadata_sha256 = metadataSha;
+    doc.hash_repair = hashRepair;
+    if (previous) doc.content_sha256_previous = previous;
+    const finalBody = JSON.stringify(doc, null, 2) + "\n";
+    const finalSha = sha256hex(finalBody);
+    doc.metadata_sha256 = finalSha;
+    const bytes = new TextEncoder().encode(JSON.stringify(doc, null, 2) + "\n");
+    const lib = shelfOf(row);
+    const packageKey = packageMetadataKey(lib, paper);
+    const treeKey = jsonTreeKey(paper);
+    const written = [];
+    if (env && env.FILES) {
+      try {
+        await putSidecarObject(env, packageKey, bytes, JSON_MIME);
+        written.push(packageKey);
+      } catch { /* package write */ }
+      try {
+        await putSidecarObject(env, treeKey, bytes, JSON_MIME);
+        written.push(treeKey);
+      } catch { /* tree write */ }
+    }
+    await rememberDerived(env, paper, jsonId, packageKey, treeKey, finalSha);
+    const payload = {
+      record_id: jsonId,
+      paper_record_id: paper,
+      type: "JSON",
+      action: JSON_HASH_REPAIR_ACTION,
+      content_sha256: live,
+      previous_content_sha256: previous,
+      metadata_sha256: finalSha,
+      package_object_key: packageKey,
+      json_tree_object_key: treeKey,
+      paper_chain_tip: extras.paper_chain_tip,
+      lattice_kind: "aziel-corpus.json_discovery",
+      no_rewrite_bytes: true,
+      unverified: !!hint.unverified,
+    };
+    let receipt = null;
+    try {
+      receipt = await appendDocumentLedger(env, jsonId, JSON_HASH_REPAIR_ACTION, payload);
+    } catch { receipt = null; }
+    try {
+      await appendLedger(env, JSON_HASH_REPAIR_ACTION, payload);
+    } catch { /* global ledger optional */ }
+    return {
+      ok: true,
+      record_id: paper,
+      json_record_id: jsonId,
+      metadata_sha256: finalSha,
+      package_object_key: packageKey,
+      json_tree_object_key: treeKey,
+      written,
+      receipt_id: jsonId,
+      document_entry_hash: receipt && receipt.entry_hash,
+      metadata: doc,
+    };
+  } catch (err) {
+    return { ok: false, error: err && err.message ? err.message : "hash repair metadata failed", record_id: paper, json_record_id: jsonId };
   }
 }
 
