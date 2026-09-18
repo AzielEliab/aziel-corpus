@@ -19,6 +19,7 @@ import { designBySlug, designPackDoc, designPackIndex } from "./design-pack.js";
 import { LIBRARY_INDEX_KEY, packedRecordCounts, publicSearchCard, readPackedIndex, searchPackedRecords } from "./library-index.js";
 import { matchPublishedTip, ingestVerifyJson, LOCKSET_TIP } from "./ingest-receipt.js";
 import { HOST } from "./runtime-copy.js";
+import { tradesRuntimeMcpDiscovery } from "./trades-runtime.js";
 
 const PROTOCOL = "2025-03-26";
 
@@ -380,7 +381,10 @@ export async function handleLibraryMcp(request, url, env) {
       tools: MCP_TOOLS.slice(),
       dual_surface: DUAL_SURFACE,
       honesty: HONESTY,
-      note: "POST JSON-RPC initialize / tools/list / tools/call. Runtime FragGate door stays POST /runtime/mcp.",
+      note: "POST JSON-RPC initialize / tools/list / tools/call. Runtime FragGate door stays POST /runtime/mcp. Sister product MCP hosts are cited, not executed here.",
+      sister_mcp: {
+        "trades-runtime": tradesRuntimeMcpDiscovery(),
+      },
     };
     const res = json(body);
     if (request.method === "HEAD") return new Response(null, { status: res.status, headers: res.headers });

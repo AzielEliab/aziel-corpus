@@ -55,7 +55,7 @@ function blockLiveRuntime(origFetch, extra) {
         headers: { "Content-Type": "application/json" },
       });
     }
-    if (/\/count(?:\?|$)/.test(href)) {
+    if (/\/count(?:\?|$)/.test(href) || /trades-runtime\.vibelock\.workers\.dev\/v1\/stats/i.test(href)) {
       return new Response(JSON.stringify({ project: "stub", views: 0, downloads: 0, total: 0 }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
@@ -151,7 +151,7 @@ test("mergeSoftwareExtras adds AZNet, FragGate, EmbryoLock, and AZCoherence with
   assert.ok(merged.some((p) => p.slug === "aznet" && p.worker_home === AZNET_WORKER_HOME));
   assert.ok(merged.some((p) => p.slug === "fraggate" && p.door));
   assert.ok(merged.some((p) => p.slug === "embryolock" && p.catalog_only));
-  assert.equal(SOFTWARE_EXTRAS.length, 5);
+  assert.equal(SOFTWARE_EXTRAS.length, 6);
   assert.ok(merged.some((p) => p.slug === "azcoherence"));
   const already = mergeSoftwareExtras([{ slug: "fraggate", name: "FragGate", door: true }]);
   assert.equal(already.filter((p) => p.slug === "fraggate").length, 1);
@@ -462,10 +462,12 @@ test("GET /software uses AZIEL_RUNTIME catalog binding and lists every product",
     assert.match(html, /AZNet/);
     assert.match(html, /EmbryoLock/);
     assert.match(html, /AZCoherence/);
+    assert.match(html, /Trades-Runtime/);
     assert.match(html, /Plain Product 24/);
     assert.match(html, /fraggate-download-tracker\.vibelock\.workers\.dev\/download/);
     assert.match(html, /aznet-download-tracker\.vibelock\.workers\.dev\/download/);
     assert.match(html, /azcoherence-download-tracker\.vibelock\.workers\.dev\/download/);
+    assert.match(html, /trades-runtime\.vibelock\.workers\.dev\/download/);
     assert.match(html, /aziel-runtime/);
     assert.doesNotMatch(html, /Runtime 1\.6\.4 · FragGate/);
     assert.doesNotMatch(html, /aziel-runtime 1\.6\.4 FragGate/);
@@ -523,12 +525,20 @@ test("GET /software uses AZIEL_RUNTIME catalog binding and lists every product",
     assert.ok(built.products.some((p) => p.slug === "embryolock"));
     assert.ok(built.products.some((p) => p.slug === "aznet"));
     assert.ok(built.products.some((p) => p.slug === "azcoherence"));
+    assert.ok(built.products.some((p) => p.slug === "trades-runtime"));
     const azc = built.products.find((p) => p.slug === "azcoherence");
     assert.equal(azc.kind, "plain");
     assert.ok(azc.links.some((l) => l.primary && l.label === "Download" && l.href === AZCOHERENCE_DOWNLOAD));
     assert.ok(azc.links.some((l) => l.label === "Worker" && l.href === AZCOHERENCE_WORKER_HOME));
     assert.ok(azc.pills.includes("1 downloads"));
     assert.ok(azc.pills.includes("5 views"));
+    const trades = built.products.find((p) => p.slug === "trades-runtime");
+    assert.equal(trades.kind, "plain");
+    assert.ok(trades.links.some((l) => l.primary && l.label === "Download" && l.href === "https://trades-runtime.vibelock.workers.dev/download"));
+    assert.ok(trades.links.some((l) => l.label === "Worker" && l.href === "https://trades-runtime.vibelock.workers.dev/"));
+    assert.ok(trades.links.some((l) => l.label === "GitHub" && l.href === "https://github.com/AzielEliab/trades-runtime"));
+    assert.ok(trades.links.some((l) => l.label === "MCP" && l.href === "https://trades-runtime.vibelock.workers.dev/mcp"));
+    assert.ok(!trades.links.some((l) => /fraggate\/describe\?slug=trades-runtime/.test(l.href)));
     const fg = built.products.find((p) => p.slug === "fraggate");
     assert.ok(fg.links.some((l) => l.primary && l.label === "Download" && l.href === FRAGGATE_DOWNLOAD));
     assert.ok(fg.links.some((l) => l.label === "Worker" && l.href === FRAGGATE_WORKER_HOME));
@@ -1011,6 +1021,12 @@ test("GET /v1/software products[] is Softwares-tab only; extras[] holds fraggate
     assert.ok(!body.products.some((p) => p.slug === "mesh"));
     assert.ok(body.extras.some((e) => e.slug === "fraggate"));
     assert.ok(body.extras.some((e) => e.slug === "mesh"));
+    const trades = body.products.find((p) => p.slug === "trades-runtime");
+    assert.ok(trades);
+    assert.equal(trades.mcp, "https://trades-runtime.vibelock.workers.dev/mcp");
+    assert.equal(trades.github, "https://github.com/AzielEliab/trades-runtime");
+    assert.equal(trades.download, "https://trades-runtime.vibelock.workers.dev/download");
+    assert.equal(trades.fraggate_engine, false);
     assert.equal(body.download_url, "https://www.azielcorpuslibrary.net/download");
     assert.match(body.v1_download, /\/v1\/download$/);
     const fg = body.extras.find((e) => e.slug === "fraggate");

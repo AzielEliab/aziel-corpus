@@ -333,6 +333,7 @@ test("llms.txt / cite / MCP discovery carry dual-surface + CNS + no AZ-GEN overc
 
   const mcp = mcpDiscovery();
   assert.equal(mcp.mcpServers["aziel-corpus"].url, HOST + "/mcp");
+  assert.equal(mcp.mcpServers["trades-runtime"].url, "https://trades-runtime.vibelock.workers.dev/mcp");
   assert.equal(mcp.bridge, HOST + "/bridge.json");
 });
 
