@@ -842,6 +842,7 @@ export function llmsDoc(limitation) {
     + "Record discovery metadata (public JSON, no auth): " + HOST + "/record/{record_id}/metadata.json  alias " + HOST + "/record/{record_id}.json\n"
     + "Record metadata sitemap: " + HOST + "/sitemap-records.xml\n"
     + "Metadata backfill (idempotent): " + HOST + "/v1/metadata-backfill\n"
+    + "Content SHA-256 repair (file-bytes hash): " + HOST + "/v1/content-hash-repair\n"
     + "Software hub mirrors the live aziel-runtime catalog per request (GET " + CATALOG + "/v1/software, fallback " + CATALOG + "/v1/fraggate/list; same-origin " + HOST + "/v1/software). No fixed product cap.\n"
     + "Runtime catalog: " + HOST + "/runtime\n"
     + "Runtime FragGate: " + HOST + "/runtime/v1/fraggate\n"

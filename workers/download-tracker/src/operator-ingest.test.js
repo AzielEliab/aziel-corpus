@@ -172,4 +172,5 @@ test("operator token ingest writes aziel and OpenAPI lists the route", async () 
   const open = await handleRuntimeApi(new Request(HOST + "/openapi.json"), new URL(HOST + "/openapi.json"), stubEnv());
   const spec = await open.json();
   assert.ok(spec.paths["/v1/operator/library-ingest"]);
+  assert.ok(spec.paths["/v1/operator/hash-resync"]);
 });

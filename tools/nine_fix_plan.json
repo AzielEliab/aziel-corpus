@@ -1,0 +1,68 @@
+{
+  "root_cause": "ingestRecord hashes notes||title before appending author/domain into body; serveFile serves body",
+  "updates": [
+    {
+      "record_id": "AZDOC-00908C2A2E0A",
+      "title": "AZBot anonymous Corpus smoke",
+      "expect": "a12159bddba599be13b587235c26cda68abbabecd14c012e572f87ab4fd26a6b",
+      "actual": "197d60a1cf13bdec32359b73283d1c8bdf3fa48b4ae65e58b859f5897d511ddc",
+      "bytes": 92
+    },
+    {
+      "record_id": "AZDOC-697F4E1D8C34",
+      "title": "probe",
+      "expect": "ba9c736f19e7f60b7f6764adb0b7908c0a2b394e09b6c09863528c7f2bc86095",
+      "actual": "e8b4776da74530b89e04d756e38e4b7cce046814248e81c49a352b7fe4da73f7",
+      "bytes": 11
+    },
+    {
+      "record_id": "AZDOC-C2B6A81A5A0B",
+      "title": "auth-probe",
+      "expect": "8399177ebd2e61e9bf903b0c69a0683569d138b9c36a4a7a99b30173c637329c",
+      "actual": "e8b4776da74530b89e04d756e38e4b7cce046814248e81c49a352b7fe4da73f7",
+      "bytes": 11
+    },
+    {
+      "record_id": "AZDOC-3673C06729C4",
+      "title": "Re: SEO Opportunities for http://azielcorpuslibrary.net",
+      "expect": "b9f119f713603da6abc866ba4594a94524f32b2c1a3873a8ecff115aae6215a5",
+      "actual": "497c3f6af9327e67c5fb74ea7d6ad6f0caf4a0694c1f82c1a0509a97bed7faf7",
+      "bytes": 570
+    },
+    {
+      "record_id": "AZDOC-B3A18F2CB097",
+      "title": "Is your website ready for Search?",
+      "expect": "12235450f5cdc87b81082cb1aa9260b1d89f86ea96ff952af087a54e5a9f948a",
+      "actual": "4d6cb03b7e7a5601989284ba7fed3a2ed4dac68b846fd386fa0a07561e220b90",
+      "bytes": 311
+    },
+    {
+      "record_id": "AZDOC-C6D76CC9D65C",
+      "title": "Instagram",
+      "expect": "b49ee9b9d0df468151e565ca080f596e863d93107271adbb37a437ffafdb75f5",
+      "actual": "8a38613b3a67ab4122b1cfee3c814d9c6deff977b33eab8ac447eddbd835b8ee",
+      "bytes": 607
+    },
+    {
+      "record_id": "AZDOC-498664EBE53C",
+      "title": "Results for azielcorpuslibrary.net",
+      "expect": "bf5456cd207ecc7abd8cdd9e08a111959620e53208c3b5ec383a4f8e3b0d3bc3",
+      "actual": "b3fca4f2a18ce999e3e87b2d7f3746fdfbcf28de69e2e5dc7529e5bcc15b4022",
+      "bytes": 174
+    },
+    {
+      "record_id": "AZDOC-57CA385CE98A",
+      "title": "Project Lead",
+      "expect": "7320dd16195a143d438c31479cbe69aacb315c146c253d084175fe766e782d0b",
+      "actual": "aa911f00a9acf3f88062265992ef32ba8ac7e3ead67666eb77794eda70294f79",
+      "bytes": 583
+    },
+    {
+      "record_id": "AZDOC-213C0E8052F3",
+      "title": "Are you on the lookout for a cost-effective and creative advertising option at a low cost?",
+      "expect": "7557d8015fdef0335bb76d70780a1a3ced6ccc2ea27cfa4b1bedda48d1085eb6",
+      "actual": "54a2890eebd8dd4f30bf7444aad42b003c4c39120a830ded9a439d5c35ad11a1",
+      "bytes": 848
+    }
+  ]
+}

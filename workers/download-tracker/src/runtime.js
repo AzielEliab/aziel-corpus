@@ -13,6 +13,8 @@ import { handleLibraryIngestApi, handleLibraryMcp } from "./library-mcp.js";
 import { handleDesignPackApi } from "./design-pack.js";
 import { DUAL_SURFACE, MCP_TOOLS, AI_PATH_NOTE } from "./ai-surface.js";
 import { continueMetadataBackfill, metadataBackfillStatus, receiptForJsonMetadata } from "./record-metadata.js";
+import { continueContentHashRepair, contentHashRepairStatus, sampleContentHashIntegrity } from "./content-hash-repair.js";
+import { isOperatorRequest } from "./rate-limit.js";
 import { receiptForMediaRun, isMediaRunId } from "./media.js";
 import { continueVerifyGeo, geoVerifyStatus, GEO_PIN_NOTE } from "./geo.js";
 import {
@@ -124,10 +126,12 @@ Ops (do **not** increment downloads):
 - \`GET /v1/verify-backfill?all=1\` (walk every stored Aziel Library + Corpus record)
 - \`GET /v1/verify-backfill?rebuild=1\` (chunked tip reconcile; JSON returns promptly with next_cursor / done; packed shelf refresh is deferred. Repeat with cursor or all=1 until done:true)
 - \`GET /v1/verify-geo?force=1\` / \`?status=1\` (chunked map pins: paper date × event × geolocation)
+- \`GET /v1/content-hash-repair\` (dry-run recompute of content_sha256 from served file bytes). \`?apply=1\` is operator-only. Does not rewrite file bytes. Append-only JSON_HASH_REPAIR tip.
 - \`GET /v1/document-chain?record_id=\`
 - \`POST /v1/ingest\` (AI/JSON upload. Session → Corpus; operator token → live hub azlibrary only. Anonymous JSON refused. Mesh Cap-7 names are not write targets.)
 - \`POST /v1/jeeves/upload\` (signed-in public → Corpus; operator token/session → Aziel Library)
 - \`POST /v1/operator/library-ingest\` (header X-Aziel-Operator-Token or operator session; env OPERATOR_TOKEN / GATE_TOKEN / LIBRARY_OPERATOR_TOKEN — names only, never the value; live hub azlibrary only)
+- \`POST /v1/operator/hash-resync\` (operator token; body {record_ids:[AZDOC-…]} or {all:true}; sets content_sha256 to sha256 of live /file bytes; refreshes packed library:index:v1)
 - \`POST /transcribe\` (Whisper + mandatory VibeLock determination; hard A/V blocks HTTP 451; lattice receipt even without library upload)
 - \`GET /media/{sha256}\` (inline playback of allowed A/V only)
 - \`POST /ocr\` (hosted OCR; lattice receipt on every run)
@@ -218,6 +222,7 @@ function openapi() {
       "/v1/ingest": { post: { summary: "AI/OpenAPI upload (ingest/receipt). Session cookie writes Corpus / azcorpus (Lamb Lens). X-Aziel-Operator-Token writes live hub azlibrary only. Anonymous JSON refused. Plane A UI on this Worker. Cap-7 names inherit design_of hubs; resolves_to_hub: false. CROSS-NETWORK-SURVIVAL on the receipt. Compatible AI clients: " + AI_CLIENTS + ".", operationId: "ingestRecord" } },
       "/v1/jeeves/upload": { post: { summary: "Ask Jeeves Add — same ingest as the shelf (structure, SPRE × CLCE × PhysLing, Bayesian). Signed-in public writes Corpus / azcorpus; operator writes live hub Aziel Library / azlibrary.", operationId: "jeevesUpload" } },
       "/v1/operator/library-ingest": { post: { summary: "Operator Aziel Library ingest (SOFTWARE-SITE-DOSSIER-1.0). Same ingestRecord pipeline as Jeeves/shelf. Requires X-Aziel-Operator-Token or operator session. Writes live hub azlibrary only. Idempotent same-SHA; exact-same-subject supersedes. Writes discovery metadata sidecar in the same ingest. No public write hole.", operationId: "operatorLibraryIngest" } },
+      "/v1/operator/hash-resync": { post: { summary: "Operator repair: recompute content_sha256 from the exact bytes GET /file serves. Body {record_ids:[AZDOC-…]} or {all:true} or {known:true} for the 9 confirmed live mismatches. Updates D1 + packed library:index:v1. Append-only discovery tip. Never rewrites file bytes. Requires X-Aziel-Operator-Token.", operationId: "operatorHashResync" } },
       "/v1/products": { get: { summary: "Plane A UI products on this Worker: azcorpus (Corpus / Lamb Lens) and azlibrary (royal-purple Aziel Library). Cap-7 names inherit design_of this hub; resolves_to_hub: false. Anyone may download both. azlibrary upload uses X-Aziel-Operator-Token on the live hub only.", operationId: "websiteProducts" } },
       "/v1/design-pack": { get: { summary: "Index of Cap-7 design+content packs. Each entry has design_of, resolves_to_hub: false, tip + pack hashes. Plane A UI for azcorpus/azlibrary stays on this Worker. Sister hubs remain azieleliab.com, godlock.uk, hedidntjump.com.", operationId: "designPackIndex" } },
       "/v1/design-pack/{slug}": { get: { summary: "One Cap-7 website design+content pack (azcorpus, azlibrary, …). design_of a hub. resolves_to_hub: false. Includes mesh_pull hash-verify steps. Pull-only cold copy. Not live public DNS. CROSS-NETWORK-SURVIVAL.", operationId: "designPack", parameters: [{ name: "slug", in: "path", required: true, schema: { type: "string" } }] } },
@@ -225,6 +230,7 @@ function openapi() {
       "/bridge.json": { get: { summary: "Cap-7 sites inherit design_of the four hubs. resolves_to_hub: false. name_may_change: true. public_icann: false. No fifth product. Plane A UI: azcorpus + azlibrary on this Worker. No AZ-GEN publish cadence. Future MirageGrid /bridge.json is cited, not claimed live.", operationId: "bridgeJson" } },
       "/mcp": { post: { summary: "Library MCP JSON-RPC (aziel-corpus_health, search, skill, download, ingest, design_pack, receipt). Dual surface. Upload requires session/operator token. Public, no OAuth.", operationId: "libraryMcp" }, get: { summary: "Library MCP discovery (tool names). Runtime FragGate door stays POST /runtime/mcp.", operationId: "libraryMcpDiscover" } },
       "/v1/metadata-backfill": { get: { summary: "Idempotent discovery-metadata backfill. Writes {library}/{AZDOC}/JSONAZDOC-….json beside the paper and mirrors under .Json/. JSON-prefixed document_ledger receipts copy the paper lattice and never rewrite paper chain_tip. all=1 walks remaining; force=1 restarts; status=1 progress. Cron and request walks also continue. Does not increment downloads.", operationId: "metadataBackfill", parameters: [{ name: "all", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "force", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "status", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "record_id", in: "query", schema: { type: "string" } }] } },
+      "/v1/content-hash-repair": { get: { summary: "Recompute content_sha256 from the exact bytes GET /file serves (R2/KV object, else legacy body). Dry-run by default. known=1 is the 9 confirmed live AZDOCs. apply=1 is operator-only and updates D1 + packed library:index:v1 without rewriting file bytes. Appends JSON_HASH_REPAIR (does not delete discovery history). Unreadable objects are flagged HASH_UNVERIFIED. sample=1 is a cron/CI integrity check.", operationId: "contentHashRepair", parameters: [{ name: "apply", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "known", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "all", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "force", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "status", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "sample", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "record_id", in: "query", schema: { type: "string" } }] } },
       "/record/{record_id}/metadata.json": { get: { summary: "Public Schema.org discovery metadata for one AZDOC record (no auth). Co-located with the paper package and mirrored under .Json/. Alias: /record/{record_id}.json.", operationId: "recordMetadata", parameters: [{ name: "record_id", in: "path", required: true, schema: { type: "string" } }] } },
       "/record/{record_id}.json": { get: { summary: "Alias of /record/{record_id}/metadata.json.", operationId: "recordMetadataAlias", parameters: [{ name: "record_id", in: "path", required: true, schema: { type: "string" } }] } },
       "/sitemap-records.xml": { get: { summary: "Record HTML + metadata.json + .json alias URLs for crawlers. Linked from sitemap-index.xml.", operationId: "sitemapRecords" } },
@@ -234,7 +240,7 @@ function openapi() {
       "/media/{sha256}": { get: { summary: "Inline playback of allowed A/V stored at av/{sha256}. Blocked media is never stored.", operationId: "media", parameters: [{ name: "sha256", in: "path", required: true, schema: { type: "string" } }] } },
       "/receipt/{id}": { get: { summary: "Receipt for an AZDOC- paper, JSONAZDOC- discovery sidecar, or AZRUN- media lattice entry.", operationId: "receipt", parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }] } },
       "/ledger/{id}": { get: { summary: "Alias of /receipt/{id} for media lattice and document receipts.", operationId: "ledger", parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }] } },
-      "/file/{record_id}": { get: { summary: "Download any stored record (text or file). HTTP 200. Quarantined poison docs stay downloadable with X-Aziel-Quarantine. Ledger-linked. A 64-hex SHA-256 also resolves the kept matching file. AI clients: aziel-corpus_download.", operationId: "file" } },
+      "/file/{record_id}": { get: { summary: "Download any stored record (text or file). HTTP 200. X-Aziel-SHA256 is the live SHA-256 of the response body (file bytes). Quarantined poison docs stay downloadable with X-Aziel-Quarantine. Ledger-linked. A 64-hex SHA-256 also resolves the kept matching file. AI clients: aziel-corpus_download.", operationId: "file" } },
       "/download": { get: { summary: "Counted Softwares zip (asset=), counted record (record=), counted hash (hash=), or counted first-class website design pack (product=azcorpus|azlibrary). Anyone may download azcorpus and azlibrary packs. HTTP 200, no silent 302. AI clients: aziel-corpus_download / aziel-corpus_design_pack.", operationId: "download", parameters: [{ name: "asset", in: "query", schema: { type: "string" } }, { name: "record", in: "query", schema: { type: "string" } }, { name: "hash", in: "query", schema: { type: "string" } }, { name: "sha256", in: "query", schema: { type: "string" } }, { name: "product", in: "query", schema: { type: "string", enum: ["azcorpus", "azlibrary", "azeliab", "godlock", "hedidntjump"] } }, { name: "pack", in: "query", schema: { type: "string" } }] } },
       "/v1/download": { get: { summary: "Softwares download descriptor (2xx). Aligns catalog download_url with GET /download. Does not increment. Author Aziel Eliab.", operationId: "softwareDownload" } },
       "/v1/docs/{hash}/download": { get: { summary: "Download the stored file for a kept record whose content_sha256 matches. Does not increment downloads. Duplicates are not deleted. AI/MCP: aziel-corpus_download.", operationId: "downloadByHash", parameters: [{ name: "hash", in: "path", required: true, schema: { type: "string" } }] } },
@@ -540,6 +546,22 @@ export async function handleRuntimeApi(request, url, env, ctx) {
     if (statusOnly) return json({ ...(await metadataBackfillStatus(env)), limitation: LIMITATION });
     const report = await continueMetadataBackfill(env, { ms: all ? 25000 : 12000, force, all, recordId });
     return json({ ...report, limitation: LIMITATION });
+  }
+  if (path === "/v1/content-hash-repair" && request.method === "GET") {
+    const force = url.searchParams.get("force") === "1" || url.searchParams.get("force") === "true";
+    const all = url.searchParams.get("all") === "1" || url.searchParams.get("all") === "true";
+    const statusOnly = url.searchParams.get("status") === "1" || url.searchParams.get("status") === "true";
+    const sampleOnly = url.searchParams.get("sample") === "1" || url.searchParams.get("sample") === "true";
+    const apply = url.searchParams.get("apply") === "1" || url.searchParams.get("apply") === "true";
+    const known = url.searchParams.get("known") === "1" || url.searchParams.get("known") === "true";
+    const recordId = (url.searchParams.get("record_id") || url.searchParams.get("id") || "").trim() || null;
+    if (apply && !isOperatorRequest(request, env, null)) {
+      return json({ error: "operator token required to apply content_sha256 repair", limitation: LIMITATION }, 401);
+    }
+    if (statusOnly) return json({ ...(await contentHashRepairStatus(env)), limitation: LIMITATION });
+    if (sampleOnly) return json({ ...(await sampleContentHashIntegrity(env)), limitation: LIMITATION });
+    const report = await continueContentHashRepair(env, { ms: all ? 25000 : 12000, force, all, recordId, known, apply });
+    return json({ ...report, limitation: LIMITATION, known_ids: known ? report.record_ids : undefined });
   }
   if (path === "/v1/lattice" && request.method === "GET") {
     const recordId = (url.searchParams.get("record_id") || url.searchParams.get("id") || url.searchParams.get("run_id") || "").trim();
