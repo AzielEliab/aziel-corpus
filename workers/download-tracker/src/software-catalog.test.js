@@ -30,6 +30,8 @@ import {
   normalizeSoftwareDoc,
   fetchLiveSoftwareCatalog,
   fetchLiveRuntimeVersion,
+  preferWorkerSoftwareCopy,
+  catalogCopyLooksStale,
 } from "./software-catalog.js";
 import {
   AZCOHERENCE_DOWNLOAD,
@@ -1207,6 +1209,82 @@ test("Softwares cards show views+downloads for corpus, runtime hub, and CodeLock
     assert.match(firstPaint, /11 downloads/);
     assert.match(firstPaint, /data-slug="aziel-corpus"/);
     assert.match(firstPaint, /data-slug="codelock"/);
+  } finally {
+    globalThis.fetch = origFetch;
+  }
+});
+
+test("preferWorkerSoftwareCopy keeps Worker SSoT over extra THIS-IS / catalog-only blurbs", () => {
+  assert.equal(
+    preferWorkerSoftwareCopy(
+      { one_line: "Cite an offline vault that prefers destruction over recovery." },
+      { one_line: "Catalog-only door. Listed here even before a live engine Worker is published. Author Aziel Eliab." }
+    ),
+    "Cite an offline vault that prefers destruction over recovery."
+  );
+  assert.equal(
+    preferWorkerSoftwareCopy(
+      { one_line: "THIS IS: old catalog blurb." },
+      { one_line: "Inspect the same event on time, change, graph, and place axes at once." }
+    ),
+    "Inspect the same event on time, change, graph, and place axes at once."
+  );
+  assert.equal(catalogCopyLooksStale({
+    software: [{ slug: "4dmap", one_line: "THIS IS: 4DMap." }],
+  }), true);
+  assert.equal(catalogCopyLooksStale({
+    software: [{ slug: "4dmap", one_line: "Inspect the same event on time, change, graph, and place axes at once." }],
+  }), false);
+});
+
+test("softwareTabCatalog keeps Worker one_line when extras have stale door copy", () => {
+  const tab = softwareTabCatalog({
+    version: "2.0.0-rc1",
+    git_sha: "4f92f3b02a8480c9aca534b3d927007287a6e2ff",
+    software: [
+      { slug: "embryolock", name: "EmbryoLock", one_line: "Cite an offline vault that prefers destruction over recovery." },
+      { slug: "azcoherence", name: "AZCoherence", one_line: "Review whether a primary score and an alternate hold together." },
+      { slug: "foldlock", name: "FoldLock", one_line: "Fold UTF-8 text by suppressing tether words, then verify the restore." },
+    ],
+  });
+  assert.equal(tab.git_sha, "4f92f3b02a8480c9aca534b3d927007287a6e2ff");
+  assert.equal(tab.products.find((p) => p.slug === "embryolock").one_line, "Cite an offline vault that prefers destruction over recovery.");
+  assert.equal(tab.products.find((p) => p.slug === "azcoherence").one_line, "Review whether a primary score and an alternate hold together.");
+  assert.equal(tab.products.find((p) => p.slug === "foldlock").one_line, "Fold UTF-8 text by suppressing tether words, then verify the restore.");
+  assert.doesNotMatch(tab.products.find((p) => p.slug === "embryolock").one_line, /Catalog-only door/);
+});
+
+test("GET /v1/software prefers live Worker copy over extras and cache", async () => {
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = blockLiveRuntime(origFetch);
+  const env = stubEnv({
+    async fetch(request) {
+      const url = new URL(request.url);
+      if (url.pathname.endsWith("/software")) {
+        return new Response(JSON.stringify({
+          version: "2.0.0-rc1",
+          git_sha: "4f92f3b02a8480c9aca534b3d927007287a6e2ff",
+          software: [
+            { slug: "embryolock", name: "EmbryoLock", one_line: "Cite an offline vault that prefers destruction over recovery." },
+            { slug: "4dmap", name: "4DMap", one_line: "Inspect the same event on time, change, graph, and place axes at once." },
+          ],
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      return new Response(JSON.stringify({ error: "not found" }), { status: 404 });
+    },
+  });
+  try {
+    const res = await handleRuntimeApi(
+      new Request(HOST + "/v1/software", { headers: { Accept: "application/json" } }),
+      new URL(HOST + "/v1/software"),
+      env
+    );
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.git_sha, "4f92f3b02a8480c9aca534b3d927007287a6e2ff");
+    const embryo = body.products.find((p) => p.slug === "embryolock");
+    assert.equal(embryo.one_line, "Cite an offline vault that prefers destruction over recovery.");
+    assert.doesNotMatch(JSON.stringify(body.products), /THIS IS:/);
   } finally {
     globalThis.fetch = origFetch;
   }

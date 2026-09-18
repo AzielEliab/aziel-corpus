@@ -572,7 +572,7 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
       }, opts));
       return page("Software", softwareBody(catalog), { signed, path: "/software", kind: "software", runtimeVersion: catalog.catalogVersion });
     };
-    const cacheUrl = htmlCacheUrl(request) + (bot ? ":bot-pills" : ":full-pills");
+    const cacheUrl = htmlCacheUrl(request) + (bot ? ":bot-pills-ssot2" : ":full-pills-ssot2");
     if (!signed) {
       const cached = await cacheMatchText(cacheUrl);
       if (cached) {
