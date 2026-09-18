@@ -145,6 +145,10 @@ test("JSON-LD types the author as Person with alternateName", () => {
   assert.ok(aboutFaq);
   assert.ok(aboutFaq.mainEntity.some((q) => q.name === "What matters about Aziel Eliab?"));
   assert.ok(aboutFaq.mainEntity.some((q) => q.name === "What does Aziel Eliab publish?"));
+  assert.ok(aboutFaq.mainEntity.some((q) => q.name === "What does Aziel Eliab do?"));
+  assert.ok(aboutFaq.mainEntity.some((q) => q.name === "What Aziel Eliab does"));
+  assert.ok(aboutFaq.mainEntity.some((q) => q.name === "Who is Aziel Eliab the developer?"));
+  assert.ok(aboutFaq.mainEntity.some((q) => q.name === "What software does Aziel Eliab make?"));
   assert.ok(aboutFaq.mainEntity.some((q) => q.name === "Is Aziel Eliab the two musicians named in 1 Chronicles 15:20?"));
   assert.ok(!aboutFaq.mainEntity.some((q) => q.name === "Is Aziel Eliab a scripture concordance entry?"));
   assert.ok(!aboutFaq.mainEntity.some((q) => /biblical Aziel|biblical Eliab/.test(q.name)));
