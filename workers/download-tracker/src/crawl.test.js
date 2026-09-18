@@ -223,6 +223,10 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(cite.about_stanza, /Aziel Digital Library on this site/);
   assert.match(cite.about_stanza, /GodLock/);
   assert.match(cite.about_record, /public MASTER/);
+  assert.match(cite.what_aziel_eliab_does, /Softwares through Aziel Runtime/);
+  assert.match(cite.research, /Book of the Knowledge/);
+  assert.match(cite.hardware, /Dog Leash/);
+  assert.ok(cite.cite_records.includes("AZDOC-A011CAD23671"));
   assert.match(cite.who_is, /receipt-first/);
   assert.match(cite.who_is, /1 Chronicles 15:20/);
   assert.doesNotMatch(cite.who_is, /scripture concordance/);

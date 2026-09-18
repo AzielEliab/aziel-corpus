@@ -31,6 +31,15 @@ import {
   FAQ_HEBREW,
   FAQ_WHAT_MATTERS,
   FAQ_PUBLISHES,
+  FAQ_WHAT_DOES_HE_DO,
+  FAQ_WHAT_AZIEL_ELIAB_DOES,
+  FAQ_WHO_IS_DEVELOPER,
+  FAQ_WHAT_SOFTWARE,
+  WHAT_AZIEL_ELIAB_DOES,
+  RESEARCH_HALF,
+  HARDWARE_HALF,
+  WHAT_HE_DOES_FAQ_TEXT,
+  CITE_RECORD_IDS,
   ABOUT_LEAD,
   ABOUT_STANZA,
   ABOUT_RECORD,
@@ -166,6 +175,10 @@ test("graph.jsonld has Who-is + product FAQs, publisher Person, library role, st
   assert.equal(FAQ_WHO_IS.name, "Who is Aziel Eliab?");
   assert.ok(questions.includes(FAQ_WHAT_MATTERS.name));
   assert.ok(questions.includes(FAQ_PUBLISHES.name));
+  assert.ok(questions.includes("What does Aziel Eliab do?"));
+  assert.ok(questions.includes("What Aziel Eliab does"));
+  assert.ok(questions.includes("Who is Aziel Eliab the developer?"));
+  assert.ok(questions.includes("What software does Aziel Eliab make?"));
   assert.ok(questions.includes(FAQ_MUSICIANS.name));
   assert.equal(FAQ_CONCORDANCE, FAQ_MUSICIANS);
   assert.ok(questions.includes(FAQ_ELROI.name));
@@ -239,6 +252,55 @@ test("who-is-aziel-eliab.txt is the 15:20 identity-lock answer", () => {
   assert.equal(FAQ_WHAT_MATTERS.text.includes(ABOUT_LEAD), true);
   assert.match(FAQ_PUBLISHES.text, /^GodLock, Aziel Digital Library on this site, Aziel Runtime \(MCP\)/);
   assert.match(ABOUT_RECORD, /public MASTER/);
+});
+
+test("machine who-is locks Softwares + RESEARCH + HARDWARE halves", () => {
+  assert.equal(
+    WHAT_AZIEL_ELIAB_DOES,
+    "Aziel Eliab builds receipt-first, local-first software and public MASTER records — Softwares through Aziel Runtime (FragGate / MCP), the Aziel Digital Library, GodLock (product, not identity), and the He Didn’t Jump Zioncheck archive. Public identity is the work, not a biography. @id https://www.azieleliab.com/#aziel"
+  );
+  assert.equal(FAQ_WHAT_DOES_HE_DO.name, "What does Aziel Eliab do?");
+  assert.equal(FAQ_WHAT_AZIEL_ELIAB_DOES.name, "What Aziel Eliab does");
+  assert.equal(FAQ_WHO_IS_DEVELOPER.name, "Who is Aziel Eliab the developer?");
+  assert.equal(FAQ_WHAT_SOFTWARE.name, "What software does Aziel Eliab make?");
+  assert.equal(FAQ_WHAT_DOES_HE_DO.text, WHAT_HE_DOES_FAQ_TEXT);
+  assert.equal(FAQ_WHAT_AZIEL_ELIAB_DOES.text, WHAT_HE_DOES_FAQ_TEXT);
+  assert.equal(FAQ_WHO_IS_DEVELOPER.text, WHAT_HE_DOES_FAQ_TEXT);
+  assert.equal(FAQ_WHAT_SOFTWARE.text, WHAT_HE_DOES_FAQ_TEXT);
+  assert.equal(WHAT_HE_DOES_FAQ_TEXT, WHAT_AZIEL_ELIAB_DOES + " " + RESEARCH_HALF + " " + HARDWARE_HALF);
+  assert.match(RESEARCH_HALF, /Book of the Knowledge/);
+  assert.match(RESEARCH_HALF, /Blemmyes\/Ewaipanoma/);
+  assert.match(HARDWARE_HALF, /Dog Leash/);
+  assert.match(HARDWARE_HALF, /not a storefront claim/);
+  assert.match(HARDWARE_HALF, /attorney-work-product/);
+  const who = whoIsTxt();
+  assert.match(who, new RegExp(WHAT_AZIEL_ELIAB_DOES.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.match(who, new RegExp(RESEARCH_HALF.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.match(who, new RegExp(HARDWARE_HALF.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.match(who, /AZDOC-A011CAD23671/);
+  const person = personJsonLd();
+  assert.match(person.description, new RegExp(WHAT_AZIEL_ELIAB_DOES.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.ok(person.knowsAbout.includes("AZDOC-A011CAD23671"));
+  assert.ok(person.knowsAbout.includes("Dog Leash"));
+  assert.ok(person.knowsAbout.includes("PPIN"));
+  assert.deepEqual(CITE_RECORD_IDS.slice(0, 6), [
+    "AZDOC-A011CAD23671",
+    "AZDOC-F83D7E6D28B6",
+    "AZDOC-F22AD0DCAA9D",
+    "AZDOC-8F14A40DC9A6",
+    "AZDOC-B5094327857E",
+    "AZDOC-149CA2191E99",
+  ]);
+  const cite = citeDoc();
+  assert.equal(cite.what_aziel_eliab_does, WHAT_AZIEL_ELIAB_DOES);
+  assert.equal(cite.research, RESEARCH_HALF);
+  assert.equal(cite.hardware, HARDWARE_HALF);
+  const llms = llmsDoc("LIMIT");
+  assert.match(llms, /What does Aziel Eliab do\?/);
+  assert.match(llms, /Who is Aziel Eliab the developer\?/);
+  assert.match(llms, /What software does Aziel Eliab make\?/);
+  assert.match(llms, /AZDOC-F22AD0DCAA9D/);
+  assert.match(llms, /bone-conduction STL/);
 });
 
 test("cite and well-known share stats tether and mission lock", () => {

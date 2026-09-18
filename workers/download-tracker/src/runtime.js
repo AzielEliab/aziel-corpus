@@ -304,7 +304,7 @@ export async function handleRuntimeApi(request, url, env, ctx) {
     return serveSoftwareAsset(request, env, url.searchParams.get("asset"));
   }
   if (path === "/v1/software" && (request.method === "GET" || request.method === "HEAD")) {
-    const live = await fetchLiveSoftwareCatalog(env, { preferCache: true, timeoutMs: 2500 });
+    const live = await fetchLiveSoftwareCatalog(env, { preferCache: false, timeoutMs: 2500 });
     const tab = softwareTabCatalog(live.catalog);
     const corpus = tab.products.find((p) => p.slug === "aziel-corpus");
     const res = json({
@@ -312,6 +312,7 @@ export async function handleRuntimeApi(request, url, env, ctx) {
       source: live.source,
       origin: CATALOG + "/v1/software",
       fallback: CATALOG + "/v1/fraggate/list",
+      git_sha: live.git_sha || tab.git_sha || (live.catalog && live.catalog.git_sha) || "",
       version: tab.version || (live.catalog && live.catalog.version) || RUNTIME_VERSION,
       author: "Aziel Eliab",
       identity: "Aziel Eliab",
@@ -329,7 +330,7 @@ export async function handleRuntimeApi(request, url, env, ctx) {
       engine_slugs: tab.engine_slugs,
       true_engine_slugs: tab.true_engine_slugs,
     });
-    res.headers.set("Cache-Control", "public, s-maxage=120, stale-while-revalidate=3600");
+    res.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
     if (request.method === "HEAD") return new Response(null, { status: res.status, headers: res.headers });
     return res;
   }
