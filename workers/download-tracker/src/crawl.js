@@ -76,6 +76,8 @@ import {
   RESEARCH_HALF,
   HARDWARE_HALF,
   CITE_RECORD_IDS,
+  WHITESTONE_NOTE,
+  WHITESTONE_CITE,
 } from "./identity.js";
 
 const HOST = "https://www.azielcorpuslibrary.net";
@@ -636,6 +638,7 @@ export function citeDoc() {
     research: RESEARCH_HALF,
     hardware: HARDWARE_HALF,
     cite_records: CITE_RECORD_IDS.slice(),
+    whitestone: { ...WHITESTONE_CITE },
     jobTitle: PERSON_JOB_TITLE.slice(),
     jobTitle_note: PERSON_JOB_TITLE_NOTE,
     sites: siteBlurbsCite(),
@@ -927,6 +930,7 @@ export function llmsDoc(limitation) {
     + "- Live catalog JSON: " + HOST + "/v1/software  (same-origin; fallback " + CATALOG + "/v1/software)\n"
     + "- Runtime door: " + HOST + "/runtime\n"
     + "- Cards are public. Count pills may be omitted on the crawler HTML path; product names, downloads, and FragGate links stay.\n"
+    + "- Softwares list: " + WHITESTONE_NOTE + "\n"
     + "- Author Aziel Eliab only. Do not invent a second software index.\n\n"
     + "## About Aziel Eliab (HTML — crawl this)\n\n"
     + "- About HTML: " + HOST + ABOUT_PATH + "\n"
@@ -946,7 +950,7 @@ export function llmsDoc(limitation) {
     + "- Sister archive: " + HEDIDNTJUMP_LABEL + " " + HEDIDNTJUMP_HOME + "\n"
     + "- Alternate name Aziel Elroi Eliab is SEO alternateName only.\n\n"
     + "## Software products (crawl these hubs)\n\n"
-    + "The Software hub mirrors the live runtime catalog. Cards grow with GET /v1/software (fallback fraggate/list). PeaceLock, AZMail, AZBrowser, and later slugs appear automatically. No hard-coded 27 cap. Door extras AZNet and FragGate (separate app Workers) and EmbryoLock are listed without dropping catalog engines. AZCoherence (azcoherence) is a Softwares extra / peer-map fallback (Plain, scoring-review) so cite surfaces stay mapped if the live catalog is thin. FoldLock (foldlock) is a Softwares Language extra / cold-shelf SLOT hook (not zip; not encryption; never fold the lockset tip). Trades-Runtime (trades-runtime) is a Softwares extra: local-first BYO field-trades runtime; not a FragGate-exec true engine; live_backends false. Not a second door.\n"
+    + "The Software hub mirrors the live runtime catalog. Cards grow with GET /v1/software (fallback fraggate/list). PeaceLock, AZMail, AZBrowser, and later slugs appear automatically. No hard-coded 27 cap. Door extras AZNet and FragGate (separate app Workers) and EmbryoLock are listed without dropping catalog engines. AZCoherence (azcoherence) is a Softwares extra / peer-map fallback (Plain, scoring-review) so cite surfaces stay mapped if the live catalog is thin. FoldLock (foldlock) is a Softwares Language extra / cold-shelf SLOT hook (not zip; not encryption; never fold the lockset tip). Trades-Runtime (trades-runtime) is a Softwares extra: local-first BYO field-trades runtime; not a FragGate-exec true engine; live_backends false. Not a second door. Whitestone is a Softwares cite only (ephemeral pro se advisor; not a lawyer). Catalog entry ships on aziel-runtime GET /v1/software; this library Softwares tab refreshes from that Worker SSoT after that merge. Not a hardcoded extras card.\n"
     + azcoherenceLlmsBlock() + "\n"
     + foldlockLlmsBlock(HOST) + "\n"
     + tradesRuntimeLlmsBlock(HOST) + "\n"
@@ -1189,6 +1193,7 @@ export function aiTxt(limitation) {
     + "- AZCoherence (azcoherence, AZC-0.1): " + HOST + "/software · https://azcoherence-download-tracker.vibelock.workers.dev/ · " + HOST + "/runtime/v1/fraggate/describe?slug=azcoherence\n"
     + "- FoldLock (foldlock): " + HOST + "/software · https://foldlock-download-tracker.vibelock.workers.dev/ · " + HOST + "/runtime/v1/fraggate/describe?slug=foldlock — tether-word suppression on UTF-8; not zip; not encryption; tip SHA-256 stays over raw receipts\n"
     + "- Trades-Runtime (trades-runtime): " + HOST + "/software · https://trades-runtime.vibelock.workers.dev/ · https://trades-runtime.vibelock.workers.dev/mcp — local-first BYO field-trades runtime; not FragGate; live_backends false; GitHub Pages off\n"
+    + "- Softwares list: " + WHITESTONE_NOTE + "\n"
     + "- Live software catalog: " + HOST + "/v1/software\n"
     + "- Suite mesh / Live Nodes (read-only QNM ON): " + HOST + "/v1/mesh\n"
     + "- Runtime mesh: " + HOST + "/runtime/v1/mesh\n"
@@ -1260,6 +1265,7 @@ export function humansTxt() {
     "AZCoherence (azcoherence, AZC-0.1) Softwares Plain / scoring-review: " + HOST + "/software · https://azcoherence-download-tracker.vibelock.workers.dev/ · https://github.com/AzielEliab/AZCoherence",
     "FoldLock (foldlock) Softwares Language / FOLDLOCK-SHELF-1.0 SLOT hook: " + HOST + "/software · https://foldlock-download-tracker.vibelock.workers.dev/ · https://github.com/AzielEliab/foldlock — not zip; not encryption; never fold the lockset tip",
     "Trades-Runtime (trades-runtime) Softwares extra: " + HOST + "/software · https://trades-runtime.vibelock.workers.dev/ · https://github.com/AzielEliab/trades-runtime · MCP POST https://trades-runtime.vibelock.workers.dev/mcp — local-first BYO field-trades; not FragGate; live_backends false; Pages off",
+    WHITESTONE_NOTE,
     "Suite mesh (read-only QNM ON): " + HOST + "/v1/mesh",
     "Lockset tip / ingest-as-receipt: " + HOST + "/lockset.json · " + HOST + "/receipts/verify",
     "Cold multi-shelf: " + HOST + "/shelves · " + HOST + "/cold-copy · COLD-MULTI-SHELF-1.0",

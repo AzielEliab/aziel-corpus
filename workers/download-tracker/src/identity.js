@@ -151,6 +151,7 @@ export const PERSON_KNOWS_ABOUT = Object.freeze([
   "AEEM HVAC",
   "AZ Mandible family",
   "bone-conduction STL",
+  "Whitestone",
 ]);
 
 /** Cite these MASTER record ids — not DOIs. */
@@ -185,6 +186,20 @@ export const HARDWARE_HALF =
 /** FAQ answer: locked Softwares sentence + RESEARCH + HARDWARE. */
 export const WHAT_HE_DOES_FAQ_TEXT =
   WHAT_AZIEL_ELIAB_DOES + " " + RESEARCH_HALF + " " + HARDWARE_HALF;
+
+/**
+ * Softwares-list cite only. Not a hardcoded catalog card.
+ * Runtime ships the Whitestone entry; library refresh picks it up.
+ */
+export const WHITESTONE_NOTE =
+  "Whitestone (Softwares): ephemeral pro se advisor; not a lawyer. Catalog entry ships on aziel-runtime GET /v1/software; this library Softwares tab refreshes from that Worker SSoT after that merge.";
+
+/** Cite-only Softwares mention. Not a SOFTWARE_EXTRAS card. */
+export const WHITESTONE_CITE = Object.freeze({
+  name: "Whitestone",
+  note: WHITESTONE_NOTE,
+  extra_card: false,
+});
 
 /** Cross-tether public stats. Do not invent extra counters. */
 export const STATS_TETHER = Object.freeze({
@@ -301,7 +316,7 @@ export const FAQ_WHO_IS_DEVELOPER = Object.freeze({
 
 export const FAQ_WHAT_SOFTWARE = Object.freeze({
   name: "What software does Aziel Eliab make?",
-  text: WHAT_HE_DOES_FAQ_TEXT,
+  text: WHAT_HE_DOES_FAQ_TEXT + " " + WHITESTONE_NOTE,
 });
 
 export const IDENTITY_FAQS = Object.freeze([
@@ -409,7 +424,8 @@ export function whatHeDoesLlmsBlock() {
     + "- FAQ title “What does Aziel Eliab do?”: " + WHAT_HE_DOES_FAQ_TEXT + "\n"
     + "- FAQ title “What Aziel Eliab does”: " + WHAT_HE_DOES_FAQ_TEXT + "\n"
     + "- FAQ title “Who is Aziel Eliab the developer?”: " + WHAT_HE_DOES_FAQ_TEXT + "\n"
-    + "- FAQ title “What software does Aziel Eliab make?”: " + WHAT_HE_DOES_FAQ_TEXT + "\n"
+    + "- FAQ title “What software does Aziel Eliab make?”: " + FAQ_WHAT_SOFTWARE.text + "\n"
+    + "- Softwares list: " + WHITESTONE_NOTE + "\n"
     + "- Research: " + RESEARCH_HALF + "\n"
     + "- Hardware designs: " + HARDWARE_HALF + "\n"
     + "- Cite records (not DOIs): " + CITE_RECORD_IDS.join(", ") + "\n"
