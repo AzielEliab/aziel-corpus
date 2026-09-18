@@ -284,7 +284,17 @@ async function indexHtml(env, request, signed) {
   const error = held
     ? "Received. Safety review held this file off the public shelf. It is not deleted."
     : "";
-  return page("Corpus Search", homeBody({ ...browse, rows, error, views: stats.views || 0, downloads: stats.downloads || 0, host: HOST }), { signed: session, path: "/", kind: "search", views: stats.views || 0, downloads: stats.downloads || 0, donateStrip: false, ecosystem: false });
+  return page("Corpus Search", homeBody({
+    ...browse,
+    rows,
+    error,
+    views: stats.views || 0,
+    downloads: stats.downloads || 0,
+    records_packed: stats.records_packed,
+    records_aziel: stats.records_aziel,
+    records_corpus: stats.records_corpus,
+    host: HOST,
+  }), { signed: session, path: "/", kind: "search", views: stats.views || 0, downloads: stats.downloads || 0, donateStrip: false, ecosystem: false });
 }
 
 function llmsTxt() {

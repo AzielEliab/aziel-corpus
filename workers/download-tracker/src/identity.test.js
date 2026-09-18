@@ -402,6 +402,9 @@ test("GET /search is HTTP 200 and does not increment homepage views", async () =
   assert.match(res.headers.get("content-type") || "", /text\/html/);
   const html = await res.text();
   assert.match(html, /Corpus Search|Aziel Eliab/);
+  assert.match(html, /class="library-count"/);
+  assert.match(html, /data-source="library:index:v1"/);
+  assert.match(html, /<strong>0<\/strong> files in the libraries/);
   assert.ok(!html.includes(LOCAL_PERSON));
   assert.equal(views, 0);
   const head = await worker.fetch(

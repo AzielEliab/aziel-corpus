@@ -16,7 +16,7 @@ import {
   MCP_TOOLS,
 } from "./ai-surface.js";
 import { designBySlug, designPackDoc, designPackIndex } from "./design-pack.js";
-import { LIBRARY_INDEX_KEY, publicSearchCard, readPackedIndex, searchPackedRecords } from "./library-index.js";
+import { LIBRARY_INDEX_KEY, packedRecordCounts, publicSearchCard, readPackedIndex, searchPackedRecords } from "./library-index.js";
 import { matchPublishedTip, ingestVerifyJson, LOCKSET_TIP } from "./ingest-receipt.js";
 import { HOST } from "./runtime-copy.js";
 
@@ -264,6 +264,9 @@ function rpcError(id, code, message, status = 200) {
 async function callTool(name, args, env, request) {
   const a = args && typeof args === "object" ? args : {};
   if (name === "aziel-corpus_health") {
+    let packed = { records: [] };
+    try { packed = await readPackedIndex(env); } catch { packed = { records: [] }; }
+    const counts = packedRecordCounts(packed);
     return {
       ok: true,
       product: "aziel-corpus",
@@ -278,6 +281,7 @@ async function callTool(name, args, env, request) {
       },
       dual_surface: DUAL_SURFACE,
       honesty: HONESTY,
+      ...counts,
       skill: HOST + "/v1/skill",
       openapi: HOST + "/openapi.json",
       mcp: HOST + "/mcp",
@@ -300,6 +304,7 @@ async function callTool(name, args, env, request) {
       results: rows,
       source: "packed",
       index_key: LIBRARY_INDEX_KEY,
+      ...packedRecordCounts(packed),
       honesty: HONESTY,
     };
   }

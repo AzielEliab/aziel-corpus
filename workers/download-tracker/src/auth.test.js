@@ -19,6 +19,7 @@ function ingestPost(fields = {}, file) {
 
 test("homepage anonymous form requires a title and drops the file-optional label", () => {
   const home = homeBody({ rows: [], host: HOST });
+  assert.doesNotMatch(home, /files in the libraries/);
   assert.match(home, /id="upload-anonymous"/);
   assert.match(home, /id="signup"/);
   assert.doesNotMatch(home, /File \(optional if you include title and notes\)/);
@@ -31,6 +32,7 @@ test("homepage anonymous form requires a title and drops the file-optional label
 
 test("signed-in Corpus form also requires a title and drops the file-optional label", () => {
   const html = corpusBody({ signed: { username: "reader", role: "user" }, rows: [] });
+  assert.doesNotMatch(html, /files in Corpus/);
   assert.doesNotMatch(html, /File \(optional if you include title and notes\)/);
   assert.match(html, />Title <span class="req" aria-hidden="true">\*<\/span></);
   assert.match(html, /id="corpus-title"[^>]*required/);
