@@ -165,6 +165,11 @@
   "library": "https://www.azielcorpuslibrary.net/",
   "software": "https://www.azielcorpuslibrary.net/software",
   "software_note": "Library Softwares catalog for aziel-runtime. Do not mash version + FragGate into Softwares copy. Softwares on GodLock is GodLock's own catalog.",
+  "whitestone": {
+    "name": "Whitestone",
+    "note": "Whitestone (Softwares): ephemeral pro se advisor; not a lawyer. Catalog entry ships on aziel-runtime GET /v1/software; this library Softwares tab refreshes from that Worker SSoT after that merge.",
+    "extra_card": false
+  },
   "foldlock_slug": "foldlock",
   "foldlock_shelf": "FOLDLOCK-SHELF-1.0",
   "foldlock": {
