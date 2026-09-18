@@ -7,6 +7,7 @@
  * Keep euaziel machine NOT. Never sameAs euaziel.site. Never Aziel S. / Flutter as this Person.
  * Author: Aziel Eliab.
  */
+import { survivalWhoIsBlock } from "./ban-survival.js";
 
 export const AUTHOR = "Aziel Eliab";
 export const AUTHOR_AKA = "Aziel Elroi Eliab";
@@ -674,7 +675,7 @@ export function graphJsonLd() {
   };
 }
 
-export function whoIsTxt() {
+export function whoIsTxt(survival) {
   return [
     WHO_IS_AZIEL_ELIAB,
     "",
@@ -697,6 +698,7 @@ export function whoIsTxt() {
     "- hedidntjump.com — " + SITE_BLURBS.hedidntjump.blurb + " " + SITE_BLURBS.hedidntjump.url,
     "- aziel-runtime — " + SITE_BLURBS.runtime.blurb + " " + SITE_BLURBS.runtime.url,
     "Growth-ON. NO-LIE. No visible HTML chrome.",
+    survivalWhoIsBlock(survival),
   ].join("\n") + "\n";
 }
 
@@ -734,7 +736,7 @@ export function identitySameAsLine() {
   return PERSON_SAME_AS.join(" · ");
 }
 
-export function identityRouteBody(path) {
+export function identityRouteBody(path, survival) {
   if (path === "/person.jsonld") {
     return { body: JSON.stringify(personJsonLd(), null, 2) + "\n", type: IDENTITY_MIME.jsonld };
   }
@@ -745,7 +747,7 @@ export function identityRouteBody(path) {
     return { body: JSON.stringify(graphJsonLd(), null, 2) + "\n", type: IDENTITY_MIME.jsonld };
   }
   if (path === "/who-is-aziel-eliab.txt" || path === "/who-is") {
-    return { body: whoIsTxt(), type: IDENTITY_MIME.plain };
+    return { body: whoIsTxt(survival), type: IDENTITY_MIME.plain };
   }
   if (path === "/.well-known/aziel.json") {
     return { body: JSON.stringify(azielJson(), null, 2) + "\n", type: IDENTITY_MIME.json };

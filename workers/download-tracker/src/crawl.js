@@ -37,6 +37,7 @@ import { MESH_NOTE, QNS_CD_SPEC, VPN_CITE, CHANNEL_PLANE } from "./mesh.js";
 import { ingestReceiptCite, ingestReceiptLlmsBlock } from "./ingest-receipt.js";
 import { shelvesLlmsBlock } from "./cold-shelf.js";
 import { aiSurfaceLlmsBlock, bridgeDoc, MCP_TOOLS } from "./ai-surface.js";
+import { survivalCiteFields, survivalLlmsBlock } from "./ban-survival.js";
 import { AZCOHERENCE, AZCLCE_NAME, AZCLCE_SLUG, AZCLCE_GITHUB, AZCLCE_WORKER_HOME, azcoherenceLlmsBlock } from "./azcoherence.js";
 import { foldlockCiteFields, foldlockLlmsBlock } from "./foldlock.js";
 import { tradesRuntimeCiteFields, tradesRuntimeLlmsBlock, tradesRuntimeMcpDiscovery } from "./trades-runtime.js";
@@ -251,6 +252,8 @@ export function robotsTxt() {
     "Allow: /runtime",
     "Allow: /runtime/",
     "Allow: /runtime/v1/uses",
+    "Allow: /runtime/survival",
+    "Allow: /runtime/v1/survival",
     "Allow: /v1",
     "Allow: /v1/",
     "Allow: /cite.json",
@@ -347,6 +350,8 @@ const STATIC_SITEMAP = [
   "/runtime/cite.json",
   "/runtime/robots.txt",
   "/runtime/ai.txt",
+  "/runtime/survival",
+  "/runtime/v1/survival",
   "/how-its-scored",
   "/pattern",
   "/map",
@@ -428,6 +433,8 @@ const SITEMAP_HINTS = {
   "/aziel-library": { changefreq: "daily", priority: "0.8" },
   "/corpus": { changefreq: "daily", priority: "0.8" },
   "/bridge.json": { changefreq: "weekly", priority: "0.7" },
+  "/runtime/survival": { changefreq: "hourly", priority: "0.7" },
+  "/runtime/v1/survival": { changefreq: "hourly", priority: "0.7" },
   "/v1/products": { changefreq: "weekly", priority: "0.8" },
   "/v1/design-pack": { changefreq: "weekly", priority: "0.8" },
   "/v1/design-pack/azcorpus": { changefreq: "weekly", priority: "0.8" },
@@ -613,7 +620,7 @@ export async function sitemapXml(env) {
     + "\n</urlset>\n";
 }
 
-export function citeDoc() {
+export function citeDoc(survival) {
   return {
     author: AUTHOR,
     aka: AKA,
@@ -815,6 +822,7 @@ export function citeDoc() {
     ...foldlockCiteFields(HOST),
     ...tradesRuntimeCiteFields(HOST),
     ...redlineCiteFields(),
+    ...survivalCiteFields(survival),
     azclce: {
       slug: AZCLCE_SLUG,
       name: AZCLCE_NAME,
@@ -832,7 +840,7 @@ function productIndex() {
   return PRODUCT_LINES.map((row) => "- " + row[0] + ": " + row[1]).join("\n");
 }
 
-export function llmsDoc(limitation) {
+export function llmsDoc(limitation, survival) {
   return "# Aziel Digital Library v2.7.0\n\n"
     + "Author: " + AUTHOR + "\n"
     + "Also known as: " + AKA + "\n"
@@ -874,6 +882,7 @@ export function llmsDoc(limitation) {
     + "DOI: none (do not invent)\n\n"
     + ingestReceiptLlmsBlock(HOST) + "\n"
     + shelvesLlmsBlock(HOST) + "\n"
+    + survivalLlmsBlock(survival) + "\n"
     + aiSurfaceLlmsBlock() + "\n"
     + "## Priority pages (index first)\n\n"
     + "- Homepage: " + HOST + "/\n"
@@ -1092,7 +1101,7 @@ export function llmsDoc(limitation) {
     + "- Install: curl -fsSL " + HOST + "/install.sh | bash\n";
 }
 
-export function aiTxt(limitation) {
+export function aiTxt(limitation, survival) {
   const policy = [
     "# Aziel Digital Library — AI crawl policy",
     "# Complement of /llms.txt. Author " + AUTHOR + " (aka " + AKA + ").",
@@ -1111,6 +1120,8 @@ export function aiTxt(limitation) {
     "Allow: /runtime",
     "Allow: /runtime/",
     "Allow: /runtime/v1/uses",
+    "Allow: /runtime/survival",
+    "Allow: /runtime/v1/survival",
     "Allow: /how-its-scored",
     "Allow: /pattern",
     "Allow: /map",
@@ -1234,6 +1245,7 @@ export function aiTxt(limitation) {
     + runtimeHowTo(HOST) + "\n\n"
     + ingestReceiptLlmsBlock(HOST) + "\n"
     + shelvesLlmsBlock(HOST) + "\n"
+    + survivalLlmsBlock(survival) + "\n"
     + aiSurfaceLlmsBlock() + "\n"
     + "## Identity\n\n"
     + "Primary author " + AUTHOR + ". Canonical aka " + ALTERNATE_NAMES.join(" · ") + ". " + LOCK_LINE + " " + WHO_IS_AZIEL_ELIAB + " " + WHAT_AZIEL_ELIAB_DOES + " Also Elias Artista. " + HEBREW_DEFINITION + " " + ABOUT_STANZA + " " + ABOUT_LEAD + " " + ABOUT_RECORD + " " + DISAMBIGUATING_DESCRIPTION + " Person @id " + HUB_PERSON_ID + ". Runtime @id " + HUB_RUNTIME_ID + ". Official site " + HUB_ORIGIN + "/. WebSite " + WEBSITE_ID + " (" + WEBSITE_NAME + "). Profile " + HOST + ABOUT_PATH + ". Who HTML " + HOST + WHO_PATH + ". GodLock identity " + GODLOCK_IDENTITY + ". " + HEDIDNTJUMP_LABEL + " " + HEDIDNTJUMP_HOME + ". sameAs " + identitySameAsLine() + ". Machine routes /person.jsonld · /identity.jsonld · /graph.jsonld · /who-is-aziel-eliab.txt · /who-is · /who · /.well-known/aziel.json · /.well-known/person.jsonld. Stats " + STATS_TETHER.azieleliab + " · " + STATS_TETHER.corpus + " · " + STATS_TETHER.hedidntjump + ". Roles (published work only): " + PERSON_JOB_TITLE.join(", ") + ". Growth-ON. NO-LIE. No visible HTML chrome.\n\n"
@@ -1276,6 +1288,7 @@ export function humansTxt() {
     "Suite mesh (read-only QNM ON): " + HOST + "/v1/mesh",
     "Lockset tip / ingest-as-receipt: " + HOST + "/lockset.json · " + HOST + "/receipts/verify",
     "Cold multi-shelf: " + HOST + "/shelves · " + HOST + "/cold-copy · COLD-MULTI-SHELF-1.0",
+    "BAN-SURVIVAL-1.0: prefer GET " + CATALOG + "/v1/survival (short TTL) · same door " + HOST + "/runtime/survival. Mutual shelves↔ban. Cap-7 MirageGrid shuffle resolves_to_hub: false.",
     "cite, don't merge · bytes survive; crawlers do not re-expand",
     "CROSS-NETWORK-SURVIVAL: If network + live data die tomorrow, the chain still survives via cold copies across independent shelves; survival = bytes↔hash.",
     "NO-LIE / NO-REWRITE: receipts that still hash; copies not all on one tunnel; verify without voice; no rewrite key; network never lies even to stay alive.",
