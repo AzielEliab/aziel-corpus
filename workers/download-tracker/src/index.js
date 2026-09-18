@@ -9,6 +9,7 @@ import { serveDesignPack } from "./design-pack.js";
 import { continueMetadataBackfill } from "./record-metadata.js";
 import { continueContentHashRepair, sampleContentHashIntegrity } from "./content-hash-repair.js";
 import { identityRouteBody } from "./identity.js";
+import { fetchLiveSurvival, isSurvivalSeoPath, SURVIVAL_SEO_CACHE_CONTROL } from "./ban-survival.js";
 import { searchRecords, parseBrowseParams, serveFile, serveFileByHash, normalizeContentHash } from "./library.js";
 import { continueFullBackfill } from "./review-store.js";
 import { continueVerifyGeo } from "./geo.js";
@@ -536,6 +537,10 @@ export default {
 
     // gitbaby-seo-routes
     const crawlPath = url.pathname.replace(/\/+$/, "") || "/";
+    const survival = isSurvivalSeoPath(crawlPath) || crawlPath === "/bridge.json"
+      ? await fetchLiveSurvival(env)
+      : null;
+    const seoCache = isSurvivalSeoPath(crawlPath) ? SURVIVAL_SEO_CACHE_CONTROL : SEO_CACHE_CONTROL;
     if (isReadMethod(request.method) && crawlPath === "/robots.txt") {
       return crawlResponse(request, robotsTxt(), MIME.plain, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
     }
@@ -554,7 +559,7 @@ export default {
       return crawlResponse(request, JSON.stringify(mcpDiscovery(), null, 2), MIME.json, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
     }
     if (isReadMethod(request.method) && crawlPath === "/cite.json") {
-      return crawlResponse(request, JSON.stringify(citeDoc(), null, 2), MIME.json, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
+      return crawlResponse(request, JSON.stringify(citeDoc(survival), null, 2), MIME.json, { "Cache-Control": seoCache, ...corsHeaders() });
     }
     if (isReadMethod(request.method) && crawlPath === "/bridge.json") {
       return crawlResponse(request, JSON.stringify(bridgeDoc(), null, 2), MIME.json, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
@@ -566,16 +571,16 @@ export default {
       return crawlResponse(request, JSON.stringify(shelvesDoc(), null, 2), MIME.json, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
     }
     if (isReadMethod(request.method)) {
-      const identity = identityRouteBody(crawlPath);
+      const identity = identityRouteBody(crawlPath, survival);
       if (identity) {
-        return crawlResponse(request, identity.body, identity.type, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
+        return crawlResponse(request, identity.body, identity.type, { "Cache-Control": seoCache, ...corsHeaders() });
       }
     }
     if (isReadMethod(request.method) && crawlPath === "/llms.txt") {
-      return crawlResponse(request, llmsDoc(LIMITATION), MIME.plain, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
+      return crawlResponse(request, llmsDoc(LIMITATION, survival), MIME.plain, { "Cache-Control": seoCache, ...corsHeaders() });
     }
     if (isReadMethod(request.method) && crawlPath === "/ai.txt") {
-      return crawlResponse(request, aiTxt(LIMITATION), MIME.plain, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
+      return crawlResponse(request, aiTxt(LIMITATION, survival), MIME.plain, { "Cache-Control": seoCache, ...corsHeaders() });
     }
     if (isReadMethod(request.method) && crawlPath === "/humans.txt") {
       return crawlResponse(request, humansTxt(), MIME.plain, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });

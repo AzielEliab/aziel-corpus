@@ -95,6 +95,7 @@ ${runtimeHowTo(HOST)}
 - MCP: \`POST ${HOST}/runtime/mcp\`
 - Runtime llms.txt: ${HOST}/runtime/llms.txt
 - Runtime cite.json: ${HOST}/runtime/cite.json
+- Ban survival (BAN-SURVIVAL-1.0; prefer pull, short TTL): \`GET ${HOST}/runtime/survival\` · \`GET ${HOST}/runtime/v1/survival\`
 - Counted downloads: each product Worker's \`/download\` + \`/count\` (listed in catalog / pull)
 - Session tools (\`/runtime/v1/session/*\`) are advanced/internal. Prefer \`fraggate_call\`.
 
@@ -187,6 +188,8 @@ export function runtimeManifest(via = "library") {
     llms: HOST + "/runtime/llms.txt",
     library_llms: HOST + "/llms.txt",
     cite: HOST + "/runtime/cite.json",
+    survival: HOST + "/runtime/survival",
+    survival_v1: HOST + "/runtime/v1/survival",
     robots: HOST + "/runtime/robots.txt",
     github: RUNTIME_GITHUB,
     compatible_clients: AI_CLIENTS,

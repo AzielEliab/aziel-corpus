@@ -14,6 +14,8 @@ Allow: /software
 Allow: /donate
 Allow: /runtime
 Allow: /runtime/
+Allow: /runtime/survival
+Allow: /runtime/v1/survival
 Allow: /how-its-scored
 Allow: /cite.json
 Allow: /lockset.json
@@ -166,6 +168,7 @@ Sitemap: https://www.azielcorpuslibrary.net/sitemap-index.xml
 - cite, don't merge
 - bytes survive; crawlers do not re-expand
 - CROSS-NETWORK-SURVIVAL: If network + live data die tomorrow, the chain still survives via cold copies across independent shelves; survival = bytes↔hash.
+- BAN-SURVIVAL-1.0: prefer GET https://aziel-runtime.vibelock.workers.dev/v1/survival (short TTL) · same door https://www.azielcorpuslibrary.net/runtime/survival. Mutual shelves↔ban. Cap-7 MirageGrid shuffle https://miragegrid.vibelock.workers.dev/bridge · /v1/shuffle (resolves_to_hub: false). Platforms: prefer pulled platforms.all_live. Calling-name: mesh nodes pull `*new name alert: ` from /survival. Person @id https://www.azieleliab.com/#aziel. Lamb Lens. NO-LIE. No visible 15:20 chrome.
 - NO-LIE / NO-REWRITE: receipts that still hash; copies not all on one tunnel; verify without voice; no rewrite key; network never lies even to stay alive.
 - Tip verify: https://www.azielcorpuslibrary.net/receipts/verify
 - person.jsonld: https://www.azielcorpuslibrary.net/person.jsonld
@@ -183,7 +186,7 @@ Sitemap: https://www.azielcorpuslibrary.net/sitemap-index.xml
 
 ## Dual-surface upload + download
 
-Plane A UI on this Worker: azcorpus = Corpus / Lamb Lens (anyone downloads; session/Lamb Lens writes). azlibrary = royal-purple Aziel Library (anyone downloads; upload header X-Aziel-Operator-Token, env OPERATOR_TOKEN / GATE_TOKEN / LIBRARY_OPERATOR_TOKEN — names only). Cap-7 names inherit design_of the four hubs. resolves_to_hub: false. name_may_change: true. public_icann: false. No fifth product. POST /v1/ingest · POST /v1/jeeves/upload · POST /v1/operator/library-ingest (live hub azlibrary token only). GET /v1/docs/{hash}/download · /download?hash= · /file/{record_id}. Counted packs GET /download?product=azcorpus|azlibrary. Products GET /v1/products. Library MCP POST /mcp. Design packs GET /v1/design-pack. Bridge cite GET /bridge.json (design_of + tip/pack hashes). Sister hubs remain azieleliab.com, godlock.uk, hedidntjump.com. Mesh pull: cite → describe → counted pull → hash-verify fail-closed → local cold shelf. No Cap-7 live public DNS. No fake .az DNS. No AZ-GEN publish cadence. CROSS-NETWORK-SURVIVAL on ingest/shelves.
+Plane A UI on this Worker: azcorpus = Corpus / Lamb Lens (anyone downloads; session/Lamb Lens writes). azlibrary = royal-purple Aziel Library (anyone downloads; upload header X-Aziel-Operator-Token, env OPERATOR_TOKEN / GATE_TOKEN / LIBRARY_OPERATOR_TOKEN — names only). Cap-7 names inherit design_of the four hubs. resolves_to_hub: false. name_may_change: true. public_icann: false. No fifth product. POST /v1/ingest · POST /v1/jeeves/upload · POST /v1/operator/library-ingest (live hub azlibrary token only). GET /v1/docs/{hash}/download · /download?hash= · /file/{record_id}. Counted packs GET /download?product=azcorpus|azlibrary. Products GET /v1/products. Library MCP POST /mcp. Design packs GET /v1/design-pack. Bridge cite GET /bridge.json (design_of + tip/pack hashes). Cap-7 MirageGrid shuffle LIVE: https://miragegrid.vibelock.workers.dev/bridge · /v1/shuffle (resolves_to_hub: false). Sister hubs remain azieleliab.com, godlock.uk, hedidntjump.com. Mesh pull: cite → describe → counted pull → hash-verify fail-closed → local cold shelf. No Cap-7 live public DNS. No fake .az DNS. No AZ-GEN publish cadence. CROSS-NETWORK-SURVIVAL on ingest/shelves.
 
 ## Compatible AI clients
 

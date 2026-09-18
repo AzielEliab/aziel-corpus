@@ -81,7 +81,9 @@ test("bridge.json cites Cap-7 via Plane A without DNS or AZ-GEN overclaim", () =
   assert.equal(doc.az_generator.publish_cadence_claimed, false);
   assert.equal(doc.az_generator.cite, MIRAGEGRID_AZ_GENERATOR);
   assert.equal(doc.miragegrid.bridge_future, MIRAGEGRID_BRIDGE_FUTURE);
-  assert.equal(doc.miragegrid.bridge_live, false);
+  assert.equal(doc.miragegrid.bridge_live, true);
+  assert.equal(doc.miragegrid.resolves_to_hub, false);
+  assert.match(doc.miragegrid.app_worker, /miragegrid\.vibelock\.workers\.dev/);
   assert.equal(doc.upload.token_writes, "live hub azlibrary only");
   assert.equal(doc.upload.mesh_write, false);
   assert.equal(doc.mesh_copies.kind, "design+content-pack");
