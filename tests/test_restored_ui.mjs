@@ -315,6 +315,10 @@ test("browse cards clamp titles and shorten bleed-over snippets without rewritin
     chipLabel("f53419056b94b69be05c8214cb8d8329f7e74fe99d8505ecfa8a72a9a6e0333f"),
     "f53419056b94…333f",
   );
+  assert.equal(
+    chipLabel("e0153ec534890c0069bd6315e462cb3d7a993f0d8bc0bec7100c63bf5cd446a4"),
+    "e0153ec53489…46a4",
+  );
   assert.equal(CARD_EXCERPT_CHARS, 180);
   assert.equal(cardExcerpt("Short note."), "Short note.");
   assert.equal(cardExcerpt("   spaced   words   "), "spaced words");
@@ -341,13 +345,17 @@ test("browse cards clamp titles and shorten bleed-over snippets without rewritin
   const home = homeBody({ q: "Instagram", rows: [row] });
   const corpus = corpusBody({ signed: null, rows: [row] });
   const hashSub = "f53419056b94b69be05c8214cb8d8329f7e74fe99d8505ecfa8a72a9a6e0333f";
+  const hashSub2 = "e0153ec534890c0069bd6315e462cb3d7a993f0d8bc0bec7100c63bf5cd446a4";
   const aziel = azielLibraryBody({
     signed: null,
-    rows: [{ ...row, record_id: "AZDOC-spam-aziel", library: "aziel", subjects: hashSub }],
+    rows: [{ ...row, record_id: "AZDOC-spam-aziel", library: "aziel", subjects: hashSub + "," + hashSub2 }],
   });
   assert.match(aziel, /f53419056b94…333f/);
+  assert.match(aziel, /e0153ec53489…46a4/);
   assert.match(aziel, new RegExp("subject=" + hashSub));
+  assert.match(aziel, new RegExp("subject=" + hashSub2));
   assert.doesNotMatch(aziel, />f53419056b94b69be05c8214cb8d8329f7e74fe99d8505ecfa8a72a9a6e0333f</);
+  assert.doesNotMatch(aziel, />e0153ec534890c0069bd6315e462cb3d7a993f0d8bc0bec7100c63bf5cd446a4</);
   for (const html of [home, corpus, aziel]) {
     assert.match(html, /class="excerpt"/);
     assert.match(html, /class="doc-actions"/);
