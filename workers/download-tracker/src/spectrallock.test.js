@@ -20,11 +20,15 @@ import {
   SPECTRALLOCK_CITE,
   SPECTRALLOCK_OCR_NOTE,
   SPECTRALLOCK_UNREDACT,
+  SPECTRALLOCK_RECOVER,
+  SPECTRALLOCK_HANDWRITING,
   SPECTRALLOCK_WORKER_HOME,
   SPECTRALLOCK_GITHUB,
   SPECTRALLOCK_DIGEST,
   SPECTRALLOCK_LIVE_OPS,
   SPECTRALLOCK_STUB_OPS,
+  SPECTRALLOCK_PRODUCT_PR,
+  SPECTRALLOCK_PRODUCT_COMMIT,
   spectralLockCopyLooksHonest,
   spectrallockLlmsBlock,
   spectrallockCiteFields,
@@ -33,30 +37,58 @@ import {
 test("SpectralLock cite is leftover-bytes honest and not a FragGate invent", () => {
   assert.equal(SPECTRALLOCK.slug, SPECTRALLOCK_SLUG);
   assert.equal(SPECTRALLOCK.name, SPECTRALLOCK_NAME);
+  assert.equal(SPECTRALLOCK.author, "Aziel Eliab");
+  assert.equal(SPECTRALLOCK.identity, "Aziel Eliab");
   assert.equal(SPECTRALLOCK.one_line, SPECTRALLOCK_ONE_LINE);
   assert.match(SPECTRALLOCK_ONE_LINE, /leftover container bytes recover honestly/);
   assert.match(SPECTRALLOCK_ONE_LINE, /opaque rewrite refuses/);
   assert.equal(SPECTRALLOCK.leftover_bytes, "honest recover");
   assert.equal(SPECTRALLOCK.opaque_empty, "SL-UNREDACT-OPAQUE");
+  assert.equal(SPECTRALLOCK.revision_graph, true);
+  assert.equal(SPECTRALLOCK.recover_universal, true);
+  assert.equal(SPECTRALLOCK.recover_no_lie, true);
+  assert.equal(SPECTRALLOCK.recover_live_slot, true);
+  assert.equal(SPECTRALLOCK.handwriting_is_lab, false);
+  assert.equal(SPECTRALLOCK.handwriting_is_esda, false);
   assert.equal(SPECTRALLOCK.heatmap_is_transcript, false);
   assert.equal(SPECTRALLOCK.never_invent_letters, true);
   assert.equal(SPECTRALLOCK.corpus_ocr_guesses, false);
   assert.equal(SPECTRALLOCK.unredact_is_door_op, false);
+  assert.equal(SPECTRALLOCK.recover_is_door_op, false);
+  assert.equal(SPECTRALLOCK.handwriting_is_door_op, false);
   assert.equal(SPECTRALLOCK.extra_card, false);
   assert.equal(SPECTRALLOCK.unredact, SPECTRALLOCK_UNREDACT);
+  assert.equal(SPECTRALLOCK.recover, SPECTRALLOCK_RECOVER);
+  assert.equal(SPECTRALLOCK.handwriting, SPECTRALLOCK_HANDWRITING);
   assert.equal(SPECTRALLOCK.digest, SPECTRALLOCK_DIGEST);
+  assert.equal(SPECTRALLOCK.product_pr, SPECTRALLOCK_PRODUCT_PR);
+  assert.equal(SPECTRALLOCK.product_commit, SPECTRALLOCK_PRODUCT_COMMIT);
+  assert.match(SPECTRALLOCK_PRODUCT_PR, /spectrallock\/pull\/13$/);
+  assert.equal(SPECTRALLOCK_PRODUCT_COMMIT, "4af8fcb");
   assert.deepEqual(SPECTRALLOCK_LIVE_OPS, ["health", "modes", "targets", "overlay", "verify", "doctor", "skill"]);
   assert.deepEqual(SPECTRALLOCK_STUB_OPS, ["spectrometer", "forensic", "invent_mark"]);
   assert.ok(!SPECTRALLOCK_LIVE_OPS.includes("unredact"));
   assert.ok(!SPECTRALLOCK_LIVE_OPS.includes("locate"));
   assert.ok(!SPECTRALLOCK_LIVE_OPS.includes("lift"));
   assert.ok(!SPECTRALLOCK_LIVE_OPS.includes("recover"));
+  assert.ok(!SPECTRALLOCK_LIVE_OPS.includes("handwriting"));
   assert.match(SPECTRALLOCK_NOTE, /SL-UNREDACT-OPAQUE/);
   assert.match(SPECTRALLOCK_NOTE, /not a FragGate door op/);
   assert.match(SPECTRALLOCK_NOTE, /does not unredact by guessing/);
+  assert.match(SPECTRALLOCK_NOTE, /revision graph/);
+  assert.match(SPECTRALLOCK_NOTE, /NO-LIE LIVE\/SLOT/);
+  assert.match(SPECTRALLOCK_NOTE, /ink heuristics, not a lab/);
+  assert.match(SPECTRALLOCK_NOTE, /Handwriting is not ESDA/);
+  assert.match(SPECTRALLOCK_NOTE, /Worker SSoT/);
   assert.match(SPECTRALLOCK_OCR_NOTE, /does not unredact by guessing/);
+  assert.match(SPECTRALLOCK_OCR_NOTE, /revision_graph/);
+  assert.match(SPECTRALLOCK_OCR_NOTE, /NO-LIE LIVE\/SLOT/);
+  assert.match(SPECTRALLOCK_OCR_NOTE, /Handwriting is not ESDA/);
   assert.equal(SPECTRALLOCK_CITE.extra_card, false);
   assert.equal(SPECTRALLOCK_CITE.unredact_is_door_op, false);
+  assert.equal(SPECTRALLOCK_CITE.recover_is_door_op, false);
+  assert.equal(SPECTRALLOCK_CITE.handwriting_is_door_op, false);
+  assert.equal(SPECTRALLOCK_CITE.revision_graph, true);
   assert.equal(spectralLockCopyLooksHonest(SPECTRALLOCK_ONE_LINE), true);
   assert.equal(spectralLockCopyLooksHonest("256px overlay preview. Not a spectrometer."), false);
 });
@@ -69,35 +101,58 @@ test("cite.json / llms.txt / ai.txt / humans.txt cite SpectralLock leftover-byte
   assert.equal(cite.spectrallock.slug, SPECTRALLOCK_SLUG);
   assert.equal(cite.spectrallock.one_line, SPECTRALLOCK_ONE_LINE);
   assert.equal(cite.spectrallock.unredact, SPECTRALLOCK_UNREDACT);
+  assert.equal(cite.spectrallock.recover, SPECTRALLOCK_RECOVER);
+  assert.equal(cite.spectrallock.handwriting, SPECTRALLOCK_HANDWRITING);
   assert.equal(cite.spectrallock.unredact_is_door_op, false);
+  assert.equal(cite.spectrallock.recover_is_door_op, false);
+  assert.equal(cite.spectrallock.handwriting_is_door_op, false);
+  assert.equal(cite.spectrallock.revision_graph, true);
+  assert.equal(cite.spectrallock.recover_universal, true);
+  assert.equal(cite.spectrallock.handwriting_is_esda, false);
   assert.equal(cite.spectrallock.extra_card, false);
   assert.equal(cite.spectrallock.heatmap_is_transcript, false);
   assert.equal(cite.spectrallock.corpus_ocr_guesses, false);
   assert.equal(cite.spectrallock_slug, "spectrallock");
   assert.equal(cite.github_spectrallock, SPECTRALLOCK_GITHUB);
   assert.equal(cite.spectrallock_unredact, SPECTRALLOCK_UNREDACT);
+  assert.equal(cite.spectrallock_recover, SPECTRALLOCK_RECOVER);
+  assert.equal(cite.spectrallock_handwriting, SPECTRALLOCK_HANDWRITING);
   assert.equal(cite.spectrallock_cite.extra_card, false);
   assert.match(cite.spectrallock.note, /SL-UNREDACT-OPAQUE/);
+  assert.match(cite.spectrallock.note, /revision graph/);
+  assert.match(cite.spectrallock.note, /NO-LIE LIVE\/SLOT/);
   assert.doesNotMatch(JSON.stringify(cite.spectrallock), /unredact.*LIVE_OPS|LIVE_OPS.*unredact/i);
 
   const llms = llmsDoc("LIMIT");
   assert.match(llms, /Softwares list: SpectralLock \(Softwares\): leftover container bytes recover honestly/);
   assert.match(llms, /SL-UNREDACT-OPAQUE/);
   assert.match(llms, /spectrallock-download-tracker\.vibelock\.workers\.dev\/v1\/unredact/);
+  assert.match(llms, /spectrallock-download-tracker\.vibelock\.workers\.dev\/v1\/recover/);
+  assert.match(llms, /spectrallock-download-tracker\.vibelock\.workers\.dev\/v1\/handwriting/);
   assert.match(llms, /not a FragGate door op/);
   assert.match(llms, /does not unredact by guessing/);
+  assert.match(llms, /Handwriting is not ESDA/);
   assert.match(llms, /Not a hardcoded extras card/);
+  assert.match(llms, /NO-LIE LIVE\/SLOT/);
   assert.match(spectrallockLlmsBlock(), /Catalog LIVE_OPS: health, modes, targets, overlay, verify, doctor, skill/);
+  assert.match(spectrallockLlmsBlock(), /SpectralLock recover: /);
+  assert.match(spectrallockLlmsBlock(), /SpectralLock handwriting: /);
 
   const ai = aiTxt("LIMIT");
   assert.match(ai, /SpectralLock \(spectrallock\)/);
   assert.match(ai, /SL-UNREDACT-OPAQUE/);
   assert.match(ai, /does not unredact by guessing/);
   assert.match(ai, /Softwares list: SpectralLock \(Softwares\)/);
+  assert.match(ai, /NO-LIE LIVE\/SLOT/);
+  assert.match(ai, /v1\/recover/);
+  assert.match(ai, /v1\/handwriting/);
 
   const humans = humansTxt();
   assert.match(humans, /SpectralLock \(spectrallock\) Softwares Media leftover-bytes honesty/);
   assert.match(humans, /SL-UNREDACT-OPAQUE/);
+  assert.match(humans, /v1\/recover/);
+  assert.match(humans, /v1\/handwriting/);
+  assert.match(humans, /not ESDA/);
   assert.match(humans, new RegExp(SPECTRALLOCK_NOTE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 });
 
@@ -161,21 +216,38 @@ test("OCR and Forensics pages name SpectralLock with honest unredact note", () =
   assert.match(ocr, /does not unredact by guessing/);
   assert.match(ocr, /Heatmaps are not transcripts|Heatmap ≠ transcript/);
   assert.match(ocr, /spectrallock-download-tracker\.vibelock\.workers\.dev\/v1\/unredact/);
+  assert.match(ocr, /spectrallock-download-tracker\.vibelock\.workers\.dev\/v1\/recover/);
+  assert.match(ocr, /spectrallock-download-tracker\.vibelock\.workers\.dev\/v1\/handwriting/);
   assert.match(ocr, /not a FragGate door op/);
+  assert.match(ocr, /Handwriting is not ESDA/);
+  assert.match(ocr, /does not unredact by guessing/);
   assert.doesNotMatch(ocr, /corpus OCR unredacts by guessing/i);
+  assert.doesNotMatch(ocr, /ESDA lab|electrostatic detection/i);
   assert.match(defaultDescription("ocr"), /Leftover container bytes recover honestly/);
   assert.match(defaultDescription("ocr"), /does not unredact by guessing/);
+  assert.match(defaultDescription("ocr"), /handwriting is not ESDA/);
+  assert.match(defaultDescription("ocr"), /NO-LIE LIVE\/SLOT/);
   assert.match(defaultDescription("forensics"), /SL-UNREDACT-OPAQUE/);
+  assert.match(defaultDescription("forensics"), /handwriting is not ESDA/);
   const forensics = intelligenceBody({ signed: null, operator: false, aiReady: false, packages: [] });
   assert.match(forensics, /SpectralLock lenses/);
   assert.match(forensics, /SL-UNREDACT-OPAQUE/);
   assert.match(forensics, /does not unredact by guessing/);
+  assert.match(forensics, /Handwriting is not ESDA/);
 });
 
 test("spectrallockCiteFields stay Worker SSoT and do not invent door ops", () => {
   const fields = spectrallockCiteFields();
   assert.equal(fields.spectrallock_slug, "spectrallock");
   assert.equal(fields.spectrallock.unredact_is_door_op, false);
+  assert.equal(fields.spectrallock.recover_is_door_op, false);
+  assert.equal(fields.spectrallock.handwriting_is_door_op, false);
   assert.ok(!fields.spectrallock.ops.includes("unredact"));
+  assert.ok(!fields.spectrallock.ops.includes("recover"));
+  assert.ok(!fields.spectrallock.ops.includes("handwriting"));
+  assert.equal(fields.spectrallock_recover, SPECTRALLOCK_RECOVER);
+  assert.equal(fields.spectrallock_handwriting, SPECTRALLOCK_HANDWRITING);
   assert.match(fields.spectrallock.how_to_cite, /SL-UNREDACT-OPAQUE/);
+  assert.match(fields.spectrallock.how_to_cite, /revision_graph/);
+  assert.match(fields.spectrallock.how_to_cite, /NO-LIE LIVE\/SLOT/);
 });

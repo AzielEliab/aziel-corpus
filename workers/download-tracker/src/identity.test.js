@@ -290,6 +290,11 @@ test("machine who-is locks Softwares + RESEARCH + HARDWARE halves", () => {
   assert.match(SPECTRALLOCK_NOTE, /leftover container bytes recover honestly/);
   assert.match(SPECTRALLOCK_NOTE, /SL-UNREDACT-OPAQUE/);
   assert.match(SPECTRALLOCK_NOTE, /not a FragGate door op/);
+  assert.match(SPECTRALLOCK_NOTE, /revision graph/);
+  assert.match(SPECTRALLOCK_NOTE, /NO-LIE LIVE\/SLOT/);
+  assert.match(SPECTRALLOCK_NOTE, /ink heuristics, not a lab/);
+  assert.match(SPECTRALLOCK_NOTE, /Handwriting is not ESDA/);
+  assert.match(SPECTRALLOCK_NOTE, /Worker SSoT/);
   assert.equal(SPECTRALLOCK_CITE.extra_card, false);
   assert.equal(SPECTRALLOCK_CITE.slug, "spectrallock");
   assert.ok(PERSON_KNOWS_ABOUT.includes("SpectralLock"));
@@ -303,6 +308,9 @@ test("machine who-is locks Softwares + RESEARCH + HARDWARE halves", () => {
   assert.match(who, new RegExp(WHAT_AZIEL_ELIAB_DOES.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   assert.match(who, /Softwares list: The ARK \(Softwares\): local deniable vault/);
   assert.match(who, /Softwares list: SpectralLock \(Softwares\): leftover container bytes recover honestly/);
+  assert.match(who, /v1\/recover/);
+  assert.match(who, /v1\/handwriting/);
+  assert.match(who, /Handwriting is not ESDA/);
   assert.match(who, /ark-download-tracker\.vibelock\.workers\.dev\/download/);
   assert.match(who, /ark-download-tracker\.vibelock\.workers\.dev\/stats/);
   assert.match(who, new RegExp(RESEARCH_HALF.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
@@ -338,6 +346,9 @@ test("machine who-is locks Softwares + RESEARCH + HARDWARE halves", () => {
   assert.equal(cite.spectrallock.note, SPECTRALLOCK_NOTE);
   assert.equal(cite.spectrallock.extra_card, false);
   assert.equal(cite.spectrallock.unredact_is_door_op, false);
+  assert.equal(cite.spectrallock.recover_is_door_op, false);
+  assert.equal(cite.spectrallock.handwriting_is_door_op, false);
+  assert.equal(cite.spectrallock.revision_graph, true);
   const llms = llmsDoc("LIMIT");
   assert.match(llms, /What does Aziel Eliab do\?/);
   assert.match(llms, /Who is Aziel Eliab the developer\?/);

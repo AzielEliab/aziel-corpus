@@ -94,7 +94,7 @@ README lead (truncated, source only):
 >
 > ## Honest scope
 >
-> **THIS IS:** an inspection coordinate frame over TemporalLock / StaticClock / ChronoLock / TrajectoryLock / SpectralLock evidence. SpectralLock leftover-bytes recover is honest; opaque empty refuses SL-UNREDACT-OPAQUE; heatmap ≠ transcript. 4DM-CARD receipts. Fail-closed SHA-256. Forks kept. ZionPattern cap 75%. Π-EMPTY when the lens is silent.
+> **THIS IS:** an inspection coordinate frame over TemporalLock / StaticClock / ChronoLock / TrajectoryLock / SpectralLock evidence. SpectralLock leftover-bytes recover is honest; `/v1/unredact` cites revision_graph; `/v1/recover` is universal (NO-LIE LIVE/SLOT); `/v1/handwriting` is ink heuristics not a lab; opaque empty refuses SL-UNREDACT-OPAQUE; heatmap ≠ transcript. 4DM-CARD receipts. Fail-closed SHA-256. Forks kept. ZionPattern cap 75%. Π-EMPTY when the lens is silent.
 >
 > **THIS IS NOT:** a truth engine; Lumen; GIS 4D; a Node Gate; certified forensics; an identity store. No legal name, home, or county on cards. QNS/QNM do not carry 4DMap photons.
 >
