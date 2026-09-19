@@ -852,13 +852,13 @@ export function howItsScoredBody() {
 <h2>Triad — always published</h2>
 <p>The <strong>triad</strong> is the primary report card. It is always computed and always shown on a scored record. TRIAD_V2 is the geometric mean of the checkers that apply to that document’s concept:</p>
 <p><code>combined = (Π applicable_i)<sup>1/n</sup></code></p>
-<p>When SPRE, CLCE, and PhysLing all apply, that is the familiar three-engine mean. When a component does not apply, it is omitted from the public mean so it does not pretend to have weighted the triad. Display is <code>round(combined × 100)</code>.</p>
+<p>When SPRE, CLCE, and PhysLing all apply, that is the familiar three-engine mean. Only applicable checkers enter the public mean. Omitted components stay stored for audit and never weight the triad as 0. Display is <code>round(combined × 100)</code>.</p>
 <ul>
 <li><strong>SPRE</strong> — Source Provenance Reliability Engine. Applies when the record is a filed object with provenance (title, author, hash, filename, or body). How complete the provenance looks.</li>
 <li><strong>CLCE</strong> — claim-to-claim consistency (AZ-CLCE). Applies when a descriptive claim layer exists beside title or file. Triple agreement when it is strong; otherwise pairwise average.</li>
-<li><strong>PhysLing</strong> — physics coherence mixed with linguistic neutrality. Applies when the document makes physics-evaluable or measurement claims, or is classified energy/engineering (or hardware with physical language). Philosophy, software, and design without those claims omit PhysLing.</li>
+<li><strong>PhysLing</strong> — physics coherence mixed with linguistic neutrality. Applies when the document makes physics-evaluable or measurement claims, or is classified energy/engineering (or hardware with physical language). Philosophy, software, and design stay on SPRE, CLCE, and the triad unless they make those claims.</li>
 </ul>
-<p>Equal weight among the applicable engines only. Internal scores stay stored for audit with <code>applicable:false</code> when a component is omitted. A component that does not apply is never shown as 0. The unranked Bayesian peer number and the HEURISTIC possibility score stay outside this mean and never sort the shelf.</p>
+<p>Equal weight among the applicable engines only. Internal scores stay stored for audit with <code>applicable:false</code> when a component is omitted. N/A components stay off the public page (never shown as 0). The unranked Bayesian peer number and the HEURISTIC possibility score stay outside this mean and never sort the shelf.</p>
 <p class="muted">See a record page, <code>GET /v1/review?record_id=</code>, or <a href="/help.txt">/help.txt</a> and <a href="/help/how-to-read-scores.txt">how to read scores</a>.</p>
 </div>
 <div class="card">

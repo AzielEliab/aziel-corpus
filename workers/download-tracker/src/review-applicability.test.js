@@ -17,7 +17,7 @@ import {
 } from "./review.js";
 import { recordBody } from "./hosted-pages.js";
 
-const BANNED = /\+25|quiet (Aziel|triad|boost)|blocked.from|what this is not/i;
+const BANNED = /\+25|quiet (Aziel|triad|boost)|blocked.from|what this is not|THIS IS NOT|what-not-to-say|≠/i;
 
 const LAB = {
   title: "Lab note",

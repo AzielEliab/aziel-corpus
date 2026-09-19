@@ -69,7 +69,7 @@ test("runtime manifest and skill cite the library /runtime root", () => {
   assert.equal(man.version_id, "105fa1ee");
   assert.equal(man.launch.sot.git, "6a3798a");
   assert.equal(man.launch.mcp.softwares, "fraggate_call only");
-  assert.equal(man.launch., undefined);
+  assert.equal(man.launch.claim_complete, undefined);
   assert.equal(man.launch.chrome_15_20, false);
   assert.equal(man.launch.shelves.plane_b_live, false);
   assert.equal(man.vpn.https_ws, "REAL");

@@ -9,10 +9,10 @@ Human guide. HTML explainer: https://www.azielcorpuslibrary.net/how-its-scored
 Every scored record publishes a triad first. TRIAD_V2 is the geometric mean of the checkers that apply to that document's concept: combined = (Π applicable_i)^(1/n). Display is round(combined × 100). API: https://www.azielcorpuslibrary.net/v1/review?record_id=
 
 ## Component scores (when they apply)
-SPRE, CLCE, and PhysLing stay stored for audit. They appear on the record page and cite when they apply to the document's concept. A component that does not apply is omitted (never shown as 0).
+SPRE, CLCE, and PhysLing stay stored for audit. They appear on the record page and cite when they apply to the document's concept. N/A components are omitted (never shown as 0).
 - SPRE — source provenance completeness. Applies when the record is a filed object with provenance.
 - CLCE — claim-to-claim consistency (AZ-CLCE). Applies when a descriptive claim layer exists beside title or file.
-- PhysLing — physics coherence mixed with linguistic neutrality. Applies when the document makes physics-evaluable or measurement claims, or is energy/engineering (or hardware with physical language). Philosophy, software, and design without those claims omit PhysLing.
+- PhysLing — physics coherence mixed with linguistic neutrality. Applies when the document makes physics-evaluable or measurement claims, or is energy/engineering (or hardware with physical language). Philosophy, software, and design stay on SPRE, CLCE, and the triad unless they make those claims.
 
 ## Other published numbers
 AZCoherence is a second-pass triad coherence review (PASS / FLAG / NEUTRALIZE / REFUSE).

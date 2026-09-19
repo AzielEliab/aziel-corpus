@@ -4,7 +4,7 @@ import { parseRecordMachinePath, buildRecordLlms, buildRecordCite, serveRecordMa
 import { reviewDocument } from "./review.js";
 import { metadataUrls } from "./record-metadata.js";
 
-const BANNED = /\+25|quiet (Aziel|triad|boost)|blocked.from|what this is not|≠/i;
+const BANNED = /\+25|quiet (Aziel|triad|boost)|blocked.from|what this is not|THIS IS NOT|what-not-to-say|not\s*=|≠/i;
 const PAPER = "AZDOC-F99F22A4D2B1";
 
 function softwareCtx() {

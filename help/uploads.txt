@@ -15,11 +15,11 @@ After a successful upload the record is immediately findable at:
   File          https://www.azielcorpuslibrary.net/file/{AZDOC-…}
 
 Those machine surfaces are built from the live metadata and packed index. A new upload
-does not wait for a rewrite of every stored blob.
+is live from metadata immediately.
 
 Scoring runs on ingest. The triad is always computed and shown when scoring finishes.
-SPRE, CLCE, and PhysLing are published only when they apply to the filed concept.
-A component that does not apply is omitted (never shown as 0).
+SPRE, CLCE, and PhysLing are published when they apply to the filed concept.
+N/A components are omitted (never shown as 0).
 
 Human help: https://www.azielcorpuslibrary.net/help.txt
 How it's scored: https://www.azielcorpuslibrary.net/how-its-scored

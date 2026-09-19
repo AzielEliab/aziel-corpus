@@ -28,6 +28,7 @@ import { handleRuntimeApi } from "./runtime.js";
 import { page, howItsScoredBody, ecosystemBlockHtml, softwareBody } from "./ui.js";
 
 const BANNED = /Collin Horton|GodLock\.AZ|\+25|quiet (Aziel|triad|boost)|10\.5281\/zenodo/i;
+const SEO_NOT_X = /THIS IS NOT|what-not-to-say|blocked.from|not\s*=|≠/i;
 const LOCAL_PERSON = "https://www.azielcorpuslibrary.net/AzielEliab#aziel-eliab";
 const LOCAL_RUNTIME = /azielcorpuslibrary\.net\/runtime#/;
 const MCP_OP = /fraggate_(list|describe|verify|call)|decisiongate_check|library_lookup|runtime_skill/;
@@ -452,6 +453,7 @@ test("chrome page for how-its-scored does not leak the quiet triad boost", () =>
   assert.match(html, /Person/);
   assert.match(html, /Aziel Elroi Eliab/);
   assert.doesNotMatch(html, BANNED);
+  assert.doesNotMatch(html, SEO_NOT_X);
   assert.doesNotMatch(html, /collection score is the published triad/);
 });
 

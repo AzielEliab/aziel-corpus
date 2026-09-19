@@ -22,7 +22,7 @@ import {
 import { applyApplicabilityToReview } from "./review.js";
 
 export const RECORD_LLMS_TITLE = "llms.txt";
-const BANNED_SEO = /\+25|quiet (Aziel|triad|boost)|blocked.from|what this is not/i;
+const BANNED_SEO = /\+25|quiet (Aziel|triad|boost)|blocked.from|what this is not|THIS IS NOT|what-not-to-say|not\s*=|≠/i;
 
 function corsPlain() {
   return {

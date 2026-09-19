@@ -276,7 +276,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.equal(cite.runtime_launch.sot.git, "6a3798a");
   assert.equal(cite.runtime_launch.mcp.softwares, "fraggate_call only");
   assert.equal(cite.runtime_launch.shelves.plane_b_live, false);
-  assert.equal(cite.runtime_launch., undefined);
+  assert.equal(cite.runtime_launch.claim_complete, undefined);
   assert.equal(cite.runtime_launch.chrome_15_20, false);
   assert.equal(cite.lamb_lens, "Service → Clarity → Peace");
   assert.equal(cite.vpn.https_ws, "REAL");

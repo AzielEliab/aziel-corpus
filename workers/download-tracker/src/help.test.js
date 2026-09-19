@@ -48,6 +48,7 @@ test("help txt stays affirmative and points at scores, records, upload, Software
     assert.match(body, /#aziel/);
     assert.doesNotMatch(body, SEO_NOT_X);
     assert.doesNotMatch(body, /≠/);
+    assert.doesNotMatch(body, /THIS IS NOT|what-not-to-say|blocked.from|not\s*=/i);
   }
   assert.match(index, /how-its-scored/);
   assert.match(index, /\/software/);
@@ -66,7 +67,7 @@ test("help txt stays affirmative and points at scores, records, upload, Software
   assert.match(addendum, /\/llms\.txt/);
   assert.match(scores, /TRIAD_V2|triad/);
   assert.match(scores, /SPRE/);
-  assert.match(scores, /when they apply/);
+  assert.match(scores, /when they apply|N\/A components/);
   assert.match(scores, /how-its-scored/);
   assert.match(cite, /cite\.json/);
   assert.match(cite, /\/record\/\{AZDOC/);
