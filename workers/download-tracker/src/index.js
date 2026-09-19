@@ -33,6 +33,13 @@ import { handleReceipts, isReceiptsPath } from "./action-receipts.js";
 import { locksetFile } from "./ingest-receipt.js";
 import { isShelvesPath, shelvesDoc } from "./cold-shelf.js";
 import { serveSoftwareAsset, DEFAULT_ASSET as SOFTWARE_DEFAULT_ASSET } from "./software-download.js";
+import { classifyRequest, readBotManagement } from "./classify.js";
+import {
+  isolatedKeys,
+  isReservedCounterKey,
+  shapeCountBody,
+  shapeHumanBotFields,
+} from "./stats-shape.js";
 
 /** Operator walk APIs must not share the isolate with background backfill/geo or a tunnel hop. */
 export function shouldBackgroundWalk(pathname) {
@@ -53,6 +60,23 @@ export function shouldBackgroundWalk(pathname) {
  */
 
 const PROJECT = "aziel-corpus";
+const KEYS = isolatedKeys(PROJECT);
+
+async function withHumanBotStats(env, request, stats) {
+  const views = Number(stats && stats.views) || 0;
+  const downloads = Number(stats && (stats.downloads != null ? stats.downloads : stats.total)) || 0;
+  const viewsHuman = parseInt((await env.DOWNLOADS.get(KEYS.views_human)) || "0", 10) || 0;
+  const downloadsHuman = parseInt((await env.DOWNLOADS.get(KEYS.downloads_human)) || "0", 10) || 0;
+  const split = shapeHumanBotFields({
+    views,
+    downloads,
+    views_human: viewsHuman,
+    downloads_human: downloadsHuman,
+    botManagementAvailable: readBotManagement(request).available,
+  });
+  return { ...stats, ...split };
+}
+
 const VERSION = "2.7.0";
 const DEFAULT_ASSET = "aziel-digital-library-2.7.0.zip";
 const LEGACY_ASSET = "aziel-digital-library-2.6.2.zip";
@@ -132,7 +156,51 @@ function githubCacheKey() {
   return PROJECT + "|__github__";
 }
 
-async function increment(env, dims) {
+
+async function bump(env, key) {
+  const n = parseInt((await env.DOWNLOADS.get(key)) || "0", 10) + 1;
+  await env.DOWNLOADS.put(key, String(n));
+  return n;
+}
+
+async function incrementSplit(env, humanKey, botKey, request) {
+  const cls = classifyRequest(request);
+  const splitKey = cls.bucket === "human" ? humanKey : botKey;
+  await bump(env, splitKey);
+  return cls;
+}
+
+async function readHumanBotSplit(env, request) {
+  const views = parseInt((await env.DOWNLOADS.get(KEYS.views)) || "0", 10) || 0;
+  const downloadsRaw = await env.DOWNLOADS.get(KEYS.total);
+  let downloads = parseInt(downloadsRaw || "0", 10);
+  if (!Number.isFinite(downloads) || downloads < 0) downloads = 0;
+  const viewsHuman = parseInt((await env.DOWNLOADS.get(KEYS.views_human)) || "0", 10) || 0;
+  const downloadsHuman = parseInt((await env.DOWNLOADS.get(KEYS.downloads_human)) || "0", 10) || 0;
+  const botManagementAvailable = readBotManagement(request).available;
+  return shapeHumanBotFields({
+    views,
+    downloads,
+    views_human: viewsHuman,
+    downloads_human: downloadsHuman,
+    botManagementAvailable,
+  });
+}
+
+function enrichStatsWithHumanBot(stats, split) {
+  return {
+    ...stats,
+    views_human: split.views_human,
+    views_bot: split.views_bot,
+    downloads_human: split.downloads_human,
+    downloads_bot: split.downloads_bot,
+    human: split.human,
+    bot: split.bot,
+    classification: split.classification,
+  };
+}
+
+async function increment(env, dims, request) {
   const key = kvKey(dims);
   const n = parseInt((await env.DOWNLOADS.get(key)) || "0", 10) + 1;
   await env.DOWNLOADS.put(key, String(n));
@@ -143,14 +211,18 @@ async function increment(env, dims) {
   } catch {
     /* packed index is standby; counters above still wrote */
   }
+  if (request) await incrementSplit(env, KEYS.downloads_human, KEYS.downloads_bot, request);
+
   return tot;
 }
 
-async function incrementViews(env) {
+async function incrementViews(env, request) {
   if (!env || !env.DOWNLOADS || typeof env.DOWNLOADS.get !== "function") return 0;
   const n = parseInt((await env.DOWNLOADS.get(viewsKey())) || "0", 10) + 1;
   await env.DOWNLOADS.put(viewsKey(), String(n));
   // Packed views refresh on cron. Do not rewrite library:index:v1 on every page view.
+  if (request) await incrementSplit(env, KEYS.views_human, KEYS.views_bot, request);
+
   return n;
 }
 
@@ -435,7 +507,7 @@ export default {
         }
       }
       if (!isSeoBot(request)) {
-        const bump = incrementViews(env).catch(() => null);
+        const bump = incrementViews(env, request).catch(() => null);
         if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(bump);
         else await bump;
       }
@@ -454,7 +526,8 @@ export default {
     if (hosted) return attachVid(hosted);
 
     if (url.pathname === "/count" && request.method === "GET") {
-      const stats = await collectStats(env);
+      const stats = await collectStats(env, request);
+      const __enriched = await withHumanBotStats(env, request, stats);
       try { await rememberCatalog({ ok: true, source: "count", stats, author: "Aziel Eliab" }); } catch { /* cache */ }
       const res = json({ project: PROJECT, views: stats.views || 0, downloads: stats.downloads || 0, total: stats.total || 0, kv_list_hot_path: false });
       res.headers.set("Cache-Control", "public, s-maxage=300, stale-while-revalidate=3600");
@@ -462,7 +535,7 @@ export default {
     }
 
     if (url.pathname === "/stats" && request.method === "GET") {
-      const stats = await collectStats(env);
+      const stats = await collectStats(env, request);
       const res = json(stats);
       res.headers.set("Cache-Control", "public, s-maxage=300, stale-while-revalidate=3600");
       return attachVid(res);
@@ -476,7 +549,7 @@ export default {
         return json({ error: "JSON body required" }, 400);
       }
       const dims = parseDims(body || {});
-      const count = await increment(env, dims);
+      const count = await increment(env, dims, request);
       return json({
         ok: true,
         key: kvKey(dims),
@@ -495,7 +568,7 @@ export default {
       dims.asset = asset;
       return serveAsset(request, env, asset, {
         head: request.method === "HEAD",
-        onCounted: request.method === "GET" ? () => increment(env, dims) : null,
+        onCounted: request.method === "GET" ? () => increment(env, dims, request) : null,
       });
     }
 
@@ -504,14 +577,14 @@ export default {
       if (productSlug && productBySlug(productSlug)) {
         const dims = parseDims(url.searchParams);
         dims.asset = "product:" + productSlug;
-        if (request.method === "GET" && env && env.DOWNLOADS) await increment(env, dims);
+        if (request.method === "GET" && env && env.DOWNLOADS) await increment(env, dims, request);
         return attachVid(await serveDesignPack(env, productSlug, { attachment: true, head: request.method === "HEAD" }));
       }
       const recordId = (url.searchParams.get("record") || url.searchParams.get("record_id") || "").trim();
       if (recordId) {
         const dims = parseDims(url.searchParams);
         dims.asset = "record:" + recordId;
-        if (request.method === "GET") await increment(env, dims);
+        if (request.method === "GET") await increment(env, dims, request);
         return serveFile(env, recordId);
       }
       const rawHash = (url.searchParams.get("hash") || url.searchParams.get("sha256") || url.searchParams.get("content_sha256") || "").trim();
@@ -520,7 +593,7 @@ export default {
       if (hash) {
         const dims = parseDims(url.searchParams);
         dims.asset = "hash:" + hash;
-        if (request.method === "GET") await increment(env, dims);
+        if (request.method === "GET") await increment(env, dims, request);
         return serveFileByHash(env, hash);
       }
       const dims = parseDims(url.searchParams);
@@ -531,7 +604,7 @@ export default {
       dims.asset = asset;
       return serveAsset(request, env, asset, {
         head: request.method === "HEAD",
-        onCounted: request.method === "GET" ? () => increment(env, dims) : null,
+        onCounted: request.method === "GET" ? () => increment(env, dims, request) : null,
       });
     }
 
