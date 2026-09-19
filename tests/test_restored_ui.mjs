@@ -313,7 +313,7 @@ test("browse cards clamp titles and shorten bleed-over snippets without rewritin
   assert.equal(chipLabel("philosophy"), "philosophy");
   assert.equal(
     chipLabel("f53419056b94b69be05c8214cb8d8329f7e74fe99d8505ecfa8a72a9a6e0333f"),
-    "f53419056b94…0333f",
+    "f53419056b94…333f",
   );
   assert.equal(CARD_EXCERPT_CHARS, 180);
   assert.equal(cardExcerpt("Short note."), "Short note.");
@@ -340,10 +340,14 @@ test("browse cards clamp titles and shorten bleed-over snippets without rewritin
   };
   const home = homeBody({ q: "Instagram", rows: [row] });
   const corpus = corpusBody({ signed: null, rows: [row] });
+  const hashSub = "f53419056b94b69be05c8214cb8d8329f7e74fe99d8505ecfa8a72a9a6e0333f";
   const aziel = azielLibraryBody({
     signed: null,
-    rows: [{ ...row, record_id: "AZDOC-spam-aziel", library: "aziel" }],
+    rows: [{ ...row, record_id: "AZDOC-spam-aziel", library: "aziel", subjects: hashSub }],
   });
+  assert.match(aziel, /f53419056b94…333f/);
+  assert.match(aziel, new RegExp("subject=" + hashSub));
+  assert.doesNotMatch(aziel, />f53419056b94b69be05c8214cb8d8329f7e74fe99d8505ecfa8a72a9a6e0333f</);
   for (const html of [home, corpus, aziel]) {
     assert.match(html, /class="excerpt"/);
     assert.match(html, /class="doc-actions"/);
