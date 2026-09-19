@@ -380,7 +380,7 @@ export function page(title, body, { signed, scripts, path, kind, description, wo
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(documentTitle(kind, title))}</title>${headMeta(metaOpts)}${ingestReceiptHead()}<link rel="preload" href="/sigil.png" as="image" fetchpriority="high"><style>${CSS}</style></head><body>
 <header class="sitehead"><div class="sitehead-inner">
 <div class="brandrow nav1">${brandMarkHtml()}<div class="brand">Aziel Digital Library</div>${brandCountPills({ views, downloads })}<span class="pill">Runtime v2.7.0</span><span class="pill ok">MASTER · WRITABLE</span>${account}</div>
-<nav class="nav2 quiet"><a href="/">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/pattern">Pattern</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/how-its-scored">How it's scored</a><span class="sep">|</span><a href="/donate">Donate</a><span class="sep">|</span><a href="/runtime">Runtime</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/forensics">Forensics</a><span class="sep">|</span><a href="/receipts">Receipts</a><span class="sep">|</span><a class="nav-aziel" href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a><span class="sep">|</span>${authLinks}</nav>
+<nav class="nav2 quiet"><a href="/">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/upload">Upload</a><span class="sep">|</span><a href="/pattern">Pattern</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/how-its-scored">How it's scored</a><span class="sep">|</span><a href="/donate">Donate</a><span class="sep">|</span><a href="/runtime">Runtime</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/forensics">Forensics</a><span class="sep">|</span><a href="/receipts">Receipts</a><span class="sep">|</span><a class="nav-aziel" href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a><span class="sep">|</span>${authLinks}</nav>
 </div></header>
 <div class="wrap">
 ${showDonate ? donateStripHtml() : ""}
@@ -687,6 +687,37 @@ ${results}
 <div class="home-doors">${homeSignupCard()}${homeAnonymousUploadCard({ error })}</div>`;
 }
 
+export function uploadBody({ signed, error } = {}) {
+  const op = isOperator(signed);
+  const err = error ? `<p class="bad">${esc(error)}</p>` : "";
+  if (op) {
+    return `<section class="hero">
+<h1>Upload</h1>
+<p class="muted">Upload to <span class="aziel-name">Aziel Library</span>.</p>
+</section>
+<div class="drop">
+${err}
+<form method="post" action="/upload" enctype="multipart/form-data">
+<input type="file" name="file" required>
+<input name="title" placeholder="Title (optional)" autocomplete="off">
+<p><button>Upload to Aziel Library</button></p>
+</form>
+</div>`;
+  }
+  return `<section class="hero">
+<h1>Upload</h1>
+<p class="muted">Upload to Corpus. No account required.</p>
+</section>
+<div class="drop">
+${err}
+<form method="post" action="/upload" enctype="multipart/form-data">
+<input type="file" name="file">
+${requiredTitleField("upload-title")}
+<p><button>Upload to Corpus</button></p>
+</form>
+</div>`;
+}
+
 export function azielLibraryBody({ rows, error, q, sort, domain, subject, keyword, author, facets, signed, records_packed, records_aziel, records_corpus } = {}) {
   const err = error ? `<p class="bad">${esc(error)}</p>` : "";
   const state = browseState({ q, lib: "aziel", sort, domain, subject, keyword, author });
@@ -718,7 +749,7 @@ export function corpusBody({ signed, rows, error, q, sort, domain, subject, keyw
   const state = browseState({ q, lib: "corpus", sort, domain, subject, keyword, author });
   let form = "";
   if (op) {
-    form = `<div class="card"><p>Operator files always go to Aziel Library.</p><p><a class="button" href="/aziel-library">Open Aziel Library upload</a></p></div>`;
+    form = `<div class="card"><p>Operator files always go to Aziel Library.</p><p><a class="button" href="/upload">Upload</a></p></div>`;
   } else if (signed) {
     form = `<div class="drop">
 <h3>Post to the corpus</h3>
@@ -733,7 +764,7 @@ ${metaInputs({ authorPlaceholder: "Author" })}
 </form>
 </div>`;
   } else {
-    form = `<div class="card"><p>Anyone can view this library. <a href="/signup">Sign up</a> to post under a name, or <a href="/#upload-anonymous">upload anonymously</a> from Search. Corpus uploads are reviewed for safety before they appear. Aziel Library stays operator-only.</p><p><a class="button" href="/signup">Sign up</a> <a class="button ghost" href="/#upload-anonymous">Upload anonymously</a></p></div>`;
+    form = `<div class="card"><p>Anyone can view this library. <a href="/signup">Sign up</a> to post under a name, or <a href="/upload">upload</a> without an account. Corpus uploads are reviewed for safety before they appear. Aziel Library stays operator-only.</p><p><a class="button" href="/signup">Sign up</a> <a class="button ghost" href="/upload">Upload</a></p></div>`;
   }
   return `<section class="hero"><h1>Corpus library</h1><p class="muted">Files from every other account.</p>${libraryFileCountHtml({ records_packed, records_aziel, records_corpus, shelf: "corpus" })}</section>
 ${browseTools({ action: "/corpus", showLibChips: false, ...state })}

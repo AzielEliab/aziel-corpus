@@ -100,7 +100,7 @@ function anonymousIngestRefuse() {
     error: "sign in or operator token required for AI / JSON ingest",
     status: 401,
     ai_path: AI_PATH_NOTE,
-    human_anonymous: "POST /ingest from the homepage HTML form may file Corpus as a guest. That is not this JSON door.",
+    human_anonymous: "POST /upload (or homepage POST /ingest) may file Corpus as a guest. That is not this JSON door.",
     mesh_write: false,
     honesty: HONESTY,
     author: AUTHOR,
