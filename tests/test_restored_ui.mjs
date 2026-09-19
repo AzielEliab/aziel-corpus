@@ -308,6 +308,9 @@ test("OCR page still ships all eight SpectralLock lenses", () => {
   }
   assert.match(html, /Sign in to save/);
   assert.match(html, /href="\/pattern"/);
+  assert.match(html, /SL-UNREDACT-OPAQUE/);
+  assert.match(html, /does not unredact by guessing/);
+  assert.match(html, /not a FragGate door op/);
 });
 
 test("Pattern, Software, About, and runtime pages render live copy", () => {

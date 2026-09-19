@@ -6,13 +6,18 @@
  * raster stays readable. Mixing follows Spectral Master Codex / SpectralLock
  * modes: one checkbox is a pure channel; several pures reweight into one pass;
  * a named composite uses its published formula.
+ * Leftover-bytes unredact lives on the SpectralLock Worker /v1/unredact
+ * (locate / lift / recover / refuse). Opaque empty refuses SL-UNREDACT-OPAQUE.
+ * Heatmap ≠ transcript. Corpus OCR does not unredact by guessing.
  */
 export const LIMITATION =
   "Advisory digital overlays on photographs of manuscript pages. " +
   "Not a lab spectrometer, not real UV photography hardware, not a " +
   "forensic proof of hidden ink, not OCR truth, and not a claim of scribal truth. " +
   "Synthetic UV simulates a 365–400 nm look from an ordinary photo. " +
-  "Balance never invents marks. The human still reads the page.";
+  "Balance never invents marks. The human still reads the page. " +
+  "Leftover container bytes recover honestly; opaque empty refuses SL-UNREDACT-OPAQUE. " +
+  "Heatmaps are not transcripts. Corpus OCR does not unredact by guessing.";
 
 export const VERSION = "0.2.0";
 export const OCR_MAX_SIDE = 1280;
