@@ -527,16 +527,23 @@ export default {
 
     if (url.pathname === "/count" && request.method === "GET") {
       const stats = await collectStats(env, request);
-      const __enriched = await withHumanBotStats(env, request, stats);
-      try { await rememberCatalog({ ok: true, source: "count", stats, author: "Aziel Eliab" }); } catch { /* cache */ }
-      const res = json({ project: PROJECT, views: stats.views || 0, downloads: stats.downloads || 0, total: stats.total || 0, kv_list_hot_path: false });
+      const __enriched = await withHumanBotStats(env, request, {
+        project: PROJECT,
+        views: stats.views || 0,
+        downloads: stats.downloads || 0,
+        total: stats.total || 0,
+        kv_list_hot_path: false,
+      });
+      try { await rememberCatalog({ ok: true, source: "count", stats: __enriched, author: "Aziel Eliab" }); } catch { /* cache */ }
+      const res = json(__enriched);
       res.headers.set("Cache-Control", "public, s-maxage=300, stale-while-revalidate=3600");
       return attachVid(res);
     }
 
     if (url.pathname === "/stats" && request.method === "GET") {
       const stats = await collectStats(env, request);
-      const res = json(stats);
+      const __enriched = await withHumanBotStats(env, request, stats);
+      const res = json(__enriched);
       res.headers.set("Cache-Control", "public, s-maxage=300, stale-while-revalidate=3600");
       return attachVid(res);
     }
