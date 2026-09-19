@@ -31,8 +31,11 @@ import {
   fetchLiveSoftwareCatalog,
   fetchLiveRuntimeVersion,
   preferWorkerSoftwareCopy,
+  preferSpectralLockHonestyCopy,
   catalogCopyLooksStale,
+  mapSoftwareProduct,
 } from "./software-catalog.js";
+import { SPECTRALLOCK_ONE_LINE } from "./spectrallock.js";
 import {
   AZCOHERENCE_DOWNLOAD,
   AZCOHERENCE_WORKER_HOME,
@@ -1237,6 +1240,28 @@ test("preferWorkerSoftwareCopy keeps Worker SSoT over extra THIS-IS / catalog-on
   assert.equal(catalogCopyLooksStale({
     software: [{ slug: "4dmap", one_line: "Inspect the same event on time, change, graph, and place axes at once." }],
   }), false);
+});
+
+test("SpectralLock Softwares copy lands post-#137 leftover-bytes honesty", () => {
+  assert.equal(
+    preferSpectralLockHonestyCopy(
+      { one_line: "256px overlay preview (zero/tazel/vyrn/uv/rosetta/zen/chaos/balance). Not a spectrometer." },
+      { one_line: SPECTRALLOCK_ONE_LINE }
+    ),
+    SPECTRALLOCK_ONE_LINE
+  );
+  const mapped = mapSoftwareProduct({
+    slug: "spectrallock",
+    name: "SpectralLock",
+    one_line: "THIS IS: old overlay blurb.",
+  });
+  assert.equal(mapped.one_line, SPECTRALLOCK_ONE_LINE);
+  const live = mapSoftwareProduct({
+    slug: "spectrallock",
+    name: "SpectralLock",
+    one_line: SPECTRALLOCK_ONE_LINE,
+  });
+  assert.equal(live.one_line, SPECTRALLOCK_ONE_LINE);
 });
 
 test("softwareTabCatalog keeps Worker one_line when extras have stale door copy", () => {

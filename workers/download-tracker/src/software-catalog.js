@@ -33,6 +33,12 @@ import {
   isTradesRuntimeSlug,
 } from "./trades-runtime.js";
 import {
+  SPECTRALLOCK_SLUG,
+  SPECTRALLOCK_ONE_LINE,
+  SPECTRALLOCK_WORKER_HOME,
+  spectralLockCopyLooksHonest,
+} from "./spectrallock.js";
+import {
   SOFTWARE_CATALOG_CACHE_URL,
   SEO_CACHE_CONTROL,
   cacheMatchJson,
@@ -118,6 +124,7 @@ const KNOWN_NAMES = {
   miragegrid: "MirageGrid",
   peacelock: "PeaceLock",
   postking: "Post-King Chess",
+  spectrallock: "SpectralLock",
   "trades-runtime": "Trades-Runtime",
   tradesruntime: "Trades-Runtime",
   trades_runtime: "Trades-Runtime",
@@ -262,11 +269,16 @@ export function mapSoftwareProduct(raw) {
   if (slug === "aziel-corpus") {
     downloadUrl = firstText(raw.download_url, raw.download, LIBRARY_DOWNLOAD);
   }
-  return Object.assign({}, raw, {
+  const mapped = Object.assign({}, raw, {
     slug,
     download: slug === "aziel-corpus" ? firstText(download, LIBRARY_DOWNLOAD) : download,
     download_url: downloadUrl,
   });
+  if (slug === SPECTRALLOCK_SLUG) {
+    mapped.one_line = preferSpectralLockHonestyCopy(raw, { one_line: SPECTRALLOCK_ONE_LINE });
+    mapped.worker_home = firstText(raw.worker_home, SPECTRALLOCK_WORKER_HOME);
+  }
+  return mapped;
 }
 
 /** Softwares-tab products[] plus kernel extras[] only. */
@@ -346,6 +358,15 @@ export function preferWorkerSoftwareCopy(live, fallback) {
   if (liveCopy && !copyLooksStale(liveCopy)) return liveCopy;
   if (fallCopy && !copyLooksStale(fallCopy)) return fallCopy;
   return liveCopy || fallCopy || "";
+}
+
+/** Post-#137 leftover-bytes honesty wins over pre-unredact overlay blurbs. */
+export function preferSpectralLockHonestyCopy(live, fallback) {
+  const liveCopy = productCopyText(live);
+  const fallCopy = productCopyText(fallback) || SPECTRALLOCK_ONE_LINE;
+  if (spectralLockCopyLooksHonest(liveCopy)) return liveCopy;
+  if (spectralLockCopyLooksHonest(fallCopy)) return fallCopy;
+  return SPECTRALLOCK_ONE_LINE;
 }
 
 export function catalogCopyLooksStale(doc) {
