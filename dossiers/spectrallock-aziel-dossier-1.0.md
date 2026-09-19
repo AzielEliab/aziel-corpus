@@ -36,7 +36,7 @@ Preview a small overlay on an image; leftover container bytes recover honestly, 
 
 ### What it is
 
-Preview a small overlay on an image; leftover container bytes recover honestly, opaque rewrite refuses. 256px overlay preview (zero/tazel/vyrn/uv/rosetta/zen/chaos/balance/candle/indent/lemon). Honest unredact family (`locate` / `lift` / `recover` / `refuse`) lives on the product Worker `GET|POST /v1/unredact` — not a FragGate door op.
+Preview a small overlay on an image; leftover container bytes recover honestly, opaque rewrite refuses. 256px overlay preview (zero/tazel/vyrn/uv/rosetta/zen/chaos/balance/candle/indent/lemon). Honest unredact family (`locate` / `lift` / `recover` / `refuse`) plus `revision_graph` lives on the product Worker `GET|POST /v1/unredact`. Universal recover is `GET|POST /v1/recover` (NO-LIE LIVE/SLOT). Handwriting is `GET|POST /v1/handwriting` (ink heuristics, not a lab). None of those paths are FragGate door ops.
 
 Catalog domain label: **Media**.
 engine_digest: `3427dbcf2932b6bf4c6cf80735efd171b75519066e013db6d0df275c65989fb4`.
@@ -45,8 +45,9 @@ engine_digest: `3427dbcf2932b6bf4c6cf80735efd171b75519066e013db6d0df275c65989fb4
 
 - Not a spectrometer.
 - Not OCR-from-black-box. Heatmap ≠ transcript. Never invent letters.
-- Not a FragGate `unredact` / `locate` / `lift` / `recover` door op.
+- Not a FragGate `unredact` / `recover` / `handwriting` / `locate` / `lift` door op.
 - Not a claim that Aziel Corpus Library OCR unredacts by guessing.
+- Not ESDA, not a lab assay, not chemical ink dating, not a court finding.
 - Not a ~100-file library unpack of the source tree.
 - Not a Zenodo DOI mint (deposit_needed is a separate catalog track).
 
@@ -58,7 +59,7 @@ Preview a small overlay on an image; leftover container bytes recover honestly, 
 
 ## Concept
 
-Leftover container bytes = honest recover (object id / offset / stream). Opaque empty = `SL-UNREDACT-OPAQUE`. locate / lift / recover / refuse. Heatmap ≠ transcript. Never invent letters. Worker: https://spectrallock-download-tracker.vibelock.workers.dev/v1/unredact. Corpus OCR may mix advisory SpectralLock lenses and does not unredact by guessing.
+Leftover container bytes = honest recover (object id / offset / stream). `/v1/unredact` cites `revision_graph` + tip-cut copies. `/v1/recover` is universal (NO-LIE LIVE/SLOT; present bytes only; SLOT never advertised as LIVE). `/v1/handwriting` is ink heuristics, not ESDA and not a lab. Opaque empty = `SL-UNREDACT-OPAQUE`. locate / lift / recover / refuse. Heatmap ≠ transcript. Never invent letters. Workers: https://spectrallock-download-tracker.vibelock.workers.dev/v1/unredact · https://spectrallock-download-tracker.vibelock.workers.dev/v1/recover · https://spectrallock-download-tracker.vibelock.workers.dev/v1/handwriting. Corpus OCR may mix advisory SpectralLock lenses and does not unredact by guessing. Handwriting is not ESDA.
 
 ## Use cases
 
@@ -104,10 +105,12 @@ README lead (truncated, source only):
 - **Home:** https://spectrallock-download-tracker.vibelock.workers.dev/
 - **GitHub:** https://github.com/AzielEliab/spectrallock
 - **Counted /download:** https://spectrallock-download-tracker.vibelock.workers.dev/download
-- **Unredact (product Worker, not a FragGate door):** https://spectrallock-download-tracker.vibelock.workers.dev/v1/unredact
+- **Unredact (product Worker, revision graph, not a FragGate door):** https://spectrallock-download-tracker.vibelock.workers.dev/v1/unredact
+- **Recover (universal NO-LIE LIVE/SLOT, not a FragGate door):** https://spectrallock-download-tracker.vibelock.workers.dev/v1/recover
+- **Handwriting (ink heuristics, not ESDA / not a lab, not a FragGate door):** https://spectrallock-download-tracker.vibelock.workers.dev/v1/handwriting
 - **MCP:** https://aziel-runtime.vibelock.workers.dev/mcp
 - **fraggate/describe:** https://aziel-runtime.vibelock.workers.dev/v1/fraggate/describe?slug=spectrallock
-- **Product honesty PR:** https://github.com/AzielEliab/spectrallock/pull/12
+- **Product LIVE PR:** https://github.com/AzielEliab/spectrallock/pull/13 (`4af8fcb`)
 - **Runtime vendor PR:** https://github.com/AzielEliab/aziel-runtime/pull/137
 
 ## Related ecosystem links

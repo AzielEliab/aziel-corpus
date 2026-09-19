@@ -7,7 +7,9 @@
  * modes: one checkbox is a pure channel; several pures reweight into one pass;
  * a named composite uses its published formula.
  * Leftover-bytes unredact lives on the SpectralLock Worker /v1/unredact
- * (locate / lift / recover / refuse). Opaque empty refuses SL-UNREDACT-OPAQUE.
+ * (locate / lift / recover / refuse + revision_graph). Universal recover is
+ * /v1/recover (NO-LIE LIVE/SLOT). Handwriting is /v1/handwriting ink heuristics,
+ * not ESDA. Opaque empty refuses SL-UNREDACT-OPAQUE.
  * Heatmap ≠ transcript. Corpus OCR does not unredact by guessing.
  */
 export const LIMITATION =
@@ -16,8 +18,10 @@ export const LIMITATION =
   "forensic proof of hidden ink, not OCR truth, and not a claim of scribal truth. " +
   "Synthetic UV simulates a 365–400 nm look from an ordinary photo. " +
   "Balance never invents marks. The human still reads the page. " +
-  "Leftover container bytes recover honestly; opaque empty refuses SL-UNREDACT-OPAQUE. " +
-  "Heatmaps are not transcripts. Corpus OCR does not unredact by guessing.";
+  "Leftover container bytes recover honestly; /v1/unredact cites revision_graph; " +
+  "/v1/recover is universal NO-LIE LIVE/SLOT; /v1/handwriting is ink heuristics, not ESDA. " +
+  "Opaque empty refuses SL-UNREDACT-OPAQUE. " +
+  "Heatmaps are not transcripts. Corpus OCR does not unredact by guessing. Handwriting is not ESDA.";
 
 export const VERSION = "0.2.0";
 export const OCR_MAX_SIDE = 1280;

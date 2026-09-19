@@ -242,6 +242,10 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.ok(cite.keywords.includes("SL-UNREDACT-OPAQUE"));
   assert.equal(cite.spectrallock.slug, "spectrallock");
   assert.equal(cite.spectrallock.unredact_is_door_op, false);
+  assert.equal(cite.spectrallock.recover_is_door_op, false);
+  assert.equal(cite.spectrallock.handwriting_is_door_op, false);
+  assert.equal(cite.spectrallock.revision_graph, true);
+  assert.ok(cite.keywords.includes("revision_graph"));
   assert.equal(cite.spectrallock.extra_card, false);
   assert.ok(cite.cite_records.includes("AZDOC-A011CAD23671"));
   assert.match(cite.who_is, /receipt-first/);

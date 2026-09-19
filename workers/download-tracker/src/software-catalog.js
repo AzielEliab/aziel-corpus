@@ -360,7 +360,7 @@ export function preferWorkerSoftwareCopy(live, fallback) {
   return liveCopy || fallCopy || "";
 }
 
-/** Post-#137 leftover-bytes honesty wins over pre-unredact overlay blurbs. */
+/** Post-#13 leftover-bytes + revision-graph honesty wins over pre-unredact overlay blurbs. Worker SSoT one_line. */
 export function preferSpectralLockHonestyCopy(live, fallback) {
   const liveCopy = productCopyText(live);
   const fallCopy = productCopyText(fallback) || SPECTRALLOCK_ONE_LINE;
