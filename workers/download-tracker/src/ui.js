@@ -803,16 +803,16 @@ export function aboutBody() {
 </div>
 <aside class="card about-record">
 <p>Aziel Eliab publishes <strong>GodLock</strong>, <strong>Aziel Digital Library</strong> on this site, <strong>Aziel Runtime</strong> (MCP), and the <strong>He Didn't Jump</strong> archive. This library is the public MASTER of hashed receipts, timed files, and software.</p>
-<p>Canonical Person <code>@id</code> <a href="https://www.azieleliab.com/#aziel">https://www.azieleliab.com/#aziel</a>. Also Aziel Elroi Eliab. The public identity is the work, not a biography. GodLock is a product, not the Person.</p>
+<p>Canonical Person <code>@id</code> <a href="https://www.azieleliab.com/#aziel">https://www.azieleliab.com/#aziel</a>. Also Aziel Elroi Eliab. The public identity is the work. GodLock is a product.</p>
 <p><strong class="aziel-name">Aziel Library</strong> is the operator collection of Aziel Eliab’s own papers and software notes. <strong>Corpus</strong> is the public Lamb Lens shelf — anyone may browse; signed-in accounts or anonymous homepage uploads file there after safety review. The two shelves share the same scoring and hash-chain rules; they are not the same collection.</p>
 <ul class="about-mission">
-<li>What matters is the record — not a biography.</li>
+<li>What matters is the record.</li>
 <li>Hashed receipts, timed files, and software that can be opened without taking the speaker on faith.</li>
 <li>If the files hold, the name was never the point.</li>
 <li>Publisher resolves to <a href="https://www.azieleliab.com/#aziel">https://www.azieleliab.com/#aziel</a>.</li>
 <li><a href="${HEDIDNTJUMP_HOME}">${HEDIDNTJUMP_LABEL}</a> is a sister archive challenging the 1936 official Zioncheck suicide narrative. It does not invent court holdings.</li>
 </ul>
-<p>The software suite is listed on <a href="/software">Software</a>. The catalog/MCP door lives on <strong>this domain</strong> at <a href="/runtime">/runtime</a> — Aziel Runtime, a node-meshed MCP Softwares suite for digital forensics and auditing (${RUNTIME_LIVE_COUNT} live advisory engines; ${RUNTIME_LOCAL_ONLY} local_only; stubs refuse). Not an API aggregator. The workers.dev origin is an alternate/sameAs, not the first door. GodLock is one product Aziel Eliab built; the corresponding identity page is <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a>. How records are scored — triad SPRE × CLCE × PhysLing, and ZionPattern as a separate public reading — is on <a href="/how-its-scored">How it's scored</a>. Source: <a href="https://github.com/AzielEliab/aziel-corpus">github.com/AzielEliab/aziel-corpus</a>.</p>
+<p>The software suite is listed on <a href="/software">Software</a>. The catalog/MCP door lives on <strong>this domain</strong> at <a href="/runtime">/runtime</a> — Aziel Runtime, a node-meshed MCP Softwares suite for digital forensics and auditing (${RUNTIME_LIVE_COUNT} live advisory engines; ${RUNTIME_LOCAL_ONLY} local_only; stubs refuse). The workers.dev origin is an alternate/sameAs. GodLock is one product Aziel Eliab built; the corresponding identity page is <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a>. How records are scored — triad SPRE × CLCE × PhysLing, and ZionPattern as a separate public reading — is on <a href="/how-its-scored">How it's scored</a>. Source: <a href="https://github.com/AzielEliab/aziel-corpus">github.com/AzielEliab/aziel-corpus</a>.</p>
 </aside>
 </section>`;
 }
@@ -827,7 +827,7 @@ export function whoBody() {
 
 export function howItsScoredBody() {
   return `<section class="hero"><h1>How it's scored</h1>
-<p class="muted">Public scoring on Aziel Digital Library. Author Aziel Eliab. Published numbers: the triad (primary), ZionPattern Solver (secondary), unranked Bayesian posterior, and HEURISTIC possibility. None is a guilt verdict or a courtroom finding. Posterior ≠ truth.</p></section>
+<p class="muted">Public scoring on Aziel Digital Library. Author Aziel Eliab. Published numbers: the triad (primary), ZionPattern Solver (secondary), unranked Bayesian posterior, and HEURISTIC possibility.</p></section>
 <div class="card">
 <h2>Triad — SPRE × CLCE × PhysLing</h2>
 <p>When <strong>SPRE</strong>, <strong>CLCE</strong>, and <strong>PhysLing Review</strong> have all run on a record, one combined score is shown first. That is TRIAD_V1, an auditable geometric mean:</p>
@@ -837,31 +837,31 @@ export function howItsScoredBody() {
 <li><strong>CLCE</strong> — claim-to-claim consistency (AZ-CLCE). Triple agreement when it is strong; otherwise pairwise average.</li>
 <li><strong>PhysLing</strong> — physics coherence mixed with linguistic neutrality.</li>
 </ul>
-<p>Equal one-third weight. Display is <code>round(combined × 100)</code>. Component scores stay stored for audit. The unranked Bayesian peer number and the HEURISTIC possibility score are <em>not</em> inside this mean and never sort the shelf.</p>
+<p>Equal one-third weight. Display is <code>round(combined × 100)</code>. Component scores stay stored for audit. The unranked Bayesian peer number and the HEURISTIC possibility score stay outside this mean and never sort the shelf.</p>
 <p class="muted">See a record page, or <code>GET /v1/review?record_id=</code>, for the live triad and lights.</p>
 </div>
 <div class="card">
 <h2>AZCoherence — second-pass triad coherence</h2>
-<p><strong>AZCoherence</strong> (AZC-0.1, slug <code>azcoherence</code>) is Softwares Plain / scoring-review. After the primary triad, it reviews primary vs alternate → PASS / FLAG / NEUTRALIZE / REFUSE. Peer <strong>AZ-CLCE</strong> detects R/D/P inconsistency. This second pass is not inside the triad geometric mean. Never invents evidence. Confidence ≠ truth. Not AKM-TRIAD fabric. FragGate is the single door. Author Aziel Eliab.</p>
+<p><strong>AZCoherence</strong> (AZC-0.1, slug <code>azcoherence</code>) is Softwares Plain / scoring-review. After the primary triad, it reviews primary vs alternate → PASS / FLAG / NEUTRALIZE / REFUSE. Peer <strong>AZ-CLCE</strong> detects R/D/P inconsistency. Never invents evidence. FragGate is the single door. Author Aziel Eliab.</p>
 <p class="soft-links"><a class="button" href="${esc(AZCOHERENCE_WORKER_HOME)}">Worker</a> <a class="button ghost" href="${esc(AZCOHERENCE_GITHUB)}">GitHub</a> <a class="button ghost" href="/runtime/v1/fraggate/describe?slug=azcoherence">FragGate describe</a> <a class="button ghost" href="/software">Software</a></p>
 <p class="muted">${esc(AZCOHERENCE.dual_surface)} Compatible AI clients: ${esc(AI_CLIENTS)}.</p>
 </div>
 <div class="card">
 <h2>Possibility vs Bayesian</h2>
-<p><strong>Bayesian</strong> is an unranked Beta-Bernoulli posterior from review priors (evidence, physics, language, SPRE, CLCE). It is belief, not truth.</p>
-<p><strong>Possibility</strong> is a labeled <code>HEURISTIC</code> in [0,1] (or refuse) derived from hashchain lattice time×geo pins: support density, contradiction density, travel/plausibility. It asks: could this have occurred as stated given the anchors? It is not probability, not the triad, and not ZionPattern.</p>
+<p><strong>Bayesian</strong> is an unranked Beta-Bernoulli posterior from review priors (evidence, physics, language, SPRE, CLCE).</p>
+<p><strong>Possibility</strong> is a labeled <code>HEURISTIC</code> in [0,1] (or refuse) derived from hashchain lattice time×geo pins: support density, contradiction density, travel/plausibility. It asks: could this have occurred as stated given the anchors?</p>
 <p>Adaptive learning via hashchain lattice for recollection and reasoning. LEARN / POISON_LEARN / MAP_PIN / POSSIBILITY_SCORE append. Recollection is tip + prev-hash verify (fail closed). No opaque memory store. No LLM-as-memory. Sister cite: <a href="https://github.com/AzielEliab/4dmap">4DMap 4DM-WP-1.0</a>.</p>
 <p class="muted"><code>GET /v1/possibility?record_id=</code> · <code>GET /v1/recollect?record_id=</code> · <code>GET /v1/pin?record_id=</code> · <code>GET /v1/poison-learn</code></p>
 </div>
 <div class="card">
 <h2>ZionPattern Solver — honest reading</h2>
-<p><strong>ZionPattern Solver</strong> is the secondary public score. It is not merged into the triad. It qualifies only for historical, research, investigation, and crime documents. Philosophy, software, hardware, and designs are <em>not applicable</em> and the ZionPattern line is omitted (never shown as 0). Zioncheck Visual Archive vols 1–5 are the seed baseline and always display <strong>75</strong>. Provisional and assistive. It does not solve cases.</p>
+<p><strong>ZionPattern Solver</strong> is the secondary public score. It stays separate from the triad. It qualifies only for historical, research, investigation, and crime documents. Philosophy, software, hardware, and designs omit the ZionPattern line (never shown as 0). Zioncheck Visual Archive vols 1–5 are the seed baseline and always display <strong>75</strong>. Provisional and assistive.</p>
 <p>A published reading of <strong>75</strong> is intentional suppression confidence — the ceiling. <strong>Lower is more natural</strong>: less confidence that a suppression pattern holds. The solver also keeps a 25 uncertainty floor so thin evidence cannot pretend to be certainty in the other direction.</p>
 <p>If a later paper supersedes an earlier one <em>and</em> proves a pattern break with first-hand / primary materials only, the succession chain can be force-rescored. Narrative, news, and second-source materials never trigger that path.</p>
 </div>
 <div class="card">
 <h2>Where to go next</h2>
-<p class="soft-links"><a class="button" href="/software">Software</a> <a class="button ghost" href="/runtime">Runtime</a> <a class="button ghost" href="/pattern">Pattern</a> <a class="button ghost" href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a> <a class="button ghost" href="/llms.txt">llms.txt</a> <a class="button ghost" href="/cite.json">cite.json</a></p>
+<p class="soft-links"><a class="button" href="/software">Software</a> <a class="button ghost" href="/runtime">Runtime</a> <a class="button ghost" href="/pattern">Pattern</a> <a class="button ghost" href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a> <a class="button ghost" href="/help.txt">help.txt</a> <a class="button ghost" href="/help/how-to-read-scores.txt">Read scores</a> <a class="button ghost" href="/llms.txt">llms.txt</a> <a class="button ghost" href="/cite.json">cite.json</a></p>
 </div>`;
 }
 
@@ -882,7 +882,7 @@ export function runtimeBody(version) {
   return `<section class="hero"><h1>${esc(RUNTIME_TITLE)}</h1>
 <p>${esc(RUNTIME_ABSTRACT)}</p>
 <p class="runtime-dist">${runtimeDistributionButtons()}</p>
-<p class="muted"><strong>THIS IS NOT</strong> an API aggregator or a second software index. Softwares stay heading then list on <a href="/software">Softwares</a>. Scoring is explained on <a href="/how-its-scored">How it's scored</a>. HTTP <code>/p/{slug}/{op}</code> is a proxy and is not exec. Session tools are advanced/internal. Hosted AZAI is protocol mirror + Lamb check, not the blend. Suite mesh is read-only QNM ON — <a href="/v1/mesh"><code>/v1/mesh</code></a> · <a href="/runtime/v1/mesh"><code>/runtime/v1/mesh</code></a>. GET <code>/v1/mesh</code> never enables. Disable is refused. This public HTTPS surface is not itself a mesh and is not the cell (counts/status rollup only). Cold copies survive a pull. Re-expand is archive restore. Reheal is self tip + trusted pull or phoenix-WAIT, never neighbor majority. Network never lies to stay alive. No rewrite key. Remain-OFF untouched. No invented Zenodo DOIs. Author Aziel Eliab (aka Aziel Elroi Eliab; primary credit Aziel Eliab). GodLock is one catalog engine; identity at <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a>.</p></section>
+<p class="muted">Softwares stay heading then list on <a href="/software">Softwares</a>. Scoring is explained on <a href="/how-its-scored">How it's scored</a>. HTTP <code>/p/{slug}/{op}</code> is a proxy. Session tools are advanced/internal. Hosted AZAI is protocol mirror + Lamb check. Suite mesh is read-only QNM ON — <a href="/v1/mesh"><code>/v1/mesh</code></a> · <a href="/runtime/v1/mesh"><code>/runtime/v1/mesh</code></a>. GET <code>/v1/mesh</code> never enables. Disable is refused. This public HTTPS surface is a counts/status rollup. Cold copies survive a pull. Re-expand is archive restore. Reheal is self tip + trusted pull or phoenix-WAIT. Network never lies to stay alive. No rewrite key. Remain-OFF untouched. No invented Zenodo DOIs. Author Aziel Eliab (aka Aziel Elroi Eliab; primary credit Aziel Eliab). GodLock is one catalog engine; identity at <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a>.</p></section>
 <div class="card">
 <h2>Version ${esc(ver)}</h2>
 <p>Cite live <a href="/runtime/v1/health"><code>/runtime/v1/health</code></a> (fallback ${esc(RUNTIME_VERSION)}). SoT LIVE: <code>${esc(RUNTIME_SOT_BRANCH)}</code> <code>${esc(RUNTIME_GIT_SHA)}</code> / version_id <code>${esc(RUNTIME_VERSION_ID)}</code>. Engine count must match: <strong>${esc(String(RUNTIME_LIVE_COUNT))} live advisory engines</strong>; <strong>${esc(RUNTIME_LOCAL_ONLY)} local_only</strong>; stubs refuse. Prefer same-origin <code>/runtime/*</code>. One door — discover, route, refuse. Kernel: <a href="${esc(RUNTIME_KERNEL)}">github.com/AzielEliab/fraggate</a> (FG-0.1). Engine manifest: <code>/runtime/v1/runtime.json</code> (not library <code>/v1/runtime</code>). Author Aziel Eliab.</p>
@@ -906,7 +906,7 @@ export function runtimeBody(version) {
 <ul>
 <li><a href="/runtime/v1/health"><code>/runtime/v1/health</code></a> — live health (version ${esc(ver)}, door=fraggate, ${esc(String(RUNTIME_LIVE_COUNT))} live engines)</li>
 <li><a href="/runtime/v1/uses"><code>/runtime/v1/uses</code></a> — local API use log for this door (does not increment)</li>
-<li><a href="/runtime/v1/mesh"><code>/runtime/v1/mesh</code></a> · <a href="/v1/mesh"><code>/v1/mesh</code></a> — suite Live Nodes / mesh status (read-only QNM ON; counts/status rollup, not the cell; CROSS-NETWORK-SURVIVAL-1.0: cold copies survive a pull; crawlers are extra shelves, not resurrection; re-expand is archive restore (MESH-REEXPAND-1.0); reheal is never neighbor majority (MESH-REHEAL-1.0); NO-LIE-NO-REWRITE-1.0: network never lies to stay alive; no rewrite key)</li>
+<li><a href="/runtime/v1/mesh"><code>/runtime/v1/mesh</code></a> · <a href="/v1/mesh"><code>/v1/mesh</code></a> — suite Live Nodes / mesh status (read-only QNM ON; counts/status rollup; CROSS-NETWORK-SURVIVAL-1.0: cold copies survive a pull; crawlers are extra shelves; re-expand is archive restore (MESH-REEXPAND-1.0); reheal is self tip + trusted pull or phoenix-WAIT (MESH-REHEAL-1.0); NO-LIE-NO-REWRITE-1.0: network never lies to stay alive; no rewrite key)</li>
 <li><a href="/runtime/v1/runtime.json"><code>/runtime/v1/runtime.json</code></a> — runtime manifest</li>
 <li><a href="/runtime/v1/skill"><code>/runtime/v1/skill</code></a> — runtime skill markdown</li>
 <li><a href="/runtime/v1/fraggate"><code>/runtime/v1/fraggate</code></a> · <a href="/runtime/v1/fraggate/list"><code>/runtime/v1/fraggate/list</code></a> · <code>POST /runtime/v1/fraggate/call</code></li>
@@ -930,7 +930,7 @@ export function runtimeBody(version) {
 <li><code>POST ${esc(RUNTIME_ORIGIN)}/mcp</code></li>
 <li><a href="${esc(RUNTIME_ORIGIN)}/llms.txt">llms.txt</a> · <a href="${esc(RUNTIME_ORIGIN)}/cite.json">cite.json</a> · <a href="${esc(RUNTIME_GITHUB)}">GitHub</a></li>
 </ul>
-<p class="muted">Counted downloads stay on each product Worker <code>/download</code> + <code>/count</code>. The Software tab lists those cards. AzielTether is the survival mesh for downloaded nodes. A counted download is a cold multiply of the vault tip. Suite mesh is read-only <strong>ON</strong> — Live Nodes via <a href="/v1/mesh"><code>/v1/mesh</code></a> (counts/status; not the cell).</p>
+<p class="muted">Counted downloads stay on each product Worker <code>/download</code> + <code>/count</code>. The Software tab lists those cards. AzielTether is the survival mesh for downloaded nodes. A counted download is a cold multiply of the vault tip. Suite mesh is read-only <strong>ON</strong> — Live Nodes via <a href="/v1/mesh"><code>/v1/mesh</code></a> (counts/status).</p>
 <p class="soft-links"><a class="button ghost" href="/software">Software catalog</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="runtime-muted" href="${esc(RUNTIME_ORIGIN)}/">Open alternate origin</a> <a class="button ghost" href="/runtime/v1/catalog.json">catalog.json</a> <a class="button ghost" href="/v1/lattice">Lattice API</a> <a class="button ghost" href="${esc(RUNTIME_GITHUB)}">GitHub</a></p>
 </div>`;
 }
@@ -977,7 +977,7 @@ ${softSection("Software", groups.plain)}
 ${softSection("Gate", groups.gate)}
 ${softSection("Lock", groups.lock)}
 <div class="card"><p class="soft-links runtime-dist">${runtimeDistributionButtons()}</p>
-<p class="muted">Softwares heading then list — Plain → Gate → Lock (Clock ≠ Lock). MCP Softwares via <code>fraggate_call</code> only. FragGate is THE single door. Human UI on the Runtime Worker (<code>#op-panel</code> <code>#dashboard</code> <code>#fg-console</code> <code>#task-*</code> + About Aziel + hashtags + <code>/download</code>). SoT LIVE <code>${esc(RUNTIME_SOT_BRANCH)}</code> <code>${esc(RUNTIME_GIT_SHA)}</code> / version_id <code>${esc(RUNTIME_VERSION_ID)}</code>. Lamb Lens ${esc(LAMB_LENS_PATH)}. Dual surface. NO-LIE. Growth-ON. Never fielded_100.</p>
+<p class="muted">Softwares heading then list — Plain → Gate → Lock (Clock is a separate lane from Lock). MCP Softwares via <code>fraggate_call</code> only. FragGate is THE single door. Human UI on the Runtime Worker (<code>#op-panel</code> <code>#dashboard</code> <code>#fg-console</code> <code>#task-*</code> + About Aziel + hashtags + <code>/download</code>). SoT LIVE <code>${esc(RUNTIME_SOT_BRANCH)}</code> <code>${esc(RUNTIME_GIT_SHA)}</code> / version_id <code>${esc(RUNTIME_VERSION_ID)}</code>. Lamb Lens ${esc(LAMB_LENS_PATH)}. Dual surface. NO-LIE. Growth-ON. Never fielded_100.</p>
 <p class="soft-links"><a class="button" href="/runtime">${esc(chip)}</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="/runtime/v1/software">/v1/software</a> <a class="button ghost" href="/runtime/mcp">MCP</a> <a class="button ghost" href="/runtime/v1/uses">uses</a> <a class="button ghost" href="/v1/mesh">Live Nodes</a> <a class="button ghost" href="/v1/lattice">Lattice API</a> <a class="button ghost" href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a> <a class="button ghost" href="${HEDIDNTJUMP_HOME}">${esc(HEDIDNTJUMP_LABEL)}</a> <a class="button ghost" href="https://github.com/AzielEliab/aziel-corpus">aziel-corpus</a> <a class="button ghost" href="${esc(RUNTIME_GITHUB)}">aziel-runtime</a></p></div>`;
 }
 

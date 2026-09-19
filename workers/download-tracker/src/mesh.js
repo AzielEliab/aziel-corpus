@@ -160,7 +160,7 @@ export const CROSS_NETWORK_SURVIVAL = Object.freeze({
     + "Survival is bytes↔hash. Crawlers are extra shelves, not resurrection. "
     + "Re-expand (MESH-REEXPAND-1.0) is operator verify-from-archive. "
     + "Reheal (MESH-REHEAL-1.0) is self tip + trusted pull or phoenix-WAIT — not neighbor majority. "
-    + "Executable shelves: COLD-MULTI-SHELF-1.0 planes A/B/C (GET /shelves). Plane A = one CF/GitHub tunnel (5 surfaces / 2 family radii); B = alt independent forge/archive tip-pack SLOT (Codeberg / archive.org / Framagit); Zenodo refused CNS-ZENODO-IP-BAN; GitFlic refused CNS-GITFLIC-EMAIL; GitLab extra CNS-GITLAB-CF-LOOP; C = USB airgap SLOT + RESTORE-DRILL schema. Extra E/F/G SLOTs (Launchpad, AfricArXiv/OSF, GitLab) are not required for Plane B LIVE. "
+    + "Executable shelves: COLD-MULTI-SHELF-1.0 planes A/B/C (GET /shelves). Plane A = one CF/GitHub tunnel (5 surfaces / 2 family radii); B = alt independent forge/archive tip-pack SLOT (Codeberg / archive.org / Framagit); C = USB airgap SLOT + RESTORE-DRILL schema. Extra E/F/G SLOTs stay url-null. "
     + "Author Aziel Eliab only.",
 });
 
@@ -244,9 +244,9 @@ export const REHEAL = Object.freeze({
 
 export const MESH_NOTE =
   "Suite decentralized node mesh. Public surface is read-only QNM ON. "
-  + "This public HTTPS library is not itself a mesh. Disable is refused — suite presence stays on. "
-  + "Public Worker rollup is counts/status — this surface is not the cell. "
-  + "Cross-network survival (CROSS-NETWORK-SURVIVAL-1.0): if the network and live data die tomorrow, the chain still survives on cold copies across independent shelves (hosts, Workers, git, DOI, local vaults). Survival is bytes↔hash. Crawlers are extra shelves, not resurrection. Re-expand is operator verify-from-archive. Reheal is self tip + trusted pull or phoenix-WAIT — not neighbor majority. "
+  + "Disable is refused — suite presence stays on. "
+  + "Public Worker rollup is counts/status. "
+  + "Cross-network survival (CROSS-NETWORK-SURVIVAL-1.0): if the network and live data die tomorrow, the chain still survives on cold copies across independent shelves (hosts, Workers, git, DOI, local vaults). Survival is bytes↔hash. Crawlers are extra shelves. Re-expand is operator verify-from-archive. Reheal is self tip + trusted pull or phoenix-WAIT. "
   + "Umbrella over MESH-SPLIT-WIRES-1.0 / MESH-COLD-COPY-1.0 / die-with-pull / MESH-REEXPAND-1.0 / MESH-REHEAL-1.0. "
   + "Split the wires (MESH-SPLIT-WIRES-1.0): 0.5–1s tick = presence + tip hash only; payload is receiver-pull; 1s loop and 777s gate never share a socket. "
   + "Cold-copy survival (MESH-COLD-COPY-1.0): vault-on-transfer multiplies cold copies; live sync of bodies is refused; server pull cannot wipe a cold replica; poison is hash-absolute refuse; equivocation isolates; data outlives creators. "
@@ -254,7 +254,7 @@ export const MESH_NOTE =
   + "Reheal (MESH-REHEAL-1.0): poisoned live node is self tip + trusted pull or phoenix-WAIT — never neighbor majority. Distinct from re-expand. "
   + "Ingest-as-receipt + re-expand-from-archive: cite, don't merge; bytes survive; crawlers do not re-expand. "
   + "No-lie / no-rewrite (NO-LIE-NO-REWRITE-1.0): network never lies to stay alive; hash-absolute beats survival; no rewrite key; copies not all on one tunnel; verify without the author's voice. Cites the live lockset AZLOCK-INGEST-REEXPAND-1.0; does not replace that tip. "
-  + "Cold multi-shelf (COLD-MULTI-SHELF-1.0): planes A/B/C — A = one CF/GitHub tunnel (5 published surfaces / 2 family radii, not 5 shelves); B = alt independent forge/archive tip-pack SLOT (Codeberg / archive.org / Framagit); Zenodo refused CNS-ZENODO-IP-BAN; GitFlic refused CNS-GITFLIC-EMAIL; GitLab extra CNS-GITLAB-CF-LOOP; C = USB airgap SLOT + RESTORE-DRILL schema. Extra E/F/G SLOTs stay url-null and are not required for Plane B LIVE. Executable export/verify + honest live|slot|refused registry on GET /shelves. "
+  + "Cold multi-shelf (COLD-MULTI-SHELF-1.0): planes A/B/C — A = one CF/GitHub tunnel (5 published surfaces / 2 family radii); B = alt independent forge/archive tip-pack SLOT (Codeberg / archive.org / Framagit); C = USB airgap SLOT + RESTORE-DRILL schema. Extra E/F/G SLOTs stay url-null. Executable export/verify + honest live|slot|refused registry on GET /shelves. "
   + "QNS-CD-1.0 photon QNS1 packet transfer (local qnsd in qnm-node; runtime cite only; no public proxy; no Node Gate). "
   + "Public VPN / channel plane as on live aziel-runtime GET /v1/mesh (SoT " + RUNTIME_VERSION + " " + RUNTIME_GIT_SHA + " / version_id " + RUNTIME_VERSION_ID + "): vpn HTTPS/WS REAL; WireGuard/OpenVPN/L3 SLOT; default_vpn_backend azvpn auto_use true; channel_plane worker_hardware:false (wifi/bluetooth/rf/photon cites ON on local qnm-node). GET never enables radios beyond suite-presence. "
   + "Identity Aziel Eliab only.";

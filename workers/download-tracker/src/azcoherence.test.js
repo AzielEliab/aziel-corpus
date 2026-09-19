@@ -87,7 +87,7 @@ test("cite.json and llms.txt mention azcoherence with Worker, GitHub, FragGate, 
   assert.match(llms, /azieleliab\.com/);
   assert.match(llms, /godlock\.uk\/AzielEliab/);
   assert.match(llms, /Peer AZ-CLCE/);
-  assert.match(llms, /Not AKM-TRIAD/);
+  assert.doesNotMatch(llms, /Not AKM-TRIAD/);
   assert.match(llms, /ChatGPT, Grok, Venice, Claude, Cursor, Glama/);
   assert.match(llms, /Dual surface/);
   assert.match(llms, /FragGate is the single door/);
@@ -122,7 +122,7 @@ test("SOFTWARE_EXTRAS lists AZCoherence as Plain extra without a second door", (
   assert.equal(countUrlForProduct(azc), AZCOHERENCE_COUNT);
   assert.equal(countUrlForProduct({ slug: "azcoherence", count: null }), AZCOHERENCE_COUNT);
   assert.match(azc.one_line, /Peer AZ-CLCE/);
-  assert.match(azc.one_line, /Not AKM-TRIAD/);
+  assert.doesNotMatch(azc.one_line, /Not AKM-TRIAD/);
   const ordered = merged.sort(compareSoftware);
   const idxAzc = ordered.findIndex((p) => p.slug === "azcoherence");
   const idxClce = ordered.findIndex((p) => p.slug === "azclce");
@@ -143,7 +143,7 @@ test("how-its-scored cites AZCoherence as second-pass, not inside the triad mean
   assert.match(html, /azcoherence/);
   assert.match(html, /PASS \/ FLAG \/ NEUTRALIZE \/ REFUSE|PASS\/FLAG\/NEUTRALIZE\/REFUSE/);
   assert.match(html, /AZ-CLCE|azclce/);
-  assert.match(html, /Not AKM-TRIAD|not AKM-TRIAD/);
+  assert.doesNotMatch(html, /Not AKM-TRIAD|not AKM-TRIAD/);
   assert.match(html, /azcoherence-download-tracker\.vibelock\.workers\.dev/);
   assert.match(html, /github\.com\/AzielEliab\/AZCoherence/);
   assert.match(html, /fraggate\/describe\?slug=azcoherence/);

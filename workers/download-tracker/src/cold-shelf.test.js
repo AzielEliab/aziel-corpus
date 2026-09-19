@@ -532,7 +532,10 @@ test("public /shelves JSON cites CNS + NO-LIE; no 15:20 chrome; Growth-ON intact
   assert.equal(doc.planes.B.live_ready, false);
   assert.match(doc.registry.note, /CNS-ZENODO-IP-BAN/);
   assert.match(doc.registry.note, /aziel-lockset-tip_202609/);
-  assert.match(shelvesLlmsBlock(), /CNS-ZENODO-IP-BAN/);
+  assert.doesNotMatch(shelvesLlmsBlock(), /CNS-ZENODO-IP-BAN/);
+  assert.doesNotMatch(shelvesLlmsBlock(), /CNS-GITFLIC-EMAIL/);
+  assert.doesNotMatch(shelvesLlmsBlock(), /CNS-GITLAB-CF-LOOP/);
+  assert.match(shelvesLlmsBlock(), /Codeberg \/ archive\.org \/ Framagit/);
   assert.match(shelvesLlmsBlock(), /aziel-lockset-tip_202609/);
   assert.match(shelvesLlmsBlock(), /same blast_radius/);
   assert.doesNotMatch(shelvesLlmsBlock(), /B = Zenodo tip-pack SLOT/);

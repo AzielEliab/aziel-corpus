@@ -477,7 +477,7 @@ export function reviewDocument(input = {}) {
       refuse: "PENDING_ANCHORS",
       unranked: true,
       sort_key: null,
-      note: "possibility ≠ probability ≠ triad ≠ ZionPattern. HEURISTIC over lattice time×geo pins. Not courtroom proof. Posterior ≠ truth.",
+      note: "HEURISTIC over lattice time×geo pins.",
       bayesian_separate: true,
       not_truth: true,
     },

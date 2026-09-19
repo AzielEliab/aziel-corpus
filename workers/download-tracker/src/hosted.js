@@ -162,7 +162,7 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
       ok: true,
       events: await listEvents(env),
       law: "adaptive learning via hashchain lattice for recollection and reasoning",
-      possibility_note: "possibility ≠ probability ≠ triad ≠ ZionPattern. Scores are not courtroom truth.",
+      possibility_note: "HEURISTIC over lattice time×geo pins.",
       map4d: { spec: "4DM-WP-1.0", cite: "https://github.com/AzielEliab/4dmap" },
     });
   }

@@ -25,7 +25,7 @@ export const MAP_PIN_SCHEMA = "aziel.map-pin.v1";
 export const POISON_LEARN_RECORD_ID = "AZDOC-POISONLEARN";
 export const POSSIBILITY_KIND = "HEURISTIC";
 export const POSSIBILITY_NOTE =
-  "possibility ≠ probability ≠ triad ≠ ZionPattern. HEURISTIC density over lattice pin receipts. Not Beta-Bernoulli. Not a guilt verdict. Not courtroom proof. Posterior ≠ truth.";
+  "HEURISTIC density over lattice pin receipts.";
 export const LEARN_LIMITATION =
   "Adaptive learning appends LEARN stamps to the hashchain lattice. Recollection is tip + depth / prev-hash verify (fail closed on break). Reasoning walks lattice receipts + time×geo anchors. History is never rewritten. Author Aziel Eliab.";
 
@@ -250,7 +250,7 @@ export function possibilityScore({
     triad_separate: true,
     zsolver_separate: true,
     kid_plain:
-      "This is a possibility guess from dates and places already on the chain. It is not the Bayesian number and it is not a court finding.",
+      "This is a possibility guess from dates and places already on the chain.",
   };
 }
 
@@ -557,7 +557,7 @@ export function scoresFromReview(review) {
       : null,
     possibility: compactPossibility(poss),
     law: HASHCHAIN_LEARN_LAW,
-    note: "possibility ≠ probability. Neither is courtroom truth.",
+    note: "HEURISTIC possibility sits beside the unranked Bayesian posterior.",
   };
 }
 
