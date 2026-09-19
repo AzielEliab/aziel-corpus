@@ -71,6 +71,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, "../../..");
 const VISIBLE_1520 = /15:20/;
 const BANNED_IDENTITY = /Collin Horton|GodLock\.AZ|\+25|quiet (Aziel|triad|boost)/i;
+const SCOREBOARD_RUBRIC = /pissed-off-gov|hard-to-kill|unkillability|fielded score|fielded_100|operator_preempt|80-95|80→95|80\+|PREEMPT toward|fielded 100|Never fielded/i;
 const CRAWL_NO_TIP_DOI = /10\.5281\/zenodo/i;
 
 test("COLD-MULTI-SHELF planes A/B/C: one LIVE tunnel, alt-forge SLOT, Zenodo refused", () => {
@@ -308,8 +309,9 @@ test("COLD-MULTI-SHELF planes A/B/C: one LIVE tunnel, alt-forge SLOT, Zenodo ref
   assert.match(reg.planes.C.attest, /CNS-OPERATOR-ATTEST/);
   assert.equal(reg.planes.C.restore_drill_spec, RESTORE_DRILL_SPEC);
   assert.equal(reg.growth_on, true);
-  assert.equal(reg.fielded_100, false);
-  assert.equal(reg.operator_preempt, "80-95");
+  assert.equal(reg.fielded_100, undefined);
+  assert.equal(reg.operator_preempt, undefined);
+  assert.doesNotMatch(reg.note, SCOREBOARD_RUBRIC);
   assert.match(reg.lamb_lens, /Lamb Lens/);
   assert.match(reg.note, /Lamb Lens/);
   assert.equal(reg.lockset_doi, null);
@@ -521,7 +523,7 @@ test("public /shelves JSON cites CNS + NO-LIE; no 15:20 chrome; Growth-ON intact
   assert.equal(doc.runtime_launch.shelves.plane_b_live, false);
   assert.equal(doc.runtime_launch.shelves.plane_b_refuse, "CNS-NO-FORGE-MIRROR");
   assert.equal(doc.runtime_launch.shelves.plane_c_refuse, "CNS-OPERATOR-ATTEST");
-  assert.equal(doc.runtime_launch.fielded_100, false);
+  assert.equal(doc.runtime_launch.fielded_100, undefined);
   assert.equal(doc.registry.runtime_launch.shelves.plane_b_live, false);
   assert.equal(doc.planes.B.status, "slot");
   assert.equal(doc.planes.C.status, "slot");
@@ -544,8 +546,10 @@ test("public /shelves JSON cites CNS + NO-LIE; no 15:20 chrome; Growth-ON intact
   assert.match(doc.registry.note, /Lamb Lens/);
   assert.match(doc.registry.lamb_lens, /Lamb Lens/);
   assert.equal(doc.registry.growth_on, true);
-  assert.equal(doc.registry.fielded_100, false);
-  assert.equal(doc.registry.operator_preempt, "80-95");
+  assert.equal(doc.registry.fielded_100, undefined);
+  assert.equal(doc.registry.operator_preempt, undefined);
+  assert.doesNotMatch(doc.registry.note, SCOREBOARD_RUBRIC);
+  assert.doesNotMatch(shelvesLlmsBlock(), SCOREBOARD_RUBRIC);
   assert.match(shelvesLlmsBlock(), /RESTORE-DRILL/);
   assert.match(shelvesLlmsBlock(), /Lamb Lens/);
   assert.doesNotMatch(JSON.stringify(doc.verify), VISIBLE_1520);
@@ -564,6 +568,8 @@ test("public /shelves JSON cites CNS + NO-LIE; no 15:20 chrome; Growth-ON intact
 
   const llms = llmsDoc("LIMIT");
   assert.doesNotMatch(llms, CRAWL_NO_TIP_DOI);
+  assert.doesNotMatch(llms, SCOREBOARD_RUBRIC);
+  assert.doesNotMatch(JSON.stringify(cite), SCOREBOARD_RUBRIC);
   assert.match(llms, /COLD-MULTI-SHELF-1\.0/);
   assert.match(llms, /Plane A/);
   assert.match(llms, /\/shelves/);
@@ -673,8 +679,10 @@ test("extra E/F/G tip-pack SLOTs stay url-null; not required for Plane B LIVE", 
   assert.equal(judgePlaneBFromExtras({ expand_plane_b_live_rule: true }).accept, false);
   assert.equal(judgePlaneBFromExtras({}).extras_required, false);
   assert.equal(judgeFielded100({ claim_100: true }).reason, REFUSE.NO_FIELD_100);
-  assert.equal(judgeFielded100({}).fielded_100, false);
-  assert.equal(judgeFielded100({}).operator_preempt, "80-95");
+  assert.equal(judgeFielded100({}).fielded_100, undefined);
+  assert.equal(judgeFielded100({}).operator_preempt, undefined);
+  assert.doesNotMatch(JSON.stringify(judgeFielded100({})), SCOREBOARD_RUBRIC);
+  assert.doesNotMatch(JSON.stringify(judgeFielded100({ claim_100: true })), /80-95|80→95|operator_preempt/);
 
   const reg = shelfRegistryDoc();
   assert.equal(reg.planes.D, undefined);
@@ -688,6 +696,21 @@ test("extra E/F/G tip-pack SLOTs stay url-null; not required for Plane B LIVE", 
   assert.ok(reg.slot.includes("plane-b-framagit-tip-pack"));
   assert.equal(reg.published_surfaces, 5);
   assert.deepEqual(reg.family_blast_radii, ["cloudflare", "github"]);
+});
+
+test("tip public/docs/SEO omit scoreboard rubric language", () => {
+  const files = [
+    "tools/cold_shelf/registry.json",
+    "docs/COLD-MULTI-SHELF-1.0.md",
+    "docs/RESTORE-DRILL-1.0.md",
+    "llms.txt",
+    "ai.txt",
+  ];
+  for (const rel of files) {
+    const body = readFileSync(join(repoRoot, rel), "utf8");
+    assert.doesNotMatch(body, SCOREBOARD_RUBRIC, rel);
+    assert.match(body, /Plane [ABC]|LIVE|SLOT|c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245/, rel);
+  }
 });
 
 test("RESTORE-DRILL emits attest schema from Plane C bytes+prev-hash; NO-FAN", () => {

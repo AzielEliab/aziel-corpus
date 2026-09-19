@@ -8,7 +8,7 @@ Umbrella: CROSS-NETWORK-SURVIVAL-1.0
 Neighbors: COLD-MULTI-SHELF-1.0, RE-EXPAND-FROM-ARCHIVE-1.0, MESH-REEXPAND-1.0, NO-LIE-NO-REWRITE-1.0, ACT-RECEIPT-1.0, INGEST-AS-RECEIPT-1.0
 Live lockset: AZLOCK-INGEST-REEXPAND-1.0 — this paper cites that tip; it does not replace it
 Cited on: GET /shelves · CLI `restore-drill` · Plane C USB pack
-Not a Softwares-tab product. Not an index resurrection. Not a completed operator attest. Not fielded 100.
+Not a Softwares-tab product. Not an index resurrection. Not a completed operator attest.
 
 ## 0. Sentence
 
@@ -40,7 +40,7 @@ CLI: `node tools/cold_shelf/cli.mjs restore-drill` prints the schema. Operator c
 
 ## 3. NO-FAN
 
-Refuse invented attests, index-as-source, and LIVE-from-schema (`CNS-NO-FAN-FAKE-DEPOSIT`, `CNS-OPERATOR-ATTEST`, `CNS-TRAINING-RESIDUE-RUMOR`). Growth-ON stays. Operator PREEMPT toward 80→95. Never publish fielded 100.
+Refuse invented attests, index-as-source, and LIVE-from-schema (`CNS-NO-FAN-FAKE-DEPOSIT`, `CNS-OPERATOR-ATTEST`, `CNS-TRAINING-RESIDUE-RUMOR`). Growth-ON stays.
 
 ## 4. Cap
 
