@@ -1,5 +1,6 @@
 import { isOperator } from "./library.js";
 import { shelfScoreState, zsolverFromRow } from "./zsolver.js";
+import { SPECTRALLOCK_OCR_NOTE, SPECTRALLOCK_UNREDACT } from "./spectrallock.js";
 
 function esc(s) {
   const q = String.fromCharCode(34);
@@ -232,7 +233,7 @@ export function ocrFormHtml(payload) {
       : "Sign in to save";
   const saveDisabled = signed ? "" : " disabled";
   const saveNote = signed
-    ? "<p class=\"muted\">Operator Save writes Aziel Library. Signed-in accounts write the corpus. Checked SpectralLock lenses mix into one pre-OCR overlay.</p>"
+    ? "<p class=\"muted\">Operator Save writes Aziel Library. Signed-in accounts write the corpus. Checked SpectralLock lenses mix into one pre-OCR overlay. " + SPECTRALLOCK_OCR_NOTE + "</p>"
     : "<p class=\"muted\">Lenses work without an account. <a href=\"/login\">Sign in</a> to save extracted text into the library vault.</p>";
   const lensRows = SPECTRAL_LENSES.map((lens) => {
     const sw = lens.swatch
@@ -255,7 +256,7 @@ export function ocrFormHtml(payload) {
     "<label class=\"filepick\">Image or scanned PDF<input type=\"file\" name=\"file\" accept=\"image/*,application/pdf\" required></label>" +
     "<fieldset class=\"lens-box\"><legend>SpectralLock lenses (advisory)</legend>" +
     "<div class=\"lens-grid\">" + lensRows + "</div>" +
-    "<p class=\"muted\">Whatever boxes are checked mix into one analysis pass. Single box = that channel only. Named composites use their published formula. Overlay is advisory, not a UV lamp and not a claim of hidden-ink proof. Sample thumbnails are SpectralLock overlays of the hosted OCR fixture.</p>" +
+    "<p class=\"muted\">Whatever boxes are checked mix into one analysis pass. Single box = that channel only. Named composites use their published formula. Overlay is advisory, not a UV lamp and not a claim of hidden-ink proof. Sample thumbnails are SpectralLock overlays of the hosted OCR fixture. Leftover container bytes recover honestly; opaque rewrite refuses SL-UNREDACT-OPAQUE. Never invent letters. Heatmap ≠ transcript. Corpus OCR does not unredact by guessing. Worker: <a href=\"" + SPECTRALLOCK_UNREDACT + "\">" + SPECTRALLOCK_UNREDACT + "</a>. Unredact is not a FragGate door op.</p>" +
     "</fieldset>" +
     "<label class=\"checkrow\"><input type=\"checkbox\" name=\"save\" value=\"1\"" + saveDisabled + "> <span>" + esc(saveLabel) + "</span></label>" +
     saveNote +
@@ -340,7 +341,7 @@ export function transcribeCard(payload) {
 
 export function ocrUploadCard(payload) {
   return "<div class=\"card\" id=\"ocr\"><h3>Hosted image / PDF OCR</h3>"
-    + "<p class=\"muted\">Images use Workers AI when bound. PDFs try an uncompressed text scan; if empty, snap a page photo instead of installing pdftoppm. Optional SpectralLock lenses mix into one pre-OCR overlay. Every OCR run writes a lattice receipt. Author Aziel Eliab.</p>"
+    + "<p class=\"muted\">Images use Workers AI when bound. PDFs try an uncompressed text scan; if empty, snap a page photo instead of installing pdftoppm. Optional SpectralLock lenses mix into one pre-OCR overlay. " + SPECTRALLOCK_OCR_NOTE + " Every OCR run writes a lattice receipt. Author Aziel Eliab.</p>"
     + ocrFormHtml(payload)
     + "</div>";
 }
@@ -354,9 +355,9 @@ export function blockedAvBody(payload) {
 }
 
 export function ocrPageBody(payload) {
-  return "<section class=\"hero\"><h1>OCR and transcription</h1><p class=\"muted\">Same hosted processors as <a href=\"/forensics\">Forensics</a>. Optional SpectralLock lenses mix into one pre-OCR overlay. Every run writes a hash-chained lattice receipt. Author Aziel Eliab.</p></section>"
+  return "<section class=\"hero\"><h1>OCR and transcription</h1><p class=\"muted\">Same hosted processors as <a href=\"/forensics\">Forensics</a>. Optional SpectralLock lenses mix into one pre-OCR overlay. " + SPECTRALLOCK_OCR_NOTE + " Every run writes a hash-chained lattice receipt. Author Aziel Eliab.</p></section>"
     + ocrUploadCard(payload) + transcribeCard(payload)
-    + "<div class=\"card\"><h3>In-page OCR fallback</h3><p class=\"muted\">Runs Tesseract.js from a CDN in this browser so a phone camera photo can still be read when Workers AI is not ready. Checked SpectralLock lenses enhance the raster first. Nothing is installed on your device. Browser-only fallback does not write the lattice; use Extract text above for a receipt.</p>"
+    + "<div class=\"card\"><h3>In-page OCR fallback</h3><p class=\"muted\">Runs Tesseract.js from a CDN in this browser so a phone camera photo can still be read when Workers AI is not ready. Checked SpectralLock lenses enhance the raster first. " + SPECTRALLOCK_OCR_NOTE + " Nothing is installed on your device. Browser-only fallback does not write the lattice; use Extract text above for a receipt.</p>"
     + "<label class=\"filepick\">Photo<input id=\"ocrFile\" type=\"file\" accept=\"image/*\" capture=\"environment\"></label>"
     + "<p><img id=\"ocrPreview\" alt=\"Spectral overlay preview\" hidden width=\"640\" height=\"400\" style=\"max-width:100%;height:auto;border-radius:10px;border:1px solid var(--line)\"></p>"
     + "<pre id=\"ocrOut\" class=\"verify muted\">Choose a photo to read here.</pre></div>";
@@ -417,10 +418,10 @@ export function intelligenceBody(payload) {
   const recovery = operator
     ? "<div class=\"card\"><h3>OCR verification + recovery</h3><div class=\"grid\"><div><b>End-to-end OCR</b><div class=\"" + (verified ? "ok" : "bad") + "\">" + (verified ? "VERIFIED" : "NOT YET VERIFIED") + "</div><p class=\"muted\">Last test: " + esc((lastTest && lastTest.created_utc) || "never") + (lastTest && lastTest.missing ? " · " + esc(lastTest.missing) : "") + "</p></div><div><b>Image records</b><div class=\"metric\">" + Number(pending || 0).toLocaleString() + "</div><p class=\"muted\">Preserved originals that can be re-read by hosted OCR.</p></div></div><div class=\"map-tools\"><form method=\"post\" action=\"/ocr-selftest\"><button>Run OCR self-test</button></form><form method=\"post\" action=\"/ocr-reprocess\"><button>Reprocess pending scans</button></form></div><p class=\"muted\">Self-test succeeds only if hosted OCR reads AZIEL and OCR from the fixture. Processors stay on this Worker — there is no Tesseract/Poppler/Whisper download.</p></div>"
     : "";
-  return "<section class=\"hero\"><h1>Forensics</h1><p class=\"muted\">Hosted OCR, SpectralLock lenses, Whisper transcription, and verified .azm/.azk packages. Author Aziel Eliab.</p></section><div class=\"card\"><h2>Aziel Forensics Runtime</h2><p>Packages are <b>.azm</b> models and <b>.azk</b> knowledge kits. Manifests and payloads are hashed. All processors below run hosted — this page never asks you to install Tesseract, Poppler, or Whisper on your computer.</p>" + pkgForm + "</div><div class=\"card\"><h3>Hosted processors</h3><div class=\"grid\"><div class=\"card\"><b>Image OCR</b><div class=\"" + ocrCls + "\">" + ocrTxt + "</div><p class=\"muted\">" + (aiReady ? "Workers AI vision model extracts visible text." : "Workers AI is not bound or the vision model failed. Use the in-page Tesseract.js fallback.") + "</p></div><div class=\"card\"><b>Scanned PDF</b><div class=\"ok\">HOSTED (text-stream scan)</div><p class=\"muted\">Uncompressed PDF strings are read here. If a scan has no text layer, photograph a page for image OCR. pdftoppm is not offered as a download.</p></div><div class=\"card\"><b>Audio / video transcription</b><div class=\"" + whisperCls + "\">" + whisperTxt + "</div><p class=\"muted\">" + (aiReady ? "Workers AI Whisper transcribes audio. Video has no FFmpeg demux — extract an audio track if the container fails." : "Workers AI is not bound. There is no installer button.") + "</p></div></div></div>"
+  return "<section class=\"hero\"><h1>Forensics</h1><p class=\"muted\">Hosted OCR, SpectralLock lenses, Whisper transcription, and verified .azm/.azk packages. " + SPECTRALLOCK_OCR_NOTE + " Author Aziel Eliab.</p></section><div class=\"card\"><h2>Aziel Forensics Runtime</h2><p>Packages are <b>.azm</b> models and <b>.azk</b> knowledge kits. Manifests and payloads are hashed. All processors below run hosted — this page never asks you to install Tesseract, Poppler, or Whisper on your computer.</p>" + pkgForm + "</div><div class=\"card\"><h3>Hosted processors</h3><div class=\"grid\"><div class=\"card\"><b>Image OCR</b><div class=\"" + ocrCls + "\">" + ocrTxt + "</div><p class=\"muted\">" + (aiReady ? "Workers AI vision model extracts visible text." : "Workers AI is not bound or the vision model failed. Use the in-page Tesseract.js fallback.") + "</p></div><div class=\"card\"><b>Scanned PDF</b><div class=\"ok\">HOSTED (text-stream scan)</div><p class=\"muted\">Uncompressed PDF strings are read here. If a scan has no text layer, photograph a page for image OCR. pdftoppm is not offered as a download.</p></div><div class=\"card\"><b>Audio / video transcription</b><div class=\"" + whisperCls + "\">" + whisperTxt + "</div><p class=\"muted\">" + (aiReady ? "Workers AI Whisper transcribes audio. Video has no FFmpeg demux — extract an audio track if the container fails." : "Workers AI is not bound. There is no installer button.") + "</p></div></div></div>"
     + ocrUploadCard({ signed, operator, error })
     + transcribeCard({ signed, operator, aiReady })
-    + "<div class=\"card\"><h3>In-page OCR fallback</h3><p class=\"muted\">Runs Tesseract.js from a CDN in this browser so a phone camera photo can still be read when Workers AI is not ready. Checked SpectralLock lenses on the form above enhance the raster first. Nothing is installed on your device. Browser-only fallback does not write the lattice; use Extract text above for a receipt.</p><label class=\"filepick\">Photo<input id=\"ocrFile\" type=\"file\" accept=\"image/*\" capture=\"environment\"></label><p><img id=\"ocrPreview\" alt=\"Spectral overlay preview\" hidden width=\"640\" height=\"400\" style=\"max-width:100%;height:auto;border-radius:10px;border:1px solid var(--line)\"></p><pre id=\"ocrOut\" class=\"verify muted\">Choose a photo to read here.</pre></div>"
+    + "<div class=\"card\"><h3>In-page OCR fallback</h3><p class=\"muted\">Runs Tesseract.js from a CDN in this browser so a phone camera photo can still be read when Workers AI is not ready. Checked SpectralLock lenses on the form above enhance the raster first. " + SPECTRALLOCK_OCR_NOTE + " Nothing is installed on your device. Browser-only fallback does not write the lattice; use Extract text above for a receipt.</p><label class=\"filepick\">Photo<input id=\"ocrFile\" type=\"file\" accept=\"image/*\" capture=\"environment\"></label><p><img id=\"ocrPreview\" alt=\"Spectral overlay preview\" hidden width=\"640\" height=\"400\" style=\"max-width:100%;height:auto;border-radius:10px;border:1px solid var(--line)\"></p><pre id=\"ocrOut\" class=\"verify muted\">Choose a photo to read here.</pre></div>"
     + recovery + "<div class=\"card\"><table class=\"plain\"><tr><th>ID</th><th>Kind</th><th>Type</th><th>Version</th><th>SHA-256</th><th>Status</th></tr>" + rows + "</table></div><div class=\"card\"><h3>Native engines</h3><div class=\"grid\"><div><b>AZIEL_TEXT_ENGINE</b><p class=\"muted\">HOSTED — text, CSV-ish, and conservative PDF string extraction.</p></div><div><b>AZIEL_HASH_VECTOR_V1</b><p class=\"muted\">Skipped on this Worker (local similarity vectors stay with the Python vault).</p></div><div><b>AZIEL_ENTITY_ENGINE</b><p class=\"muted\">HOSTED — gazetteer place resolution.</p></div><div><b>AZIEL_MODEL_RUNTIME</b><p class=\"muted\">HOSTED for archived .azm packages (HASHED_NAIVE_BAYES_TEXT stored and verified; neural tensors are not executed here).</p></div></div></div>";
 }
 

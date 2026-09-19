@@ -7,7 +7,7 @@ title: SpectralLock — Aziel dossier
 author: Aziel Eliab
 version: "1.0"
 product_version: 0.3.0
-date: 2026-09-12
+date: 2026-09-19
 license: Apache-2.0
 library: aziel
 domain: "software, research"
@@ -23,7 +23,7 @@ filename: spectrallock-aziel-dossier-1.0.md
 
 **Author:** Aziel Eliab
 **Version:** 1.0 (product 0.3.0)
-**Date:** 2026-09-12
+**Date:** 2026-09-19
 **Slug:** `spectrallock`
 
 ## License
@@ -32,18 +32,21 @@ filename: spectrallock-aziel-dossier-1.0.md
 
 ## Identity
 
-256px overlay preview (zero/tazel/vyrn/uv/rosetta/zen/chaos/balance). Not a spectrometer.
+Preview a small overlay on an image; leftover container bytes recover honestly, opaque rewrite refuses. Not a spectrometer.
 
 ### What it is
 
-256px overlay preview (zero/tazel/vyrn/uv/rosetta/zen/chaos/balance). Not a spectrometer.
+Preview a small overlay on an image; leftover container bytes recover honestly, opaque rewrite refuses. 256px overlay preview (zero/tazel/vyrn/uv/rosetta/zen/chaos/balance/candle/indent/lemon). Honest unredact family (`locate` / `lift` / `recover` / `refuse`) lives on the product Worker `GET|POST /v1/unredact` — not a FragGate door op.
 
 Catalog domain label: **Media**.
-engine_digest: `e6647ebaea4bf1a6190ca9465fbd7b4f22276be008065329f4b0e5a47b36d110`.
+engine_digest: `3427dbcf2932b6bf4c6cf80735efd171b75519066e013db6d0df275c65989fb4`.
 
 ### What it is not
 
 - Not a spectrometer.
+- Not OCR-from-black-box. Heatmap ≠ transcript. Never invent letters.
+- Not a FragGate `unredact` / `locate` / `lift` / `recover` door op.
+- Not a claim that Aziel Corpus Library OCR unredacts by guessing.
 - Not a ~100-file library unpack of the source tree.
 - Not a Zenodo DOI mint (deposit_needed is a separate catalog track).
 
@@ -51,11 +54,11 @@ ZionPattern: **not_applicable**. Software / hardware / designs do not qualify fo
 
 ## Purpose
 
-256px overlay preview (zero/tazel/vyrn/uv/rosetta/zen/chaos/balance). Not a spectrometer.
+Preview a small overlay on an image; leftover container bytes recover honestly, opaque rewrite refuses. Not a spectrometer.
 
 ## Concept
 
-256px overlay preview (zero/tazel/vyrn/uv/rosetta/zen/chaos/balance). Not a spectrometer.
+Leftover container bytes = honest recover (object id / offset / stream). Opaque empty = `SL-UNREDACT-OPAQUE`. locate / lift / recover / refuse. Heatmap ≠ transcript. Never invent letters. Worker: https://spectrallock-download-tracker.vibelock.workers.dev/v1/unredact. Corpus OCR may mix advisory SpectralLock lenses and does not unredact by guessing.
 
 ## Use cases
 
@@ -101,8 +104,11 @@ README lead (truncated, source only):
 - **Home:** https://spectrallock-download-tracker.vibelock.workers.dev/
 - **GitHub:** https://github.com/AzielEliab/spectrallock
 - **Counted /download:** https://spectrallock-download-tracker.vibelock.workers.dev/download
+- **Unredact (product Worker, not a FragGate door):** https://spectrallock-download-tracker.vibelock.workers.dev/v1/unredact
 - **MCP:** https://aziel-runtime.vibelock.workers.dev/mcp
 - **fraggate/describe:** https://aziel-runtime.vibelock.workers.dev/v1/fraggate/describe?slug=spectrallock
+- **Product honesty PR:** https://github.com/AzielEliab/spectrallock/pull/12
+- **Runtime vendor PR:** https://github.com/AzielEliab/aziel-runtime/pull/137
 
 ## Related ecosystem links
 

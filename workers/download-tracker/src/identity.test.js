@@ -45,6 +45,8 @@ import {
   ARK_CITE,
   ARK_DOWNLOAD,
   ARK_STATS,
+  SPECTRALLOCK_NOTE,
+  SPECTRALLOCK_CITE,
   CITE_RECORD_IDS,
   ABOUT_LEAD,
   ABOUT_STANZA,
@@ -272,7 +274,7 @@ test("machine who-is locks Softwares + RESEARCH + HARDWARE halves", () => {
   assert.equal(FAQ_WHAT_DOES_HE_DO.text, WHAT_HE_DOES_FAQ_TEXT);
   assert.equal(FAQ_WHAT_AZIEL_ELIAB_DOES.text, WHAT_HE_DOES_FAQ_TEXT);
   assert.equal(FAQ_WHO_IS_DEVELOPER.text, WHAT_HE_DOES_FAQ_TEXT);
-  assert.equal(FAQ_WHAT_SOFTWARE.text, WHAT_HE_DOES_FAQ_TEXT + " " + WHITESTONE_NOTE + " " + ARK_NOTE);
+  assert.equal(FAQ_WHAT_SOFTWARE.text, WHAT_HE_DOES_FAQ_TEXT + " " + WHITESTONE_NOTE + " " + ARK_NOTE + " " + SPECTRALLOCK_NOTE);
   assert.equal(WHAT_HE_DOES_FAQ_TEXT, WHAT_AZIEL_ELIAB_DOES + " " + RESEARCH_HALF + " " + HARDWARE_HALF);
   assert.match(WHITESTONE_NOTE, /ephemeral pro se advisor/);
   assert.match(WHITESTONE_NOTE, /not a lawyer/);
@@ -285,6 +287,12 @@ test("machine who-is locks Softwares + RESEARCH + HARDWARE halves", () => {
   assert.equal(ARK_CITE.extra_card, false);
   assert.equal(ARK_CITE.slug, "ark");
   assert.ok(PERSON_KNOWS_ABOUT.includes("The ARK"));
+  assert.match(SPECTRALLOCK_NOTE, /leftover container bytes recover honestly/);
+  assert.match(SPECTRALLOCK_NOTE, /SL-UNREDACT-OPAQUE/);
+  assert.match(SPECTRALLOCK_NOTE, /not a FragGate door op/);
+  assert.equal(SPECTRALLOCK_CITE.extra_card, false);
+  assert.equal(SPECTRALLOCK_CITE.slug, "spectrallock");
+  assert.ok(PERSON_KNOWS_ABOUT.includes("SpectralLock"));
   assert.match(RESEARCH_HALF, /Book of the Knowledge/);
   assert.match(RESEARCH_HALF, /Blemmyes\/Ewaipanoma/);
   assert.match(HARDWARE_HALF, /Dog Leash/);
@@ -294,6 +302,7 @@ test("machine who-is locks Softwares + RESEARCH + HARDWARE halves", () => {
   assert.doesNotMatch(who, /Whitestone/);
   assert.match(who, new RegExp(WHAT_AZIEL_ELIAB_DOES.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   assert.match(who, /Softwares list: The ARK \(Softwares\): local deniable vault/);
+  assert.match(who, /Softwares list: SpectralLock \(Softwares\): leftover container bytes recover honestly/);
   assert.match(who, /ark-download-tracker\.vibelock\.workers\.dev\/download/);
   assert.match(who, /ark-download-tracker\.vibelock\.workers\.dev\/stats/);
   assert.match(who, new RegExp(RESEARCH_HALF.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
@@ -306,6 +315,7 @@ test("machine who-is locks Softwares + RESEARCH + HARDWARE halves", () => {
   assert.ok(person.knowsAbout.includes("PPIN"));
   assert.ok(person.knowsAbout.includes("Whitestone"));
   assert.ok(person.knowsAbout.includes("The ARK"));
+  assert.ok(person.knowsAbout.includes("SpectralLock"));
   assert.deepEqual(CITE_RECORD_IDS.slice(0, 6), [
     "AZDOC-A011CAD23671",
     "AZDOC-F83D7E6D28B6",
@@ -324,12 +334,17 @@ test("machine who-is locks Softwares + RESEARCH + HARDWARE halves", () => {
   assert.equal(cite.ark.extra_card, false);
   assert.equal(cite.ark.download, ARK_DOWNLOAD);
   assert.equal(cite.ark.stats, ARK_STATS);
+  assert.equal(cite.spectrallock.slug, "spectrallock");
+  assert.equal(cite.spectrallock.note, SPECTRALLOCK_NOTE);
+  assert.equal(cite.spectrallock.extra_card, false);
+  assert.equal(cite.spectrallock.unredact_is_door_op, false);
   const llms = llmsDoc("LIMIT");
   assert.match(llms, /What does Aziel Eliab do\?/);
   assert.match(llms, /Who is Aziel Eliab the developer\?/);
   assert.match(llms, /What software does Aziel Eliab make\?/);
   assert.match(llms, /Softwares list: Whitestone \(Softwares\): ephemeral pro se advisor/);
   assert.match(llms, /Softwares list: The ARK \(Softwares\): local deniable vault/);
+  assert.match(llms, /Softwares list: SpectralLock \(Softwares\): leftover container bytes recover honestly/);
   assert.match(llms, /AZDOC-F22AD0DCAA9D/);
   assert.match(llms, /bone-conduction STL/);
 });
