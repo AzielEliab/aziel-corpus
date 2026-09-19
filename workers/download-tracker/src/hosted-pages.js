@@ -1,6 +1,6 @@
 import { isOperator } from "./library.js";
 import { shelfScoreState, zsolverFromRow } from "./zsolver.js";
-import { SPECTRALLOCK_OCR_NOTE, SPECTRALLOCK_UNREDACT } from "./spectrallock.js";
+import { SPECTRALLOCK_OCR_NOTE, spectrallockWorkerLinksHtml } from "./spectrallock.js";
 
 function esc(s) {
   const q = String.fromCharCode(34);
@@ -256,7 +256,7 @@ export function ocrFormHtml(payload) {
     "<label class=\"filepick\">Image or scanned PDF<input type=\"file\" name=\"file\" accept=\"image/*,application/pdf\" required></label>" +
     "<fieldset class=\"lens-box\"><legend>SpectralLock lenses (advisory)</legend>" +
     "<div class=\"lens-grid\">" + lensRows + "</div>" +
-    "<p class=\"muted\">Whatever boxes are checked mix into one analysis pass. Single box = that channel only. Named composites use their published formula. Overlay is advisory, not a UV lamp and not a claim of hidden-ink proof. Sample thumbnails are SpectralLock overlays of the hosted OCR fixture. Leftover container bytes recover honestly; opaque rewrite refuses SL-UNREDACT-OPAQUE. Never invent letters. Heatmap ≠ transcript. Corpus OCR does not unredact by guessing. Worker: <a href=\"" + SPECTRALLOCK_UNREDACT + "\">" + SPECTRALLOCK_UNREDACT + "</a>. Unredact is not a FragGate door op.</p>" +
+    "<p class=\"muted\">Whatever boxes are checked mix into one analysis pass. Single box = that channel only. Named composites use their published formula. Overlay is advisory, not a UV lamp and not a claim of hidden-ink proof. Sample thumbnails are SpectralLock overlays of the hosted OCR fixture. " + SPECTRALLOCK_OCR_NOTE + " Linked product Worker paths: " + spectrallockWorkerLinksHtml() + ".</p>" +
     "</fieldset>" +
     "<label class=\"checkrow\"><input type=\"checkbox\" name=\"save\" value=\"1\"" + saveDisabled + "> <span>" + esc(saveLabel) + "</span></label>" +
     saveNote +
