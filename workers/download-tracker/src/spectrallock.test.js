@@ -98,7 +98,7 @@ test("cite.json / llms.txt / ai.txt / humans.txt cite SpectralLock leftover-byte
   const humans = humansTxt();
   assert.match(humans, /SpectralLock \(spectrallock\) Softwares Media leftover-bytes honesty/);
   assert.match(humans, /SL-UNREDACT-OPAQUE/);
-  assert.match(humans, SPECTRALLOCK_NOTE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  assert.match(humans, new RegExp(SPECTRALLOCK_NOTE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 });
 
 test("sitemap lists OCR / Softwares cites and SpectralLock worker sitemap", async () => {
@@ -163,7 +163,7 @@ test("OCR and Forensics pages name SpectralLock with honest unredact note", () =
   assert.match(ocr, /spectrallock-download-tracker\.vibelock\.workers\.dev\/v1\/unredact/);
   assert.match(ocr, /not a FragGate door op/);
   assert.doesNotMatch(ocr, /corpus OCR unredacts by guessing/i);
-  assert.match(defaultDescription("ocr"), /leftover container bytes recover honestly/);
+  assert.match(defaultDescription("ocr"), /Leftover container bytes recover honestly/);
   assert.match(defaultDescription("ocr"), /does not unredact by guessing/);
   assert.match(defaultDescription("forensics"), /SL-UNREDACT-OPAQUE/);
   const forensics = intelligenceBody({ signed: null, operator: false, aiReady: false, packages: [] });
