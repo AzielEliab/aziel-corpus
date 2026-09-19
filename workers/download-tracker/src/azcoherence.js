@@ -40,7 +40,7 @@ export const AZCOHERENCE_OPS = Object.freeze([
 
 export const AZCOHERENCE_ONE_LINE =
   "AZCoherence (AZC-0.1): second-pass triad coherence review (primary vs alternate → PASS/FLAG/NEUTRALIZE/REFUSE). "
-  + "Never invents evidence. Confidence ≠ truth. Peer AZ-CLCE. Not AKM-TRIAD. FragGate only. Author Aziel Eliab.";
+  + "Never invents evidence. Peer AZ-CLCE. FragGate only. Author Aziel Eliab.";
 
 export const AZCOHERENCE_DUAL_SURFACE =
   "Dual surface: agent chat has no technical UI chrome; Worker / mobile / local install / counted download stay complete human software.";
@@ -48,7 +48,7 @@ export const AZCOHERENCE_DUAL_SURFACE =
 export const AZCOHERENCE_NOTE =
   "AZCoherence is the second-pass coherence reviewer for triad scores. "
   + "Scoring-adjacent to AZ-CLCE (Language isolation). Catalog software / Softwares Plain. "
-  + "Not an extra door. Not AKM-TRIAD fabric. FragGate is THE single door. "
+  + "FragGate is THE single door. "
   + AZCOHERENCE_DUAL_SURFACE
   + " Compatible AI clients: " + AI_CLIENTS + ". Identity Aziel Eliab only.";
 
@@ -168,7 +168,7 @@ export function azcoherenceLlmsBlock() {
   return [
     "AZCoherence (azcoherence, AZC-0.1) is live Softwares Plain / scoring-review. "
       + "Second-pass triad coherence (primary vs alternate → PASS/FLAG/NEUTRALIZE/REFUSE). "
-      + "Peer AZ-CLCE. Not AKM-TRIAD. FragGate is the single door. Author Aziel Eliab only.",
+      + "Peer AZ-CLCE. FragGate is the single door. Author Aziel Eliab only.",
     AZCOHERENCE_DUAL_SURFACE,
     "Compatible AI clients: " + AI_CLIENTS + ".",
     "- AZCoherence Worker: " + AZCOHERENCE_WORKER_HOME,

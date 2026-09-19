@@ -53,8 +53,8 @@ test("Trades-Runtime cite is a local-first Softwares extra, not a FragGate engin
   assert.equal(TRADES_RUNTIME.stats, TRADES_RUNTIME_STATS);
   assert.match(TRADES_RUNTIME.one_line, /live_backends: false/);
   assert.match(TRADES_RUNTIME.one_line, /ServiceTitan \+ ProBooks/);
-  assert.match(TRADES_RUNTIME.note, /Not a FragGate-exec true engine/);
-  assert.match(TRADES_RUNTIME.note, /Not aziel-runtime wholesale/);
+  assert.match(TRADES_RUNTIME.note, /local-first BYO/);
+  assert.match(TRADES_RUNTIME.note, /own read-only MCP/);
   assert.match(TRADES_RUNTIME.how_to_cite, /Trades-Runtime 0\.3\.3/);
   assert.ok(TRADES_RUNTIME.sameAs.includes(TRADES_RUNTIME_GITHUB));
   assert.ok(TRADES_RUNTIME.sameAs.includes(TRADES_RUNTIME_MCP));
@@ -101,7 +101,8 @@ test("cite.json / llms.txt / humans.txt / ai.txt cite Trades-Runtime honestly", 
   assert.match(llms, /trades-runtime\.vibelock\.workers\.dev\/mcp/);
   assert.match(llms, /\/v1\/stats/);
   assert.match(llms, /live_backends: false/);
-  assert.match(llms, /not a FragGate-exec true engine/i);
+  assert.match(llms, /Trades-Runtime \(trades-runtime\) is a Softwares extra/);
+  assert.doesNotMatch(llms, /not a FragGate-exec true engine/i);
   assert.doesNotMatch(llms, BANNED);
 
   const humans = humansTxt();

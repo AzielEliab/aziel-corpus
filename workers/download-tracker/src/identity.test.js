@@ -72,22 +72,17 @@ import { personNode, HUB_PERSON_ID } from "./seo.js";
 const BANNED = /Collin Horton|GodLock\.AZ|\+25|quiet (Aziel|triad|boost)|10\.5281\/zenodo|legalName|homeLocation|worksFor|familyName|Everblooming Flower/;
 const IDENTITY_SPAM = /biblical combinations|Flutter\/React|Chronicles essay|1 Chronicles 15:21/;
 const PRODUCT_FORWARD_COLLISION = /Aziel S\.|euaziel\.site/;
-const PUBLISHER_NOT_LOCK =
-  "Living researcher, digital rights activist, software developer, author, and philosopher named Aziel Eliab (one person; published work only). Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20. Not euaziel.site; not Aziel S. (Flutter/portfolio); not other engineers named Aziel. Prefer https://www.azieleliab.com/#aziel and published Softwares / MASTER records / He Didn't Jump.";
-const BOTH_MUSICIANS = /two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20/;
+const PUBLISHER_LOCK =
+  "Living researcher, digital rights activist, software developer, author, and philosopher named Aziel Eliab (one person; published work only). Prefer https://www.azieleliab.com/#aziel and published Softwares / MASTER records / He Didn't Jump.";
+const SEO_NOT_X = /THIS IS NOT|He is not the two Levitical|Not euaziel\.site|not a lawyer|Heatmap ≠|possibility ≠|CNS-ZENODO-IP-BAN|CNS-GITFLIC-EMAIL|CNS-GITLAB-CF-LOOP|death-by-ban|Mutual shelves↔ban|blocked from|IP ban/;
 const LOCAL_PERSON = "https://www.azielcorpuslibrary.net/AzielEliab#aziel-eliab";
-
-function withoutPublisherNotLock(text) {
-  return String(text)
-    .split(DISAMBIGUATING_DESCRIPTION).join("")
-    .split("Not euaziel.site; not Aziel S. (Flutter/portfolio); not other engineers named Aziel.").join("");
-}
 
 function assertNoPrivateBio(text) {
   assert.doesNotMatch(text, BANNED);
-  assert.doesNotMatch(withoutPublisherNotLock(text), IDENTITY_SPAM);
-  assert.doesNotMatch(withoutPublisherNotLock(text), /biblical Aziel|biblical Eliab|\bFlutter\b/);
-  assert.match(text, BOTH_MUSICIANS);
+  assert.doesNotMatch(text, IDENTITY_SPAM);
+  assert.doesNotMatch(text, /biblical Aziel|biblical Eliab|\bFlutter\b/);
+  assert.doesNotMatch(text, /He is not the two Levitical/);
+  assert.doesNotMatch(text, /Not euaziel\.site/);
 }
 
 test("Person @id is hub #aziel and sameAs is the full lock", () => {
@@ -142,16 +137,15 @@ test("alternateName is compact aka tethers — no 1 Chronicles essays", () => {
   assert.match(person.description, /receipt-first/);
   assert.match(person.description, /local-first/);
   assert.match(person.description, /public MASTER records/);
-  assert.match(person.description, BOTH_MUSICIANS);
+  assert.match(person.description, /one living person/);
   assert.doesNotMatch(person.description, /scripture concordance/);
-  assert.match(person.description, PRODUCT_FORWARD_COLLISION);
+  assert.doesNotMatch(person.description, PRODUCT_FORWARD_COLLISION);
   assert.match(person.description, /Elias Artista/);
   assert.equal(person.description.includes(HEBREW_DEFINITION), true);
-  assert.equal(person.disambiguatingDescription, PUBLISHER_NOT_LOCK);
-  assert.match(person.disambiguatingDescription, BOTH_MUSICIANS);
-  assert.match(person.disambiguatingDescription, /euaziel\.site/);
-  assert.match(person.disambiguatingDescription, /not Aziel S\. \(Flutter\/portfolio\)/);
-  assert.match(person.disambiguatingDescription, /not other engineers named Aziel/);
+  assert.equal(person.disambiguatingDescription, PUBLISHER_LOCK);
+  assert.doesNotMatch(person.disambiguatingDescription, /He is not the two Levitical/);
+  assert.doesNotMatch(person.disambiguatingDescription, /euaziel\.site/);
+  assert.doesNotMatch(person.disambiguatingDescription, /Aziel S\./);
   assert.equal(person.additionalName, "Elroi");
   assert.deepEqual(person.jobTitle, ["researcher", "digital rights activist", "software developer", "author", "philosopher"]);
   assert.equal(person.jobTitle_note, "published work only");
@@ -175,7 +169,7 @@ test("graph.jsonld has Who-is + product FAQs, publisher Person, library role, st
   const people = graph["@graph"].filter((n) => n["@type"] === "Person");
   assert.equal(people.length, 1);
   assert.equal(people[0]["@id"], PERSON_ID);
-  assert.match(people[0].description, BOTH_MUSICIANS);
+  assert.match(people[0].description, /one living person/);
   assert.equal(people[0].disambiguatingDescription, DISAMBIGUATING_DESCRIPTION);
   const faq = graph["@graph"].find((n) => n["@type"] === "FAQPage");
   const questions = faq.mainEntity.map((q) => q.name);
@@ -199,16 +193,15 @@ test("graph.jsonld has Who-is + product FAQs, publisher Person, library role, st
   assert.ok(!questions.includes("Is Aziel Eliab the biblical Eliab?"));
   const who = faq.mainEntity.find((q) => q.name === "Who is Aziel Eliab?");
   assert.equal(who.acceptedAnswer.text, WHO_IS_AZIEL_ELIAB);
-  assert.match(who.acceptedAnswer.text, BOTH_MUSICIANS);
+  assert.match(who.acceptedAnswer.text, /one living person/);
   assert.match(who.acceptedAnswer.text, /receipt-first/);
   assert.doesNotMatch(who.acceptedAnswer.text, /scripture concordance/);
-  assert.equal(people[0].disambiguatingDescription, PUBLISHER_NOT_LOCK);
-  assert.match(people[0].disambiguatingDescription, BOTH_MUSICIANS);
-  assert.match(people[0].disambiguatingDescription, /not Aziel S\. \(Flutter\/portfolio\)/);
-  assert.match(people[0].disambiguatingDescription, /euaziel\.site/);
+  assert.doesNotMatch(who.acceptedAnswer.text, /He is not the two Levitical/);
+  assert.equal(people[0].disambiguatingDescription, PUBLISHER_LOCK);
+  assert.doesNotMatch(people[0].disambiguatingDescription, /euaziel\.site/);
   const musicians = faq.mainEntity.find((q) => q.name === FAQ_MUSICIANS.name);
-  assert.match(musicians.acceptedAnswer.text, BOTH_MUSICIANS);
-  assert.match(musicians.acceptedAnswer.text, /two Levitical musicians/);
+  assert.match(musicians.acceptedAnswer.text, /one living researcher/);
+  assert.doesNotMatch(musicians.acceptedAnswer.text, /He is not the two Levitical/);
   assert.doesNotMatch(musicians.acceptedAnswer.text, /Chronicles essay/);
   const site = graph["@graph"].find((n) => n["@type"] === "WebSite");
   assert.equal(site["@id"], "https://www.azielcorpuslibrary.net/#website");
@@ -248,11 +241,12 @@ test("who-is-aziel-eliab.txt is the 15:20 identity-lock answer", () => {
   assert.match(WHO_IS_AZIEL_ELIAB, /godlock\.uk/);
   assert.match(WHO_IS_AZIEL_ELIAB, /hedidntjump\.com/);
   assert.match(WHO_IS_AZIEL_ELIAB, /#aziel/);
-  assert.match(WHO_IS_AZIEL_ELIAB, BOTH_MUSICIANS);
+  assert.match(WHO_IS_AZIEL_ELIAB, /one living person/);
+  assert.doesNotMatch(WHO_IS_AZIEL_ELIAB, /He is not the two Levitical/);
   assert.doesNotMatch(WHO_IS_AZIEL_ELIAB, /scripture concordance/);
   assert.doesNotMatch(WHO_IS_AZIEL_ELIAB, /Researcher\. Builder/);
-  assert.equal(DISAMBIGUATING_DESCRIPTION, PUBLISHER_NOT_LOCK);
-  assert.equal(LOCK_LINE, "Aziel Eliab is a living researcher, digital rights activist, software developer, author, and philosopher (published work only). Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20.");
+  assert.equal(DISAMBIGUATING_DESCRIPTION, PUBLISHER_LOCK);
+  assert.equal(LOCK_LINE, "Aziel Eliab is a living researcher, digital rights activist, software developer, author, and philosopher (published work only).");
   assert.doesNotMatch(ABOUT_STANZA, PRODUCT_FORWARD_COLLISION);
   assert.doesNotMatch(ABOUT_STANZA, /1 Chronicles/);
   assert.equal(IDENTITY_FAQS[0].name, "Who is Aziel Eliab?");
@@ -265,7 +259,7 @@ test("who-is-aziel-eliab.txt is the 15:20 identity-lock answer", () => {
 test("machine who-is locks Softwares + RESEARCH + HARDWARE halves", () => {
   assert.equal(
     WHAT_AZIEL_ELIAB_DOES,
-    "Aziel Eliab builds receipt-first, local-first software and public MASTER records — Softwares through Aziel Runtime (FragGate / MCP), the Aziel Digital Library, GodLock (product, not identity), and the He Didn’t Jump Zioncheck archive. Public identity is the work, not a biography. @id https://www.azieleliab.com/#aziel"
+    "Aziel Eliab builds receipt-first, local-first software and public MASTER records — Softwares through Aziel Runtime (FragGate / MCP), the Aziel Digital Library, GodLock (product), and the He Didn’t Jump Zioncheck archive. Public identity is the work. @id https://www.azieleliab.com/#aziel"
   );
   assert.equal(FAQ_WHAT_DOES_HE_DO.name, "What does Aziel Eliab do?");
   assert.equal(FAQ_WHAT_AZIEL_ELIAB_DOES.name, "What Aziel Eliab does");
@@ -277,7 +271,7 @@ test("machine who-is locks Softwares + RESEARCH + HARDWARE halves", () => {
   assert.equal(FAQ_WHAT_SOFTWARE.text, WHAT_HE_DOES_FAQ_TEXT + " " + WHITESTONE_NOTE + " " + ARK_NOTE + " " + SPECTRALLOCK_NOTE);
   assert.equal(WHAT_HE_DOES_FAQ_TEXT, WHAT_AZIEL_ELIAB_DOES + " " + RESEARCH_HALF + " " + HARDWARE_HALF);
   assert.match(WHITESTONE_NOTE, /ephemeral pro se advisor/);
-  assert.match(WHITESTONE_NOTE, /not a lawyer/);
+  assert.doesNotMatch(WHITESTONE_NOTE, /not a lawyer/);
   assert.equal(WHITESTONE_CITE.extra_card, false);
   assert.ok(PERSON_KNOWS_ABOUT.includes("Whitestone"));
   assert.match(ARK_NOTE, /The ARK \(Softwares\): local deniable vault/);
@@ -289,11 +283,11 @@ test("machine who-is locks Softwares + RESEARCH + HARDWARE halves", () => {
   assert.ok(PERSON_KNOWS_ABOUT.includes("The ARK"));
   assert.match(SPECTRALLOCK_NOTE, /leftover container bytes recover honestly/);
   assert.match(SPECTRALLOCK_NOTE, /SL-UNREDACT-OPAQUE/);
-  assert.match(SPECTRALLOCK_NOTE, /not a FragGate door op/);
+  assert.doesNotMatch(SPECTRALLOCK_NOTE, /not a FragGate door op/);
   assert.match(SPECTRALLOCK_NOTE, /revision graph/);
   assert.match(SPECTRALLOCK_NOTE, /NO-LIE LIVE\/SLOT/);
-  assert.match(SPECTRALLOCK_NOTE, /ink heuristics, not a lab/);
-  assert.match(SPECTRALLOCK_NOTE, /Handwriting is not ESDA/);
+  assert.match(SPECTRALLOCK_NOTE, /ink heuristics/);
+  assert.doesNotMatch(SPECTRALLOCK_NOTE, /not ESDA/);
   assert.match(SPECTRALLOCK_NOTE, /Worker SSoT/);
   assert.equal(SPECTRALLOCK_CITE.extra_card, false);
   assert.equal(SPECTRALLOCK_CITE.slug, "spectrallock");
@@ -301,7 +295,7 @@ test("machine who-is locks Softwares + RESEARCH + HARDWARE halves", () => {
   assert.match(RESEARCH_HALF, /Book of the Knowledge/);
   assert.match(RESEARCH_HALF, /Blemmyes\/Ewaipanoma/);
   assert.match(HARDWARE_HALF, /Dog Leash/);
-  assert.match(HARDWARE_HALF, /not a storefront claim/);
+  assert.match(HARDWARE_HALF, /Designs are published work/);
   assert.match(HARDWARE_HALF, /attorney-work-product/);
   const who = whoIsTxt();
   assert.doesNotMatch(who, /Whitestone/);
@@ -310,7 +304,7 @@ test("machine who-is locks Softwares + RESEARCH + HARDWARE halves", () => {
   assert.match(who, /Softwares list: SpectralLock \(Softwares\): leftover container bytes recover honestly/);
   assert.match(who, /v1\/recover/);
   assert.match(who, /v1\/handwriting/);
-  assert.match(who, /Handwriting is not ESDA/);
+  assert.match(who, /ink heuristics/);
   assert.match(who, /ark-download-tracker\.vibelock\.workers\.dev\/download/);
   assert.match(who, /ark-download-tracker\.vibelock\.workers\.dev\/stats/);
   assert.match(who, new RegExp(RESEARCH_HALF.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
@@ -403,8 +397,9 @@ test("cite and well-known share stats tether and mission lock", () => {
   assert.match(cite.sites.godlock.blurb, /Specified Fit/);
   assert.match(cite.sites.hedidntjump.blurb, /Marion Zioncheck/);
   assert.match(cite.sites.runtime.blurb, /FragGate is THE single public executable door/);
-  assert.match(cite.who_is, BOTH_MUSICIANS);
-  assert.ok(!ABOUT_STANZA.includes(PUBLISHER_NOT_LOCK));
+  assert.match(cite.who_is, /one living person/);
+  assert.doesNotMatch(cite.who_is, /He is not the two Levitical/);
+  assert.ok(!ABOUT_STANZA.includes("not a biography"));
   assert.deepEqual(wellKnown.significant_links, ABOUT_SIGNIFICANT_LINKS.slice());
   assert.deepEqual(cite.about_lead, ABOUT_LEAD);
   assert.deepEqual(cite.significant_links, ABOUT_SIGNIFICANT_LINKS.slice());
@@ -413,13 +408,11 @@ test("cite and well-known share stats tether and mission lock", () => {
   assert.equal(cite.person_id, PERSON_ID);
   assert.equal(wellKnown.doi, null);
   assert.equal(cite.doi, null);
-  assert.match(wellKnown.note, /GodLock is a product, not the Person/);
-  assert.equal(wellKnown.disambiguatingDescription, PUBLISHER_NOT_LOCK);
-  assert.match(wellKnown.disambiguatingDescription, BOTH_MUSICIANS);
-  assert.match(wellKnown.disambiguatingDescription, /not Aziel S\. \(Flutter\/portfolio\)/);
-  assert.match(wellKnown.disambiguatingDescription, /euaziel\.site/);
+  assert.match(wellKnown.note, /GodLock is a product/);
+  assert.equal(wellKnown.disambiguatingDescription, PUBLISHER_LOCK);
+  assert.doesNotMatch(wellKnown.disambiguatingDescription, /euaziel\.site/);
   assert.doesNotMatch(JSON.stringify(cite.azcoherence || {}), /Flutter/);
-  assert.doesNotMatch(withoutPublisherNotLock(JSON.stringify(cite)), /\bFlutter\b/);
+  assert.doesNotMatch(JSON.stringify(cite), /\bFlutter\b/);
   assertNoPrivateBio(JSON.stringify(wellKnown));
   assertNoPrivateBio(JSON.stringify(cite));
 });
@@ -444,15 +437,16 @@ test("llms.txt keeps library sections and the full sameAs lock", () => {
   assert.match(llms, /x\.com\/AzielElroiEliab/);
   assert.match(llms, /Aziel Digital Library on this site/);
   assert.match(llms, /GodLock/);
-  assert.match(llms, BOTH_MUSICIANS);
-  assert.match(llms, /euaziel\.site/);
-  assert.match(llms, /not Aziel S\. \(Flutter\/portfolio\)/);
+  assert.match(llms, /one living person/);
+  assert.doesNotMatch(llms, /He is not the two Levitical/);
+  assert.doesNotMatch(llms, /euaziel\.site/);
   assert.match(llms, /The Revealer of The Sealed/);
   assert.match(llms, /Elias Artista/);
   assert.equal(llms.includes(HEBREW_DEFINITION), true);
   assert.doesNotMatch(llms, /Everblooming Flower/);
   assert.match(llms, /Who is Aziel Eliab: https:\/\/www\.azielcorpuslibrary\.net\/who/);
-  assert.doesNotMatch(withoutPublisherNotLock(llms), /\bFlutter\b/);
+  assert.doesNotMatch(llms, /\bFlutter\b/);
+  assert.doesNotMatch(llms, SEO_NOT_X);
   assert.match(llms, /azieleliab\.com\/v1\/stats/);
   assert.match(llms, /azielcorpuslibrary\.net\/stats/);
   assert.doesNotMatch(llms, /azielcorpuslibrary\.net\/v1\/stats/);
@@ -507,12 +501,13 @@ test("Worker serves identity routes with locked Content-Types", async () => {
       const id = doc["@id"] || (person && person["@id"]) || doc.person_id;
       assert.equal(id, PERSON_ID, path);
       const desc = doc.disambiguatingDescription || (person && person.disambiguatingDescription);
-      assert.equal(desc, PUBLISHER_NOT_LOCK, path);
-      assert.match(desc, BOTH_MUSICIANS);
+      assert.equal(desc, PUBLISHER_LOCK, path);
+      assert.doesNotMatch(desc, /He is not the two Levitical/);
     }
     if (path === "/who-is-aziel-eliab.txt" || path === "/who-is") {
       assert.equal(body, whoIsTxt());
-      assert.match(body, BOTH_MUSICIANS);
+      assert.match(body, /one living person/);
+      assert.doesNotMatch(body, /He is not the two Levitical/);
       assert.match(body, /Elias Artista/);
       assert.equal(body.includes(HEBREW_DEFINITION), true);
     }
@@ -520,7 +515,7 @@ test("Worker serves identity routes with locked Content-Types", async () => {
       assert.equal(body, identityRouteBody("/person.jsonld").body);
       const doc = JSON.parse(body);
       assert.equal(doc["@id"], PERSON_ID);
-      assert.equal(doc.disambiguatingDescription, PUBLISHER_NOT_LOCK);
+      assert.equal(doc.disambiguatingDescription, PUBLISHER_LOCK);
     }
   }
   assert.equal(identityRouteBody("/who"), null);

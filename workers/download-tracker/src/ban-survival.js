@@ -109,7 +109,7 @@ export function survivalFallbackCite() {
     local_v1: SURVIVAL_LOCAL_V1,
     mutual_backup: true,
     shelves_are_not_a_live_door: true,
-    shelves_backup_for: "death-by-ban",
+    shelves_backup_for: "live-front-loss",
     live_doors_backup_for: "cold-shelf-death",
     live_doors: null,
     platforms: Object.freeze({
@@ -145,7 +145,7 @@ export function survivalFallbackCite() {
       prefer_pull: true,
       shelves: HOST + "/shelves",
       is_live_door: false,
-      role: "death-by-ban-backup",
+      role: "cold-shelf-backup",
     }),
     visible_1520: false,
     visible_1520_chrome: false,
@@ -153,9 +153,9 @@ export function survivalFallbackCite() {
     no_lie: true,
     software_runtime_ssot: true,
     note:
-      "Prefer GET " + SURVIVAL_ORIGIN + " (short TTL) over hardcoded ban/platform/Cap-7 copy. "
+      "Prefer GET " + SURVIVAL_ORIGIN + " (short TTL) for live doors and platform status. "
       + "Same FragGate door: " + SURVIVAL_HUB + ". Hub map: " + SURVIVAL_LOCAL + " · " + SURVIVAL_LOCAL_V1
-      + " pull the same SoT (not a second door). Softwares/runtime mirrors stay Worker SSoT.",
+      + " pull the same SoT. Softwares/runtime mirrors stay Worker SSoT.",
   });
 }
 
@@ -180,7 +180,7 @@ function compactPlatforms(platforms) {
     ids: Object.freeze(rows.map((p) => p && p.id).filter(Boolean)),
     labels: Object.freeze(rows.filter((p) => p && p.live).map((p) => p.label || p.id).filter(Boolean)),
     prefer_pull: false,
-    note: src.note || "Windows, Mac, Linux, Android, and iPhone via browser / PWA / Worker / MCP. Not native store apps.",
+    note: src.note || "Windows, Mac, Linux, Android, and iPhone via browser / PWA / Worker / MCP.",
   });
 }
 
@@ -234,11 +234,11 @@ function compactShelf(shelf) {
   const src = shelf && typeof shelf === "object" ? shelf : {};
   return Object.freeze({
     prefer_pull: false,
-    role: src.role || "death-by-ban-backup",
+    role: src.role || "cold-shelf-backup",
     is_live_door: src.is_live_door === true,
     shelves: src.shelves || HOST + "/shelves",
     lockset_tip: src.lockset_tip || "",
-    note: src.note || "Cold shelves back up death-by-ban. Live fronts back up shelf death.",
+    note: src.note || "Cold shelves and live fronts back each other up.",
   });
 }
 
@@ -264,7 +264,7 @@ export function projectSurvival(doc, extra) {
     mode: doc.mode || "",
     mutual_backup: doc.mutual_backup !== false,
     shelves_are_not_a_live_door: doc.shelves_are_not_a_live_door !== false,
-    shelves_backup_for: doc.shelves_backup_for || "death-by-ban",
+    shelves_backup_for: doc.shelves_backup_for || "live-front-loss",
     live_doors_backup_for: doc.live_doors_backup_for || "cold-shelf-death",
     live_doors: doors ? Object.freeze(doors) : null,
     platforms: compactPlatforms(doc.platforms),
@@ -339,9 +339,9 @@ export function platformsLine(survival) {
     const labels = Array.isArray(plat.labels) && plat.labels.length
       ? plat.labels.join(", ")
       : "Windows, Mac, Linux, Android, iPhone";
-    return "Platforms all LIVE: " + labels + " via browser + PWA + Worker fronts + Softwares /download + MCP/OpenAPI. Not native store apps.";
+    return "Platforms all LIVE: " + labels + " via browser + PWA + Worker fronts + Softwares /download + MCP/OpenAPI.";
   }
-  return "Platforms: prefer pulled /survival platforms.all_live (Windows, Mac, Linux, Android, iPhone via browser/PWA/Worker/MCP — not native store apps).";
+  return "Platforms: prefer pulled /survival platforms.all_live (Windows, Mac, Linux, Android, iPhone via browser/PWA/Worker/MCP).";
 }
 
 export function survivalCiteFields(survival) {
@@ -378,26 +378,26 @@ export function survivalLlmsBlock(survival) {
     ? src.live_doors.map((d) => d.origin).filter(Boolean).join(" · ")
     : "prefer pulled /survival live_doors (workers.dev + hub /runtime fronts)";
   return [
-    "## Ban / blocked-endpoint survival (BAN-SURVIVAL-1.0)",
+    "## Survival (BAN-SURVIVAL-1.0)",
     "",
-    "Prefer GET " + SURVIVAL_ORIGIN + " (short TTL " + SURVIVAL_TTL_S + "s) over hardcoded ban/platform/Cap-7 copy. Same FragGate door: " + SURVIVAL_HUB + " · " + SURVIVAL_HUB_V1 + ". Hub map: " + SURVIVAL_LOCAL + " · " + SURVIVAL_LOCAL_V1 + " pull the same SoT (short TTL). Not a second FragGate door.",
-    "Mutual shelves↔ban: cold shelves back up death-by-ban; live fronts back up shelf death. Keep both. Shelves are not /mcp.",
+    "Prefer GET " + SURVIVAL_ORIGIN + " (short TTL " + SURVIVAL_TTL_S + "s) for live doors and platform status. Same FragGate door: " + SURVIVAL_HUB + " · " + SURVIVAL_HUB_V1 + ". Hub map: " + SURVIVAL_LOCAL + " · " + SURVIVAL_LOCAL_V1 + " pull the same SoT (short TTL).",
+    "Cold shelves and live fronts back each other up. Keep both.",
     "Person @id: " + PERSON_ID + ". Lamb Lens. NO-LIE. No visible identity-lock chrome.",
     "LIVE doors: " + doors + ".",
     platformsLine(src),
-    "Cap-7 MirageGrid shuffle: ping " + MIRAGEGRID_APP + " until one site lands. That land is that-round update. " + MIRAGEGRID_BRIDGE + " · " + MIRAGEGRID_SHUFFLE + ". resolves_to_hub: false. Not a hub alias. Prefer pulled /survival cap7_aznet for hosted/SLOT honesty.",
+    "Cap-7 MirageGrid shuffle: ping " + MIRAGEGRID_APP + " until one site lands. That land is that-round update. " + MIRAGEGRID_BRIDGE + " · " + MIRAGEGRID_SHUFFLE + ". resolves_to_hub: false. Prefer pulled /survival cap7_aznet for hosted/SLOT honesty.",
     callingNameAlertLine(src),
     "Softwares / runtime mirrors stay Worker SSoT (GET /v1/software, fallback fraggate/list; /runtime/* proxy). Do not hardcode catalog cards.",
-    "Never invent a live door. Never claim a banned host is LIVE. Never fake a Cap-7 hosted /mcp.",
+    "Never invent a live door. Never fake a Cap-7 hosted /mcp.",
     "",
   ].join("\n");
 }
 
 export function survivalWhoIsBlock(survival) {
   const lines = [
-    "BAN-SURVIVAL-1.0: mutual shelves↔ban — cold shelves back up death-by-ban; live fronts back up shelf death. Prefer GET " + SURVIVAL_ORIGIN + " (short TTL) over hardcoded ban/platform/Cap-7 copy. Same door: " + SURVIVAL_HUB + " · hub map " + SURVIVAL_LOCAL + " · " + SURVIVAL_LOCAL_V1,
-    "Cap-7 MirageGrid shuffle: ping " + MIRAGEGRID_APP + " until one site lands. /bridge · /v1/shuffle. resolves_to_hub: false. Not a hub alias.",
-    "Platforms: prefer pulled /survival platforms.all_live. When the feed says all_live, Windows, Mac, Linux, Android, and iPhone are LIVE via browser + PWA + Worker fronts + Softwares /download + MCP/OpenAPI. Not native store apps.",
+    "BAN-SURVIVAL-1.0: cold shelves and live fronts back each other up. Prefer GET " + SURVIVAL_ORIGIN + " (short TTL). Same door: " + SURVIVAL_HUB + " · hub map " + SURVIVAL_LOCAL + " · " + SURVIVAL_LOCAL_V1,
+    "Cap-7 MirageGrid shuffle: ping " + MIRAGEGRID_APP + " until one site lands. /bridge · /v1/shuffle. resolves_to_hub: false.",
+    "Platforms: prefer pulled /survival platforms.all_live. When the feed says all_live, Windows, Mac, Linux, Android, and iPhone are LIVE via browser + PWA + Worker fronts + Softwares /download + MCP/OpenAPI.",
     "Calling-name: mesh nodes pull `" + CALLING_NAME_ALERT_PREFIX + "` from /survival calling_name.alert. Identity Aziel Eliab unchanged. Person @id " + PERSON_ID + ". Lamb Lens. NO-LIE. No visible 15:20 chrome.",
   ];
   const alert = survival && survival.calling_name && survival.calling_name.alert;

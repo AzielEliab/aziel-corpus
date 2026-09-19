@@ -3,9 +3,9 @@
  * Honest leftover-bytes unredact + revision graph after spectrallock#13 (4af8fcb).
  * /v1/unredact: leftover + 14-cap history + revision_graph + tip-cut copies.
  * /v1/recover: universal NO-LIE LIVE/SLOT (present bytes only; SLOT never advertised as LIVE).
- * /v1/handwriting: ink heuristics, not ESDA / lab / court / writer identity.
- * Unredact / recover / handwriting are product Worker paths — not FragGate door ops.
- * Corpus OCR does not unredact by guessing. Handwriting is not ESDA.
+ * /v1/handwriting: ink heuristics.
+ * Unredact / recover / handwriting stay on the product Worker.
+ * Corpus OCR recovers leftover bytes honestly.
  * Catalog LIVE_OPS stay health, modes, targets, overlay, verify, doctor, skill.
  * Softwares tab refreshes from Worker SSoT (GET /v1/software).
  * FragGate is THE single door. Author: Aziel Eliab only.
@@ -62,26 +62,26 @@ export const SPECTRALLOCK_HONESTY =
   + "/v1/unredact cites revision_graph + tip-cut copies. "
   + "Opaque empty refuses SL-UNREDACT-OPAQUE. Never invent letters. "
   + "/v1/recover is universal NO-LIE LIVE/SLOT (present bytes only; SLOT never advertised as LIVE). "
-  + "/v1/handwriting is ink heuristics, not ESDA, not a lab, not a court finding. "
-  + "locate / lift / recover / refuse. Heatmap ≠ transcript. Never OCR-from-black-box.";
+  + "/v1/handwriting is ink heuristics. "
+  + "locate / lift / recover / refuse. Never OCR-from-black-box.";
 
 export const SPECTRALLOCK_OCR_NOTE =
   "SpectralLock leftover-bytes recover is honest (object id / offset / stream). "
   + "/v1/unredact cites revision_graph. /v1/recover is universal (NO-LIE LIVE/SLOT). "
-  + "/v1/handwriting is ink heuristics, not a lab and not ESDA. "
-  + "Opaque empty refuses SL-UNREDACT-OPAQUE. Heatmaps are not transcripts. "
-  + "Corpus OCR does not unredact by guessing. Handwriting is not ESDA. "
+  + "/v1/handwriting is ink heuristics. "
+  + "Opaque empty refuses SL-UNREDACT-OPAQUE. "
+  + "Corpus OCR recovers leftover bytes honestly. "
   + "Workers: " + SPECTRALLOCK_UNREDACT + " · " + SPECTRALLOCK_RECOVER + " · " + SPECTRALLOCK_HANDWRITING
-  + ". Unredact is not a FragGate door op. Recover is not a FragGate door op. Handwriting is not a FragGate door op.";
+  + ". Unredact / recover / handwriting stay on the product Worker.";
 
 export const SPECTRALLOCK_NOTE =
   "SpectralLock (Softwares): leftover container bytes recover honestly; opaque empty refuses SL-UNREDACT-OPAQUE. "
   + "Never invent letters. /v1/unredact revision graph. /v1/recover universal (NO-LIE LIVE/SLOT). "
-  + "/v1/handwriting ink heuristics, not a lab. Heatmap ≠ transcript. "
+  + "/v1/handwriting ink heuristics. "
   + "Workers " + SPECTRALLOCK_UNREDACT + " · " + SPECTRALLOCK_RECOVER + " · " + SPECTRALLOCK_HANDWRITING + ". "
-  + "Unredact is not a FragGate door op. Recover is not a FragGate door op. Handwriting is not a FragGate door op. "
+  + "Unredact / recover / handwriting stay on the product Worker. "
   + "Catalog entry ships on aziel-runtime GET /v1/software (Worker SSoT); this library Softwares tab refreshes from that Worker SSoT. "
-  + "Corpus OCR does not unredact by guessing. Handwriting is not ESDA.";
+  + "Corpus OCR recovers leftover bytes honestly.";
 
 export function spectrallockWorkerLinksHtml() {
   return [
@@ -198,7 +198,7 @@ export const SPECTRALLOCK = Object.freeze({
     "Eliab, Aziel. (2026). SpectralLock 0.3.0 [Software]. Apache-2.0. "
     + SPECTRALLOCK_GITHUB + " · " + SPECTRALLOCK_WORKER_HOME
     + " leftover-bytes recover honest; revision_graph on /v1/unredact; /v1/recover universal NO-LIE LIVE/SLOT; "
-    + "/v1/handwriting ink heuristics not lab; opaque refuse SL-UNREDACT-OPAQUE.",
+    + "/v1/handwriting ink heuristics; opaque refuse SL-UNREDACT-OPAQUE.",
 });
 
 export function spectralLockCopyLooksHonest(text) {
@@ -211,10 +211,10 @@ export function spectrallockLlmsBlock(host = HOST) {
   return [
     "SpectralLock (spectrallock) is a Softwares Media neighbor: leftover container bytes recover honestly; opaque empty refuses SL-UNREDACT-OPAQUE.",
     SPECTRALLOCK_HONESTY,
-    "Unredact / recover / handwriting stay on the product Worker — not FragGate door ops. Do not invent door ops.",
+    "Unredact / recover / handwriting stay on the product Worker. Do not invent door ops.",
     "Catalog LIVE_OPS: health, modes, targets, overlay, verify, doctor, skill. Stubs: spectrometer, forensic, invent_mark.",
-    "Corpus OCR may mix advisory SpectralLock lenses. Corpus OCR does not unredact by guessing. Handwriting is not ESDA.",
-    "Catalog card is Worker SSoT (GET /v1/software). Not a hardcoded extras card.",
+    "Corpus OCR may mix advisory SpectralLock lenses. Corpus OCR recovers leftover bytes honestly.",
+    "Catalog card is Worker SSoT (GET /v1/software).",
     "Compatible AI clients: " + AI_CLIENTS + ".",
     "- SpectralLock Worker: " + SPECTRALLOCK_WORKER_HOME,
     "- SpectralLock unredact: " + SPECTRALLOCK_UNREDACT,

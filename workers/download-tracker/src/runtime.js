@@ -55,7 +55,7 @@ const CATALOG = "https://aziel-runtime.vibelock.workers.dev";
 const PROTOCOL = "2025-03-26";
 
 export const LIMITATION =
-  "THIS IS: Aziel Digital Library v2.7.0 — a self-contained immutable local digital library and intelligence runtime with poison immunity, PhysLing Review (required third verifier), triad composite score, ZionPattern Solver secondary score (public, separate from triad; 75 = intentional suppression confidence, lower is more natural; 75 ceiling / 25 floor; provisional), exact-same-subject paper succession cites, document-bound hash chains, hosted Whisper transcription with mandatory VibeLock determination and hard A/V blocks (porn, nudity, child-sexual content never stored or playable), hash-chained media lattice for every OCR and transcript run, downloadable records, Ask Jeeves (research assistant), unranked Bayesian peer scores, and full-structure verify on upload/download. The public site is the MASTER (writable for signed-in accounts; anonymous GET is read-only). Operator writes go to Aziel Library only; public/anonymous writes go to Corpus only (Lamb Lens). The live HTTPS site is NOT a mesh. THIS IS NOT: a 26-card software index; Zenodo; Horton; OpenAI; a Tor/VPN; a guilt verdict; courtroom proof of media authenticity. Author Aziel Eliab only (also known as Aziel Elroi Eliab).";
+  "THIS IS: Aziel Digital Library v2.7.0 — a self-contained immutable local digital library and intelligence runtime with poison immunity, PhysLing Review (required third verifier), triad composite score, ZionPattern Solver secondary score (public, separate from triad; 75 = intentional suppression confidence, lower is more natural; 75 ceiling / 25 floor; provisional), exact-same-subject paper succession cites, document-bound hash chains, hosted Whisper transcription with mandatory VibeLock determination and hard A/V blocks (porn, nudity, child-sexual content never stored or playable), hash-chained media lattice for every OCR and transcript run, downloadable records, Ask Jeeves (research assistant), unranked Bayesian peer scores, and full-structure verify on upload/download. The public site is the MASTER (writable for signed-in accounts; anonymous GET is read-only). Operator writes go to Aziel Library only; public/anonymous writes go to Corpus only (Lamb Lens). Author Aziel Eliab only (also known as Aziel Elroi Eliab).";
 
 export const SKILL = `---
 name: Aziel Digital Library
@@ -67,8 +67,6 @@ description: Use when an assistant should search the Aziel Digital Library maste
 Self-contained immutable local digital library and intelligence runtime. Public site is MASTER. Anonymous GET is read-only. Signed-in accounts may ingest. Author: **Aziel Eliab** (also known as Aziel Elroi Eliab; primary credit Aziel Eliab).
 
 **THIS IS:** Aziel Digital Library v2.7.0 (search, records, map, gazetteer, counted zip, poison immunity, PhysLing Review, triad composite, exact-same-subject succession cites, document hash-chains, hosted Whisper transcription with mandatory VibeLock determination and hard A/V blocks, media lattice receipts, Ask Jeeves, unranked Bayesian scores).
-
-**THIS IS NOT:** a 26-card software index. Not Zenodo. Not Horton. Not a mesh. Not a guilt engine.
 
 Always send \`User-Agent: Mozilla/5.0\`.
 
@@ -106,7 +104,7 @@ Always send \`User-Agent: Mozilla/5.0\`.
 - Library skill: \`GET ${HOST}/v1/skill\`
 - Live software catalog: \`GET ${HOST}/v1/software\` (origin ${CATALOG}/v1/software; fallback fraggate/list)
 - Installer update check: \`GET ${HOST}/v1/update/check?slug=aziel-corpus&version=\` (origin ${CATALOG}/v1/update/check)
-- Suite mesh (read-only QNM ON): \`GET ${HOST}/v1/mesh\` · \`GET ${HOST}/runtime/v1/mesh\` (origin ${CATALOG}/v1/mesh). Live Nodes cite **QNS-CD-1.0** (photon QNS1 packet transfer) as a hub / Worker mesh cross-map. Public rollup is counts/status — not the cell. **CROSS-NETWORK-SURVIVAL-1.0** umbrella: if the network dies, the chain survives on cold copies (bytes↔hash); crawlers are extra shelves, not resurrection. Covers split-wires + cold-copy + die-with-pull + MESH-REEXPAND-1.0 (operator verify-from-archive) + MESH-REHEAL-1.0 (self tip + trusted pull or phoenix-WAIT — not neighbor majority). **COLD-MULTI-SHELF-1.0** executable registry: \`GET ${HOST}/shelves\`. **NO-LIE-NO-REWRITE-1.0**: network never lies to stay alive; no rewrite key; cites live lockset \`AZLOCK-INGEST-REEXPAND-1.0\`. Local \`qnsd\` is coded in https://github.com/AzielEliab/qnm-node. Runtime cites + catalog field live in https://github.com/AzielEliab/aziel-runtime. AZInterface has pair custody. Not a Softwares-tab product. No public \`qnsd\` proxy. No Node Gate. Disable is refused. GET /v1/mesh never enables radios.
+- Suite mesh (read-only QNM ON): \`GET ${HOST}/v1/mesh\` · \`GET ${HOST}/runtime/v1/mesh\` (origin ${CATALOG}/v1/mesh). Live Nodes cite **QNS-CD-1.0** (photon QNS1 packet transfer) as a hub / Worker mesh cross-map. Public rollup is counts/status. **CROSS-NETWORK-SURVIVAL-1.0** umbrella: if the network dies, the chain survives on cold copies (bytes↔hash); crawlers are extra shelves. Covers split-wires + cold-copy + die-with-pull + MESH-REEXPAND-1.0 (operator verify-from-archive) + MESH-REHEAL-1.0 (self tip + trusted pull or phoenix-WAIT). **COLD-MULTI-SHELF-1.0** executable registry: \`GET ${HOST}/shelves\`. **NO-LIE-NO-REWRITE-1.0**: network never lies to stay alive; no rewrite key; cites live lockset \`AZLOCK-INGEST-REEXPAND-1.0\`. Local \`qnsd\` is coded in https://github.com/AzielEliab/qnm-node. Runtime cites + catalog field live in https://github.com/AzielEliab/aziel-runtime. AZInterface has pair custody. No public \`qnsd\` proxy. No Node Gate. Disable is refused. GET /v1/mesh never enables radios.
 
 Ops (do **not** increment downloads):
 
@@ -121,9 +119,9 @@ Ops (do **not** increment downloads):
 - \`GET /v1/recollect?record_id=\` (tip + depth / prev-hash verify; fail closed)
 - \`GET /v1/poison-learn\` (feature receipts only; no poison bodies)
 - \`POST /v1/pin\` (operator/record pin-from-upload receipt; fail closed on structure/poison)
-- \`GET /v1/mesh\` · \`GET /v1/mesh/status\` · \`GET /v1/mesh/nodes\` (suite mesh; read-only QNM ON; counts/status rollup, not the cell; QNS-CD-1.0 + CROSS-NETWORK-SURVIVAL-1.0 + MESH-SPLIT-WIRES-1.0 + MESH-COLD-COPY-1.0 + MESH-REEXPAND-1.0 + MESH-REHEAL-1.0 + NO-LIE-NO-REWRITE-1.0 on the payload)
-- \`GET /runtime/v1/mesh\` (same-origin proxy of runtime mesh; not a public qnsd proxy)
-- \`GET /survival\` · \`GET /v1/survival\` (BAN-SURVIVAL-1.0 hub map; same SoT pull as \`/runtime/survival\`; short TTL; not a second FragGate door)
+- \`GET /v1/mesh\` · \`GET /v1/mesh/status\` · \`GET /v1/mesh/nodes\` (suite mesh; read-only QNM ON; counts/status rollup; QNS-CD-1.0 + CROSS-NETWORK-SURVIVAL-1.0 + MESH-SPLIT-WIRES-1.0 + MESH-COLD-COPY-1.0 + MESH-REEXPAND-1.0 + MESH-REHEAL-1.0 + NO-LIE-NO-REWRITE-1.0 on the payload)
+- \`GET /runtime/v1/mesh\` (same-origin proxy of runtime mesh)
+- \`GET /survival\` · \`GET /v1/survival\` (BAN-SURVIVAL-1.0 hub map; same SoT pull as \`/runtime/survival\`; short TTL)
 - \`POST /v1/score\` (document review preview)
 - \`GET /v1/verify-backfill?all=1\` (walk every stored Aziel Library + Corpus record)
 - \`GET /v1/verify-backfill?rebuild=1\` (chunked tip reconcile; JSON returns promptly with next_cursor / done; packed shelf refresh is deferred. Repeat with cursor or all=1 until done:true)
@@ -205,14 +203,14 @@ function openapi() {
       "/v1/example": { get: { summary: "Sample search payload.", operationId: "example" } },
       "/v1/skill": { get: { summary: "Skill markdown.", operationId: "skill" } },
       "/v1/review": { get: { summary: "Triad composite (SPRE × CLCE × PhysLing geometric mean) plus component scores, Bayesian (unranked), HEURISTIC possibility (separate), quarantine, document chain tip, and exact-same-subject succession cites when present. Does not increment downloads.", operationId: "review", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
-      "/v1/lattice": { get: { summary: "AzielTether lattice anchor tip for a verified record. Public site is not a mesh. Adaptive learning via hashchain lattice for recollection and reasoning.", operationId: "lattice", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
-      "/v1/possibility": { get: { summary: "HEURISTIC possibility score derived from lattice time×geo pin receipts. possibility ≠ probability ≠ triad ≠ ZionPattern. Not courtroom truth.", operationId: "possibility", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
+      "/v1/lattice": { get: { summary: "AzielTether lattice anchor tip for a verified record. Adaptive learning via hashchain lattice for recollection and reasoning.", operationId: "lattice", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
+      "/v1/possibility": { get: { summary: "HEURISTIC possibility score derived from lattice time×geo pin receipts.", operationId: "possibility", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
       "/v1/recollect": { get: { summary: "Recollection = walk document hashchain from tip + depth. Prev-hash verify. Fail closed on break. Not LLM memory.", operationId: "recollect", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }, { name: "depth", in: "query", schema: { type: "integer", default: 32 } }, { name: "tip", in: "query", schema: { type: "string" } }] } },
       "/v1/poison-learn": { get: { summary: "Poison-learn feature lattice (AZDOC-POISONLEARN). Hash + markers + token hashes only. No poison bodies.", operationId: "poisonLearn" } },
       "/v1/pin": { get: { summary: "Pin receipt for a record (time×geo anchors + possibility). Same lattice as upload→pin.", operationId: "pinGet", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
-      "/v1/mesh": { get: { summary: "Suite decentralized node mesh status. Read-only QNM ON. Counts/status rollup — not the cell. Proxies /v1/mesh. Cites QNS-CD-1.0, CROSS-NETWORK-SURVIVAL-1.0, MESH-SPLIT-WIRES-1.0, MESH-COLD-COPY-1.0, MESH-REEXPAND-1.0, MESH-REHEAL-1.0, NO-LIE-NO-REWRITE-1.0. Author Aziel Eliab.", operationId: "mesh" } },
-      "/v1/mesh/status": { get: { summary: "Suite mesh status alias. Read-only QNM ON. Counts/status — not the cell. QNS-CD-1.0 + CROSS-NETWORK-SURVIVAL-1.0 + split-wires + cold-copy + re-expand + reheal. Author Aziel Eliab.", operationId: "meshStatus" } },
-      "/v1/mesh/nodes": { get: { summary: "Live Nodes list for the suite mesh. Live Nodes · N while mesh on. Rollup counts only — not the cell. Author Aziel Eliab.", operationId: "meshNodes" } },
+      "/v1/mesh": { get: { summary: "Suite decentralized node mesh status. Read-only QNM ON. Counts/status rollup. Proxies /v1/mesh. Cites QNS-CD-1.0, CROSS-NETWORK-SURVIVAL-1.0, MESH-SPLIT-WIRES-1.0, MESH-COLD-COPY-1.0, MESH-REEXPAND-1.0, MESH-REHEAL-1.0, NO-LIE-NO-REWRITE-1.0. Author Aziel Eliab.", operationId: "mesh" } },
+      "/v1/mesh/status": { get: { summary: "Suite mesh status alias. Read-only QNM ON. Counts/status. QNS-CD-1.0 + CROSS-NETWORK-SURVIVAL-1.0 + split-wires + cold-copy + re-expand + reheal. Author Aziel Eliab.", operationId: "meshStatus" } },
+      "/v1/mesh/nodes": { get: { summary: "Live Nodes list for the suite mesh. Live Nodes · N while mesh on. Rollup counts only. Author Aziel Eliab.", operationId: "meshNodes" } },
       "/runtime/v1/mesh": { get: { summary: "Same-origin proxy of aziel-runtime /v1/mesh. Read-only QNM ON.", operationId: "runtimeProxyMesh" } },
       "/runtime/v1/mesh/status": { get: { summary: "Same-origin proxy of aziel-runtime /v1/mesh/status. Read-only QNM ON.", operationId: "runtimeProxyMeshStatus" } },
       "/runtime/v1/mesh/nodes": { get: { summary: "Same-origin proxy of aziel-runtime /v1/mesh/nodes. Live Nodes · N while mesh on.", operationId: "runtimeProxyMeshNodes" } },
@@ -230,9 +228,13 @@ function openapi() {
       "/v1/design-pack/{slug}": { get: { summary: "One Cap-7 website design+content pack (azcorpus, azlibrary, …). design_of a hub. resolves_to_hub: false. Includes mesh_pull hash-verify steps. Pull-only cold copy. Not live public DNS. CROSS-NETWORK-SURVIVAL.", operationId: "designPack", parameters: [{ name: "slug", in: "path", required: true, schema: { type: "string" } }] } },
       "/v1/design-pack/{slug}/download": { get: { summary: "Attachment of one design+content pack. Does not increment. Counted twin: GET /download?product=azcorpus|azlibrary. Anyone may download. resolves_to_hub: false.", operationId: "designPackDownload", parameters: [{ name: "slug", in: "path", required: true, schema: { type: "string" } }] } },
       "/bridge.json": { get: { summary: "Cap-7 sites inherit design_of the four hubs. resolves_to_hub: false. name_may_change: true. public_icann: false. No fifth product. Plane A UI: azcorpus + azlibrary on this Worker. No AZ-GEN publish cadence. MirageGrid app Worker /bridge + /v1/shuffle are LIVE shuffle doors (resolves_to_hub: false). Prefer pulled runtime /survival cap7_aznet.", operationId: "bridgeJson" } },
-      "/survival": { get: { summary: "BAN-SURVIVAL-1.0 hub map. Pulls runtime SoT the same way /runtime/survival does (short TTL). Not a second FragGate door. Person @id https://www.azieleliab.com/#aziel.", operationId: "hubSurvival" } },
+      "/survival": { get: { summary: "BAN-SURVIVAL-1.0 hub map. Pulls runtime SoT the same way /runtime/survival does (short TTL). Person @id https://www.azieleliab.com/#aziel.", operationId: "hubSurvival" } },
       "/v1/survival": { get: { summary: "BAN-SURVIVAL-1.0 hub map JSON. Same SoT pull as /survival and /runtime/v1/survival. Short TTL. Same FragGate door.", operationId: "hubSurvivalV1" } },
-      "/runtime/survival": { get: { summary: "BAN-SURVIVAL-1.0 via same-origin proxy of aziel-runtime /survival. Prefer this pull (short TTL) over hardcoded ban/platform/Cap-7 copy. Mutual shelves↔ban. Person @id https://www.azieleliab.com/#aziel.", operationId: "runtimeSurvival" } },
+      "/runtime/survival": { get: { summary: "BAN-SURVIVAL-1.0 via same-origin proxy of aziel-runtime /survival. Prefer this pull (short TTL). Person @id https://www.azieleliab.com/#aziel.", operationId: "runtimeSurvival" } },
+      "/help.txt": { get: { summary: "Human help index for the library. Points at scores, cite, upload, Softwares. Author Aziel Eliab.", operationId: "helpTxt" } },
+      "/addendum.txt": { get: { summary: "Human addendum: two shelves, record pages, cite, Softwares. Author Aziel Eliab.", operationId: "addendumTxt" } },
+      "/help/how-to-read-scores.txt": { get: { summary: "Human guide to triad, component scores, and related published numbers. Author Aziel Eliab.", operationId: "helpScoresTxt" } },
+      "/help/how-to-cite.txt": { get: { summary: "Human cite guide for records and Softwares. Author Aziel Eliab.", operationId: "helpCiteTxt" } },
       "/runtime/v1/survival": { get: { summary: "BAN-SURVIVAL-1.0 via same-origin proxy of aziel-runtime /v1/survival. Short TTL. Same FragGate door.", operationId: "runtimeSurvivalV1" } },
       "/mcp": { post: { summary: "Library MCP JSON-RPC (aziel-corpus_health, search, skill, download, ingest, design_pack, receipt). Dual surface. Upload requires session/operator token. Public, no OAuth.", operationId: "libraryMcp" }, get: { summary: "Library MCP discovery (tool names). Runtime FragGate door stays POST /runtime/mcp.", operationId: "libraryMcpDiscover" } },
       "/v1/metadata-backfill": { get: { summary: "Idempotent discovery-metadata backfill. Writes {library}/{AZDOC}/JSONAZDOC-….json beside the paper and mirrors under .Json/. JSON-prefixed document_ledger receipts copy the paper lattice and never rewrite paper chain_tip. all=1 walks remaining; force=1 restarts; status=1 progress. Cron and request walks also continue. Does not increment downloads.", operationId: "metadataBackfill", parameters: [{ name: "all", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "force", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "status", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "record_id", in: "query", schema: { type: "string" } }] } },
@@ -284,7 +286,7 @@ function openapi() {
       "/runtime/llms.txt": { get: { summary: "Runtime llms.txt via same-origin proxy.", operationId: "runtimeLlms" } },
       "/runtime/cite.json": { get: { summary: "Runtime cite.json via same-origin proxy.", operationId: "runtimeCite" } },
       "/runtime/robots.txt": { get: { summary: "Runtime robots.txt via same-origin proxy.", operationId: "runtimeRobots" } },
-      "/shelves": { get: { summary: "COLD-MULTI-SHELF-1.0 honest registry. Plane B=alt forge/archive SLOT (LIVE only Codeberg+archive.org+Framagit). archive.org items aziel-lockset-tip + aziel-lockset-tip_202609 same blast_radius (not two shelves). Extra E/F/G SLOTs url-null. GitFlic CNS-GITFLIC-EMAIL. GitLab CNS-GITLAB-CF-LOOP. Zenodo tip-pack refused CNS-ZENODO-IP-BAN. doi null. RESTORE-DRILL schema. 5 surfaces / 2 family radii, 1 independent live. No invented CIDs. Not AZ-GEN live ICANN publish.", operationId: "coldShelves" } },
+      "/shelves": { get: { summary: "COLD-MULTI-SHELF-1.0 honest registry. Plane A=CF/GitHub (5 surfaces / 2 family radii, 1 independent live). Plane B=alt forge/archive SLOT (Codeberg+archive.org+Framagit). archive.org items aziel-lockset-tip + aziel-lockset-tip_202609 same blast_radius. Extra E/F/G SLOTs url-null. doi null. RESTORE-DRILL schema. No invented CIDs.", operationId: "coldShelves" } },
       "/cold-copy": { get: { summary: "Alias of /shelves (COLD-MULTI-SHELF-1.0).", operationId: "coldCopy" } },
       "/v1/shelves": { get: { summary: "Alias of /shelves (COLD-MULTI-SHELF-1.0).", operationId: "v1Shelves" } },
       "/v1/cold-copy": { get: { summary: "Alias of /shelves (COLD-MULTI-SHELF-1.0).", operationId: "v1ColdCopy" } },
@@ -450,11 +452,11 @@ export async function handleRuntimeApi(request, url, env, ctx) {
         clce: "AZ-CLCE Jaccard port + optional live /v1/score",
         plr: "PhysLing Review",
         poison: "hash-chained quarantine, never silent delete",
-        bayesian: "unranked peer score, never default shelf sort. Posterior ≠ truth.",
-        possibility: "HEURISTIC possibility ∈ [0,1] or refuse, derived from lattice time×geo pins. possibility ≠ probability ≠ triad ≠ ZionPattern. GET /v1/possibility?record_id=",
+        bayesian: "unranked peer score, never default shelf sort.",
+        possibility: "HEURISTIC possibility ∈ [0,1] or refuse, derived from lattice time×geo pins. GET /v1/possibility?record_id=",
         learn: HASHCHAIN_LEARN_LAW + ". LEARN / POISON_LEARN / MAP_PIN / POSSIBILITY_SCORE append to document_ledger. Recollection is tip + prev-hash. " + LEARN_LIMITATION,
         poison_learn: "GET /v1/poison-learn — feature receipts only (hash + markers). No poison bodies. Repeats refuse faster.",
-        pin: "Upload→pin on successful ingest. GET /v1/pin?record_id= · GET /v1/verify-geo. Fail closed on structure/poison. 4DMap cite 4DM-WP-1.0 (not a live ICANN mesh DNS).",
+        pin: "Upload→pin on successful ingest. GET /v1/pin?record_id= · GET /v1/verify-geo. Fail closed on structure/poison. 4DMap cite 4DM-WP-1.0.",
         triad: "TRIAD_V1 geometric mean of SPRE PC, CLCE consistency, PhysLing coherence — primary visible score",
         backfill: "GET /v1/verify-backfill scores older unscored records",
         document_chain: "hash-chain bound to AZDOC- id; uploads/downloads/rescores/quarantine/peer notes append",
@@ -464,10 +466,10 @@ export async function handleRuntimeApi(request, url, env, ctx) {
         backfill_rebuild: "GET /v1/verify-backfill?rebuild=1 writes already-scored zsolver onto lattice tips in cursor chunks (default 25, ~4s). Returns JSON immediately. Packed library:index:v1 + homepage HTML cache refresh runs after the response. Repeat with cursor= or all=1 until done:true. force=1 restarts.",
         verify_geo: "GET /v1/verify-geo?force=1 / ?status=1 — chunked paper-date × event × geolocation pins. Never upload time.",
         jeeves: JEEVES_LIMITATION,
-        lattice: "aziel.lattice.anchor.v1 for AzielTether; site is not a mesh",
-        mesh: "GET /v1/mesh and /runtime/v1/mesh — suite node mesh; read-only QNM ON. Counts/status rollup — not the cell. Disable refused. QNS-CD-1.0 + CROSS-NETWORK-SURVIVAL-1.0 + MESH-SPLIT-WIRES-1.0 + MESH-COLD-COPY-1.0 + MESH-REEXPAND-1.0 + MESH-REHEAL-1.0 + NO-LIE-NO-REWRITE-1.0. Survival is bytes↔hash. Live body sync refused. Re-expand is archive restore. Reheal is never neighbor majority. Network never lies to stay alive. No rewrite key. Author Aziel Eliab.",
+        lattice: "aziel.lattice.anchor.v1 for AzielTether",
+        mesh: "GET /v1/mesh and /runtime/v1/mesh — suite node mesh; read-only QNM ON. Counts/status rollup. Disable refused. QNS-CD-1.0 + CROSS-NETWORK-SURVIVAL-1.0 + MESH-SPLIT-WIRES-1.0 + MESH-COLD-COPY-1.0 + MESH-REEXPAND-1.0 + MESH-REHEAL-1.0 + NO-LIE-NO-REWRITE-1.0. Survival is bytes↔hash. Live body sync refused. Re-expand is archive restore. Reheal is self tip + trusted pull or phoenix-WAIT. Network never lies to stay alive. No rewrite key. Author Aziel Eliab.",
         transcription: "POST /transcribe — Workers AI Whisper; video has no FFmpeg demux; VibeLock determination is mandatory",
-        vibelock: "Mandatory determination on every /transcribe run. Hard blocks porn, nudity, child-sexual content. Not courtroom proof.",
+        vibelock: "Mandatory determination on every /transcribe run. Hard blocks porn, nudity, child-sexual content.",
         media_lattice: "Every OCR and transcript run appends a lattice receipt. Transcript success is LATTICE_TRANSCRIPT_VIBELOCK; blocked A/V is LATTICE_AV_BLOCKED (HTTP 451).",
       },
     });

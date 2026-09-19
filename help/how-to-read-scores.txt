@@ -1,0 +1,25 @@
+# How to read scores
+
+Author: Aziel Eliab
+Person @id: https://www.azieleliab.com/#aziel
+Library: https://www.azielcorpuslibrary.net/
+Human guide. HTML explainer: https://www.azielcorpuslibrary.net/how-its-scored
+
+## Triad (always)
+Every scored record publishes a triad first: SPRE × CLCE × PhysLing as TRIAD_V1, an auditable geometric mean. Display is round(combined × 100). API: https://www.azielcorpuslibrary.net/v1/review?record_id=
+
+## Component scores (when applicable)
+SPRE, CLCE, and PhysLing stay stored for audit and appear on the record page when those verifiers have run.
+- SPRE — source provenance completeness and consistency.
+- CLCE — claim-to-claim consistency (AZ-CLCE).
+- PhysLing — physics coherence mixed with linguistic neutrality.
+
+## Other published numbers
+AZCoherence is a second-pass triad coherence review (PASS / FLAG / NEUTRALIZE / REFUSE).
+ZionPattern Solver is a secondary public score on qualifying historical / research / investigation / crime documents.
+Bayesian posterior is unranked metadata for peer review. It never sorts the shelf.
+Possibility is a labeled HEURISTIC over lattice time×geo pins. API: https://www.azielcorpuslibrary.net/v1/possibility?record_id=
+
+Record page: https://www.azielcorpuslibrary.net/record/{AZDOC-…}
+Upload: https://www.azielcorpuslibrary.net/upload
+Softwares: https://www.azielcorpuslibrary.net/software

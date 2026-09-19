@@ -83,7 +83,7 @@ test("runtime manifest and skill cite the library /runtime root", () => {
   assert.match(man.uses, /\/runtime\/v1\/uses$/);
   assert.match(man.session_open, /\/runtime\/v1\/session\/open$/);
   assert.match(man.limitation, /2\.0\.0-rc1/);
-  assert.match(man.limitation, /not an API aggregator/i);
+  assert.match(man.limitation, /node-meshed MCP Softwares suite/);
   assert.match(man.limitation, /FragGate/);
   assert.doesNotMatch(man.limitation, /1\.4\.0/);
   assert.doesNotMatch(man.limitation, /10\.5281\/zenodo/i);
@@ -91,7 +91,7 @@ test("runtime manifest and skill cite the library /runtime root", () => {
   assert.match(skill, /name: Aziel Runtime/);
   assert.match(skill, /\/runtime\/v1\/runtime\.json/);
   assert.match(skill, /2\.0\.0-rc1/);
-  assert.match(skill, /not merely an API orchestrator/);
+  assert.match(skill, /node-meshed orchestration suite/);
   assert.match(skill, /41 live/);
   assert.match(skill, /6a3798a/);
   assert.match(skill, /105fa1ee/);
@@ -149,7 +149,7 @@ test("GET and HEAD /runtime return 200 HTML without a second software index", as
   assert.match(html, /src="\/sigil\.png"/);
   assert.match(html, /\/runtime\/v1\/runtime\.json/);
   assert.match(html, /2\.0\.0-rc1/);
-  assert.match(html, /not merely an API orchestrator/);
+  assert.match(html, /node-meshed orchestration suite/);
   assert.match(html, /41 live/);
   assert.match(html, /6a3798a/);
   assert.match(html, /105fa1ee/);
@@ -208,7 +208,7 @@ test("GET /runtime HTML cites the live health version when the binding answers",
   );
   const html = await res.text();
   assert.match(html, /<h2>Version 2\.0\.0-rc1<\/h2>/);
-  assert.match(html, /not merely an API orchestrator/);
+  assert.match(html, /node-meshed orchestration suite/);
   assert.doesNotMatch(html, /aziel-runtime 2\.0\.0-rc1 FragGate/);
 });
 
@@ -240,7 +240,7 @@ test("llms.txt cites the runtime root and pull APIs", () => {
   assert.match(txt, /\/runtime\/v1\/skill/);
   assert.match(txt, /\/runtime\/v1\/pull\/\{slug\}/);
   assert.match(txt, /2\.0\.0-rc1/);
-  assert.match(txt, /not an API aggregator/);
+  assert.match(txt, /node-meshed MCP Softwares suite/);
   assert.match(txt, /FragGate/);
   assert.match(txt, /fraggate_list/);
   assert.match(txt, /\/runtime\/v1\/fraggate\/list/);
