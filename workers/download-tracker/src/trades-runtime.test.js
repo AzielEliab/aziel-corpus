@@ -115,7 +115,7 @@ test("cite.json / llms.txt / humans.txt / ai.txt cite Trades-Runtime honestly", 
 
   const block = tradesRuntimeLlmsBlock();
   assert.match(block, /POST https:\/\/trades-runtime\.vibelock\.workers\.dev\/mcp/);
-  assert.match(block, /not \/count/);
+  assert.match(block, /\/v1\/stats/);
 });
 
 test("SOFTWARE_EXTRAS lists Trades-Runtime with github, download, mcp, and /v1/stats", () => {
