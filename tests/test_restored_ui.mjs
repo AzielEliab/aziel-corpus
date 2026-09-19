@@ -311,6 +311,10 @@ test("OCR page still ships all eight SpectralLock lenses", () => {
   assert.match(html, /SL-UNREDACT-OPAQUE/);
   assert.match(html, /does not unredact by guessing/);
   assert.match(html, /not a FragGate door op/);
+  assert.match(html, /Handwriting is not ESDA/);
+  assert.match(html, /v1\/unredact/);
+  assert.match(html, /v1\/recover/);
+  assert.match(html, /v1\/handwriting/);
 });
 
 test("Pattern, Software, About, and runtime pages render live copy", () => {

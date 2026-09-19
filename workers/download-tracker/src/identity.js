@@ -229,7 +229,7 @@ export const ARK_CITE = Object.freeze({
   extra_card: false,
 });
 
-/** Softwares-list cite only. Not a hardcoded extras card. Catalog is Worker SSoT (post #137). */
+/** Softwares-list cite only. Not a hardcoded extras card. Catalog is Worker SSoT (GET /v1/software). */
 export { SPECTRALLOCK_NOTE, SPECTRALLOCK_CITE };
 
 /** Cross-tether public stats. Do not invent extra counters. */
