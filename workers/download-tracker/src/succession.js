@@ -409,6 +409,7 @@ export async function applyTriadCoverage(env, recordId) {
     spre: review.spre,
     clce: review.clce,
     plr: review.plr,
+    applicability: review.applicability && review.applicability.flags,
   }), row.library, coverage);
   const stored = row.triad_combined != null ? Number(row.triad_combined) : review.triad && review.triad.combined;
   if (triad.combined != null && stored != null && Number.isFinite(stored) && Math.abs(stored - triad.combined) < 0.0002) {

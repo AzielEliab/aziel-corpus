@@ -41,9 +41,9 @@ export function latticeAnchorTip({
       ok: !!(structure && structure.ok),
       file_count: Array.isArray(structure && structure.files) ? structure.files.length : 0,
     },
-    spre: r.spre ? { pc: r.spre.pc, band: r.spre.band, limitation: r.spre.limitation } : null,
-    clce: r.clce ? { triple: r.clce.triple, pairwise_avg: r.clce.pairwise_avg, advisory: true } : null,
-    plr: r.plr ? { status: r.plr.status, lights: r.plr.lights } : null,
+    spre: r.spre && r.spre.applicable !== false ? { pc: r.spre.pc, band: r.spre.band, limitation: r.spre.limitation, applicable: true } : (r.spre ? { applicable: false, status: "not_applicable" } : null),
+    clce: r.clce && r.clce.applicable !== false ? { triple: r.clce.triple, pairwise_avg: r.clce.pairwise_avg, advisory: true, applicable: true } : (r.clce ? { applicable: false, status: "not_applicable" } : null),
+    plr: r.plr && r.plr.applicable !== false ? { status: r.plr.status, lights: r.plr.lights, applicable: true } : (r.plr ? { applicable: false, status: "not_applicable" } : null),
     triad: r.triad
       ? { combined: r.triad.combined, display: r.triad.display, ready: r.triad.ready, formula: r.triad.formula }
       : null,

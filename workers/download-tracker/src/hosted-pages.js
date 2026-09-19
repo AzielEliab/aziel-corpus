@@ -2,6 +2,8 @@ import { isOperator } from "./library.js";
 import { shelfScoreState, zsolverFromRow } from "./zsolver.js";
 import { SPECTRALLOCK_OCR_NOTE, spectrallockWorkerLinksHtml } from "./spectrallock.js";
 import { isMachineFileTag, visibleTagEntries } from "./visible-tags.js";
+import { publicComponentFlags, isComponentApplicable } from "./review-applicability.js";
+import { applyApplicabilityToReview } from "./review.js";
 
 function esc(s) {
   const q = String.fromCharCode(34);
@@ -110,36 +112,39 @@ export function recordBody(payload) {
   const qBanner = (q === "POISON_SUSPECT" || q === "QUARANTINE")
     ? "<div class=\"q-banner\">Quarantine — poison suspect. The file is still downloadable for auditors. It was not deleted.</div>"
     : "";
-  const triad = (review && review.triad) || null;
+  const liveReview = review ? applyApplicabilityToReview(review, row, row.library) : review;
+  const flags = publicComponentFlags(liveReview, row);
+  const triad = (liveReview && liveReview.triad) || (review && review.triad) || null;
   const combined = triad && triad.combined != null ? triad.combined : row.triad_combined;
+  const applicableNames = (flags.names && flags.names.length) ? flags.names.join(", ") : "the applicable checkers";
   const triadHtml = combined != null
-    ? "<div class=\"triad-card\"><h2>Triad score</h2><div class=\"triad\"><div class=\"metric\">" + (triad && triad.display != null ? triad.display : Math.round(Number(combined) * 100)) + "</div><div><p>One combined report card after SPRE, CLCE, and PhysLing all ran.</p><p class=\"muted\">" + esc((triad && triad.formula) || "TRIAD_V1 geometric mean of the three verifiers.") + " <a href=\"/how-its-scored\">How it's scored</a>.</p></div></div></div>"
+    ? "<div class=\"triad-card\"><h2>Triad score</h2><div class=\"triad\"><div class=\"metric\">" + (triad && triad.display != null ? triad.display : Math.round(Number(combined) * 100)) + "</div><div><p>One combined report card from " + esc(applicableNames) + ".</p><p class=\"muted\">" + esc((triad && triad.formula) || "TRIAD_V2 geometric mean of applicable components.") + " <a href=\"/how-its-scored\">How it's scored</a>.</p></div></div></div>"
     : "<div class=\"triad-card\"><h2>Triad score</h2><p class=\"muted\">Not scored yet. A backfill walk will write the combined score.</p></div>";
   const ev = events.length
     ? events.map((e) => "<div class=\"pill\">" + esc(e.event_date) + " · " + esc(e.place_name) + " · " + Number(e.confidence || 0).toFixed(2) + "</div>").join(" ")
     : "<p class=\"muted\">No mapped events extracted from this record.</p>";
-  const lights = (review && review.lights) || {};
-  const spre = review && review.spre;
-  const clce = review && review.clce;
-  const plr = review && review.plr;
+  const lights = (liveReview && liveReview.lights) || (review && review.lights) || {};
+  const spre = liveReview && liveReview.spre;
+  const clce = liveReview && liveReview.clce;
+  const plr = liveReview && liveReview.plr;
   const bayes = review && review.bayesian;
   const posterior = bayes && bayes.posterior != null ? bayes.posterior : row.bayesian_posterior;
-  const lightsHtml = review
+  const lightsHtml = (liveReview || review)
     ? "<div class=\"lights\">" +
-      light(lights.structure, "Structure", review.structure && review.structure.ok ? "Every file was hashed and checked." : "A file failed the structure check.") +
-      light(lights.spre, "SPRE", spre && spre.kid_plain) +
-      light(lights.clce, "CLCE", clce && clce.kid_plain) +
-      light(lights.plr, "PhysLing Review", plr && plr.kid_plain) +
-      light(lights.poison, "Poison", review.poison && review.poison.kid_plain) +
+      light(lights.structure, "Structure", (liveReview || review).structure && (liveReview || review).structure.ok ? "Every file was hashed and checked." : "A file failed the structure check.") +
+      (flags.spre && isComponentApplicable(spre) ? light(lights.spre, "SPRE", spre && spre.kid_plain) : "") +
+      (flags.clce && isComponentApplicable(clce) ? light(lights.clce, "CLCE", clce && clce.kid_plain) : "") +
+      (flags.plr && isComponentApplicable(plr) ? light(lights.plr, "PhysLing Review", plr && plr.kid_plain) : "") +
+      light(lights.poison, "Poison", (liveReview || review).poison && (liveReview || review).poison.kid_plain) +
       "</div>"
     : "<p class=\"muted\">Review scores are not on this record yet.</p>";
-  const spreHtml = spre
+  const spreHtml = flags.spre && isComponentApplicable(spre) && spre.pc != null
     ? "<p><b>SPRE PC</b> " + Number(spre.pc).toFixed(2) + " · " + esc(spre.band) + "</p><p class=\"muted\">" + esc(spre.limitation) + "</p>"
     : "";
-  const clceHtml = clce
+  const clceHtml = flags.clce && isComponentApplicable(clce) && clce
     ? "<p><b>CLCE</b> triple " + Number(clce.triple).toFixed(2) + " · pairwise " + Number(clce.pairwise_avg).toFixed(2) + " · " + esc(clce.band || "") + "</p><p class=\"muted\">" + esc(clce.limitation || "") + "</p>"
     : "";
-  const plrHtml = plr
+  const plrHtml = flags.plr && isComponentApplicable(plr) && plr
     ? "<p><b>PhysLing Review (PLR)</b> " + esc(plr.status) + "</p><div class=\"mini-chips\">" +
       Object.entries(plr.lights || {}).map(([k, v]) => "<span class=\"mini-chip " + (v === "PASS" ? "on" : "") + "\">" + esc(k) + ": " + esc(v) + "</span>").join("") +
       "</div><p class=\"muted\">" + esc(plr.limitation) + "</p>"
@@ -154,7 +159,10 @@ export function recordBody(payload) {
     : "";
   const bayesHtml = posterior != null
     ? "<div class=\"card\"><h3>Bayesian peer score</h3><div class=\"metric\">" + Number(posterior).toFixed(3) + "</div><p class=\"muted\">Unranked metadata for manual peer-to-peer review. Separate from the HEURISTIC possibility score. Never sorts the shelf.</p>" +
-      (bayes && bayes.priors ? "<p class=\"muted\">Priors: evidence " + bayes.priors.evidence_completeness + " · physics " + bayes.priors.physics_coherence + " · language " + bayes.priors.linguistic_neutrality + " · SPRE " + bayes.priors.spre_pc + " · CLCE " + bayes.priors.clce_consistency + "</p>" : "") +
+      (bayes && bayes.priors ? "<p class=\"muted\">Priors: evidence " + bayes.priors.evidence_completeness
+        + (flags.plr ? " · physics " + bayes.priors.physics_coherence + " · language " + bayes.priors.linguistic_neutrality : "")
+        + (flags.spre ? " · SPRE " + bayes.priors.spre_pc : "")
+        + (flags.clce ? " · CLCE " + bayes.priors.clce_consistency : "") + "</p>" : "") +
       "</div>"
     : "";
   const peerRows = peers.length
@@ -212,7 +220,8 @@ export function recordBody(payload) {
     qBanner + triadHtml + zsolverHtml + successionHtml +
     "<div class=\"card\"><h2>Status lights</h2><p class=\"muted\">Green means go. Yellow means read again. Red means stop and check. Easy enough for a 6th grader; kept for government use.</p>" + lightsHtml + "</div>" +
     "<div class=\"card\"><p class=\"meta\">" + esc(fileLabel) + (row.created_utc ? " · " + esc(String(row.created_utc).replace("T", " ").slice(0, 16)) : "") + "</p>" + shaHtml + open +
-    "<h3>SPRE + CLCE + PhysLing</h3>" + spreHtml + clceHtml + plrHtml +
+    "<p class=\"muted\">Machine surfaces: <a href=\"/record/" + esc(row.record_id) + "/llms.txt\">llms.txt</a> · <a href=\"/record/" + esc(row.record_id) + "/cite.json\">cite.json</a> · <a href=\"/record/" + esc(row.record_id) + "/metadata.json\">metadata.json</a> · <a href=\"/help.txt\">help</a></p>" +
+    (spreHtml || clceHtml || plrHtml ? "<h3>" + esc(applicableNames) + "</h3>" + spreHtml + clceHtml + plrHtml : "") +
     "<h3>Snippet</h3><p>" + esc(String(row.body || row.snippet || "").slice(0, 2000)) + "</p>" +
     "<h3>Derived artifacts</h3>" + der +
     "<h3>Temporal-geospatial events</h3>" + ev + tipHtml + "</div>" +

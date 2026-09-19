@@ -553,7 +553,7 @@ function dedupeShelf(rows) {
 export function shelfScoreRows(row) {
   const st = shelfScoreState(row);
   const triadRow = st.triad_display != null
-    ? `<p class="triad"><span class="metric">${esc(st.triad_display)}</span><span class="muted">Triad score (SPRE × CLCE × PhysLing)</span></p>`
+    ? `<p class="triad"><span class="metric">${esc(st.triad_display)}</span><span class="muted">Triad score</span></p>`
     : `<p class="muted">Triad score pending backfill</p>`;
   let zRow = "";
   if (st.zsolver_omit) {
@@ -847,18 +847,19 @@ export function whoBody() {
 
 export function howItsScoredBody() {
   return `<section class="hero"><h1>How it's scored</h1>
-<p class="muted">Public scoring on Aziel Digital Library. Author Aziel Eliab. Published numbers: the triad (primary), ZionPattern Solver (secondary), unranked Bayesian posterior, and HEURISTIC possibility.</p></section>
+<p class="muted">Public scoring on Aziel Digital Library. Author Aziel Eliab. Published numbers: the triad (always, when scored), ZionPattern Solver (when that reading applies), unranked Bayesian posterior, and HEURISTIC possibility.</p></section>
 <div class="card">
-<h2>Triad — SPRE × CLCE × PhysLing</h2>
-<p>When <strong>SPRE</strong>, <strong>CLCE</strong>, and <strong>PhysLing Review</strong> have all run on a record, one combined score is shown first. That is TRIAD_V1, an auditable geometric mean:</p>
-<p><code>combined = (spre_pc × clce_consistency × plr_coherence)<sup>1/3</sup></code></p>
+<h2>Triad — always published</h2>
+<p>The <strong>triad</strong> is the primary report card. It is always computed and always shown on a scored record. TRIAD_V2 is the geometric mean of the checkers that apply to that document’s concept:</p>
+<p><code>combined = (Π applicable_i)<sup>1/n</sup></code></p>
+<p>When SPRE, CLCE, and PhysLing all apply, that is the familiar three-engine mean. When a component does not apply, it is omitted from the public mean so it does not pretend to have weighted the triad. Display is <code>round(combined × 100)</code>.</p>
 <ul>
-<li><strong>SPRE</strong> — Source Provenance Reliability Engine. How complete and consistent the provenance looks. No guilt verdict.</li>
-<li><strong>CLCE</strong> — claim-to-claim consistency (AZ-CLCE). Triple agreement when it is strong; otherwise pairwise average.</li>
-<li><strong>PhysLing</strong> — physics coherence mixed with linguistic neutrality.</li>
+<li><strong>SPRE</strong> — Source Provenance Reliability Engine. Applies when the record is a filed object with provenance (title, author, hash, filename, or body). How complete the provenance looks.</li>
+<li><strong>CLCE</strong> — claim-to-claim consistency (AZ-CLCE). Applies when a descriptive claim layer exists beside title or file. Triple agreement when it is strong; otherwise pairwise average.</li>
+<li><strong>PhysLing</strong> — physics coherence mixed with linguistic neutrality. Applies when the document makes physics-evaluable or measurement claims, or is classified energy/engineering (or hardware with physical language). Philosophy, software, and design without those claims omit PhysLing.</li>
 </ul>
-<p>Equal one-third weight. Display is <code>round(combined × 100)</code>. Component scores stay stored for audit. The unranked Bayesian peer number and the HEURISTIC possibility score stay outside this mean and never sort the shelf.</p>
-<p class="muted">See a record page, or <code>GET /v1/review?record_id=</code>, for the live triad and lights.</p>
+<p>Equal weight among the applicable engines only. Internal scores stay stored for audit with <code>applicable:false</code> when a component is omitted. A component that does not apply is never shown as 0. The unranked Bayesian peer number and the HEURISTIC possibility score stay outside this mean and never sort the shelf.</p>
+<p class="muted">See a record page, <code>GET /v1/review?record_id=</code>, or <a href="/help.txt">/help.txt</a> and <a href="/help/how-to-read-scores.txt">how to read scores</a>.</p>
 </div>
 <div class="card">
 <h2>AZCoherence — second-pass triad coherence</h2>
@@ -881,7 +882,7 @@ export function howItsScoredBody() {
 </div>
 <div class="card">
 <h2>Where to go next</h2>
-<p class="soft-links"><a class="button" href="/software">Software</a> <a class="button ghost" href="/runtime">Runtime</a> <a class="button ghost" href="/pattern">Pattern</a> <a class="button ghost" href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a> <a class="button ghost" href="/help.txt">help.txt</a> <a class="button ghost" href="/help/how-to-read-scores.txt">Read scores</a> <a class="button ghost" href="/llms.txt">llms.txt</a> <a class="button ghost" href="/cite.json">cite.json</a></p>
+<p class="soft-links"><a class="button" href="/software">Software</a> <a class="button ghost" href="/runtime">Runtime</a> <a class="button ghost" href="/pattern">Pattern</a> <a class="button ghost" href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a> <a class="button ghost" href="/help.txt">help.txt</a> <a class="button ghost" href="/help/how-to-read-scores.txt">Read scores</a> <a class="button ghost" href="/help/uploads.txt">uploads</a> <a class="button ghost" href="/llms.txt">llms.txt</a> <a class="button ghost" href="/cite.json">cite.json</a></p>
 </div>`;
 }
 

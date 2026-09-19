@@ -27,7 +27,7 @@ function assertPublicIdentity(text) {
 test("robots.txt allows research surfaces and major AI bots", () => {
   const txt = robotsTxt();
   assertPublicIdentity(txt);
-  for (const path of ["/ai.txt", "/how-its-scored", "/help.txt", "/addendum.txt", "/help/how-to-read-scores.txt", "/help/how-to-cite.txt", "/humans.txt", "/software", "/donate", "/runtime", "/runtime/v1/uses", "/survival", "/v1/survival", "/runtime/survival", "/AzielEliab", "/aboutme", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/search", "/.well-known/aziel.json", "/.well-known/person.jsonld", "/shelves", "/cold-copy", "/upload"]) {
+  for (const path of ["/ai.txt", "/how-its-scored", "/help.txt", "/addendum.txt", "/help/how-to-read-scores.txt", "/help/how-to-cite.txt", "/help/uploads.txt", "/humans.txt", "/software", "/donate", "/runtime", "/runtime/v1/uses", "/survival", "/v1/survival", "/runtime/survival", "/AzielEliab", "/aboutme", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/search", "/.well-known/aziel.json", "/.well-known/person.jsonld", "/shelves", "/cold-copy", "/upload"]) {
     assert.match(txt, new RegExp("Allow: " + path.replace("/", "\\/")));
   }
   assert.match(txt, /Content-Signal: search=yes, ai-input=yes, ai-train=yes/);
@@ -123,7 +123,7 @@ test("sitemap.xml lists key routes and uses XML mime helper", async () => {
   };
   const xml = await sitemapXml(env);
   assert.match(xml, /<\?xml version="1.0"/);
-  for (const path of ["/", "/search", "/login", "/signup", "/AzielEliab", "/software", "/donate", "/v1/software", "/v1/download", "/v1/library-index", "/v1/stats", "/v1/update/check", "/sitemap-index.xml", "/sitemap-records.xml", "/mcp.json", "/.well-known/mcp.json", "/mcp", "/bridge.json", "/v1/products", "/v1/design-pack", "/v1/design-pack/azcorpus", "/v1/design-pack/azlibrary", "/runtime", "/runtime/", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/software", "/runtime/v1/uses", "/survival", "/v1/survival", "/runtime/survival", "/runtime/v1/survival", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/help.txt", "/addendum.txt", "/help/how-to-read-scores.txt", "/help/how-to-cite.txt", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/forensics", "/aziel-library", "/corpus", "/upload", "/cite.json", "/lockset.json", "/shelves", "/cold-copy", "/receipts", "/receipts/verify", "/v1/receipts", "/v1/receipts/verify", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/.well-known/aziel.json", "/.well-known/person.jsonld", "/llms.txt", "/ai.txt"]) {
+  for (const path of ["/", "/search", "/login", "/signup", "/AzielEliab", "/software", "/donate", "/v1/software", "/v1/download", "/v1/library-index", "/v1/stats", "/v1/update/check", "/sitemap-index.xml", "/sitemap-records.xml", "/mcp.json", "/.well-known/mcp.json", "/mcp", "/bridge.json", "/v1/products", "/v1/design-pack", "/v1/design-pack/azcorpus", "/v1/design-pack/azlibrary", "/runtime", "/runtime/", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/software", "/runtime/v1/uses", "/survival", "/v1/survival", "/runtime/survival", "/runtime/v1/survival", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/help.txt", "/addendum.txt", "/help/how-to-read-scores.txt", "/help/how-to-cite.txt", "/help/uploads.txt", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/forensics", "/aziel-library", "/corpus", "/upload", "/cite.json", "/lockset.json", "/shelves", "/cold-copy", "/receipts", "/receipts/verify", "/v1/receipts", "/v1/receipts/verify", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/.well-known/aziel.json", "/.well-known/person.jsonld", "/llms.txt", "/ai.txt"]) {
     assert.match(xml, new RegExp("<loc>https://www\\.azielcorpuslibrary\\.net" + path.replace("/", "\\/") + "</loc>"));
   }
   assert.doesNotMatch(xml, /azielcorpuslibrary\.net\/about</);
@@ -132,6 +132,10 @@ test("sitemap.xml lists key routes and uses XML mime helper", async () => {
   const recordsMap = await sitemapRecordsXml(env);
   assert.match(recordsMap, /\/record\/AZDOC-AZIEL1\/metadata\.json/);
   assert.match(recordsMap, /\/record\/AZDOC-AZIEL1\.json/);
+  assert.match(recordsMap, /\/record\/AZDOC-AZIEL1\/llms\.txt/);
+  assert.match(recordsMap, /\/record\/AZDOC-AZIEL1\/cite\.json/);
+  assert.match(xml, /\/record\/AZDOC-AZIEL1\/llms\.txt/);
+  assert.match(xml, /\/record\/AZDOC-AZIEL1\/cite\.json/);
   assert.match(xml, /<lastmod>2026-08-01<\/lastmod>/);
   assert.match(xml, /<lastmod>2026-07-01<\/lastmod>/);
   assert.match(xml, /<loc>https:\/\/www\.azielcorpuslibrary\.net\/<\/loc><lastmod>[^<]+<\/lastmod><changefreq>daily<\/changefreq><priority>1\.0<\/priority>/);
@@ -182,6 +186,9 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(cite.github, /AzielEliab\/aziel-corpus/);
   assert.match(cite.software, /\/software$/);
   assert.match(cite.how_its_scored, /\/how-its-scored$/);
+  assert.equal(cite.record_llms, "https://www.azielcorpuslibrary.net/record/{record_id}/llms.txt");
+  assert.equal(cite.record_cite, "https://www.azielcorpuslibrary.net/record/{record_id}/cite.json");
+  assert.match(cite.triad, /TRIAD_V2/);
   assert.match(cite.forensics, /\/forensics$/);
   assert.match(cite.intelligence, /\/forensics$/);
   assert.doesNotMatch(cite.intelligence, /\/intelligence$/);
@@ -346,6 +353,8 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.doesNotMatch(llms, /Intelligence \/ hosted OCR/);
   assert.doesNotMatch(llms, /\/intelligence\n/);
   assert.match(llms, /\/ai\.txt/);
+  assert.match(llms, /\/record\/\{record_id\}\/llms\.txt/);
+  assert.match(llms, /\/record\/\{record_id\}\/cite\.json/);
   assert.match(llms, /aziel-runtime\.vibelock\.workers\.dev/);
   assert.match(llms, /node-meshed orchestration suite/);
   assert.match(llms, /2\.0\.0-rc1/);
@@ -512,6 +521,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(humans, /SpectralLock \(spectrallock\) Softwares Media leftover-bytes honesty/);
   assert.match(humans, /SL-UNREDACT-OPAQUE/);
   assert.match(humans, /ark-download-tracker\.vibelock\.workers\.dev\/stats/);
+  assert.match(humans, /\/record\/\{record_id\}\/llms\.txt/);
 
   const index = sitemapIndexXml();
   assert.match(index, /<sitemapindex /);
@@ -548,7 +558,7 @@ test("Worker SEO documents are 200 with long public cache and never empty for Go
   const env = {
     DOWNLOADS: { async get() { return null; }, async put() {}, async list() { throw new Error("no list"); } },
   };
-  for (const path of ["/robots.txt", "/llms.txt", "/cite.json", "/lockset.json", "/bridge.json", "/ai.txt", "/humans.txt", "/sitemap-index.xml", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/.well-known/aziel.json", "/.well-known/person.jsonld"]) {
+  for (const path of ["/robots.txt", "/llms.txt", "/cite.json", "/lockset.json", "/bridge.json", "/ai.txt", "/humans.txt", "/help.txt", "/addendum.txt", "/help/uploads.txt", "/sitemap-index.xml", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/.well-known/aziel.json", "/.well-known/person.jsonld"]) {
     const res = await worker.fetch(
       new Request("https://www.azielcorpuslibrary.net" + path, { headers: { "User-Agent": "Googlebot/2.1" } }),
       env,

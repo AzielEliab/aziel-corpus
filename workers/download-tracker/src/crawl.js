@@ -255,6 +255,7 @@ export function robotsTxt() {
     "Allow: /addendum.txt",
     "Allow: /help/how-to-read-scores.txt",
     "Allow: /help/how-to-cite.txt",
+    "Allow: /help/uploads.txt",
     "Allow: " + ABOUT_PATH,
     "Allow: /about",
     "Allow: /aboutme",
@@ -370,6 +371,7 @@ const STATIC_SITEMAP = [
   "/addendum.txt",
   "/help/how-to-read-scores.txt",
   "/help/how-to-cite.txt",
+  "/help/uploads.txt",
   "/pattern",
   "/map",
   "/tree",
@@ -465,6 +467,7 @@ const SITEMAP_HINTS = {
   "/addendum.txt": { changefreq: "monthly", priority: "0.5" },
   "/help/how-to-read-scores.txt": { changefreq: "monthly", priority: "0.6" },
   "/help/how-to-cite.txt": { changefreq: "monthly", priority: "0.6" },
+  "/help/uploads.txt": { changefreq: "monthly", priority: "0.5" },
   "/donate": { changefreq: "monthly", priority: "0.6" },
 };
 
@@ -521,6 +524,8 @@ export async function sitemapRecordsXml(env) {
       rows.push({ loc: HOST + "/record/" + id, lastmod });
       rows.push({ loc: HOST + "/record/" + id + "/metadata.json", lastmod });
       rows.push({ loc: HOST + "/record/" + id + ".json", lastmod });
+      rows.push({ loc: HOST + "/record/" + id + "/llms.txt", lastmod });
+      rows.push({ loc: HOST + "/record/" + id + "/cite.json", lastmod });
     }
   } catch { /* empty set still valid */ }
   return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n"
@@ -639,6 +644,8 @@ export async function sitemapXml(env) {
       const id = encodeURIComponent(r.record_id);
       rows.push({ loc: HOST + "/record/" + id, lastmod });
       rows.push({ loc: HOST + "/record/" + id + "/metadata.json", lastmod });
+      rows.push({ loc: HOST + "/record/" + id + "/llms.txt", lastmod });
+      rows.push({ loc: HOST + "/record/" + id + "/cite.json", lastmod });
     }
   } catch (e) { /* sitemap still lists static routes */ }
   return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n"
@@ -796,6 +803,8 @@ export function citeDoc(survival) {
     sitemap_records: HOST + "/sitemap-records.xml",
     record_metadata: HOST + "/record/{record_id}/metadata.json",
     record_metadata_alias: HOST + "/record/{record_id}.json",
+    record_llms: HOST + "/record/{record_id}/llms.txt",
+    record_cite: HOST + "/record/{record_id}/cite.json",
     runtime_fraggate_list: HOST + "/runtime/v1/fraggate/list",
     runtime_llms: HOST + "/runtime/llms.txt",
     runtime_cite: HOST + "/runtime/cite.json",
@@ -841,7 +850,7 @@ export function citeDoc(survival) {
     download_record: HOST + "/download?record=",
     download_hash: HOST + "/download?hash=",
     docs_download: HOST + "/v1/docs/{hash}/download",
-    triad: "TRIAD_V1 geometric mean of SPRE, CLCE, and PhysLing — primary visible score. AZCoherence (azcoherence) is a second-pass scoring-review (peer AZ-CLCE). See " + HOST + "/how-its-scored",
+    triad: "TRIAD_V2 geometric mean over applicable SPRE, CLCE, and PhysLing only — primary visible score, always published when scored. AZCoherence (azcoherence) is a second-pass scoring-review (peer AZ-CLCE). See " + HOST + "/how-its-scored",
     succession: "Exact-same-subject paper cites: Supersedes / Superseded by on the record page and GET /v1/review. Uncertain matches are not chained.",
     zsolver: "ZionPattern Solver secondary public score. Separate from triad. Qualifies for historical, research, investigation, and crime documents; philosophy, software, hardware, and designs omit the line (never 0). Zioncheck Visual Archive vols 1–5 seed baseline display 75. 75 means intentional suppression confidence; lower is more natural. Hard 75 ceiling / 25 uncertainty floor. Provisional. Does not solve cases. A superseding document that proves a pattern break with first-hand / primary materials force-rescores the succession chain; narrative and second-source materials never trigger that rescore.",
     azcoherence: AZCOHERENCE,
@@ -879,6 +888,7 @@ export function llmsDoc(limitation, survival) {
     + "Donate AZL-DONATE-1.0 (static, no KV): " + HOST + "/donate\n"
     + "Packed library index: " + HOST + "/v1/library-index\n"
     + "Record discovery metadata (public JSON, no auth): " + HOST + "/record/{record_id}/metadata.json  alias " + HOST + "/record/{record_id}.json\n"
+    + "Per-record LLM access: " + HOST + "/record/{record_id}/llms.txt  ·  " + HOST + "/record/{record_id}/cite.json\n"
     + "Record metadata sitemap: " + HOST + "/sitemap-records.xml\n"
     + "Metadata backfill (idempotent): " + HOST + "/v1/metadata-backfill\n"
     + "Content SHA-256 repair (file-bytes hash): " + HOST + "/v1/content-hash-repair\n"
@@ -1104,6 +1114,8 @@ export function llmsDoc(limitation, survival) {
     + "- GET " + HOST + "/media/{sha256}  (allowed A/V playback only)\n"
     + "- POST " + HOST + "/ocr  (lattice receipt on every run)\n"
     + "- GET " + HOST + "/record/{record_id}/metadata.json  (Schema.org discovery sidecar; also /record/{id}.json)\n"
+    + "- GET " + HOST + "/record/{record_id}/llms.txt  (per-record LLM access point)\n"
+    + "- GET " + HOST + "/record/{record_id}/cite.json  (per-record structured cite)\n"
     + "- GET " + HOST + "/sitemap-records.xml\n"
     + "- GET " + HOST + "/v1/metadata-backfill  (idempotent; writes package + .Json sidecars)\n"
     + "- GET " + HOST + "/receipt/{id}  (AZDOC-, JSONAZDOC-, or AZRUN-)\n"
@@ -1160,6 +1172,7 @@ export function aiTxt(limitation, survival) {
     "Allow: /addendum.txt",
     "Allow: /help/how-to-read-scores.txt",
     "Allow: /help/how-to-cite.txt",
+    "Allow: /help/uploads.txt",
     "Allow: /pattern",
     "Allow: /map",
     "Allow: /tree",
@@ -1317,6 +1330,7 @@ export function humansTxt() {
     "/* SITE */",
     "Name: Aziel Digital Library",
     "Standards: HTML, JSON-LD, OpenAPI, llms.txt",
+    "Per-record LLM: " + HOST + "/record/{record_id}/llms.txt · " + HOST + "/record/{record_id}/cite.json",
     "Software: " + HOST + "/software",
     "Donate: " + HOST + "/donate",
     "Software hub mirrors runtime /v1/software (fallback fraggate/list): " + HOST + "/v1/software",

@@ -115,6 +115,8 @@ export function metadataUrls(paperId) {
     url: HOST + "/record/" + paper,
     metadata_url: HOST + "/record/" + paper + "/metadata.json",
     metadata_alias_url: HOST + "/record/" + paper + ".json",
+    llms_url: HOST + "/record/" + paper + "/llms.txt",
+    cite_url: HOST + "/record/" + paper + "/cite.json",
     file_url: HOST + "/file/" + paper,
     receipt_url: HOST + "/receipt/" + paper,
     json_receipt_url: HOST + "/receipt/" + jsonRecordId(paper),
@@ -190,7 +192,7 @@ export function buildDiscoveryMetadata(row, extras = {}) {
     url: urls.url,
     metadata_url: urls.metadata_url,
     file_url: urls.file_url,
-    sameAs: [urls.metadata_alias_url, urls.json_receipt_url, HUB_PERSON_ID],
+    sameAs: [urls.metadata_alias_url, urls.llms_url, urls.cite_url, urls.json_receipt_url, HUB_PERSON_ID],
     isPartOf: {
       "@type": "Collection",
       name: aziel ? "Aziel Library" : "Corpus",
@@ -274,7 +276,7 @@ async function readSidecarJson(env, key) {
   }
 }
 
-async function loadPaperRow(env, paperId, hint) {
+export async function loadPaperRow(env, paperId, hint) {
   const paper = paperRecordId(paperId);
   if (hint && paperRecordId(hint.record_id || hint.id) === paper && hint.title) {
     return { ...hint, record_id: paper };
@@ -282,7 +284,7 @@ async function loadPaperRow(env, paperId, hint) {
   if (!env || !env.DB || !paper) return hint ? { ...hint, record_id: paper } : null;
   try {
     const row = await env.DB.prepare(
-      "SELECT record_id, title, body, created_by, created_utc, library, filename, content_type, object_key, byte_size, author, domain, subjects, keywords, content_sha256, lattice_tip_json, chain_tip, chain_sequence FROM records WHERE record_id=?"
+      "SELECT record_id, title, body, created_by, created_utc, library, filename, content_type, object_key, byte_size, author, domain, subjects, keywords, content_sha256, lattice_tip_json, chain_tip, chain_sequence, review_json, triad_combined, zsolver_json FROM records WHERE record_id=?"
     ).bind(paper).first();
     if (row) {
       let tip = null;

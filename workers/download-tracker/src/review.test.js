@@ -182,6 +182,7 @@ test("triad is geometric mean of the three verifiers", () => {
     plr: { physics_coherence: 1, linguistic_neutrality: 1 },
   });
   assert.equal(t.ready, true);
+  assert.equal(t.schema, "aziel.triad.v2");
   assert.equal(t.components.clce_consistency, 0.8);
   const expected = Math.pow(0.64 * 0.8 * 1, 1 / 3);
   assert.ok(Math.abs(t.combined - expected) < 0.001);

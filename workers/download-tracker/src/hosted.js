@@ -4,6 +4,8 @@ import { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, hea
 import { json, corsHeaders } from "./runtime.js";
 import { receiptForRecord, sha256hex, isJsonDocumentId } from "./ledger.js";
 import { serveRecordMetadata, parseRecordMetadataPath, receiptForJsonMetadata } from "./record-metadata.js";
+import { serveRecordMachine, parseRecordMachinePath } from "./record-llm.js";
+import { isHelpPath } from "./help.js";
 import { isOperator, asFile, getObject, putObject, objectExists, ingestRecord, safeFilename, serveDerived, patternClusters } from "./library.js";
 import {
   persistOcrRun, persistMediaRun, receiptForMediaRun, isMediaRunId, truthy, bytesAsFile,
@@ -121,11 +123,14 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
   const read = method === "GET" || head;
   const pageHtml = (pageBody, extra) =>
     html(pageBody, Object.assign({ cacheControl: signed ? "private, no-store" : HTML_CACHE_CONTROL }, extra, { head }));
-  const staticPriority = path === "/software" || path === ABOUT_PATH || path === WHO_PATH || path === "/how-its-scored";
+  const staticPriority = path === "/software" || path === ABOUT_PATH || path === WHO_PATH || path === "/how-its-scored" || isHelpPath(path);
   if (!staticPriority) await ensureSchema(env);
 
   if (read && parseRecordMetadataPath(path)) {
     return serveRecordMetadata(env, path);
+  }
+  if (read && parseRecordMachinePath(path)) {
+    return serveRecordMachine(env, path);
   }
 
   if ((path === "/assets/world_110m.geojson" || path === "/world_110m.geojson") && read) {

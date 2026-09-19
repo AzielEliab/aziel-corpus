@@ -1,0 +1,28 @@
+# Aziel Digital Library — uploads
+
+Author: Aziel Eliab
+Person @id: https://www.azieleliab.com/#aziel
+Library: https://www.azielcorpuslibrary.net/
+Anyone may file Corpus (Lamb Lens) from https://www.azielcorpuslibrary.net/upload or the homepage ingest form.
+The operator files Aziel Library. Signed-in JSON ingest writes Corpus; the operator token
+writes Aziel Library on this hub.
+
+After a successful upload the record is immediately findable at:
+  HTML          https://www.azielcorpuslibrary.net/record/{AZDOC-…}
+  Metadata      https://www.azielcorpuslibrary.net/record/{AZDOC-…}/metadata.json
+  LLM text      https://www.azielcorpuslibrary.net/record/{AZDOC-…}/llms.txt
+  Cite JSON     https://www.azielcorpuslibrary.net/record/{AZDOC-…}/cite.json
+  File          https://www.azielcorpuslibrary.net/file/{AZDOC-…}
+
+Those machine surfaces are built from the live metadata and packed index. A new upload
+does not wait for a rewrite of every stored blob.
+
+Scoring runs on ingest. The triad is always computed and shown when scoring finishes.
+SPRE, CLCE, and PhysLing are published only when they apply to the filed concept.
+A component that does not apply is omitted (never shown as 0).
+
+Human help: https://www.azielcorpuslibrary.net/help.txt
+How it's scored: https://www.azielcorpuslibrary.net/how-its-scored
+Read scores: https://www.azielcorpuslibrary.net/help/how-to-read-scores.txt
+Browse Corpus: https://www.azielcorpuslibrary.net/corpus
+Browse Aziel Library: https://www.azielcorpuslibrary.net/aziel-library

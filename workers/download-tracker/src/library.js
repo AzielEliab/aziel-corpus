@@ -697,6 +697,9 @@ export async function ingestRecord(env, args) {
       createdBy: who,
       event: "verified_ingest",
       coverage: successionCoverage,
+      domain: domainIn,
+      subjects: subjectsIn,
+      keywords: keywordsIn,
     });
     try { await rescoreSuccessionMembers(env, id, { skip: id }); } catch { /* peers optional */ }
   } catch {
