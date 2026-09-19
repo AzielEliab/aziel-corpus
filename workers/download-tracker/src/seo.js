@@ -190,6 +190,7 @@ export function defaultDescription(kind, runtimeVersion) {
   if (kind === "historical") return "Historical geography layers for Aziel Digital Library. Author Aziel Eliab.";
   if (kind === "verify") return "Integrity verification of the hosted Aziel Digital Library MASTER. Author Aziel Eliab.";
   if (kind === "corpus") return "Public corpus of Aziel Digital Library. Search published records. Author Aziel Eliab.";
+  if (kind === "upload") return "Upload to Aziel Digital Library. Anyone may file Corpus; the operator files Aziel Library. Author Aziel Eliab.";
   if (kind === "aziel-library") return "Aziel Library — royal-purple operator collection of work by Aziel Eliab on Aziel Digital Library.";
   if (kind === "runtime") return runtimeDescription(runtimeVersion);
   if (kind === "software") return softwareDescription(runtimeVersion);

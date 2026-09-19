@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { CSS, page, donateStripHtml, aboutBody, whoBody, howItsScoredBody, patternBody, softwareBody, runtimeBody, azielLibraryBody, homeBody, homeSearchActive, corpusBody, brandMarkHtml, LCP_FOLD, splitLcpHtml } from "../workers/download-tracker/src/ui.js";
+import { CSS, page, donateStripHtml, aboutBody, whoBody, howItsScoredBody, patternBody, softwareBody, runtimeBody, azielLibraryBody, homeBody, homeSearchActive, corpusBody, uploadBody, brandMarkHtml, LCP_FOLD, splitLcpHtml } from "../workers/download-tracker/src/ui.js";
 import { guestSession, isOperator, libraryFor, quarantineHiddenFromPublic, ingestRecord, searchRecords } from "../workers/download-tracker/src/library.js";
 import { ocrPageBody, mapBody, SPECTRAL_LENSES } from "../workers/download-tracker/src/hosted-pages.js";
 import { dedupeShelfRows } from "../workers/download-tracker/src/library.js";
@@ -13,6 +13,7 @@ const NAV = [
   [">Search<", "/"],
   [">Aziel Library<", "/aziel-library"],
   [">Corpus<", "/corpus"],
+  [">Upload<", "/upload"],
   [">Pattern<", "/pattern"],
   [">Software<", "/software"],
   [">How it's scored<", "/how-its-scored"],
@@ -86,6 +87,7 @@ test("Aziel Eliab identity tab stays one wrap unit in public nav2", () => {
     }), { path: "/software", kind: "software" }),
     page("Forensics", "<section class=\"hero\"><h1>Forensics</h1></section>", { path: "/forensics", kind: "forensics" }),
     page("Aziel Eliab", aboutBody(), { path: "/AzielEliab", kind: "about" }),
+    page("Upload", uploadBody({}), { path: "/upload", kind: "upload" }),
   ];
   const navs = pages.map((pageHtml) => {
     const match = pageHtml.match(/<nav class="nav2 quiet">[\s\S]*?<\/nav>/);
@@ -93,6 +95,22 @@ test("Aziel Eliab identity tab stays one wrap unit in public nav2", () => {
     return match[0];
   });
   assert.ok(navs.every((nav) => nav === navs[0]), "tabs chrome stays identical on every page");
+});
+
+test("Upload tab page stays a basic file form and names the destination", () => {
+  const corpus = uploadBody({});
+  assert.match(corpus, /<h1>Upload<\/h1>/);
+  assert.match(corpus, /Upload to Corpus/);
+  assert.match(corpus, /No account required/);
+  assert.match(corpus, /<form method="post" action="\/upload"/);
+  assert.match(corpus, /type="file"/);
+  assert.match(corpus, /id="upload-title"[^>]*required/);
+  assert.doesNotMatch(corpus, /aziel-name/);
+  const library = uploadBody({ signed: { user_id: "master", role: "superadmin", username: "operator" } });
+  assert.match(library, /Upload to <span class="aziel-name">Aziel Library<\/span>/);
+  assert.match(library, />Upload to Aziel Library</);
+  assert.match(library, /<form method="post" action="\/upload"/);
+  assert.doesNotMatch(library, /Upload to Corpus/);
 });
 
 test("Softwares page keeps heading then list with no interstitial copy", () => {
