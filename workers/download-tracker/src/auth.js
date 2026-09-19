@@ -1,6 +1,6 @@
 import { scryptSync, randomBytes, timingSafeEqual } from "node:crypto";
 import { json, corsHeaders } from "./runtime.js";
-import { page, pwField, azielLibraryBody, corpusBody, homeBody } from "./ui.js";
+import { page, pwField, azielLibraryBody, corpusBody, homeBody, uploadBody } from "./ui.js";
 import { isOperator, ingestRecord, searchRecords, listFacets, parseBrowseParams, asFile, guestSession } from "./library.js";
 import { extractEventsForRecord } from "./geo.js";
 import { ocrIngestHint } from "./ocr.js";
@@ -76,6 +76,13 @@ function html(pageBody, { status = 200, signed, extraHeaders, head } = {}) {
 function loginGate(signed, message) {
   return html(page("Log in required", `<div class="card"><h2>Sign in</h2><p>${message}</p><p><a class="button" href="/login">Log in</a> <a class="button ghost" href="/signup">Sign up</a></p></div>`, { signed }), { status: 401, signed });
 }
+function renderUpload(signed, { error, status = 200, received, head } = {}) {
+  const held = String(received || "") === "held";
+  const msg = error || (held
+    ? "Received. Safety review held this file off the public shelf. It is not deleted."
+    : "");
+  return html(page("Upload", uploadBody({ signed, error: msg }), { signed, path: "/upload", kind: "upload" }), { status, signed, head });
+}
 export async function getSession(env, request) {
   const token = readCookie(request);
   if (!token || !env.DB) return null;
@@ -110,7 +117,7 @@ export async function handleAuth(request, url, env, ctx) {
   const signed = await getSession(env, request);
 
   if (path === "/signup" && request.method === "GET") {
-    return html(page("Sign up", `<div class="card"><h2>Sign up</h2><p class="muted">Create an account to post under a name. You can also <a href="/#upload-anonymous">upload anonymously</a> from the homepage. Corpus uploads are reviewed for safety before they appear. Aziel Library stays operator-only.</p><form method="post" action="/signup"><input name="username" required minlength="3" placeholder="username" autocomplete="username">${pwField("password")}<button>Create account</button></form><p><a href="/login">Log in</a></p></div>`, { signed }), { signed });
+    return html(page("Sign up", `<div class="card"><h2>Sign up</h2><p class="muted">Create an account to post under a name. You can also <a href="/upload">upload</a> without an account. Corpus uploads are reviewed for safety before they appear. Aziel Library stays operator-only.</p><form method="post" action="/signup"><input name="username" required minlength="3" placeholder="username" autocomplete="username">${pwField("password")}<button>Create account</button></form><p><a href="/login">Log in</a></p></div>`, { signed }), { signed });
   }
   if (path === "/login" && request.method === "GET") {
     return html(page("Log in", `<div class="card"><h2>Log in</h2><form method="post" action="/login"><input name="username" required placeholder="username" autocomplete="username">${pwField("password")}<button>Log in</button></form><p><a href="/signup">Sign up</a></p></div>`, { signed }), { signed });
@@ -204,16 +211,39 @@ export async function handleAuth(request, url, env, ctx) {
     return html(page("Corpus library", corpusBody({ signed, rows, facets, ...browse, lib: "corpus", ...counts }), { signed, path: "/corpus", kind: "corpus" }), { signed, head: request.method === "HEAD" });
   }
 
-  if (path === "/ingest" && request.method === "GET") {
+  if (path === "/upload" && (request.method === "GET" || request.method === "HEAD")) {
+    return renderUpload(signed, { received: url.searchParams.get("received"), head: request.method === "HEAD" });
+  }
+  if (path === "/upload" && request.method === "POST") {
+    const form = await request.formData();
+    const file = asFile(form.get("file"));
+    const title = String(form.get("title") || "").trim();
+    const body = String(form.get("body") || form.get("notes") || "");
+    const meta = formMeta(form);
     if (isOperator(signed)) {
+      if (!file) return renderUpload(signed, { error: "A file is required.", status: 400 });
+      try {
+        const rec = await ingestRecord(env, { signed, title, body, file, ...meta });
+        await afterIngest(env, rec, ctx);
+      } catch (err) {
+        return renderUpload(signed, { error: err && err.message ? err.message : "Upload failed.", status: err && err.status ? err.status : 400 });
+      }
       return new Response(null, { status: 303, headers: { Location: "/aziel-library" } });
     }
-    if (!signed) return new Response(null, { status: 303, headers: { Location: "/#upload-anonymous" } });
-    const browse = parseBrowseParams(url);
-    const rows = await searchRecords(env, { q: browse.q, library: "corpus", sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300 });
-    const facets = await listFacets(env, { library: "corpus" });
-    const counts = await packedFileCounts(env);
-    return html(page("Corpus library", corpusBody({ signed, rows, facets, ...browse, lib: "corpus", ...counts }), { signed, path: "/corpus", kind: "corpus" }), { signed });
+    const who = signed || guestSession();
+    if (!title) return renderUpload(signed, { error: "Title is required.", status: 400 });
+    try {
+      const rec = await ingestRecord(env, { signed: who, title, body, file, ...meta });
+      await afterIngest(env, rec, ctx);
+      const held = rec && rec.quarantine_status && String(rec.quarantine_status).toUpperCase() !== "CLEAR";
+      return new Response(null, { status: 303, headers: { Location: held ? "/upload?received=held" : "/record/" + rec.id } });
+    } catch (err) {
+      return renderUpload(signed, { error: err && err.message ? err.message : "Upload failed.", status: err && err.status ? err.status : 400 });
+    }
+  }
+
+  if (path === "/ingest" && request.method === "GET") {
+    return new Response(null, { status: 303, headers: { Location: "/upload" } });
   }
   if (path === "/ingest" && request.method === "POST") {
     if (isOperator(signed)) {
@@ -249,7 +279,7 @@ export async function handleAuth(request, url, env, ctx) {
   }
 
   if (request.method === "POST") {
-    const publicPosts = new Set(["/login", "/signup", "/event", "/ocr", "/transcribe", "/ingest"]);
+    const publicPosts = new Set(["/login", "/signup", "/event", "/ocr", "/transcribe", "/ingest", "/upload"]);
     if (!publicPosts.has(path) && !signed) return json({ error: "login required" }, 401);
   }
   return null;
