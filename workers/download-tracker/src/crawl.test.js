@@ -238,6 +238,11 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.equal(cite.ark.stats, "https://ark-download-tracker.vibelock.workers.dev/stats");
   assert.equal(cite.ark.extra_card, false);
   assert.ok(cite.keywords.includes("The ARK"));
+  assert.ok(cite.keywords.includes("SpectralLock"));
+  assert.ok(cite.keywords.includes("SL-UNREDACT-OPAQUE"));
+  assert.equal(cite.spectrallock.slug, "spectrallock");
+  assert.equal(cite.spectrallock.unredact_is_door_op, false);
+  assert.equal(cite.spectrallock.extra_card, false);
   assert.ok(cite.cite_records.includes("AZDOC-A011CAD23671"));
   assert.match(cite.who_is, /receipt-first/);
   assert.match(cite.who_is, /1 Chronicles 15:20/);
@@ -316,6 +321,8 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(llms, /Softwares list: Whitestone \(Softwares\): ephemeral pro se advisor/);
   assert.match(llms, /not a lawyer/);
   assert.match(llms, /Softwares list: The ARK \(Softwares\): local deniable vault/);
+  assert.match(llms, /Softwares list: SpectralLock \(Softwares\): leftover container bytes recover honestly/);
+  assert.match(llms, /SL-UNREDACT-OPAQUE/);
   assert.match(llms, /ark-download-tracker\.vibelock\.workers\.dev\/download/);
   assert.match(llms, /ark-download-tracker\.vibelock\.workers\.dev\/stats/);
   assert.match(llms, /https:\/\/www\.azielcorpuslibrary\.net\/AzielEliab/);
@@ -466,6 +473,8 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(ai, /Who\? Does not matter\. What matters is the record\./);
   assert.match(ai, /Softwares list: Whitestone \(Softwares\): ephemeral pro se advisor/);
   assert.match(ai, /Softwares list: The ARK \(Softwares\): local deniable vault/);
+  assert.match(ai, /Softwares list: SpectralLock \(Softwares\): leftover container bytes recover honestly/);
+  assert.match(ai, /SL-UNREDACT-OPAQUE/);
   assert.match(ai, /ark-download-tracker\.vibelock\.workers\.dev\/download/);
   assert.match(ai, /ark-download-tracker\.vibelock\.workers\.dev\/stats/);
   assert.doesNotMatch(ai, /Researcher\. Builder/);
@@ -494,6 +503,8 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(humans, /Whitestone \(Softwares\): ephemeral pro se advisor/);
   assert.match(humans, /not a lawyer/);
   assert.match(humans, /The ARK \(Softwares\): local deniable vault/);
+  assert.match(humans, /SpectralLock \(spectrallock\) Softwares Media leftover-bytes honesty/);
+  assert.match(humans, /SL-UNREDACT-OPAQUE/);
   assert.match(humans, /ark-download-tracker\.vibelock\.workers\.dev\/stats/);
 
   const index = sitemapIndexXml();
@@ -502,6 +513,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(index, /azielcorpuslibrary\.net\/sitemap-records\.xml/);
   assert.match(index, /aziel-runtime\.vibelock\.workers\.dev\/sitemap-index\.xml/);
   assert.match(index, /www\.hedidntjump\.com\/sitemap\.xml/);
+  assert.match(index, /spectrallock-download-tracker\.vibelock\.workers\.dev\/sitemap\.xml/);
   const mcp = mcpDiscovery();
   assert.equal(mcp.author, "Aziel Eliab");
   assert.match(mcp.url, /\/runtime\/mcp$/);
