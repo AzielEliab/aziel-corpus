@@ -697,7 +697,7 @@ export function judgePlaneBFromExtras(input) {
 }
 
 export function judgeCompletenessClaim(input) {
-  // formerly judgeCompletenessClaim — completeness refuse only
+  // completeness refuse only
 
   const src = input && typeof input === "object" ? input : {};
   if (src.claim_100 === true || src.publish_100 === true || src.claim_complete === true) {
@@ -713,7 +713,6 @@ export function judgeCompletenessClaim(input) {
   };
 }
 
-export const judgeCompletenessClaim = judgeCompletenessClaim;
 
 export function restoreDrillReceiptSchema() {
   return {
