@@ -81,7 +81,7 @@ Independent tip-pack shelves beyond the three Plane B working targets. `url` sta
 | **F** | AfricArXiv / OSF project | `other` | `CNS-NO-FORGE-MIRROR` |
 | **G** | GitLab | `git_mirror` | `CNS-GITLAB-CF-LOOP` |
 
-These SLOTs raise operator coverage . They are **not** required for Plane B LIVE. Do not expand `CNS-PLANE-B-ALL-TARGETS`. Never publish . Corpus is the public Lamb Lens shelf; this registry cites that shelf and does not re-expand from its index.
+These SLOTs are **not** required for Plane B LIVE. Do not expand `CNS-PLANE-B-ALL-TARGETS`. Corpus is the public Lamb Lens shelf; this registry cites that shelf and does not re-expand from its index.
 
 ## 3. Kinds and statuses
 
@@ -122,4 +122,4 @@ AZ Generator is MirageGrid Cap-7 mesh DNS factory — **not this repo**. Refuse 
 
 ## 7. Cap
 
-Plane A is one LIVE CF/GitHub tunnel (5 published surfaces / 2 family radii / 1 independent live). Plane B is an alt independent forge/archive SLOT until Codeberg + archive.org + Framagit all hash-verify. Zenodo is refused (`CNS-ZENODO-IP-BAN`). GitFlic is refused (`CNS-GITFLIC-EMAIL`). GitLab extra is `CNS-GITLAB-CF-LOOP`. Plane C is the USB airgap pack (SLOT until attested). Extra E/F/G tip-pack SLOTs stay url-null. Survival is bytes↔hash. Operator . Never publish . Identity: Aziel Eliab only.
+Plane A is one LIVE CF/GitHub tunnel (5 published surfaces / 2 family radii / 1 independent live). Plane B is an alt independent forge/archive SLOT until Codeberg + archive.org + Framagit all hash-verify. Zenodo is refused (`CNS-ZENODO-IP-BAN`). GitFlic is refused (`CNS-GITFLIC-EMAIL`). GitLab extra is `CNS-GITLAB-CF-LOOP`. Plane C is the USB airgap pack (SLOT until attested). Extra E/F/G tip-pack SLOTs stay url-null. Survival is bytes↔hash. Identity: Aziel Eliab only.

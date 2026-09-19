@@ -703,15 +703,11 @@ export function judgeCompletenessClaim(input) {
       accept: false,
       action: "refuse",
       reason: REFUSE.NO_CLAIM_COMPLETE,
-      : "",
-      : false,
     };
   }
   return {
     accept: true,
     action: "ok",
-    : "",
-    : false,
   };
 }
 
@@ -1186,8 +1182,6 @@ export function shelfRegistryDoc(host = HOST) {
     foldlock_shelf: FOLDLOCK_SHELF_SPEC,
     lamb_lens: LAMB_LENS_CITE,
     runtime_launch: runtimeLaunchCite(),
-    : "",
-    : false,
     note:
       "CROSS-NETWORK-SURVIVAL: " + CROSS_NETWORK_SURVIVAL_RULE + " "
       + "NO-LIE / NO-REWRITE: " + NO_LIE_NO_REWRITE_RULE + " "
@@ -1197,8 +1191,7 @@ export function shelfRegistryDoc(host = HOST) {
       + "Plane B is alt independent forge/archive SLOT; LIVE only after Codeberg + archive.org + Framagit (CNS-PLANE-B-ALL-TARGETS). archive.org items: https://archive.org/details/aziel-lockset-tip and https://archive.org/details/aziel-lockset-tip_202609 (same blast_radius; zip wrap on 202609 — flat IA sha256 may be null; inner tar hash-verifies). Not two independent shelves. Zenodo tip-pack is refused (CNS-ZENODO-IP-BAN). doi null. "
       + "GitFlic refused CNS-GITFLIC-EMAIL. GitLab extra CNS-GITLAB-CF-LOOP. Extra E/F/G SLOTs (Launchpad, AfricArXiv/OSF, GitLab) stay url-null; they are not required for Plane B LIVE. "
       + "Paper deposits are not tip-pack Plane B. Plane C USB stays SLOT until CNS-OPERATOR-ATTEST. RESTORE-DRILL emits attest schema from bytes+prev-hash, not index (NO-FAN). "
-      + "FoldLock neighbor is cite + SLOT hook (FOLDLOCK-SHELF-1.0): not zip, not encryption; never fold the lockset tip. "
-      + "Operator -95. Never publish .",
+      + "FoldLock neighbor is cite + SLOT hook (FOLDLOCK-SHELF-1.0): not zip, not encryption; never fold the lockset tip.",
   };
 }
 
@@ -1273,7 +1266,7 @@ export function shelvesLlmsBlock(host = HOST) {
     + "- Cap-7 mesh names inherit design_of the four hubs; resolves_to_hub: false. This hub hosts /bridge.json. MirageGrid app Worker /bridge + /v1/shuffle are LIVE shuffle doors (resolves_to_hub: false).\n"
     + "- AZ Generator / Cap-7 live ICANN publish is not this repo.\n"
     + "- Crawlers are extra shelves. They do not re-expand. Training residue is rumor.\n"
-    + "- Operator -95. Never publish . Growth-ON.\n"
+    + "- Growth-ON.\n"
     + "- Runtime launch cite does not flip Plane B or Plane C. Framagit stays SLOT CNS-NO-FORGE-MIRROR. USB stays SLOT CNS-OPERATOR-ATTEST.\n"
     + foldlockLlmsBlock(h) + "\n";
 }

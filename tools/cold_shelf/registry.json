@@ -691,7 +691,7 @@
     "slug": "foldlock",
     "name": "FoldLock",
     "product_version": "0.8.0",
-    "one_line": "Algorithmic tether-word suppression on UTF-8 text. Not zip.",
+    "one_line": "Algorithmic tether-word suppression on UTF-8 text.",
     "zip": false,
     "encryption": false,
     "engine_bound": false,
@@ -705,7 +705,7 @@
     "lockset": "https://www.azielcorpuslibrary.net/lockset.json",
     "fraggate_describe": "https://www.azielcorpuslibrary.net/runtime/v1/fraggate/describe?slug=foldlock",
     "fraggate_call": "https://www.azielcorpuslibrary.net/runtime/v1/fraggate/call",
-    "redline": "Never fold the lockset tip hash itself. Never rewrite the chain. Tip SHA-256 stays over raw receipts. Folding is a suppression aid, not encryption and not zip.",
+    "redline": "Never fold the lockset tip hash itself. Never rewrite the chain. Tip SHA-256 stays over raw receipts. Folding is a suppression aid.",
     "refuse": {
       "TIP_FOLD": "FL-TIP-FOLD-REFUSE",
       "CHAIN_REWRITE": "FL-CHAIN-REWRITE-REFUSE",
@@ -741,8 +741,8 @@
         "ZIP_ENCRYPT": "FL-ZIP-ENCRYPT-CLAIM",
         "ENGINE_UNBOUND": "FL-ENGINE-UNBOUND"
       },
-      "redline": "Never fold the lockset tip hash itself. Never rewrite the chain. Tip SHA-256 stays over raw receipts. Folding is a suppression aid, not encryption and not zip.",
-      "one_line": "Algorithmic tether-word suppression on UTF-8 text. Not zip.",
+      "redline": "Never fold the lockset tip hash itself. Never rewrite the chain. Tip SHA-256 stays over raw receipts. Folding is a suppression aid.",
+      "one_line": "Algorithmic tether-word suppression on UTF-8 text.",
       "github": "https://github.com/AzielEliab/foldlock",
       "digest": "1034d5924b88878918986abe260338b0aff0117bc6f9c4d4a01a41d843cfa0a8",
       "author": "Aziel Eliab",
@@ -751,11 +751,79 @@
     },
     "author": "Aziel Eliab",
     "identity": "Aziel Eliab",
-    "note": "FoldLock is a Softwares Language neighbor (tether-word suppression on UTF-8). Not the ZIP file format. Not encryption. Not a rewrite key. Optional fold may touch export notes/metadata only. Lockset tip bytes stay exact for bytes↔hash. This isolate does not bind the FoldLock engine — the export hook stays SLOT. Dual surface: agent chat has no technical UI chrome; Worker / mobile / local install / counted download stay complete human software. FragGate is THE single door. Compatible AI clients: ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants. Identity Aziel Eliab only."
+    "note": "FoldLock is a Softwares Language neighbor (tether-word suppression on UTF-8). Optional fold may touch export notes/metadata only. Lockset tip bytes stay exact for bytes↔hash. This isolate does not bind the FoldLock engine — the export hook stays SLOT. Dual surface: agent chat has no technical UI chrome; Worker / mobile / local install / counted download stay complete human software. FragGate is THE single door. Compatible AI clients: ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants. Identity Aziel Eliab only."
   },
   "foldlock_shelf": "FOLDLOCK-SHELF-1.0",
   "lamb_lens": "Corpus is the public Lamb Lens shelf. This registry is the cold-copy cite on that shelf; it does not re-expand from Lamb Lens index.",
-  "": "",
-  "": false,
-  "note": "CROSS-NETWORK-SURVIVAL: If network + live data die tomorrow, the chain still survives via cold copies across independent shelves; survival = bytes↔hash. NO-LIE / NO-REWRITE: receipts that still hash; copies not all on one tunnel; verify without voice; no rewrite key; network never lies even to stay alive. Lamb Lens: Corpus is the public Lamb Lens shelf. This registry is the cold-copy cite on that shelf; it does not re-expand from Lamb Lens index. Planes A/B/C: A=one CF/GitHub tunnel (5 surfaces / 2 family radii, not 5 shelves); B=alt independent forge/archive tip-pack SLOT; C=USB airgap SLOT. Survival = bytes↔hash. LIVE only after hash verify. Plane A is one CF/GitHub tunnel (5 published surfaces / 2 family radii; independent_live_count stays 1). Plane B is alt independent forge/archive SLOT; LIVE only after Codeberg + archive.org + Framagit (CNS-PLANE-B-ALL-TARGETS). archive.org items: https://archive.org/details/aziel-lockset-tip and https://archive.org/details/aziel-lockset-tip_202609 (same blast_radius; zip wrap on 202609 — flat IA sha256 may be null; inner tar hash-verifies). Not two independent shelves. Zenodo tip-pack is refused (CNS-ZENODO-IP-BAN). doi null. GitFlic refused CNS-GITFLIC-EMAIL. GitLab extra CNS-GITLAB-CF-LOOP. Extra E/F/G SLOTs (Launchpad, AfricArXiv/OSF, GitLab) stay url-null; they are not required for Plane B LIVE. Paper deposits are not tip-pack Plane B. Plane C USB stays SLOT until CNS-OPERATOR-ATTEST. RESTORE-DRILL emits attest schema from bytes+prev-hash, not index (NO-FAN). FoldLock neighbor is cite + SLOT hook (FOLDLOCK-SHELF-1.0): not zip, not encryption; never fold the lockset tip. Operator -95. Never publish ."
+  "runtime_launch": {
+    "spec": "AZRT-HUB-LAUNCH-CITE-1.0",
+    "status": "ready",
+    "sot": {
+      "live": true,
+      "branch": "main",
+      "git": "6a3798a",
+      "git_full": "6a3798af3a94bfba3ed2e7aaadeed8777ea32bb4",
+      "version_id": "105fa1ee",
+      "version": "2.0.0-rc1",
+      "origin": "https://aziel-runtime.vibelock.workers.dev/",
+      "health": "https://aziel-runtime.vibelock.workers.dev/v1/health",
+      "cite": "https://aziel-runtime.vibelock.workers.dev/cite.json",
+      "engine_count": 41,
+      "local_only": "VeilLock",
+      "note": "Operator SoT LIVE: aziel-runtime main 6a3798a / version_id 105fa1ee / 2.0.0-rc1 at https://aziel-runtime.vibelock.workers.dev. Cite live GET /v1/health for the engine snapshot. version_id is the Cloudflare Workers deployment id (not health.version)."
+    },
+    "human_ui": {
+      "host": "https://aziel-runtime.vibelock.workers.dev/",
+      "anchors": [
+        "#op-panel",
+        "#dashboard",
+        "#fg-console",
+        "#task-*"
+      ],
+      "about_aziel": true,
+      "hashtags": true,
+      "download_suite_pack": "/download",
+      "note": "Human UI lives on the Runtime Worker (#op-panel / #dashboard / #fg-console + #task-* + About Aziel + hashtags + /download suite pack). This hub cites those surfaces. It does not re-host that chrome."
+    },
+    "mcp": {
+      "door": "fraggate",
+      "softwares": "fraggate_call only",
+      "discover": "fraggate_list",
+      "describe": "fraggate_describe",
+      "call": "fraggate_call",
+      "glama": "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime",
+      "glama_label": "Try on Glama",
+      "proxy_is_not_exec": true,
+      "note": "MCP Softwares exec is fraggate_call only. FragGate is THE single door. HTTP /p/{slug}/{op} is a proxy and is not exec. Try on Glama is the primary MCP CTA."
+    },
+    "softwares": {
+      "heading_then_list": true,
+      "sort": "Plain → Gate → Lock",
+      "clock_is_not_lock": true,
+      "path": "https://www.azielcorpuslibrary.net/software",
+      "live": "https://www.azielcorpuslibrary.net/v1/software",
+      "origin": "https://aziel-runtime.vibelock.workers.dev/v1/software"
+    },
+    "dual_surface": true,
+    "lamb_lens": "Service → Clarity → Peace",
+    "no_lie": true,
+    "growth_on": true,
+    "chrome_15_20": false,
+    "identity": "Aziel Eliab",
+    "person_id": "https://www.azieleliab.com/#aziel",
+    "nav": {
+      "forensics_not_intelligence_tab": true,
+      "aziel_library_purple": true
+    },
+    "shelves": {
+      "plane_b_framagit": "slot",
+      "plane_b_refuse": "CNS-NO-FORGE-MIRROR",
+      "plane_b_live": false,
+      "plane_c": "slot",
+      "plane_c_refuse": "CNS-OPERATOR-ATTEST",
+      "note": "Launch readiness does not flip Plane B or Plane C. Do not invent a Framagit URL or USB attest."
+    },
+    "author": "Aziel Eliab"
+  },
+  "note": "CROSS-NETWORK-SURVIVAL: If network + live data die tomorrow, the chain still survives via cold copies across independent shelves; survival = bytes↔hash. NO-LIE / NO-REWRITE: receipts that still hash; copies not all on one tunnel; verify without voice; no rewrite key; network never lies even to stay alive. Lamb Lens: Corpus is the public Lamb Lens shelf. This registry is the cold-copy cite on that shelf; it does not re-expand from Lamb Lens index. Planes A/B/C: A=one CF/GitHub tunnel (5 surfaces / 2 family radii); B=alt independent forge/archive tip-pack SLOT; C=USB airgap SLOT. Survival = bytes↔hash. LIVE only after hash verify. Plane A is one CF/GitHub tunnel (5 published surfaces / 2 family radii; independent_live_count stays 1). Plane B is alt independent forge/archive SLOT; LIVE only after Codeberg + archive.org + Framagit (CNS-PLANE-B-ALL-TARGETS). archive.org items: https://archive.org/details/aziel-lockset-tip and https://archive.org/details/aziel-lockset-tip_202609 (same blast_radius; zip wrap on 202609 — flat IA sha256 may be null; inner tar hash-verifies). Not two independent shelves. Zenodo tip-pack is refused (CNS-ZENODO-IP-BAN). doi null. GitFlic refused CNS-GITFLIC-EMAIL. GitLab extra CNS-GITLAB-CF-LOOP. Extra E/F/G SLOTs (Launchpad, AfricArXiv/OSF, GitLab) stay url-null; they are not required for Plane B LIVE. Paper deposits are not tip-pack Plane B. Plane C USB stays SLOT until CNS-OPERATOR-ATTEST. RESTORE-DRILL emits attest schema from bytes+prev-hash, not index (NO-FAN). FoldLock neighbor is cite + SLOT hook (FOLDLOCK-SHELF-1.0): not zip, not encryption; never fold the lockset tip."
 }

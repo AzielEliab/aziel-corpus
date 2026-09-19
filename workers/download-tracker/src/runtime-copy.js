@@ -179,7 +179,7 @@ export const RUNTIME_LIMITATION =
 
 export const RUNTIME_NOTE = runtimeNote();
 
-/** Hub cite of live Runtime launch surfaces. Does not flip shelves. Does not invent . */
+/** Hub cite of live Runtime launch surfaces. Does not flip shelves. */
 export function runtimeLaunchCite() {
   return {
     spec: "AZRT-HUB-LAUNCH-CITE-1.0",
@@ -237,7 +237,6 @@ export function runtimeLaunchCite() {
     lamb_lens: LAMB_LENS_PATH,
     no_lie: true,
     growth_on: true,
-    : false,
     chrome_15_20: false,
     identity: "Aziel Eliab",
     person_id: PERSON_ID,
@@ -251,7 +250,6 @@ export function runtimeLaunchCite() {
       plane_b_live: false,
       plane_c: "slot",
       plane_c_refuse: "CNS-OPERATOR-ATTEST",
-      : false,
       note: "Launch readiness does not flip Plane B or Plane C. Do not invent a Framagit URL or USB attest.",
     },
     author: "Aziel Eliab",
@@ -264,7 +262,7 @@ export function runtimeLaunchNote() {
     + " / version_id " + cite.sot.version_id + " / " + cite.sot.version
     + ". Human UI on the Runtime Worker (" + cite.human_ui.anchors.join(" ")
     + " + About Aziel + hashtags + /download). MCP Softwares via fraggate_call only. "
-    + "FragGate is THE single door. Lamb Lens " + cite.lamb_lens + ". NO-LIE. Growth-ON. Never .";
+    + "FragGate is THE single door. Lamb Lens " + cite.lamb_lens + ". NO-LIE. Growth-ON.";
 }
 
 export function runtimeHowTo(host) {
@@ -316,6 +314,6 @@ export function runtimeHowTo(host) {
     "- SoT LIVE: " + RUNTIME_SOT_BRANCH + " " + RUNTIME_GIT_SHA + " / version_id " + RUNTIME_VERSION_ID + " / " + RUNTIME_VERSION,
     "- Human UI (Runtime Worker): #op-panel #dashboard #fg-console #task-* + About Aziel + hashtags + /download suite pack",
     "- MCP Softwares: fraggate_call only. FragGate is THE single door.",
-    "- Lamb Lens: " + LAMB_LENS_PATH + ". Dual surface. NO-LIE. Growth-ON. Never .",
+    "- Lamb Lens: " + LAMB_LENS_PATH + ". Dual surface. NO-LIE. Growth-ON.",
   ].join("\n");
 }
