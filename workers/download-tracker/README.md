@@ -7,8 +7,9 @@ Custom domains: www.azielcorpuslibrary.net and azielcorpuslibrary.net
 - Anonymous GET: search both libraries, records, map, gazetteer, originals, health, counted zip
 - Operator files always go to Aziel Library (`library=aziel`)
 - Signed-in non-operator files always go to corpus (`library=corpus`)
+- GET/POST /upload: public Upload tab. Operator session → Aziel Library; everyone else → Corpus (no login)
 - POST /aziel-library: operator multipart file upload
-- POST /ingest: signed-in users (not operator); optional file + title/notes
+- POST /ingest: Corpus HTML form (homepage + guests); optional file + title/notes
 - GET /file/{record_id}: every record downloadable (text or file), HTTP 200, including quarantined
 - GET /download?record=AZDOC-…: counted + ledger-linked document download
 - GET /download?hash=SHA-256 and GET /v1/docs/{hash}/download: serve the kept file for that content hash (duplicates are not deleted)

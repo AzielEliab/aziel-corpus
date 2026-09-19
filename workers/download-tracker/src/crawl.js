@@ -241,6 +241,7 @@ export function robotsTxt() {
     "Allow: /historical",
     "Allow: /verify",
     "Allow: /corpus",
+    "Allow: /upload",
     "Allow: /aziel-library",
     "Allow: /pattern",
     "Allow: /software",
@@ -365,6 +366,7 @@ const STATIC_SITEMAP = [
   "/forensics",
   "/aziel-library",
   "/corpus",
+  "/upload",
   "/cite.json",
   "/lockset.json",
   "/shelves",
@@ -436,6 +438,7 @@ const SITEMAP_HINTS = {
   "/ai.txt": { changefreq: "weekly", priority: "0.7" },
   "/aziel-library": { changefreq: "daily", priority: "0.8" },
   "/corpus": { changefreq: "daily", priority: "0.8" },
+  "/upload": { changefreq: "weekly", priority: "0.7" },
   "/bridge.json": { changefreq: "weekly", priority: "0.7" },
   "/survival": { changefreq: "hourly", priority: "0.7" },
   "/v1/survival": { changefreq: "hourly", priority: "0.7" },
@@ -985,6 +988,7 @@ export function llmsDoc(limitation, survival) {
     + "## Public HTML (anonymous GET; User-Agent Mozilla/5.0)\n\n"
     + "- Search: " + HOST + "/\n"
     + "- Corpus: " + HOST + "/corpus\n"
+    + "- Upload: " + HOST + "/upload\n"
     + "- Aziel Library: " + HOST + "/aziel-library\n"
     + "- Software: " + HOST + "/software\n"
     + "- How it's scored: " + HOST + "/how-its-scored\n"
@@ -1140,6 +1144,7 @@ export function aiTxt(limitation, survival) {
     "Allow: /intelligence",
     "Allow: /aziel-library",
     "Allow: /corpus",
+    "Allow: /upload",
     "Allow: /cite.json",
     "Allow: /lockset.json",
     "Allow: /shelves",

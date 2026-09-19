@@ -164,7 +164,7 @@ Dual surface: agents run software with outputs shown in the AI and inputs run ba
 - Counted pack: https://www.azielcorpuslibrary.net/download?product=azcorpus
 - API pack: https://www.azielcorpuslibrary.net/v1/design-pack/azcorpus
 - Upload (session → Corpus): POST https://www.azielcorpuslibrary.net/v1/ingest · POST /v1/jeeves/upload
-- Human guest HTML: POST /ingest from /#upload-anonymous (Corpus-only / Lamb Lens)
+- Human guest HTML: POST /upload (Corpus-only / Lamb Lens). Homepage POST /ingest remains.
 - Plane A UI on this Worker. Cap-7 name inherits design_of the library hub. resolves_to_hub: false.
 
 ## azlibrary (first-class website — Aziel Library, royal purple)

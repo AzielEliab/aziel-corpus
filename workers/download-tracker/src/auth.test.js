@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { handleAuth } from "./auth.js";
 import { guestSession, ingestRecord } from "./library.js";
-import { homeBody, corpusBody } from "./ui.js";
+import { homeBody, corpusBody, uploadBody, page } from "./ui.js";
 
 const HOST = "https://www.azielcorpuslibrary.net";
 
@@ -52,6 +52,110 @@ test("POST /ingest rejects missing or blank title before upload", async () => {
   const blankRes = await handleAuth(blank.request, blank.url, {}, {});
   assert.equal(blankRes.status, 400);
   assert.match(await blankRes.text(), /Title is required/);
+});
+
+function sessionRequest(path, { method = "GET", cookie = "op-token", body } = {}) {
+  const url = new URL(HOST + path);
+  const headers = { Cookie: "aziel_session=" + cookie };
+  const init = { method, headers };
+  if (body) init.body = body;
+  return { url, request: new Request(url, init) };
+}
+
+function sessionEnv(row) {
+  return {
+    DB: {
+      prepare() {
+        return {
+          bind() { return this; },
+          async first() { return row; },
+          async run() { return {}; },
+        };
+      },
+    },
+  };
+}
+
+const OPERATOR_ROW = {
+  user_id: "master",
+  username: "operator",
+  role: "superadmin",
+  expires_utc: "2099-01-01T00:00:00Z",
+};
+
+const USER_ROW = {
+  user_id: "u1",
+  username: "reader",
+  role: "user",
+  expires_utc: "2099-01-01T00:00:00Z",
+};
+
+test("public nav2 includes a basic Upload tab to /upload", () => {
+  const html = page("Upload", uploadBody({}), { signed: null, path: "/upload", kind: "upload" });
+  assert.match(html, /<nav class="nav2 quiet">/);
+  assert.match(html, /href="\/upload">Upload<\/a>/);
+  assert.match(html, /href="\/login">Log in<\/a>/);
+  assert.match(html, /href="\/signup">Sign up<\/a>/);
+  assert.doesNotMatch(html, /class="nav-aziel" href="\/upload"/);
+});
+
+test("GET /upload is Corpus for anonymous and signed-in non-operator", async () => {
+  const anonUrl = new URL(HOST + "/upload");
+  const anon = await handleAuth(new Request(anonUrl), anonUrl, {}, {});
+  assert.equal(anon.status, 200);
+  const anonHtml = await anon.text();
+  assert.match(anonHtml, /<h1>Upload<\/h1>/);
+  assert.match(anonHtml, /Upload to Corpus/);
+  assert.match(anonHtml, /No account required/);
+  assert.match(anonHtml, /<form method="post" action="\/upload"/);
+  assert.match(anonHtml, /id="upload-title"[^>]*required/);
+  assert.doesNotMatch(anonHtml, /Upload to Aziel Library/);
+
+  const user = sessionRequest("/upload");
+  const userRes = await handleAuth(user.request, user.url, sessionEnv(USER_ROW), {});
+  assert.equal(userRes.status, 200);
+  assert.match(await userRes.text(), /Upload to Corpus/);
+});
+
+test("GET /upload is Aziel Library when operator is signed in", async () => {
+  const op = sessionRequest("/upload");
+  const res = await handleAuth(op.request, op.url, sessionEnv(OPERATOR_ROW), {});
+  assert.equal(res.status, 200);
+  const html = await res.text();
+  assert.match(html, /Upload to <span class="aziel-name">Aziel Library<\/span>/);
+  assert.match(html, />Upload to Aziel Library</);
+  assert.match(html, /<form method="post" action="\/upload"/);
+  assert.doesNotMatch(html, /Upload to Corpus/);
+});
+
+test("GET /ingest redirects to the Upload tab", async () => {
+  const url = new URL(HOST + "/ingest");
+  const res = await handleAuth(new Request(url), url, {}, {});
+  assert.equal(res.status, 303);
+  assert.equal(res.headers.get("Location"), "/upload");
+});
+
+test("POST /upload rejects a missing title for anonymous Corpus", async () => {
+  const fd = new FormData();
+  fd.set("file", new File([new Uint8Array([1])], "note.bin", { type: "application/octet-stream" }));
+  const url = new URL(HOST + "/upload");
+  const res = await handleAuth(new Request(url, { method: "POST", body: fd }), url, {}, {});
+  assert.equal(res.status, 400);
+  const html = await res.text();
+  assert.match(html, /Title is required/);
+  assert.match(html, /action="\/upload"/);
+  assert.match(html, /Upload to Corpus/);
+});
+
+test("POST /upload requires a file when operator is signed in", async () => {
+  const fd = new FormData();
+  fd.set("title", "Operator note");
+  const op = sessionRequest("/upload", { method: "POST", body: fd });
+  const res = await handleAuth(op.request, op.url, sessionEnv(OPERATOR_ROW), {});
+  assert.equal(res.status, 400);
+  const html = await res.text();
+  assert.match(html, /A file is required/);
+  assert.match(html, /Upload to Aziel Library/);
 });
 
 test("anonymous ingestRecord rejects a missing title even when a file is present", async () => {
