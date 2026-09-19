@@ -36,8 +36,9 @@ test("possibility is HEURISTIC and separate from Bayesian", () => {
   assert.equal(poss.kind, "HEURISTIC");
   assert.notEqual(poss.schema, bayes.schema);
   assert.ok(poss.possibility >= 0 && poss.possibility <= 1);
-  assert.match(poss.note, /possibility ≠ probability/);
-  assert.match(POSSIBILITY_NOTE, /not courtroom/i);
+  assert.match(poss.note, /HEURISTIC/);
+  assert.match(POSSIBILITY_NOTE, /HEURISTIC density over lattice pin receipts/);
+  assert.doesNotMatch(POSSIBILITY_NOTE, /possibility ≠/);
   assert.equal(poss.bayesian_separate, true);
   assert.equal(poss.triad_separate, true);
   assert.equal(poss.zsolver_separate, true);

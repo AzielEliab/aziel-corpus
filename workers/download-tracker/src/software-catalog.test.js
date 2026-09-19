@@ -641,7 +641,7 @@ test("empty Softwares catalog still ships unique title, description, and Collect
   try {
     const html = await res.text();
     assert.match(html, /<title>Softwares — Aziel Eliab catalog \| Aziel Digital Library<\/title>/);
-    assert.match(html, /not merely an API orchestrator/);
+    assert.match(html, /node-meshed orchestration suite/);
     assert.match(html, /Softwares catalog for aziel-runtime/);
     const ld = JSON.parse(html.match(/<script type="application\/ld\+json">([^<]+)<\/script>/)[1]);
     assert.ok(ld["@graph"].some((n) => n["@type"] === "CollectionPage" && n.name === "Softwares"));

@@ -309,9 +309,9 @@ test("OCR page still ships all eight SpectralLock lenses", () => {
   assert.match(html, /Sign in to save/);
   assert.match(html, /href="\/pattern"/);
   assert.match(html, /SL-UNREDACT-OPAQUE/);
-  assert.match(html, /does not unredact by guessing/);
-  assert.match(html, /not a FragGate door op/);
-  assert.match(html, /Handwriting is not ESDA/);
+  assert.match(html, /leftover bytes recover honestly|recovers leftover bytes honestly/);
+  assert.match(html, /SL-UNREDACT-OPAQUE/);
+  assert.match(html, /ink heuristics/);
   assert.match(html, /v1\/unredact/);
   assert.match(html, /v1\/recover/);
   assert.match(html, /v1\/handwriting/);
@@ -410,10 +410,10 @@ test("Pattern, Software, About, and runtime pages render live copy", () => {
   assert.match(runtime, /\/runtime\/v1\/pull\//);
   assert.match(runtime, /\/runtime\/openapi\.json/);
   assert.match(runtime, /POST \/runtime\/mcp/);
-  assert.match(runtime, /THIS IS NOT<\/strong> an API aggregator or a second software index/);
+  assert.match(runtime, /node-meshed MCP Softwares suite/);
   assert.match(runtime, /2\.0\.0-rc1/);
   assert.match(runtime, /41 live/);
-  assert.match(runtime, /not merely an API orchestrator/);
+  assert.match(runtime, /node-meshed orchestration suite/);
   assert.match(runtime, /FragGate/);
   assert.match(runtime, /fraggate_list/);
   assert.match(runtime, /\/runtime\/v1\/fraggate\/list/);

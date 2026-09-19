@@ -1,0 +1,25 @@
+# How to cite
+
+Author: Aziel Eliab
+Person @id: https://www.azieleliab.com/#aziel
+Library: https://www.azielcorpuslibrary.net/
+Cite published records and Softwares by id and URL. Do not invent DOIs.
+
+## Library
+Eliab, Aziel. (2026). Aziel Digital Library v2.7.0 [Software]. Apache-2.0. https://www.azielcorpuslibrary.net/
+Person @id: https://www.azieleliab.com/#aziel
+Machine cite: https://www.azielcorpuslibrary.net/cite.json
+
+## A record
+Use the AZDOC id on the record page: https://www.azielcorpuslibrary.net/record/{AZDOC-…}
+Public metadata: https://www.azielcorpuslibrary.net/record/{AZDOC-…}/metadata.json
+The triad is the primary published score. Name component scores only when they appear on that record.
+
+## Scores
+Explain the numbers with https://www.azielcorpuslibrary.net/how-its-scored and https://www.azielcorpuslibrary.net/help/how-to-read-scores.txt.
+
+## Softwares
+Cite the Software tab https://www.azielcorpuslibrary.net/software plus the product Worker / GitHub listed on the card. Live catalog: https://www.azielcorpuslibrary.net/v1/software.
+
+Upload new public work at https://www.azielcorpuslibrary.net/upload.
+Help index: https://www.azielcorpuslibrary.net/help.txt.

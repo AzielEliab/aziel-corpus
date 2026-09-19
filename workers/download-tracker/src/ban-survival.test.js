@@ -41,7 +41,7 @@ test("fallback cites the pull and does not invent LIVE doors", () => {
   assert.equal(fb.prefer_pull, true);
   assert.equal(fb.pulled, false);
   assert.equal(fb.mutual_backup, true);
-  assert.equal(fb.shelves_backup_for, "death-by-ban");
+  assert.equal(fb.shelves_backup_for, "live-front-loss");
   assert.equal(fb.live_doors_backup_for, "cold-shelf-death");
   assert.equal(fb.live_doors, null);
   assert.equal(fb.platforms.all_live, null);
@@ -54,7 +54,7 @@ test("fallback cites the pull and does not invent LIVE doors", () => {
   assert.equal(fb.local, SURVIVAL_LOCAL);
   assert.equal(fb.local_v1, SURVIVAL_LOCAL_V1);
   assert.match(fb.note, /short TTL/);
-  assert.match(fb.note, /not a second door/i);
+  assert.match(fb.note, /Same FragGate door/);
   assert.equal(isSurvivalDoc(fb), true);
   assert.equal(isSurvivalDoc({}), false);
 });
@@ -134,7 +134,7 @@ test("machine LLM/SEO surfaces cite pull + Cap-7 shuffle + platforms + calling-n
 
   const llms = llmsDoc("LIMIT");
   assert.match(llms, /BAN-SURVIVAL-1\.0/);
-  assert.match(llms, /mutual shelves↔ban/);
+  assert.match(llms, /cold shelves and live fronts/);
   assert.match(llms, /v1\/survival/);
   assert.match(llms, /short TTL/);
   assert.match(llms, /miragegrid\.vibelock\.workers\.dev/);
@@ -168,7 +168,7 @@ test("machine LLM/SEO surfaces cite pull + Cap-7 shuffle + platforms + calling-n
 test("who-is is machine-only BAN-SURVIVAL awareness without Whitestone or extra 15:20 chrome", () => {
   const who = whoIsTxt();
   assert.match(who, /BAN-SURVIVAL-1\.0/);
-  assert.match(who, /mutual shelves↔ban/);
+  assert.match(who, /cold shelves and live fronts/);
   assert.match(who, /new name alert:/);
   assert.match(who, /miragegrid\.vibelock\.workers\.dev/);
   assert.match(who, /platforms\.all_live/);
@@ -327,6 +327,6 @@ test("hub /survival fail-soft cites the pull and does not invent LIVE doors", as
   assert.ok(spec.paths["/v1/survival"]);
   assert.ok(spec.paths["/runtime/survival"]);
   assert.match(spec.paths["/survival"].get.summary, /BAN-SURVIVAL-1\.0/);
-  assert.match(spec.paths["/survival"].get.summary, /not a second FragGate door/i);
+  assert.match(spec.paths["/survival"].get.summary, /Person @id/);
   assert.doesNotMatch(JSON.stringify(spec.paths["/survival"]), VISIBLE_1520);
 });

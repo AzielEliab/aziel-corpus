@@ -149,10 +149,10 @@ export function recordBody(payload) {
   const possHtml = poss
     ? "<div class=\"card\"><h3>Possibility score</h3>" +
       (possVal != null ? "<div class=\"metric\">" + Number(possVal).toFixed(3) + "</div>" : "<p class=\"muted\">Refused: " + esc(String(possRefuse || "NO_ANCHORS")) + "</p>") +
-      "<p class=\"muted\">HEURISTIC over lattice time×geo pins. possibility ≠ probability ≠ triad ≠ ZionPattern. Not a guilt verdict. Not courtroom proof. Adaptive learning via hashchain lattice for recollection and reasoning. <a href=\"/v1/possibility?record_id=" + esc(row.record_id) + "\">API</a> · <a href=\"/how-its-scored\">How it's scored</a>.</p></div>"
+      "<p class=\"muted\">HEURISTIC over lattice time×geo pins. Adaptive learning via hashchain lattice for recollection and reasoning. <a href=\"/v1/possibility?record_id=" + esc(row.record_id) + "\">API</a> · <a href=\"/how-its-scored\">How it's scored</a>.</p></div>"
     : "";
   const bayesHtml = posterior != null
-    ? "<div class=\"card\"><h3>Bayesian peer score</h3><div class=\"metric\">" + Number(posterior).toFixed(3) + "</div><p class=\"muted\">Unranked metadata. This number is for manual peer-to-peer review. It does not sort the shelf. Posterior ≠ truth. Separate from possibility.</p>" +
+    ? "<div class=\"card\"><h3>Bayesian peer score</h3><div class=\"metric\">" + Number(posterior).toFixed(3) + "</div><p class=\"muted\">Unranked metadata for manual peer-to-peer review. Separate from the HEURISTIC possibility score. Never sorts the shelf.</p>" +
       (bayes && bayes.priors ? "<p class=\"muted\">Priors: evidence " + bayes.priors.evidence_completeness + " · physics " + bayes.priors.physics_coherence + " · language " + bayes.priors.linguistic_neutrality + " · SPRE " + bayes.priors.spre_pc + " · CLCE " + bayes.priors.clce_consistency + "</p>" : "") +
       "</div>"
     : "";

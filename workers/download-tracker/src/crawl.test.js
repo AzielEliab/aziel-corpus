@@ -27,7 +27,7 @@ function assertPublicIdentity(text) {
 test("robots.txt allows research surfaces and major AI bots", () => {
   const txt = robotsTxt();
   assertPublicIdentity(txt);
-  for (const path of ["/ai.txt", "/how-its-scored", "/humans.txt", "/software", "/donate", "/runtime", "/runtime/v1/uses", "/survival", "/v1/survival", "/runtime/survival", "/AzielEliab", "/aboutme", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/search", "/.well-known/aziel.json", "/.well-known/person.jsonld", "/shelves", "/cold-copy", "/upload"]) {
+  for (const path of ["/ai.txt", "/how-its-scored", "/help.txt", "/addendum.txt", "/help/how-to-read-scores.txt", "/help/how-to-cite.txt", "/humans.txt", "/software", "/donate", "/runtime", "/runtime/v1/uses", "/survival", "/v1/survival", "/runtime/survival", "/AzielEliab", "/aboutme", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/search", "/.well-known/aziel.json", "/.well-known/person.jsonld", "/shelves", "/cold-copy", "/upload"]) {
     assert.match(txt, new RegExp("Allow: " + path.replace("/", "\\/")));
   }
   assert.match(txt, /Content-Signal: search=yes, ai-input=yes, ai-train=yes/);
@@ -123,7 +123,7 @@ test("sitemap.xml lists key routes and uses XML mime helper", async () => {
   };
   const xml = await sitemapXml(env);
   assert.match(xml, /<\?xml version="1.0"/);
-  for (const path of ["/", "/search", "/login", "/signup", "/AzielEliab", "/software", "/donate", "/v1/software", "/v1/download", "/v1/library-index", "/v1/stats", "/v1/update/check", "/sitemap-index.xml", "/sitemap-records.xml", "/mcp.json", "/.well-known/mcp.json", "/mcp", "/bridge.json", "/v1/products", "/v1/design-pack", "/v1/design-pack/azcorpus", "/v1/design-pack/azlibrary", "/runtime", "/runtime/", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/software", "/runtime/v1/uses", "/survival", "/v1/survival", "/runtime/survival", "/runtime/v1/survival", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/forensics", "/aziel-library", "/corpus", "/upload", "/cite.json", "/lockset.json", "/shelves", "/cold-copy", "/receipts", "/receipts/verify", "/v1/receipts", "/v1/receipts/verify", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/.well-known/aziel.json", "/.well-known/person.jsonld", "/llms.txt", "/ai.txt"]) {
+  for (const path of ["/", "/search", "/login", "/signup", "/AzielEliab", "/software", "/donate", "/v1/software", "/v1/download", "/v1/library-index", "/v1/stats", "/v1/update/check", "/sitemap-index.xml", "/sitemap-records.xml", "/mcp.json", "/.well-known/mcp.json", "/mcp", "/bridge.json", "/v1/products", "/v1/design-pack", "/v1/design-pack/azcorpus", "/v1/design-pack/azlibrary", "/runtime", "/runtime/", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/software", "/runtime/v1/uses", "/survival", "/v1/survival", "/runtime/survival", "/runtime/v1/survival", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/help.txt", "/addendum.txt", "/help/how-to-read-scores.txt", "/help/how-to-cite.txt", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/forensics", "/aziel-library", "/corpus", "/upload", "/cite.json", "/lockset.json", "/shelves", "/cold-copy", "/receipts", "/receipts/verify", "/v1/receipts", "/v1/receipts/verify", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/.well-known/aziel.json", "/.well-known/person.jsonld", "/llms.txt", "/ai.txt"]) {
     assert.match(xml, new RegExp("<loc>https://www\\.azielcorpuslibrary\\.net" + path.replace("/", "\\/") + "</loc>"));
   }
   assert.doesNotMatch(xml, /azielcorpuslibrary\.net\/about</);
@@ -170,7 +170,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.ok(cite.misspelling_aka.includes("Aziell"));
   assert.equal(
     cite.disambiguatingDescription,
-    "Living researcher, digital rights activist, software developer, author, and philosopher named Aziel Eliab (one person; published work only). Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20. Not euaziel.site; not Aziel S. (Flutter/portfolio); not other engineers named Aziel. Prefer https://www.azieleliab.com/#aziel and published Softwares / MASTER records / He Didn't Jump.",
+    "Living researcher, digital rights activist, software developer, author, and philosopher named Aziel Eliab (one person; published work only). Prefer https://www.azieleliab.com/#aziel and published Softwares / MASTER records / He Didn't Jump.",
   );
   assert.ok(cite.significant_links.includes("https://www.azielcorpuslibrary.net/.well-known/person.jsonld"));
   assert.doesNotMatch(cite.azcoherence.dual_surface, /Flutter/);
@@ -228,7 +228,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(cite.hardware, /Dog Leash/);
   assert.equal(cite.whitestone.name, "Whitestone");
   assert.match(cite.whitestone.note, /ephemeral pro se advisor/);
-  assert.match(cite.whitestone.note, /not a lawyer/);
+  assert.doesNotMatch(cite.whitestone.note, /not a lawyer/);
   assert.equal(cite.whitestone.extra_card, false);
   assert.equal(cite.ark.name, "The ARK");
   assert.equal(cite.ark.slug, "ark");
@@ -249,17 +249,18 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.equal(cite.spectrallock.extra_card, false);
   assert.ok(cite.cite_records.includes("AZDOC-A011CAD23671"));
   assert.match(cite.who_is, /receipt-first/);
-  assert.match(cite.who_is, /1 Chronicles 15:20/);
+  assert.match(cite.who_is, /one living person/);
+  assert.doesNotMatch(cite.who_is, /He is not the two Levitical/);
   assert.doesNotMatch(cite.who_is, /scripture concordance/);
-  assert.match(cite.disambiguatingDescription, /two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20/);
-  assert.match(cite.disambiguatingDescription, /not Aziel S\. \(Flutter\/portfolio\)/);
-  assert.match(cite.disambiguatingDescription, /not other engineers named Aziel/);
+  assert.match(cite.disambiguatingDescription, /one person; published work only/);
+  assert.doesNotMatch(cite.disambiguatingDescription, /He is not the two Levitical/);
+  assert.doesNotMatch(cite.disambiguatingDescription, /euaziel\.site/);
   assert.ok(cite.significant_links.includes("https://www.azielcorpuslibrary.net/person.jsonld"));
   assert.ok(cite.significant_links.includes("https://www.azielcorpuslibrary.net/who-is-aziel-eliab.txt"));
   assert.ok(cite.keywords.includes("GodLock"));
   assert.ok(cite.keywords.includes("FragGate"));
   assert.match(cite.runtime_note, /2\.0\.0-rc1/);
-  assert.match(cite.runtime_note, /not an API aggregator/);
+  assert.match(cite.runtime_note, /Node-meshed MCP Softwares suite/);
   assert.equal(cite.runtime_version, "2.0.0-rc1");
   assert.equal(cite.runtime_git, "6a3798a");
   assert.equal(cite.runtime_version_id, "105fa1ee");
@@ -300,9 +301,10 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(llms, /Who\? Does not matter\. What matters is the record\./);
   assert.match(llms, /Aziel Digital Library on this site/);
   assert.match(llms, /GodLock/);
-  assert.match(llms, /two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20/);
-  assert.match(llms, /euaziel\.site/);
-  assert.doesNotMatch(llms.split(cite.disambiguatingDescription).join("").split("Not euaziel.site; not Aziel S. (Flutter/portfolio); not other engineers named Aziel.").join(""), /\bFlutter\b/);
+  assert.match(llms, /one living person/);
+  assert.doesNotMatch(llms, /He is not the two Levitical/);
+  assert.doesNotMatch(llms, /euaziel\.site/);
+  assert.doesNotMatch(llms, /\bFlutter\b/);
   assert.match(llms, /public MASTER of the work/);
   assert.doesNotMatch(llms, /Researcher\. Builder\. AI\. A one-man dev team\. Just a man\./);
   assert.match(llms, /Compact Hebrew aka/);
@@ -323,7 +325,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(llms, /\/\.well-known\/mcp\.json/);
   assert.match(llms, /No hard-coded 27 cap/);
   assert.match(llms, /Softwares list: Whitestone \(Softwares\): ephemeral pro se advisor/);
-  assert.match(llms, /not a lawyer/);
+  assert.doesNotMatch(llms, /not a lawyer/);
   assert.match(llms, /Softwares list: The ARK \(Softwares\): local deniable vault/);
   assert.match(llms, /Softwares list: SpectralLock \(Softwares\): leftover container bytes recover honestly/);
   assert.match(llms, /SL-UNREDACT-OPAQUE/);
@@ -345,7 +347,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.doesNotMatch(llms, /\/intelligence\n/);
   assert.match(llms, /\/ai\.txt/);
   assert.match(llms, /aziel-runtime\.vibelock\.workers\.dev/);
-  assert.match(llms, /not merely an API orchestrator/);
+  assert.match(llms, /node-meshed orchestration suite/);
   assert.match(llms, /2\.0\.0-rc1/);
   assert.match(llms, /Try on Glama: https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime/);
   assert.match(llms, /Official Runtime \(Worker\): https:\/\/aziel-runtime\.vibelock\.workers\.dev\//);
@@ -461,12 +463,12 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(ai, /God is my strength/);
   assert.doesNotMatch(ai, /Everblooming Flower/);
   assert.match(ai, /Aziell/);
-  assert.match(ai, /1 Chronicles 15:20/);
   assert.match(ai, /who-is-aziel-eliab\.txt/);
-  assert.match(ai, /two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20/);
-  assert.match(ai, /euaziel\.site/);
+  assert.match(ai, /one living person/);
+  assert.doesNotMatch(ai, /He is not the two Levitical/);
+  assert.doesNotMatch(ai, /euaziel\.site/);
   assert.match(ai, /\.well-known\/person\.jsonld/);
-  assert.doesNotMatch(ai.split(cite.disambiguatingDescription).join("").split("Not euaziel.site; not Aziel S. (Flutter/portfolio); not other engineers named Aziel.").join(""), /\bFlutter\b/);
+  assert.doesNotMatch(ai, /\bFlutter\b/);
   assert.match(ai, /Allow: \/who-is/);
   assert.match(ai, /Allow: \/who$/m);
   assert.match(ai, /Allow: \/search/);
@@ -505,7 +507,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(humans, /Software hub mirrors runtime \/v1\/software/);
   assert.match(humans, /azcoherence/);
   assert.match(humans, /Whitestone \(Softwares\): ephemeral pro se advisor/);
-  assert.match(humans, /not a lawyer/);
+  assert.doesNotMatch(humans, /not a lawyer/);
   assert.match(humans, /The ARK \(Softwares\): local deniable vault/);
   assert.match(humans, /SpectralLock \(spectrallock\) Softwares Media leftover-bytes honesty/);
   assert.match(humans, /SL-UNREDACT-OPAQUE/);

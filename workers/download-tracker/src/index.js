@@ -4,6 +4,7 @@ import { handleAuth, getSession } from "./auth.js";
 import { page, homeBody, homeSearchActive, streamLcpHtml } from "./ui.js";
 import { handleHosted } from "./hosted.js";
 import { robotsTxt, sitemapXml, sitemapIndexXml, sitemapRecordsXml, citeDoc, llmsDoc, aiTxt, humansTxt, mcpDiscovery, isReadMethod, crawlResponse, MIME } from "./crawl.js";
+import { helpRouteBody } from "./help.js";
 import { bridgeDoc, productBySlug } from "./ai-surface.js";
 import { serveDesignPack } from "./design-pack.js";
 import { continueMetadataBackfill } from "./record-metadata.js";
@@ -664,6 +665,12 @@ export default {
     }
     if (isReadMethod(request.method) && crawlPath === "/humans.txt") {
       return crawlResponse(request, humansTxt(), MIME.plain, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
+    }
+    if (isReadMethod(request.method)) {
+      const help = helpRouteBody(crawlPath);
+      if (help) {
+        return crawlResponse(request, help, MIME.plain, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
+      }
     }
     // /gitbaby-seo-routes
     if (request.method === "POST") {

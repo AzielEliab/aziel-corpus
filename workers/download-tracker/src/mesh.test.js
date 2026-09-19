@@ -153,7 +153,7 @@ test("split-wires law: public Worker is counts/status, not the cell", () => {
   assert.equal(part.heartbeat_loss_is_poison, false);
   assert.equal(part.apply_last_packet, false);
   assert.match(MESH_NOTE, /MESH-SPLIT-WIRES-1\.0/);
-  assert.match(MESH_NOTE, /not the cell/);
+  assert.match(MESH_NOTE, /counts\/status/);
   assert.match(MESH_NOTE, /never share a socket/);
 
   const on = meshOnDoc();
@@ -336,10 +336,10 @@ test("CROSS-NETWORK-SURVIVAL-1.0 umbrella: bytes↔hash; crawlers are not resurr
   assert.equal(REHEAL.umbrella, "CROSS-NETWORK-SURVIVAL-1.0");
   assert.match(MESH_NOTE, /CROSS-NETWORK-SURVIVAL-1\.0/);
   assert.match(MESH_NOTE, /bytes↔hash/);
-  assert.match(MESH_NOTE, /Crawlers are extra shelves, not resurrection/);
+  assert.match(MESH_NOTE, /Crawlers are extra shelves/);
   assert.match(MESH_NOTE, /operator verify-from-archive/);
   assert.match(MESH_NOTE, /phoenix-WAIT/);
-  assert.match(MESH_NOTE, /not neighbor majority/);
+  assert.match(MESH_NOTE, /never neighbor majority/);
   assert.match(MESH_NOTE, /MESH-REEXPAND-1\.0/);
   assert.match(MESH_NOTE, /MESH-REHEAL-1\.0/);
   assert.match(MESH_NOTE, /Ingest-as-receipt \+ re-expand-from-archive/);
@@ -439,7 +439,8 @@ test("mesh default ON; identity Aziel Eliab only", () => {
   assert.match(on.runtime, /\/runtime\/v1\/mesh$/);
   assert.match(on.origin, /aziel-runtime\.vibelock\.workers\.dev\/v1\/mesh$/);
   assert.match(MESH_NOTE, /read-only QNM ON/);
-  assert.match(MESH_NOTE, /not itself a mesh/);
+  assert.match(MESH_NOTE, /counts\/status/);
+  assert.doesNotMatch(MESH_NOTE, /CNS-ZENODO-IP-BAN|CNS-GITFLIC-EMAIL|CNS-GITLAB-CF-LOOP/);
   assert.match(MESH_NOTE, /Disable is refused/);
   assert.match(MESH_NOTE, /QNS-CD-1\.0/);
   assert.match(MESH_NOTE, /no public proxy/);
@@ -892,7 +893,7 @@ test("OpenAPI, MCP, llms, cite, robots, sitemap cite mesh paths", async () => {
   assert.ok(spec.paths["/v1/mesh/nodes"]);
   assert.ok(spec.paths["/runtime/v1/mesh"]);
   assert.match(spec.paths["/v1/mesh"].get.summary, /read-only QNM ON/i);
-  assert.match(spec.paths["/v1/mesh"].get.summary, /not the cell/i);
+  assert.match(spec.paths["/v1/mesh"].get.summary, /counts\/status/i);
   assert.match(spec.paths["/v1/mesh"].get.summary, /CROSS-NETWORK-SURVIVAL-1\.0/);
   assert.match(spec.paths["/v1/mesh"].get.summary, /MESH-SPLIT-WIRES-1\.0/);
   assert.match(spec.paths["/v1/mesh"].get.summary, /MESH-COLD-COPY-1\.0/);

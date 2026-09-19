@@ -84,10 +84,10 @@ test("JSON-LD types the author as Person with alternateName", () => {
   assert.match(person.description, /God is my strength/);
   assert.ok(person.alternateName.includes("Aziell"));
   assert.equal(person.disambiguatingDescription, DISAMBIGUATING_DESCRIPTION);
-  assert.match(person.disambiguatingDescription, /two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20/);
-  assert.match(person.disambiguatingDescription, /euaziel\.site/);
-  assert.match(person.disambiguatingDescription, /not Aziel S\. \(Flutter\/portfolio\)/);
-  assert.match(person.disambiguatingDescription, /not other engineers named Aziel/);
+  assert.match(person.disambiguatingDescription, /one person; published work only/);
+  assert.doesNotMatch(person.disambiguatingDescription, /He is not the two Levitical/);
+  assert.doesNotMatch(person.disambiguatingDescription, /euaziel\.site/);
+  assert.doesNotMatch(person.disambiguatingDescription, /Aziel S\./);
   assert.ok(person.knowsAbout.includes("Aziel Digital Library"));
   assert.equal(person.url, HUB_ORIGIN + "/");
   assert.ok(person.sameAs.includes("https://godlock.uk/"));
@@ -140,7 +140,7 @@ test("JSON-LD types the author as Person with alternateName", () => {
   ]);
   assert.match(aboutPage.description, /Aziel Digital Library/);
   assert.match(aboutPage.description, /GodLock/);
-  assert.match(aboutPage.description, /1 Chronicles 15:20/);
+  assert.doesNotMatch(aboutPage.description, /He is not the two Levitical/);
   const aboutFaq = ld["@graph"].find((n) => n["@type"] === "FAQPage");
   assert.ok(aboutFaq);
   assert.ok(aboutFaq.mainEntity.some((q) => q.name === "What matters about Aziel Eliab?"));
@@ -187,7 +187,7 @@ test("runtime JSON-LD and discovery links advertise Aziel Runtime 2.0.0-rc1 abst
   assert.ok(runtimeApp.sameAs.includes("https://github.com/AzielEliab/aziel-runtime"));
   assert.ok(runtimeApp.sameAs.includes("https://glama.ai/mcp/servers/AzielEliab/aziel-runtime"));
   assert.ok(runtimeApp.sameAs.includes("https://github.com/AzielEliab/aziel-runtime/tree/main/docs/2.0"));
-  assert.match(runtimeApp.description, /not merely an API orchestrator/);
+  assert.match(runtimeApp.description, /node-meshed orchestration suite/);
   assert.match(runtimeApp.description, /41 live/);
   assert.doesNotMatch(runtimeApp.description, /aziel-runtime 1\.9\.0 FragGate/);
   assertSharedIdentity(ld);
@@ -207,7 +207,7 @@ test("runtime JSON-LD and discovery links advertise Aziel Runtime 2.0.0-rc1 abst
   assert.match(html, /href="\/runtime\/llms\.txt"/);
   assert.match(html, /href="\/runtime\/v1\/fraggate"/);
   assert.match(html, /node-meshed MCP Softwares suite/);
-  assert.match(defaultDescription("runtime"), /not merely an API orchestrator/);
+  assert.match(defaultDescription("runtime"), /node-meshed orchestration suite/);
   assert.match(defaultDescription("runtime"), /41 live/);
   assert.match(defaultDescription("runtime"), /FragGate is the single door/);
   assert.doesNotMatch(defaultDescription("runtime"), /aziel-runtime 1\.9\.0 FragGate/);
@@ -322,10 +322,10 @@ test("page-specific descriptions and share images", () => {
   assert.match(defaultDescription("about"), /Aziel Digital Library/);
   assert.match(defaultDescription("about"), /GodLock/);
   assert.match(defaultDescription("about"), /public MASTER/);
-  assert.match(defaultDescription("about"), /1 Chronicles 15:20/);
+  assert.doesNotMatch(defaultDescription("about"), /1 Chronicles 15:20/);
   assert.doesNotMatch(defaultDescription("about"), /Researcher\. Builder/);
   assert.doesNotMatch(defaultDescription("about"), /Aziel S\.|Flutter\/React/);
-  assert.equal(defaultDescription("who"), "Aziel Eliab is a living researcher, digital rights activist, software developer, author, and philosopher (published work only). Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20.");
+  assert.equal(defaultDescription("who"), "Aziel Eliab is a living researcher, digital rights activist, software developer, author, and philosopher (published work only).");
   assert.match(defaultDescription("software"), /Software|aziel-runtime/i);
   assert.match(defaultDescription("scored"), /intentional suppression/);
   assert.match(defaultDescription("search"), /Aziel Digital Library by Aziel Eliab/);

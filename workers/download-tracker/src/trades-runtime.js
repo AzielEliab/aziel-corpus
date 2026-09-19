@@ -33,14 +33,13 @@ export const AZIELELIAB_HUB = "https://www.azieleliab.com";
 export const TRADES_RUNTIME_ONE_LINE =
   "Shadow-first local BYO runtime for HVAC, plumbing, electrical, sewer, and cross-trades. "
   + "Operators bring their own ServiceTitan + ProBooks. Human authority wins. "
-  + "Not a hosted multi-tenant company OS. live_backends: false.";
+  + "live_backends: false.";
 
 export const TRADES_RUNTIME_DUAL_SURFACE =
   "Dual surface: agent chat has no technical UI chrome; Worker / local install / counted download stay complete human software.";
 
 export const TRADES_RUNTIME_NOTE =
   "Trades-Runtime is a separate local-first BYO field-trades runtime. "
-  + "Not aziel-runtime wholesale. Not a FragGate-exec true engine. "
   + "Library MCP stays corpus-search; this product hosts its own read-only MCP (health, stats, cite, skill). "
   + "No ServiceTitan or ProBooks write-back. No tenant data on the public Worker. "
   + "GitHub Pages stay off. Public get = Worker download. "
@@ -144,10 +143,10 @@ export const TRADES_RUNTIME = Object.freeze({
 export function tradesRuntimeLlmsBlock(host = HOST) {
   const h = String(host || HOST).replace(/\/+$/, "");
   return [
-    "Trades-Runtime (trades-runtime) is a Softwares extra — not a FragGate-exec true engine.",
+    "Trades-Runtime (trades-runtime) is a Softwares extra.",
     TRADES_RUNTIME_ONE_LINE,
     TRADES_RUNTIME_DUAL_SURFACE,
-    "Not aziel-runtime wholesale. GitHub Pages off. Public get = Worker download. Counters live at /v1/stats (not /count).",
+    "GitHub Pages off. Public get = Worker download. Counters live at /v1/stats.",
     "Product MCP is read-only (health, stats, cite, skill). Library MCP stays corpus-search and does not write ServiceTitan or ProBooks.",
     "Compatible AI clients: " + AI_CLIENTS + ".",
     "- Trades-Runtime Softwares card: " + h + "/software",

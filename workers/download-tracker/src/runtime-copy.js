@@ -84,11 +84,11 @@ export const AI_CLIENTS =
   "ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants";
 
 export const RUNTIME_TITLE =
-  "Aziel Runtime — node-meshed MCP Softwares suite (not an API aggregator)";
+  "Aziel Runtime — node-meshed MCP Softwares suite";
 
 /** Canonical Aziel Runtime abstract. Lead SEO + HTML with this. Version stays below. */
 export const RUNTIME_ABSTRACT =
-  "Aziel Runtime is not merely an API orchestrator or software aggregator; it is a "
+  "Aziel Runtime is a "
   + "node-meshed orchestration suite of MCP-connected software designed to coordinate "
   + "specialized tools through a shared, security-gated runtime while preserving "
   + "provenance, chain-of-custody, temporal integrity, and auditable execution. "
@@ -161,9 +161,9 @@ export function softwareHubBlurb(_version) {
 
 export function runtimeNote(version) {
   const ver = resolveRuntimeVersion(version);
-  return "Aziel Runtime " + ver + ". Node-meshed MCP Softwares suite — not an API aggregator. Prefer /runtime/*. "
+  return "Aziel Runtime " + ver + ". Node-meshed MCP Softwares suite. Prefer /runtime/*. "
     + RUNTIME_LIVE_COUNT + " live advisory engines; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse. "
-    + "FragGate is the single door. fraggate_list / fraggate_call. HTTP /p/{slug}/{op} is a proxy and is not exec.";
+    + "FragGate is the single door. fraggate_list / fraggate_call. HTTP /p/{slug}/{op} is a proxy.";
 }
 
 export const RUNTIME_CHIP = runtimeChip();
@@ -171,11 +171,11 @@ export const RUNTIME_DESCRIPTION = runtimeDescription();
 
 export const RUNTIME_LIMITATION =
   "THIS IS: Aziel Runtime " + RUNTIME_VERSION + " — a node-meshed MCP Softwares suite for digital forensics and auditing, hosted on this domain at /runtime. "
-  + "Not an API aggregator. One door — discover, route, refuse. " + RUNTIME_LIVE_COUNT + " live advisory engines; " + RUNTIME_LOCAL_ONLY + " stays local_only; stub verbs refuse. "
+  + "One door — discover, route, refuse. " + RUNTIME_LIVE_COUNT + " live advisory engines; " + RUNTIME_LOCAL_ONLY + " stays local_only; stub verbs refuse. "
   + "Prefer same-origin /runtime/*. " + RUNTIME_ORIGIN + " is the alternate origin (sameAs). "
-  + "Catalog, pull, OpenAPI, MCP, skill, and FragGate remain. HTTP /p/{slug}/{op} is a proxy and is not exec. "
-  + "Session tools are advanced/internal. Hosted AZAI is protocol mirror + Lamb check, not the blend. Suite mesh is read-only QNM ON. GET /v1/mesh never enables. Disable is refused. This public HTTPS surface is not itself a mesh and is not the cell (counts/status). Cold copies survive a pull. Re-expand is archive restore. Reheal is self tip + trusted pull or phoenix-WAIT, never neighbor majority. "
-  + "THIS IS NOT: a second software index. The Software tab stays the product-card catalog. No invented Zenodo DOIs. Author Aziel Eliab only.";
+  + "Catalog, pull, OpenAPI, MCP, skill, and FragGate remain. HTTP /p/{slug}/{op} is a proxy. "
+  + "Session tools are advanced/internal. Hosted AZAI is protocol mirror + Lamb check. Suite mesh is read-only QNM ON. GET /v1/mesh never enables. Disable is refused. This public HTTPS surface is a counts/status rollup. Cold copies survive a pull. Re-expand is archive restore. Reheal is self tip + trusted pull or phoenix-WAIT. "
+  + "The Software tab stays the product-card catalog. No invented Zenodo DOIs. Author Aziel Eliab only.";
 
 export const RUNTIME_NOTE = runtimeNote();
 
@@ -299,7 +299,7 @@ export function runtimeHowTo(host) {
     "- FragGate call: POST " + h + "/runtime/v1/fraggate/call",
     "- Health: " + h + "/runtime/v1/health",
     "- Uses (this door): " + h + "/runtime/v1/uses",
-    "- Suite mesh (read-only QNM ON): " + h + "/runtime/v1/mesh  (also " + h + "/v1/mesh). Counts/status rollup — not the cell. QNS-CD-1.0 + CROSS-NETWORK-SURVIVAL-1.0 + MESH-SPLIT-WIRES-1.0 + MESH-COLD-COPY-1.0 + MESH-REEXPAND-1.0 + MESH-REHEAL-1.0. Re-expand is archive restore. Reheal is never neighbor majority. GET never enables. Disable is refused.",
+    "- Suite mesh (read-only QNM ON): " + h + "/runtime/v1/mesh  (also " + h + "/v1/mesh). Counts/status rollup. QNS-CD-1.0 + CROSS-NETWORK-SURVIVAL-1.0 + MESH-SPLIT-WIRES-1.0 + MESH-COLD-COPY-1.0 + MESH-REEXPAND-1.0 + MESH-REHEAL-1.0. Re-expand is archive restore. Reheal is never neighbor majority. GET never enables. Disable is refused.",
     "- Manifest: " + h + "/runtime/v1/runtime.json",
     "- Skill: " + h + "/runtime/v1/skill",
     "- OpenAPI: " + h + "/runtime/openapi.json",

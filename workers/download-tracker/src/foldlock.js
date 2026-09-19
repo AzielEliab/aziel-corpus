@@ -30,18 +30,17 @@ export const FOLDLOCK_OPS = Object.freeze([
 ]);
 
 export const FOLDLOCK_ONE_LINE =
-  "Algorithmic tether-word suppression on UTF-8 text. Not zip.";
+  "Algorithmic tether-word suppression on UTF-8 text.";
 
 export const FOLDLOCK_DUAL_SURFACE =
   "Dual surface: agent chat has no technical UI chrome; Worker / mobile / local install / counted download stay complete human software.";
 
 export const FOLDLOCK_REDLINE =
   "Never fold the lockset tip hash itself. Never rewrite the chain. "
-  + "Tip SHA-256 stays over raw receipts. Folding is a suppression aid, not encryption and not zip.";
+  + "Tip SHA-256 stays over raw receipts. Folding is a suppression aid.";
 
 export const FOLDLOCK_NOTE =
   "FoldLock is a Softwares Language neighbor (tether-word suppression on UTF-8). "
-  + "Not the ZIP file format. Not encryption. Not a rewrite key. "
   + "Optional fold may touch export notes/metadata only. Lockset tip bytes stay exact for bytes↔hash. "
   + "This isolate does not bind the FoldLock engine — the export hook stays SLOT. "
   + FOLDLOCK_DUAL_SURFACE
@@ -366,7 +365,7 @@ export function foldlockExportCite(host = HOST, extras = {}) {
 export function foldlockLlmsBlock(host = HOST) {
   const h = String(host || HOST).replace(/\/+$/, "");
   return [
-    "FoldLock (foldlock) is a Softwares Language neighbor: algorithmic tether-word suppression on UTF-8 text. Not zip. Not encryption.",
+    "FoldLock (foldlock) is a Softwares Language neighbor: algorithmic tether-word suppression on UTF-8 text.",
     FOLDLOCK_DUAL_SURFACE,
     FOLDLOCK_REDLINE,
     "Cold-shelf / tip-pack hook is SLOT (FL-ENGINE-UNBOUND). Optional fold is notes/metadata only. Tip SHA-256 stays over raw receipts.",

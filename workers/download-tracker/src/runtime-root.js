@@ -90,7 +90,7 @@ ${runtimeHowTo(HOST)}
 - Pull: \`GET ${HOST}/runtime/v1/pull/{slug}\`
 - Bundle: \`GET ${HOST}/runtime/v1/bundle/{slug}\`
 - Catalog: \`GET ${HOST}/runtime/v1/catalog.json\`
-- Suite mesh (read-only QNM ON): \`GET ${HOST}/runtime/v1/mesh\` · \`GET ${HOST}/v1/mesh\` — counts/status rollup, not the cell. QNS-CD-1.0 + CROSS-NETWORK-SURVIVAL-1.0 + MESH-SPLIT-WIRES-1.0 + MESH-COLD-COPY-1.0 + MESH-REEXPAND-1.0 + MESH-REHEAL-1.0 + NO-LIE-NO-REWRITE-1.0 (hub cite; local qnsd in qnm-node; no public proxy). Re-expand is archive restore. Reheal is self tip + trusted pull or phoenix-WAIT, never neighbor majority. Network never lies to stay alive. No rewrite key.
+- Suite mesh (read-only QNM ON): \`GET ${HOST}/runtime/v1/mesh\` · \`GET ${HOST}/v1/mesh\` — counts/status rollup. QNS-CD-1.0 + CROSS-NETWORK-SURVIVAL-1.0 + MESH-SPLIT-WIRES-1.0 + MESH-COLD-COPY-1.0 + MESH-REEXPAND-1.0 + MESH-REHEAL-1.0 + NO-LIE-NO-REWRITE-1.0 (hub cite; local qnsd in qnm-node; no public proxy). Re-expand is archive restore. Reheal is self tip + trusted pull or phoenix-WAIT, never neighbor majority. Network never lies to stay alive. No rewrite key.
 - OpenAPI: \`GET ${HOST}/runtime/openapi.json\`
 - MCP: \`POST ${HOST}/runtime/mcp\`
 - Runtime llms.txt: ${HOST}/runtime/llms.txt

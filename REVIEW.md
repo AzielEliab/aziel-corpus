@@ -66,13 +66,13 @@ Quarantine status is hash-chained (`POISON_QUARANTINE`). Operator Aziel Library 
 
 Beta-Bernoulli posterior from five priors: evidence completeness, physics coherence, linguistic neutrality, SPRE PC, CLCE consistency.
 
-Stored as **unranked** metadata. Never used to sort the shelf. Shown on the record page for manual peer-to-peer review (continuity if the operator is gone one day). Posterior ≠ truth.
+Stored as **unranked** metadata. Never used to sort the shelf. Shown on the record page for manual peer-to-peer review (continuity if the operator is gone one day).
 
 ### Possibility score (HEURISTIC)
 
 `possibility ∈ [0,1]` or refuse, derived from hashchain lattice time×geo pins: support density, contradiction density, travel/plausibility. Asks: could this have occurred as stated given the anchors?
 
-**possibility ≠ probability ≠ triad ≠ ZionPattern.** Labeled `HEURISTIC`. Not a guilt verdict. Not courtroom proof. `GET /v1/possibility?record_id=`.
+Labeled `HEURISTIC`. Separate published number from the triad and from ZionPattern. `GET /v1/possibility?record_id=`.
 
 ### Adaptive learning via hashchain lattice
 

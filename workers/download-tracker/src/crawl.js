@@ -251,6 +251,10 @@ export function robotsTxt() {
     "Allow: /software",
     "Allow: /donate",
     "Allow: /how-its-scored",
+    "Allow: /help.txt",
+    "Allow: /addendum.txt",
+    "Allow: /help/how-to-read-scores.txt",
+    "Allow: /help/how-to-cite.txt",
     "Allow: " + ABOUT_PATH,
     "Allow: /about",
     "Allow: /aboutme",
@@ -362,6 +366,10 @@ const STATIC_SITEMAP = [
   "/runtime/survival",
   "/runtime/v1/survival",
   "/how-its-scored",
+  "/help.txt",
+  "/addendum.txt",
+  "/help/how-to-read-scores.txt",
+  "/help/how-to-cite.txt",
   "/pattern",
   "/map",
   "/tree",
@@ -453,6 +461,10 @@ const SITEMAP_HINTS = {
   "/v1/design-pack/azcorpus": { changefreq: "weekly", priority: "0.8" },
   "/v1/design-pack/azlibrary": { changefreq: "weekly", priority: "0.8" },
   "/how-its-scored": { changefreq: "monthly", priority: "0.6" },
+  "/help.txt": { changefreq: "monthly", priority: "0.6" },
+  "/addendum.txt": { changefreq: "monthly", priority: "0.5" },
+  "/help/how-to-read-scores.txt": { changefreq: "monthly", priority: "0.6" },
+  "/help/how-to-cite.txt": { changefreq: "monthly", priority: "0.6" },
   "/donate": { changefreq: "monthly", priority: "0.6" },
 };
 
@@ -816,20 +828,20 @@ export function citeDoc(survival) {
     poison_learn: HOST + "/v1/poison-learn",
     pin: HOST + "/v1/pin",
     hashchain_learn: "adaptive learning via hashchain lattice for recollection and reasoning",
-    possibility_note: "possibility ≠ probability ≠ triad ≠ ZionPattern. HEURISTIC over lattice time×geo pins. Not courtroom truth. Posterior ≠ truth.",
-    map4d: { spec: "4DM-WP-1.0", cite: "https://github.com/AzielEliab/4dmap", note: "Inspection frame, not a live ICANN mesh DNS." },
+    possibility_note: "HEURISTIC over lattice time×geo pins.",
+    map4d: { spec: "4DM-WP-1.0", cite: "https://github.com/AzielEliab/4dmap", note: "Inspection frame." },
     document_chain: HOST + "/v1/document-chain",
     jeeves_chat: HOST + "/v1/jeeves/chat",
     jeeves_upload: HOST + "/v1/jeeves/upload",
     ingest: HOST + "/v1/ingest",
-    jeeves: "Research assistant. Not sovereign. Not operator. Add uses the same ingest path as the shelf. Cannot change scores.",
-    vibelock: "Mandatory VibeLock determination on every /transcribe run. Hard blocks porn, nudity, child-sexual content. Not courtroom proof.",
+    jeeves: "Research assistant. Add uses the same ingest path as the shelf. Cannot change scores.",
+    vibelock: "Mandatory VibeLock determination on every /transcribe run. Hard blocks porn, nudity, child-sexual content.",
     media_lattice: "Transcript success: LATTICE_TRANSCRIPT_VIBELOCK. Blocked A/V: LATTICE_AV_BLOCKED (HTTP 451, never stored).",
     file: HOST + "/file/{record_id}",
     download_record: HOST + "/download?record=",
     download_hash: HOST + "/download?hash=",
     docs_download: HOST + "/v1/docs/{hash}/download",
-    triad: "TRIAD_V1 geometric mean of SPRE, CLCE, and PhysLing — primary visible score. AZCoherence (azcoherence) is a second-pass scoring-review (peer AZ-CLCE; not AKM-TRIAD; not inside this mean). See " + HOST + "/how-its-scored",
+    triad: "TRIAD_V1 geometric mean of SPRE, CLCE, and PhysLing — primary visible score. AZCoherence (azcoherence) is a second-pass scoring-review (peer AZ-CLCE). See " + HOST + "/how-its-scored",
     succession: "Exact-same-subject paper cites: Supersedes / Superseded by on the record page and GET /v1/review. Uncertain matches are not chained.",
     zsolver: "ZionPattern Solver secondary public score. Separate from triad. Qualifies for historical, research, investigation, and crime documents; philosophy, software, hardware, and designs omit the line (never 0). Zioncheck Visual Archive vols 1–5 seed baseline display 75. 75 means intentional suppression confidence; lower is more natural. Hard 75 ceiling / 25 uncertainty floor. Provisional. Does not solve cases. A superseding document that proves a pattern break with first-hand / primary materials force-rescores the succession chain; narrative and second-source materials never trigger that rescore.",
     azcoherence: AZCOHERENCE,
@@ -846,7 +858,7 @@ export function citeDoc(survival) {
       peer_name: AZCOHERENCE.name,
       github: AZCLCE_GITHUB,
       worker: AZCLCE_WORKER_HOME,
-      note: "AZ-CLCE detects R/D/P inconsistency. Peer AZCoherence reviews primary vs alternate → PASS/FLAG/NEUTRALIZE/REFUSE. Not AKM-TRIAD. FragGate only.",
+      note: "AZ-CLCE detects R/D/P inconsistency. Peer AZCoherence reviews primary vs alternate → PASS/FLAG/NEUTRALIZE/REFUSE. FragGate only.",
     },
     how_to_cite: "Eliab, Aziel. (2026). Aziel Digital Library v2.7.0 [Software]. Apache-2.0. " + HOST + "/",
   };
@@ -915,7 +927,7 @@ export function llmsDoc(limitation, survival) {
     + "- Tip verify: " + HOST + "/receipts/verify\n"
     + "- llms.txt: " + HOST + "/llms.txt\n"
     + "- ai.txt: " + HOST + "/ai.txt\n\n"
-    + "Purpose: Public MASTER digital library by " + AUTHOR + ". Aziel Library (royal purple) is the operator collection of the author's work. Corpus is the public Lamb Lens shelf. Hosted tools include search, map, gazetteer, triad scoring (SPRE × CLCE × PhysLing), ZionPattern Solver, hosted OCR, upload→pin (GET /v1/pin · /v1/verify-geo), HEURISTIC possibility (GET /v1/possibility), and poison-learn (GET /v1/poison-learn). Adaptive learning via hashchain lattice for recollection and reasoning (GET /v1/recollect). Growth-ON: AI crawlers stay Allowed. possibility ≠ probability ≠ triad ≠ ZionPattern. Posterior ≠ truth. Scores are not courtroom proof. 4DMap cite: https://github.com/AzielEliab/4dmap (4DM-WP-1.0; not a live ICANN mesh DNS).\n\n"
+    + "Purpose: Public MASTER digital library by " + AUTHOR + ". Aziel Library (royal purple) is the operator collection of the author's work. Corpus is the public Lamb Lens shelf. Hosted tools include search, map, gazetteer, triad scoring (SPRE × CLCE × PhysLing), ZionPattern Solver, hosted OCR, upload→pin (GET /v1/pin · /v1/verify-geo), HEURISTIC possibility (GET /v1/possibility), and poison-learn (GET /v1/poison-learn). Adaptive learning via hashchain lattice for recollection and reasoning (GET /v1/recollect). Growth-ON: AI crawlers stay Allowed. 4DMap cite: https://github.com/AzielEliab/4dmap (4DM-WP-1.0).\n\n"
     + limitation + "\n\n"
     + "Hosted tools run on this Worker. Visitors do not download Python, Tesseract, Poppler, or Whisper to use Map, Tree, Health, Forensics, Historical Geography, Verify, OCR, or transcription. Gazetteer lookup stays hosted in the background for map pins and APIs.\n\n"
     + "## Identity\n\n"
@@ -981,7 +993,7 @@ export function llmsDoc(limitation, survival) {
     + "- Sister archive: " + HEDIDNTJUMP_LABEL + " " + HEDIDNTJUMP_HOME + "\n"
     + "- Alternate name Aziel Elroi Eliab is SEO alternateName only.\n\n"
     + "## Software products (crawl these hubs)\n\n"
-    + "The Software hub mirrors the live runtime catalog. Cards grow with GET /v1/software (fallback fraggate/list). PeaceLock, AZMail, AZBrowser, and later slugs appear automatically. No hard-coded 27 cap. Door extras AZNet and FragGate (separate app Workers) and EmbryoLock are listed without dropping catalog engines. AZCoherence (azcoherence) is a Softwares extra / peer-map fallback (Plain, scoring-review) so cite surfaces stay mapped if the live catalog is thin. FoldLock (foldlock) is a Softwares Language extra / cold-shelf SLOT hook (not zip; not encryption; never fold the lockset tip). SpectralLock (spectrallock) is a Softwares cite only: leftover container bytes recover honestly; /v1/unredact revision graph; /v1/recover universal (NO-LIE LIVE/SLOT); /v1/handwriting ink heuristics not a lab; opaque empty refuses SL-UNREDACT-OPAQUE; never invent letters; heatmap ≠ transcript. Catalog card is Worker SSoT (GET /v1/software). Unredact is not a FragGate door op. Recover is not a FragGate door op. Handwriting is not a FragGate door op. Corpus OCR does not unredact by guessing. Handwriting is not ESDA. Not a hardcoded extras card. Trades-Runtime (trades-runtime) is a Softwares extra: local-first BYO field-trades runtime; not a FragGate-exec true engine; live_backends false. Not a second door. Whitestone is a Softwares cite only (ephemeral pro se advisor; not a lawyer). Catalog entry ships on aziel-runtime GET /v1/software; this library Softwares tab refreshes from that Worker SSoT after that merge. Not a hardcoded extras card. The ARK is a Softwares cite only (local deniable vault; one phrase opens one vault). Catalog card is Worker SSoT (GET /v1/software). Download https://ark-download-tracker.vibelock.workers.dev/download. Views/Downloads counters https://ark-download-tracker.vibelock.workers.dev/stats. Not a hardcoded extras card.\n"
+    + "The Software hub mirrors the live runtime catalog. Cards grow with GET /v1/software (fallback fraggate/list). PeaceLock, AZMail, AZBrowser, and later slugs appear automatically. No hard-coded 27 cap. Door extras AZNet and FragGate (separate app Workers) and EmbryoLock are listed without dropping catalog engines. AZCoherence (azcoherence) is a Softwares extra / peer-map fallback (Plain, scoring-review) so cite surfaces stay mapped if the live catalog is thin. FoldLock (foldlock) is a Softwares Language extra / cold-shelf SLOT hook; never fold the lockset tip. SpectralLock (spectrallock) is a Softwares cite only: leftover container bytes recover honestly; /v1/unredact revision graph; /v1/recover universal (NO-LIE LIVE/SLOT); /v1/handwriting ink heuristics; opaque empty refuses SL-UNREDACT-OPAQUE; never invent letters. Catalog card is Worker SSoT (GET /v1/software). Unredact / recover / handwriting stay on the product Worker. Corpus OCR recovers leftover bytes honestly. Trades-Runtime (trades-runtime) is a Softwares extra: local-first BYO field-trades runtime; live_backends false. Whitestone is a Softwares cite only (ephemeral pro se advisor). Catalog entry ships on aziel-runtime GET /v1/software; this library Softwares tab refreshes from that Worker SSoT after that merge. The ARK is a Softwares cite only (local deniable vault; one phrase opens one vault). Catalog card is Worker SSoT (GET /v1/software). Download https://ark-download-tracker.vibelock.workers.dev/download. Views/Downloads counters https://ark-download-tracker.vibelock.workers.dev/stats.\n"
     + azcoherenceLlmsBlock() + "\n"
     + foldlockLlmsBlock(HOST) + "\n"
     + spectrallockLlmsBlock(HOST) + "\n"
@@ -1144,6 +1156,10 @@ export function aiTxt(limitation, survival) {
     "Allow: /runtime/survival",
     "Allow: /runtime/v1/survival",
     "Allow: /how-its-scored",
+    "Allow: /help.txt",
+    "Allow: /addendum.txt",
+    "Allow: /help/how-to-read-scores.txt",
+    "Allow: /help/how-to-cite.txt",
     "Allow: /pattern",
     "Allow: /map",
     "Allow: /tree",
@@ -1229,9 +1245,9 @@ export function aiTxt(limitation, survival) {
     + "- Who is Aziel Eliab: " + HOST + WHO_PATH + "\n"
     + "- Softwares / Software hub: " + HOST + "/software\n"
     + "- AZCoherence (azcoherence, AZC-0.1): " + HOST + "/software · https://azcoherence-download-tracker.vibelock.workers.dev/ · " + HOST + "/runtime/v1/fraggate/describe?slug=azcoherence\n"
-    + "- FoldLock (foldlock): " + HOST + "/software · https://foldlock-download-tracker.vibelock.workers.dev/ · " + HOST + "/runtime/v1/fraggate/describe?slug=foldlock — tether-word suppression on UTF-8; not zip; not encryption; tip SHA-256 stays over raw receipts\n"
-    + "- SpectralLock (spectrallock): " + HOST + "/software · https://spectrallock-download-tracker.vibelock.workers.dev/ · " + HOST + "/ocr · https://spectrallock-download-tracker.vibelock.workers.dev/v1/unredact · https://spectrallock-download-tracker.vibelock.workers.dev/v1/recover · https://spectrallock-download-tracker.vibelock.workers.dev/v1/handwriting — leftover container bytes recover honestly; /v1/unredact revision graph; /v1/recover universal (NO-LIE LIVE/SLOT); /v1/handwriting ink heuristics not a lab; opaque empty refuses SL-UNREDACT-OPAQUE; heatmap ≠ transcript; unredact is not a FragGate door op; recover is not a FragGate door op; handwriting is not a FragGate door op; corpus OCR does not unredact by guessing; handwriting is not ESDA\n"
-    + "- Trades-Runtime (trades-runtime): " + HOST + "/software · https://trades-runtime.vibelock.workers.dev/ · https://trades-runtime.vibelock.workers.dev/mcp — local-first BYO field-trades runtime; not FragGate; live_backends false; GitHub Pages off\n"
+    + "- FoldLock (foldlock): " + HOST + "/software · https://foldlock-download-tracker.vibelock.workers.dev/ · " + HOST + "/runtime/v1/fraggate/describe?slug=foldlock — tether-word suppression on UTF-8; tip SHA-256 stays over raw receipts\n"
+    + "- SpectralLock (spectrallock): " + HOST + "/software · https://spectrallock-download-tracker.vibelock.workers.dev/ · " + HOST + "/ocr · https://spectrallock-download-tracker.vibelock.workers.dev/v1/unredact · https://spectrallock-download-tracker.vibelock.workers.dev/v1/recover · https://spectrallock-download-tracker.vibelock.workers.dev/v1/handwriting — leftover container bytes recover honestly; /v1/unredact revision graph; /v1/recover universal (NO-LIE LIVE/SLOT); /v1/handwriting ink heuristics; opaque empty refuses SL-UNREDACT-OPAQUE; unredact / recover / handwriting stay on the product Worker; corpus OCR recovers leftover bytes honestly\n"
+    + "- Trades-Runtime (trades-runtime): " + HOST + "/software · https://trades-runtime.vibelock.workers.dev/ · https://trades-runtime.vibelock.workers.dev/mcp — local-first BYO field-trades runtime; live_backends false; GitHub Pages off\n"
     + "- Softwares list: " + WHITESTONE_NOTE + "\n"
     + "- Softwares list: " + ARK_NOTE + "\n"
     + "- Softwares list: " + SPECTRALLOCK_NOTE + "\n"
@@ -1305,16 +1321,16 @@ export function humansTxt() {
     "Donate: " + HOST + "/donate",
     "Software hub mirrors runtime /v1/software (fallback fraggate/list): " + HOST + "/v1/software",
     "AZCoherence (azcoherence, AZC-0.1) Softwares Plain / scoring-review: " + HOST + "/software · https://azcoherence-download-tracker.vibelock.workers.dev/ · https://github.com/AzielEliab/AZCoherence",
-    "FoldLock (foldlock) Softwares Language / FOLDLOCK-SHELF-1.0 SLOT hook: " + HOST + "/software · https://foldlock-download-tracker.vibelock.workers.dev/ · https://github.com/AzielEliab/foldlock — not zip; not encryption; never fold the lockset tip",
-    "SpectralLock (spectrallock) Softwares Media leftover-bytes honesty: " + HOST + "/software · https://spectrallock-download-tracker.vibelock.workers.dev/ · https://spectrallock-download-tracker.vibelock.workers.dev/v1/unredact · https://spectrallock-download-tracker.vibelock.workers.dev/v1/recover · https://spectrallock-download-tracker.vibelock.workers.dev/v1/handwriting — leftover recover honest; revision graph; recover universal NO-LIE LIVE/SLOT; handwriting ink heuristics not lab; opaque refuse SL-UNREDACT-OPAQUE; heatmap ≠ transcript; not a FragGate door op; corpus OCR does not unredact by guessing; handwriting is not ESDA",
-    "Trades-Runtime (trades-runtime) Softwares extra: " + HOST + "/software · https://trades-runtime.vibelock.workers.dev/ · https://github.com/AzielEliab/trades-runtime · MCP POST https://trades-runtime.vibelock.workers.dev/mcp — local-first BYO field-trades; not FragGate; live_backends false; Pages off",
+    "FoldLock (foldlock) Softwares Language / FOLDLOCK-SHELF-1.0 SLOT hook: " + HOST + "/software · https://foldlock-download-tracker.vibelock.workers.dev/ · https://github.com/AzielEliab/foldlock — never fold the lockset tip",
+    "SpectralLock (spectrallock) Softwares Media leftover-bytes honesty: " + HOST + "/software · https://spectrallock-download-tracker.vibelock.workers.dev/ · https://spectrallock-download-tracker.vibelock.workers.dev/v1/unredact · https://spectrallock-download-tracker.vibelock.workers.dev/v1/recover · https://spectrallock-download-tracker.vibelock.workers.dev/v1/handwriting — leftover recover honest; revision graph; recover universal NO-LIE LIVE/SLOT; handwriting ink heuristics; opaque refuse SL-UNREDACT-OPAQUE; corpus OCR recovers leftover bytes honestly",
+    "Trades-Runtime (trades-runtime) Softwares extra: " + HOST + "/software · https://trades-runtime.vibelock.workers.dev/ · https://github.com/AzielEliab/trades-runtime · MCP POST https://trades-runtime.vibelock.workers.dev/mcp — local-first BYO field-trades; live_backends false; Pages off",
     WHITESTONE_NOTE,
     ARK_NOTE,
     SPECTRALLOCK_NOTE,
     "Suite mesh (read-only QNM ON): " + HOST + "/v1/mesh",
     "Lockset tip / ingest-as-receipt: " + HOST + "/lockset.json · " + HOST + "/receipts/verify",
     "Cold multi-shelf: " + HOST + "/shelves · " + HOST + "/cold-copy · COLD-MULTI-SHELF-1.0",
-    "BAN-SURVIVAL-1.0: prefer GET " + CATALOG + "/v1/survival (short TTL) · same door " + HOST + "/runtime/survival · hub map " + HOST + "/survival · " + HOST + "/v1/survival. Mutual shelves↔ban. Cap-7 MirageGrid shuffle resolves_to_hub: false.",
+    "BAN-SURVIVAL-1.0: prefer GET " + CATALOG + "/v1/survival (short TTL) · same door " + HOST + "/runtime/survival · hub map " + HOST + "/survival · " + HOST + "/v1/survival. Cold shelves and live fronts back each other up. Cap-7 MirageGrid shuffle resolves_to_hub: false.",
     "cite, don't merge · bytes survive; crawlers do not re-expand",
     "CROSS-NETWORK-SURVIVAL: If network + live data die tomorrow, the chain still survives via cold copies across independent shelves; survival = bytes↔hash.",
     "NO-LIE / NO-REWRITE: receipts that still hash; copies not all on one tunnel; verify without voice; no rewrite key; network never lies even to stay alive.",

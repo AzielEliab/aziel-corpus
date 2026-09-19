@@ -1,0 +1,23 @@
+# Aziel Digital Library — human help
+
+Author: Aziel Eliab
+Person @id: https://www.azieleliab.com/#aziel
+Library: https://www.azielcorpuslibrary.net/
+Plain-language help for people using the library. Machine indexes stay https://www.azielcorpuslibrary.net/llms.txt · https://www.azielcorpuslibrary.net/ai.txt · https://www.azielcorpuslibrary.net/cite.json.
+
+## Start here
+- Home: https://www.azielcorpuslibrary.net/
+- Softwares: https://www.azielcorpuslibrary.net/software
+- Upload: https://www.azielcorpuslibrary.net/upload
+- How records are scored: https://www.azielcorpuslibrary.net/how-its-scored
+- Read scores: https://www.azielcorpuslibrary.net/help/how-to-read-scores.txt
+- Cite a record: https://www.azielcorpuslibrary.net/help/how-to-cite.txt
+- Addendum: https://www.azielcorpuslibrary.net/addendum.txt
+
+## Records
+Open a record page at https://www.azielcorpuslibrary.net/record/{AZDOC-…}. The triad is always the primary published score. Component scores (SPRE, CLCE, PhysLing) appear when those verifiers have run. ZionPattern appears when the document qualifies.
+
+## Softwares
+The Software tab lists live product cards from the runtime catalog. Counted downloads stay on each product Worker.
+
+Growth-ON. NO-LIE. Do not invent DOIs.

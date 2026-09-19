@@ -60,9 +60,10 @@ test("FoldLock cite is Language neighbor, not zip, not encryption, FragGate only
   assert.equal(FOLDLOCK.github, FOLDLOCK_GITHUB);
   assert.equal(FOLDLOCK.identity, "Aziel Eliab");
   assert.equal(FOLDLOCK.doi, null);
-  assert.match(FOLDLOCK.one_line, /Not zip/);
+  assert.match(FOLDLOCK.one_line, /tether-word suppression/);
+  assert.doesNotMatch(FOLDLOCK.one_line, /Not zip/);
   assert.match(FOLDLOCK.redline, /Never fold the lockset tip hash/);
-  assert.match(FOLDLOCK.redline, /not encryption/);
+  assert.doesNotMatch(FOLDLOCK.redline, /not encryption/);
   assert.doesNotMatch(FOLDLOCK.one_line, /encrypt/i);
   assert.doesNotMatch(JSON.stringify(FOLDLOCK), BANNED);
   assert.doesNotMatch(FOLDLOCK.dual_surface, /Flutter/);
@@ -135,7 +136,7 @@ test("public cite.json / shelves / llms mention FoldLock honestly", () => {
   assert.equal(cite.foldlock.encryption, false);
   assert.match(cite.foldlock.github, /foldlock/);
   assert.match(cite.foldlock.fraggate_describe, /slug=foldlock/);
-  assert.match(cite.foldlock.redline, /not encryption/);
+  assert.match(cite.foldlock.redline, /suppression aid/);
   assert.doesNotMatch(JSON.stringify(cite.foldlock), BANNED);
   assert.doesNotMatch(JSON.stringify(cite.foldlock), /zip encryption/i);
 
@@ -148,8 +149,9 @@ test("public cite.json / shelves / llms mention FoldLock honestly", () => {
   const llms = llmsDoc("LIMIT");
   assert.match(llms, /FoldLock/);
   assert.match(llms, /foldlock/);
-  assert.match(llms, /Not zip/);
-  assert.match(llms, /Not encryption/);
+  assert.match(llms, /tether-word suppression/);
+  assert.doesNotMatch(llms, /Not zip/);
+  assert.doesNotMatch(llms, /Not encryption/);
   assert.match(llms, /FL-TIP-FOLD-REFUSE/);
   assert.match(llms, /FL-ENGINE-UNBOUND/);
   assert.match(llms, /foldlock-download-tracker\.vibelock\.workers\.dev/);
@@ -179,7 +181,8 @@ test("SOFTWARE_EXTRAS lists FoldLock fallback without claiming zip", () => {
   assert.equal(fl.github, FOLDLOCK_GITHUB);
   assert.equal(countUrlForProduct(fl), FOLDLOCK_COUNT);
   assert.equal(countUrlForProduct({ slug: "foldlock", count: null }), FOLDLOCK_COUNT);
-  assert.match(fl.one_line, /Not zip/);
+  assert.match(fl.one_line, /tether-word suppression/);
+  assert.doesNotMatch(fl.one_line, /Not zip/);
   const links = productLinks(SOFTWARE_EXTRAS.find((p) => p.slug === "foldlock"));
   assert.ok(links.some((l) => l.primary && l.href === FOLDLOCK_DOWNLOAD));
   assert.ok(links.some((l) => l.label === "GitHub" && l.href === FOLDLOCK_GITHUB));
