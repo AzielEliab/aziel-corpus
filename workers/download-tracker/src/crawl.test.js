@@ -218,7 +218,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.ok(cite.sameAs.includes("https://www.hedidntjump.com/"));
   assert.ok(cite.sameAs.includes("https://github.com/AzielEliab"));
   assert.ok(cite.sameAs.includes("https://github.com/azieltherevealerofthesealed-arch"));
-  assert.ok(cite.sameAs.includes("https://x.com/AzielElroiEliab"));
+  assert.ok(cite.sameAs.includes("https://x.com/AzielEliab"));
   assert.equal(cite.stats.azieleliab, "https://www.azieleliab.com/v1/stats");
   assert.equal(cite.stats.corpus, "https://www.azielcorpuslibrary.net/stats");
   assert.equal(cite.stats.hedidntjump, "https://www.hedidntjump.com/api/stats");
