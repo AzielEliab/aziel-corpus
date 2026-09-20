@@ -79,7 +79,7 @@ test("shelf and record tag strips drop machine chrome and keep human tags", () =
       note: ".Json/JSONAZDOC-C6D76CC9D65C.json",
     }],
   });
-  for (const html of [shelf, home, rec]) {
+  for (const html of [shelf, home]) {
     assert.match(html, /real-followers|instagram|spam/);
     assert.doesNotMatch(html, />\.\.\.\.</);
     assert.doesNotMatch(html, /metadata\.json/);
@@ -87,9 +87,18 @@ test("shelf and record tag strips drop machine chrome and keep human tags", () =
     assert.doesNotMatch(html, /#instagram/);
     assert.doesNotMatch(html, /ffffff{10,}/);
   }
+  assert.match(rec, /real-followers|instagram|spam/);
+  assert.doesNotMatch(rec, />\.\.\.\.</);
+  assert.doesNotMatch(rec, /class="mini-chip">[^<]*metadata\.json/);
+  assert.doesNotMatch(rec, /JSONAZDOC-C6D76CC9D65C\.json/);
+  assert.doesNotMatch(rec, /#instagram/);
+  assert.doesNotMatch(rec, /ffffff{10,}/);
   assert.match(rec, /class="mini-chips record-tags"/);
   assert.match(rec, /real-followers/);
   assert.match(rec, /open artifact/);
   assert.match(rec, />text record</);
+  assert.match(rec, /\/record\/AZDOC-C6D76CC9D65C\/metadata\.json/);
+  assert.match(rec, /\/record\/AZDOC-C6D76CC9D65C\/llms\.txt/);
+  assert.match(rec, /\/record\/AZDOC-C6D76CC9D65C\/cite\.json/);
   assert.doesNotMatch(rec, /Arpit · Arpit · Arpit/);
 });
