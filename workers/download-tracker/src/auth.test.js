@@ -92,8 +92,9 @@ const USER_ROW = {
 
 test("public nav2 includes a basic Upload tab to /upload", () => {
   const html = page("Upload", uploadBody({}), { signed: null, path: "/upload", kind: "upload" });
-  assert.match(html, /<nav class="nav2 quiet">/);
+  assert.match(html, /<nav class="nav2 quiet"/);
   assert.match(html, /href="\/upload">Upload<\/a>/);
+  assert.match(html, /class="authbar"/);
   assert.match(html, /href="\/login">Log in<\/a>/);
   assert.match(html, /href="\/signup">Sign up<\/a>/);
   assert.doesNotMatch(html, /class="nav-aziel" href="\/upload"/);

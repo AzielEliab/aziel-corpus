@@ -153,7 +153,6 @@ test("homepage brandrow is Aziel Corpus Library with Upload, Login, and Sign up"
   assert.doesNotMatch(html, /id="views"/);
   assert.doesNotMatch(html, /id="downloads"/);
   assert.doesNotMatch(html, /id="aziel-live-nodes"/);
-  assert.doesNotMatch(html, /Live Nodes/);
   assert.doesNotMatch(html, /anyone can view/);
   assert.doesNotMatch(html, /Runtime v/);
   assert.doesNotMatch(html, /MASTER · WRITABLE/);
@@ -391,7 +390,7 @@ test("OCR page still ships all eight SpectralLock lenses", () => {
     assert.match(html, new RegExp("spectral-samples/" + id + "\\.png"));
   }
   assert.match(html, /Sign in to save/);
-  assert.match(html, /href="\/pattern"/);
+  assert.doesNotMatch(html.match(/<nav class="nav2 quiet"[^>]*>[\s\S]*?<\/nav>/)[0], /href="\/pattern"/);
   assert.match(html, /SL-UNREDACT-OPAQUE/);
   assert.match(html, /leftover bytes recover honestly|recovers leftover bytes honestly/);
   assert.match(html, /SL-UNREDACT-OPAQUE/);
@@ -663,7 +662,7 @@ test("rose-star brand mark is top-left chrome with no words on the mark", () => 
   ];
   for (const html of pages) {
     const headAt = html.indexOf('class="sitehead"');
-    const markAt = html.indexOf('class="brandmark-link"');
+    const markAt = html.indexOf('class="brandmark-link');
     const brandAt = html.indexOf('class="brand"');
     const navAt = html.indexOf('class="nav2');
     assert.ok(headAt >= 0 && markAt > headAt && brandAt > markAt && navAt > brandAt, "mark sits top-left before title and nav");

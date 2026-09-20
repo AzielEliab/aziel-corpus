@@ -143,9 +143,10 @@ test("GET and HEAD /runtime return 200 HTML without a second software index", as
   assert.equal(get.status, 200);
   assert.match(get.headers.get("content-type"), /text\/html/);
   const html = await get.text();
-  assert.match(html, /href="\/runtime"/);
-  assert.match(html, />Runtime</);
-  assert.match(html, /class="brandmark-link"/);
+  assert.match(html, /href="\/runtime\//);
+  assert.match(html, /Aziel Runtime/);
+  assert.doesNotMatch(html.match(/<nav class="nav2 quiet"[^>]*>[\s\S]*?<\/nav>/)[0], /href="\/runtime"/);
+  assert.match(html, /class="brandmark-link/);
   assert.match(html, /src="\/sigil\.png"/);
   assert.match(html, /\/runtime\/v1\/runtime\.json/);
   assert.match(html, /2\.0\.0-rc1/);
