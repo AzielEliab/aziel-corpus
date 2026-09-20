@@ -43,7 +43,7 @@ import {
   AZCOHERENCE_GITHUB,
 } from "./azcoherence.js";
 import { isChromeAuthorByline, isMachineFileTag, visibleTagEntries } from "./visible-tags.js";
-import { exploreRowHtml, startPathsHtml } from "./explore-nav.js";
+import { exploreRowHtml, startPathsHtml, agentsTabHtml } from "./explore-nav.js";
 
 /** Master UI chrome from Aziel Digital Library v2.7.0 webapp. Author: Aziel Eliab. */
 export const CSS = `
@@ -60,8 +60,10 @@ body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;lin
 .sitehead{background:var(--bg);max-width:100%;overflow-x:hidden}
 .sitehead-inner{max-width:920px;margin:auto;padding:28px 22px 0;min-width:0;max-width:100%;position:relative}
 .brandrow{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:6px;min-height:48px;min-width:0;max-width:100%}
-.brandmark-link,.sigil-nav-btn{display:flex;align-items:center;justify-content:center;flex:0 0 44px;width:44px;height:44px;padding:0;line-height:0;order:-1;background:transparent;border:0;border-radius:12px;cursor:pointer;color:inherit}
+.brandmark-link,.sigil-nav-btn{display:flex;align-items:center;justify-content:center;flex:0 0 44px;width:44px;height:44px;padding:0;line-height:0;order:-1;background:transparent;border:0;border-radius:12px;cursor:pointer;color:inherit;position:relative;z-index:46}
 .sigil-nav-btn[aria-expanded="true"]{box-shadow:0 0 0 2px var(--gold)}
+.sigil-nav-scrim{position:fixed;inset:0;z-index:44;background:#00000088;margin:0;border:0;padding:0;cursor:pointer}
+.sigil-nav-scrim[hidden]{display:none!important}
 .brandmark{width:40px;height:40px;border-radius:10px;object-fit:cover;flex:0 0 40px;box-shadow:0 0 0 1px #0003,0 0 0 1px var(--gold)}
 .brand{font-size:23px;font-weight:800;letter-spacing:-.02em;line-height:1.2;color:var(--ink);text-decoration:none}
 a.brand{color:var(--ink)}
@@ -73,7 +75,7 @@ a.brand:hover{color:var(--gold)}
 .authbar .auth-who{color:var(--royal);font-weight:700}
 .nav1,.nav2,.top,.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .nav1{margin-bottom:6px}
-.nav2{margin:8px 0 12px;gap:4px;position:absolute;left:22px;top:76px;z-index:35;flex-direction:column;align-items:stretch;background:var(--paper);border:1px solid var(--gold);border-radius:14px;padding:8px;min-width:min(280px,calc(100vw - 32px));max-height:min(70vh,640px);overflow:auto;box-shadow:0 12px 32px #00000066}
+.nav2{margin:0;gap:2px;position:fixed;left:0;top:0;bottom:0;z-index:45;flex-direction:column;flex-wrap:nowrap;align-items:stretch;justify-content:flex-start;background:var(--paper);border:0;border-right:1px solid var(--gold);border-radius:0 16px 16px 0;padding:76px 12px 24px;width:min(360px,86vw);min-width:min(260px,86vw);max-width:86vw;height:100vh;max-height:100vh;overflow:auto;overflow-x:hidden;box-shadow:12px 0 40px #00000088}
 .nav2[hidden]{display:none!important}
 .nav2 .sep{display:none}
 .ingest-verify-form{margin:12px 0}
@@ -102,6 +104,7 @@ a.brand:hover{color:var(--gold)}
 .donate-extra,.donate-net{margin:8px 0 0;color:var(--muted);font-size:14px}
 .donate-meta p{margin:0 0 10px}
 .nav2 a,.quiet a{color:var(--gold);text-decoration:none;font-size:15px;padding:10px 11px;min-height:44px;display:inline-flex;align-items:center;border-radius:10px;white-space:nowrap;flex-shrink:0}
+.nav2 a{width:100%;justify-content:flex-start}
 .nav2 a:hover{background:#2a241c;color:var(--ink)}
 .nav2 a.nav-aziel{color:var(--royal);font-weight:700;white-space:nowrap;flex:0 0 auto}
 .nav2 a.nav-aziel:hover{background:#2a241c;color:var(--ink)}
@@ -113,6 +116,9 @@ a.brand:hover{color:var(--gold)}
 .start-card strong{display:block;color:var(--gold);margin:0 0 4px;font-size:15px}
 .start-card p{margin:0;font-size:15px;line-height:1.45}
 .explore-row{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px;min-width:0;max-width:100%}
+.agents-tab{display:flex;justify-content:center;align-items:flex-end;margin:36px 0 0;padding:0;border:0}
+.agents-tab a{min-height:32px;padding:5px 14px 6px;font-size:13px;font-weight:650;color:var(--muted);text-decoration:none;border:1px solid var(--line);border-bottom:0;border-radius:10px 10px 0 0;background:var(--paper)}
+.agents-tab a:hover{color:var(--gold);border-color:var(--gold)}
 .empty-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:14px 0 0}
 .empty-actions .button{width:auto}
 @media (min-width:721px){
@@ -298,7 +304,7 @@ a.runtime-muted:hover{color:var(--ink)}
   .hero-search button,.button,button{width:100%}
   .jeeves-fab,.jeeves-drawer button,.jeeves-drawer .button,.jeeves-x{width:auto}
   .nav1{width:100%}
-  .nav2{left:14px;right:14px;width:auto;min-width:0}
+  .nav2{left:0;right:auto;width:min(360px,86vw);min-width:0;padding-top:68px}
   .doc,.card,.drop{padding:16px}
   .tools{position:static;width:100%}
   .tools-grid{grid-template-columns:1fr}
@@ -383,9 +389,9 @@ export function authBarHtml(signed) {
   return `<nav class="authbar" aria-label="Account"><a class="button" href="/upload">Upload</a><a class="auth-link" href="/login">Log in</a><a class="auth-link" href="/signup">Sign up</a></nav>`;
 }
 
-/** Sigil dropdown: Pattern and Runtime stay off chrome. Login/Sign up live in the top bar. */
+/** Left-edge sigil drawer. Pattern and Runtime stay off chrome. Login/Sign up live in the top bar. */
 export function sigilNavHtml() {
-  return `<nav class="nav2 quiet" id="sigilNav" hidden><a href="/">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/how-its-scored">How it's scored</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/forensics">Forensics</a><span class="sep">|</span><a class="nav-aziel" href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a><span class="sep">|</span><a href="/receipts">Receipts</a><span class="sep">|</span><a href="/donate">Donate</a><span class="sep">|</span><a href="/upload">Upload</a></nav>`;
+  return `<div class="sigil-nav-scrim" id="sigilNavScrim" hidden aria-hidden="true"></div><nav class="nav2 quiet" id="sigilNav" hidden><a href="/">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/how-its-scored">How it's scored</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/forensics">Forensics</a><span class="sep">|</span><a class="nav-aziel" href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a><span class="sep">|</span><a href="/receipts">Receipts</a><span class="sep">|</span><a href="/donate">Donate</a><span class="sep">|</span><a href="/upload">Upload</a></nav>`;
 }
 
 export function sigilNavScript() {
@@ -393,12 +399,14 @@ export function sigilNavScript() {
 (function(){
   var btn=document.getElementById("sigilNavBtn");
   var nav=document.getElementById("sigilNav");
+  var scrim=document.getElementById("sigilNavScrim");
   if(!btn||!nav)return;
-  function open(){nav.hidden=false;btn.setAttribute("aria-expanded","true");}
-  function shut(){nav.hidden=true;btn.setAttribute("aria-expanded","false");}
+  function open(){nav.hidden=false;if(scrim){scrim.hidden=false;scrim.setAttribute("aria-hidden","false");}btn.setAttribute("aria-expanded","true");}
+  function shut(){nav.hidden=true;if(scrim){scrim.hidden=true;scrim.setAttribute("aria-hidden","true");}btn.setAttribute("aria-expanded","false");}
   function toggle(){if(nav.hidden)open();else shut();}
   btn.addEventListener("click",function(e){e.preventDefault();e.stopPropagation();toggle();});
-  document.addEventListener("click",function(e){if(nav.hidden)return;if(nav.contains(e.target)||btn.contains(e.target))return;shut();});
+  if(scrim)scrim.addEventListener("click",function(){shut();});
+  document.addEventListener("click",function(e){if(nav.hidden)return;if(nav.contains(e.target)||btn.contains(e.target)||(scrim&&scrim.contains(e.target)))return;shut();});
   document.addEventListener("keydown",function(e){
     if(e.key==="Escape"&&!nav.hidden){shut();btn.focus();}
     if((e.key==="Enter"||e.key===" ")&&document.activeElement===btn){e.preventDefault();toggle();}
@@ -791,7 +799,8 @@ ${trendingHtml(trending)}
 ${LCP_FOLD}
 ${results}
 ${startPathsHtml()}
-<div class="home-doors">${homeSignupCard()}${homeAnonymousUploadCard({ error })}</div>`;
+<div class="home-doors">${homeSignupCard()}${homeAnonymousUploadCard({ error })}</div>
+${agentsTabHtml()}`;
 }
 
 export function uploadBody({ signed, error } = {}) {
@@ -1096,4 +1105,4 @@ ${softSection("Lock", groups.lock)}
 }
 
 export { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, ocrBody, ocrFormHtml, SPECTRAL_LENSES, blockedAvBody } from "./hosted-pages.js";
-export { exploreRowHtml, startPathsHtml, EXPLORE_LINKS } from "./explore-nav.js";
+export { exploreRowHtml, startPathsHtml, agentsTabHtml, EXPLORE_LINKS } from "./explore-nav.js";

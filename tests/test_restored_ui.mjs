@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { CSS, page, donateStripHtml, aboutBody, whoBody, howItsScoredBody, patternBody, softwareBody, runtimeBody, azielLibraryBody, homeBody, homeSearchActive, corpusBody, uploadBody, brandMarkHtml, authBarHtml, sigilNavHtml, trendingHtml, LCP_FOLD, splitLcpHtml, cardExcerpt, CARD_EXCERPT_CHARS, chipLabel, exploreRowHtml, startPathsHtml, EXPLORE_LINKS } from "../workers/download-tracker/src/ui.js";
+import { CSS, page, donateStripHtml, aboutBody, whoBody, howItsScoredBody, patternBody, softwareBody, runtimeBody, azielLibraryBody, homeBody, homeSearchActive, corpusBody, uploadBody, brandMarkHtml, authBarHtml, sigilNavHtml, trendingHtml, LCP_FOLD, splitLcpHtml, cardExcerpt, CARD_EXCERPT_CHARS, chipLabel, exploreRowHtml, startPathsHtml, agentsTabHtml, EXPLORE_LINKS } from "../workers/download-tracker/src/ui.js";
 import { recordBody } from "../workers/download-tracker/src/hosted-pages.js";
 import { guestSession, isOperator, libraryFor, quarantineHiddenFromPublic, ingestRecord, searchRecords } from "../workers/download-tracker/src/library.js";
 import { ocrPageBody, mapBody, treeBody, historicalBody, intelligenceBody, SPECTRAL_LENSES } from "../workers/download-tracker/src/hosted-pages.js";
@@ -150,6 +150,10 @@ test("homepage brandrow is Aziel Corpus Library with Upload, Login, and Sign up"
   assert.match(html, /href="\/upload">Upload</);
   assert.match(html, /href="\/login">Log in</);
   assert.match(html, /href="\/signup">Sign up</);
+  const auth = html.match(/<nav class="authbar"[^>]*>[\s\S]*?<\/nav>/)[0];
+  assert.doesNotMatch(auth, />Agents</);
+  assert.doesNotMatch(html.match(/<nav class="nav2 quiet"[^>]*>[\s\S]*?<\/nav>/)[0], />Agents</);
+  assert.match(html, /class="agents-tab"/);
   assert.doesNotMatch(html, /id="views"/);
   assert.doesNotMatch(html, /id="downloads"/);
   assert.doesNotMatch(html, /id="aziel-live-nodes"/);
@@ -580,6 +584,10 @@ test("homepage doors include Sign up and anonymous Corpus upload; other pages ke
   assert.match(home, /id="upload-anonymous"/);
   assert.match(home, /Upload anonymously/);
   assert.match(home, /action="\/ingest"/);
+  assert.match(home, /class="agents-tab"/);
+  assert.match(home, /href="\/llms\.txt"[^>]*>Agents</);
+  assert.doesNotMatch(home, /<strong>Agents<\/strong>/);
+  assert.doesNotMatch(other, /class="agents-tab"/);
   assert.doesNotMatch(home, /Files go to Corpus \(Lamb Lens\)/);
   assert.doesNotMatch(home, /Safety review \(poison quarantine, triad\)/);
   assert.doesNotMatch(home, /Aziel Library upload stays operator-only/);
@@ -702,7 +710,7 @@ test("Worker-served HTML and library docs never use the retired bloom phrase", (
   assert.deepEqual(hits, [], "banned bloom phrase remains in " + hits.join(", "));
 });
 
-test("homepage first screen names browse, upload, explore, and agent cite paths", () => {
+test("homepage first screen names browse, upload, explore, and a footer Agents tab", () => {
   const home = homeBody({ rows: [], host: "https://www.azielcorpuslibrary.net" });
   assert.match(home, /<h1>Search the libraries<\/h1>/);
   assert.match(home, /public MASTER of hashed records/);
@@ -717,8 +725,12 @@ test("homepage first screen names browse, upload, explore, and agent cite paths"
   assert.match(home, /href="\/tree">Tree</);
   assert.match(home, /href="\/map">Map</);
   assert.match(home, /href="\/forensics">Forensics</);
-  assert.match(home, /\/record\/\{id\}\/llms\.txt/);
-  assert.match(home, /href="\/llms\.txt">\/llms\.txt</);
+  assert.match(home, /class="agents-tab"/);
+  assert.match(home, /href="\/llms\.txt"[^>]*>Agents</);
+  assert.doesNotMatch(home, /<strong>Agents<\/strong>/);
+  assert.doesNotMatch(startPathsHtml(), /Agents/);
+  assert.match(agentsTabHtml(), /class="agents-tab"/);
+  assert.match(agentsTabHtml(), /href="\/llms\.txt"[^>]*>Agents</);
   assert.doesNotMatch(home, /class="facets"/);
   assert.doesNotMatch(home, /15:20/);
   assert.doesNotMatch(home, /10\.5281\/zenodo/i);
@@ -728,7 +740,9 @@ test("homepage first screen names browse, upload, explore, and agent cite paths"
   assert.match(split.early, /class="trend"/);
   assert.match(split.early, /Ask Jeeves/);
   assert.doesNotMatch(split.early, /id="signup"/);
+  assert.doesNotMatch(split.early, /class="agents-tab"/);
   assert.match(split.late, /class="start-paths"/);
+  assert.match(split.late, /class="agents-tab"/);
   assert.equal(startPathsHtml().includes("Browse"), true);
 });
 
@@ -775,6 +789,7 @@ test("Upload, shelves, Map, Tree, Historical, and Forensics share explore chips 
   assert.match(hist, /<h1>Historical<\/h1>/);
   assert.match(CSS, /\.start-paths\{/);
   assert.match(CSS, /\.explore-row\{/);
+  assert.match(CSS, /\.agents-tab\{/);
   assert.match(CSS, /html\{scroll-padding-bottom:96px\}/);
   assert.match(CSS, /\.soft-grid\{grid-template-columns:1fr\}/);
   assert.match(CSS, /\.button,button,\.chip,\.nav2 a\{touch-action:manipulation\}/);
@@ -793,19 +808,27 @@ test("Ask Jeeves FAB stays gold, labeled, and outside trapping chrome", () => {
   assert.match(CSS, /html,body\{[^}]*overflow-y:auto/);
 });
 
-test("sigil dropdown hides hashes on cards, follows record facets, and keeps honest trending", () => {
+test("sigil drawer hides hashes on cards, follows record facets, and keeps honest trending", () => {
   const html = chrome("<p>ok</p>");
   assert.match(html, /id="sigilNavBtn"/);
   assert.match(html, /id="sigilNav" hidden/);
+  assert.match(html, /id="sigilNavScrim" hidden/);
   assert.match(html, /aria-expanded="false"/);
   assert.match(html, /sigilNavScript|aria-controls="sigilNav"/);
   assert.match(html, /function toggle\(\)/);
+  assert.match(CSS, /\.nav2\{[^}]*position:fixed/);
+  assert.match(CSS, /\.nav2\{[^}]*left:0/);
+  assert.match(CSS, /\.nav2\{[^}]*height:100vh/);
+  assert.match(CSS, /\.nav2\{[^}]*flex-direction:column/);
+  assert.match(CSS, /\.sigil-nav-scrim\{[^}]*position:fixed/);
+  assert.match(CSS, /\.sigil-nav-btn\{[^}]*order:-1/);
   const nav = html.match(/<nav class="nav2 quiet"[^>]*>[\s\S]*?<\/nav>/)[0];
   assert.doesNotMatch(nav, />Pattern</);
   assert.doesNotMatch(nav, /href="\/pattern"/);
   assert.doesNotMatch(nav, /href="\/runtime"/);
   assert.doesNotMatch(nav, /href="\/verify"/);
   assert.doesNotMatch(nav, /href="\/login"/);
+  assert.doesNotMatch(nav, />Agents</);
 
   const emptyTrend = trendingHtml([]);
   assert.match(emptyTrend, /class="trend"/);

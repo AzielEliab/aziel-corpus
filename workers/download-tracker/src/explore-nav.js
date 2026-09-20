@@ -29,12 +29,16 @@ export function exploreRowHtml(current = "") {
   return `<nav class="explore-row" aria-label="Explore the library">${chips}</nav>`;
 }
 
-/** First-screen start doors. Positive copy. Agents keep /llms.txt. */
+/** First-screen start doors. Agents live in the homepage footer tab, not this grid. */
 export function startPathsHtml() {
   return `<div class="start-paths" aria-label="How to use this library">
 <div class="start-card"><strong>Browse</strong><p>Open <a href="/aziel-library">Aziel Library</a> or <a href="/corpus">Corpus</a>. Tap a card to read or download.</p></div>
 <div class="start-card"><strong>Upload</strong><p><a href="/upload">Upload a file</a> to Corpus. Anyone may file. Title required. No account required.</p></div>
 <div class="start-card"><strong>Explore</strong><p>See groups on <a href="/tree">Tree</a>, places on <a href="/map">Map</a>, or scans on <a href="/forensics">Forensics</a>.</p></div>
-<div class="start-card"><strong>Agents</strong><p>Cite a record at <code>/record/{id}/llms.txt</code> and <code>/cite.json</code>. Site index: <a href="/llms.txt">/llms.txt</a>.</p></div>
 </div>`;
+}
+
+/** Homepage-only footer tab. Machine routes stay /llms.txt, /mcp, /mcp.json. */
+export function agentsTabHtml() {
+  return `<nav class="agents-tab" aria-label="Agents"><a href="/llms.txt" title="Agent and MCP discovery">Agents</a></nav>`;
 }
