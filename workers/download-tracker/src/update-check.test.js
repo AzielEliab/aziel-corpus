@@ -40,15 +40,21 @@ test("checkLibraryUpdate prefers runtime /v1/update/check", async () => {
 });
 
 test("GET /v1/update/check falls back to catalog product version", async () => {
+  const catalog = {
+    version: "2.0.0-rc1",
+    products: [{ slug: "aziel-corpus", name: "Aziel Digital Library", version: "2.7.0" }],
+  };
   const env = {
     AZIEL_RUNTIME: {
       async fetch(request) {
         const url = new URL(request.url);
-        if (url.pathname.endsWith("/catalog.json")) {
-          return new Response(JSON.stringify({
-            version: "1.6.11",
-            products: [{ slug: "aziel-corpus", name: "Aziel Digital Library", version: "2.7.0" }],
-          }), { status: 200, headers: { "Content-Type": "application/json" } });
+        // Binding must answer /v1/software — fetchRuntimeJson otherwise hits live origin.
+        if (url.pathname.endsWith("/update/check")) {
+          // 200 without latest — skip live origin fallthrough, then use /v1/software.
+          return new Response(JSON.stringify({ ok: false }), { status: 200, headers: { "Content-Type": "application/json" } });
+        }
+        if (url.pathname.endsWith("/software") || url.pathname.endsWith("/catalog.json")) {
+          return new Response(JSON.stringify(catalog), { status: 200, headers: { "Content-Type": "application/json" } });
         }
         return new Response(JSON.stringify({ error: "not found" }), { status: 404 });
       },
