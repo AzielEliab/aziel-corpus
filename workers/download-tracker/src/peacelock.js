@@ -62,11 +62,7 @@ export const PEACELOCK_ONE_LINE =
   "Record chosen silence or chosen inaction as a hash-chained receipt.";
 
 export const PEACELOCK_NOTE =
-  "PeaceLock (Softwares): record chosen silence or chosen inaction as a hash-chained receipt (PL-WP-0.1). "
-  + "Public GitHub " + PEACELOCK_GITHUB + ". "
-  + "Local-only runtime: operator-local receipts; hosted API is stateless. "
-  + "Download " + PEACELOCK_DOWNLOAD + ". "
-  + "Catalog entry ships on aziel-runtime GET /v1/software (Worker SSoT); this library Softwares tab refreshes from that Worker SSoT.";
+  PEACELOCK_NAME + " (Softwares): " + PEACELOCK_ONE_LINE;
 
 /** Cite-only Softwares mention. Not a SOFTWARE_EXTRAS card. Catalog is Worker SSoT. */
 export const PEACELOCK_CITE = Object.freeze({

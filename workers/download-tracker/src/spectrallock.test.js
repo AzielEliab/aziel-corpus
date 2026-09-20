@@ -18,6 +18,7 @@ import {
   SPECTRALLOCK_ONE_LINE,
   SPECTRALLOCK_NOTE,
   SPECTRALLOCK_CITE,
+  SPECTRALLOCK_HONESTY,
   SPECTRALLOCK_OCR_NOTE,
   SPECTRALLOCK_UNREDACT,
   SPECTRALLOCK_RECOVER,
@@ -30,6 +31,7 @@ import {
   SPECTRALLOCK_PRODUCT_PR,
   SPECTRALLOCK_PRODUCT_COMMIT,
   spectralLockCopyLooksHonest,
+  spectralLockCopyLooksDesigned,
   spectrallockLlmsBlock,
   spectrallockCiteFields,
 } from "./spectrallock.js";
@@ -40,8 +42,9 @@ test("SpectralLock cite is leftover-bytes honest and not a FragGate invent", () 
   assert.equal(SPECTRALLOCK.author, "Aziel Eliab");
   assert.equal(SPECTRALLOCK.identity, "Aziel Eliab");
   assert.equal(SPECTRALLOCK.one_line, SPECTRALLOCK_ONE_LINE);
-  assert.match(SPECTRALLOCK_ONE_LINE, /leftover container bytes recover honestly/);
-  assert.match(SPECTRALLOCK_ONE_LINE, /opaque rewrite refuses/);
+  assert.equal(SPECTRALLOCK_ONE_LINE, "Preview a small overlay on an image and recover leftover container bytes.");
+  assert.doesNotMatch(SPECTRALLOCK_ONE_LINE, /honestly/);
+  assert.doesNotMatch(SPECTRALLOCK_ONE_LINE, /opaque rewrite refuses/);
   assert.equal(SPECTRALLOCK.leftover_bytes, "honest recover");
   assert.equal(SPECTRALLOCK.opaque_empty, "SL-UNREDACT-OPAQUE");
   assert.equal(SPECTRALLOCK.revision_graph, true);
@@ -72,14 +75,10 @@ test("SpectralLock cite is leftover-bytes honest and not a FragGate invent", () 
   assert.ok(!SPECTRALLOCK_LIVE_OPS.includes("lift"));
   assert.ok(!SPECTRALLOCK_LIVE_OPS.includes("recover"));
   assert.ok(!SPECTRALLOCK_LIVE_OPS.includes("handwriting"));
-  assert.match(SPECTRALLOCK_NOTE, /SL-UNREDACT-OPAQUE/);
+  assert.equal(SPECTRALLOCK_NOTE, "SpectralLock (Softwares): " + SPECTRALLOCK_ONE_LINE);
   assert.doesNotMatch(SPECTRALLOCK_NOTE, /not a FragGate door op/);
-  assert.match(SPECTRALLOCK_NOTE, /recovers leftover bytes honestly/);
-  assert.match(SPECTRALLOCK_NOTE, /revision graph/);
-  assert.match(SPECTRALLOCK_NOTE, /NO-LIE LIVE\/SLOT/);
-  assert.match(SPECTRALLOCK_NOTE, /ink heuristics/);
+  assert.doesNotMatch(SPECTRALLOCK_NOTE, /never invent/i);
   assert.doesNotMatch(SPECTRALLOCK_NOTE, /not ESDA/);
-  assert.match(SPECTRALLOCK_NOTE, /Worker SSoT/);
   assert.match(SPECTRALLOCK_OCR_NOTE, /recovers leftover bytes honestly/);
   assert.match(SPECTRALLOCK_OCR_NOTE, /revision_graph/);
   assert.match(SPECTRALLOCK_OCR_NOTE, /NO-LIE LIVE\/SLOT/);
@@ -89,8 +88,11 @@ test("SpectralLock cite is leftover-bytes honest and not a FragGate invent", () 
   assert.equal(SPECTRALLOCK_CITE.recover_is_door_op, false);
   assert.equal(SPECTRALLOCK_CITE.handwriting_is_door_op, false);
   assert.equal(SPECTRALLOCK_CITE.revision_graph, true);
-  assert.equal(spectralLockCopyLooksHonest(SPECTRALLOCK_ONE_LINE), true);
+  assert.equal(spectralLockCopyLooksDesigned(SPECTRALLOCK_ONE_LINE), true);
+  assert.equal(spectralLockCopyLooksHonest(SPECTRALLOCK_ONE_LINE), false);
+  assert.equal(spectralLockCopyLooksHonest(SPECTRALLOCK_HONESTY), true);
   assert.equal(spectralLockCopyLooksHonest("256px overlay preview. Not a spectrometer."), false);
+  assert.equal(spectralLockCopyLooksDesigned("256px overlay preview. Not a spectrometer."), false);
 });
 
 test("cite.json / llms.txt / ai.txt / humans.txt cite SpectralLock leftover-bytes honesty", () => {
@@ -118,13 +120,13 @@ test("cite.json / llms.txt / ai.txt / humans.txt cite SpectralLock leftover-byte
   assert.equal(cite.spectrallock_recover, SPECTRALLOCK_RECOVER);
   assert.equal(cite.spectrallock_handwriting, SPECTRALLOCK_HANDWRITING);
   assert.equal(cite.spectrallock_cite.extra_card, false);
-  assert.match(cite.spectrallock.note, /SL-UNREDACT-OPAQUE/);
-  assert.match(cite.spectrallock.note, /revision graph/);
-  assert.match(cite.spectrallock.note, /NO-LIE LIVE\/SLOT/);
+  assert.equal(cite.spectrallock.note, SPECTRALLOCK_NOTE);
+  assert.match(cite.spectrallock.honesty, /SL-UNREDACT-OPAQUE/);
+  assert.match(cite.spectrallock.honesty, /revision_graph/);
   assert.doesNotMatch(JSON.stringify(cite.spectrallock), /unredact.*LIVE_OPS|LIVE_OPS.*unredact/i);
 
   const llms = llmsDoc("LIMIT");
-  assert.match(llms, /Softwares list: SpectralLock \(Softwares\): leftover container bytes recover honestly/);
+  assert.match(llms, /Softwares list: SpectralLock \(Softwares\): Preview a small overlay on an image and recover leftover container bytes/);
   assert.match(llms, /SL-UNREDACT-OPAQUE/);
   assert.match(llms, /spectrallock-download-tracker\.vibelock\.workers\.dev\/v1\/unredact/);
   assert.match(llms, /spectrallock-download-tracker\.vibelock\.workers\.dev\/v1\/recover/);
@@ -169,7 +171,7 @@ test("sitemap lists OCR / Softwares cites and SpectralLock worker sitemap", asyn
   assert.match(xml, /azielcorpuslibrary\.net\/forensics</);
 });
 
-test("Softwares tab is cite-only and rewrites stale SpectralLock one_line to post-#137 copy", () => {
+test("Softwares tab is cite-only and rewrites stale SpectralLock one_line to Worker designed-purpose", () => {
   assert.ok(!SOFTWARE_EXTRAS.some((p) => p.slug === SPECTRALLOCK_SLUG));
   assert.equal(displayName({ slug: "spectrallock" }), "SpectralLock");
   assert.equal(

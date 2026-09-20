@@ -168,14 +168,15 @@
   "software_note": "Library Softwares catalog for aziel-runtime. Do not mash version + FragGate into Softwares copy. Softwares on GodLock is GodLock's own catalog.",
   "whitestone": {
     "name": "Whitestone",
-    "note": "Whitestone (Softwares): ephemeral pro se advisor. Catalog entry ships on aziel-runtime GET /v1/software; this library Softwares tab refreshes from that Worker SSoT after that merge.",
+    "one_line": "Advise on short Criminal, Civil, and Divorce questions with historical as-of and Case Mode (suppression axes, TrajectoryLock-lite, export, confidence labeled up to 75%). Session-only web app plus optional zip. https://whitestone.vibelock.workers.dev/",
+    "note": "Whitestone (Softwares): Advise on short Criminal, Civil, and Divorce questions with historical as-of and Case Mode (suppression axes, TrajectoryLock-lite, export, confidence labeled up to 75%). Session-only web app plus optional zip. https://whitestone.vibelock.workers.dev/",
     "extra_card": false
   },
   "ark": {
     "name": "The ARK",
     "slug": "ark",
     "one_line": "Keep a local deniable vault; one phrase opens one vault.",
-    "note": "The ARK (Softwares): local deniable vault; one phrase opens one vault. Download https://ark-download-tracker.vibelock.workers.dev/download. Views/Downloads counters https://ark-download-tracker.vibelock.workers.dev/stats.",
+    "note": "The ARK (Softwares): Keep a local deniable vault; one phrase opens one vault. Download https://ark-download-tracker.vibelock.workers.dev/download. Views/Downloads counters https://ark-download-tracker.vibelock.workers.dev/stats.",
     "download": "https://ark-download-tracker.vibelock.workers.dev/download",
     "stats": "https://ark-download-tracker.vibelock.workers.dev/stats",
     "worker_home": "https://ark-download-tracker.vibelock.workers.dev/",
@@ -184,8 +185,8 @@
   "spectrallock": {
     "name": "SpectralLock",
     "slug": "spectrallock",
-    "one_line": "Preview a small overlay on an image; leftover container bytes recover honestly, opaque rewrite refuses.",
-    "note": "SpectralLock (Softwares): leftover container bytes recover honestly; opaque empty refuses SL-UNREDACT-OPAQUE. Never invent letters. /v1/unredact revision graph. /v1/recover universal (NO-LIE LIVE/SLOT). /v1/handwriting ink heuristics. Workers https://spectrallock-download-tracker.vibelock.workers.dev/v1/unredact · https://spectrallock-download-tracker.vibelock.workers.dev/v1/recover · https://spectrallock-download-tracker.vibelock.workers.dev/v1/handwriting. Unredact / recover / handwriting stay on the product Worker. Catalog entry ships on aziel-runtime GET /v1/software (Worker SSoT); this library Softwares tab refreshes from that Worker SSoT. Corpus OCR recovers leftover bytes honestly. ",
+    "one_line": "Preview a small overlay on an image and recover leftover container bytes.",
+    "note": "SpectralLock (Softwares): Preview a small overlay on an image and recover leftover container bytes.",
     "unredact": "https://spectrallock-download-tracker.vibelock.workers.dev/v1/unredact",
     "recover": "https://spectrallock-download-tracker.vibelock.workers.dev/v1/recover",
     "handwriting": "https://spectrallock-download-tracker.vibelock.workers.dev/v1/handwriting",
@@ -210,7 +211,7 @@
     "name": "PeaceLock",
     "slug": "peacelock",
     "one_line": "Record chosen silence or chosen inaction as a hash-chained receipt.",
-    "note": "PeaceLock (Softwares): record chosen silence or chosen inaction as a hash-chained receipt (PL-WP-0.1). Public GitHub https://github.com/AzielEliab/peacelock. Local-only runtime: operator-local receipts; hosted API is stateless. Download https://peacelock-download-tracker.vibelock.workers.dev/download. Catalog entry ships on aziel-runtime GET /v1/software (Worker SSoT); this library Softwares tab refreshes from that Worker SSoT.",
+    "note": "PeaceLock (Softwares): Record chosen silence or chosen inaction as a hash-chained receipt.",
     "github": "https://github.com/AzielEliab/peacelock",
     "worker_home": "https://peacelock-download-tracker.vibelock.workers.dev/",
     "download": "https://peacelock-download-tracker.vibelock.workers.dev/download",

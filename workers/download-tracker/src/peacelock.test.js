@@ -50,12 +50,7 @@ test("PeaceLock cite is public GitHub + local-only runtime, live on FragGate", (
   ]);
   assert.ok(PEACELOCK_STUB_OPS.includes("transcript"));
   assert.ok(PEACELOCK_STUB_OPS.includes("invent"));
-  assert.match(PEACELOCK_NOTE, /Public GitHub/);
-  assert.match(PEACELOCK_NOTE, /github\.com\/AzielEliab\/peacelock/);
-  assert.match(PEACELOCK_NOTE, /Local-only runtime/);
-  assert.match(PEACELOCK_NOTE, /operator-local receipts/);
-  assert.match(PEACELOCK_NOTE, /hosted API is stateless/);
-  assert.match(PEACELOCK_NOTE, /Worker SSoT/);
+  assert.equal(PEACELOCK_NOTE, "PeaceLock (Softwares): " + PEACELOCK_ONE_LINE);
   assert.doesNotMatch(PEACELOCK_NOTE, /THIS IS NOT|does not|not a /i);
   assert.doesNotMatch(PEACELOCK_NOTE, /private doctrine/i);
   assert.doesNotMatch(PEACELOCK_NOTE, /VeilLock/);
@@ -100,7 +95,7 @@ test("cite.json / llms.txt / humans.txt / ai.txt cite PeaceLock as public + loca
   assert.match(llms, /github\.com\/AzielEliab\/peacelock/);
   assert.match(llms, /peacelock-download-tracker\.vibelock\.workers\.dev/);
   assert.match(llms, /public GitHub \+ local-only runtime/);
-  assert.match(llms, /Softwares list: PeaceLock \(Softwares\): record chosen silence/);
+  assert.match(llms, /Softwares list: PeaceLock \(Softwares\): Record chosen silence or chosen inaction as a hash-chained receipt/);
   assert.match(llms, /Public version: Aziel Runtime \/ Softwares SSoT 2\.0\.0-rc1/);
   assert.doesNotMatch(llms, /private doctrine/i);
   assert.doesNotMatch(llms, BANNED);

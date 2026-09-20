@@ -232,16 +232,24 @@ export const WHAT_HE_DOES_FAQ_TEXT =
 export const WHY_AZIEL_ELIAB =
   "Aziel Eliab publishes so the record can be read: published research through the Aziel Digital Library MASTER, and Softwares / Aziel Runtime as a dual-surface forensics and audit stack — agents run software with outputs shown in the AI; the software side keeps complete human UI (Worker + mobile + download). Public identity is the work. @id https://www.azieleliab.com/#aziel";
 
+/** Softwares-list line from Worker designed-purpose one_line. */
+export function softwaresListLine(name, oneLine) {
+  return String(name || "") + " (Softwares): " + String(oneLine || "");
+}
+
 /**
  * Softwares-list cite only. Not a hardcoded catalog card.
- * Runtime ships the Whitestone entry; library refresh picks it up.
+ * one_line is Worker GET /v1/software designed-purpose (aziel-runtime#146/#148).
  */
-export const WHITESTONE_NOTE =
-  "Whitestone (Softwares): ephemeral pro se advisor. Catalog entry ships on aziel-runtime GET /v1/software; this library Softwares tab refreshes from that Worker SSoT after that merge.";
+export const WHITESTONE_NAME = "Whitestone";
+export const WHITESTONE_ONE_LINE =
+  "Advise on short Criminal, Civil, and Divorce questions with historical as-of and Case Mode (suppression axes, TrajectoryLock-lite, export, confidence labeled up to 75%). Session-only web app plus optional zip. https://whitestone.vibelock.workers.dev/";
+export const WHITESTONE_NOTE = softwaresListLine(WHITESTONE_NAME, WHITESTONE_ONE_LINE);
 
 /** Cite-only Softwares mention. Not a SOFTWARE_EXTRAS card. */
 export const WHITESTONE_CITE = Object.freeze({
-  name: "Whitestone",
+  name: WHITESTONE_NAME,
+  one_line: WHITESTONE_ONE_LINE,
   note: WHITESTONE_NOTE,
   extra_card: false,
 });
@@ -255,8 +263,8 @@ export const ARK_DOWNLOAD = "https://ark-download-tracker.vibelock.workers.dev/d
 export const ARK_STATS = "https://ark-download-tracker.vibelock.workers.dev/stats";
 
 export const ARK_NOTE =
-  "The ARK (Softwares): local deniable vault; one phrase opens one vault. "
-  + "Download " + ARK_DOWNLOAD + ". Views/Downloads counters " + ARK_STATS + ".";
+  softwaresListLine(ARK_NAME, ARK_ONE_LINE)
+  + " Download " + ARK_DOWNLOAD + ". Views/Downloads counters " + ARK_STATS + ".";
 
 /** Cite-only Softwares mention. Not a SOFTWARE_EXTRAS card. */
 export const ARK_CITE = Object.freeze({
