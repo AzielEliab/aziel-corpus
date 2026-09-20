@@ -5,6 +5,7 @@ import {
   fallbackKind,
   findProduct,
   handleRuntimeRoot,
+  RUNTIME_PROXY_TIMEOUT_MS,
   pullDescriptor,
   runtimeManifest,
   runtimeSkillMd,
@@ -372,4 +373,9 @@ test("GET health and SEO static through /runtime do not increment", async () => 
   const logged = await runtimeUsesPayload(env);
   assert.equal(logged.uses, 0);
   assert.deepEqual(logged.by_path, {});
+});
+
+test("runtime GET proxy fails fast instead of waiting on a quiet Worker SSoT", () => {
+  assert.equal(RUNTIME_PROXY_TIMEOUT_MS, 2500);
+  assert.ok(RUNTIME_PROXY_TIMEOUT_MS < 4000);
 });

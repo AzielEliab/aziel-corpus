@@ -520,7 +520,7 @@ export default {
     const signed = await getSession(env, request);
     let hostedStats = null;
     const hostedPath = url.pathname.replace(/\/+$/, "") || "/";
-    if (hostedPath === "/health" || hostedPath === "/software") {
+    if (hostedPath === "/health") {
       hostedStats = await collectStats(env);
     }
     const hosted = await handleHosted(request, url, env, ctx, signed, hostedStats);

@@ -73,9 +73,12 @@ export function asFile(value) {
   return value;
 }
 
+export const SHELF_PAGE_SIZE = 48;
+
 export function parseBrowseParams(url) {
   const sp = url && url.searchParams ? url.searchParams : new URLSearchParams();
   const libRaw = String(sp.get("lib") || "all").trim().toLowerCase() || "all";
+  const limitRaw = Number(sp.get("limit"));
   return {
     q: String(sp.get("q") || "").trim(),
     lib: libRaw === "aziel" || libRaw === "corpus" || libRaw === "all" ? libRaw : "all",
@@ -84,6 +87,8 @@ export function parseBrowseParams(url) {
     subject: String(sp.get("subject") || "").trim(),
     keyword: String(sp.get("keyword") || "").trim(),
     author: String(sp.get("author") || "").trim(),
+    offset: Math.max(0, Number(sp.get("offset") || 0) || 0),
+    limit: Math.min(Math.max(Number.isFinite(limitRaw) && limitRaw > 0 ? limitRaw : SHELF_PAGE_SIZE, 1), 300),
   };
 }
 

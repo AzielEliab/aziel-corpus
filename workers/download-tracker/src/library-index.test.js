@@ -9,6 +9,8 @@ import {
   HTML_EDGE_CACHE_CONTROL,
   SOFTWARE_HTML_CACHE_CONTROL,
   SEO_CACHE_CONTROL,
+  SOFTWARE_API_CACHE_CONTROL,
+  ASSET_CACHE_CONTROL,
   cacheMatchText,
   cachePutText,
   htmlCacheUrl,
@@ -319,9 +321,14 @@ test("GET /v1/search filters packed index even when D1 is bound", async () => {
 
 test("public HTML cache helpers share crawler and human Cache-Control", async () => {
   assert.match(HTML_CACHE_CONTROL, /s-maxage=120/);
+  assert.match(HTML_CACHE_CONTROL, /max-age=60/);
   assert.match(HTML_EDGE_CACHE_CONTROL, /max-age=3600/);
   assert.match(SOFTWARE_HTML_CACHE_CONTROL, /s-maxage=3600/);
+  assert.match(SOFTWARE_HTML_CACHE_CONTROL, /max-age=300/);
   assert.equal(SOFTWARE_HTML_CACHE_CONTROL, SEO_CACHE_CONTROL);
+  assert.match(SOFTWARE_API_CACHE_CONTROL, /max-age=120/);
+  assert.match(SOFTWARE_API_CACHE_CONTROL, /s-maxage=300/);
+  assert.match(ASSET_CACHE_CONTROL, /max-age=604800/);
   assert.match(HTML_CACHE_PREFIX, /html-home-v6$/);
   const cache = memoryCache();
   const req = new Request("https://www.azielcorpuslibrary.net/?q=Florence");

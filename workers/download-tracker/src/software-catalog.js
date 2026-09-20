@@ -10,6 +10,7 @@ import {
   RUNTIME_ORIGIN,
   RUNTIME_VERSION,
   LIBRARY_DOWNLOAD,
+  LIBRARY_V1_DOWNLOAD,
   LIBRARY_COUNT,
   softwareChip,
   softwareHubBlurb,
@@ -313,6 +314,7 @@ export function softwareTabCatalog(catalog, opts = {}) {
   if (passThrough) {
     extras = extras.concat(extrasMissingFromProducts(products, extras));
   }
+  extras = extras.map(slimSoftwareExtra);
   return {
     version: firstText(norm.version, catalog && catalog.version),
     products,
@@ -589,6 +591,21 @@ export const SOFTWARE_PASS_KEYS = [
   "surface", "software_tab", "enabled_default", "path", "spec",
 ];
 
+/** Softwares-tab JSON (`?view=tab`): card paint only. Worker one_line stays SSoT — no invented blurbs. */
+export const SOFTWARE_TAB_KEYS = [
+  "slug", "name", "one_line", "version", "kind", "github", "download",
+  "worker_home", "mcp", "status", "placement", "door", "catalog_only",
+  "extra", "count", "fraggate_engine",
+];
+
+/** extras[] card fields. Full mesh/laws blobs stay on the Worker, not the library tab JSON. */
+export const SOFTWARE_EXTRA_KEYS = [
+  "slug", "name", "one_line", "banner", "version", "status", "kind",
+  "github", "download", "download_url", "worker", "worker_home", "count",
+  "mcp", "path", "href", "url", "fraggate_engine", "catalog_only", "door",
+  "extra", "live_backends", "hosted_company_os",
+];
+
 const SOFTWARE_FALSE_KEYS = [
   "engine", "fraggate_engine", "fraggate_call", "catalog_only", "door",
   "extra", "live_backends", "hosted_company_os", "software_tab", "enabled_default",
@@ -613,6 +630,82 @@ export function slimSoftwareProduct(raw) {
     if (mapped[key] === false) out[key] = false;
   }
   return out;
+}
+
+function pickScalarFields(raw, keys) {
+  if (!raw || typeof raw !== "object") return raw;
+  const out = {};
+  for (const key of keys) {
+    if (raw[key] == null) continue;
+    if (raw[key] === "" && !SOFTWARE_FALSE_KEYS.includes(key)) continue;
+    const t = typeof raw[key];
+    if (t === "string" || t === "number" || t === "boolean") out[key] = raw[key];
+  }
+  for (const key of SOFTWARE_FALSE_KEYS) {
+    if (raw[key] === false) out[key] = false;
+  }
+  return out;
+}
+
+/** extras[] for the library catalog. Drops nested mesh/laws objects (12KB+). */
+export function slimSoftwareExtra(raw) {
+  if (typeof raw === "string") {
+    const slug = canonicalSoftwareSlug(raw);
+    return slug ? { slug, extra: true } : raw;
+  }
+  return pickScalarFields(Object.assign({ extra: true }, raw || {}), SOFTWARE_EXTRA_KEYS);
+}
+
+/** Softwares-tab paint card. Worker one_line only — do not invent purpose copy. */
+export function tabSoftwareProduct(raw) {
+  return pickScalarFields(slimSoftwareProduct(raw), SOFTWARE_TAB_KEYS);
+}
+
+export function isTabSoftwareView(view) {
+  const v = String(view || "").toLowerCase();
+  return v === "tab" || v === "cards";
+}
+
+/** Public corpus /v1/software body. Worker GET /v1/software stays SSoT. */
+export function publicSoftwarePayload(live, opts = {}) {
+  const catalog = (live && live.catalog) || {};
+  const workerSsot = isWorkerSoftwareSource(live && live.source);
+  const tab = softwareTabCatalog(catalog, { passThrough: workerSsot });
+  const tabView = isTabSoftwareView(opts.view);
+  const products = tabView ? tab.products.map(tabSoftwareProduct) : tab.products;
+  const extras = (tab.extras || []).map(slimSoftwareExtra);
+  const corpus = tab.products.find((p) => p.slug === "aziel-corpus");
+  const payload = {
+    ok: true,
+    source: workerSsot ? "live" : (live && live.source) || "empty",
+    via: (live && live.via) || (workerSsot ? SOFTWARE_LIVE_PATH : live && live.source === "fraggate/list" ? FRAGGATE_LIST_PATH : null),
+    catalog: RUNTIME_ORIGIN + SOFTWARE_LIVE_PATH,
+    catalog_fallback: RUNTIME_ORIGIN + FRAGGATE_LIST_PATH,
+    origin: RUNTIME_ORIGIN + SOFTWARE_LIVE_PATH,
+    fallback: RUNTIME_ORIGIN + FRAGGATE_LIST_PATH,
+    git_sha: (live && live.git_sha) || tab.git_sha || catalog.git_sha || "",
+    version: tab.version || catalog.version || RUNTIME_VERSION,
+    author: "Aziel Eliab",
+    identity: "Aziel Eliab",
+    count: products.length,
+    live_count: tab.live_count || products.length,
+    framing: tab.framing || "",
+    sort_law: tab.sort_law || "",
+    products,
+    extras,
+    download_url: (corpus && (corpus.download_url || corpus.download)) || LIBRARY_DOWNLOAD,
+    v1_download: LIBRARY_V1_DOWNLOAD,
+    install: LIBRARY_DOWNLOAD.replace(/\/download$/, "/install.sh"),
+  };
+  if (!tabView) {
+    payload.software = products;
+    payload.engines = tab.engines;
+    payload.engine_slugs = tab.engine_slugs;
+    payload.true_engine_slugs = tab.true_engine_slugs;
+  } else {
+    payload.view = "tab";
+  }
+  return payload;
 }
 
 function withTimeout(promise, ms) {
@@ -813,7 +906,7 @@ export async function fetchLiveSoftwareCatalog(env, opts = {}) {
   const fetchMs = timeoutMs > 0 ? timeoutMs : SOFTWARE_CRAWL_TIMEOUT_MS;
   if (opts.preferCache) {
     const cached = await readCachedSoftwareCatalog({ workerOnly: true });
-    if (cached) return cached;
+    if (cached) return Object.assign({}, cached, { fromCache: true });
   }
 
   const run = async () => {
