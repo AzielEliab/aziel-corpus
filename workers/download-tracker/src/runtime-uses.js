@@ -170,6 +170,7 @@ export function runtimeUsesResponse(body) {
       "Cache-Control": "no-store",
       ...corsHeaders(),
       "X-Aziel-Runtime-Via": RUNTIME_VIA,
+      "X-Aziel-Runtime-Host": RUNTIME_USES_HOST,
       "X-Aziel-Runtime-Root": HOST + "/runtime",
     },
   });

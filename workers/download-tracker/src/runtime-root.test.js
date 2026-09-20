@@ -13,6 +13,7 @@ import {
 import { llmsDoc } from "./crawl.js";
 import {
   RUNTIME_VIA,
+  RUNTIME_USES_HOST,
   shouldCountRuntimeUse,
   recordRuntimeUse,
   runtimeUsesPayload,
@@ -307,6 +308,7 @@ test("GET /runtime/v1/uses is local and does not increment", async () => {
   assert.equal(res.status, 200);
   assert.match(res.headers.get("cache-control") || "", /no-store/);
   assert.equal(res.headers.get("x-aziel-runtime-via"), RUNTIME_VIA);
+  assert.equal(res.headers.get("x-aziel-runtime-host"), RUNTIME_USES_HOST);
   const body = await res.json();
   assert.equal(body.ok, true);
   assert.equal(body.host, "www.azielcorpuslibrary.net");
@@ -345,12 +347,46 @@ test("API traffic through /runtime increments KV and stamps X-Aziel-Runtime-Via 
   );
   assert.equal(res.status, 200);
   assert.ok(proxied);
-  assert.equal(proxied.headers.get("X-Aziel-Runtime-Via"), "azielcorpuslibrary.net");
+  assert.equal(proxied.headers.get("X-Aziel-Runtime-Via"), RUNTIME_VIA);
+  assert.equal(proxied.headers.get("X-Aziel-Runtime-Host"), RUNTIME_USES_HOST);
+  assert.equal(res.headers.get("X-Aziel-Runtime-Via"), RUNTIME_VIA);
+  assert.equal(res.headers.get("X-Aziel-Runtime-Host"), RUNTIME_USES_HOST);
+  assert.equal(res.headers.get("X-Aziel-Runtime-Root"), "https://www.azielcorpuslibrary.net/runtime");
   const logged = await runtimeUsesPayload(env);
   assert.equal(logged.uses, 1);
   assert.equal(logged.by_path["/runtime/v1/fraggate/list"], 1);
   assert.equal(logged.recent[0].path, "/runtime/v1/fraggate/list");
   assert.equal(logged.recent[0].method, "GET");
+});
+
+test("proxied /runtime responses keep host Via/Host, not hop type", async () => {
+  const prev = globalThis.fetch;
+  let proxied;
+  globalThis.fetch = async (url, init) => {
+    proxied = new Request(url, init);
+    return new Response(JSON.stringify({ ok: true, version: "2.0.0-rc1" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+  try {
+    const res = await handleRuntimeRoot(
+      new Request("https://www.azielcorpuslibrary.net/runtime/v1/health"),
+      new URL("https://www.azielcorpuslibrary.net/runtime/v1/health"),
+      {},
+      null
+    );
+    assert.equal(res.status, 200);
+    assert.ok(proxied);
+    assert.equal(res.headers.get("X-Aziel-Runtime-Via"), RUNTIME_VIA);
+    assert.equal(res.headers.get("X-Aziel-Runtime-Host"), RUNTIME_USES_HOST);
+    assert.notEqual(res.headers.get("X-Aziel-Runtime-Via"), "origin-fetch");
+    assert.notEqual(res.headers.get("X-Aziel-Runtime-Via"), "service-binding");
+    assert.equal(proxied.headers.get("X-Aziel-Runtime-Via"), RUNTIME_VIA);
+    assert.equal(proxied.headers.get("X-Aziel-Runtime-Host"), RUNTIME_USES_HOST);
+  } finally {
+    globalThis.fetch = prev;
+  }
 });
 
 test("GET health and SEO static through /runtime do not increment", async () => {

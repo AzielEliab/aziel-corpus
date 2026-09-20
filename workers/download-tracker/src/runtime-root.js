@@ -31,6 +31,7 @@ import {
 } from "./runtime-copy.js";
 import {
   RUNTIME_VIA,
+  RUNTIME_USES_HOST,
   noteRuntimeUse,
   runtimeUsesPayload,
   runtimeUsesResponse,
@@ -292,14 +293,21 @@ function dropHopHeaders(headers) {
     out.set(k, v);
   }
   if (!out.get("User-Agent")) out.set("User-Agent", UA);
+  // Host labels for aziel-runtime /v1/uses by_host — not hop type (service-binding).
   out.set("X-Aziel-Runtime-Via", RUNTIME_VIA);
+  out.set("X-Aziel-Runtime-Host", RUNTIME_USES_HOST);
   return out;
 }
 
-function decorate(res, via) {
-  const headers = new Headers(res.headers);
+function stampRuntimeHostHeaders(headers) {
   headers.set("X-Aziel-Runtime-Root", HOST + "/runtime");
-  headers.set("X-Aziel-Runtime-Via", via);
+  headers.set("X-Aziel-Runtime-Via", RUNTIME_VIA);
+  headers.set("X-Aziel-Runtime-Host", RUNTIME_USES_HOST);
+  return headers;
+}
+
+function decorate(res, _hop) {
+  const headers = stampRuntimeHostHeaders(new Headers(res.headers));
   for (const [k, v] of Object.entries(corsHeaders())) {
     if (!headers.has(k)) headers.set(k, v);
   }
@@ -320,7 +328,7 @@ async function fallbackResponse(request, kind) {
   if (kind === "skill") {
     return respondMaybeHead(request, new Response(runtimeSkillMd(), {
       status: 200,
-      headers: { "Content-Type": "text/markdown; charset=utf-8", ...corsHeaders(), "X-Aziel-Runtime-Via": "library-fallback" },
+      headers: stampRuntimeHostHeaders(new Headers({ "Content-Type": "text/markdown; charset=utf-8", ...corsHeaders() })),
     }));
   }
   if (kind && (kind.kind === "pull" || kind.kind === "bundle")) {
