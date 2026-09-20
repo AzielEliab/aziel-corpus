@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { CSS, page, donateStripHtml, aboutBody, whoBody, howItsScoredBody, patternBody, softwareBody, runtimeBody, azielLibraryBody, homeBody, homeSearchActive, corpusBody, uploadBody, brandMarkHtml, authBarHtml, sigilNavHtml, trendingHtml, LCP_FOLD, splitLcpHtml, cardExcerpt, CARD_EXCERPT_CHARS, chipLabel, exploreRowHtml, startPathsHtml, agentsTabHtml, EXPLORE_LINKS } from "../workers/download-tracker/src/ui.js";
+import { CSS, page, donateStripHtml, aboutBody, whoBody, howItsScoredBody, patternBody, softwareBody, runtimeBody, azielLibraryBody, homeBody, homeSearchActive, corpusBody, uploadBody, brandMarkHtml, authBarHtml, brandCountPills, sigilNavHtml, trendingHtml, LCP_FOLD, splitLcpHtml, cardExcerpt, CARD_EXCERPT_CHARS, chipLabel, exploreRowHtml, startPathsHtml, agentsTabHtml, EXPLORE_LINKS } from "../workers/download-tracker/src/ui.js";
 import { recordBody } from "../workers/download-tracker/src/hosted-pages.js";
 import { guestSession, isOperator, libraryFor, quarantineHiddenFromPublic, ingestRecord, searchRecords } from "../workers/download-tracker/src/library.js";
 import { ocrPageBody, mapBody, treeBody, historicalBody, intelligenceBody, SPECTRAL_LENSES } from "../workers/download-tracker/src/hosted-pages.js";
@@ -154,8 +154,16 @@ test("homepage brandrow is Aziel Corpus Library with Upload, Login, and Sign up"
   assert.doesNotMatch(auth, />Agents</);
   assert.doesNotMatch(html.match(/<nav class="nav2 quiet"[^>]*>[\s\S]*?<\/nav>/)[0], />Agents</);
   assert.match(html, /class="agents-tab"/);
-  assert.doesNotMatch(html, /id="views"/);
-  assert.doesNotMatch(html, /id="downloads"/);
+  const bar = html.match(/<div class="statbar"[^>]*>[\s\S]*?<\/div>/)[0];
+  assert.match(bar, /id="views">380,386</);
+  assert.match(bar, /id="downloads">2,199</);
+  assert.match(bar, />Views</);
+  assert.match(bar, />Downloads</);
+  assert.match(bar, /class="pill stat-counter"/);
+  assert.doesNotMatch(bar, /<a /);
+  assert.doesNotMatch(bar, /<button/);
+  assert.doesNotMatch(bar, /href=/);
+  assert.doesNotMatch(bar, /class="button"/);
   assert.doesNotMatch(html, /id="aziel-live-nodes"/);
   assert.doesNotMatch(html, /anyone can view/);
   assert.doesNotMatch(html, /Runtime v/);
@@ -163,9 +171,38 @@ test("homepage brandrow is Aziel Corpus Library with Upload, Login, and Sign up"
   assert.doesNotMatch(html, /<a class="brand"[^>]*>Aziel Digital Library/);
   const brand = html.indexOf("class=\"brandrow");
   const authAt = html.indexOf('class="authbar"');
+  const statsAt = html.indexOf('class="statbar"');
   const hero = html.indexOf("Search the libraries");
   assert.ok(brand >= 0 && authAt > brand && hero > authAt, "auth cluster sits in the header above the hero");
+  assert.ok(statsAt > authAt && statsAt < hero, "views/downloads counter sits top-right in the header");
   assert.match(CSS, /\.authbar\{/);
+  assert.match(CSS, /\.statbar\{/);
+  assert.match(CSS, /\.stat-counter\{/);
+});
+
+test("homepage views/downloads counter is a display, not a button", () => {
+  const pills = brandCountPills({ views: 380386, downloads: 2199 });
+  assert.match(pills, /class="statbar"/);
+  assert.match(pills, /role="status"/);
+  assert.match(pills, /aria-label="Library views and downloads"/);
+  assert.match(pills, /id="views">380,386</);
+  assert.match(pills, /id="downloads">2,199</);
+  assert.match(pills, /Views/);
+  assert.match(pills, /Downloads/);
+  assert.match(pills, /class="stat-sep"/);
+  assert.doesNotMatch(pills, /<a /);
+  assert.doesNotMatch(pills, /<button/);
+  assert.doesNotMatch(pills, /href=/);
+  assert.doesNotMatch(pills, /class="button"/);
+  assert.doesNotMatch(pills, /id="aziel-live-nodes"/);
+  assert.equal(brandCountPills({}), "");
+  assert.match(brandCountPills({ views: 0, downloads: 0 }), /id="views">0</);
+  const other = page("Software", softwareBody({
+    products: [{ name: "aziel-runtime", version: "catalog", root: true, blurb: "Root source", links: [{ href: "/runtime", label: "Site front door", primary: true }] }],
+  }), { path: "/software", kind: "software", views: 9, downloads: 2 });
+  assert.doesNotMatch(other, /id="views"/);
+  assert.doesNotMatch(other, /id="downloads"/);
+  assert.doesNotMatch(other, /class="statbar"/);
 });
 
 test("homepage LCP fold keeps hero first and leaves entity-graph plus doors intact", () => {
@@ -216,8 +253,9 @@ test("homepage LCP fold keeps hero first and leaves entity-graph plus doors inta
   assert.doesNotMatch(html, /Nothing is free\. Static Donate door/);
   assert.doesNotMatch(html, /Part of the Aziel Eliab ecosystem/);
   assert.match(html, /fetchpriority="high"/);
-  assert.doesNotMatch(html, /id="views"/);
-  assert.doesNotMatch(html, /id="downloads"/);
+  assert.match(html, /id="views">12</);
+  assert.match(html, /id="downloads">3</);
+  assert.match(html, /class="statbar"/);
   assert.doesNotMatch(html, /id="aziel-live-nodes"/);
   assert.match(html, /id="jeevesFab"/);
   assert.match(html, /"@type":"CollectionPage"/);
