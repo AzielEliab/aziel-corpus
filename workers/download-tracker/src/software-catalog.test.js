@@ -35,6 +35,9 @@ import {
   catalogCopyLooksStale,
   mapSoftwareProduct,
   slimSoftwareProduct,
+  slimSoftwareExtra,
+  tabSoftwareProduct,
+  publicSoftwarePayload,
   isWorkerSoftwareSource,
 } from "./software-catalog.js";
 import { SPECTRALLOCK_ONE_LINE } from "./spectrallock.js";
@@ -1441,4 +1444,115 @@ test("Worker software[] stays SSoT even when one_line still says THIS-IS", async
   } finally {
     globalThis.fetch = origFetch;
   }
+});
+
+test("slimSoftwareExtra drops nested mesh laws and keeps status/path", () => {
+  const slim = slimSoftwareExtra({
+    slug: "mesh",
+    name: "Quantum Node Mesh",
+    kind: "kernel",
+    extra: true,
+    status: "https://aziel-runtime.vibelock.workers.dev/v1/mesh/status",
+    path: "/v1/mesh",
+    about: "long laws blob",
+    nine_laws: { count: 9, operator_armed: true },
+    auto_heal: true,
+    lie_to_survive: false,
+  });
+  assert.equal(slim.slug, "mesh");
+  assert.match(String(slim.status), /mesh\/status/);
+  assert.equal(slim.path, "/v1/mesh");
+  assert.equal(slim.about, undefined);
+  assert.equal(slim.nine_laws, undefined);
+  assert.equal(slim.auto_heal, undefined);
+});
+
+test("GET /v1/software caches Worker SSoT and view=tab shrinks the tab payload", async () => {
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = blockLiveRuntime(origFetch);
+  const env = stubEnv({
+    async fetch(request) {
+      const url = new URL(request.url);
+      if (url.pathname.endsWith("/software")) {
+        return new Response(JSON.stringify({
+          version: "2.0.0-rc1",
+          software: [
+            {
+              slug: "whitestone",
+              name: "Whitestone",
+              one_line: "Ephemeral pro se advisor.",
+              description: "A much longer description that the Softwares tab does not need to paint.",
+              engine_digest: "a".repeat(64),
+              git_sha: "b".repeat(40),
+              download: "https://whitestone-download-tracker.vibelock.workers.dev/download",
+              download_url: "https://whitestone-download-tracker.vibelock.workers.dev/download",
+            },
+          ],
+          mesh: {
+            status: "https://aziel-runtime.vibelock.workers.dev/v1/mesh/status",
+            about: "nested",
+            nine_laws: { count: 9 },
+          },
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      return new Response(JSON.stringify({ error: "not found" }), { status: 404 });
+    },
+  });
+  try {
+    const full = await handleRuntimeApi(
+      new Request(HOST + "/v1/software", { headers: { Accept: "application/json" } }),
+      new URL(HOST + "/v1/software"),
+      env
+    );
+    assert.equal(full.status, 200);
+    assert.match(full.headers.get("cache-control") || "", /max-age=120/);
+    assert.match(full.headers.get("cache-control") || "", /s-maxage=300/);
+    const fullBody = await full.json();
+    assert.equal(fullBody.source, "live");
+    assert.equal(fullBody.via, "/v1/software");
+    assert.ok(Array.isArray(fullBody.software));
+    assert.ok(fullBody.products.some((p) => p.slug === "whitestone"));
+    const mesh = fullBody.extras.find((e) => e.slug === "mesh");
+    assert.ok(mesh);
+    assert.equal(mesh.nine_laws, undefined);
+    assert.equal(mesh.about, undefined);
+
+    const tab = await handleRuntimeApi(
+      new Request(HOST + "/v1/software?view=tab", { headers: { Accept: "application/json" } }),
+      new URL(HOST + "/v1/software?view=tab"),
+      env
+    );
+    const tabBody = await tab.json();
+    assert.equal(tabBody.view, "tab");
+    assert.equal(tabBody.software, undefined);
+    const card = tabBody.products.find((p) => p.slug === "whitestone");
+    assert.equal(card.one_line, "Ephemeral pro se advisor.");
+    assert.equal(card.description, undefined);
+    assert.equal(card.engine_digest, undefined);
+    assert.equal(card.git_sha, undefined);
+    const fullBytes = JSON.stringify(fullBody).length;
+    const tabBytes = JSON.stringify(tabBody).length;
+    assert.ok(tabBytes < fullBytes, "tab view must be smaller than the default catalog");
+    const packed = publicSoftwarePayload({ catalog: { software: fullBody.products }, source: "live", via: "/v1/software" }, { view: "tab" });
+    assert.equal(packed.view, "tab");
+    assert.ok(tabSoftwareProduct(card).slug === "whitestone");
+  } finally {
+    globalThis.fetch = origFetch;
+  }
+});
+
+test("softwareBody streams Gate/Lock after the LCP fold", () => {
+  const html = softwareBody({
+    hub: { name: "aziel-runtime", root: true, slug: "aziel-runtime", blurb: "door", links: [] },
+    products: [{ slug: "azmail", name: "AZMail", kind: "plain", blurb: "Mail.", links: [] }],
+  });
+  assert.match(html, /data-softwares="1"/);
+  assert.match(html, /<h1>Softwares<\/h1>\s*<\/section>\s*<section class="soft-section"><h2>Software<\/h2>/);
+  const foldAt = html.indexOf("<!--az-lcp-fold-->");
+  const gateAt = html.indexOf("<h2>Gate</h2>");
+  const lockAt = html.indexOf("<h2>Lock</h2>");
+  assert.ok(foldAt > 0);
+  assert.ok(gateAt < 0 || foldAt < gateAt);
+  assert.ok(lockAt < 0 || foldAt < lockAt);
+  assert.match(html, /\/v1\/software\?view=tab/);
 });

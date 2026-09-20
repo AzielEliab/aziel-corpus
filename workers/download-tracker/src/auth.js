@@ -1,10 +1,18 @@
 import { scryptSync, randomBytes, timingSafeEqual } from "node:crypto";
 import { json, corsHeaders } from "./runtime.js";
-import { page, pwField, azielLibraryBody, corpusBody, homeBody, uploadBody } from "./ui.js";
+import { page, pwField, azielLibraryBody, corpusBody, homeBody, uploadBody, streamLcpHtml } from "./ui.js";
 import { isOperator, ingestRecord, searchRecords, listFacets, parseBrowseParams, asFile, guestSession } from "./library.js";
 import { extractEventsForRecord } from "./geo.js";
 import { ocrIngestHint } from "./ocr.js";
-import { collectStats, refreshPackedIndex, HTML_CACHE_CONTROL } from "./library-index.js";
+import {
+  collectStats,
+  refreshPackedIndex,
+  HTML_CACHE_CONTROL,
+  HTML_EDGE_CACHE_CONTROL,
+  htmlCacheUrl,
+  cacheMatchText,
+  cachePutText,
+} from "./library-index.js";
 
 function fileCountsFromStats(stats) {
   if (!stats) return {};
@@ -112,6 +120,64 @@ async function afterIngest(env, rec, ctx) {
   }
 }
 
+async function renderShelfHtml(env, signed, browse, spec) {
+  const [rows, facets, counts] = await Promise.all([
+    searchRecords(env, {
+      q: browse.q,
+      library: spec.library,
+      sort: browse.sort,
+      author: browse.author,
+      domain: browse.domain,
+      subject: browse.subject,
+      keyword: browse.keyword,
+      limit: browse.limit,
+      offset: browse.offset,
+      includeQuarantine: spec.includeQuarantine,
+    }),
+    listFacets(env, { library: spec.library }),
+    packedFileCounts(env),
+  ]);
+  return page(spec.title, spec.render({
+    rows,
+    facets,
+    ...browse,
+    lib: spec.library,
+    signed,
+    ...counts,
+  }), { signed, path: spec.path, kind: spec.kind });
+}
+
+async function serveShelfPage(request, url, env, ctx, signed, spec) {
+  const browse = parseBrowseParams(url);
+  if (request.method === "HEAD") {
+    return html("", { signed, head: true });
+  }
+  const cacheUrl = htmlCacheUrl(request);
+  if (!signed) {
+    const cached = await cacheMatchText(cacheUrl);
+    if (cached) {
+      if (ctx && typeof ctx.waitUntil === "function") {
+        ctx.waitUntil((async () => {
+          try {
+            const fresh = await renderShelfHtml(env, signed, browse, spec);
+            await cachePutText(cacheUrl, fresh, undefined, { cacheControl: HTML_EDGE_CACHE_CONTROL });
+          } catch { /* optional */ }
+        })());
+      }
+      return html(streamLcpHtml(cached), { signed });
+    }
+  }
+  const body = await renderShelfHtml(env, signed, browse, spec);
+  if (!signed) {
+    if (ctx && typeof ctx.waitUntil === "function") {
+      ctx.waitUntil(cachePutText(cacheUrl, body, undefined, { cacheControl: HTML_EDGE_CACHE_CONTROL }));
+    } else {
+      await cachePutText(cacheUrl, body, undefined, { cacheControl: HTML_EDGE_CACHE_CONTROL });
+    }
+  }
+  return html(streamLcpHtml(body), { signed });
+}
+
 export async function handleAuth(request, url, env, ctx) {
   const path = url.pathname.replace(/\/+$/, "") || "/";
   const signed = await getSession(env, request);
@@ -173,11 +239,14 @@ export async function handleAuth(request, url, env, ctx) {
   }
 
   if (path === "/aziel-library" && (request.method === "GET" || request.method === "HEAD")) {
-    const browse = parseBrowseParams(url);
-    const rows = request.method === "HEAD" ? [] : await searchRecords(env, { q: browse.q, library: "aziel", sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300, includeQuarantine: isOperator(signed) });
-    const facets = request.method === "HEAD" ? {} : await listFacets(env, { library: "aziel" });
-    const counts = request.method === "HEAD" ? {} : await packedFileCounts(env);
-    return html(page("Aziel Library", azielLibraryBody({ rows, facets, ...browse, lib: "aziel", signed, ...counts }), { signed, path: "/aziel-library", kind: "aziel-library" }), { signed, head: request.method === "HEAD" });
+    return serveShelfPage(request, url, env, ctx, signed, {
+      path: "/aziel-library",
+      title: "Aziel Library",
+      kind: "aziel-library",
+      library: "aziel",
+      includeQuarantine: isOperator(signed),
+      render: (model) => azielLibraryBody(model),
+    });
   }
   if (path === "/aziel-library" && request.method === "POST") {
     if (!signed) return loginGate(signed, "Operator sign-in is required for Aziel Library upload.");
@@ -204,11 +273,14 @@ export async function handleAuth(request, url, env, ctx) {
   }
 
   if (path === "/corpus" && (request.method === "GET" || request.method === "HEAD")) {
-    const browse = parseBrowseParams(url);
-    const rows = request.method === "HEAD" ? [] : await searchRecords(env, { q: browse.q, library: "corpus", sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300 });
-    const facets = request.method === "HEAD" ? {} : await listFacets(env, { library: "corpus" });
-    const counts = request.method === "HEAD" ? {} : await packedFileCounts(env);
-    return html(page("Corpus library", corpusBody({ signed, rows, facets, ...browse, lib: "corpus", ...counts }), { signed, path: "/corpus", kind: "corpus" }), { signed, head: request.method === "HEAD" });
+    return serveShelfPage(request, url, env, ctx, signed, {
+      path: "/corpus",
+      title: "Corpus library",
+      kind: "corpus",
+      library: "corpus",
+      includeQuarantine: false,
+      render: (model) => corpusBody(model),
+    });
   }
 
   if (path === "/upload" && (request.method === "GET" || request.method === "HEAD")) {

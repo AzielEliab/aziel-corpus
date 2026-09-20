@@ -32,10 +32,7 @@ import { RUNTIME_VERSION, RUNTIME_NOTE, runtimeHowTo, AI_CLIENTS, LIBRARY_DOWNLO
 import { checkLibraryUpdate, LIBRARY_SLUG, LIBRARY_VERSION } from "./update-check.js";
 import {
   fetchLiveSoftwareCatalog,
-  softwareTabCatalog,
-  isWorkerSoftwareSource,
-  SOFTWARE_LIVE_PATH,
-  FRAGGATE_LIST_PATH,
+  publicSoftwarePayload,
   SOFTWARE_API_TIMEOUT_MS,
 } from "./software-catalog.js";
 import { handleV1Download, serveSoftwareAsset, LIBRARY_INSTALL } from "./software-download.js";
@@ -45,6 +42,7 @@ import {
   LIBRARY_INDEX_KEY,
   PUBLIC_CACHE_CONTROL,
   SEARCH_CACHE_CONTROL,
+  SOFTWARE_API_CACHE_CONTROL,
   collectStats,
   packedRecordCounts,
   libraryHealthFields,
@@ -330,37 +328,12 @@ export async function handleRuntimeApi(request, url, env, ctx) {
     return serveSoftwareAsset(request, env, url.searchParams.get("asset"));
   }
   if (path === "/v1/software" && (request.method === "GET" || request.method === "HEAD")) {
-    const live = await fetchLiveSoftwareCatalog(env, { preferCache: false, skipEnrich: true, timeoutMs: SOFTWARE_API_TIMEOUT_MS });
-    const workerSsot = isWorkerSoftwareSource(live.source);
-    const tab = softwareTabCatalog(live.catalog, { passThrough: workerSsot });
-    const corpus = tab.products.find((p) => p.slug === "aziel-corpus");
-    const res = json({
-      ok: true,
-      source: workerSsot ? "live" : live.source,
-      via: live.via || (workerSsot ? SOFTWARE_LIVE_PATH : live.source === "fraggate/list" ? FRAGGATE_LIST_PATH : null),
-      catalog: CATALOG + SOFTWARE_LIVE_PATH,
-      catalog_fallback: CATALOG + FRAGGATE_LIST_PATH,
-      origin: CATALOG + SOFTWARE_LIVE_PATH,
-      fallback: CATALOG + FRAGGATE_LIST_PATH,
-      git_sha: live.git_sha || tab.git_sha || (live.catalog && live.catalog.git_sha) || "",
-      version: tab.version || (live.catalog && live.catalog.version) || RUNTIME_VERSION,
-      author: "Aziel Eliab",
-      identity: "Aziel Eliab",
-      count: tab.products.length,
-      live_count: tab.live_count || tab.products.length,
-      framing: tab.framing || "",
-      sort_law: tab.sort_law || "",
-      products: tab.products,
-      extras: tab.extras,
-      software: tab.products,
-      download_url: (corpus && (corpus.download_url || corpus.download)) || LIBRARY_DOWNLOAD,
-      v1_download: LIBRARY_V1_DOWNLOAD,
-      install: LIBRARY_INSTALL,
-      engines: tab.engines,
-      engine_slugs: tab.engine_slugs,
-      true_engine_slugs: tab.true_engine_slugs,
-    });
-    res.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
+    const live = await fetchLiveSoftwareCatalog(env, { preferCache: true, skipEnrich: true, timeoutMs: SOFTWARE_API_TIMEOUT_MS });
+    if (live && live.fromCache && ctx && typeof ctx.waitUntil === "function") {
+      ctx.waitUntil(fetchLiveSoftwareCatalog(env, { preferCache: false, skipEnrich: true, timeoutMs: SOFTWARE_API_TIMEOUT_MS }).catch(() => null));
+    }
+    const res = json(publicSoftwarePayload(live, { view: url.searchParams.get("view") }));
+    res.headers.set("Cache-Control", SOFTWARE_API_CACHE_CONTROL);
     if (request.method === "HEAD") return new Response(null, { status: res.status, headers: res.headers });
     return res;
   }

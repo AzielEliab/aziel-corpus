@@ -1,4 +1,4 @@
-import { page, patternBody, softwareBody, aboutBody, whoBody, howItsScoredBody } from "./ui.js";
+import { page, patternBody, softwareBody, aboutBody, whoBody, howItsScoredBody, streamLcpHtml } from "./ui.js";
 import { recordDescription, ABOUT_PATH, ABOUT_NAV_LABEL, FORENSICS_PATH, WHO_PATH, aboutRedirectFrom, forensicsRedirectFrom } from "./seo.js";
 import { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, blockedAvBody } from "./hosted-pages.js";
 import { json, corsHeaders } from "./runtime.js";
@@ -35,6 +35,7 @@ import {
   HTML_CACHE_CONTROL,
   SOFTWARE_HTML_CACHE_CONTROL,
   SEO_CACHE_CONTROL,
+  ASSET_CACHE_CONTROL,
   htmlCacheUrl,
   cacheMatchText,
   cachePutText,
@@ -109,7 +110,7 @@ async function assetFromPublic(env, request, name, contentType) {
   if (!res.ok) return json({ error: "asset not hosted", asset: name, status: res.status }, 404);
   const headers = new Headers();
   headers.set("Content-Type", contentType);
-  headers.set("Cache-Control", "public, max-age=86400");
+  headers.set("Cache-Control", ASSET_CACHE_CONTROL);
   const len = res.headers.get("Content-Length");
   if (len) headers.set("Content-Length", len);
   for (const [k, v] of Object.entries(corsHeaders())) headers.set(k, v);
@@ -537,7 +538,7 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
         keywords: row.keywords,
         domain: row.domain,
         content_sha256: row.content_sha256,
-        content: row.body,
+        content: String(row.snippet || row.body || "").replace(/\s+/g, " ").trim().slice(0, 400),
       },
     }));
   }
@@ -595,7 +596,7 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
             } catch { /* refresh optional */ }
           })());
         }
-        return html(cached, { cacheControl });
+        return html(streamLcpHtml(cached), { cacheControl });
       }
     }
     const body = await render({
@@ -626,7 +627,7 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
         await cachePutText(cacheUrl, body, undefined, { cacheControl });
       }
     }
-    return html(body, { cacheControl });
+    return html(streamLcpHtml(body), { cacheControl });
   }
   if (path === "/how-its-scored" && read) {
     return pageHtml(page("How it's scored", howItsScoredBody(), { signed, path: "/how-its-scored", kind: "scored" }));

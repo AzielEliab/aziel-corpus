@@ -256,6 +256,7 @@ label.showpw{font-size:14px;color:var(--muted);white-space:nowrap;min-height:44p
 .soft-section{margin:22px 0 8px}
 .soft-section h2{margin:0 0 8px;font-size:18px;letter-spacing:-.02em;color:var(--ink)}
 .soft-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
+.soft-card{content-visibility:auto;contain-intrinsic-size:auto 220px}
 .soft-card.featured{border-color:var(--royal);box-shadow:inset 3px 0 0 var(--royal)}
 .soft-card.door{border-color:var(--gold)}
 .soft-card.catalog-only{border-style:dashed}
@@ -508,6 +509,8 @@ function libTag(library) {
   return `<span class="lib-tag ${lib}">${label}</span>`;
 }
 
+export const SHELF_PAGE_SIZE = 48;
+
 function browseState(opts = {}) {
   return {
     q: String(opts.q || "").trim(),
@@ -517,19 +520,21 @@ function browseState(opts = {}) {
     subject: String(opts.subject || "").trim(),
     keyword: String(opts.keyword || "").trim(),
     author: String(opts.author || "").trim(),
+    offset: Math.max(0, Number(opts.offset) || 0),
   };
 }
 
 function browseHref(path, state, extra = {}) {
   const merged = { ...browseState(state), ...extra };
   const sp = new URLSearchParams();
-  for (const key of ["q", "lib", "sort", "domain", "subject", "keyword", "author"]) {
+  for (const key of ["q", "lib", "sort", "domain", "subject", "keyword", "author", "offset"]) {
     let v = merged[key];
     if (v == null) continue;
     v = String(v).trim();
     if (!v) continue;
     if (key === "lib" && (v === "all" || path !== "/")) continue;
     if (key === "sort" && v === "newest") continue;
+    if (key === "offset" && v === "0") continue;
     sp.set(key, v);
   }
   const qs = sp.toString();
@@ -738,6 +743,12 @@ export function libraryFileCountHtml({ records_packed, records_aziel, records_co
   return `<p class="library-count" ${attrs.join(" ")}><strong>${formatFileCount(total)}</strong> files in the libraries${extra}.</p>`;
 }
 
+function shelfMoreHtml(path, state, rows, pageSize = SHELF_PAGE_SIZE) {
+  if (!rows || rows.length < pageSize) return "";
+  const next = (Number(state && state.offset) || 0) + pageSize;
+  return `<p class="empty-actions"><a class="button ghost" href="${esc(browseHref(path, state, { offset: next }))}">More records</a></p>`;
+}
+
 function emptyShelfHtml(path = "/") {
   const here = String(path || "/");
   const browse = here === "/aziel-library"
@@ -887,7 +898,9 @@ ${metaInputs({ authorPlaceholder: "Aziel Eliab" })}
 ${browseTools({ action: "/aziel-library", showLibChips: false, ...state })}
 ${facetBlock(facets, state, "/aziel-library")}
 ${upload}
-${docCards(rows, state, "/aziel-library")}`;
+${LCP_FOLD}
+${docCards(rows, state, "/aziel-library")}
+${shelfMoreHtml("/aziel-library", state, rows)}`;
 }
 
 export function corpusBody({ signed, rows, error, q, sort, domain, subject, keyword, author, facets, records_packed, records_aziel, records_corpus } = {}) {
@@ -917,7 +930,9 @@ ${metaInputs({ authorPlaceholder: "Author" })}
 ${browseTools({ action: "/corpus", showLibChips: false, ...state })}
 ${facetBlock(facets, state, "/corpus")}
 ${form}
-${docCards(rows, state, "/corpus")}`;
+${LCP_FOLD}
+${docCards(rows, state, "/corpus")}
+${shelfMoreHtml("/corpus", state, rows)}`;
 }
 
 export function stub(title, lead) {
@@ -1120,13 +1135,51 @@ export function softwareBody(model = {}) {
   }
   if (hub) groups.plain.unshift(hub);
   const chip = softwareChip();
-  return `<section class="hero"><h1>Softwares</h1></section>
+  return `<section class="hero" data-softwares="1"><h1>Softwares</h1></section>
 ${softSection("Software", groups.plain)}
+${LCP_FOLD}
 ${softSection("Gate", groups.gate)}
 ${softSection("Lock", groups.lock)}
 <div class="card"><p class="soft-links runtime-dist">${runtimeDistributionButtons()}</p>
 <p class="muted">Softwares heading then list — Plain → Gate → Lock (Clock is a separate lane from Lock). MCP Softwares via <code>fraggate_call</code> only. FragGate is THE single door. Human UI on the Runtime Worker (<code>#op-panel</code> <code>#dashboard</code> <code>#fg-console</code> <code>#task-*</code> + About Aziel + hashtags + <code>/download</code>). SoT LIVE <code>${esc(RUNTIME_SOT_BRANCH)}</code> <code>${esc(RUNTIME_GIT_SHA)}</code> / version_id <code>${esc(RUNTIME_VERSION_ID)}</code>. Lamb Lens ${esc(LAMB_LENS_PATH)}. Dual surface. NO-LIE. Growth-ON.</p>
-<p class="soft-links"><a class="button" href="/runtime">${esc(chip)}</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="/runtime/v1/software">/v1/software</a> <a class="button ghost" href="/runtime/mcp">MCP</a> <a class="button ghost" href="/runtime/v1/uses">uses</a> <a class="button ghost" href="/v1/lattice">Lattice API</a> <a class="button ghost" href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a> <a class="button ghost" href="${HEDIDNTJUMP_HOME}">${esc(HEDIDNTJUMP_LABEL)}</a> <a class="button ghost" href="https://github.com/AzielEliab/aziel-corpus">aziel-corpus</a> <a class="button ghost" href="${esc(RUNTIME_GITHUB)}">aziel-runtime</a></p></div>`;
+<p class="soft-links"><a class="button" href="/runtime">${esc(chip)}</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="/runtime/v1/software">/v1/software</a> <a class="button ghost" href="/runtime/mcp">MCP</a> <a class="button ghost" href="/runtime/v1/uses">uses</a> <a class="button ghost" href="/v1/lattice">Lattice API</a> <a class="button ghost" href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a> <a class="button ghost" href="${HEDIDNTJUMP_HOME}">${esc(HEDIDNTJUMP_LABEL)}</a> <a class="button ghost" href="https://github.com/AzielEliab/aziel-corpus">aziel-corpus</a> <a class="button ghost" href="${esc(RUNTIME_GITHUB)}">aziel-runtime</a></p></div>
+${softwareHydrateScript()}`;
+}
+
+/** After first paint: if SSR timed out empty, fill cards from cached Worker SSoT. Never rewrite purpose copy. */
+export function softwareHydrateScript() {
+  return `<script>
+(function(){
+  var root=document.querySelector("[data-softwares]");
+  if(!root||!("fetch"in window))return;
+  if(document.querySelectorAll("article.soft-card[data-slug]").length>=8)return;
+  var ctrl=typeof AbortController==="function"?new AbortController():null;
+  if(ctrl)setTimeout(function(){try{ctrl.abort();}catch(e){}},2500);
+  fetch("/v1/software?view=tab",{headers:{Accept:"application/json"},credentials:"omit",signal:ctrl&&ctrl.signal})
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(j){
+      if(!j||!Array.isArray(j.products)||!j.products.length)return;
+      var host=document.querySelector(".soft-grid")||root.parentNode;
+      if(!host)return;
+      j.products.forEach(function(p){
+        if(!p||!p.slug)return;
+        if(document.querySelector('article.soft-card[data-slug="'+String(p.slug).replace(/"/g,"")+'"]'))return;
+        var a=document.createElement("article");
+        a.className="soft-card";
+        a.setAttribute("data-slug",p.slug);
+        if(p.kind)a.setAttribute("data-kind",p.kind);
+        var h=document.createElement("h3");
+        h.textContent=p.name||p.slug;
+        var t=document.createElement("p");
+        t.textContent=p.one_line||"";
+        a.appendChild(h);
+        a.appendChild(t);
+        host.appendChild(a);
+      });
+    })
+    .catch(function(){});
+})();
+</script>`;
 }
 
 export { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, ocrBody, ocrFormHtml, SPECTRAL_LENSES, blockedAvBody } from "./hosted-pages.js";

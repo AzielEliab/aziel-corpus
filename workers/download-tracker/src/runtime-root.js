@@ -37,6 +37,11 @@ import {
 } from "./runtime-uses.js";
 import { MESH_NOTE, QNS_CD_SPEC, VPN_CITE, CHANNEL_PLANE, meshOnDoc, proxyMeshRequest } from "./mesh.js";
 import { fetchLiveRuntimeVersion } from "./software-catalog.js";
+import { SOFTWARE_API_CACHE_CONTROL, RUNTIME_SOFTWARE_CACHE_URL } from "./library-index.js";
+
+/** GET /runtime/v1/* — fail fast. Worker SSoT refresh is a known follow-up vs this timeout. */
+export const RUNTIME_PROXY_TIMEOUT_MS = 2500;
+const RUNTIME_PROXY_CACHEABLE = new Set(["/v1/software", "/v1/health", "/v1/catalog.json"]);
 
 export {
   HOST,
@@ -327,6 +332,33 @@ async function fallbackResponse(request, kind) {
   return null;
 }
 
+function runtimeProxyCacheUrl(destPathAndQuery) {
+  const path = String(destPathAndQuery || "").split("?")[0] || "/";
+  if (path === "/v1/software") return RUNTIME_SOFTWARE_CACHE_URL;
+  return "https://azielcorpuslibrary.net/__cache/runtime-proxy-v1" + path;
+}
+
+async function cacheMatchResponse(url) {
+  try {
+    if (typeof caches === "undefined" || !caches || !caches.default) return null;
+    return await caches.default.match(new Request(url, { method: "GET" }));
+  } catch {
+    return null;
+  }
+}
+
+async function cachePutResponse(url, res, cacheControl) {
+  try {
+    if (typeof caches === "undefined" || !caches || !caches.default || !res || !res.ok) return;
+    const headers = new Headers(res.headers);
+    if (cacheControl) headers.set("Cache-Control", cacheControl);
+    const copy = new Response(await res.clone().arrayBuffer(), { status: res.status, statusText: res.statusText, headers });
+    await caches.default.put(new Request(url, { method: "GET" }), copy);
+  } catch {
+    /* cache is optional */
+  }
+}
+
 async function proxyOrigin(request, destPathAndQuery, env) {
   const dest = new URL(destPathAndQuery, RUNTIME_ORIGIN + "/");
   const init = {
@@ -335,6 +367,9 @@ async function proxyOrigin(request, destPathAndQuery, env) {
     redirect: "manual",
   };
   if (request.method !== "GET" && request.method !== "HEAD") init.body = request.body;
+  if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+    init.signal = AbortSignal.timeout(RUNTIME_PROXY_TIMEOUT_MS);
+  }
   if (env && env.AZIEL_RUNTIME && typeof env.AZIEL_RUNTIME.fetch === "function") {
     return env.AZIEL_RUNTIME.fetch(new Request(dest.toString(), init));
   }
@@ -380,10 +415,20 @@ export async function handleRuntimeRoot(request, url, env, signed, ctx) {
 
 async function proxyOrFallback(request, destPathAndQuery, env) {
   const kind = fallbackKind(destPathAndQuery);
+  const destPath = String(destPathAndQuery || "").split("?")[0] || "";
+  const cacheable = request.method === "GET" && RUNTIME_PROXY_CACHEABLE.has(destPath);
+  if (cacheable) {
+    const hit = await cacheMatchResponse(runtimeProxyCacheUrl(destPathAndQuery));
+    if (hit) return decorate(hit, "cache");
+  }
   let res;
   try {
     res = await proxyOrigin(request, destPathAndQuery, env);
   } catch {
+    if (cacheable) {
+      const stale = await cacheMatchResponse(runtimeProxyCacheUrl(destPathAndQuery));
+      if (stale) return decorate(stale, "cache+stale");
+    }
     if (kind) return fallbackResponse(request, kind);
     return json({ error: "runtime origin unreachable", origin: RUNTIME_ORIGIN, limitation: RUNTIME_LIMITATION }, 502);
   }
@@ -392,5 +437,10 @@ async function proxyOrFallback(request, destPathAndQuery, env) {
     const fallback = await fallbackResponse(request, kind);
     if (fallback) return fallback;
   }
-  return decorate(res, env && env.AZIEL_RUNTIME ? "service-binding" : "origin-fetch");
+  if (cacheable && res && res.ok) {
+    await cachePutResponse(runtimeProxyCacheUrl(destPathAndQuery), res, SOFTWARE_API_CACHE_CONTROL);
+  }
+  const out = decorate(res, env && env.AZIEL_RUNTIME ? "service-binding" : "origin-fetch");
+  if (cacheable && out && out.headers) out.headers.set("Cache-Control", SOFTWARE_API_CACHE_CONTROL);
+  return out;
 }
