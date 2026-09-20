@@ -73,6 +73,11 @@ a.brand:hover{color:var(--gold)}
 .authbar a.button{color:#14110a}
 .authbar a.auth-link{background:transparent;border:1px solid var(--line);color:var(--gold)}
 .authbar .auth-who{color:var(--royal);font-weight:700}
+.statbar{display:flex;align-items:center;flex:0 0 auto;margin-left:8px}
+.stat-counter{display:inline-flex;align-items:center;cursor:default;user-select:text}
+.stat-counter .stat-num{color:var(--ink);font-weight:750;margin-left:0;font-variant-numeric:tabular-nums}
+.stat-counter .stat-lbl{color:var(--muted);font-weight:650;margin-left:6px}
+.stat-counter .stat-sep{color:var(--muted);margin:0 8px;font-weight:650}
 .nav1,.nav2,.top,.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .nav1{margin-bottom:6px}
 .nav2{margin:0;gap:2px;position:fixed;left:0;top:0;bottom:0;z-index:45;flex-direction:column;flex-wrap:nowrap;align-items:stretch;justify-content:flex-start;background:var(--paper);border:0;border-right:1px solid var(--gold);border-radius:0 16px 16px 0;padding:76px 12px 24px;width:min(360px,86vw);min-width:min(260px,86vw);max-width:86vw;height:100vh;max-height:100vh;overflow:auto;overflow-x:hidden;box-shadow:12px 0 40px #00000088}
@@ -295,7 +300,8 @@ a.runtime-muted:hover{color:var(--ink)}
   .wrap{padding:8px 14px max(120px, calc(env(safe-area-inset-bottom, 0px) + 100px))}
   .brand{width:auto;font-size:20px;flex:1 1 auto;min-width:0}
   .brandrow{flex-wrap:wrap;gap:8px}
-  .authbar{width:100%;margin-left:0}
+  .statbar{margin-left:auto;order:2}
+  .authbar{width:100%;margin-left:0;order:3}
   .authbar a.button,.authbar a.auth-link{width:auto}
   .sigil-nav-btn,.brandmark-link{width:44px;max-width:44px;height:44px;flex:0 0 44px}
   .pill{padding:5px 10px}
@@ -389,6 +395,25 @@ export function authBarHtml(signed) {
   return `<nav class="authbar" aria-label="Account"><a class="button" href="/upload">Upload</a><a class="auth-link" href="/login">Log in</a><a class="auth-link" href="/signup">Sign up</a></nav>`;
 }
 
+function formatStatCount(n) {
+  const num = Number(n);
+  if (Number.isFinite(num)) return num.toLocaleString("en-US");
+  return String(n);
+}
+
+/** Compact homepage views/downloads counter. Display-only — not a button. */
+export function brandCountPills({ views, downloads } = {}) {
+  const bits = [];
+  if (views != null && views !== "") {
+    bits.push(`<span class="stat-num" id="views">${esc(formatStatCount(views))}</span><span class="stat-lbl">Views</span>`);
+  }
+  if (downloads != null && downloads !== "") {
+    bits.push(`<span class="stat-num" id="downloads">${esc(formatStatCount(downloads))}</span><span class="stat-lbl">Downloads</span>`);
+  }
+  if (!bits.length) return "";
+  return `<div class="statbar" role="status" aria-label="Library views and downloads"><span class="pill stat-counter">${bits.join('<span class="stat-sep" aria-hidden="true">·</span>')}</span></div>`;
+}
+
 /** Left-edge sigil drawer. Pattern and Runtime stay off chrome. Login/Sign up live in the top bar. */
 export function sigilNavHtml() {
   return `<div class="sigil-nav-scrim" id="sigilNavScrim" hidden aria-hidden="true"></div><nav class="nav2 quiet" id="sigilNav" hidden><a href="/">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/how-its-scored">How it's scored</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/forensics">Forensics</a><span class="sep">|</span><a class="nav-aziel" href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a><span class="sep">|</span><a href="/receipts">Receipts</a><span class="sep">|</span><a href="/donate">Donate</a><span class="sep">|</span><a href="/upload">Upload</a></nav>`;
@@ -450,7 +475,7 @@ export function page(title, body, { signed, scripts, path, kind, description, wo
   const showEco = ecosystem && !homeChrome;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(documentTitle(kind, title))}</title>${headMeta(metaOpts)}${ingestReceiptHead()}<link rel="preload" href="/sigil.png" as="image" fetchpriority="high"><style>${CSS}</style></head><body>
 <header class="sitehead"><div class="sitehead-inner">
-<div class="brandrow nav1">${brandMarkHtml()}<a class="brand" href="/">Aziel Corpus Library</a>${authBarHtml(signed)}</div>
+<div class="brandrow nav1">${brandMarkHtml()}<a class="brand" href="/">Aziel Corpus Library</a>${authBarHtml(signed)}${homeChrome ? brandCountPills({ views, downloads }) : ""}</div>
 ${sigilNavHtml()}
 </div></header>
 <div class="wrap">
