@@ -1,7 +1,8 @@
 /**
  * /software hub: live aziel-runtime catalog + door extras.
- * Per request: GET /v1/software, fallback GET /v1/fraggate/list
- * (then catalog.json only to enrich Worker/download metadata).
+ * SSoT is Worker GET /v1/software (same as ae hubs). FragGate
+ * GET /v1/fraggate/list is fallback only — never primary.
+ * Do not invent products; pass through Worker software[].
  * Prefer AZIEL_RUNTIME service binding. No fixed product cap.
  * Author: Aziel Eliab only.
  */
@@ -281,12 +282,37 @@ export function mapSoftwareProduct(raw) {
   return mapped;
 }
 
+function extrasMissingFromProducts(products, extras) {
+  const seen = new Set(
+    []
+      .concat(products || [])
+      .concat(extras || [])
+      .map((p) => canonicalSoftwareSlug(p && p.slug))
+      .filter(Boolean)
+  );
+  const out = [];
+  for (const door of SOFTWARE_EXTRAS) {
+    const slug = canonicalSoftwareSlug(door.slug);
+    if (!slug || seen.has(slug) || isKernelExtraSlug(slug)) continue;
+    seen.add(slug);
+    out.push(Object.assign({ extra: true }, slimSoftwareProduct(door), { slug, extra: true }));
+  }
+  return out;
+}
+
 /** Softwares-tab products[] plus kernel extras[] only. */
-export function softwareTabCatalog(catalog) {
+export function softwareTabCatalog(catalog, opts = {}) {
+  const passThrough = Boolean(opts.passThrough);
   const norm = normalizeSoftwareDoc(catalog);
   const collected = collectCatalogProducts(norm).map(mapSoftwareProduct);
-  const products = mergeSoftwareExtras(collected).filter((p) => !isKernelExtraSlug(p.slug));
-  const extras = collectCatalogExtras(norm);
+  const merged = passThrough ? collected : mergeSoftwareExtras(collected);
+  const products = merged
+    .filter((p) => !isKernelExtraSlug(p.slug))
+    .map((p) => (passThrough ? slimSoftwareProduct(p) : p));
+  let extras = collectCatalogExtras(norm);
+  if (passThrough) {
+    extras = extras.concat(extrasMissingFromProducts(products, extras));
+  }
   return {
     version: firstText(norm.version, catalog && catalog.version),
     products,
@@ -545,10 +571,49 @@ export const SOFTWARE_LIVE_PATH = "/v1/software";
 export const FRAGGATE_LIST_PATH = "/v1/fraggate/list";
 export const CATALOG_JSON_PATH = "/v1/catalog.json";
 export const SOFTWARE_CRAWL_TIMEOUT_MS = 4000;
+/** Public /v1/software: Worker SSoT can be a large JSON; do not race it into fraggate/list. */
+export const SOFTWARE_API_TIMEOUT_MS = 4000;
 /** Softwares HTML: fail fast. Packed catalog cache is the SSR source of truth. */
 export const SOFTWARE_HTML_TIMEOUT_MS = 800;
 /** Per-product /count fetch. Do not let one quiet Worker stall the Softwares grid. */
 export const COUNT_FETCH_TIMEOUT_MS = 1500;
+
+/** Card fields passed through from Worker software[]. Nested mesh/laws stay on the Worker. */
+export const SOFTWARE_PASS_KEYS = [
+  "slug", "name", "one_line", "banner", "description", "version", "bucket",
+  "status", "placement", "kind", "github", "download", "download_url",
+  "worker", "worker_home", "count", "mcp", "web_app", "engine",
+  "fraggate_engine", "fraggate_status", "fraggate_call", "catalog_only",
+  "door", "engine_digest", "note", "updated_at", "git_sha", "extra",
+  "local_not_hosted", "href", "url", "live_backends", "hosted_company_os",
+  "surface", "software_tab", "enabled_default", "path", "spec",
+];
+
+const SOFTWARE_FALSE_KEYS = [
+  "engine", "fraggate_engine", "fraggate_call", "catalog_only", "door",
+  "extra", "live_backends", "hosted_company_os", "software_tab", "enabled_default",
+];
+
+export function isWorkerSoftwareSource(source) {
+  const s = String(source || "").toLowerCase();
+  return s === "live" || s === "software" || s.startsWith("live") || s.startsWith("software");
+}
+
+export function slimSoftwareProduct(raw) {
+  const mapped = mapSoftwareProduct(raw);
+  if (!mapped || typeof mapped !== "object") return mapped;
+  const out = {};
+  for (const key of SOFTWARE_PASS_KEYS) {
+    if (mapped[key] == null) continue;
+    if (mapped[key] === "" && !SOFTWARE_FALSE_KEYS.includes(key)) continue;
+    const t = typeof mapped[key];
+    if (t === "string" || t === "number" || t === "boolean") out[key] = mapped[key];
+  }
+  for (const key of SOFTWARE_FALSE_KEYS) {
+    if (mapped[key] === false) out[key] = false;
+  }
+  return out;
+}
 
 function withTimeout(promise, ms) {
   const limit = Number(ms) || 0;
@@ -562,12 +627,14 @@ function withTimeout(promise, ms) {
   ]);
 }
 
-async function readCachedSoftwareCatalog() {
+async function readCachedSoftwareCatalog(opts = {}) {
   try {
     const hit = await cacheMatchJson(SOFTWARE_CATALOG_CACHE_URL);
-    if (hit && catalogHasProducts(hit.catalog || hit) && !catalogCopyLooksStale(hit.catalog || hit)) {
-      return hit.catalog ? hit : { catalog: hit, source: "cache" };
-    }
+    const packed = hit && hit.catalog ? hit : hit ? { catalog: hit, source: hit.source || "cache" } : null;
+    if (!packed || !catalogHasProducts(packed.catalog || packed)) return null;
+    if (opts.workerOnly && !isWorkerSoftwareSource(packed.source)) return null;
+    if (catalogCopyLooksStale(packed.catalog || packed)) return null;
+    return packed;
   } catch {
     /* node tests / empty cache */
   }
@@ -575,7 +642,9 @@ async function readCachedSoftwareCatalog() {
 }
 
 async function writeCachedSoftwareCatalog(live) {
-  if (!live || !catalogHasProducts(live.catalog) || catalogCopyLooksStale(live.catalog)) return;
+  if (!live || !catalogHasProducts(live.catalog)) return;
+  if (!isWorkerSoftwareSource(live.source)) return;
+  if (catalogCopyLooksStale(live.catalog)) return;
   try {
     await cachePutJson(SOFTWARE_CATALOG_CACHE_URL, live, undefined, { cacheControl: SEO_CACHE_CONTROL });
   } catch {
@@ -583,30 +652,53 @@ async function writeCachedSoftwareCatalog(live) {
   }
 }
 
-export async function runtimeGet(env, destPath) {
-  const dest = new URL(destPath, RUNTIME_ORIGIN + "/");
+function runtimeFetchInit(opts = {}) {
   const headers = { "User-Agent": UA, Accept: "application/json" };
+  const init = { method: "GET", headers };
+  const timeoutMs = Number(opts.timeoutMs) || 0;
+  if (timeoutMs > 0 && typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+    init.signal = AbortSignal.timeout(timeoutMs);
+  }
+  return init;
+}
+
+export async function runtimeGet(env, destPath, opts = {}) {
+  const dest = new URL(destPath, RUNTIME_ORIGIN + "/");
+  const init = runtimeFetchInit(opts);
   if (env && env.AZIEL_RUNTIME && typeof env.AZIEL_RUNTIME.fetch === "function") {
     try {
-      const res = await env.AZIEL_RUNTIME.fetch(new Request(dest.toString(), { method: "GET", headers }));
+      const res = await env.AZIEL_RUNTIME.fetch(new Request(dest.toString(), init));
       if (res) return res;
     } catch {
       /* fall through to origin */
     }
   }
-  return fetch(dest.toString(), { method: "GET", headers });
+  return fetch(dest.toString(), init);
 }
 
-export async function fetchRuntimeJson(env, destPath) {
-  try {
-    const res = await runtimeGet(env, destPath);
-    if (!res || !res.ok) return null;
-    const doc = await res.json();
-    if (!doc || typeof doc !== "object" || doc.error) return null;
-    return doc;
-  } catch {
-    return null;
+export async function fetchRuntimeJson(env, destPath, opts = {}) {
+  const dest = new URL(destPath, RUNTIME_ORIGIN + "/");
+  const init = runtimeFetchInit(opts);
+  const attempts = [];
+  if (env && env.AZIEL_RUNTIME && typeof env.AZIEL_RUNTIME.fetch === "function") {
+    attempts.push(() => env.AZIEL_RUNTIME.fetch(new Request(dest.toString(), init)));
   }
+  attempts.push(() => fetch(dest.toString(), init));
+  for (const attempt of attempts) {
+    try {
+      const res = await attempt();
+      if (!res || !res.ok) continue;
+      const doc = await res.json();
+      if (!doc || typeof doc !== "object") continue;
+      if (opts.loose) return doc;
+      // ae pattern: an advisory error field must not hide software[]
+      if (doc.error && !catalogHasProducts(doc) && !Array.isArray(doc.entries)) continue;
+      return doc;
+    } catch {
+      /* next attempt */
+    }
+  }
+  return null;
 }
 
 /** Cite live health/catalog.version; bake 2.0.0-rc1 when origin is quiet. */
@@ -661,7 +753,8 @@ export function catalogHasProducts(doc) {
   return collectCatalogProducts(normalizeSoftwareDoc(doc)).length > 0;
 }
 
-function mergeCatalogDocs(primary, enrich) {
+function mergeCatalogDocs(primary, enrich, opts = {}) {
+  const existingOnly = Boolean(opts.existingOnly);
   const aDoc = normalizeSoftwareDoc(primary);
   const bDoc = normalizeSoftwareDoc(enrich);
   const a = collectCatalogProducts(aDoc);
@@ -671,6 +764,7 @@ function mergeCatalogDocs(primary, enrich) {
   for (const p of b) {
     const slug = String(p.slug || "").toLowerCase();
     if (!slug || isKernelExtraSlug(slug)) continue;
+    if (existingOnly && !bySlug.has(slug)) continue;
     const prev = bySlug.get(slug) || {};
     bySlug.set(slug, mapSoftwareProduct(Object.assign({}, prev, p, {
       slug,
@@ -703,50 +797,56 @@ function mergeCatalogDocs(primary, enrich) {
   };
 }
 
-/** Live catalog: /v1/software first, then fraggate/list. catalog.json only enriches metadata. */
+function packedWorkerCatalog(software) {
+  const catalog = normalizeSoftwareDoc(software);
+  return {
+    catalog,
+    source: "live",
+    via: SOFTWARE_LIVE_PATH,
+    git_sha: firstText(software && software.git_sha, catalog.git_sha),
+  };
+}
+
+/** Live catalog: Worker GET /v1/software is SSoT. FragGate list is fallback only. */
 export async function fetchLiveSoftwareCatalog(env, opts = {}) {
-  const skipEnrich = Boolean(opts.skipEnrich);
   const timeoutMs = Number(opts.timeoutMs) || 0;
+  const fetchMs = timeoutMs > 0 ? timeoutMs : SOFTWARE_CRAWL_TIMEOUT_MS;
   if (opts.preferCache) {
-    const cached = await readCachedSoftwareCatalog();
-    if (cached && !catalogCopyLooksStale(cached.catalog)) return cached;
+    const cached = await readCachedSoftwareCatalog({ workerOnly: true });
+    if (cached) return cached;
   }
 
   const run = async () => {
-    const software = await fetchRuntimeJson(env, SOFTWARE_LIVE_PATH);
-    if (catalogHasProducts(software) && !catalogCopyLooksStale(software)) {
-      const norm = normalizeSoftwareDoc(software);
-      if (skipEnrich) return { catalog: norm, source: "software", git_sha: firstText(software.git_sha, norm.git_sha) };
-      const enrich = await fetchRuntimeJson(env, CATALOG_JSON_PATH);
-      const catalog = catalogHasProducts(enrich)
-        ? mergeCatalogDocs(norm, enrich)
-        : norm;
-      return { catalog, source: "software", git_sha: firstText(software.git_sha, catalog.git_sha) };
+    const software = await fetchRuntimeJson(env, SOFTWARE_LIVE_PATH, { timeoutMs: fetchMs });
+    if (catalogHasProducts(software)) {
+      const live = packedWorkerCatalog(software);
+      if (!opts.skipEnrich) {
+        const enrich = await fetchRuntimeJson(env, CATALOG_JSON_PATH, { timeoutMs: Math.min(800, fetchMs) });
+        if (catalogHasProducts(enrich)) {
+          live.catalog = mergeCatalogDocs(live.catalog, enrich, { existingOnly: true });
+        }
+      }
+      return live;
     }
-    const list = await fetchRuntimeJson(env, FRAGGATE_LIST_PATH);
+    const list = await fetchRuntimeJson(env, FRAGGATE_LIST_PATH, { timeoutMs: fetchMs });
     if (catalogHasProducts(list)) {
-      if (skipEnrich) return { catalog: normalizeSoftwareDoc(list), source: "fraggate/list" };
-      const enrich = await fetchRuntimeJson(env, CATALOG_JSON_PATH);
-      const catalog = catalogHasProducts(enrich)
-        ? mergeCatalogDocs(normalizeSoftwareDoc(list), enrich)
-        : normalizeSoftwareDoc(list);
-      return { catalog, source: "fraggate/list" };
+      return { catalog: normalizeSoftwareDoc(list), source: "fraggate/list", via: FRAGGATE_LIST_PATH };
     }
-    const fallback = await fetchRuntimeJson(env, CATALOG_JSON_PATH);
+    const fallback = await fetchRuntimeJson(env, CATALOG_JSON_PATH, { timeoutMs: Math.min(800, fetchMs) });
     if (catalogHasProducts(fallback)) {
-      return { catalog: normalizeSoftwareDoc(fallback), source: "catalog.json" };
+      return { catalog: normalizeSoftwareDoc(fallback), source: "catalog.json", via: CATALOG_JSON_PATH };
     }
-    return { catalog: { products: [] }, source: "empty" };
+    return { catalog: { products: [] }, source: "empty", via: null };
   };
 
-  const live = await withTimeout(run(), timeoutMs);
+  const live = timeoutMs > 0 ? await withTimeout(run(), timeoutMs) : await run();
   if (live && catalogHasProducts(live.catalog)) {
     await writeCachedSoftwareCatalog(live);
     return live;
   }
-  const stale = await readCachedSoftwareCatalog();
-  if (stale) return Object.assign({}, stale, { source: String(stale.source || "cache") + "+stale" });
-  return live || { catalog: { products: [] }, source: "empty" };
+  const staleWorker = await readCachedSoftwareCatalog({ workerOnly: true });
+  if (staleWorker) return Object.assign({}, staleWorker, { source: String(staleWorker.source || "live") + "+stale" });
+  return live || { catalog: { products: [] }, source: "empty", via: null };
 }
 
 function statsAsCount(stats) {

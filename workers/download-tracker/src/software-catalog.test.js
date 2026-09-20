@@ -34,6 +34,8 @@ import {
   preferSpectralLockHonestyCopy,
   catalogCopyLooksStale,
   mapSoftwareProduct,
+  slimSoftwareProduct,
+  isWorkerSoftwareSource,
 } from "./software-catalog.js";
 import { SPECTRALLOCK_ONE_LINE } from "./spectrallock.js";
 import {
@@ -923,7 +925,8 @@ test("fetchLiveSoftwareCatalog prefers /v1/software then fraggate/list", async (
   });
   try {
     const live = await fetchLiveSoftwareCatalog(envSoftware);
-    assert.equal(live.source, "software");
+    assert.equal(live.source, "live");
+    assert.equal(live.via, "/v1/software");
     assert.ok(live.catalog.products.some((p) => p.slug === "azbrowser" && /download/.test(p.download)));
 
     const envList = stubEnv({
@@ -1024,11 +1027,16 @@ test("GET /v1/software products[] is Softwares-tab only; extras[] holds fraggate
     assert.equal(res.status, 200);
     const body = await res.json();
     assert.equal(body.ok, true);
+    assert.equal(body.source, "live");
+    assert.equal(body.via, "/v1/software");
+    assert.equal(body.catalog, "https://aziel-runtime.vibelock.workers.dev/v1/software");
+    assert.equal(body.catalog_fallback, "https://aziel-runtime.vibelock.workers.dev/v1/fraggate/list");
     assert.ok(!body.products.some((p) => p.slug === "fraggate"));
     assert.ok(!body.products.some((p) => p.slug === "mesh"));
     assert.ok(body.extras.some((e) => e.slug === "fraggate"));
     assert.ok(body.extras.some((e) => e.slug === "mesh"));
-    const trades = body.products.find((p) => p.slug === "trades-runtime");
+    assert.ok(!body.products.some((p) => p.slug === "trades-runtime"), "do not invent extras onto Worker products[]");
+    const trades = body.extras.find((e) => e.slug === "trades-runtime");
     assert.ok(trades);
     assert.equal(trades.mcp, "https://trades-runtime.vibelock.workers.dev/mcp");
     assert.equal(trades.github, "https://github.com/AzielEliab/trades-runtime");
@@ -1308,10 +1316,128 @@ test("GET /v1/software prefers live Worker copy over extras and cache", async ()
     );
     assert.equal(res.status, 200);
     const body = await res.json();
+    assert.equal(body.source, "live");
+    assert.equal(body.via, "/v1/software");
     assert.equal(body.git_sha, "4f92f3b02a8480c9aca534b3d927007287a6e2ff");
     const embryo = body.products.find((p) => p.slug === "embryolock");
     assert.equal(embryo.one_line, "Cite an offline vault that prefers destruction over recovery.");
     assert.doesNotMatch(JSON.stringify(body.products), /THIS IS:/);
+  } finally {
+    globalThis.fetch = origFetch;
+  }
+});
+
+test("isWorkerSoftwareSource treats live/software as Worker SSoT", () => {
+  assert.equal(isWorkerSoftwareSource("live"), true);
+  assert.equal(isWorkerSoftwareSource("software"), true);
+  assert.equal(isWorkerSoftwareSource("live+stale"), true);
+  assert.equal(isWorkerSoftwareSource("fraggate/list"), false);
+  assert.equal(isWorkerSoftwareSource("catalog.json"), false);
+});
+
+test("slimSoftwareProduct keeps card fields and drops nested mesh", () => {
+  const slim = slimSoftwareProduct({
+    slug: "whitestone",
+    name: "Whitestone",
+    one_line: "Ephemeral pro se advisor.",
+    download_url: "https://whitestone-download-tracker.vibelock.workers.dev/download",
+    worker_home: "https://whitestone-download-tracker.vibelock.workers.dev/",
+    github: "https://github.com/AzielEliab/Whitestone",
+    mesh: { path: "/v1/mesh", nine_laws: { count: 9 } },
+    nine_laws: { count: 9, operator_armed: true },
+    engine: false,
+    fraggate_engine: false,
+  });
+  assert.equal(slim.slug, "whitestone");
+  assert.equal(slim.one_line, "Ephemeral pro se advisor.");
+  assert.equal(slim.engine, false);
+  assert.equal(slim.fraggate_engine, false);
+  assert.equal(slim.mesh, undefined);
+  assert.equal(slim.nine_laws, undefined);
+});
+
+test("fetchLiveSoftwareCatalog keeps Worker software[] when FragGate list also answers", async () => {
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = blockLiveRuntime(origFetch);
+  const env = stubEnv({
+    async fetch(request) {
+      const url = new URL(request.url);
+      if (url.pathname.endsWith("/software")) {
+        return new Response(JSON.stringify({
+          ok: true,
+          error: "advisory",
+          version: "2.0.0-rc1",
+          git_sha: "e2159d5b06916717f711e43a40b5c3b8de732365",
+          software: [
+            { slug: "whitestone", name: "Whitestone", one_line: "Ephemeral pro se advisor." },
+            { slug: "peacelock", name: "PeaceLock", one_line: "Chosen silence." },
+          ],
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      if (url.pathname.endsWith("/fraggate/list")) {
+        return new Response(JSON.stringify({
+          ok: true,
+          entries: [
+            { slug: "peacelock", name: "PeaceLock", description: "Chosen silence." },
+            { slug: "memory", name: "memory", description: "Kernel rollup." },
+          ],
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      return new Response(JSON.stringify({ error: "not found" }), { status: 404 });
+    },
+  });
+  try {
+    const live = await fetchLiveSoftwareCatalog(env);
+    assert.equal(live.source, "live");
+    assert.equal(live.via, "/v1/software");
+    assert.ok(live.catalog.products.some((p) => p.slug === "whitestone"));
+    assert.ok(!live.catalog.products.some((p) => p.slug === "memory"));
+    const res = await handleRuntimeApi(
+      new Request(HOST + "/v1/software", { headers: { Accept: "application/json" } }),
+      new URL(HOST + "/v1/software"),
+      env
+    );
+    const body = await res.json();
+    assert.equal(body.source, "live");
+    assert.equal(body.via, "/v1/software");
+    assert.equal(body.count, 2);
+    assert.ok(body.products.some((p) => p.slug === "whitestone"));
+    assert.ok(!body.products.some((p) => p.slug === "memory"));
+  } finally {
+    globalThis.fetch = origFetch;
+  }
+});
+
+test("Worker software[] stays SSoT even when one_line still says THIS-IS", async () => {
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = blockLiveRuntime(origFetch);
+  const env = stubEnv({
+    async fetch(request) {
+      const url = new URL(request.url);
+      if (url.pathname.endsWith("/software")) {
+        return new Response(JSON.stringify({
+          software: [
+            { slug: "whitestone", name: "Whitestone", one_line: "Ephemeral pro se advisor." },
+            { slug: "4dmap", name: "4DMap", one_line: "THIS IS: leftover overlay." },
+          ],
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      if (url.pathname.endsWith("/fraggate/list")) {
+        return new Response(JSON.stringify({
+          entries: [
+            { slug: "peacelock", name: "PeaceLock", description: "Chosen silence." },
+            { slug: "memory", name: "memory", description: "Kernel rollup." },
+          ],
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      return new Response(JSON.stringify({ error: "not found" }), { status: 404 });
+    },
+  });
+  try {
+    const live = await fetchLiveSoftwareCatalog(env);
+    assert.equal(live.source, "live");
+    assert.ok(live.catalog.products.some((p) => p.slug === "whitestone"));
+    assert.ok(!live.catalog.products.some((p) => p.slug === "memory"));
   } finally {
     globalThis.fetch = origFetch;
   }

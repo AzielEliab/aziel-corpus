@@ -30,7 +30,14 @@ import {
 } from "./lattice-learn.js";
 import { RUNTIME_VERSION, RUNTIME_NOTE, runtimeHowTo, AI_CLIENTS, LIBRARY_DOWNLOAD, LIBRARY_V1_DOWNLOAD } from "./runtime-copy.js";
 import { checkLibraryUpdate, LIBRARY_SLUG, LIBRARY_VERSION } from "./update-check.js";
-import { fetchLiveSoftwareCatalog, softwareTabCatalog } from "./software-catalog.js";
+import {
+  fetchLiveSoftwareCatalog,
+  softwareTabCatalog,
+  isWorkerSoftwareSource,
+  SOFTWARE_LIVE_PATH,
+  FRAGGATE_LIST_PATH,
+  SOFTWARE_API_TIMEOUT_MS,
+} from "./software-catalog.js";
 import { handleV1Download, serveSoftwareAsset, LIBRARY_INSTALL } from "./software-download.js";
 import { handleMeshApi, MESH_NOTE, QNS_CD_SPEC } from "./mesh.js";
 import { handleSurvivalHub } from "./ban-survival.js";
@@ -102,7 +109,7 @@ Always send \`User-Agent: Mozilla/5.0\`.
 - Design packs (inherit design_of; resolves_to_hub: false; tip/pack hashes): \`GET ${HOST}/v1/design-pack\` · counted \`GET ${HOST}/download?product=azcorpus|azlibrary\`
 - Mesh pull: cite /bridge.json → describe pack → counted pull → hash-verify pack_sha256 fail-closed → land local cold shelf. qnm: https://github.com/AzielEliab/qnm-node
 - Library skill: \`GET ${HOST}/v1/skill\`
-- Live software catalog: \`GET ${HOST}/v1/software\` (origin ${CATALOG}/v1/software; fallback fraggate/list)
+- Live software catalog: \`GET ${HOST}/v1/software\` (Worker SSoT ${CATALOG}/v1/software; FragGate list fallback only)
 - Installer update check: \`GET ${HOST}/v1/update/check?slug=aziel-corpus&version=\` (origin ${CATALOG}/v1/update/check)
 - Suite mesh (read-only QNM ON): \`GET ${HOST}/v1/mesh\` · \`GET ${HOST}/runtime/v1/mesh\` (origin ${CATALOG}/v1/mesh). Live Nodes cite **QNS-CD-1.0** (photon QNS1 packet transfer) as a hub / Worker mesh cross-map. Public rollup is counts/status. **CROSS-NETWORK-SURVIVAL-1.0** umbrella: if the network dies, the chain survives on cold copies (bytes↔hash); crawlers are extra shelves. Covers split-wires + cold-copy + die-with-pull + MESH-REEXPAND-1.0 (operator verify-from-archive) + MESH-REHEAL-1.0 (self tip + trusted pull or phoenix-WAIT). **COLD-MULTI-SHELF-1.0** executable registry: \`GET ${HOST}/shelves\`. **NO-LIE-NO-REWRITE-1.0**: network never lies to stay alive; no rewrite key; cites live lockset \`AZLOCK-INGEST-REEXPAND-1.0\`. Local \`qnsd\` is coded in https://github.com/AzielEliab/qnm-node. Runtime cites + catalog field live in https://github.com/AzielEliab/aziel-runtime. AZInterface has pair custody. No public \`qnsd\` proxy. No Node Gate. Disable is refused. GET /v1/mesh never enables radios.
 
@@ -275,7 +282,7 @@ function openapi() {
       "/runtime/v1/session/open": { post: { summary: "Advanced/internal. Open an aziel-runtime session (same-origin proxy). Prefer fraggate_call.", operationId: "runtimeProxySessionOpen" } },
       "/runtime/v1/session/{id}/exec": { post: { summary: "Advanced/internal session exec via same-origin proxy. Prefer fraggate_call. HTTP /p is not exec.", operationId: "runtimeProxySessionExec" } },
       "/runtime/v1/pull/{slug}": { get: { summary: "Pull descriptor for one product slug via same-origin proxy.", operationId: "runtimeProxyPull" } },
-      "/v1/software": { get: { summary: "Live aziel-runtime software catalog (GET /v1/software, fallback fraggate/list). Per request. Author Aziel Eliab.", operationId: "liveSoftwareCatalog" } },
+      "/v1/software": { get: { summary: "Live aziel-runtime software catalog. Worker GET /v1/software is SSoT; FragGate list is fallback only. Author Aziel Eliab.", operationId: "liveSoftwareCatalog" } },
       "/v1/update/check": { get: { summary: "Installer update check. Prefers runtime /v1/update/check. Does not increment downloads.", operationId: "updateCheck", parameters: [{ name: "slug", in: "query", schema: { type: "string", default: "aziel-corpus" } }, { name: "version", in: "query", schema: { type: "string" } }] } },
       "/runtime/v1/software": { get: { summary: "Live aziel-runtime /v1/software via same-origin proxy.", operationId: "runtimeProxySoftware" } },
       "/runtime/v1/catalog.json": { get: { summary: "Live aziel-runtime catalog via same-origin proxy.", operationId: "runtimeProxyCatalog" } },
@@ -320,14 +327,18 @@ export async function handleRuntimeApi(request, url, env, ctx) {
     return serveSoftwareAsset(request, env, url.searchParams.get("asset"));
   }
   if (path === "/v1/software" && (request.method === "GET" || request.method === "HEAD")) {
-    const live = await fetchLiveSoftwareCatalog(env, { preferCache: false, timeoutMs: 2500 });
-    const tab = softwareTabCatalog(live.catalog);
+    const live = await fetchLiveSoftwareCatalog(env, { preferCache: false, skipEnrich: true, timeoutMs: SOFTWARE_API_TIMEOUT_MS });
+    const workerSsot = isWorkerSoftwareSource(live.source);
+    const tab = softwareTabCatalog(live.catalog, { passThrough: workerSsot });
     const corpus = tab.products.find((p) => p.slug === "aziel-corpus");
     const res = json({
       ok: true,
-      source: live.source,
-      origin: CATALOG + "/v1/software",
-      fallback: CATALOG + "/v1/fraggate/list",
+      source: workerSsot ? "live" : live.source,
+      via: live.via || (workerSsot ? SOFTWARE_LIVE_PATH : live.source === "fraggate/list" ? FRAGGATE_LIST_PATH : null),
+      catalog: CATALOG + SOFTWARE_LIVE_PATH,
+      catalog_fallback: CATALOG + FRAGGATE_LIST_PATH,
+      origin: CATALOG + SOFTWARE_LIVE_PATH,
+      fallback: CATALOG + FRAGGATE_LIST_PATH,
       git_sha: live.git_sha || tab.git_sha || (live.catalog && live.catalog.git_sha) || "",
       version: tab.version || (live.catalog && live.catalog.version) || RUNTIME_VERSION,
       author: "Aziel Eliab",
