@@ -210,14 +210,16 @@ test("homepage LCP fold keeps hero first and leaves entity-graph plus doors inta
   assert.match(html, /"@id":"https:\/\/www\.azieleliab\.com\/#aziel"/);
   assert.match(CSS, /\.doc\{[^}]*content-visibility:auto/);
   assert.match(CSS, /\.hero h1\{[^}]*content-visibility:visible/);
-  assert.match(CSS, /html,body\{[^}]*overflow:auto/);
+  assert.match(CSS, /html,body\{[^}]*overflow-x:hidden/);
+  assert.match(CSS, /html,body\{[^}]*overflow-y:auto/);
 });
 
 test("black/gold theme and royal purple Aziel Library text are in CSS", () => {
   assert.match(CSS, /--bg:#12100c/);
   assert.match(CSS, /--gold:#c9a227/);
   assert.match(CSS, /--royal:#6b3fa0/);
-  assert.match(CSS, /html,body\{[^}]*overflow:auto/);
+  assert.match(CSS, /html,body\{[^}]*overflow-x:hidden/);
+  assert.match(CSS, /html,body\{[^}]*overflow-y:auto/);
   assert.match(CSS, /\.about-aziel/);
   assert.match(CSS, /\.about-prose,.about-prose p,.about-sign\{color:var\(--royal\)/);
   assert.match(CSS, /\.about-record\{background:var\(--paper\)/);
@@ -348,12 +350,13 @@ test("browse cards clamp titles and shorten bleed-over snippets without rewritin
   const hashSub2 = "e0153ec534890c0069bd6315e462cb3d7a993f0d8bc0bec7100c63bf5cd446a4";
   const aziel = azielLibraryBody({
     signed: null,
-    rows: [{ ...row, record_id: "AZDOC-spam-aziel", library: "aziel", subjects: hashSub + "," + hashSub2 }],
+    rows: [{ ...row, record_id: "AZDOC-spam-aziel", library: "aziel", subjects: hashSub + "," + hashSub2 + ",philosophy" }],
   });
-  assert.match(aziel, /f53419056b94…333f/);
-  assert.match(aziel, /e0153ec53489…46a4/);
-  assert.match(aziel, new RegExp("subject=" + hashSub));
-  assert.match(aziel, new RegExp("subject=" + hashSub2));
+  assert.match(aziel, />philosophy</);
+  assert.doesNotMatch(aziel, /f53419056b94…333f/);
+  assert.doesNotMatch(aziel, /e0153ec53489…46a4/);
+  assert.doesNotMatch(aziel, new RegExp("subject=" + hashSub));
+  assert.doesNotMatch(aziel, new RegExp("subject=" + hashSub2));
   assert.doesNotMatch(aziel, />f53419056b94b69be05c8214cb8d8329f7e74fe99d8505ecfa8a72a9a6e0333f</);
   assert.doesNotMatch(aziel, />e0153ec534890c0069bd6315e462cb3d7a993f0d8bc0bec7100c63bf5cd446a4</);
   for (const html of [home, corpus, aziel]) {
