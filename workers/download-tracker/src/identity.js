@@ -27,8 +27,8 @@ export const GITHUB_AUTHOR = "https://github.com/AzielEliab";
 export const GITHUB_SECONDARY = "https://github.com/azieltherevealerofthesealed-arch";
 export const GLAMA_RUNTIME = "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime";
 export const GITHUB_RUNTIME = "https://github.com/AzielEliab/aziel-runtime";
-export const X_PRIMARY = "https://x.com/azieleliab";
-export const X_AKA = "https://x.com/AzielElroiEliab";
+export const X_PRIMARY = "https://x.com/AzielEliab";
+export const X_HANDLE = "@AzielEliab";
 
 /** Full public sameAs lock. Do not drop entries. Do not add legal-name / home / court IDs. */
 export const PERSON_SAME_AS = Object.freeze([
@@ -39,7 +39,6 @@ export const PERSON_SAME_AS = Object.freeze([
   LIBRARY_HOST + "/",
   GODLOCK_HOME,
   HEDIDNTJUMP_HOME,
-  X_AKA,
   X_PRIMARY,
 ]);
 

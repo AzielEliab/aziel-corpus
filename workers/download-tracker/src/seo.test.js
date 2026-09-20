@@ -98,8 +98,7 @@ test("JSON-LD types the author as Person with alternateName", () => {
   assert.ok(person.sameAs.includes("https://glama.ai/mcp/servers/AzielEliab/aziel-runtime"));
   assert.ok(person.sameAs.includes(HUB_ORIGIN + "/"));
   assert.ok(person.sameAs.includes("https://www.azielcorpuslibrary.net/"));
-  assert.ok(person.sameAs.includes("https://x.com/AzielElroiEliab"));
-  assert.ok(person.sameAs.includes("https://x.com/azieleliab"));
+  assert.ok(person.sameAs.includes("https://x.com/AzielEliab"));
   assert.equal(person["@id"], "https://www.azieleliab.com/#aziel");
 
   const html = headMeta({ title: "Aziel Eliab", path: ABOUT_PATH, kind: "about" });
@@ -119,7 +118,7 @@ test("JSON-LD types the author as Person with alternateName", () => {
   assert.ok(who.sameAs.includes("https://godlock.uk/"));
   assert.ok(who.sameAs.includes("https://www.hedidntjump.com/"));
   assert.ok(who.sameAs.includes("https://github.com/AzielEliab"));
-  assert.ok(who.sameAs.includes("https://x.com/azieleliab"));
+  assert.ok(who.sameAs.includes("https://x.com/AzielEliab"));
   assert.match(html, /rel="me" href="https:\/\/www\.azieleliab\.com\/#aziel"/);
   assert.match(html, /rel="me" href="https:\/\/godlock\.uk\/AzielEliab"/);
   assert.match(html, /keywords" content="Aziel Eliab, Aziel Elroi Eliab, Elias Artista, Aziel Digital Library/);

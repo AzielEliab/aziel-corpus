@@ -96,8 +96,7 @@ test("Person @id is hub #aziel and sameAs is the full lock", () => {
     "https://www.azielcorpuslibrary.net/",
     "https://godlock.uk/",
     "https://www.hedidntjump.com/",
-    "https://x.com/AzielElroiEliab",
-    "https://x.com/azieleliab",
+    "https://x.com/AzielEliab",
   ]);
   const person = personJsonLd();
   assert.equal(person["@id"], PERSON_ID);
@@ -434,7 +433,7 @@ test("llms.txt keeps library sections and the full sameAs lock", () => {
   assert.match(llms, /## About Aziel Eliab \(HTML — crawl this\)/);
   assert.match(llms, /Person @id: https:\/\/www\.azieleliab\.com\/#aziel/);
   assert.match(llms, /github\.com\/azieltherevealerofthesealed-arch/);
-  assert.match(llms, /x\.com\/AzielElroiEliab/);
+  assert.match(llms, /x\.com\/AzielEliab/);
   assert.match(llms, /Aziel Digital Library on this site/);
   assert.match(llms, /GodLock/);
   assert.match(llms, /one living person/);
