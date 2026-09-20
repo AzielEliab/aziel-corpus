@@ -59,7 +59,7 @@ export const ECOSYSTEM_LINKS = Object.freeze([
   Object.freeze({ href: GODLOCK_HOME, label: "GodLock" }),
   Object.freeze({ href: HEDIDNTJUMP_HOME, label: HEDIDNTJUMP_LABEL }),
   Object.freeze({ href: RUNTIME_GITHUB, label: "Runtime GitHub" }),
-  Object.freeze({ href: RUNTIME_GLAMA, label: "Glama", primary: true }),
+  Object.freeze({ href: RUNTIME_GLAMA, label: "Try on Glama", primary: true }),
 ]);
 
 /** Unique <title> / OG / Twitter strings. Visible H1s stay in page bodies. */

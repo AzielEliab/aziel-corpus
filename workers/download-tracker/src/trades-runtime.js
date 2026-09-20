@@ -1,10 +1,10 @@
 /**
  * Trades-Runtime — Softwares extra + machine cite only.
- * Shadow-first local BYO field-trades runtime (HVAC / plumbing / electrical / sewer / cross-trades).
+ * Public Softwares extra / cite — BYO field OS
+ * (HVAC / plumbing / electrical / sewer / cross-trades).
  * Operators bring their own ServiceTitan + ProBooks. Human authority wins.
- * Not aziel-runtime wholesale. Not a FragGate-exec true engine. Not a hosted company OS.
- * Public get = this product Worker download. GitHub Pages stay off.
- * Identity: Aziel Eliab only.
+ * Sister product; live_backends false. Public get = this product Worker download.
+ * GitHub Pages stay off. Identity: Aziel Eliab only.
  */
 import { HOST, RUNTIME_ORIGIN, AI_CLIENTS } from "./runtime-copy.js";
 import { GODLOCK_IDENTITY } from "./seo.js";
@@ -31,7 +31,7 @@ export const TRADES_RUNTIME_ALIASES = Object.freeze(["trades-runtime", "tradesru
 export const AZIELELIAB_HUB = "https://www.azieleliab.com";
 
 export const TRADES_RUNTIME_ONE_LINE =
-  "Shadow-first local BYO runtime for HVAC, plumbing, electrical, sewer, and cross-trades. "
+  "Shadow-first local BYO field OS for HVAC, plumbing, electrical, sewer, and cross-trades. "
   + "Operators bring their own ServiceTitan + ProBooks. Human authority wins. "
   + "live_backends: false.";
 
@@ -39,9 +39,8 @@ export const TRADES_RUNTIME_DUAL_SURFACE =
   "Dual surface: agent chat has no technical UI chrome; Worker / local install / counted download stay complete human software.";
 
 export const TRADES_RUNTIME_NOTE =
-  "Trades-Runtime is a separate local-first BYO field-trades runtime. "
+  "Trades-Runtime is a public Softwares extra / local-first BYO field OS. "
   + "Library MCP stays corpus-search; this product hosts its own read-only MCP (health, stats, cite, skill). "
-  + "No ServiceTitan or ProBooks write-back. No tenant data on the public Worker. "
   + "GitHub Pages stay off. Public get = Worker download. "
   + TRADES_RUNTIME_DUAL_SURFACE
   + " Compatible AI clients: " + AI_CLIENTS + ". Identity Aziel Eliab only.";
@@ -89,6 +88,7 @@ export const TRADES_RUNTIME_SOFTWARE_EXTRA = Object.freeze({
   fraggate_engine: false,
   live_backends: false,
   hosted_company_os: false,
+  byo_field_os: true,
   pages: "off",
   one_line: TRADES_RUNTIME_ONE_LINE,
 });
@@ -107,6 +107,7 @@ export const TRADES_RUNTIME = Object.freeze({
   not_a_second_door: true,
   live_backends: false,
   hosted_company_os: false,
+  byo_field_os: true,
   tenant_data: false,
   servicetitan_write: false,
   probooks_write: false,
@@ -143,7 +144,7 @@ export const TRADES_RUNTIME = Object.freeze({
 export function tradesRuntimeLlmsBlock(host = HOST) {
   const h = String(host || HOST).replace(/\/+$/, "");
   return [
-    "Trades-Runtime (trades-runtime) is a Softwares extra.",
+    "Trades-Runtime (trades-runtime) is a public Softwares extra / BYO field OS.",
     TRADES_RUNTIME_ONE_LINE,
     TRADES_RUNTIME_DUAL_SURFACE,
     "GitHub Pages off. Public get = Worker download. Counters live at /v1/stats.",

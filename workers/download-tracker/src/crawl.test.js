@@ -92,6 +92,13 @@ test("robots.txt allows research surfaces and major AI bots", () => {
     "Factset_spyderbot",
     "NeevaBot",
     "DuckAssist",
+    "Cloudflare-AI-Search",
+    "Grok",
+    "Venice",
+    "Claude",
+    "DeepSeekBot",
+    "Qwenbot",
+    "BraveBot",
   ]) {
     assert.match(txt, new RegExp("User-agent: " + bot));
   }
@@ -209,10 +216,18 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.equal(cite.website_name, "Aziel Corpus Library");
   assert.equal(cite.official_site, "https://www.azieleliab.com/");
   assert.equal(cite.ecosystem.heading, "Part of the Aziel Eliab ecosystem");
-  assert.ok(cite.ecosystem.links.some((l) => l.label === "Glama" && l.href === "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime"));
+  assert.ok(cite.ecosystem.links.some((l) => l.label === "Try on Glama" && l.href === "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime"));
   assert.ok(cite.ecosystem.links.some((l) => l.label === "He Didn't Jump" && l.href === "https://www.hedidntjump.com/"));
-  assert.ok(cite.ecosystem.links.some((l) => l.label === "Corpus" && l.href === "https://www.azielcorpuslibrary.net/"));
-  assert.ok(cite.ecosystem.links.some((l) => l.label === "GodLock" && l.href === "https://godlock.uk/"));
+  assert.ok(cite.ecosystem.links.some((l) => l.label === "Aziel Corpus Library" && l.href === "https://www.azielcorpuslibrary.net/"));
+  assert.ok(cite.ecosystem.links.some((l) => l.label === "GodLock.uk" && l.href === "https://godlock.uk/"));
+  assert.ok(cite.ecosystem.links.some((l) => l.label === "GitHub" && l.href === "https://github.com/AzielEliab"));
+  assert.ok(cite.ecosystem.links.some((l) => l.label === "@AzielEliab" && l.href === "https://x.com/AzielEliab"));
+  assert.ok(cite.ecosystem.links.some((l) => l.label === "Softwares" && l.href === "https://www.azielcorpuslibrary.net/software"));
+  assert.ok(cite.ecosystem.links.some((l) => l.label === "Who is Aziel Eliab" && l.href === "https://www.azielcorpuslibrary.net/who"));
+  assert.ok(cite.ecosystem.links.some((l) => l.label === "What Aziel Eliab does" && l.href === "https://www.azielcorpuslibrary.net/AzielEliab"));
+  assert.ok(cite.ecosystem.links.some((l) => l.label === "Why Aziel Eliab" && l.href === "https://www.azielcorpuslibrary.net/who-is-aziel-eliab.txt"));
+  assert.match(cite.why_aziel_eliab, /published research/);
+  assert.match(cite.why_aziel_eliab, /dual-surface forensics and audit/);
   assert.ok(cite.sameAs.includes("https://www.azieleliab.com/"));
   assert.ok(cite.sameAs.includes("https://godlock.uk/"));
   assert.ok(cite.sameAs.includes("https://www.hedidntjump.com/"));
@@ -269,6 +284,19 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(cite.runtime_note, /2\.0\.0-rc1/);
   assert.match(cite.runtime_note, /Node-meshed MCP Softwares suite/);
   assert.equal(cite.runtime_version, "2.0.0-rc1");
+  assert.equal(cite.softwares_ssot_version, "2.0.0-rc1");
+  assert.equal(cite.public_version, "2.0.0-rc1");
+  assert.equal(cite.public_version_source, "GET /v1/software catalog.version");
+  assert.equal(cite.peacelock.slug, "peacelock");
+  assert.equal(cite.peacelock.public, true);
+  assert.equal(cite.peacelock.private, false);
+  assert.equal(cite.peacelock.runtime, "local-only");
+  assert.equal(cite.peacelock.fraggate_status, "live");
+  assert.equal(cite.peacelock.fraggate_local_only, false);
+  assert.equal(cite.peacelock.extra_card, false);
+  assert.ok(cite.keywords.includes("PeaceLock"));
+  assert.ok(cite.keywords.includes("PL-WP-0.1"));
+  assert.equal(cite.trades_runtime.byo_field_os, true);
   assert.equal(cite.runtime_git, "6a3798a");
   assert.equal(cite.runtime_version_id, "105fa1ee");
   assert.equal(cite.runtime_sot_branch, "main");
@@ -335,6 +363,10 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.doesNotMatch(llms, /not a lawyer/);
   assert.match(llms, /Softwares list: The ARK \(Softwares\): local deniable vault/);
   assert.match(llms, /Softwares list: SpectralLock \(Softwares\): leftover container bytes recover honestly/);
+  assert.match(llms, /Softwares list: PeaceLock \(Softwares\): record chosen silence/);
+  assert.match(llms, /public GitHub \+ local-only runtime/);
+  assert.match(llms, /BYO field OS/);
+  assert.match(llms, /Public version: Aziel Runtime \/ Softwares SSoT 2\.0\.0-rc1/);
   assert.match(llms, /SL-UNREDACT-OPAQUE/);
   assert.match(llms, /ark-download-tracker\.vibelock\.workers\.dev\/download/);
   assert.match(llms, /ark-download-tracker\.vibelock\.workers\.dev\/stats/);
@@ -529,6 +561,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(index, /azielcorpuslibrary\.net\/sitemap-records\.xml/);
   assert.match(index, /aziel-runtime\.vibelock\.workers\.dev\/sitemap-index\.xml/);
   assert.match(index, /www\.hedidntjump\.com\/sitemap\.xml/);
+  assert.match(index, /www\.azieleliab\.com\/sitemap\.xml/);
   assert.match(index, /spectrallock-download-tracker\.vibelock\.workers\.dev\/sitemap\.xml/);
   const mcp = mcpDiscovery();
   assert.equal(mcp.author, "Aziel Eliab");

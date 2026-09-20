@@ -6,7 +6,9 @@
 
 export const HOST = "https://www.azielcorpuslibrary.net";
 export const RUNTIME_ORIGIN = "https://aziel-runtime.vibelock.workers.dev";
+/** Public suite version from Softwares SSoT (GET /v1/software catalog.version). Product versions stay on cards. */
 export const RUNTIME_VERSION = "2.0.0-rc1";
+export const SOFTWARES_SSOT_VERSION = RUNTIME_VERSION;
 /** Operator SoT: aziel-runtime main tip that the live Worker serves. */
 export const RUNTIME_GIT_SHA = "6a3798a";
 export const RUNTIME_GIT_FULL = "6a3798af3a94bfba3ed2e7aaadeed8777ea32bb4";

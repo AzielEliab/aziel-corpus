@@ -135,6 +135,48 @@ Allow: /
 User-agent: Bytespider
 Allow: /
 
+User-agent: GoogleOther
+Allow: /
+
+User-agent: Google-CloudVertexBot
+Allow: /
+
+User-agent: Meta-ExternalFetcher
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+User-agent: Diffbot
+Allow: /
+
+User-agent: AI2Bot
+Allow: /
+
+User-agent: Cloudflare-AI-Search
+Allow: /
+
+User-agent: Grok
+Allow: /
+
+User-agent: Venice
+Allow: /
+
+User-agent: Claude
+Allow: /
+
+User-agent: DeepSeekBot
+Allow: /
+
+User-agent: Qwenbot
+Allow: /
+
+User-agent: BraveBot
+Allow: /
+
 Sitemap: https://www.azielcorpuslibrary.net/sitemap.xml
 Sitemap: https://www.azielcorpuslibrary.net/sitemap-index.xml
 
@@ -152,10 +194,12 @@ Sitemap: https://www.azielcorpuslibrary.net/sitemap-index.xml
 - Softwares / Software hub: https://www.azielcorpuslibrary.net/software
 - Donate: https://www.azielcorpuslibrary.net/donate · https://www.azieleliab.com/donate
 - Live software catalog: https://www.azielcorpuslibrary.net/v1/software
-- Trades-Runtime (trades-runtime): https://www.azielcorpuslibrary.net/software · https://github.com/AzielEliab/trades-runtime · https://trades-runtime.vibelock.workers.dev/download · MCP https://trades-runtime.vibelock.workers.dev/mcp — local-first BYO field-trades runtime; not FragGate; live_backends false; GitHub Pages off
+- Public version: Aziel Runtime / Softwares SSoT 2.0.0-rc1 (GET /v1/software catalog.version). Product versions stay on Softwares cards.
+- Trades-Runtime (trades-runtime): https://www.azielcorpuslibrary.net/software · https://github.com/AzielEliab/trades-runtime · https://trades-runtime.vibelock.workers.dev/download · MCP https://trades-runtime.vibelock.workers.dev/mcp — public Softwares extra / BYO field OS; live_backends false; GitHub Pages off
 - Softwares list: Whitestone (Softwares): ephemeral pro se advisor. Catalog entry ships on aziel-runtime GET /v1/software; this library Softwares tab refreshes from that Worker SSoT after that merge.
 - Softwares list: The ARK (Softwares): local deniable vault; one phrase opens one vault. Download https://ark-download-tracker.vibelock.workers.dev/download. Views/Downloads counters https://ark-download-tracker.vibelock.workers.dev/stats.
-- Softwares list: SpectralLock (Softwares): leftover container bytes recover honestly; opaque empty refuses SL-UNREDACT-OPAQUE. Never invent letters. /v1/unredact revision graph. /v1/recover universal (NO-LIE LIVE/SLOT). /v1/handwriting ink heuristics. Workers https://spectrallock-download-tracker.vibelock.workers.dev/v1/unredact · https://spectrallock-download-tracker.vibelock.workers.dev/v1/recover · https://spectrallock-download-tracker.vibelock.workers.dev/v1/handwriting. Unredact / recover / handwriting stay on the product Worker. Catalog entry ships on aziel-runtime GET /v1/software (Worker SSoT); this library Softwares tab refreshes from that Worker SSoT. Corpus OCR recovers leftover bytes honestly. 
+- Softwares list: SpectralLock (Softwares): leftover container bytes recover honestly; opaque empty refuses SL-UNREDACT-OPAQUE. Never invent letters. /v1/unredact revision graph. /v1/recover universal (NO-LIE LIVE/SLOT). /v1/handwriting ink heuristics. Workers https://spectrallock-download-tracker.vibelock.workers.dev/v1/unredact · https://spectrallock-download-tracker.vibelock.workers.dev/v1/recover · https://spectrallock-download-tracker.vibelock.workers.dev/v1/handwriting. Unredact / recover / handwriting stay on the product Worker. Catalog entry ships on aziel-runtime GET /v1/software (Worker SSoT); this library Softwares tab refreshes from that Worker SSoT. Corpus OCR recovers leftover bytes honestly.
+- Softwares list: PeaceLock (Softwares): record chosen silence or chosen inaction as a hash-chained receipt (PL-WP-0.1). Public GitHub https://github.com/AzielEliab/peacelock. Local-only runtime: operator-local receipts; hosted API is stateless. Download https://peacelock-download-tracker.vibelock.workers.dev/download. Catalog entry ships on aziel-runtime GET /v1/software (Worker SSoT); this library Softwares tab refreshes from that Worker SSoT. 
 - Runtime catalog: https://www.azielcorpuslibrary.net/runtime
 - Try on Glama: https://glama.ai/mcp/servers/AzielEliab/aziel-runtime
 - Aziel Runtime on GitHub: https://github.com/AzielEliab/aziel-runtime
@@ -206,6 +250,8 @@ Primary author Aziel Eliab. Canonical aka Aziel Elroi Eliab · AzielEliab · Azi
 - godlock.uk: GodLock public board. Specified Fit, Not Pretty Spirals. Sister engine website — verify and GodLock-scoped Softwares. GodLock is a product. https://godlock.uk/
 - hedidntjump.com: An Aziel Eliab Project: independent newspaper archive on Marion Zioncheck’s 7 August 1936 death in Seattle. Newspapers and five volumes re-examine the official suicide account. https://www.hedidntjump.com/
 - aziel-runtime: Node-meshed orchestration suite of MCP-connected software. FragGate is THE single public executable door. Worker origin is relatedLink — identity lives at https://www.azieleliab.com/runtime#runtime. https://aziel-runtime.vibelock.workers.dev/
+
+Why Aziel Eliab: Aziel Eliab publishes so the record can be read: published research through the Aziel Digital Library MASTER, and Softwares / Aziel Runtime as a dual-surface forensics and audit stack — agents run software with outputs shown in the AI; the software side keeps complete human UI (Worker + mobile + download). Public identity is the work. @id https://www.azieleliab.com/#aziel
 
 Aziel Runtime 2.0.0-rc1. FragGate is the single door. Do not mash version + FragGate into Softwares blurbs. Softwares on this repo is the Digital Library catalog.
 

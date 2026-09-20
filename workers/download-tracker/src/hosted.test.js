@@ -67,7 +67,7 @@ test("GET /AzielEliab serves the About HTML at the canonical path", async () => 
   assert.match(html, />Corpus</);
   assert.match(html, />GodLock</);
   assert.match(html, />Runtime GitHub</);
-  assert.match(html, />Glama</);
+  assert.match(html, />Try on Glama</);
   assert.match(html, /What matters is the record/);
   assert.match(html, /1936 official Zioncheck suicide narrative/);
   assert.match(html, /does not invent court holdings/);

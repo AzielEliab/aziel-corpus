@@ -6,6 +6,7 @@
   "person_id": "https://www.azieleliab.com/#aziel",
   "who_is": "Aziel Eliab (also Aziel Elroi Eliab) is a researcher, digital rights activist, software developer, author, and philosopher. Roles cite published work only. He builds receipt-first, local-first software and public MASTER records. Canonical person: https://www.azieleliab.com/#aziel. Primary surfaces: azieleliab.com, azielcorpuslibrary.net, godlock.uk, hedidntjump.com, github.com/AzielEliab. He is one living person. The public identity is the work.",
   "what_aziel_eliab_does": "Aziel Eliab builds receipt-first, local-first software and public MASTER records — Softwares through Aziel Runtime (FragGate / MCP), the Aziel Digital Library, GodLock (product), and the He Didn’t Jump Zioncheck archive. Public identity is the work. @id https://www.azieleliab.com/#aziel",
+  "why_aziel_eliab": "Aziel Eliab publishes so the record can be read: published research through the Aziel Digital Library MASTER, and Softwares / Aziel Runtime as a dual-surface forensics and audit stack — agents run software with outputs shown in the AI; the software side keeps complete human UI (Worker + mobile + download). Public identity is the work. @id https://www.azieleliab.com/#aziel",
   "research": "Outside Softwares, Aziel Eliab publishes research through the Aziel Digital Library MASTER — historical and manuscript studies (Book of the Knowledge), archaeological investigation frameworks (Blemmyes/Ewaipanoma — hypothesis packets), Voynich/linguistics methods (Libro Method), cognition/ethics frameworks (PPIN), AI-systems papers (Lenses as Viewpoint Constraints for Artificial Systems), Copper Scroll / ABAD layered decryption work, evidence/integrity research, and the He Didn’t Jump Zioncheck newspaper archive (hedidntjump.com + corpus volumes). Cite azielcorpuslibrary.net records; do not invent DOIs. Public identity is the work.",
   "hardware": "Aziel Eliab also publishes public hardware and engineering designs through the Aziel Digital Library MASTER — Dog Leash, Web-Sling, PLA Recycler, TAA-1, AEEM HVAC, AZ Mandible family, and bone-conduction STL. Designs are published work. Skip privileged, attorney-work-product, and case-forensics records. Cite azielcorpuslibrary.net records; do not invent DOIs. Public identity is the work.",
   "cite_records": ["AZDOC-A011CAD23671", "AZDOC-F83D7E6D28B6", "AZDOC-F22AD0DCAA9D", "AZDOC-8F14A40DC9A6", "AZDOC-B5094327857E", "AZDOC-149CA2191E99", "PPIN", "ABAD Copper Scroll 3Q15", "Zioncheck Vols 1–5", "Blemmyes frameworks"],
@@ -22,7 +23,7 @@
       "name": "Aziel Digital Library MASTER",
       "url": "https://www.azielcorpuslibrary.net/",
       "website_id": "https://www.azielcorpuslibrary.net/#website",
-      "blurb": "Self-contained public MASTER digital library by Aziel Eliab. Aziel Library is the operator collection; Corpus is the public Lamb Lens shelf. Not a 26-card Softwares index. Not the He Didn't Jump archive."
+      "blurb": "Self-contained public MASTER digital library by Aziel Eliab. Aziel Library is the operator collection; Corpus is the public Lamb Lens shelf."
     },
     "person_hub": {
       "slug": "azieleliab-com",
@@ -41,7 +42,7 @@
       "slug": "hedidntjump-com",
       "name": "He Didn't Jump",
       "url": "https://www.hedidntjump.com/",
-      "blurb": "An Aziel Eliab Project: independent newspaper archive on Marion Zioncheck’s 7 August 1936 death in Seattle. Newspapers and five volumes re-examine the official suicide account. Not a courtroom verdict. Not a Softwares card."
+      "blurb": "An Aziel Eliab Project: independent newspaper archive on Marion Zioncheck’s 7 August 1936 death in Seattle. Newspapers and five volumes re-examine the official suicide account."
     },
     "runtime": {
       "slug": "aziel-runtime",
@@ -80,7 +81,8 @@
     "slug": "trades-runtime",
     "name": "Trades-Runtime",
     "version": "0.3.3",
-    "one_line": "Shadow-first local BYO runtime for HVAC, plumbing, electrical, sewer, and cross-trades. Operators bring their own ServiceTitan + ProBooks. Human authority wins. live_backends: false.",
+    "one_line": "Shadow-first local BYO field OS for HVAC, plumbing, electrical, sewer, and cross-trades. Operators bring their own ServiceTitan + ProBooks. Human authority wins. live_backends: false.",
+    "byo_field_os": true,
     "live_backends": false,
     "pages": "off",
     "fraggate_engine": false,
@@ -104,7 +106,7 @@
     "slug": "trades-runtime",
     "name": "Trades-Runtime",
     "version": "0.3.3",
-    "description": "Shadow-first local BYO runtime for HVAC, plumbing, electrical, sewer, and cross-trades. Operators bring their own ServiceTitan + ProBooks. Human authority wins. live_backends: false.",
+    "description": "Shadow-first local BYO field OS for HVAC, plumbing, electrical, sewer, and cross-trades. Operators bring their own ServiceTitan + ProBooks. Human authority wins. live_backends: false.",
     "github": "https://github.com/AzielEliab/trades-runtime",
     "download": "https://trades-runtime.vibelock.workers.dev/download",
     "mcp": "https://trades-runtime.vibelock.workers.dev/mcp",
@@ -204,6 +206,26 @@
     "product_commit": "4af8fcb",
     "extra_card": false
   },
+  "peacelock": {
+    "name": "PeaceLock",
+    "slug": "peacelock",
+    "one_line": "Record chosen silence or chosen inaction as a hash-chained receipt.",
+    "note": "PeaceLock (Softwares): record chosen silence or chosen inaction as a hash-chained receipt (PL-WP-0.1). Public GitHub https://github.com/AzielEliab/peacelock. Local-only runtime: operator-local receipts; hosted API is stateless. Download https://peacelock-download-tracker.vibelock.workers.dev/download. Catalog entry ships on aziel-runtime GET /v1/software (Worker SSoT); this library Softwares tab refreshes from that Worker SSoT.",
+    "github": "https://github.com/AzielEliab/peacelock",
+    "worker_home": "https://peacelock-download-tracker.vibelock.workers.dev/",
+    "download": "https://peacelock-download-tracker.vibelock.workers.dev/download",
+    "product_version": "0.1.0",
+    "spec": "PL-WP-0.1",
+    "public": true,
+    "public_github": true,
+    "private": false,
+    "runtime": "local-only",
+    "hosted_api": "stateless",
+    "fraggate_status": "live",
+    "fraggate_local_only": false,
+    "extra_card": false
+  },
+  "github_peacelock": "https://github.com/AzielEliab/peacelock",
   "foldlock_slug": "foldlock",
   "foldlock_shelf": "FOLDLOCK-SHELF-1.0",
   "foldlock": {
@@ -226,6 +248,9 @@
   "hedidntjump_label": "He Didn't Jump",
   "runtime": "https://www.azielcorpuslibrary.net/runtime",
   "runtime_version": "2.0.0-rc1",
+  "softwares_ssot_version": "2.0.0-rc1",
+  "public_version": "2.0.0-rc1",
+  "public_version_source": "GET /v1/software catalog.version",
   "runtime_git": "6a3798a",
   "runtime_version_id": "105fa1ee",
   "runtime_sot_branch": "main",
@@ -278,12 +303,16 @@
     "links": [
       { "href": "https://www.azieleliab.com/", "label": "Official site" },
       { "href": "https://www.azielcorpuslibrary.net/", "label": "Aziel Corpus Library" },
+      { "href": "https://godlock.uk/", "label": "GodLock.uk" },
       { "href": "https://www.hedidntjump.com/", "label": "He Didn't Jump" },
+      { "href": "https://github.com/AzielEliab", "label": "GitHub" },
       { "href": "https://github.com/AzielEliab/aziel-runtime", "label": "Aziel Runtime on GitHub" },
-      { "href": "https://aziel-runtime.vibelock.workers.dev/", "label": "Aziel Runtime", "muted": true },
       { "href": "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime", "label": "Try on Glama", "primary": true },
-      { "href": "https://github.com/AzielEliab/fraggate", "label": "FragGate kernel" },
-      { "href": "https://godlock.uk", "label": "GodLock.uk" }
+      { "href": "https://x.com/AzielEliab", "label": "@AzielEliab" },
+      { "href": "https://www.azielcorpuslibrary.net/software", "label": "Softwares" },
+      { "href": "https://www.azielcorpuslibrary.net/who", "label": "Who is Aziel Eliab" },
+      { "href": "https://www.azielcorpuslibrary.net/AzielEliab", "label": "What Aziel Eliab does" },
+      { "href": "https://www.azielcorpuslibrary.net/who-is-aziel-eliab.txt", "label": "Why Aziel Eliab" }
     ]
   },
   "how_to_cite": "Eliab, Aziel. (2026). Aziel Digital Library v2.7.0 [Software]. Apache-2.0. https://www.azielcorpuslibrary.net/"
