@@ -3,9 +3,10 @@ import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { CSS, page, donateStripHtml, aboutBody, whoBody, howItsScoredBody, patternBody, softwareBody, runtimeBody, azielLibraryBody, homeBody, homeSearchActive, corpusBody, uploadBody, brandMarkHtml, LCP_FOLD, splitLcpHtml, cardExcerpt, CARD_EXCERPT_CHARS, chipLabel } from "../workers/download-tracker/src/ui.js";
+import { CSS, page, donateStripHtml, aboutBody, whoBody, howItsScoredBody, patternBody, softwareBody, runtimeBody, azielLibraryBody, homeBody, homeSearchActive, corpusBody, uploadBody, brandMarkHtml, LCP_FOLD, splitLcpHtml, cardExcerpt, CARD_EXCERPT_CHARS, chipLabel, exploreRowHtml, startPathsHtml, EXPLORE_LINKS } from "../workers/download-tracker/src/ui.js";
 import { guestSession, isOperator, libraryFor, quarantineHiddenFromPublic, ingestRecord, searchRecords } from "../workers/download-tracker/src/library.js";
-import { ocrPageBody, mapBody, SPECTRAL_LENSES } from "../workers/download-tracker/src/hosted-pages.js";
+import { ocrPageBody, mapBody, treeBody, historicalBody, intelligenceBody, SPECTRAL_LENSES } from "../workers/download-tracker/src/hosted-pages.js";
+import { jeevesFabHtml } from "../workers/download-tracker/src/jeeves.js";
 import { dedupeShelfRows } from "../workers/download-tracker/src/library.js";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -682,4 +683,89 @@ test("Worker-served HTML and library docs never use the retired bloom phrase", (
     }
   }
   assert.deepEqual(hits, [], "banned bloom phrase remains in " + hits.join(", "));
+});
+
+test("homepage first screen names browse, upload, explore, and agent cite paths", () => {
+  const home = homeBody({ rows: [], host: "https://www.azielcorpuslibrary.net" });
+  assert.match(home, /<h1>Search the libraries<\/h1>/);
+  assert.match(home, /public MASTER of hashed records/);
+  assert.match(home, /class="aziel-name">Aziel Eliab</);
+  assert.match(home, /Ask Jeeves/);
+  assert.match(home, /class="start-paths"/);
+  assert.match(home, /href="\/aziel-library">Aziel Library</);
+  assert.match(home, /href="\/corpus">Corpus</);
+  assert.match(home, /href="\/upload">Upload a file</);
+  assert.match(home, /href="\/tree">Tree</);
+  assert.match(home, /href="\/map">Map</);
+  assert.match(home, /href="\/forensics">Forensics</);
+  assert.match(home, /\/record\/\{id\}\/llms\.txt/);
+  assert.match(home, /href="\/llms\.txt">\/llms\.txt</);
+  assert.doesNotMatch(home, /class="facets"/);
+  assert.doesNotMatch(home, /15:20/);
+  assert.doesNotMatch(home, /10\.5281\/zenodo/i);
+  assert.doesNotMatch(home, /This is not/i);
+  const split = splitLcpHtml(home);
+  assert.match(split.early, /class="start-paths"/);
+  assert.match(split.early, /Ask Jeeves/);
+  assert.doesNotMatch(split.early, /id="signup"/);
+  assert.equal(startPathsHtml().includes("Browse"), true);
+});
+
+test("empty browse shelves offer Upload and shelf CTAs instead of a dead end", () => {
+  const home = homeBody({ q: "zzzz-no-hit", rows: [] });
+  const aziel = azielLibraryBody({ signed: null, rows: [] });
+  const corpus = corpusBody({ signed: null, rows: [] });
+  for (const html of [home, aziel, corpus]) {
+    assert.match(html, /No matching records yet/);
+    assert.match(html, /href="\/upload">Upload a file</);
+    assert.match(html, /class="empty-actions"/);
+    assert.doesNotMatch(html, /This shelf is quiet/);
+  }
+  assert.match(home, /href="\/aziel-library">Browse Aziel Library</);
+  assert.match(home, /href="\/corpus">Browse Corpus</);
+  assert.match(aziel, /href="\/aziel-library">Open Aziel Library</);
+  assert.match(corpus, /href="\/corpus">Open Corpus</);
+});
+
+test("Upload, shelves, Map, Tree, Historical, and Forensics share explore chips and skip Gazetteer", () => {
+  assert.equal(EXPLORE_LINKS.some((l) => l.href === "/gazetteer"), false);
+  const upload = uploadBody({});
+  const aziel = azielLibraryBody({ signed: null, rows: [] });
+  const corpus = corpusBody({ signed: null, rows: [] });
+  const map = mapBody({ events: [], unresolved: [], gazetteer: { state: "READY", places: 1, profile: "lite" }, signed: null });
+  const tree = treeBody({ libraries: {}, standalone: [] });
+  const hist = historicalBody({ status: {}, layers: [], signed: null });
+  const forensics = intelligenceBody({ packages: [], aiReady: false, signed: null, operator: false });
+  const pattern = patternBody({ total: 0 });
+  for (const html of [upload, aziel, corpus, map, tree, hist, forensics, pattern, exploreRowHtml("/map")]) {
+    assert.match(html, /class="explore-row"/);
+    assert.match(html, /href="\/map">Map</);
+    assert.match(html, /href="\/tree">Tree</);
+    assert.match(html, /href="\/forensics">Forensics</);
+    assert.doesNotMatch(html, /href="\/gazetteer"/);
+    assert.doesNotMatch(html, />Gazetteer</);
+  }
+  assert.match(upload, /Upload to Corpus/);
+  assert.match(upload, /No account required/);
+  assert.match(upload, /\/record\/\{id\}\/llms\.txt/);
+  assert.match(upload, /href="\/help\/uploads\.txt"/);
+  assert.match(map, /<h1>Map<\/h1>/);
+  assert.match(tree, /Open a title to read the record/);
+  assert.match(hist, /<h1>Historical<\/h1>/);
+  assert.match(CSS, /\.start-paths\{/);
+  assert.match(CSS, /\.explore-row\{/);
+  assert.match(CSS, /html\{scroll-padding-bottom:96px\}/);
+  assert.match(CSS, /\.soft-grid\{grid-template-columns:1fr\}/);
+  assert.match(CSS, /\.button,button,\.chip,\.nav2 a\{touch-action:manipulation\}/);
+});
+
+test("Ask Jeeves FAB stays gold, labeled, and outside trapping chrome", () => {
+  const html = page("Corpus Search", homeBody({ rows: [], host: "https://www.azielcorpuslibrary.net" }), { path: "/", kind: "search" });
+  const fab = jeevesFabHtml();
+  assert.match(html, /id="jeevesFab"/);
+  assert.match(html, />Ask Jeeves</);
+  assert.match(fab, /aria-label="Ask Jeeves about a filed record"/);
+  assert.match(fab, /id="jeevesFab"/);
+  assert.match(CSS, /\.jeeves-fab\{[^}]*position:fixed/);
+  assert.match(CSS, /html,body\{[^}]*overflow-y:auto/);
 });

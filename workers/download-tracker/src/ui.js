@@ -44,6 +44,7 @@ import {
   AZCOHERENCE_GITHUB,
 } from "./azcoherence.js";
 import { isMachineFileTag, visibleTagEntries } from "./visible-tags.js";
+import { exploreRowHtml, startPathsHtml } from "./explore-nav.js";
 
 /** Master UI chrome from Aziel Digital Library v2.7.0 webapp. Author: Aziel Eliab. */
 export const CSS = `
@@ -98,8 +99,16 @@ body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;lin
 .nav2 .sep{color:#5a4e3e;padding:0 2px}
 .aziel-name{color:var(--royal);font-weight:700}
 .home-doors{display:grid;grid-template-columns:1fr;gap:14px;margin:18px 0}
+.start-paths{display:grid;grid-template-columns:1fr;gap:10px;margin:14px 0 6px}
+.start-card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px 16px;color:var(--ink);min-width:0;max-width:100%}
+.start-card strong{display:block;color:var(--gold);margin:0 0 4px;font-size:15px}
+.start-card p{margin:0;font-size:15px;line-height:1.45}
+.explore-row{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px;min-width:0;max-width:100%}
+.empty-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:14px 0 0}
+.empty-actions .button{width:auto}
 @media (min-width:721px){
   .home-doors{grid-template-columns:1fr 1fr}
+  .start-paths{grid-template-columns:1fr 1fr}
 }
 .muted{color:var(--muted)}
 a{color:var(--gold)}
@@ -108,6 +117,7 @@ a{color:var(--gold)}
 a.pill:hover{color:var(--gold)}
 .pill span{color:var(--muted);font-weight:650;margin-left:6px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin:18px 0;box-shadow:0 1px 0 #00000040;min-width:0;max-width:100%;overflow-x:hidden;overflow-wrap:anywhere;word-break:break-word}
+.button,button,.chip,.nav2 a{touch-action:manipulation}
 .button,button{background:var(--gold);color:#14110a;border:0;padding:12px 16px;border-radius:10px;text-decoration:none;cursor:pointer;min-height:44px;display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:700}
 .button.ghost,a.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
 .search,input,select,textarea{padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:#16130f;color:var(--ink);font:inherit}
@@ -165,6 +175,7 @@ label.showpw{font-size:14px;color:var(--muted);white-space:nowrap;min-height:44p
 .metric{font-size:28px;font-weight:800;color:var(--gold)}
 .empty{color:var(--muted);padding:28px 8px;text-align:center}
 .empty strong{display:block;color:var(--ink);margin-bottom:6px}
+.empty p{margin:8px 0 0}
 .tools{position:relative;z-index:8;background:var(--bg);padding:10px 0 12px;margin:0 0 8px;border-bottom:1px solid var(--line)}
 .tools-grid{display:grid;grid-template-columns:minmax(140px,.9fr) repeat(4,minmax(110px,1fr));gap:10px;margin:8px 0 4px}
 .tools-grid label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;letter-spacing:.02em;color:var(--muted)}
@@ -271,7 +282,16 @@ a.runtime-muted:hover{color:var(--ink)}
   .tools select,.tools input,.tools .search{width:100%;min-height:44px}
   .tools button{width:100%}
   .shelf{display:grid;grid-template-columns:minmax(0,1fr);max-height:none;overflow:visible;border:0;padding:0;background:transparent}
-  .chips,.mini-chips,.checkrow,.lens-grid,.ocr-form,.ocr-form button{width:100%}
+  .chips,.mini-chips,.checkrow,.lens-grid,.ocr-form,.ocr-form button,.explore-row,.start-paths{width:100%}
+  .start-paths{grid-template-columns:1fr}
+  .soft-grid{grid-template-columns:1fr}
+  .soft-card{padding:16px}
+  .soft-card h3{font-size:18px;line-height:1.3}
+  .soft-card p{font-size:15px;line-height:1.45}
+  .empty-actions{flex-direction:column}
+  .empty-actions .button{width:100%}
+  .jeeves-fab{min-height:48px;padding:14px 18px;font-size:16px}
+  html{scroll-padding-bottom:96px}
   .lights{grid-template-columns:1fr}
   .q-badge{display:block;margin:8px 0 0;width:fit-content}
 }
@@ -570,7 +590,7 @@ export function shelfScoreRows(row) {
 function docCards(rows, state = {}, path = "/") {
   const unique = dedupeShelf(rows);
   if (!unique.length) {
-    return `<div class="shelf"><p class="empty"><strong>This shelf is quiet.</strong>Nothing matches these filters. Clear a chip or try another sort.</p></div>`;
+    return emptyShelfHtml(path);
   }
   const st = browseState(state);
   return `<div class="shelf">${unique
@@ -649,6 +669,16 @@ export function libraryFileCountHtml({ records_packed, records_aziel, records_co
   return `<p class="library-count" ${attrs.join(" ")}><strong>${formatFileCount(total)}</strong> files in the libraries${extra}.</p>`;
 }
 
+function emptyShelfHtml(path = "/") {
+  const here = String(path || "/");
+  const browse = here === "/aziel-library"
+    ? `<a class="button ghost" href="/aziel-library">Open Aziel Library</a>`
+    : here === "/corpus"
+      ? `<a class="button ghost" href="/corpus">Open Corpus</a>`
+      : `<a class="button ghost" href="/aziel-library">Browse Aziel Library</a><a class="button ghost" href="/corpus">Browse Corpus</a>`;
+  return `<div class="shelf"><div class="empty"><strong>No matching records yet.</strong><p>Try a shorter word, clear a filter, or open a shelf.</p><p class="empty-actions">${browse}<a class="button" href="/upload">Upload a file</a><a class="button ghost" href="/">New search</a></p></div></div>`;
+}
+
 function homeLibraryChips(state) {
   const st = browseState(state);
   return `<div class="chips">${chip("All", "/", !st.q && !st.domain && !st.subject && !st.keyword && !st.author)}${chip("Aziel Library", "/aziel-library", false)}${chip("Corpus", "/corpus", false)}</div>`;
@@ -697,8 +727,10 @@ export function homeBody({ q, lib, sort, domain, subject, keyword, author, rows,
     : "";
   return `<section class="hero">
 <h1>Search the libraries</h1>
-<p class="muted">Public search across Aziel Library and Corpus. Author <span class="aziel-name">Aziel Eliab</span>.</p>
+<p>Aziel Digital Library is the public MASTER of hashed records by <span class="aziel-name">Aziel Eliab</span>. Search a title, browse a shelf, or upload a file.</p>
+<p class="muted">Public search across Aziel Library and Corpus. Ask Jeeves — the gold button — answers from filed text.</p>
 ${libraryFileCountHtml({ records_packed, records_aziel, records_corpus })}
+${startPathsHtml()}
 </section>
 ${tools}
 ${homeLibraryChips(state)}
@@ -714,12 +746,14 @@ export function uploadBody({ signed, error } = {}) {
     return `<section class="hero">
 <h1>Upload</h1>
 <p class="muted">Upload to <span class="aziel-name">Aziel Library</span>.</p>
+${exploreRowHtml("/upload")}
 </section>
 <div class="drop">
 ${err}
 <form method="post" action="/upload" enctype="multipart/form-data">
 <input type="file" name="file" required>
 <input name="title" placeholder="Title (optional)" autocomplete="off">
+<textarea name="body" rows="4" placeholder="Notes (optional)"></textarea>
 <p><button>Upload to Aziel Library</button></p>
 </form>
 </div>`;
@@ -727,14 +761,18 @@ ${err}
   return `<section class="hero">
 <h1>Upload</h1>
 <p class="muted">Upload to Corpus. No account required.</p>
+<p>Give the file a title, then send it. After a clear review you land on the record page. Agents cite it at <code>/record/{id}/llms.txt</code>.</p>
+${exploreRowHtml("/upload")}
 </section>
 <div class="drop">
 ${err}
 <form method="post" action="/upload" enctype="multipart/form-data">
 <input type="file" name="file">
 ${requiredTitleField("upload-title")}
+<textarea name="body" rows="4" placeholder="Text or notes (optional)"></textarea>
 <p><button>Upload to Corpus</button></p>
 </form>
+<p class="muted">Same door as the homepage upload. Help: <a href="/help/uploads.txt">uploads.txt</a> · browse <a href="/corpus">Corpus</a>.</p>
 </div>`;
 }
 
@@ -756,7 +794,7 @@ ${metaInputs({ authorPlaceholder: "Aziel Eliab" })}
 </form>
 </div>`
     : `<div class="card"><p class="muted">Anyone can browse Aziel Library. Uploads are operator-only.</p></div>`;
-  return `<section class="hero about-aziel"><h1>Aziel Library</h1><p class="muted">Aziel Eliab's work across domains.</p>${libraryFileCountHtml({ records_packed, records_aziel, records_corpus, shelf: "aziel" })}</section>
+  return `<section class="hero about-aziel"><h1>Aziel Library</h1><p class="muted">Aziel Eliab's work across domains. Open a card to read or download.</p>${libraryFileCountHtml({ records_packed, records_aziel, records_corpus, shelf: "aziel" })}${exploreRowHtml("/aziel-library")}</section>
 ${browseTools({ action: "/aziel-library", showLibChips: false, ...state })}
 ${facetBlock(facets, state, "/aziel-library")}
 ${upload}
@@ -786,7 +824,7 @@ ${metaInputs({ authorPlaceholder: "Author" })}
   } else {
     form = `<div class="card"><p>Anyone can view this library. <a href="/signup">Sign up</a> to post under a name, or <a href="/upload">upload</a> without an account. Corpus uploads are reviewed for safety before they appear. Aziel Library stays operator-only.</p><p><a class="button" href="/signup">Sign up</a> <a class="button ghost" href="/upload">Upload</a></p></div>`;
   }
-  return `<section class="hero"><h1>Corpus library</h1><p class="muted">Files from every other account.</p>${libraryFileCountHtml({ records_packed, records_aziel, records_corpus, shelf: "corpus" })}</section>
+  return `<section class="hero"><h1>Corpus library</h1><p class="muted">Files from every other account. Search, open a card, or <a href="/upload">upload</a> your own.</p>${libraryFileCountHtml({ records_packed, records_aziel, records_corpus, shelf: "corpus" })}${exploreRowHtml("/corpus")}</section>
 ${browseTools({ action: "/corpus", showLibChips: false, ...state })}
 ${facetBlock(facets, state, "/corpus")}
 ${form}
@@ -807,7 +845,7 @@ export function patternBody({ total, domains, subjects, keywords, crosses } = {}
   const subjectCards = (subjects || []).map((x) => patternCard("/?subject=" + encodeURIComponent(x.label), x.n, x.label, "subject")).join("");
   const keywordCards = (keywords || []).map((x) => patternCard("/?keyword=" + encodeURIComponent(x.label), x.n, x.label, "keyword")).join("");
   const crossCards = (crosses || []).map((x) => patternCard("/?domain=" + encodeURIComponent(x.domain) + "&subject=" + encodeURIComponent(x.subject), x.n, x.domain + " × " + x.subject, "domain × subject")).join("");
-  return `<section class="hero"><h1>Pattern</h1><p class="muted">Domain, subject, and keyword clusters across ${esc(n)} recent records. Cards open Search with that filter. Author Aziel Eliab.</p></section>
+  return `<section class="hero"><h1>Pattern</h1><p class="muted">Domain, subject, and keyword clusters across ${esc(n)} recent records. Cards open Search with that filter. Author Aziel Eliab.</p>${exploreRowHtml("/pattern")}</section>
 <div class="card"><h2>Domains</h2><div class="pattern-grid">${domainCards || "<p class=\"muted\">No domains yet.</p>"}</div></div>
 <div class="card"><h2>Subjects</h2><div class="pattern-grid">${subjectCards || "<p class=\"muted\">No subjects yet.</p>"}</div></div>
 <div class="card"><h2>Keywords</h2><div class="pattern-grid">${keywordCards || "<p class=\"muted\">No keywords yet.</p>"}</div></div>
@@ -1003,3 +1041,4 @@ ${softSection("Lock", groups.lock)}
 }
 
 export { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, ocrBody, ocrFormHtml, SPECTRAL_LENSES, blockedAvBody } from "./hosted-pages.js";
+export { exploreRowHtml, startPathsHtml, EXPLORE_LINKS } from "./explore-nav.js";

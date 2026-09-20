@@ -1660,7 +1660,7 @@ export async function handleJeevesApi(request, url, env, signed) {
 export function jeevesFabHtml(signed) {
   const op = isOperator(signed);
   const dest = op ? "Aziel Library" : "Corpus";
-  return `<button type="button" class="jeeves-fab" id="jeevesFab" aria-expanded="false" aria-controls="jeevesDrawer">Ask Jeeves</button>
+  return `<button type="button" class="jeeves-fab" id="jeevesFab" aria-expanded="false" aria-controls="jeevesDrawer" aria-label="Ask Jeeves about a filed record">Ask Jeeves</button>
 <aside class="jeeves-drawer" id="jeevesDrawer" hidden>
   <header class="jeeves-head"><strong>Ask Jeeves</strong><button type="button" class="jeeves-x" id="jeevesClose" aria-label="Close">×</button></header>
   <p class="muted jeeves-note">Research assistant. Not sovereign. Not the operator. Cannot change scores. Add uses the same ingest path as the shelf.</p>
