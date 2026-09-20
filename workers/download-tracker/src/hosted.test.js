@@ -34,7 +34,7 @@ test("GET /AzielEliab serves the About HTML at the canonical path", async () => 
   assert.equal(res.status, 200);
   assert.match(res.headers.get("content-type") || "", /text\/html/);
   const html = await res.text();
-  assert.match(html, /class="brandmark-link"/);
+  assert.match(html, /class="brandmark-link/);
   assert.match(html, /src="\/sigil\.png"/);
   assert.match(html, /About Aziel/);
   assert.match(html, /Aziel Eliab/);
@@ -152,7 +152,7 @@ test("GET /forensics serves Forensics HTML and public nav hides Gazetteer", asyn
   assert.equal(res.status, 200);
   assert.match(res.headers.get("content-type") || "", /text\/html/);
   const html = await res.text();
-  assert.match(html, /class="brandmark-link"/);
+  assert.match(html, /class="brandmark-link/);
   assert.match(html, /src="\/sigil\.png"/);
   assert.match(html, /<title>Forensics/);
   assert.match(html, /<h1>Forensics<\/h1>/);
@@ -187,7 +187,7 @@ test("GET /gazetteer stays hosted without a public nav tab", async () => {
   assert.ok(res, "handleHosted should still serve /gazetteer");
   assert.equal(res.status, 200);
   const html = await res.text();
-  assert.match(html, /class="brandmark-link"/);
+  assert.match(html, /class="brandmark-link/);
   assert.match(html, /src="\/sigil\.png"/);
   assert.match(html, /Aziel World Gazetteer/);
   assert.doesNotMatch(html, />Gazetteer</);

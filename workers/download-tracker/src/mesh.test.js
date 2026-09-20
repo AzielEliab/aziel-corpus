@@ -952,11 +952,10 @@ test("runtime skill and manifest cite mesh; GET mesh does not increment uses", (
 
 test("human chrome shows Live Nodes · N without mesh-off copy", () => {
   const html = page("Search", "<div class=\"card\">shelf</div>", { path: "/", kind: "search" });
-  assert.match(html, /id="aziel-live-nodes"/);
-  assert.match(html, /Live Nodes · 0/);
+  assert.doesNotMatch(html, /id="aziel-live-nodes"/);
+  assert.doesNotMatch(html, /Live Nodes · 0/);
   assert.doesNotMatch(html, /Live Nodes · off/);
-  assert.match(html, /href="\/v1\/mesh\/status"/);
-  assert.match(html, /title="Live Nodes · suite mesh status"/);
+  assert.doesNotMatch(html, /title="Live Nodes · suite mesh status"/);
   assert.doesNotMatch(html, /title="[^"]*CROSS-NETWORK-SURVIVAL/);
   assert.doesNotMatch(html, /title="[^"]*NO-LIE/);
   assert.doesNotMatch(html, /Default off until runtime enable/i);

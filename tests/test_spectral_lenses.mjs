@@ -51,7 +51,7 @@ function assertOcrChrome(html, { saveText, saveDisabled }) {
 test("operator OCR page always shows Aziel Library save + all lenses", () => {
   const html = page("OCR", ocrBody({ signed: OPERATOR, operator: true }), { signed: OPERATOR, path: "/ocr" });
   assertOcrChrome(html, { saveText: "Save extracted text into Aziel Library", saveDisabled: false });
-  assert.match(html, /signed in as operator/);
+  assert.match(html, /class="auth-who">operator</);
   assert.match(CSS, /white-space:normal/);
   assert.match(CSS, /\.checkrow\{/);
   assert.match(CSS, /input\[type=checkbox\].*width:auto/);

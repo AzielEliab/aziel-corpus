@@ -71,6 +71,13 @@ function letterRatio(token) {
   return { letters, ratio: t.length ? letters / t.length : 0 };
 }
 
+/** True when a visible byline would name Aziel Eliab on human library chrome. Machine cite stays. */
+export function isChromeAuthorByline(name) {
+  const s = String(name == null ? "" : name).trim().toLowerCase().replace(/\s+/g, " ");
+  if (!s) return false;
+  return s === "aziel eliab" || s === "aziel elroi eliab" || /^aziel(?:\s+elroi)?\s+eliab$/.test(s);
+}
+
 export function isHumanTag(token) {
   const raw = String(token == null ? "" : token).trim();
   if (!raw) return false;

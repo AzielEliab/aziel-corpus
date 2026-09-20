@@ -36,14 +36,14 @@ import {
   LAMB_LENS_PATH,
   AI_CLIENTS,
 } from "./runtime-copy.js";
-import { meshOnDoc, meshRefreshScript, meshStatusHtml } from "./mesh.js";
 import { ingestReceiptHead } from "./ingest-receipt.js";
 import {
   AZCOHERENCE,
   AZCOHERENCE_WORKER_HOME,
   AZCOHERENCE_GITHUB,
 } from "./azcoherence.js";
-import { isMachineFileTag, visibleTagEntries } from "./visible-tags.js";
+import { isChromeAuthorByline, isMachineFileTag, visibleTagEntries } from "./visible-tags.js";
+import { exploreRowHtml, startPathsHtml } from "./explore-nav.js";
 
 /** Master UI chrome from Aziel Digital Library v2.7.0 webapp. Author: Aziel Eliab. */
 export const CSS = `
@@ -58,14 +58,24 @@ html,body{background:var(--bg);color:var(--ink);overflow-x:hidden;overflow-y:aut
 body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;line-height:1.5;overflow-wrap:anywhere;word-break:break-word}
 .wrap{max-width:920px;margin:auto;padding:8px 22px 72px;min-width:0;overflow-x:hidden}
 .sitehead{background:var(--bg);max-width:100%;overflow-x:hidden}
-.sitehead-inner{max-width:920px;margin:auto;padding:28px 22px 0;min-width:0;max-width:100%}
+.sitehead-inner{max-width:920px;margin:auto;padding:28px 22px 0;min-width:0;max-width:100%;position:relative}
 .brandrow{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:6px;min-height:48px;min-width:0;max-width:100%}
-.brandmark-link{display:block;flex:0 0 40px;width:40px;height:40px;line-height:0;order:-1}
+.brandmark-link,.sigil-nav-btn{display:flex;align-items:center;justify-content:center;flex:0 0 44px;width:44px;height:44px;padding:0;line-height:0;order:-1;background:transparent;border:0;border-radius:12px;cursor:pointer;color:inherit}
+.sigil-nav-btn[aria-expanded="true"]{box-shadow:0 0 0 2px var(--gold)}
 .brandmark{width:40px;height:40px;border-radius:10px;object-fit:cover;flex:0 0 40px;box-shadow:0 0 0 1px #0003,0 0 0 1px var(--gold)}
-.brand{font-size:23px;font-weight:800;letter-spacing:-.02em;line-height:1.2;color:var(--ink)}
+.brand{font-size:23px;font-weight:800;letter-spacing:-.02em;line-height:1.2;color:var(--ink);text-decoration:none}
+a.brand{color:var(--ink)}
+a.brand:hover{color:var(--gold)}
+.authbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-left:auto}
+.authbar a{min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:10px;text-decoration:none;font-weight:700;color:var(--gold)}
+.authbar a.button{color:#14110a}
+.authbar a.auth-link{background:transparent;border:1px solid var(--line);color:var(--gold)}
+.authbar .auth-who{color:var(--royal);font-weight:700}
 .nav1,.nav2,.top,.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .nav1{margin-bottom:6px}
-.nav2{margin:8px 0 12px;gap:2px 0}
+.nav2{margin:8px 0 12px;gap:4px;position:absolute;left:22px;top:76px;z-index:35;flex-direction:column;align-items:stretch;background:var(--paper);border:1px solid var(--gold);border-radius:14px;padding:8px;min-width:min(280px,calc(100vw - 32px));max-height:min(70vh,640px);overflow:auto;box-shadow:0 12px 32px #00000066}
+.nav2[hidden]{display:none!important}
+.nav2 .sep{display:none}
 .ingest-verify-form{margin:12px 0}
 .donate-strip{margin:0 0 22px;padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:var(--paper);color:var(--muted);font-size:14px}
 .donate-strip p{margin:0}
@@ -98,8 +108,16 @@ body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;lin
 .nav2 .sep{color:#5a4e3e;padding:0 2px}
 .aziel-name{color:var(--royal);font-weight:700}
 .home-doors{display:grid;grid-template-columns:1fr;gap:14px;margin:18px 0}
+.start-paths{display:grid;grid-template-columns:1fr;gap:10px;margin:14px 0 6px}
+.start-card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px 16px;color:var(--ink);min-width:0;max-width:100%}
+.start-card strong{display:block;color:var(--gold);margin:0 0 4px;font-size:15px}
+.start-card p{margin:0;font-size:15px;line-height:1.45}
+.explore-row{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px;min-width:0;max-width:100%}
+.empty-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:14px 0 0}
+.empty-actions .button{width:auto}
 @media (min-width:721px){
   .home-doors{grid-template-columns:1fr 1fr}
+  .start-paths{grid-template-columns:1fr 1fr}
 }
 .muted{color:var(--muted)}
 a{color:var(--gold)}
@@ -108,6 +126,7 @@ a{color:var(--gold)}
 a.pill:hover{color:var(--gold)}
 .pill span{color:var(--muted);font-weight:650;margin-left:6px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin:18px 0;box-shadow:0 1px 0 #00000040;min-width:0;max-width:100%;overflow-x:hidden;overflow-wrap:anywhere;word-break:break-word}
+.button,button,.chip,.nav2 a{touch-action:manipulation}
 .button,button{background:var(--gold);color:#14110a;border:0;padding:12px 16px;border-radius:10px;text-decoration:none;cursor:pointer;min-height:44px;display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:700}
 .button.ghost,a.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
 .search,input,select,textarea{padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:#16130f;color:var(--ink);font:inherit}
@@ -165,6 +184,7 @@ label.showpw{font-size:14px;color:var(--muted);white-space:nowrap;min-height:44p
 .metric{font-size:28px;font-weight:800;color:var(--gold)}
 .empty{color:var(--muted);padding:28px 8px;text-align:center}
 .empty strong{display:block;color:var(--ink);margin-bottom:6px}
+.empty p{margin:8px 0 0}
 .tools{position:relative;z-index:8;background:var(--bg);padding:10px 0 12px;margin:0 0 8px;border-bottom:1px solid var(--line)}
 .tools-grid{display:grid;grid-template-columns:minmax(140px,.9fr) repeat(4,minmax(110px,1fr));gap:10px;margin:8px 0 4px}
 .tools-grid label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;letter-spacing:.02em;color:var(--muted)}
@@ -252,6 +272,16 @@ a.runtime-muted:hover{color:var(--ink)}
 .jeeves-snake{display:block;margin:8px 0 0;padding:8px;overflow:auto;max-width:100%;overflow-x:hidden;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.15;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;color:#c8f5c0;background:#0b120b;border:1px solid var(--line);border-radius:8px}
 .jeeves-note{margin:6px 0 8px}
 .jeeves-ask,.jeeves-up{display:flex;flex-direction:column;gap:8px;margin:8px 0}
+.jeeves-links{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 0}
+.jeeves-links a{min-height:44px}
+.trend{margin:18px 0}
+.trend h2{margin:0 0 8px;font-size:20px;color:var(--gold)}
+.follow-footer{margin:22px 0 8px}
+.follow-footer h2{margin:0 0 8px;font-size:18px}
+.follow-group{margin:10px 0}
+.follow-group .facet-label{margin-bottom:6px}
+.verify-panel{margin:12px 0;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--paper)}
+.verify-panel summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:700;color:var(--gold)}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
 @media (max-width:720px){
   html,body{overflow-x:hidden;overflow-y:auto;height:auto;min-height:100%;max-width:100%}
@@ -259,19 +289,32 @@ a.runtime-muted:hover{color:var(--ink)}
   .wrap{padding:8px 14px max(120px, calc(env(safe-area-inset-bottom, 0px) + 100px))}
   .brand{width:auto;font-size:20px;flex:1 1 auto;min-width:0}
   .brandrow{flex-wrap:wrap;gap:8px}
+  .authbar{width:100%;margin-left:0}
+  .authbar a.button,.authbar a.auth-link{width:auto}
+  .sigil-nav-btn,.brandmark-link{width:44px;max-width:44px;height:44px;flex:0 0 44px}
   .pill{padding:5px 10px}
   .search,.hero-search .search{width:100%;min-width:0}
   .hero-search{flex-direction:column}
   .hero-search button,.button,button{width:100%}
   .jeeves-fab,.jeeves-drawer button,.jeeves-drawer .button,.jeeves-x{width:auto}
-  .nav1,.nav2{width:100%}
+  .nav1{width:100%}
+  .nav2{left:14px;right:14px;width:auto;min-width:0}
   .doc,.card,.drop{padding:16px}
   .tools{position:static;width:100%}
   .tools-grid{grid-template-columns:1fr}
   .tools select,.tools input,.tools .search{width:100%;min-height:44px}
   .tools button{width:100%}
   .shelf{display:grid;grid-template-columns:minmax(0,1fr);max-height:none;overflow:visible;border:0;padding:0;background:transparent}
-  .chips,.mini-chips,.checkrow,.lens-grid,.ocr-form,.ocr-form button{width:100%}
+  .chips,.mini-chips,.checkrow,.lens-grid,.ocr-form,.ocr-form button,.explore-row,.start-paths{width:100%}
+  .start-paths{grid-template-columns:1fr}
+  .soft-grid{grid-template-columns:1fr}
+  .soft-card{padding:16px}
+  .soft-card h3{font-size:18px;line-height:1.3}
+  .soft-card p{font-size:15px;line-height:1.45}
+  .empty-actions{flex-direction:column}
+  .empty-actions .button{width:100%}
+  .jeeves-fab{min-height:48px;padding:14px 18px;font-size:16px}
+  html{scroll-padding-bottom:96px}
   .lights{grid-template-columns:1fr}
   .q-badge{display:block;margin:8px 0 0;width:fit-content}
 }
@@ -326,21 +369,42 @@ export function ecosystemBlockHtml() {
   return `<footer class="ecosystem" aria-label="${esc(ECOSYSTEM_HEADING)}"><p class="eco-head">${esc(ECOSYSTEM_HEADING)}</p><nav class="ecosystem-nav"><ul class="ecosystem-list">${items}</ul></nav></footer>`;
 }
 
-/** Rose-star brand mark only — no words on the mark. Public identity Aziel Eliab. */
+/** Rose-star brand mark only — no words on the mark. Opens the library menu. */
 export function brandMarkHtml() {
-  return `<a class="brandmark-link" href="/" aria-label="Aziel Digital Library"><img class="brandmark" src="/sigil.png" width="40" height="40" alt="" decoding="async" fetchpriority="high"></a>`;
+  return `<button type="button" class="brandmark-link sigil-nav-btn" id="sigilNavBtn" aria-expanded="false" aria-controls="sigilNav" aria-haspopup="true" aria-label="Open library menu"><img class="brandmark" src="/sigil.png" width="40" height="40" alt="" decoding="async" fetchpriority="high"></button>`;
 }
 
-export function brandCountPills({ views, downloads } = {}) {
-  const pills = [];
-  if (views != null && views !== "") {
-    pills.push(`<a class="pill" href="/stats" id="views">${esc(views)}<span>views</span></a>`);
+/** Top-bar primary actions: Upload beside Login / Sign up. */
+export function authBarHtml(signed) {
+  const who = signed && signed.username ? String(signed.username) : "";
+  if (signed) {
+    return `<nav class="authbar" aria-label="Account"><a class="button" href="/upload">Upload</a><span class="auth-who">${esc(who)}</span><a class="auth-link" href="/logout">Log out</a></nav>`;
   }
-  if (downloads != null && downloads !== "") {
-    pills.push(`<a class="pill" href="/stats" id="downloads">${esc(downloads)}<span>downloads</span></a>`);
-  }
-  pills.push(meshStatusHtml(meshOnDoc()));
-  return pills.join("");
+  return `<nav class="authbar" aria-label="Account"><a class="button" href="/upload">Upload</a><a class="auth-link" href="/login">Log in</a><a class="auth-link" href="/signup">Sign up</a></nav>`;
+}
+
+/** Sigil dropdown: Pattern and Runtime stay off chrome. Login/Sign up live in the top bar. */
+export function sigilNavHtml() {
+  return `<nav class="nav2 quiet" id="sigilNav" hidden><a href="/">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/how-its-scored">How it's scored</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/forensics">Forensics</a><span class="sep">|</span><a class="nav-aziel" href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a><span class="sep">|</span><a href="/receipts">Receipts</a><span class="sep">|</span><a href="/donate">Donate</a><span class="sep">|</span><a href="/upload">Upload</a></nav>`;
+}
+
+export function sigilNavScript() {
+  return `<script>
+(function(){
+  var btn=document.getElementById("sigilNavBtn");
+  var nav=document.getElementById("sigilNav");
+  if(!btn||!nav)return;
+  function open(){nav.hidden=false;btn.setAttribute("aria-expanded","true");}
+  function shut(){nav.hidden=true;btn.setAttribute("aria-expanded","false");}
+  function toggle(){if(nav.hidden)open();else shut();}
+  btn.addEventListener("click",function(e){e.preventDefault();e.stopPropagation();toggle();});
+  document.addEventListener("click",function(e){if(nav.hidden)return;if(nav.contains(e.target)||btn.contains(e.target))return;shut();});
+  document.addEventListener("keydown",function(e){
+    if(e.key==="Escape"&&!nav.hidden){shut();btn.focus();}
+    if((e.key==="Enter"||e.key===" ")&&document.activeElement===btn){e.preventDefault();toggle();}
+  });
+})();
+</script>`;
 }
 
 /** Split homepage HTML so the hero can paint before the 89-card shelf. */
@@ -372,26 +436,19 @@ export function streamLcpHtml(html) {
 }
 
 export function page(title, body, { signed, scripts, path, kind, description, work, runtimeVersion, views, downloads, donateStrip = true, ecosystem = true } = {}) {
-  const who = signed && signed.username ? String(signed.username) : "";
-  const account = signed
-    ? `<span class="pill ok">signed in as ${esc(who)}</span>`
-    : `<span class="pill">anyone can view</span>`;
-  const authLinks = signed
-    ? `<a href="/logout">Log out</a>`
-    : `<a href="/login">Log in</a><span class="sep">|</span><a href="/signup">Sign up</a>`;
   const metaOpts = { title, path: path || "/", kind, description, work, runtimeVersion, includeJsonLd: false };
   const homeChrome = kind === "search";
   const showDonate = donateStrip && !homeChrome;
   const showEco = ecosystem && !homeChrome;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(documentTitle(kind, title))}</title>${headMeta(metaOpts)}${ingestReceiptHead()}<link rel="preload" href="/sigil.png" as="image" fetchpriority="high"><style>${CSS}</style></head><body>
 <header class="sitehead"><div class="sitehead-inner">
-<div class="brandrow nav1">${brandMarkHtml()}<div class="brand">Aziel Digital Library</div>${brandCountPills({ views, downloads })}<span class="pill">Runtime v2.7.0</span><span class="pill ok">MASTER · WRITABLE</span>${account}</div>
-<nav class="nav2 quiet"><a href="/">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/upload">Upload</a><span class="sep">|</span><a href="/pattern">Pattern</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/how-its-scored">How it's scored</a><span class="sep">|</span><a href="/donate">Donate</a><span class="sep">|</span><a href="/runtime">Runtime</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/forensics">Forensics</a><span class="sep">|</span><a href="/receipts">Receipts</a><span class="sep">|</span><a class="nav-aziel" href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a><span class="sep">|</span>${authLinks}</nav>
+<div class="brandrow nav1">${brandMarkHtml()}<a class="brand" href="/">Aziel Corpus Library</a>${authBarHtml(signed)}</div>
+${sigilNavHtml()}
 </div></header>
 <div class="wrap">
 ${showDonate ? donateStripHtml() : ""}
 ${body}
-${showEco ? ecosystemBlockHtml() : ""}</div>${jeevesFabHtml()}${(scripts||[]).map((src)=>"<script src=\""+esc(src)+"\" defer></script>").join("")}${meshRefreshScript()}${jsonLdScript(metaOpts)}</body></html>`;
+${showEco ? ecosystemBlockHtml() : ""}</div>${jeevesFabHtml()}${(scripts||[]).map((src)=>"<script src=\""+esc(src)+"\" defer></script>").join("")}${sigilNavScript()}${jsonLdScript(metaOpts)}</body></html>`;
 }
 
 function esc(s) {
@@ -570,7 +627,7 @@ export function shelfScoreRows(row) {
 function docCards(rows, state = {}, path = "/") {
   const unique = dedupeShelf(rows);
   if (!unique.length) {
-    return `<div class="shelf"><p class="empty"><strong>This shelf is quiet.</strong>Nothing matches these filters. Clear a chip or try another sort.</p></div>`;
+    return emptyShelfHtml(path);
   }
   const st = browseState(state);
   return `<div class="shelf">${unique
@@ -582,7 +639,7 @@ function docCards(rows, state = {}, path = "/") {
       const file = r.filename && !isMachineFileTag(r.filename) ? esc(r.filename) : "text record";
       const when = r.created_utc ? esc(String(r.created_utc).replace("T", " ").slice(0, 16)) : "";
       const authorName = String(r.author || "").trim();
-      const byline = authorName
+      const byline = authorName && !isChromeAuthorByline(authorName)
         ? `<p class="byline">${miniChip(authorName, browseHref(path, st, { author: authorName }), String(st.author).toLowerCase() === authorName.toLowerCase())}</p>`
         : "";
       const domainChips = visibleTagEntries(r.domain)
@@ -595,7 +652,6 @@ function docCards(rows, state = {}, path = "/") {
         .map((t) => miniChip(t.label, browseHref(path, st, { keyword: t.value }), String(st.keyword).toLowerCase() === t.value.toLowerCase()))
         .join("");
       const extra = [domainChips, subjectChips, keywordChips].filter(Boolean).join("");
-      const shaRow = sha ? `<p class="meta">SHA-256 ${esc(sha.slice(0,12))}… · <a href="/receipt/${esc(r.record_id)}">receipt</a></p>` : `<p class="meta"><a href="/receipt/${esc(r.record_id)}">receipt</a></p>`;
       const q = String(r.quarantine_status || "").toUpperCase();
       const qBadge = q === "POISON_SUSPECT" || q === "QUARANTINE"
         ? `<span class="q-badge stop">Quarantine</span>`
@@ -604,7 +660,7 @@ function docCards(rows, state = {}, path = "/") {
           : "";
       const extraRow = extra ? `<div class="mini-chips">${extra}</div>` : "";
       const docCls = aziel ? "doc doc-aziel" : "doc";
-      return `<article class="${docCls}">${libTag(r.library)}${qBadge}<h3><a href="/record/${esc(r.record_id)}">${esc(r.title)}</a></h3>${byline}${extraRow}${triadRow}${zRow}<p class="meta">${file}${when ? " · " + when : ""}</p>${shaRow}<p class="excerpt">${esc(cardExcerpt(r.snippet || r.body || ""))}</p>${open}</article>`;
+      return `<article class="${docCls}">${libTag(r.library)}${qBadge}<h3><a href="/record/${esc(r.record_id)}">${esc(r.title)}</a></h3>${byline}${extraRow}${triadRow}${zRow}<p class="meta">${file}${when ? " · " + when : ""}</p><p class="excerpt">${esc(cardExcerpt(r.snippet || r.body || ""))}</p>${open}</article>`;
     })
     .join("")}</div>`;
 }
@@ -649,6 +705,16 @@ export function libraryFileCountHtml({ records_packed, records_aziel, records_co
   return `<p class="library-count" ${attrs.join(" ")}><strong>${formatFileCount(total)}</strong> files in the libraries${extra}.</p>`;
 }
 
+function emptyShelfHtml(path = "/") {
+  const here = String(path || "/");
+  const browse = here === "/aziel-library"
+    ? `<a class="button ghost" href="/aziel-library">Open Aziel Library</a>`
+    : here === "/corpus"
+      ? `<a class="button ghost" href="/corpus">Open Corpus</a>`
+      : `<a class="button ghost" href="/aziel-library">Browse Aziel Library</a><a class="button ghost" href="/corpus">Browse Corpus</a>`;
+  return `<div class="shelf"><div class="empty"><strong>No matching records yet.</strong><p>Try a shorter word, clear a filter, or open a shelf.</p><p class="empty-actions">${browse}<a class="button" href="/upload">Upload a file</a><a class="button ghost" href="/">New search</a></p></div></div>`;
+}
+
 function homeLibraryChips(state) {
   const st = browseState(state);
   return `<div class="chips">${chip("All", "/", !st.q && !st.domain && !st.subject && !st.keyword && !st.author)}${chip("Aziel Library", "/aziel-library", false)}${chip("Corpus", "/corpus", false)}</div>`;
@@ -657,7 +723,7 @@ function homeLibraryChips(state) {
 function homeSignupCard() {
   return `<div class="card" id="signup">
 <h2>Sign up</h2>
-<p class="muted">Create an account to post under a name. Anyone may browse. Author <span class="aziel-name">Aziel Eliab</span>.</p>
+<p class="muted">Create an account to post under a name. Anyone may browse.</p>
 <form method="post" action="/signup">
 <input name="username" required minlength="3" placeholder="username" autocomplete="username">
 ${pwField("password")}
@@ -688,7 +754,25 @@ ${metaInputs({ authorPlaceholder: "Author (optional)" })}
 </div>`;
 }
 
-export function homeBody({ q, lib, sort, domain, subject, keyword, author, rows, error, records_packed, records_aziel, records_corpus } = {}) {
+/** Honest Top viewed. Packed library views are site-wide, not per-record — never invent ranks. */
+export function trendingHtml(items = []) {
+  const rows = (Array.isArray(items) ? items : [])
+    .filter((r) => r && Number(r.views) > 0)
+    .sort((a, b) => Number(b.views) - Number(a.views))
+    .slice(0, 5);
+  if (!rows.length) {
+    return `<section class="trend" aria-label="Top viewed"><h2>Top viewed</h2><div class="empty"><strong>Per-record view counts are not published.</strong><p>Library-wide views stay on Stats when counted. This list stays empty rather than invent ranks.</p></div></section>`;
+  }
+  const cards = rows.map((r) => {
+    const id = esc(r.record_id || "");
+    const title = esc(r.title || r.record_id || "Record");
+    const n = Number(r.views);
+    return `<p class="event-row"><a href="/record/${id}">${title}</a> <span class="muted">${n.toLocaleString("en-US")} views</span></p>`;
+  }).join("");
+  return `<section class="trend" aria-label="Top viewed"><h2>Top viewed</h2>${cards}</section>`;
+}
+
+export function homeBody({ q, lib, sort, domain, subject, keyword, author, rows, error, records_packed, records_aziel, records_corpus, trending } = {}) {
   const state = browseState({ q, lib, sort, domain, subject, keyword, author });
   const searching = homeSearchActive(state);
   const tools = browseTools({ action: "/", showLibChips: false, ...state });
@@ -697,13 +781,16 @@ export function homeBody({ q, lib, sort, domain, subject, keyword, author, rows,
     : "";
   return `<section class="hero">
 <h1>Search the libraries</h1>
-<p class="muted">Public search across Aziel Library and Corpus. Author <span class="aziel-name">Aziel Eliab</span>.</p>
+<p>Aziel Corpus Library is the public MASTER of hashed records. Search a title, browse a shelf, or upload a file.</p>
+<p class="muted">Public search across Aziel Library and Corpus. Ask Jeeves — the gold button — answers from filed text.</p>
 ${libraryFileCountHtml({ records_packed, records_aziel, records_corpus })}
 </section>
 ${tools}
 ${homeLibraryChips(state)}
+${trendingHtml(trending)}
 ${LCP_FOLD}
 ${results}
+${startPathsHtml()}
 <div class="home-doors">${homeSignupCard()}${homeAnonymousUploadCard({ error })}</div>`;
 }
 
@@ -714,12 +801,14 @@ export function uploadBody({ signed, error } = {}) {
     return `<section class="hero">
 <h1>Upload</h1>
 <p class="muted">Upload to <span class="aziel-name">Aziel Library</span>.</p>
+${exploreRowHtml("/upload")}
 </section>
 <div class="drop">
 ${err}
 <form method="post" action="/upload" enctype="multipart/form-data">
 <input type="file" name="file" required>
 <input name="title" placeholder="Title (optional)" autocomplete="off">
+<textarea name="body" rows="4" placeholder="Notes (optional)"></textarea>
 <p><button>Upload to Aziel Library</button></p>
 </form>
 </div>`;
@@ -727,14 +816,18 @@ ${err}
   return `<section class="hero">
 <h1>Upload</h1>
 <p class="muted">Upload to Corpus. No account required.</p>
+<p>Give the file a title, then send it. After a clear review you land on the record page. Agents cite it at <code>/record/{id}/llms.txt</code>.</p>
+${exploreRowHtml("/upload")}
 </section>
 <div class="drop">
 ${err}
 <form method="post" action="/upload" enctype="multipart/form-data">
 <input type="file" name="file">
 ${requiredTitleField("upload-title")}
+<textarea name="body" rows="4" placeholder="Text or notes (optional)"></textarea>
 <p><button>Upload to Corpus</button></p>
 </form>
+<p class="muted">Same door as the homepage upload. Help: <a href="/help/uploads.txt">uploads.txt</a> · browse <a href="/corpus">Corpus</a>.</p>
 </div>`;
 }
 
@@ -756,7 +849,7 @@ ${metaInputs({ authorPlaceholder: "Aziel Eliab" })}
 </form>
 </div>`
     : `<div class="card"><p class="muted">Anyone can browse Aziel Library. Uploads are operator-only.</p></div>`;
-  return `<section class="hero about-aziel"><h1>Aziel Library</h1><p class="muted">Aziel Eliab's work across domains.</p>${libraryFileCountHtml({ records_packed, records_aziel, records_corpus, shelf: "aziel" })}</section>
+  return `<section class="hero about-aziel"><h1>Aziel Library</h1><p class="muted">Aziel Eliab's work across domains. Open a card to read or download.</p>${libraryFileCountHtml({ records_packed, records_aziel, records_corpus, shelf: "aziel" })}${exploreRowHtml("/aziel-library")}</section>
 ${browseTools({ action: "/aziel-library", showLibChips: false, ...state })}
 ${facetBlock(facets, state, "/aziel-library")}
 ${upload}
@@ -786,7 +879,7 @@ ${metaInputs({ authorPlaceholder: "Author" })}
   } else {
     form = `<div class="card"><p>Anyone can view this library. <a href="/signup">Sign up</a> to post under a name, or <a href="/upload">upload</a> without an account. Corpus uploads are reviewed for safety before they appear. Aziel Library stays operator-only.</p><p><a class="button" href="/signup">Sign up</a> <a class="button ghost" href="/upload">Upload</a></p></div>`;
   }
-  return `<section class="hero"><h1>Corpus library</h1><p class="muted">Files from every other account.</p>${libraryFileCountHtml({ records_packed, records_aziel, records_corpus, shelf: "corpus" })}</section>
+  return `<section class="hero"><h1>Corpus library</h1><p class="muted">Files from every other account. Search, open a card, or <a href="/upload">upload</a> your own.</p>${libraryFileCountHtml({ records_packed, records_aziel, records_corpus, shelf: "corpus" })}${exploreRowHtml("/corpus")}</section>
 ${browseTools({ action: "/corpus", showLibChips: false, ...state })}
 ${facetBlock(facets, state, "/corpus")}
 ${form}
@@ -807,7 +900,7 @@ export function patternBody({ total, domains, subjects, keywords, crosses } = {}
   const subjectCards = (subjects || []).map((x) => patternCard("/?subject=" + encodeURIComponent(x.label), x.n, x.label, "subject")).join("");
   const keywordCards = (keywords || []).map((x) => patternCard("/?keyword=" + encodeURIComponent(x.label), x.n, x.label, "keyword")).join("");
   const crossCards = (crosses || []).map((x) => patternCard("/?domain=" + encodeURIComponent(x.domain) + "&subject=" + encodeURIComponent(x.subject), x.n, x.domain + " × " + x.subject, "domain × subject")).join("");
-  return `<section class="hero"><h1>Pattern</h1><p class="muted">Domain, subject, and keyword clusters across ${esc(n)} recent records. Cards open Search with that filter. Author Aziel Eliab.</p></section>
+  return `<section class="hero"><h1>Pattern</h1><p class="muted">Domain, subject, and keyword clusters across ${esc(n)} recent records. Cards open Search with that filter.</p>${exploreRowHtml("/pattern")}</section>
 <div class="card"><h2>Domains</h2><div class="pattern-grid">${domainCards || "<p class=\"muted\">No domains yet.</p>"}</div></div>
 <div class="card"><h2>Subjects</h2><div class="pattern-grid">${subjectCards || "<p class=\"muted\">No subjects yet.</p>"}</div></div>
 <div class="card"><h2>Keywords</h2><div class="pattern-grid">${keywordCards || "<p class=\"muted\">No keywords yet.</p>"}</div></div>
@@ -847,7 +940,7 @@ export function whoBody() {
 
 export function howItsScoredBody() {
   return `<section class="hero"><h1>How it's scored</h1>
-<p class="muted">Public scoring on Aziel Digital Library. Author Aziel Eliab. Published numbers: the triad (always, when scored), ZionPattern Solver (when that reading applies), unranked Bayesian posterior, and HEURISTIC possibility.</p></section>
+<p class="muted">Public scoring on Aziel Corpus Library. Published numbers: the triad (always, when scored), ZionPattern Solver (when that reading applies), unranked Bayesian posterior, and HEURISTIC possibility.</p></section>
 <div class="card">
 <h2>Triad — always published</h2>
 <p>The <strong>triad</strong> is the primary report card. It is always computed and always shown on a scored record. TRIAD_V2 is the geometric mean of the checkers that apply to that document’s concept:</p>
@@ -999,7 +1092,8 @@ ${softSection("Gate", groups.gate)}
 ${softSection("Lock", groups.lock)}
 <div class="card"><p class="soft-links runtime-dist">${runtimeDistributionButtons()}</p>
 <p class="muted">Softwares heading then list — Plain → Gate → Lock (Clock is a separate lane from Lock). MCP Softwares via <code>fraggate_call</code> only. FragGate is THE single door. Human UI on the Runtime Worker (<code>#op-panel</code> <code>#dashboard</code> <code>#fg-console</code> <code>#task-*</code> + About Aziel + hashtags + <code>/download</code>). SoT LIVE <code>${esc(RUNTIME_SOT_BRANCH)}</code> <code>${esc(RUNTIME_GIT_SHA)}</code> / version_id <code>${esc(RUNTIME_VERSION_ID)}</code>. Lamb Lens ${esc(LAMB_LENS_PATH)}. Dual surface. NO-LIE. Growth-ON.</p>
-<p class="soft-links"><a class="button" href="/runtime">${esc(chip)}</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="/runtime/v1/software">/v1/software</a> <a class="button ghost" href="/runtime/mcp">MCP</a> <a class="button ghost" href="/runtime/v1/uses">uses</a> <a class="button ghost" href="/v1/mesh">Live Nodes</a> <a class="button ghost" href="/v1/lattice">Lattice API</a> <a class="button ghost" href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a> <a class="button ghost" href="${HEDIDNTJUMP_HOME}">${esc(HEDIDNTJUMP_LABEL)}</a> <a class="button ghost" href="https://github.com/AzielEliab/aziel-corpus">aziel-corpus</a> <a class="button ghost" href="${esc(RUNTIME_GITHUB)}">aziel-runtime</a></p></div>`;
+<p class="soft-links"><a class="button" href="/runtime">${esc(chip)}</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="/runtime/v1/software">/v1/software</a> <a class="button ghost" href="/runtime/mcp">MCP</a> <a class="button ghost" href="/runtime/v1/uses">uses</a> <a class="button ghost" href="/v1/lattice">Lattice API</a> <a class="button ghost" href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a> <a class="button ghost" href="${HEDIDNTJUMP_HOME}">${esc(HEDIDNTJUMP_LABEL)}</a> <a class="button ghost" href="https://github.com/AzielEliab/aziel-corpus">aziel-corpus</a> <a class="button ghost" href="${esc(RUNTIME_GITHUB)}">aziel-runtime</a></p></div>`;
 }
 
 export { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, ocrBody, ocrFormHtml, SPECTRAL_LENSES, blockedAvBody } from "./hosted-pages.js";
+export { exploreRowHtml, startPathsHtml, EXPLORE_LINKS } from "./explore-nav.js";

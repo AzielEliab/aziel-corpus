@@ -1,9 +1,10 @@
 import { isOperator } from "./library.js";
 import { shelfScoreState, zsolverFromRow } from "./zsolver.js";
 import { SPECTRALLOCK_OCR_NOTE, spectrallockWorkerLinksHtml } from "./spectrallock.js";
-import { isMachineFileTag, visibleTagEntries } from "./visible-tags.js";
+import { isChromeAuthorByline, isMachineFileTag, visibleTagEntries } from "./visible-tags.js";
 import { publicComponentFlags, isComponentApplicable } from "./review-applicability.js";
 import { applyApplicabilityToReview } from "./review.js";
+import { exploreRowHtml } from "./explore-nav.js";
 
 function esc(s) {
   const q = String.fromCharCode(34);
@@ -27,7 +28,7 @@ export function treeBody(payload) {
   function docs(list) {
     return "<ul>" + (list || []).map((r) => {
       return "<li><a href=\"/record/" + esc(r.record_id) + "\">" + esc(r.title || r.record_id) + "</a>" +
-        (r.author ? " <span class=\"muted\">· " + esc(r.author) + "</span>" : "") + "</li>";
+        (r.author && !isChromeAuthorByline(r.author) ? " <span class=\"muted\">· " + esc(r.author) + "</span>" : "") + "</li>";
     }).join("") + "</ul>";
   }
   function countDocs(node) {
@@ -81,7 +82,7 @@ export function treeBody(payload) {
   const stand = standalone.length
     ? "<details open><summary>Standalone / unclassified</summary>" + docs(standalone) + "</details>"
     : "<p class=\"muted\">No unclassified records.</p>";
-  return "<section class=\"hero\"><h1>Evidence-based corpus tree</h1><p class=\"muted\">Grouped by library → domain → subject → optional micro → document. Multi-domain paths allowed. Unclassified objects stay standalone. Links are never invented.</p></section><div class=\"card tree\">" + (libHtml.join("") || "<p class=\"muted\">No classified records yet.</p>") + stand + "</div>";
+  return "<section class=\"hero\"><h1>Evidence-based corpus tree</h1><p class=\"muted\">Grouped by library → domain → subject → optional micro → document. Multi-domain paths allowed. Unclassified objects stay standalone. Links are never invented. Open a title to read the record.</p>" + exploreRowHtml("/tree") + "</section><div class=\"card tree\">" + (libHtml.join("") || "<p class=\"muted\">No classified records yet. Browse <a href=\"/aziel-library\">Aziel Library</a> or <a href=\"/corpus\">Corpus</a>.</p>") + stand + "</div>";
 }
 
 function light(status, label, kid) {
@@ -105,9 +106,11 @@ export function recordBody(payload) {
     ? "<span class=\"q-badge stop\">Quarantine — poison suspect (kept, not deleted)</span>"
     : q === "OPERATOR_FLAG" || q === "FLAGGED"
       ? "<span class=\"q-badge slow\">Operator flag — evidence still filed</span>"
-      : "<span class=\"q-badge go\">Clear</span>";
+      : "";
   const sha = String(row.content_sha256 || "").trim();
-  const shaHtml = sha ? "<p class=\"meta\">SHA-256 " + esc(sha.slice(0,12)) + "… · chain <a href=\"/v1/document-chain?record_id=" + esc(row.record_id) + "\">tip</a> · <a href=\"/receipt/" + esc(row.record_id) + "\">receipt</a></p>" : "<p class=\"meta\"><a href=\"/receipt/" + esc(row.record_id) + "\">receipt</a></p>";
+  const verifyHtml = "<details class=\"verify-panel\" id=\"hashes\"><summary>Hashes</summary>" +
+    (sha ? "<p class=\"meta\">SHA-256 " + esc(sha) + "</p><p class=\"meta\">chain <a href=\"/v1/document-chain?record_id=" + esc(row.record_id) + "\">tip</a></p>" : "") +
+    "<p class=\"meta\"><a href=\"/receipt/" + esc(row.record_id) + "\">receipt</a></p></details>";
   const open = "<p><a class=\"button\" href=\"/file/" + esc(row.record_id) + "\">Download</a> <a class=\"button ghost\" href=\"/download?record=" + esc(row.record_id) + "\">Counted download</a>" + (sha ? " <a class=\"button ghost\" href=\"/download?hash=" + esc(sha) + "\">By hash</a> <a class=\"button ghost\" href=\"/v1/docs/" + esc(sha) + "/download\">API hash</a>" : "") + "</p>";
   const qBanner = (q === "POISON_SUSPECT" || q === "QUARANTINE")
     ? "<div class=\"q-banner\">Quarantine — poison suspect. The file is still downloadable for auditors. It was not deleted.</div>"
@@ -198,7 +201,7 @@ export function recordBody(payload) {
   const zsolverHtml = zState.zsolver_omit
     ? ""
     : zState.zsolver_display != null
-    ? "<div class=\"card zsolver\"><h2>ZionPattern Solver</h2><div class=\"triad zsolver\"><div class=\"metric\">" + esc(zState.zsolver_display) + "</div><div><p>Secondary public score. Separate from the triad. 75 means intentional suppression confidence; lower is more natural. Provisional and assistive. Does not solve cases.</p><p class=\"muted\">" + esc((zsolver && zsolver.disclaimer) || "Provisional and assistive only. Author Aziel Eliab.") + " <a href=\"/how-its-scored\">How it's scored</a>." + (zQueued ? " Live score retry is queued." : "") + "</p></div></div></div>"
+    ? "<div class=\"card zsolver\"><h2>ZionPattern Solver</h2><div class=\"triad zsolver\"><div class=\"metric\">" + esc(zState.zsolver_display) + "</div><div><p>Secondary public score. Separate from the triad. 75 means intentional suppression confidence; lower is more natural. Provisional and assistive. Does not solve cases.</p><p class=\"muted\">" + esc((zsolver && zsolver.disclaimer && !/Author Aziel Eliab/i.test(String(zsolver.disclaimer)) ? zsolver.disclaimer : "Provisional and assistive only.")) + " <a href=\"/how-its-scored\">How it's scored</a>." + (zQueued ? " Live score retry is queued." : "") + "</p></div></div></div>"
     : "<div class=\"card\"><h2>ZionPattern Solver</h2><p class=\"muted\">Secondary score pending backfill or live retry.</p></div>";
   const successionHtml = succChain.length >= 2
     ? "<div class=\"card\"><h2>Succession</h2><p class=\"muted\">Exact-same-subject paper cites. Oldest to newest.</p><h3>Supersedes</h3>" +
@@ -211,22 +214,34 @@ export function recordBody(payload) {
     : "";
   const azielCls = String(row.library || "").toLowerCase() === "aziel" ? " record-aziel" : "";
   const fileLabel = row.filename && !isMachineFileTag(row.filename) ? String(row.filename) : "text record";
-  const heroBits = [row.author].filter((x) => String(x || "").trim());
-  const tagEntries = visibleTagEntries([row.domain, row.subjects, row.keywords]);
-  const tagStrip = tagEntries.length
-    ? "<div class=\"mini-chips record-tags\">" + tagEntries.map((t) => "<span class=\"mini-chip\">" + esc(t.label) + "</span>").join("") + "</div>"
-    : "";
-  return "<section class=\"hero" + azielCls + "\">" + libTag(row.library) + " " + qBadge + "<h1>" + esc(row.title) + "</h1>" + (heroBits.length ? "<p class=\"muted\">" + esc(heroBits.join(" · ")) + "</p>" : "") + tagStrip + "</section>" +
+  const authorName = String(row.author || "").trim();
+  const heroBits = authorName && !isChromeAuthorByline(authorName) ? [authorName] : [];
+  function followGroup(label, items, param) {
+    const entries = visibleTagEntries(items);
+    if (!entries.length) return "";
+    return "<div class=\"follow-group\"><span class=\"facet-label\">" + esc(label) + "</span><div class=\"mini-chips record-tags\">" +
+      entries.map((t) => "<a class=\"mini-chip\" href=\"/?" + param + "=" + encodeURIComponent(t.value) + "\">" + esc(t.label) + "</a>").join("") +
+      "</div></div>";
+  }
+  const follow = [
+    followGroup("Domains", row.domain, "domain"),
+    followGroup("Subjects", row.subjects, "subject"),
+    followGroup("Keywords", row.keywords, "keyword"),
+    followGroup("Micro domains", row.micro || row.micro_domain || row.micro_domains || row.micros, "q"),
+  ].filter(Boolean).join("");
+  const followFooter = follow ? "<footer class=\"follow-footer\"><h2>Follow</h2>" + follow + "</footer>" : "";
+  return "<section class=\"hero" + azielCls + "\">" + libTag(row.library) + " " + qBadge + "<h1>" + esc(row.title) + "</h1>" + (heroBits.length ? "<p class=\"muted\">" + esc(heroBits.join(" · ")) + "</p>" : "") + "</section>" +
     qBanner + triadHtml + zsolverHtml + successionHtml +
     "<div class=\"card\"><h2>Status lights</h2><p class=\"muted\">Green means go. Yellow means read again. Red means stop and check. Easy enough for a 6th grader; kept for government use.</p>" + lightsHtml + "</div>" +
-    "<div class=\"card\"><p class=\"meta\">" + esc(fileLabel) + (row.created_utc ? " · " + esc(String(row.created_utc).replace("T", " ").slice(0, 16)) : "") + "</p>" + shaHtml + open +
+    "<div class=\"card\"><p class=\"meta\">" + esc(fileLabel) + (row.created_utc ? " · " + esc(String(row.created_utc).replace("T", " ").slice(0, 16)) : "") + "</p>" + verifyHtml + open +
     "<p class=\"muted\">Machine surfaces: <a href=\"/record/" + esc(row.record_id) + "/llms.txt\">llms.txt</a> · <a href=\"/record/" + esc(row.record_id) + "/cite.json\">cite.json</a> · <a href=\"/record/" + esc(row.record_id) + "/metadata.json\">metadata.json</a> · <a href=\"/help.txt\">help</a></p>" +
     (spreHtml || clceHtml || plrHtml ? "<h3>" + esc(applicableNames) + "</h3>" + spreHtml + clceHtml + plrHtml : "") +
     "<h3>Snippet</h3><p>" + esc(String(row.body || row.snippet || "").slice(0, 2000)) + "</p>" +
     "<h3>Derived artifacts</h3>" + der +
     "<h3>Temporal-geospatial events</h3>" + ev + tipHtml + "</div>" +
     bayesHtml + possHtml +
-    "<div class=\"card\"><h3>Peer-to-peer review</h3><p class=\"muted\">Notes append to the hash-chain. Peers endorse or challenge; nobody rewrites the past.</p>" + peerRows + peerForm + "</div>";
+    "<div class=\"card\"><h3>Peer-to-peer review</h3><p class=\"muted\">Notes append to the hash-chain. Peers endorse or challenge; nobody rewrites the past.</p>" + peerRows + peerForm + "</div>" +
+    followFooter;
 }
 
 export const SPECTRAL_LENSES = [
@@ -269,7 +284,7 @@ export function ocrFormHtml(payload) {
     const miss = result.missing || result.message ? "<p class=\"muted\">" + esc(result.missing || result.message) + "</p>" : "";
     const lenses = (result.lenses || []).length ? "<p class=\"muted\">Lenses: " + esc((result.lenses || []).join(", ")) + "</p>" : "";
     const receipt = result.receipt_url ? "<p class=\"muted\">Lattice receipt: <a href=\"" + esc(result.receipt_url) + "\">" + esc(result.run_id || "receipt") + "</a></p>" : "";
-    resultHtml = "<div id=\"ocrResult\"><h3>Extracted text</h3>" + rec + receipt + lenses + miss + "<pre class=\"verify\">" + esc(text || "(no text)") + "</pre><p class=\"muted\">Advisory spectral assist only. Not forensic. Not scribal truth. Author Aziel Eliab.</p></div>";
+    resultHtml = "<div id=\"ocrResult\"><h3>Extracted text</h3>" + rec + receipt + lenses + miss + "<pre class=\"verify\">" + esc(text || "(no text)") + "</pre><p class=\"muted\">Advisory spectral assist only. Not forensic. Not scribal truth.</p></div>";
   }
   return err +
     "<form id=\"ocrForm\" class=\"ocr-form media-form\" method=\"post\" action=\"/ocr\" enctype=\"multipart/form-data\" data-signed=\"" + (signed ? "1" : "0") + "\">" +
@@ -303,7 +318,7 @@ export function mapBody(payload) {
     : "<p class=\"muted\">Sign in to note a manual map event. Anonymous visitors can view pins. This form posts to /api/map-event, not the download counter.</p>";
   const evjson = JSON.stringify(events).replace(/</g, "\\u003c");
   const eventListHtml = events.slice(0, 300).map((e) => "<div class=\"event-row\"><b>" + esc(e.event_date) + " — " + esc(e.place_name) + "</b><br>" + esc(e.title || "") + "<br><span class=\"muted\">" + esc(e.source || "") + " · " + Number(e.confidence || 0).toFixed(2) + (e.record_id ? " · <a href=\"/record/" + encodeURIComponent(e.record_id) + "\">source document</a>" : "") + "</span></div>").join("") || "<p>No events in this temporal window.</p>";
-  return "<div class=\"card\"><h2>Temporal-Geospatial Corpus Map</h2><p class=\"muted\">The event layer and historical-state layer are independent. Event pins come from corpus evidence; historical polygons come from preserved source layers. Competing historical sources can overlap instead of being silently merged. Possibility (HEURISTIC) and Bayesian posterior are derived views over the hashchain lattice — not courtroom truth. Sister inspection frame: <a href=\"https://github.com/AzielEliab/4dmap\">4DMap 4DM-WP-1.0</a> (not a live ICANN mesh DNS). <a href=\"/v1/verify-geo?status=1\">verify-geo</a> · <a href=\"/v1/possibility\">possibility</a>.</p><p class=\"" + (ready ? "ok" : "bad") + "\"><b>Geographic resolver:</b> " + esc(gst.state || "EMPTY") + " · profile " + esc(gst.profile || "lite") + " · " + Number(gst.places || 0).toLocaleString() + " places. " + (ready ? "Document place names can resolve to coordinates." : "Gazetteer is seeding or empty; pins still show stored events.") + "</p><div class=\"map-tools\"><label>Year from <span id=\"yearFromLabel\">4000 BCE</span><input id=\"yearFrom\" type=\"range\" min=\"" + ymin + "\" max=\"" + ymax + "\" value=\"" + ymin + "\" step=\"1\"></label><label>Year to <span id=\"yearToLabel\">2026 CE</span><input id=\"yearTo\" type=\"range\" min=\"" + ymin + "\" max=\"" + ymax + "\" value=\"" + ymax + "\" step=\"1\"></label><label>Month <span id=\"monthLabel\">Off</span><input id=\"monthFilter\" type=\"range\" min=\"0\" max=\"12\" value=\"0\" step=\"1\" list=\"monthTicks\"></label><datalist id=\"monthTicks\">" + monthOpts + "</datalist><label>Min confidence <select id=\"conf\"><option value=\"0\">All</option><option value=\".7\">≥ 0.70</option><option value=\".9\">≥ 0.90</option></select></label><button type=\"button\" id=\"applyMap\">Apply events</button><button type=\"button\" id=\"resetMap\">Reset view</button></div><div style=\"margin-top:14px\"><label for=\"contextYear\"><b>Historical context year: <span id=\"contextLabel\">1 CE</span></b></label><input id=\"contextYear\" type=\"range\" min=\"" + ymin + "\" max=\"" + ymax + "\" value=\"" + ycontext + "\" step=\"1\"><p class=\"muted\">Drag <b>Year from/to</b> (4000 BCE → present CE) and <b>Month</b> (Off + Jan–Dec) to filter event pins live. Historical context year redraws boundary layers only. Pins cite paper time × place × record — never uploader location.</p></div><p><span class=\"pill\">AUTO_SENTENCE = high-confidence textual co-occurrence</span> <span class=\"pill\">AUTO_CONTEXT = nearby OCR/layout pair · review</span> <span class=\"pill\">REVIEW = weaker document association</span> <span class=\"pill\">MANUAL = user-noted event</span> <span class=\"pill\">HISTORICAL = source-layer context</span></p>" + manual + "</div><div class=\"card\"><svg id=\"worldMap\" viewBox=\"0 0 1200 600\" role=\"img\" aria-label=\"World map with historical geographic layers and corpus event pins\"><g id=\"viewport\"><rect x=\"0\" y=\"0\" width=\"1200\" height=\"600\" fill=\"#16130f\"/><g id=\"land\"></g><g id=\"grid\"></g><g id=\"history\"></g><g id=\"pins\"></g></g></svg><div id=\"mapStatus\" class=\"muted\"></div><div id=\"historyStatus\" class=\"muted\"></div></div><div class=\"grid\"><div class=\"card\"><h3>Visible events</h3><div id=\"eventList\">" + eventListHtml + "</div></div><div class=\"card\"><h3>Selected historical context</h3><div id=\"historyDetail\"><p class=\"muted\">Select a historical region on the map.</p></div></div><div class=\"card\"><h3>Unresolved place mentions</h3><p class=\"muted\">These stay unpinned until a coordinate-bearing kit/gazetteer or manual resolution is supplied.</p><ul>" + unresolvedHtml + "</ul></div></div><textarea id=\"map-events\" hidden>" + evjson + "</textarea>";
+  return "<section class=\"hero\"><h1>Map</h1><p class=\"muted\">Pins come from filed records. Drag the year sliders, then Apply events. Historical layers stay a separate year control.</p>" + exploreRowHtml("/map") + "</section><div class=\"card\"><h2>Temporal-Geospatial Corpus Map</h2><p class=\"muted\">The event layer and historical-state layer are independent. Event pins come from corpus evidence; historical polygons come from preserved source layers. Competing historical sources can overlap instead of being silently merged. Possibility (HEURISTIC) and Bayesian posterior are derived views over the hashchain lattice — not courtroom truth. Sister inspection frame: <a href=\"https://github.com/AzielEliab/4dmap\">4DMap 4DM-WP-1.0</a> (not a live ICANN mesh DNS). <a href=\"/v1/verify-geo?status=1\">verify-geo</a> · <a href=\"/v1/possibility\">possibility</a>.</p><p class=\"" + (ready ? "ok" : "bad") + "\"><b>Geographic resolver:</b> " + esc(gst.state || "EMPTY") + " · profile " + esc(gst.profile || "lite") + " · " + Number(gst.places || 0).toLocaleString() + " places. " + (ready ? "Document place names can resolve to coordinates." : "Gazetteer is seeding or empty; pins still show stored events.") + "</p><div class=\"map-tools\"><label>Year from <span id=\"yearFromLabel\">4000 BCE</span><input id=\"yearFrom\" type=\"range\" min=\"" + ymin + "\" max=\"" + ymax + "\" value=\"" + ymin + "\" step=\"1\"></label><label>Year to <span id=\"yearToLabel\">2026 CE</span><input id=\"yearTo\" type=\"range\" min=\"" + ymin + "\" max=\"" + ymax + "\" value=\"" + ymax + "\" step=\"1\"></label><label>Month <span id=\"monthLabel\">Off</span><input id=\"monthFilter\" type=\"range\" min=\"0\" max=\"12\" value=\"0\" step=\"1\" list=\"monthTicks\"></label><datalist id=\"monthTicks\">" + monthOpts + "</datalist><label>Min confidence <select id=\"conf\"><option value=\"0\">All</option><option value=\".7\">≥ 0.70</option><option value=\".9\">≥ 0.90</option></select></label><button type=\"button\" id=\"applyMap\">Apply events</button><button type=\"button\" id=\"resetMap\">Reset view</button></div><div style=\"margin-top:14px\"><label for=\"contextYear\"><b>Historical context year: <span id=\"contextLabel\">1 CE</span></b></label><input id=\"contextYear\" type=\"range\" min=\"" + ymin + "\" max=\"" + ymax + "\" value=\"" + ycontext + "\" step=\"1\"><p class=\"muted\">Drag <b>Year from/to</b> (4000 BCE → present CE) and <b>Month</b> (Off + Jan–Dec) to filter event pins live. Historical context year redraws boundary layers only. Pins cite paper time × place × record — never uploader location.</p></div><p><span class=\"pill\">AUTO_SENTENCE = high-confidence textual co-occurrence</span> <span class=\"pill\">AUTO_CONTEXT = nearby OCR/layout pair · review</span> <span class=\"pill\">REVIEW = weaker document association</span> <span class=\"pill\">MANUAL = user-noted event</span> <span class=\"pill\">HISTORICAL = source-layer context</span></p>" + manual + "</div><div class=\"card\"><svg id=\"worldMap\" viewBox=\"0 0 1200 600\" role=\"img\" aria-label=\"World map with historical geographic layers and corpus event pins\"><g id=\"viewport\"><rect x=\"0\" y=\"0\" width=\"1200\" height=\"600\" fill=\"#16130f\"/><g id=\"land\"></g><g id=\"grid\"></g><g id=\"history\"></g><g id=\"pins\"></g></g></svg><div id=\"mapStatus\" class=\"muted\"></div><div id=\"historyStatus\" class=\"muted\"></div></div><div class=\"grid\"><div class=\"card\"><h3>Visible events</h3><div id=\"eventList\">" + eventListHtml + "</div></div><div class=\"card\"><h3>Selected historical context</h3><div id=\"historyDetail\"><p class=\"muted\">Select a historical region on the map.</p></div></div><div class=\"card\"><h3>Unresolved place mentions</h3><p class=\"muted\">These stay unpinned until a coordinate-bearing kit/gazetteer or manual resolution is supplied.</p><ul>" + unresolvedHtml + "</ul></div></div><textarea id=\"map-events\" hidden>" + evjson + "</textarea>";
 }
 
 export function historicalBody(payload) {
@@ -316,7 +331,7 @@ export function historicalBody(payload) {
   const install = signed
     ? "<div class=\"card\"><h3>Install a historical layer</h3>" + err + "<form method=\"post\" action=\"/historical-import\" enctype=\"multipart/form-data\"><label class=\"filepick\">Layer file (.azh, .geojson, .json)<input type=\"file\" name=\"layer\" accept=\".azh,.geojson,.json\" required></label><button>Preserve + index historical layer</button></form><p class=\"muted\">Use <b>.azh</b> for a fully described Aziel Historical Geography Kit. Raw GeoJSON also works when Polygon/MultiPolygon features carry temporal fields. Stored per layer, about 1MB cap.</p></div>"
     : "<div class=\"card\"><p class=\"muted\">Anyone can view historical layers. Sign in to import a kit.</p></div>";
-  return "<div class=\"card\"><h2>Historical Geographic State</h2><div class=\"grid\">" + metricCard("Status", st.state || "EMPTY") + metricCard("Layers", st.layers || 0) + metricCard("Features", st.features || 0) + metricCard("Coverage", (st.min_year || "—") + "–" + (st.max_year || "—")) + "</div><p class=\"muted\">Temporal polygons are preserved as source-specific interpretations. Overlapping or contradictory source layers coexist instead of being merged into a false single history.</p></div>" + install + "<div class=\"card\"><table class=\"plain\"><tr><th>Layer</th><th>Validity</th><th>Features</th><th>Confidence</th><th>Source / license</th><th>Source SHA-256</th></tr>" + rows + "</table></div>";
+  return "<section class=\"hero\"><h1>Historical</h1><p class=\"muted\">Source-layer maps across years. Open the <a href=\"/map\">Map</a> to see these layers with event pins.</p>" + exploreRowHtml("/historical") + "</section><div class=\"card\"><h2>Historical Geographic State</h2><div class=\"grid\">" + metricCard("Status", st.state || "EMPTY") + metricCard("Layers", st.layers || 0) + metricCard("Features", st.features || 0) + metricCard("Coverage", (st.min_year || "—") + "–" + (st.max_year || "—")) + "</div><p class=\"muted\">Temporal polygons are preserved as source-specific interpretations. Overlapping or contradictory source layers coexist instead of being merged into a false single history.</p></div>" + install + "<div class=\"card\"><table class=\"plain\"><tr><th>Layer</th><th>Validity</th><th>Features</th><th>Confidence</th><th>Source / license</th><th>Source SHA-256</th></tr>" + rows + "</table></div>";
 }
 
 export function gazetteerBody(payload) {
@@ -361,7 +376,7 @@ export function transcribeCard(payload) {
 
 export function ocrUploadCard(payload) {
   return "<div class=\"card\" id=\"ocr\"><h3>Hosted image / PDF OCR</h3>"
-    + "<p class=\"muted\">Images use Workers AI when bound. PDFs try an uncompressed text scan; if empty, snap a page photo instead of installing pdftoppm. Optional SpectralLock lenses mix into one pre-OCR overlay. " + SPECTRALLOCK_OCR_NOTE + " Every OCR run writes a lattice receipt. Author Aziel Eliab.</p>"
+    + "<p class=\"muted\">Images use Workers AI when bound. PDFs try an uncompressed text scan; if empty, snap a page photo instead of installing pdftoppm. Optional SpectralLock lenses mix into one pre-OCR overlay. " + SPECTRALLOCK_OCR_NOTE + " Every OCR run writes a lattice receipt.</p>"
     + ocrFormHtml(payload)
     + "</div>";
 }
@@ -375,7 +390,7 @@ export function blockedAvBody(payload) {
 }
 
 export function ocrPageBody(payload) {
-  return "<section class=\"hero\"><h1>OCR and transcription</h1><p class=\"muted\">Same hosted processors as <a href=\"/forensics\">Forensics</a>. Optional SpectralLock lenses mix into one pre-OCR overlay. " + SPECTRALLOCK_OCR_NOTE + " Every run writes a hash-chained lattice receipt. Author Aziel Eliab.</p></section>"
+  return "<section class=\"hero\"><h1>OCR and transcription</h1><p class=\"muted\">Same hosted processors as <a href=\"/forensics\">Forensics</a>. Optional SpectralLock lenses mix into one pre-OCR overlay. " + SPECTRALLOCK_OCR_NOTE + " Every run writes a hash-chained lattice receipt.</p></section>"
     + ocrUploadCard(payload) + transcribeCard(payload)
     + "<div class=\"card\"><h3>In-page OCR fallback</h3><p class=\"muted\">Runs Tesseract.js from a CDN in this browser so a phone camera photo can still be read when Workers AI is not ready. Checked SpectralLock lenses enhance the raster first. " + SPECTRALLOCK_OCR_NOTE + " Nothing is installed on your device. Browser-only fallback does not write the lattice; use Extract text above for a receipt.</p>"
     + "<label class=\"filepick\">Photo<input id=\"ocrFile\" type=\"file\" accept=\"image/*\" capture=\"environment\"></label>"
@@ -438,7 +453,7 @@ export function intelligenceBody(payload) {
   const recovery = operator
     ? "<div class=\"card\"><h3>OCR verification + recovery</h3><div class=\"grid\"><div><b>End-to-end OCR</b><div class=\"" + (verified ? "ok" : "bad") + "\">" + (verified ? "VERIFIED" : "NOT YET VERIFIED") + "</div><p class=\"muted\">Last test: " + esc((lastTest && lastTest.created_utc) || "never") + (lastTest && lastTest.missing ? " · " + esc(lastTest.missing) : "") + "</p></div><div><b>Image records</b><div class=\"metric\">" + Number(pending || 0).toLocaleString() + "</div><p class=\"muted\">Preserved originals that can be re-read by hosted OCR.</p></div></div><div class=\"map-tools\"><form method=\"post\" action=\"/ocr-selftest\"><button>Run OCR self-test</button></form><form method=\"post\" action=\"/ocr-reprocess\"><button>Reprocess pending scans</button></form></div><p class=\"muted\">Self-test succeeds only if hosted OCR reads AZIEL and OCR from the fixture. Processors stay on this Worker — there is no Tesseract/Poppler/Whisper download.</p></div>"
     : "";
-  return "<section class=\"hero\"><h1>Forensics</h1><p class=\"muted\">Hosted OCR, SpectralLock lenses, Whisper transcription, and verified .azm/.azk packages. " + SPECTRALLOCK_OCR_NOTE + " Author Aziel Eliab.</p></section><div class=\"card\"><h2>Aziel Forensics Runtime</h2><p>Packages are <b>.azm</b> models and <b>.azk</b> knowledge kits. Manifests and payloads are hashed. All processors below run hosted — this page never asks you to install Tesseract, Poppler, or Whisper on your computer.</p>" + pkgForm + "</div><div class=\"card\"><h3>Hosted processors</h3><div class=\"grid\"><div class=\"card\"><b>Image OCR</b><div class=\"" + ocrCls + "\">" + ocrTxt + "</div><p class=\"muted\">" + (aiReady ? "Workers AI vision model extracts visible text." : "Workers AI is not bound or the vision model failed. Use the in-page Tesseract.js fallback.") + "</p></div><div class=\"card\"><b>Scanned PDF</b><div class=\"ok\">HOSTED (text-stream scan)</div><p class=\"muted\">Uncompressed PDF strings are read here. If a scan has no text layer, photograph a page for image OCR. pdftoppm is not offered as a download.</p></div><div class=\"card\"><b>Audio / video transcription</b><div class=\"" + whisperCls + "\">" + whisperTxt + "</div><p class=\"muted\">" + (aiReady ? "Workers AI Whisper transcribes audio. Video has no FFmpeg demux — extract an audio track if the container fails." : "Workers AI is not bound. There is no installer button.") + "</p></div></div></div>"
+  return "<section class=\"hero\"><h1>Forensics</h1><p class=\"muted\">Hosted OCR, SpectralLock lenses, Whisper transcription, and verified .azm/.azk packages. " + SPECTRALLOCK_OCR_NOTE + "</p>" + exploreRowHtml("/forensics") + "</section><div class=\"card\"><h2>Aziel Forensics Runtime</h2><p>Packages are <b>.azm</b> models and <b>.azk</b> knowledge kits. Manifests and payloads are hashed. All processors below run hosted — this page never asks you to install Tesseract, Poppler, or Whisper on your computer.</p>" + pkgForm + "</div><div class=\"card\"><h3>Hosted processors</h3><div class=\"grid\"><div class=\"card\"><b>Image OCR</b><div class=\"" + ocrCls + "\">" + ocrTxt + "</div><p class=\"muted\">" + (aiReady ? "Workers AI vision model extracts visible text." : "Workers AI is not bound or the vision model failed. Use the in-page Tesseract.js fallback.") + "</p></div><div class=\"card\"><b>Scanned PDF</b><div class=\"ok\">HOSTED (text-stream scan)</div><p class=\"muted\">Uncompressed PDF strings are read here. If a scan has no text layer, photograph a page for image OCR. pdftoppm is not offered as a download.</p></div><div class=\"card\"><b>Audio / video transcription</b><div class=\"" + whisperCls + "\">" + whisperTxt + "</div><p class=\"muted\">" + (aiReady ? "Workers AI Whisper transcribes audio. Video has no FFmpeg demux — extract an audio track if the container fails." : "Workers AI is not bound. There is no installer button.") + "</p></div></div></div>"
     + ocrUploadCard({ signed, operator, error })
     + transcribeCard({ signed, operator, aiReady })
     + "<div class=\"card\"><h3>In-page OCR fallback</h3><p class=\"muted\">Runs Tesseract.js from a CDN in this browser so a phone camera photo can still be read when Workers AI is not ready. Checked SpectralLock lenses on the form above enhance the raster first. " + SPECTRALLOCK_OCR_NOTE + " Nothing is installed on your device. Browser-only fallback does not write the lattice; use Extract text above for a receipt.</p><label class=\"filepick\">Photo<input id=\"ocrFile\" type=\"file\" accept=\"image/*\" capture=\"environment\"></label><p><img id=\"ocrPreview\" alt=\"Spectral overlay preview\" hidden width=\"640\" height=\"400\" style=\"max-width:100%;height:auto;border-radius:10px;border:1px solid var(--line)\"></p><pre id=\"ocrOut\" class=\"verify muted\">Choose a photo to read here.</pre></div>"
