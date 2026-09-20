@@ -5,7 +5,7 @@
  */
 import { serveFileByHash, normalizeContentHash } from "./library.js";
 import { receiptForRecord, documentChain, isJsonDocumentId } from "./ledger.js";
-import { loadRecordReview, runReviewBundle, backfillReviews, continueFullBackfill, fullBackfillStatus, syncShelfScores, refreshPackedShelf, SHELF_REBUILD_MS } from "./review-store.js";
+import { loadRecordReview, runReviewBundle, backfillReviews, continueFullBackfill, fullBackfillStatus, syncShelfScores, refreshPackedShelf, publicizeReview, SHELF_REBUILD_MS } from "./review-store.js";
 import { latticeAnchorTip, LATTICE_NOTE } from "./lattice.js";
 import { handleJeevesApi, JEEVES_LIMITATION } from "./jeeves.js";
 import { handleOperatorIngestApi } from "./operator-ingest.js";
@@ -238,16 +238,19 @@ function openapi() {
       "/survival": { get: { summary: "BAN-SURVIVAL-1.0 hub map. Pulls runtime SoT the same way /runtime/survival does (short TTL). Person @id https://www.azieleliab.com/#aziel.", operationId: "hubSurvival" } },
       "/v1/survival": { get: { summary: "BAN-SURVIVAL-1.0 hub map JSON. Same SoT pull as /survival and /runtime/v1/survival. Short TTL. Same FragGate door.", operationId: "hubSurvivalV1" } },
       "/runtime/survival": { get: { summary: "BAN-SURVIVAL-1.0 via same-origin proxy of aziel-runtime /survival. Prefer this pull (short TTL). Person @id https://www.azieleliab.com/#aziel.", operationId: "runtimeSurvival" } },
-      "/help.txt": { get: { summary: "Human help index for the library. Points at scores, cite, upload, Softwares. Author Aziel Eliab.", operationId: "helpTxt" } },
+      "/help.txt": { get: { summary: "Human help index: find records, scores (triad always; SPRE/CLCE/PhysLing when applicable), per-record LLM access points. Author Aziel Eliab.", operationId: "helpTxt" } },
       "/addendum.txt": { get: { summary: "Human addendum: two shelves, record pages, cite, Softwares. Author Aziel Eliab.", operationId: "addendumTxt" } },
-      "/help/how-to-read-scores.txt": { get: { summary: "Human guide to triad, component scores, and related published numbers. Author Aziel Eliab.", operationId: "helpScoresTxt" } },
+      "/help/how-to-read-scores.txt": { get: { summary: "Human guide to triad, applicable component scores, and related published numbers. Author Aziel Eliab.", operationId: "helpScoresTxt" } },
       "/help/how-to-cite.txt": { get: { summary: "Human cite guide for records and Softwares. Author Aziel Eliab.", operationId: "helpCiteTxt" } },
+      "/help/uploads.txt": { get: { summary: "Human help for uploads: record is findable immediately at HTML, metadata.json, llms.txt, and cite.json.", operationId: "helpUploadsTxt" } },
       "/runtime/v1/survival": { get: { summary: "BAN-SURVIVAL-1.0 via same-origin proxy of aziel-runtime /v1/survival. Short TTL. Same FragGate door.", operationId: "runtimeSurvivalV1" } },
       "/mcp": { post: { summary: "Library MCP JSON-RPC (aziel-corpus_health, search, skill, download, ingest, design_pack, receipt). Dual surface. Upload requires session/operator token. Public, no OAuth.", operationId: "libraryMcp" }, get: { summary: "Library MCP discovery (tool names). Runtime FragGate door stays POST /runtime/mcp.", operationId: "libraryMcpDiscover" } },
       "/v1/metadata-backfill": { get: { summary: "Idempotent discovery-metadata backfill. Writes {library}/{AZDOC}/JSONAZDOC-….json beside the paper and mirrors under .Json/. JSON-prefixed document_ledger receipts copy the paper lattice and never rewrite paper chain_tip. all=1 walks remaining; force=1 restarts; status=1 progress. Cron and request walks also continue. Does not increment downloads.", operationId: "metadataBackfill", parameters: [{ name: "all", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "force", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "status", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "record_id", in: "query", schema: { type: "string" } }] } },
       "/v1/content-hash-repair": { get: { summary: "Recompute content_sha256 from the exact bytes GET /file serves (R2/KV object, else legacy body). Dry-run by default. known=1 is the 9 confirmed live AZDOCs. apply=1 is operator-only and updates D1 + packed library:index:v1 without rewriting file bytes. Appends JSON_HASH_REPAIR (does not delete discovery history). Unreadable objects are flagged HASH_UNVERIFIED. sample=1 is a cron/CI integrity check.", operationId: "contentHashRepair", parameters: [{ name: "apply", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "known", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "all", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "force", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "status", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "sample", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "record_id", in: "query", schema: { type: "string" } }] } },
       "/record/{record_id}/metadata.json": { get: { summary: "Public Schema.org discovery metadata for one AZDOC record (no auth). Co-located with the paper package and mirrored under .Json/. Alias: /record/{record_id}.json.", operationId: "recordMetadata", parameters: [{ name: "record_id", in: "path", required: true, schema: { type: "string" } }] } },
       "/record/{record_id}.json": { get: { summary: "Alias of /record/{record_id}/metadata.json.", operationId: "recordMetadataAlias", parameters: [{ name: "record_id", in: "path", required: true, schema: { type: "string" } }] } },
+      "/record/{record_id}/llms.txt": { get: { summary: "Per-record LLM access point (text/plain). Positive definition of that AZDOC: title, author, shelf, domain, canonical HTML, metadata.json, file URL, triad, applicable component scores, ZionPattern when it applies. No auth.", operationId: "recordLlms", parameters: [{ name: "record_id", in: "path", required: true, schema: { type: "string" } }] } },
+      "/record/{record_id}/cite.json": { get: { summary: "Per-record structured cite (application/json). @id, url, sameAs, applicable scores, public hashes. No auth.", operationId: "recordCite", parameters: [{ name: "record_id", in: "path", required: true, schema: { type: "string" } }] } },
       "/sitemap-records.xml": { get: { summary: "Record HTML + metadata.json + .json alias URLs for crawlers. Linked from sitemap-index.xml.", operationId: "sitemapRecords" } },
       "/v1/media-run": { get: { summary: "Hash-chained media lattice receipt for an OCR or transcript run (AZRUN-).", operationId: "mediaRun", parameters: [{ name: "run_id", in: "query", required: true, schema: { type: "string" } }] } },
       "/transcribe": { post: { summary: "Hosted Whisper transcription with mandatory VibeLock determination. Hard-blocks porn, nudity, and child-sexual content (HTTP 451; never stored or playable). Allowed media at /media/{sha256}. Optional library upload (signed-in: Corpus; operator: Aziel Library).", operationId: "transcribe" } },
@@ -468,7 +471,7 @@ export async function handleRuntimeApi(request, url, env, ctx) {
         learn: HASHCHAIN_LEARN_LAW + ". LEARN / POISON_LEARN / MAP_PIN / POSSIBILITY_SCORE append to document_ledger. Recollection is tip + prev-hash. " + LEARN_LIMITATION,
         poison_learn: "GET /v1/poison-learn — feature receipts only (hash + markers). No poison bodies. Repeats refuse faster.",
         pin: "Upload→pin on successful ingest. GET /v1/pin?record_id= · GET /v1/verify-geo. Fail closed on structure/poison. 4DMap cite 4DM-WP-1.0.",
-        triad: "TRIAD_V1 geometric mean of SPRE PC, CLCE consistency, PhysLing coherence — primary visible score",
+        triad: "TRIAD_V2 geometric mean over applicable SPRE, CLCE, and PhysLing only — primary visible score, always published when scored",
         backfill: "GET /v1/verify-backfill scores older unscored records",
         document_chain: "hash-chain bound to AZDOC- id; uploads/downloads/rescores/quarantine/peer notes append",
         succession: "Exact-same-subject paper cites (Supersedes / Superseded by). Uncertain matches are not chained.",
@@ -541,7 +544,21 @@ export async function handleRuntimeApi(request, url, env, ctx) {
     const receipt = await receiptForRecord(env, recordId);
     if (!receipt) return json({ error: "not found" }, 404);
     const extra = await loadRecordReview(env, { record_id: recordId, review_json: receipt.review ? JSON.stringify(receipt.review) : null, lattice_tip_json: receipt.lattice_tip ? JSON.stringify(receipt.lattice_tip) : null, quarantine_status: receipt.quarantine_status });
-    const triad = (extra.review && extra.review.triad) || null;
+    const publicReview = publicizeReview(extra.review, {
+      record_id: recordId,
+      ...(receipt.record || {}),
+      title: receipt.title,
+      library: receipt.library,
+      filename: receipt.filename,
+      sha256: receipt.content_sha256,
+      content_sha256: receipt.content_sha256,
+      body: receipt.body,
+      author: receipt.author,
+      domain: receipt.domain,
+      subjects: receipt.subjects,
+      keywords: receipt.keywords,
+    });
+    const triad = (publicReview && publicReview.triad) || (extra.review && extra.review.triad) || null;
     return json({
       ok: true,
       record_id: recordId,
@@ -551,11 +568,12 @@ export async function handleRuntimeApi(request, url, env, ctx) {
       zsolver: extra.zsolver || null,
       succession: extra.succession || null,
       bayesian_unranked: true,
-      possibility: (extra.review && extra.review.possibility) || null,
+      possibility: (publicReview && publicReview.possibility) || (extra.review && extra.review.possibility) || null,
       possibility_note: POSSIBILITY_NOTE,
       law: HASHCHAIN_LEARN_LAW,
       document_chain: receipt.document_chain || null,
       ...extra,
+      review: publicReview || extra.review,
       limitation: LIMITATION,
     });
   }
@@ -611,6 +629,9 @@ export async function handleRuntimeApi(request, url, env, ctx) {
       sha256: body.sha256 || "",
       author: body.author || "",
       library: body.library || "corpus",
+      domain: body.domain || "",
+      subjects: body.subjects || "",
+      keywords: body.keywords || "",
       liveClce: false,
     });
     return json({

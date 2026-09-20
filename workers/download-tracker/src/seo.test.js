@@ -28,6 +28,7 @@ import { handleRuntimeApi } from "./runtime.js";
 import { page, howItsScoredBody, ecosystemBlockHtml, softwareBody } from "./ui.js";
 
 const BANNED = /Collin Horton|GodLock\.AZ|\+25|quiet (Aziel|triad|boost)|10\.5281\/zenodo/i;
+const SEO_NOT_X = /THIS IS NOT|what-not-to-say|blocked.from|not\s*=|≠/i;
 const LOCAL_PERSON = "https://www.azielcorpuslibrary.net/AzielEliab#aziel-eliab";
 const LOCAL_RUNTIME = /azielcorpuslibrary\.net\/runtime#/;
 const MCP_OP = /fraggate_(list|describe|verify|call)|decisiongate_check|library_lookup|runtime_skill/;
@@ -341,6 +342,10 @@ test("page-specific descriptions and share images", () => {
   assert.match(about, /content="About Aziel Eliab/);
   assert.doesNotMatch(record, /Search, map, gazetteer, forensics, and hosted OCR/);
   assert.match(record, /The Cockroach Doctrine by Aziel Eliab/);
+  assert.match(record, /href="\/help\.txt"/);
+  assert.match(record, /href="\/addendum\.txt"/);
+  assert.match(record, /href="\/record\/AZDOC-1\/llms\.txt"/);
+  assert.match(record, /href="\/record\/AZDOC-1\/cite\.json"/);
   assert.match(record, /og:image" content="https:\/\/www\.azielcorpuslibrary\.net\/sigil\.png"/);
   assert.match(record, /twitter:image" content="https:\/\/www\.azielcorpuslibrary\.net\/sigil\.png"/);
   assert.match(record, /og:image:alt" content="Aziel Digital Library rose-star brand mark. Author Aziel Eliab."/);
@@ -354,6 +359,8 @@ test("page-specific descriptions and share images", () => {
   assert.equal(article.isPartOf.name, "Aziel Library");
   assert.deepEqual(article.author, { "@id": HUB_PERSON_ID });
   assert.ok(article.sameAs.includes("https://www.azielcorpuslibrary.net/record/AZDOC-1/metadata.json"));
+  assert.ok(article.sameAs.includes("https://www.azielcorpuslibrary.net/record/AZDOC-1/llms.txt"));
+  assert.ok(article.sameAs.includes("https://www.azielcorpuslibrary.net/record/AZDOC-1/cite.json"));
 });
 
 test("ecosystem footer/nav is chrome, not Softwares heading→list", () => {
@@ -438,12 +445,15 @@ test("chrome page for how-its-scored does not leak the quiet triad boost", () =>
   const html = page("How it's scored", howItsScoredBody(), { path: "/how-its-scored", kind: "scored" });
   assert.match(html, /href="\/how-its-scored"/);
   assert.match(html, /SPRE × CLCE × PhysLing|geometric mean/);
+  assert.match(html, /TRIAD_V2|applicable/);
+  assert.match(html, /\/help\.txt/);
   assert.match(html, /intentional suppression confidence/);
   assert.match(html, /AZCoherence/);
   assert.match(html, /azcoherence/);
   assert.match(html, /Person/);
   assert.match(html, /Aziel Elroi Eliab/);
   assert.doesNotMatch(html, BANNED);
+  assert.doesNotMatch(html, SEO_NOT_X);
   assert.doesNotMatch(html, /collection score is the published triad/);
 });
 

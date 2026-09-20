@@ -6,13 +6,13 @@ Library: https://www.azielcorpuslibrary.net/
 Human guide. HTML explainer: https://www.azielcorpuslibrary.net/how-its-scored
 
 ## Triad (always)
-Every scored record publishes a triad first: SPRE × CLCE × PhysLing as TRIAD_V1, an auditable geometric mean. Display is round(combined × 100). API: https://www.azielcorpuslibrary.net/v1/review?record_id=
+Every scored record publishes a triad first. TRIAD_V2 is the geometric mean of the checkers that apply to that document's concept: combined = (Π applicable_i)^(1/n). Display is round(combined × 100). API: https://www.azielcorpuslibrary.net/v1/review?record_id=
 
-## Component scores (when applicable)
-SPRE, CLCE, and PhysLing stay stored for audit and appear on the record page when those verifiers have run.
-- SPRE — source provenance completeness and consistency.
-- CLCE — claim-to-claim consistency (AZ-CLCE).
-- PhysLing — physics coherence mixed with linguistic neutrality.
+## Component scores (when they apply)
+SPRE, CLCE, and PhysLing stay stored for audit. They appear on the record page and cite when they apply to the document's concept. N/A components are omitted (never shown as 0).
+- SPRE — source provenance completeness. Applies when the record is a filed object with provenance.
+- CLCE — claim-to-claim consistency (AZ-CLCE). Applies when a descriptive claim layer exists beside title or file.
+- PhysLing — physics coherence mixed with linguistic neutrality. Applies when the document makes physics-evaluable or measurement claims, or is energy/engineering (or hardware with physical language). Philosophy, software, and design stay on SPRE, CLCE, and the triad unless they make those claims.
 
 ## Other published numbers
 AZCoherence is a second-pass triad coherence review (PASS / FLAG / NEUTRALIZE / REFUSE).
@@ -21,5 +21,6 @@ Bayesian posterior is unranked metadata for peer review. It never sorts the shel
 Possibility is a labeled HEURISTIC over lattice time×geo pins. API: https://www.azielcorpuslibrary.net/v1/possibility?record_id=
 
 Record page: https://www.azielcorpuslibrary.net/record/{AZDOC-…}
+Per-record LLM: https://www.azielcorpuslibrary.net/record/{AZDOC-…}/llms.txt · https://www.azielcorpuslibrary.net/record/{AZDOC-…}/cite.json
 Upload: https://www.azielcorpuslibrary.net/upload
 Softwares: https://www.azielcorpuslibrary.net/software

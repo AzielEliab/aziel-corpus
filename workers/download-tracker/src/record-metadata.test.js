@@ -336,6 +336,13 @@ test("OpenAPI documents metadata routes; sitemap and robots allow them", async (
   const recordsXml = await sitemapRecordsXml(env);
   assert.match(recordsXml, /\/record\/AZDOC-META1\/metadata\.json/);
   assert.match(recordsXml, /\/record\/AZDOC-META1\.json/);
+  assert.match(recordsXml, /\/record\/AZDOC-META1\/llms\.txt/);
+  assert.match(recordsXml, /\/record\/AZDOC-META1\/cite\.json/);
+  assert.ok(spec.paths["/record/{record_id}/llms.txt"]);
+  assert.ok(spec.paths["/record/{record_id}/cite.json"]);
+  assert.ok(spec.paths["/help.txt"]);
+  assert.ok(spec.paths["/addendum.txt"]);
+  assert.ok(spec.paths["/help/uploads.txt"]);
   assert.match(sitemapIndexXml(), /\/sitemap-records\.xml/);
   assert.match(robotsTxt(), /Allow: \/record/);
   assert.match(robotsTxt(), /Sitemap: https:\/\/www\.azielcorpuslibrary\.net\/sitemap-records\.xml/);

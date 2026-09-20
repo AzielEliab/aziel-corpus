@@ -12,12 +12,37 @@ Plain-language help for people using the library. Machine indexes stay https://w
 - How records are scored: https://www.azielcorpuslibrary.net/how-its-scored
 - Read scores: https://www.azielcorpuslibrary.net/help/how-to-read-scores.txt
 - Cite a record: https://www.azielcorpuslibrary.net/help/how-to-cite.txt
+- Uploads: https://www.azielcorpuslibrary.net/help/uploads.txt
 - Addendum: https://www.azielcorpuslibrary.net/addendum.txt
 
-## Records
-Open a record page at https://www.azielcorpuslibrary.net/record/{AZDOC-…}. The triad is always the primary published score. Component scores (SPRE, CLCE, PhysLing) appear when those verifiers have run. ZionPattern appears when the document qualifies.
+## Find records
+Search the public MASTER from https://www.azielcorpuslibrary.net/ or https://www.azielcorpuslibrary.net/search.
+Browse Aziel Library: https://www.azielcorpuslibrary.net/aziel-library
+Browse Corpus: https://www.azielcorpuslibrary.net/corpus
+Open a record by id: https://www.azielcorpuslibrary.net/record/{AZDOC-…}
+Packed machine index: https://www.azielcorpuslibrary.net/v1/library-index
+Search API: https://www.azielcorpuslibrary.net/v1/search?q=
+Record sitemap: https://www.azielcorpuslibrary.net/sitemap-records.xml
+
+Each public record has a canonical HTML page, a download at /file/{AZDOC-…},
+and Schema.org metadata at /record/{AZDOC-…}/metadata.json.
+
+## Scores you will see
+The triad is always the primary published score on a scored record.
+TRIAD_V2 is the geometric mean of the checkers that apply to that document's concept.
+SPRE, CLCE, and PhysLing appear when that component applies to the document's concept. N/A components are omitted (never shown as 0).
+ZionPattern appears when the document qualifies.
+Details: https://www.azielcorpuslibrary.net/help/how-to-read-scores.txt and https://www.azielcorpuslibrary.net/how-its-scored.
+
+## Per-record LLM access points
+Every record also has machine surfaces for SEO and indexing discovery:
+  GET https://www.azielcorpuslibrary.net/record/{AZDOC-…}/llms.txt     text/plain positive definition of that record
+  GET https://www.azielcorpuslibrary.net/record/{AZDOC-…}/cite.json    application/json structured cite
+They are generated from the packed index and public metadata. They work for existing
+uploads and for new uploads as soon as the record is filed. The record HTML page links
+them with rel=alternate. They are listed on sitemap-records.xml.
 
 ## Softwares
 The Software tab lists live product cards from the runtime catalog. Counted downloads stay on each product Worker.
 
-Growth-ON. NO-LIE. Do not invent DOIs.
+Growth-ON. AI crawlers stay Allowed, including GPTBot. NO-LIE. Do not invent DOIs.

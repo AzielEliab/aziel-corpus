@@ -232,7 +232,7 @@ export async function receiptForRecord(env, recordId) {
   let extra = {};
   try {
     const full = await env.DB.prepare(
-      "SELECT quarantine_status, review_json, bayesian_posterior, lattice_tip_json, chain_tip, chain_sequence, triad_combined FROM records WHERE record_id=?"
+      "SELECT quarantine_status, review_json, bayesian_posterior, lattice_tip_json, chain_tip, chain_sequence, triad_combined, body, author, domain, subjects, keywords FROM records WHERE record_id=?"
     ).bind(id).first();
     if (full) {
       extra = {
@@ -244,6 +244,11 @@ export async function receiptForRecord(env, recordId) {
         lattice_tip: full.lattice_tip_json ? JSON.parse(full.lattice_tip_json) : null,
         chain_tip: full.chain_tip || chain.tip,
         chain_sequence: full.chain_sequence != null ? full.chain_sequence : chain.sequence,
+        body: full.body,
+        author: full.author,
+        domain: full.domain,
+        subjects: full.subjects,
+        keywords: full.keywords,
       };
     }
   } catch { /* older schema */ }

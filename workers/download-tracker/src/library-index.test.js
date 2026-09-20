@@ -377,7 +377,7 @@ test("GET /v1/health reports packed shelf file counts from the index", async () 
   assert.equal(body.records_corpus, 1);
   assert.equal(body.count_source, LIBRARY_INDEX_KEY);
   assert.equal(body.author, "Aziel Eliab");
-  assert.doesNotMatch(JSON.stringify(body), /|15:20/);
+  assert.doesNotMatch(JSON.stringify(body), /claim_complete|15:20/);
   assert.equal(kv.calls.list, 0);
 });
 
@@ -413,7 +413,7 @@ test("GET / renders packed file counts from library:index:v1", async () => {
   assert.ok(countAt > 0 && foldAt > countAt, "file count sits in the homepage hero before the LCP fold");
   const countHtml = html.slice(countAt, foldAt);
   assert.doesNotMatch(countHtml, /15:20/);
-  assert.doesNotMatch(countHtml, //);
+  assert.doesNotMatch(countHtml, /claim_complete/);
   assert.equal(kv.calls.list, 0);
 });
 
@@ -437,7 +437,7 @@ test("homepage and shelf chrome show packed file counts and invent none", () => 
   assert.match(home, /href="\/aziel-library">Aziel Library 2</);
   assert.match(home, /href="\/corpus">Corpus 1</);
   assert.doesNotMatch(home, /15:20/);
-  assert.doesNotMatch(home, //);
+  assert.doesNotMatch(home, /claim_complete/);
 
   const aziel = azielLibraryBody({
     rows: [],

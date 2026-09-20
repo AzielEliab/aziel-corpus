@@ -196,7 +196,7 @@ export function defaultDescription(kind, runtimeVersion) {
   if (kind === "software") return softwareDescription(runtimeVersion);
   if (kind === "about") return LOCK_LINE + " About Aziel Eliab, publisher of Aziel Digital Library on this site. " + ABOUT_DESCRIPTION + " Signed Aziel Elroi Eliab. GodLock is one product on that record.";
   if (kind === "who") return LOCK_LINE;
-  if (kind === "scored" || kind === "how-its-scored") return "How Aziel Digital Library scores records: triad SPRE × CLCE × PhysLing, AZCoherence second-pass triad coherence (peer AZ-CLCE), and ZionPattern meaning (75 is intentional suppression confidence; lower is more natural). Author Aziel Eliab.";
+  if (kind === "scored" || kind === "how-its-scored") return "How Aziel Digital Library scores records: the triad is always published (geometric mean of applicable SPRE, CLCE, and PhysLing), AZCoherence second-pass triad coherence (peer AZ-CLCE), and ZionPattern meaning (75 is intentional suppression confidence; lower is more natural). Author Aziel Eliab.";
   if (kind === "pattern") return "Pattern clusters across Aziel Digital Library domains, subjects, and keywords. Author Aziel Eliab.";
   if (kind === "donate") return "AZL-DONATE-1.0. Donate to Aziel Digital Library. Static door. Exodus rails. No Worker KV. Not a catalog item. Author Aziel Eliab.";
   if (kind === "search") return SITE_DESCRIPTION + " Author Aziel Eliab.";
@@ -256,6 +256,8 @@ function workNode(work, path) {
     node.sameAs = [
       CANON_HOST + "/record/" + work.record_id + "/metadata.json",
       CANON_HOST + "/record/" + work.record_id + ".json",
+      CANON_HOST + "/record/" + work.record_id + "/llms.txt",
+      CANON_HOST + "/record/" + work.record_id + "/cite.json",
     ];
     node.encoding = {
       "@type": "MediaObject",
@@ -504,6 +506,8 @@ export function headMeta(opts) {
     linkRel("alternate", "/.well-known/aziel.json", " type=" + Q + "application/json" + Q),
     linkRel("alternate", "/.well-known/person.jsonld", " type=" + Q + "application/ld+json" + Q),
     linkRel("alternate", "/llms.txt", " type=" + Q + "text/plain" + Q + " title=" + Q + "llms.txt" + Q),
+    linkRel("alternate", "/help.txt", " type=" + Q + "text/plain" + Q + " title=" + Q + "help" + Q),
+    linkRel("alternate", "/addendum.txt", " type=" + Q + "text/plain" + Q + " title=" + Q + "addendum" + Q),
     linkRel("alternate", "/ai.txt", " type=" + Q + "text/plain" + Q),
     linkRel("alternate", "/openapi.json", " type=" + Q + "application/json" + Q + " title=" + Q + "OpenAPI" + Q),
     linkRel("alternate", "/runtime/openapi.json", " type=" + Q + "application/json" + Q + " title=" + Q + "Runtime OpenAPI" + Q),
@@ -535,6 +539,13 @@ export function headMeta(opts) {
       linkRel("me", GITHUB_REPO),
     ] : []),
   ];
+  if (kind === "record" && opts.work && opts.work.record_id) {
+    const id = String(opts.work.record_id);
+    tags.push(
+      linkRel("alternate", "/record/" + id + "/llms.txt", " type=" + Q + "text/plain" + Q + " title=" + Q + "llms.txt" + Q),
+      linkRel("alternate", "/record/" + id + "/cite.json", " type=" + Q + "application/json" + Q + " title=" + Q + "cite.json" + Q)
+    );
+  }
   if (opts.includeJsonLd !== false) tags.push(jsonLdScript(opts));
   return tags.join("");
 }

@@ -4,7 +4,8 @@
  */
 import { randomBytes } from "node:crypto";
 import { appendLedger, appendDocumentLedger, ensureLedger, hashPayload, isDocumentId } from "./ledger.js";
-import { reviewDocument, triadComposite, collectionTriad } from "./review.js";
+import { reviewDocument, triadComposite, collectionTriad, TRIAD_SCHEMA, publicizeReview } from "./review.js";
+import { classifyComponentApplicability } from "./review-applicability.js";
 import { verifyBytes, verifyTextRecord, sha256hex } from "./structure.js";
 import { latticeAnchorTip } from "./lattice.js";
 import { appendPoisonLearn, HASHCHAIN_LEARN_LAW } from "./lattice-learn.js";
@@ -109,7 +110,7 @@ export function structureFromBytes(bytes, meta) {
   return verifyTextRecord({ title: meta && meta.title, body: meta && meta.body });
 }
 
-export async function runReviewBundle({ title, body, filename, contentType, sha256, author, library, bytes, liveClce = false, coverage } = {}) {
+export async function runReviewBundle({ title, body, filename, contentType, sha256, author, library, bytes, liveClce = false, coverage, domain, subjects, keywords } = {}) {
   const structure = structureFromBytes(bytes, { filename, contentType });
   const reality = [filename, sha256 || structure.sha256, structure.ok ? "structure verified" : "structure failed"].filter(Boolean).join(" ");
   let clce = null;
@@ -124,6 +125,9 @@ export async function runReviewBundle({ title, body, filename, contentType, sha2
     structure,
     clce,
     coverage,
+    domain,
+    subjects,
+    keywords,
   });
   review.structure = {
     ok: structure.ok,
@@ -388,6 +392,7 @@ export function isFullyScored(row, review) {
     r.clce &&
     r.plr &&
     triad &&
+    triad.schema === TRIAD_SCHEMA &&
     triad.ready &&
     combined != null
   );
@@ -395,15 +400,30 @@ export function isFullyScored(row, review) {
 
 export function storedTriadMatches(row, review, coverage) {
   if (!isFullyScored(row, review)) return false;
+  const appl = (review && review.applicability && review.applicability.flags)
+    ? review.applicability.flags
+    : classifyComponentApplicability({
+        title: row && row.title,
+        body: row && row.body,
+        filename: row && row.filename,
+        sha256: row && row.content_sha256,
+        author: row && row.author,
+        domain: row && row.domain,
+        subjects: row && row.subjects,
+        keywords: row && row.keywords,
+      }).flags;
   const expected = collectionTriad(triadComposite({
     spre: review.spre,
     clce: review.clce,
     plr: review.plr,
+    applicability: appl,
   }), row && row.library, coverage);
   const stored = row && row.triad_combined != null ? Number(row.triad_combined) : review.triad && review.triad.combined;
   if (expected.combined == null || stored == null || !Number.isFinite(Number(stored))) return false;
   return Math.abs(Number(stored) - expected.combined) < 0.0002;
 }
+
+export { publicizeReview };
 
 export async function backfillReviews(env, { limit = 25, force = false, recordId = null } = {}) {
   await ensureReviewSchema(env);

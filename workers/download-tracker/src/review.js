@@ -9,6 +9,13 @@
  * Bayesian — unranked Beta-Bernoulli posterior. Never used to sort the shelf.
  * Possibility — HEURISTIC time×geo lattice score. Separate from Bayesian / triad / ZionPattern.
  */
+import {
+  classifyComponentApplicability,
+  stampEngineApplicability,
+  publicEngineView,
+  applicabilityFlagsFrom,
+} from "./review-applicability.js";
+
 export const REVIEW_SCHEMA = "aziel.review.v1";
 export const SPRE_LIMITATION =
   "SPRE scores provenance completeness. It does not assert criminal guilt. Advisory only. Author Aziel Eliab.";
@@ -18,11 +25,11 @@ export const PLR_LIMITATION =
   "PhysLing Review (PLR) flags physics-impossible or linguistically manipulative framing. It is a third review beside SPRE and CLCE. Not a court finding.";
 export const POISON_LIMITATION =
   "Poison immunity quarantines suspected shells. Status is hash-chained. Records are never silently deleted. Official narrative is not merged into evidence.";
-export const TRIAD_SCHEMA = "aziel.triad.v1";
+export const TRIAD_SCHEMA = "aziel.triad.v2";
 export const TRIAD_FORMULA =
-  "TRIAD_V1 geometric mean: combined = (spre_pc × clce_consistency × plr_coherence)^(1/3). clce_consistency = CLCE.triple if triple ≥ 0.7 else pairwise_avg. plr_coherence = 0.6×physics_coherence + 0.4×linguistic_neutrality. Equal engine weight. Components stay stored for audit. Bayesian peer score and HEURISTIC possibility are separate unranked fields.";
+  "TRIAD_V2 geometric mean over applicable components only: combined = (Π applicable_i)^(1/n). SPRE applies when the record is a filed object with provenance. CLCE applies when a descriptive claim layer exists beside title or file. PhysLing applies when the document makes physics-evaluable or measurement claims, or is energy/engineering (or hardware with physical language). N/A components stay stored for audit with applicable:false and stay outside the public mean. clce_consistency = CLCE.triple if triple ≥ 0.7 else pairwise_avg. plr_coherence = 0.6×physics_coherence + 0.4×linguistic_neutrality. Equal weight among applicable engines. Bayesian peer score and HEURISTIC possibility are separate unranked fields.";
 export const TRIAD_KID =
-  "This one number is the report card from three checkers: SPRE, CLCE, and PhysLing. They all have to run first.";
+  "This one number is the report card from the checkers that apply to this document.";
 
 const STOP = new Set(
   "a an the and or but if then of to for in on at by with from as is are was were be been being this that these those it its they them their you your we our not no".split(" ")
@@ -343,8 +350,9 @@ export function plrCoherence(plr) {
 }
 
 /**
- * One visible final score after SPRE, CLCE, and PhysLing have all run.
- * Geometric mean so one weak verifier pulls the report card down (auditable).
+ * One visible final score from the applicable checkers.
+ * Geometric mean over applicable components only — N/A engines do not weight the public triad.
+ * When applicability is omitted, all three still required (heritage TRIAD_V1 call shape).
  */
 export function triadCoveragePoints(chainLength) {
   const n = Number(chainLength);
@@ -352,16 +360,42 @@ export function triadCoveragePoints(chainLength) {
   return Math.min(12, Math.floor(n - 1) * 3);
 }
 
-export function triadComposite({ spre, clce, plr } = {}) {
+export function triadComposite({ spre, clce, plr, applicability } = {}) {
+  const flags = applicability && typeof applicability === "object"
+    ? {
+        spre: applicability.spre !== false,
+        clce: applicability.clce !== false,
+        plr: applicability.plr !== false,
+      }
+    : { spre: true, clce: true, plr: true };
   const spre_pc = spre && spre.pc != null ? clamp01(spre.pc) : null;
   const clce_consistency = clceConsistency(clce);
   const plr_coherence = plrCoherence(plr);
-  const ready = spre_pc != null && clce_consistency != null && plr_coherence != null;
   const eps = 0.0001;
+  const values = [];
+  const used = [];
+  if (flags.spre && spre_pc != null) {
+    values.push(Math.max(spre_pc, eps));
+    used.push("spre");
+  }
+  if (flags.clce && clce_consistency != null) {
+    values.push(Math.max(clce_consistency, eps));
+    used.push("clce");
+  }
+  if (flags.plr && plr_coherence != null) {
+    values.push(Math.max(plr_coherence, eps));
+    used.push("plr");
+  }
+  const neededOk = (flags.spre ? spre_pc != null : true)
+    && (flags.clce ? clce_consistency != null : true)
+    && (flags.plr ? plr_coherence != null : true);
+  const ready = values.length > 0 && neededOk;
+  const n = values.length;
   const combined = ready
-    ? Math.pow(Math.max(spre_pc, eps) * Math.max(clce_consistency, eps) * Math.max(plr_coherence, eps), 1 / 3)
+    ? Math.pow(values.reduce((a, b) => a * b, 1), 1 / n)
     : null;
   const display = combined == null ? null : Math.round(combined * 100);
+  const weight = n ? 1 / n : 0;
   return {
     schema: TRIAD_SCHEMA,
     formula: TRIAD_FORMULA,
@@ -371,12 +405,88 @@ export function triadComposite({ spre, clce, plr } = {}) {
       clce_consistency: clce_consistency == null ? null : round4(clce_consistency),
       plr_coherence: plr_coherence == null ? null : round4(plr_coherence),
     },
-    weights: { spre: 1 / 3, clce: 1 / 3, plr: 1 / 3 },
+    weights: {
+      spre: used.includes("spre") ? weight : 0,
+      clce: used.includes("clce") ? weight : 0,
+      plr: used.includes("plr") ? weight : 0,
+    },
+    applicable_components: used,
     combined: combined == null ? null : round4(combined),
     display,
     kid_plain: TRIAD_KID,
     primary_visible: true,
     bayesian_separate: true,
+  };
+}
+
+function inputHasConceptSignals(input = {}) {
+  return !!(
+    String(input.body || input.content || "").trim() ||
+    String(input.domain || "").trim() ||
+    String(input.subjects || "").trim() ||
+    String(input.keywords || "").trim()
+  );
+}
+
+function flagsEqual(a, b) {
+  if (!a || !b) return false;
+  return a.spre === b.spre && a.clce === b.clce && a.plr === b.plr;
+}
+
+/** Re-stamp stored reviews with live gates. Recompute the public triad only when gates change. */
+export function applyApplicabilityToReview(review, input = {}, library, coverage) {
+  if (!review || typeof review !== "object") return review;
+  const appl = (review.applicability && review.applicability.flags && !inputHasConceptSignals(input))
+    ? review.applicability
+    : classifyComponentApplicability({
+        title: input.title,
+        body: input.body || input.content,
+        filename: input.filename,
+        sha256: input.sha256 || input.content_sha256,
+        author: input.author,
+        domain: input.domain,
+        subjects: input.subjects,
+        keywords: input.keywords,
+      });
+  const next = {
+    ...review,
+    spre: stampEngineApplicability(review.spre, appl.spre),
+    clce: stampEngineApplicability(review.clce, appl.clce),
+    plr: stampEngineApplicability(review.plr, appl.plr),
+    applicability: appl,
+  };
+  const prevFlags = review.applicability && review.applicability.flags;
+  if (flagsEqual(prevFlags, appl.flags) && review.triad && review.triad.ready) {
+    next.triad = review.triad;
+    return next;
+  }
+  const triad = triadComposite({
+    spre: next.spre,
+    clce: next.clce,
+    plr: next.plr,
+    applicability: appl.flags,
+  });
+  next.triad = collectionTriad(triad, library || review.library || input.library, coverage);
+  return next;
+}
+
+/** Public API/UI view: omit N/A component numbers (never publish 0-as-score). */
+export function publicizeReview(review, row = {}) {
+  if (!review) return null;
+  const stamped = applyApplicabilityToReview(review, row, row.library);
+  const flags = applicabilityFlagsFrom(stamped, row);
+  const lights = { ...(stamped.lights || {}) };
+  if (!flags.spre) delete lights.spre;
+  if (!flags.clce) delete lights.clce;
+  if (!flags.plr) delete lights.plr;
+  return {
+    ...stamped,
+    spre: publicEngineView(stamped.spre),
+    clce: publicEngineView(stamped.clce),
+    plr: publicEngineView(stamped.plr),
+    lights,
+    applicability: stamped.applicability,
+    triad: stamped.triad,
   };
 }
 
@@ -435,10 +545,20 @@ export function reviewDocument(input = {}) {
   const library = String(input.library || "corpus");
   const structure = input.structure || { ok: !!sha256, files: [] };
   const reality = input.reality || [filename, sha256, structure.ok ? "structure verified" : "structure failed"].filter(Boolean).join(" ");
+  const appl = classifyComponentApplicability({
+    title,
+    body,
+    filename,
+    sha256,
+    author,
+    domain: input.domain,
+    subjects: input.subjects,
+    keywords: input.keywords,
+  });
 
-  const clce = input.clce || clceScore({ r: title, d: body || title, p: reality, n: input.noise || "" });
-  const spre = spreScore({ title, body, filename, sha256, structureOk: !!structure.ok, author });
-  const plr = physLingReview({ title, body, filename });
+  const clce = stampEngineApplicability(input.clce || clceScore({ r: title, d: body || title, p: reality, n: input.noise || "" }), appl.clce);
+  const spre = stampEngineApplicability(spreScore({ title, body, filename, sha256, structureOk: !!structure.ok, author }), appl.spre);
+  const plr = stampEngineApplicability(physLingReview({ title, body, filename }), appl.plr);
   const poison = poisonScan({ title, body, filename, library });
   const evidence_completeness = clamp01((spre.factors.includes("text") ? 0.35 : 0.05) + (spre.factors.includes("content_hash") ? 0.35 : 0) + (spre.factors.includes("evidence_language") ? 0.3 : 0.1));
   const bayesian = bayesianPosterior({
@@ -468,7 +588,8 @@ export function reviewDocument(input = {}) {
     plr,
     poison,
     bayesian,
-    triad: collectionTriad(triadComposite({ spre, clce, plr }), library, input.coverage),
+    applicability: appl,
+    triad: collectionTriad(triadComposite({ spre, clce, plr, applicability: appl.flags }), library, input.coverage),
     quarantine_status: poison.status === "QUARANTINE" ? "POISON_SUSPECT" : poison.status === "FLAGGED" ? "OPERATOR_FLAG" : "CLEAR",
     possibility: input.possibility || {
       schema: "aziel.possibility.v1",
