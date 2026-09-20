@@ -22,7 +22,7 @@ GitLab is **not** a LIVE-promotion target. Cloudflare-loop blocked (`CNS-GITLAB-
 
 Extra E/F/G SLOTs (Launchpad, AfricArXiv/OSF, GitLab) stay `url` null. They are **not** required for Plane B LIVE.
 
-Zenodo is **not** the working path. Operator IP banned (`CNS-ZENODO-IP-BAN`). See `ZENODO-TIP-PACK-CHECKLIST.md`.
+Zenodo is **not** the working path. Zenodo deposit not LIVE (`zenodo_live:false`; `doi` null; `CNS-ZENODO-NOT-LIVE`). See `ZENODO-TIP-PACK-CHECKLIST.md`.
 
 ## Pack to deposit
 
@@ -48,7 +48,7 @@ Deposit the airgap directory or its `.tar` + `SHA256SUMS` + `verify-airgap.sh`. 
 - Mark Plane B LIVE because Codeberg and archive.org hash-verified. Need Framagit too (`CNS-PLANE-B-ALL-TARGETS`).
 - Count Launchpad / OSF / GitLab extras as Plane B LIVE substitutes. GitLab is `CNS-GITLAB-CF-LOOP`.
 - Reuse paper Zenodo records as the tip-pack. They are companion papers (`reuse_as_plane_b: false`).
-- Treat Zenodo as the Plane B working shelf (`CNS-ZENODO-IP-BAN`).
+- Treat Zenodo as the Plane B working shelf (`CNS-ZENODO-NOT-LIVE`).
 - Count Plane A hosts as a substitute for this deposit.
 
-Refuse codes: `CNS-ZENODO-IP-BAN` · `CNS-NO-TIP-DOI` · `CNS-NO-FORGE-MIRROR` · `CNS-NO-WARC` · `CNS-NO-FAN-FAKE-DEPOSIT` · `CNS-PLANE-B-ALL-TARGETS` · `CNS-GITFLIC-EMAIL` · `CNS-GITLAB-CF-LOOP`
+Refuse codes: `CNS-ZENODO-NOT-LIVE` · `CNS-NO-TIP-DOI` · `CNS-NO-FORGE-MIRROR` · `CNS-NO-WARC` · `CNS-NO-FAN-FAKE-DEPOSIT` · `CNS-PLANE-B-ALL-TARGETS` · `CNS-GITFLIC-EMAIL` · `CNS-GITLAB-CF-LOOP`

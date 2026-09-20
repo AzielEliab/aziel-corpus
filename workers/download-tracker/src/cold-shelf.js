@@ -148,7 +148,7 @@ export const REFUSE = Object.freeze({
   UNKNOWN_KIND: "CNS-UNKNOWN-KIND",
   NO_TIP_DOI: "CNS-NO-TIP-DOI",
   TIP_NOT_ON_DEPOSIT: "CNS-TIP-NOT-ON-DEPOSIT",
-  ZENODO_IP_BAN: "CNS-ZENODO-IP-BAN",
+  ZENODO_NOT_LIVE: "CNS-ZENODO-NOT-LIVE",
   NO_FORGE: "CNS-NO-FORGE-MIRROR",
   PLANE_A_ONE_TUNNEL: "CNS-PLANE-A-ONE-TUNNEL",
   SURFACES_NOT_INDEPENDENT: "CNS-SURFACES-NOT-INDEPENDENT",
@@ -353,7 +353,7 @@ function extraPlaneDoc(letter) {
 /**
  * Honest registry. Planes A/B/C (NO-FAN) plus extra E/F/G SLOTs.
  * Plane A = one CF/GitHub tunnel, four host mirrors + git = 5 published surfaces / 2 family radii. Not five shelves.
- * Plane B = alternate independent forge/archive tip-pack SLOT (Codeberg / archive.org / Framagit). GitFlic refused (CNS-GITFLIC-EMAIL). GitLab extra (CNS-GITLAB-CF-LOOP). Zenodo is refused (CNS-ZENODO-IP-BAN). doi null.
+ * Plane B = alternate independent forge/archive tip-pack SLOT (Codeberg / archive.org / Framagit). GitFlic refused (CNS-GITFLIC-EMAIL). GitLab extra (CNS-GITLAB-CF-LOOP). Zenodo tip-pack stays SLOT (zenodo_live:false; doi null; CNS-ZENODO-NOT-LIVE). Working path is Codeberg / archive.org / Framagit.
  * Plane C = USB airgap pack + optional second-forge SLOT + RESTORE-DRILL schema.
  * Planes E/F/G = extra independent tip-pack SLOTs (Launchpad, AfricArXiv/OSF, GitLab). Not required for Plane B LIVE.
  */
@@ -424,7 +424,7 @@ export const SHELF_REGISTRY = Object.freeze([
     refuse: REFUSE.NO_FORGE,
     checklist: "tools/cold_shelf/ALT-FORGE-TIP-PACK-CHECKLIST.md",
     reason: "Plane B working shelf is an alternate independent forge/archive tip-pack (Codeberg / archive.org / Framagit). Codeberg + archive.org hash-verify PASS; Framagit awaiting tip-pack. archive.org lists two items (primary aziel-lockset-tip + secondary aziel-lockset-tip_202609) under one working_targets kind. SLOT until all three pass. cite.json / lockset doi stay null.",
-    note: "Not Zenodo. Zenodo is not the Plane B working path (CNS-ZENODO-IP-BAN). GitFlic refused (CNS-GITFLIC-EMAIL). GitLab is not a LIVE target (CNS-GITLAB-CF-LOOP).",
+    note: "Not Zenodo. Zenodo deposit not LIVE (zenodo_live:false; doi null; CNS-ZENODO-NOT-LIVE). Working path is Codeberg / archive.org / Framagit. GitFlic refused (CNS-GITFLIC-EMAIL). GitLab is not a LIVE target (CNS-GITLAB-CF-LOOP).",
   }),
   Object.freeze({
     id: "plane-b-codeberg-tip-pack",
@@ -534,16 +534,17 @@ export const SHELF_REGISTRY = Object.freeze([
     id: "plane-b-zenodo-tip-pack",
     plane: "B",
     kind: "zenodo_doi",
-    status: "refused",
+    status: "slot",
+    zenodo_live: false,
     doi: null,
     url: null,
     blast_radius: "zenodo-cern",
     independent: true,
     lockset_shelf: false,
     lockset_doi: false,
-    refuse: Object.freeze([REFUSE.ZENODO_IP_BAN, REFUSE.NO_TIP_DOI]),
+    refuse: Object.freeze([REFUSE.ZENODO_NOT_LIVE, REFUSE.NO_TIP_DOI]),
     checklist: "tools/cold_shelf/ZENODO-TIP-PACK-CHECKLIST.md",
-    reason: "Operator IP banned at Zenodo (CNS-ZENODO-IP-BAN). Zenodo is not the Plane B working shelf. No tip-pack DOI (CNS-NO-TIP-DOI). cite.json / lockset doi stay null. Do not invent. Paper deposits are not this slot.",
+    reason: "Plane B alternate forge/archive tip-pack — Zenodo deposit not LIVE (zenodo_live:false; doi null; CNS-ZENODO-NOT-LIVE / CNS-NO-TIP-DOI). Working path is Codeberg + archive.org + Framagit. cite.json / lockset doi stay null. Do not invent. Paper deposits are not this slot.",
   }),
   Object.freeze({
     id: "plane-c-usb-airgap",
@@ -859,12 +860,12 @@ export function judgeZenodoTipReuse(input) {
       accept: false,
       action: "refuse",
       reason: REFUSE.TIP_NOT_ON_DEPOSIT,
-      working_path: REFUSE.ZENODO_IP_BAN,
+      working_path: REFUSE.ZENODO_NOT_LIVE,
       reuse_as_plane_b: false,
       tip_verified: false,
       doi,
       payload: paper.payload,
-      note: "Paper deposits stay paper deposits. Zenodo is not the Plane B working shelf (CNS-ZENODO-IP-BAN).",
+      note: "Paper deposits stay paper deposits. Zenodo deposit not LIVE (zenodo_live:false; doi null; CNS-ZENODO-NOT-LIVE).",
     };
   }
   if (doi) {
@@ -872,16 +873,17 @@ export function judgeZenodoTipReuse(input) {
       accept: false,
       action: "refuse",
       reason: REFUSE.FAKE_DEPOSIT,
-      working_path: REFUSE.ZENODO_IP_BAN,
-      note: "DOI is not a verified tip-pack and not a listed paper cite. Do not invent. Zenodo is not the Plane B working shelf.",
+      working_path: REFUSE.ZENODO_NOT_LIVE,
+      note: "DOI is not a verified tip-pack and not a listed paper cite. Do not invent. Zenodo deposit not LIVE (zenodo_live:false).",
     };
   }
   return {
     accept: false,
-    action: "refuse",
-    reason: REFUSE.ZENODO_IP_BAN,
+    action: "slot",
+    reason: REFUSE.ZENODO_NOT_LIVE,
     also: REFUSE.NO_TIP_DOI,
-    status: "refused",
+    status: "slot",
+    zenodo_live: false,
     doi: null,
   };
 }
@@ -1137,10 +1139,11 @@ export function shelfRegistryDoc(host = HOST) {
         doi: null,
         working_targets: PLANE_B_WORKING_TARGETS.slice(),
         zenodo_working_path: false,
+        zenodo_live: false,
         live_ready: planeBLiveReady(),
-        refuse: REFUSE.ZENODO_IP_BAN,
+        refuse: REFUSE.PLANE_B_ALL_TARGETS,
         checklist: "tools/cold_shelf/ALT-FORGE-TIP-PACK-CHECKLIST.md",
-        note: "AZindex-FAIL pivot 2026-09-14: LIVE targets are Codeberg + archive.org + Framagit. Codeberg + archive.org hash-verify PASS (still SLOT). archive.org has two items (aziel-lockset-tip + aziel-lockset-tip_202609), same blast_radius — not a second independent shelf. Zip wrap on the 202609 item: flat IA sha256 on the zip may be null; inner aziel-tip-pack.tar hash-verifies. Framagit awaiting tip-pack. GitFlic refused (CNS-GITFLIC-EMAIL). GitLab extra (CNS-GITLAB-CF-LOOP). LIVE only when all three pass (CNS-PLANE-B-ALL-TARGETS). Zenodo refused (CNS-ZENODO-IP-BAN).",
+        note: "AZindex-FAIL pivot 2026-09-14: LIVE targets are Codeberg + archive.org + Framagit. Codeberg + archive.org hash-verify PASS (still SLOT). archive.org has two items (aziel-lockset-tip + aziel-lockset-tip_202609), same blast_radius — not a second independent shelf. Zip wrap on the 202609 item: flat IA sha256 on the zip may be null; inner aziel-tip-pack.tar hash-verifies. Framagit awaiting tip-pack. GitFlic refused (CNS-GITFLIC-EMAIL). GitLab extra (CNS-GITLAB-CF-LOOP). LIVE only when all three pass (CNS-PLANE-B-ALL-TARGETS). Zenodo deposit not LIVE (zenodo_live:false; doi null; CNS-ZENODO-NOT-LIVE).",
       },
       C: {
         name: "USB airgap + optional second forge",
@@ -1191,7 +1194,7 @@ export function shelfRegistryDoc(host = HOST) {
       + "Lamb Lens: " + LAMB_LENS_CITE + " "
       + COLD_MULTI_SHELF_RULE
       + " Plane A is one CF/GitHub tunnel (5 published surfaces / 2 family radii; independent_live_count stays 1). "
-      + "Plane B is alt independent forge/archive SLOT; LIVE only after Codeberg + archive.org + Framagit (CNS-PLANE-B-ALL-TARGETS). archive.org items: https://archive.org/details/aziel-lockset-tip and https://archive.org/details/aziel-lockset-tip_202609 (same blast_radius; zip wrap on 202609 — flat IA sha256 may be null; inner tar hash-verifies). Not two independent shelves. Zenodo tip-pack is refused (CNS-ZENODO-IP-BAN). doi null. "
+      + "Plane B is alt independent forge/archive SLOT; LIVE only after Codeberg + archive.org + Framagit (CNS-PLANE-B-ALL-TARGETS). archive.org items: https://archive.org/details/aziel-lockset-tip and https://archive.org/details/aziel-lockset-tip_202609 (same blast_radius; zip wrap on 202609 — flat IA sha256 may be null; inner tar hash-verifies). Not two independent shelves. Zenodo tip-pack stays SLOT (zenodo_live:false; doi null; CNS-ZENODO-NOT-LIVE). "
       + "GitFlic refused CNS-GITFLIC-EMAIL. GitLab extra CNS-GITLAB-CF-LOOP. Extra E/F/G SLOTs (Launchpad, AfricArXiv/OSF, GitLab) stay url-null; they are not required for Plane B LIVE. "
       + "Paper deposits are not tip-pack Plane B. Plane C USB stays SLOT until CNS-OPERATOR-ATTEST. RESTORE-DRILL emits attest schema from bytes+prev-hash, not index (NO-FAN). "
       + "FoldLock neighbor is cite + SLOT hook (FOLDLOCK-SHELF-1.0): not zip, not encryption; never fold the lockset tip.",
