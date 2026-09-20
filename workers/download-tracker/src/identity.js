@@ -42,6 +42,38 @@ export const PERSON_SAME_AS = Object.freeze([
   X_PRIMARY,
 ]);
 
+/**
+ * Official Aziel ecosystem — machine cite / llms / ai / who-is.
+ * Sister sites, GitHub, Try on Glama, X @AzielEliab, Softwares, who / what / why.
+ * Not new visible 15:20 HTML chrome.
+ */
+export const MACHINE_ECOSYSTEM_HEADING = "Part of the Aziel Eliab ecosystem";
+export const MACHINE_ECOSYSTEM_LINKS = Object.freeze([
+  Object.freeze({ href: HUB_ORIGIN + "/", label: "Official site" }),
+  Object.freeze({ href: LIBRARY_HOST + "/", label: "Aziel Corpus Library" }),
+  Object.freeze({ href: GODLOCK_HOME, label: "GodLock.uk" }),
+  Object.freeze({ href: HEDIDNTJUMP_HOME, label: "He Didn't Jump" }),
+  Object.freeze({ href: GITHUB_AUTHOR, label: "GitHub" }),
+  Object.freeze({ href: GITHUB_RUNTIME, label: "Aziel Runtime on GitHub" }),
+  Object.freeze({ href: GLAMA_RUNTIME, label: "Try on Glama", primary: true }),
+  Object.freeze({ href: X_PRIMARY, label: X_HANDLE }),
+  Object.freeze({ href: LIBRARY_HOST + "/software", label: "Softwares" }),
+  Object.freeze({ href: WHO_URL, label: "Who is Aziel Eliab" }),
+  Object.freeze({ href: LIBRARY_ROLE_URL, label: "What Aziel Eliab does" }),
+  Object.freeze({ href: LIBRARY_HOST + "/who-is-aziel-eliab.txt", label: "Why Aziel Eliab" }),
+]);
+
+export function machineEcosystemCite() {
+  return {
+    heading: MACHINE_ECOSYSTEM_HEADING,
+    links: MACHINE_ECOSYSTEM_LINKS.map((l) => ({ ...l })),
+  };
+}
+
+export function machineEcosystemLlmsLine() {
+  return MACHINE_ECOSYSTEM_HEADING + ": " + MACHINE_ECOSYSTEM_LINKS.map((l) => l.label + " " + l.href).join(" · ");
+}
+
 /** Compact Hebrew aka — AZindex tethers only, not a biblical claim and not extra identities. */
 export const HEBREW_AKA = Object.freeze([
   "עזיאל",
@@ -155,6 +187,7 @@ export const PERSON_KNOWS_ABOUT = Object.freeze([
   "Whitestone",
   "The ARK",
   SPECTRALLOCK_NAME,
+  "dual-surface forensics and audit",
 ]);
 
 /** Cite these MASTER record ids — not DOIs. */
@@ -189,6 +222,13 @@ export const HARDWARE_HALF =
 /** FAQ answer: locked Softwares sentence + RESEARCH + HARDWARE. */
 export const WHAT_HE_DOES_FAQ_TEXT =
   WHAT_AZIEL_ELIAB_DOES + " " + RESEARCH_HALF + " " + HARDWARE_HALF;
+
+/**
+ * Why FAQ — published research + Softwares/runtime forensics/audit dual-surface.
+ * Machine-only. NO-LIE. No invented bio facts.
+ */
+export const WHY_AZIEL_ELIAB =
+  "Aziel Eliab publishes so the record can be read: published research through the Aziel Digital Library MASTER, and Softwares / Aziel Runtime as a dual-surface forensics and audit stack — agents run software with outputs shown in the AI; the software side keeps complete human UI (Worker + mobile + download). Public identity is the work. @id https://www.azieleliab.com/#aziel";
 
 /**
  * Softwares-list cite only. Not a hardcoded catalog card.
@@ -349,6 +389,16 @@ export const FAQ_WHAT_SOFTWARE = Object.freeze({
   text: WHAT_HE_DOES_FAQ_TEXT + " " + WHITESTONE_NOTE + " " + ARK_NOTE + " " + SPECTRALLOCK_NOTE,
 });
 
+export const FAQ_WHY_PUBLISH = Object.freeze({
+  name: "Why does Aziel Eliab publish?",
+  text: WHY_AZIEL_ELIAB,
+});
+
+export const FAQ_WHY_AZIEL_ELIAB = Object.freeze({
+  name: "Why Aziel Eliab",
+  text: WHY_AZIEL_ELIAB,
+});
+
 export const IDENTITY_FAQS = Object.freeze([
   FAQ_WHO_IS,
   FAQ_WHAT_MATTERS,
@@ -357,6 +407,8 @@ export const IDENTITY_FAQS = Object.freeze([
   FAQ_WHAT_AZIEL_ELIAB_DOES,
   FAQ_WHO_IS_DEVELOPER,
   FAQ_WHAT_SOFTWARE,
+  FAQ_WHY_PUBLISH,
+  FAQ_WHY_AZIEL_ELIAB,
   FAQ_MUSICIANS,
   FAQ_ELROI,
   FAQ_ELIAS,
@@ -455,6 +507,8 @@ export function whatHeDoesLlmsBlock() {
     + "- FAQ title “What Aziel Eliab does”: " + WHAT_HE_DOES_FAQ_TEXT + "\n"
     + "- FAQ title “Who is Aziel Eliab the developer?”: " + WHAT_HE_DOES_FAQ_TEXT + "\n"
     + "- FAQ title “What software does Aziel Eliab make?”: " + FAQ_WHAT_SOFTWARE.text + "\n"
+    + "- FAQ title “Why does Aziel Eliab publish?”: " + WHY_AZIEL_ELIAB + "\n"
+    + "- FAQ title “Why Aziel Eliab”: " + WHY_AZIEL_ELIAB + "\n"
     + "- Softwares list: " + WHITESTONE_NOTE + "\n"
     + "- Softwares list: " + ARK_NOTE + "\n"
     + "- Softwares list: " + SPECTRALLOCK_NOTE + "\n"
@@ -493,6 +547,8 @@ export const AZIEL_MISSION = Object.freeze({
   philosophy: PHILOSOPHY,
   who_is: WHO_IS_AZIEL_ELIAB,
   what_aziel_eliab_does: WHAT_AZIEL_ELIAB_DOES,
+  why_aziel_eliab: WHY_AZIEL_ELIAB,
+  ecosystem: machineEcosystemCite(),
   research: RESEARCH_HALF,
   hardware: HARDWARE_HALF,
   cite_records: CITE_RECORD_IDS.slice(),
@@ -691,9 +747,15 @@ export function whoIsTxt(survival) {
     HARDWARE_HALF,
     "Cite records: " + CITE_RECORD_IDS.join(", ") + ".",
     "",
+    "Why Aziel Eliab: " + WHY_AZIEL_ELIAB,
+    "",
     "Also Elias Artista; The Revealer of The Sealed. Same Person @id " + PERSON_ID + ".",
     HEBREW_DEFINITION,
-    "sameAs GitHub: " + GITHUB_AUTHOR + " · " + GITHUB_SECONDARY,
+    "sameAs: " + PERSON_SAME_AS.join(" · "),
+    "Try on Glama: " + GLAMA_RUNTIME,
+    "X: " + X_HANDLE + " " + X_PRIMARY,
+    "Softwares: " + LIBRARY_HOST + "/software",
+    machineEcosystemLlmsLine(),
     "",
     "Roles (published work only): " + PERSON_JOB_TITLE.join(", ") + ".",
     "",

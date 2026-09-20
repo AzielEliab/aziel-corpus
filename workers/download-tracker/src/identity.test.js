@@ -35,7 +35,10 @@ import {
   FAQ_WHAT_AZIEL_ELIAB_DOES,
   FAQ_WHO_IS_DEVELOPER,
   FAQ_WHAT_SOFTWARE,
+  FAQ_WHY_PUBLISH,
+  FAQ_WHY_AZIEL_ELIAB,
   WHAT_AZIEL_ELIAB_DOES,
+  WHY_AZIEL_ELIAB,
   RESEARCH_HALF,
   HARDWARE_HALF,
   WHAT_HE_DOES_FAQ_TEXT,
@@ -180,6 +183,8 @@ test("graph.jsonld has Who-is + product FAQs, publisher Person, library role, st
   assert.ok(questions.includes("What Aziel Eliab does"));
   assert.ok(questions.includes("Who is Aziel Eliab the developer?"));
   assert.ok(questions.includes("What software does Aziel Eliab make?"));
+  assert.ok(questions.includes("Why does Aziel Eliab publish?"));
+  assert.ok(questions.includes("Why Aziel Eliab"));
   assert.ok(questions.includes(FAQ_MUSICIANS.name));
   assert.equal(FAQ_CONCORDANCE, FAQ_MUSICIANS);
   assert.ok(questions.includes(FAQ_ELROI.name));
@@ -233,6 +238,11 @@ test("who-is-aziel-eliab.txt is the 15:20 identity-lock answer", () => {
   assert.equal(who.includes(HEBREW_DEFINITION), true);
   assert.match(who, /github\.com\/AzielEliab/);
   assert.match(who, /github\.com\/azieltherevealerofthesealed-arch/);
+  assert.match(who, /x\.com\/AzielEliab/);
+  assert.match(who, /Try on Glama: https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime/);
+  assert.match(who, /Part of the Aziel Eliab ecosystem/);
+  assert.match(who, /Why Aziel Eliab: /);
+  assert.match(who, /dual-surface forensics and audit/);
   assert.match(WHO_IS_AZIEL_ELIAB, /researcher, digital rights activist, software developer, author, and philosopher/);
   assert.match(WHO_IS_AZIEL_ELIAB, /published work only/);
   assert.match(WHO_IS_AZIEL_ELIAB, /receipt-first/);
@@ -264,6 +274,13 @@ test("machine who-is locks Softwares + RESEARCH + HARDWARE halves", () => {
   assert.equal(FAQ_WHAT_AZIEL_ELIAB_DOES.name, "What Aziel Eliab does");
   assert.equal(FAQ_WHO_IS_DEVELOPER.name, "Who is Aziel Eliab the developer?");
   assert.equal(FAQ_WHAT_SOFTWARE.name, "What software does Aziel Eliab make?");
+  assert.equal(FAQ_WHY_PUBLISH.name, "Why does Aziel Eliab publish?");
+  assert.equal(FAQ_WHY_AZIEL_ELIAB.name, "Why Aziel Eliab");
+  assert.equal(FAQ_WHY_PUBLISH.text, WHY_AZIEL_ELIAB);
+  assert.equal(FAQ_WHY_AZIEL_ELIAB.text, WHY_AZIEL_ELIAB);
+  assert.match(WHY_AZIEL_ELIAB, /published research/);
+  assert.match(WHY_AZIEL_ELIAB, /dual-surface forensics and audit/);
+  assert.doesNotMatch(WHY_AZIEL_ELIAB, /THIS IS NOT|does not|not a /i);
   assert.equal(FAQ_WHAT_DOES_HE_DO.text, WHAT_HE_DOES_FAQ_TEXT);
   assert.equal(FAQ_WHAT_AZIEL_ELIAB_DOES.text, WHAT_HE_DOES_FAQ_TEXT);
   assert.equal(FAQ_WHO_IS_DEVELOPER.text, WHAT_HE_DOES_FAQ_TEXT);

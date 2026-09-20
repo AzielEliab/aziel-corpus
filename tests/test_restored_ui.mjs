@@ -64,7 +64,7 @@ test("restored nav2 keeps every public tab and drops Health/Verify/Gazetteer fro
   assert.match(html, />Corpus</);
   assert.match(html, />GodLock</);
   assert.match(html, />Runtime GitHub</);
-  assert.match(html, />Glama</);
+  assert.match(html, />Try on Glama</);
   assert.match(html, /class="ecosystem"/);
 });
 

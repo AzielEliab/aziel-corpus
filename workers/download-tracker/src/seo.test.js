@@ -370,7 +370,7 @@ test("ecosystem footer/nav is chrome, not Softwares heading→list", () => {
     ["GodLock", "https://godlock.uk/", false, false],
     ["He Didn't Jump", "https://www.hedidntjump.com/", false, false],
     ["Runtime GitHub", "https://github.com/AzielEliab/aziel-runtime", false, false],
-    ["Glama", "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime", false, true],
+    ["Try on Glama", "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime", false, true],
   ]);
   const block = ecosystemBlockHtml();
   assert.match(block, /<footer class="ecosystem"/);
@@ -385,7 +385,7 @@ test("ecosystem footer/nav is chrome, not Softwares heading→list", () => {
   assert.match(block, />He Didn't Jump</);
   assert.match(block, /href="https:\/\/github\.com\/AzielEliab\/aziel-runtime"/);
   assert.match(block, />Runtime GitHub</);
-  assert.match(block, /class="button"[^>]*href="https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime"[^>]*>Glama</);
+  assert.match(block, /class="button"[^>]*href="https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime"[^>]*>Try on Glama</);
   const softBody = softwareBody({
     products: [{ slug: "azmail", name: "AZMail", kind: "plain", blurb: "door", links: [] }],
   });
