@@ -33,6 +33,7 @@ import { checkLibraryUpdate, LIBRARY_SLUG, LIBRARY_VERSION } from "./update-chec
 import {
   fetchLiveSoftwareCatalog,
   publicSoftwarePayload,
+  isTabSoftwareView,
   SOFTWARE_API_TIMEOUT_MS,
 } from "./software-catalog.js";
 import { handleV1Download, serveSoftwareAsset, LIBRARY_INSTALL } from "./software-download.js";
@@ -328,9 +329,10 @@ export async function handleRuntimeApi(request, url, env, ctx) {
     return serveSoftwareAsset(request, env, url.searchParams.get("asset"));
   }
   if (path === "/v1/software" && (request.method === "GET" || request.method === "HEAD")) {
-    const live = await fetchLiveSoftwareCatalog(env, { preferCache: true, skipEnrich: true, timeoutMs: SOFTWARE_API_TIMEOUT_MS });
+    const tabView = isTabSoftwareView(url.searchParams.get("view"));
+    const live = await fetchLiveSoftwareCatalog(env, { preferCache: true, skipEnrich: true, tabView, timeoutMs: SOFTWARE_API_TIMEOUT_MS });
     if (live && live.fromCache && ctx && typeof ctx.waitUntil === "function") {
-      ctx.waitUntil(fetchLiveSoftwareCatalog(env, { preferCache: false, skipEnrich: true, timeoutMs: SOFTWARE_API_TIMEOUT_MS }).catch(() => null));
+      ctx.waitUntil(fetchLiveSoftwareCatalog(env, { preferCache: false, skipEnrich: true, tabView, timeoutMs: SOFTWARE_API_TIMEOUT_MS }).catch(() => null));
     }
     const res = json(publicSoftwarePayload(live, { view: url.searchParams.get("view") }));
     res.headers.set("Cache-Control", SOFTWARE_API_CACHE_CONTROL);

@@ -53,9 +53,9 @@ export const SPECTRALLOCK_STUB_OPS = Object.freeze([
   "invent_mark",
 ]);
 
-/** Worker SSoT one_line after aziel-runtime#137. Softwares tab refreshes from GET /v1/software. */
+/** Worker SSoT designed-purpose one_line (aziel-runtime#146/#148). Softwares tab refreshes from GET /v1/software. */
 export const SPECTRALLOCK_ONE_LINE =
-  "Preview a small overlay on an image; leftover container bytes recover honestly, opaque rewrite refuses.";
+  "Preview a small overlay on an image and recover leftover container bytes.";
 
 export const SPECTRALLOCK_HONESTY =
   "Leftover container bytes recover honestly (object id / offset / stream). "
@@ -75,13 +75,7 @@ export const SPECTRALLOCK_OCR_NOTE =
   + ". Unredact / recover / handwriting stay on the product Worker.";
 
 export const SPECTRALLOCK_NOTE =
-  "SpectralLock (Softwares): leftover container bytes recover honestly; opaque empty refuses SL-UNREDACT-OPAQUE. "
-  + "Never invent letters. /v1/unredact revision graph. /v1/recover universal (NO-LIE LIVE/SLOT). "
-  + "/v1/handwriting ink heuristics. "
-  + "Workers " + SPECTRALLOCK_UNREDACT + " · " + SPECTRALLOCK_RECOVER + " · " + SPECTRALLOCK_HANDWRITING + ". "
-  + "Unredact / recover / handwriting stay on the product Worker. "
-  + "Catalog entry ships on aziel-runtime GET /v1/software (Worker SSoT); this library Softwares tab refreshes from that Worker SSoT. "
-  + "Corpus OCR recovers leftover bytes honestly.";
+  SPECTRALLOCK_NAME + " (Softwares): " + SPECTRALLOCK_ONE_LINE;
 
 export function spectrallockWorkerLinksHtml() {
   return [
@@ -204,6 +198,16 @@ export const SPECTRALLOCK = Object.freeze({
 export function spectralLockCopyLooksHonest(text) {
   const t = String(text || "");
   return /leftover/i.test(t) && (/opaque|SL-UNREDACT|unredact/i.test(t));
+}
+
+/** Worker designed-purpose one_line. Old overlay / honesty-coaching blurbs are stale. */
+export function spectralLockCopyLooksDesigned(text) {
+  const t = String(text || "");
+  if (!t) return false;
+  if (/^\s*THIS[\s-]+IS\b/i.test(t)) return false;
+  if (/not a spectrometer/i.test(t) || /256px overlay/i.test(t)) return false;
+  if (/honestly/i.test(t) && /opaque rewrite refuses/i.test(t)) return false;
+  return /preview a small overlay/i.test(t) && /recover leftover container bytes/i.test(t);
 }
 
 export function spectrallockLlmsBlock(host = HOST) {

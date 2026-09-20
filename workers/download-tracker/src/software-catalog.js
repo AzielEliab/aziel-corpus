@@ -38,7 +38,7 @@ import {
   SPECTRALLOCK_SLUG,
   SPECTRALLOCK_ONE_LINE,
   SPECTRALLOCK_WORKER_HOME,
-  spectralLockCopyLooksHonest,
+  spectralLockCopyLooksDesigned,
 } from "./spectrallock.js";
 import {
   SOFTWARE_CATALOG_CACHE_URL,
@@ -388,12 +388,12 @@ export function preferWorkerSoftwareCopy(live, fallback) {
   return liveCopy || fallCopy || "";
 }
 
-/** Post-#13 leftover-bytes + revision-graph honesty wins over pre-unredact overlay blurbs. Worker SSoT one_line. */
+/** Worker designed-purpose one_line wins over overlay / honesty-coaching leftovers. */
 export function preferSpectralLockHonestyCopy(live, fallback) {
   const liveCopy = productCopyText(live);
   const fallCopy = productCopyText(fallback) || SPECTRALLOCK_ONE_LINE;
-  if (spectralLockCopyLooksHonest(liveCopy)) return liveCopy;
-  if (spectralLockCopyLooksHonest(fallCopy)) return fallCopy;
+  if (spectralLockCopyLooksDesigned(liveCopy)) return liveCopy;
+  if (spectralLockCopyLooksDesigned(fallCopy)) return fallCopy;
   return SPECTRALLOCK_ONE_LINE;
 }
 
@@ -570,6 +570,8 @@ export function countPills({ downloads, views, uploads, uses } = {}, opts = {}) 
 }
 
 export const SOFTWARE_LIVE_PATH = "/v1/software";
+/** Softwares-tab paint / light HTML: prefer Worker ?view=tab (corpus #132). Full catalog stays /v1/software. */
+export const SOFTWARE_TAB_PATH = "/v1/software?view=tab";
 export const FRAGGATE_LIST_PATH = "/v1/fraggate/list";
 export const CATALOG_JSON_PATH = "/v1/catalog.json";
 export const SOFTWARE_CRAWL_TIMEOUT_MS = 4000;
@@ -890,12 +892,12 @@ function mergeCatalogDocs(primary, enrich, opts = {}) {
   };
 }
 
-function packedWorkerCatalog(software) {
+function packedWorkerCatalog(software, via) {
   const catalog = normalizeSoftwareDoc(software);
   return {
     catalog,
     source: "live",
-    via: SOFTWARE_LIVE_PATH,
+    via: via || SOFTWARE_LIVE_PATH,
     git_sha: firstText(software && software.git_sha, catalog.git_sha),
   };
 }
@@ -910,9 +912,11 @@ export async function fetchLiveSoftwareCatalog(env, opts = {}) {
   }
 
   const run = async () => {
-    const software = await fetchRuntimeJson(env, SOFTWARE_LIVE_PATH, { timeoutMs: fetchMs });
-    if (catalogHasProducts(software)) {
-      const live = packedWorkerCatalog(software);
+    const softwarePaths = opts.tabView ? [SOFTWARE_TAB_PATH, SOFTWARE_LIVE_PATH] : [SOFTWARE_LIVE_PATH];
+    for (const dest of softwarePaths) {
+      const software = await fetchRuntimeJson(env, dest, { timeoutMs: fetchMs });
+      if (!catalogHasProducts(software)) continue;
+      const live = packedWorkerCatalog(software, dest);
       if (!opts.skipEnrich) {
         const enrich = await fetchRuntimeJson(env, CATALOG_JSON_PATH, { timeoutMs: Math.min(800, fetchMs) });
         if (catalogHasProducts(enrich)) {
@@ -1014,6 +1018,7 @@ export async function loadSoftwareCatalog(env, stats, opts = {}) {
   const live = await fetchLiveSoftwareCatalog(env, {
     skipEnrich: light || Boolean(opts.skipEnrich),
     preferCache: light || Boolean(opts.preferCache),
+    tabView: light || Boolean(opts.tabView),
     timeoutMs: opts.timeoutMs != null ? opts.timeoutMs : (light ? SOFTWARE_HTML_TIMEOUT_MS : 0),
   });
   const catalog = live.catalog || {};

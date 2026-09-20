@@ -39,6 +39,7 @@ import {
   tabSoftwareProduct,
   publicSoftwarePayload,
   isWorkerSoftwareSource,
+  SOFTWARE_TAB_PATH,
 } from "./software-catalog.js";
 import { SPECTRALLOCK_ONE_LINE } from "./spectrallock.js";
 import {
@@ -1253,7 +1254,7 @@ test("preferWorkerSoftwareCopy keeps Worker SSoT over extra THIS-IS / catalog-on
   }), false);
 });
 
-test("SpectralLock Softwares copy lands post-#137 leftover-bytes honesty", () => {
+test("SpectralLock Softwares copy lands Worker designed-purpose one_line", () => {
   assert.equal(
     preferSpectralLockHonestyCopy(
       { one_line: "256px overlay preview (zero/tazel/vyrn/uv/rosetta/zen/chaos/balance). Not a spectrometer." },
@@ -1536,6 +1537,39 @@ test("GET /v1/software caches Worker SSoT and view=tab shrinks the tab payload",
     const packed = publicSoftwarePayload({ catalog: { software: fullBody.products }, source: "live", via: "/v1/software" }, { view: "tab" });
     assert.equal(packed.view, "tab");
     assert.ok(tabSoftwareProduct(card).slug === "whitestone");
+  } finally {
+    globalThis.fetch = origFetch;
+  }
+});
+
+test("fetchLiveSoftwareCatalog tabView prefers Worker ?view=tab", async () => {
+  const origFetch = globalThis.fetch;
+  const seen = [];
+  globalThis.fetch = blockLiveRuntime(origFetch);
+  const env = stubEnv({
+    async fetch(request) {
+      const url = new URL(request.url);
+      seen.push(url.pathname + url.search);
+      if (url.pathname.endsWith("/software") && url.searchParams.get("view") === "tab") {
+        return new Response(JSON.stringify({
+          version: "2.0.0-rc1",
+          software: [
+            { slug: "spectrallock", name: "SpectralLock", one_line: SPECTRALLOCK_ONE_LINE },
+            { slug: "whitestone", name: "Whitestone", one_line: "Advise on short Criminal, Civil, and Divorce questions with historical as-of and Case Mode (suppression axes, TrajectoryLock-lite, export, confidence labeled up to 75%). Session-only web app plus optional zip. https://whitestone.vibelock.workers.dev/" },
+          ],
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      return new Response(JSON.stringify({ error: "not found" }), { status: 404 });
+    },
+  });
+  try {
+    const live = await fetchLiveSoftwareCatalog(env, { tabView: true, skipEnrich: true });
+    assert.equal(live.source, "live");
+    assert.equal(live.via, SOFTWARE_TAB_PATH);
+    assert.ok(seen[0].includes("view=tab"));
+    const sl = live.catalog.products.find((p) => p.slug === "spectrallock");
+    assert.equal(sl.one_line, SPECTRALLOCK_ONE_LINE);
+    assert.doesNotMatch(sl.one_line, /honestly/);
   } finally {
     globalThis.fetch = origFetch;
   }
