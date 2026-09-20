@@ -159,7 +159,7 @@ test("cite.json / llms.txt / ai.txt / humans.txt cite SpectralLock leftover-byte
 test("sitemap lists OCR / Softwares cites and SpectralLock worker sitemap", async () => {
   const index = sitemapIndexXml();
   assert.match(index, /spectrallock-download-tracker\.vibelock\.workers\.dev\/sitemap\.xml/);
-  assert.match(index, /<lastmod>2026-09-19<\/lastmod>/);
+  assert.match(index, /<lastmod>2026-09-20<\/lastmod>/);
   const xml = await sitemapXml({});
   assert.match(xml, /azielcorpuslibrary\.net\/ocr</);
   assert.match(xml, /azielcorpuslibrary\.net\/software</);

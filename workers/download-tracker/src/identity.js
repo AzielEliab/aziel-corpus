@@ -9,6 +9,7 @@
  */
 import { survivalWhoIsBlock } from "./ban-survival.js";
 import { SPECTRALLOCK_NOTE, SPECTRALLOCK_CITE, SPECTRALLOCK_NAME } from "./spectrallock.js";
+import { PEACELOCK_NOTE, PEACELOCK_CITE, PEACELOCK_NAME } from "./peacelock.js";
 
 export const AUTHOR = "Aziel Eliab";
 export const AUTHOR_AKA = "Aziel Elroi Eliab";
@@ -187,6 +188,7 @@ export const PERSON_KNOWS_ABOUT = Object.freeze([
   "Whitestone",
   "The ARK",
   SPECTRALLOCK_NAME,
+  PEACELOCK_NAME,
   "dual-surface forensics and audit",
 ]);
 
@@ -270,6 +272,9 @@ export const ARK_CITE = Object.freeze({
 
 /** Softwares-list cite only. Not a hardcoded extras card. Catalog is Worker SSoT (GET /v1/software). */
 export { SPECTRALLOCK_NOTE, SPECTRALLOCK_CITE };
+
+/** Softwares-list cite only. Public GitHub + local-only runtime. Catalog is Worker SSoT. */
+export { PEACELOCK_NOTE, PEACELOCK_CITE };
 
 /** Cross-tether public stats. Do not invent extra counters. */
 export const STATS_TETHER = Object.freeze({
@@ -386,7 +391,7 @@ export const FAQ_WHO_IS_DEVELOPER = Object.freeze({
 
 export const FAQ_WHAT_SOFTWARE = Object.freeze({
   name: "What software does Aziel Eliab make?",
-  text: WHAT_HE_DOES_FAQ_TEXT + " " + WHITESTONE_NOTE + " " + ARK_NOTE + " " + SPECTRALLOCK_NOTE,
+  text: WHAT_HE_DOES_FAQ_TEXT + " " + WHITESTONE_NOTE + " " + ARK_NOTE + " " + SPECTRALLOCK_NOTE + " " + PEACELOCK_NOTE,
 });
 
 export const FAQ_WHY_PUBLISH = Object.freeze({
@@ -512,6 +517,7 @@ export function whatHeDoesLlmsBlock() {
     + "- Softwares list: " + WHITESTONE_NOTE + "\n"
     + "- Softwares list: " + ARK_NOTE + "\n"
     + "- Softwares list: " + SPECTRALLOCK_NOTE + "\n"
+    + "- Softwares list: " + PEACELOCK_NOTE + "\n"
     + "- Research: " + RESEARCH_HALF + "\n"
     + "- Hardware designs: " + HARDWARE_HALF + "\n"
     + "- Cite records: " + CITE_RECORD_IDS.join(", ") + "\n"
@@ -743,6 +749,7 @@ export function whoIsTxt(survival) {
     WHAT_AZIEL_ELIAB_DOES,
     "Softwares list: " + ARK_NOTE,
     "Softwares list: " + SPECTRALLOCK_NOTE,
+    "Softwares list: " + PEACELOCK_NOTE,
     RESEARCH_HALF,
     HARDWARE_HALF,
     "Cite records: " + CITE_RECORD_IDS.join(", ") + ".",

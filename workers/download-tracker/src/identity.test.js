@@ -50,6 +50,8 @@ import {
   ARK_STATS,
   SPECTRALLOCK_NOTE,
   SPECTRALLOCK_CITE,
+  PEACELOCK_NOTE,
+  PEACELOCK_CITE,
   CITE_RECORD_IDS,
   ABOUT_LEAD,
   ABOUT_STANZA,
@@ -284,7 +286,7 @@ test("machine who-is locks Softwares + RESEARCH + HARDWARE halves", () => {
   assert.equal(FAQ_WHAT_DOES_HE_DO.text, WHAT_HE_DOES_FAQ_TEXT);
   assert.equal(FAQ_WHAT_AZIEL_ELIAB_DOES.text, WHAT_HE_DOES_FAQ_TEXT);
   assert.equal(FAQ_WHO_IS_DEVELOPER.text, WHAT_HE_DOES_FAQ_TEXT);
-  assert.equal(FAQ_WHAT_SOFTWARE.text, WHAT_HE_DOES_FAQ_TEXT + " " + WHITESTONE_NOTE + " " + ARK_NOTE + " " + SPECTRALLOCK_NOTE);
+  assert.equal(FAQ_WHAT_SOFTWARE.text, WHAT_HE_DOES_FAQ_TEXT + " " + WHITESTONE_NOTE + " " + ARK_NOTE + " " + SPECTRALLOCK_NOTE + " " + PEACELOCK_NOTE);
   assert.equal(WHAT_HE_DOES_FAQ_TEXT, WHAT_AZIEL_ELIAB_DOES + " " + RESEARCH_HALF + " " + HARDWARE_HALF);
   assert.match(WHITESTONE_NOTE, /ephemeral pro se advisor/);
   assert.doesNotMatch(WHITESTONE_NOTE, /not a lawyer/);
@@ -308,6 +310,17 @@ test("machine who-is locks Softwares + RESEARCH + HARDWARE halves", () => {
   assert.equal(SPECTRALLOCK_CITE.extra_card, false);
   assert.equal(SPECTRALLOCK_CITE.slug, "spectrallock");
   assert.ok(PERSON_KNOWS_ABOUT.includes("SpectralLock"));
+  assert.match(PEACELOCK_NOTE, /Public GitHub/);
+  assert.match(PEACELOCK_NOTE, /Local-only runtime/);
+  assert.match(PEACELOCK_NOTE, /github\.com\/AzielEliab\/peacelock/);
+  assert.doesNotMatch(PEACELOCK_NOTE, /THIS IS NOT|does not|not a /i);
+  assert.equal(PEACELOCK_CITE.extra_card, false);
+  assert.equal(PEACELOCK_CITE.slug, "peacelock");
+  assert.equal(PEACELOCK_CITE.public, true);
+  assert.equal(PEACELOCK_CITE.private, false);
+  assert.equal(PEACELOCK_CITE.fraggate_status, "live");
+  assert.equal(PEACELOCK_CITE.fraggate_local_only, false);
+  assert.ok(PERSON_KNOWS_ABOUT.includes("PeaceLock"));
   assert.match(RESEARCH_HALF, /Book of the Knowledge/);
   assert.match(RESEARCH_HALF, /Blemmyes\/Ewaipanoma/);
   assert.match(HARDWARE_HALF, /Dog Leash/);
@@ -318,6 +331,8 @@ test("machine who-is locks Softwares + RESEARCH + HARDWARE halves", () => {
   assert.match(who, new RegExp(WHAT_AZIEL_ELIAB_DOES.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   assert.match(who, /Softwares list: The ARK \(Softwares\): local deniable vault/);
   assert.match(who, /Softwares list: SpectralLock \(Softwares\): leftover container bytes recover honestly/);
+  assert.match(who, /Softwares list: PeaceLock \(Softwares\): record chosen silence/);
+  assert.match(who, /github\.com\/AzielEliab\/peacelock/);
   assert.match(who, /v1\/recover/);
   assert.match(who, /v1\/handwriting/);
   assert.match(who, /ink heuristics/);
@@ -334,6 +349,7 @@ test("machine who-is locks Softwares + RESEARCH + HARDWARE halves", () => {
   assert.ok(person.knowsAbout.includes("Whitestone"));
   assert.ok(person.knowsAbout.includes("The ARK"));
   assert.ok(person.knowsAbout.includes("SpectralLock"));
+  assert.ok(person.knowsAbout.includes("PeaceLock"));
   assert.deepEqual(CITE_RECORD_IDS.slice(0, 6), [
     "AZDOC-A011CAD23671",
     "AZDOC-F83D7E6D28B6",
@@ -359,6 +375,16 @@ test("machine who-is locks Softwares + RESEARCH + HARDWARE halves", () => {
   assert.equal(cite.spectrallock.recover_is_door_op, false);
   assert.equal(cite.spectrallock.handwriting_is_door_op, false);
   assert.equal(cite.spectrallock.revision_graph, true);
+  assert.equal(cite.peacelock.slug, "peacelock");
+  assert.equal(cite.peacelock.note, PEACELOCK_NOTE);
+  assert.equal(cite.peacelock.extra_card, false);
+  assert.equal(cite.peacelock.public, true);
+  assert.equal(cite.peacelock.private, false);
+  assert.equal(cite.peacelock.runtime, "local-only");
+  assert.equal(cite.peacelock.fraggate_status, "live");
+  assert.equal(cite.peacelock.fraggate_local_only, false);
+  assert.equal(cite.softwares_ssot_version, "2.0.0-rc1");
+  assert.equal(cite.public_version, cite.softwares_ssot_version);
   const llms = llmsDoc("LIMIT");
   assert.match(llms, /What does Aziel Eliab do\?/);
   assert.match(llms, /Who is Aziel Eliab the developer\?/);
@@ -366,6 +392,7 @@ test("machine who-is locks Softwares + RESEARCH + HARDWARE halves", () => {
   assert.match(llms, /Softwares list: Whitestone \(Softwares\): ephemeral pro se advisor/);
   assert.match(llms, /Softwares list: The ARK \(Softwares\): local deniable vault/);
   assert.match(llms, /Softwares list: SpectralLock \(Softwares\): leftover container bytes recover honestly/);
+  assert.match(llms, /Softwares list: PeaceLock \(Softwares\): record chosen silence/);
   assert.match(llms, /AZDOC-F22AD0DCAA9D/);
   assert.match(llms, /bone-conduction STL/);
 });

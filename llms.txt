@@ -133,7 +133,8 @@ Softwares on this repo is the Digital Library catalog for aziel-runtime. Heading
 - Unique title: Softwares — Aziel Eliab catalog | Aziel Digital Library
 - Live catalog JSON: https://www.azielcorpuslibrary.net/v1/software
 - Author Aziel Eliab only. Do not invent a second software index.
-- Trades-Runtime (trades-runtime) Softwares extra: shadow-first local BYO runtime for HVAC, plumbing, electrical, sewer, and cross-trades. Operators bring their own ServiceTitan + ProBooks. Human authority wins. live_backends: false. GitHub Pages off. Public get = Worker download.
+- Public version: Aziel Runtime / Softwares SSoT 2.0.0-rc1 (GET /v1/software catalog.version). Product versions stay on Softwares cards.
+- Trades-Runtime (trades-runtime) public Softwares extra / BYO field OS: shadow-first local BYO field OS for HVAC, plumbing, electrical, sewer, and cross-trades. Operators bring their own ServiceTitan + ProBooks. Human authority wins. live_backends: false. GitHub Pages off. Public get = Worker download.
   - Softwares card: https://www.azielcorpuslibrary.net/software
   - GitHub: https://github.com/AzielEliab/trades-runtime
   - Worker: https://trades-runtime.vibelock.workers.dev/
@@ -155,6 +156,13 @@ Softwares on this repo is the Digital Library catalog for aziel-runtime. Heading
   - Cite: https://spectrallock-download-tracker.vibelock.workers.dev/cite.json
   - llms: https://spectrallock-download-tracker.vibelock.workers.dev/llms.txt
   - sitemap: https://spectrallock-download-tracker.vibelock.workers.dev/sitemap.xml
+- PeaceLock (peacelock) Softwares cite: public GitHub + local-only runtime. Record chosen silence or chosen inaction as a hash-chained receipt (PL-WP-0.1). Public GitHub https://github.com/AzielEliab/peacelock. Local-only runtime: operator-local receipts; hosted API is stateless. Download https://peacelock-download-tracker.vibelock.workers.dev/download. Catalog card is Worker SSoT (GET /v1/software).
+  - Softwares card: https://www.azielcorpuslibrary.net/software
+  - GitHub: https://github.com/AzielEliab/peacelock
+  - Worker: https://peacelock-download-tracker.vibelock.workers.dev/
+  - Download: https://peacelock-download-tracker.vibelock.workers.dev/download
+  - Cite: https://peacelock-download-tracker.vibelock.workers.dev/cite.json
+  - llms: https://peacelock-download-tracker.vibelock.workers.dev/llms.txt
 
 ## Aziel Runtime
 
