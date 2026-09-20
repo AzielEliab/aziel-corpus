@@ -1338,6 +1338,7 @@ async function retrievePublicContext(env, question) {
     country: p.country_code,
     lat: p.lat,
     lon: p.lon,
+    href: "/map",
   }));
   let events = [];
   try {
@@ -1346,7 +1347,13 @@ async function retrievePublicContext(env, question) {
     events = (all || [])
       .filter((e) => toks.some((t) => String(e.place_name || e.title || "").toLowerCase().indexOf(t) >= 0))
       .slice(0, 5)
-      .map((e) => ({ date: e.event_date, place: e.place_name, title: e.title }));
+      .map((e) => ({
+        date: e.event_date,
+        place: e.place_name,
+        title: e.title,
+        record_id: e.record_id || null,
+        href: e.record_id ? "/record/" + e.record_id : "/map",
+      }));
   } catch {
     events = [];
   }
@@ -1358,7 +1365,7 @@ function extractiveAnswer(ctx) {
   const bits = [];
   const citations = (ctx.records || []).slice(0, 5);
   if (citations.length) {
-    bits.push("Public records:\n" + citations.map((c, i) => (i + 1) + ". " + c.title + " — " + c.snippet).join("\n"));
+    bits.push("Public records:\n" + citations.map((c, i) => (i + 1) + ". " + c.title + " (" + (c.href || ("/record/" + c.record_id)) + ") — " + c.snippet).join("\n"));
   }
   if (ctx.places && ctx.places.length) {
     bits.push(
@@ -1734,7 +1741,7 @@ export function jeevesFabHtml(signed) {
     rows.push("+"+Array(st.w+1).join("-")+"+");
     return rows.join("\\n")+"\\n\\n"+(st.alive?("Score "+st.score+". up/down/left/right or U/D/L/R · quit to stop"):("Game over. Score "+st.score+". Konami again to replay."));
   }
-  function line(who,text,opts){opts=opts||{};var d=document.createElement("div");d.className="jeeves-msg";var b=document.createElement("b");b.textContent=who;d.appendChild(b);if(text){if(opts.pre||/\\n/.test(text)){var pre=document.createElement("pre");pre.className="jeeves-snake";pre.textContent=text;d.appendChild(pre);}else{d.appendChild(document.createTextNode(" "+text));}}if(opts.image){var img=document.createElement("img");img.className="jeeves-egg-img";img.src=opts.image;img.alt=opts.image_alt||"Ask Jeeves";img.loading="lazy";d.appendChild(img);}log.appendChild(d);log.scrollTop=log.scrollHeight;}
+  function line(who,text,opts){opts=opts||{};var d=document.createElement("div");d.className="jeeves-msg";var b=document.createElement("b");b.textContent=who;d.appendChild(b);if(text){if(opts.pre||/\\n/.test(text)){var pre=document.createElement("pre");pre.className="jeeves-snake";pre.textContent=text;d.appendChild(pre);}else{d.appendChild(document.createTextNode(" "+text));}}if(opts.image){var img=document.createElement("img");img.className="jeeves-egg-img";img.src=opts.image;img.alt=opts.image_alt||"Ask Jeeves";img.loading="lazy";d.appendChild(img);}var links=[].concat(opts.citations||[],opts.places||[],opts.events||[]);if(links.length){var box=document.createElement("div");box.className="jeeves-links";links.forEach(function(c){if(!c)return;var href=c.href||(c.record_id?("/record/"+c.record_id):"");if(!href)return;var a=document.createElement("a");a.className="button ghost";a.href=href;a.textContent=c.title||c.name||c.place||href;box.appendChild(a);});if(box.childNodes.length)d.appendChild(box);}log.appendChild(d);log.scrollTop=log.scrollHeight;}
   fab.addEventListener("click",function(){if(drawer.hidden)open();else shut();});
   close.addEventListener("click",shut);
   ask.addEventListener("submit",function(e){
@@ -1752,7 +1759,7 @@ export function jeevesFabHtml(signed) {
     }
     fetch("/v1/jeeves/chat",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({question:q,previous:prev,last_q:prev,repeat:!!(prev&&normRepeat(prev)===normRepeat(q))})})
       .then(function(r){return r.json();})
-      .then(function(j){function showEgg(egg){var text=(egg.answer!=null&&String(egg.answer)!=="")?egg.answer:(egg.image?"":(j.error||"No answer"));line("Jeeves",text,{image:egg.image||null,image_alt:egg.image_alt||null,pre:egg.id==="konami_snake"||j.easter_egg==="konami_snake"});if(egg.id==="konami_snake"||j.easter_egg==="konami_snake")snake=egg.snake||j.snake||startSnake();}if(j.easter_eggs&&j.easter_eggs.length){j.easter_eggs.slice(0,3).forEach(showEgg);return;}var text=(j.answer!=null&&String(j.answer)!=="")?j.answer:(j.image?"":(j.error||"No answer"));line("Jeeves",text,{image:j.image||null,image_alt:j.image_alt||null,pre:j.easter_egg==="konami_snake"});if(j.easter_egg==="konami_snake")snake=j.snake||startSnake();})
+      .then(function(j){function showEgg(egg){var text=(egg.answer!=null&&String(egg.answer)!=="")?egg.answer:(egg.image?"":(j.error||"No answer"));line("Jeeves",text,{image:egg.image||null,image_alt:egg.image_alt||null,pre:egg.id==="konami_snake"||j.easter_egg==="konami_snake",citations:egg.citations||j.citations,places:egg.places||j.places,events:egg.events||j.events});if(egg.id==="konami_snake"||j.easter_egg==="konami_snake")snake=egg.snake||j.snake||startSnake();}if(j.easter_eggs&&j.easter_eggs.length){j.easter_eggs.slice(0,3).forEach(showEgg);return;}var text=(j.answer!=null&&String(j.answer)!=="")?j.answer:(j.image?"":(j.error||"No answer"));line("Jeeves",text,{image:j.image||null,image_alt:j.image_alt||null,pre:j.easter_egg==="konami_snake",citations:j.citations,places:j.places,events:j.events});if(j.easter_egg==="konami_snake")snake=j.snake||startSnake();})
       .catch(function(){line("Jeeves","Could not reach the assistant.");});
   });
   up.addEventListener("submit",function(e){

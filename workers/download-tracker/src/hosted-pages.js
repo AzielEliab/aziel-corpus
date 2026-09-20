@@ -1,7 +1,7 @@
 import { isOperator } from "./library.js";
 import { shelfScoreState, zsolverFromRow } from "./zsolver.js";
 import { SPECTRALLOCK_OCR_NOTE, spectrallockWorkerLinksHtml } from "./spectrallock.js";
-import { isMachineFileTag, visibleTagEntries } from "./visible-tags.js";
+import { isChromeAuthorByline, isMachineFileTag, visibleTagEntries } from "./visible-tags.js";
 import { publicComponentFlags, isComponentApplicable } from "./review-applicability.js";
 import { applyApplicabilityToReview } from "./review.js";
 import { exploreRowHtml } from "./explore-nav.js";
@@ -28,7 +28,7 @@ export function treeBody(payload) {
   function docs(list) {
     return "<ul>" + (list || []).map((r) => {
       return "<li><a href=\"/record/" + esc(r.record_id) + "\">" + esc(r.title || r.record_id) + "</a>" +
-        (r.author ? " <span class=\"muted\">· " + esc(r.author) + "</span>" : "") + "</li>";
+        (r.author && !isChromeAuthorByline(r.author) ? " <span class=\"muted\">· " + esc(r.author) + "</span>" : "") + "</li>";
     }).join("") + "</ul>";
   }
   function countDocs(node) {
@@ -106,9 +106,11 @@ export function recordBody(payload) {
     ? "<span class=\"q-badge stop\">Quarantine — poison suspect (kept, not deleted)</span>"
     : q === "OPERATOR_FLAG" || q === "FLAGGED"
       ? "<span class=\"q-badge slow\">Operator flag — evidence still filed</span>"
-      : "<span class=\"q-badge go\">Clear</span>";
+      : "";
   const sha = String(row.content_sha256 || "").trim();
-  const shaHtml = sha ? "<p class=\"meta\">SHA-256 " + esc(sha.slice(0,12)) + "… · chain <a href=\"/v1/document-chain?record_id=" + esc(row.record_id) + "\">tip</a> · <a href=\"/receipt/" + esc(row.record_id) + "\">receipt</a></p>" : "<p class=\"meta\"><a href=\"/receipt/" + esc(row.record_id) + "\">receipt</a></p>";
+  const verifyHtml = "<details class=\"verify-panel\" id=\"hashes\"><summary>Hashes</summary>" +
+    (sha ? "<p class=\"meta\">SHA-256 " + esc(sha) + "</p><p class=\"meta\">chain <a href=\"/v1/document-chain?record_id=" + esc(row.record_id) + "\">tip</a></p>" : "") +
+    "<p class=\"meta\"><a href=\"/receipt/" + esc(row.record_id) + "\">receipt</a></p></details>";
   const open = "<p><a class=\"button\" href=\"/file/" + esc(row.record_id) + "\">Download</a> <a class=\"button ghost\" href=\"/download?record=" + esc(row.record_id) + "\">Counted download</a>" + (sha ? " <a class=\"button ghost\" href=\"/download?hash=" + esc(sha) + "\">By hash</a> <a class=\"button ghost\" href=\"/v1/docs/" + esc(sha) + "/download\">API hash</a>" : "") + "</p>";
   const qBanner = (q === "POISON_SUSPECT" || q === "QUARANTINE")
     ? "<div class=\"q-banner\">Quarantine — poison suspect. The file is still downloadable for auditors. It was not deleted.</div>"
@@ -199,7 +201,7 @@ export function recordBody(payload) {
   const zsolverHtml = zState.zsolver_omit
     ? ""
     : zState.zsolver_display != null
-    ? "<div class=\"card zsolver\"><h2>ZionPattern Solver</h2><div class=\"triad zsolver\"><div class=\"metric\">" + esc(zState.zsolver_display) + "</div><div><p>Secondary public score. Separate from the triad. 75 means intentional suppression confidence; lower is more natural. Provisional and assistive. Does not solve cases.</p><p class=\"muted\">" + esc((zsolver && zsolver.disclaimer) || "Provisional and assistive only. Author Aziel Eliab.") + " <a href=\"/how-its-scored\">How it's scored</a>." + (zQueued ? " Live score retry is queued." : "") + "</p></div></div></div>"
+    ? "<div class=\"card zsolver\"><h2>ZionPattern Solver</h2><div class=\"triad zsolver\"><div class=\"metric\">" + esc(zState.zsolver_display) + "</div><div><p>Secondary public score. Separate from the triad. 75 means intentional suppression confidence; lower is more natural. Provisional and assistive. Does not solve cases.</p><p class=\"muted\">" + esc((zsolver && zsolver.disclaimer && !/Author Aziel Eliab/i.test(String(zsolver.disclaimer)) ? zsolver.disclaimer : "Provisional and assistive only.")) + " <a href=\"/how-its-scored\">How it's scored</a>." + (zQueued ? " Live score retry is queued." : "") + "</p></div></div></div>"
     : "<div class=\"card\"><h2>ZionPattern Solver</h2><p class=\"muted\">Secondary score pending backfill or live retry.</p></div>";
   const successionHtml = succChain.length >= 2
     ? "<div class=\"card\"><h2>Succession</h2><p class=\"muted\">Exact-same-subject paper cites. Oldest to newest.</p><h3>Supersedes</h3>" +
@@ -212,22 +214,34 @@ export function recordBody(payload) {
     : "";
   const azielCls = String(row.library || "").toLowerCase() === "aziel" ? " record-aziel" : "";
   const fileLabel = row.filename && !isMachineFileTag(row.filename) ? String(row.filename) : "text record";
-  const heroBits = [row.author].filter((x) => String(x || "").trim());
-  const tagEntries = visibleTagEntries([row.domain, row.subjects, row.keywords]);
-  const tagStrip = tagEntries.length
-    ? "<div class=\"mini-chips record-tags\">" + tagEntries.map((t) => "<span class=\"mini-chip\">" + esc(t.label) + "</span>").join("") + "</div>"
-    : "";
-  return "<section class=\"hero" + azielCls + "\">" + libTag(row.library) + " " + qBadge + "<h1>" + esc(row.title) + "</h1>" + (heroBits.length ? "<p class=\"muted\">" + esc(heroBits.join(" · ")) + "</p>" : "") + tagStrip + "</section>" +
+  const authorName = String(row.author || "").trim();
+  const heroBits = authorName && !isChromeAuthorByline(authorName) ? [authorName] : [];
+  function followGroup(label, items, param) {
+    const entries = visibleTagEntries(items);
+    if (!entries.length) return "";
+    return "<div class=\"follow-group\"><span class=\"facet-label\">" + esc(label) + "</span><div class=\"mini-chips record-tags\">" +
+      entries.map((t) => "<a class=\"mini-chip\" href=\"/?" + param + "=" + encodeURIComponent(t.value) + "\">" + esc(t.label) + "</a>").join("") +
+      "</div></div>";
+  }
+  const follow = [
+    followGroup("Domains", row.domain, "domain"),
+    followGroup("Subjects", row.subjects, "subject"),
+    followGroup("Keywords", row.keywords, "keyword"),
+    followGroup("Micro domains", row.micro || row.micro_domain || row.micro_domains || row.micros, "q"),
+  ].filter(Boolean).join("");
+  const followFooter = follow ? "<footer class=\"follow-footer\"><h2>Follow</h2>" + follow + "</footer>" : "";
+  return "<section class=\"hero" + azielCls + "\">" + libTag(row.library) + " " + qBadge + "<h1>" + esc(row.title) + "</h1>" + (heroBits.length ? "<p class=\"muted\">" + esc(heroBits.join(" · ")) + "</p>" : "") + "</section>" +
     qBanner + triadHtml + zsolverHtml + successionHtml +
     "<div class=\"card\"><h2>Status lights</h2><p class=\"muted\">Green means go. Yellow means read again. Red means stop and check. Easy enough for a 6th grader; kept for government use.</p>" + lightsHtml + "</div>" +
-    "<div class=\"card\"><p class=\"meta\">" + esc(fileLabel) + (row.created_utc ? " · " + esc(String(row.created_utc).replace("T", " ").slice(0, 16)) : "") + "</p>" + shaHtml + open +
+    "<div class=\"card\"><p class=\"meta\">" + esc(fileLabel) + (row.created_utc ? " · " + esc(String(row.created_utc).replace("T", " ").slice(0, 16)) : "") + "</p>" + verifyHtml + open +
     "<p class=\"muted\">Machine surfaces: <a href=\"/record/" + esc(row.record_id) + "/llms.txt\">llms.txt</a> · <a href=\"/record/" + esc(row.record_id) + "/cite.json\">cite.json</a> · <a href=\"/record/" + esc(row.record_id) + "/metadata.json\">metadata.json</a> · <a href=\"/help.txt\">help</a></p>" +
     (spreHtml || clceHtml || plrHtml ? "<h3>" + esc(applicableNames) + "</h3>" + spreHtml + clceHtml + plrHtml : "") +
     "<h3>Snippet</h3><p>" + esc(String(row.body || row.snippet || "").slice(0, 2000)) + "</p>" +
     "<h3>Derived artifacts</h3>" + der +
     "<h3>Temporal-geospatial events</h3>" + ev + tipHtml + "</div>" +
     bayesHtml + possHtml +
-    "<div class=\"card\"><h3>Peer-to-peer review</h3><p class=\"muted\">Notes append to the hash-chain. Peers endorse or challenge; nobody rewrites the past.</p>" + peerRows + peerForm + "</div>";
+    "<div class=\"card\"><h3>Peer-to-peer review</h3><p class=\"muted\">Notes append to the hash-chain. Peers endorse or challenge; nobody rewrites the past.</p>" + peerRows + peerForm + "</div>" +
+    followFooter;
 }
 
 export const SPECTRAL_LENSES = [
@@ -270,7 +284,7 @@ export function ocrFormHtml(payload) {
     const miss = result.missing || result.message ? "<p class=\"muted\">" + esc(result.missing || result.message) + "</p>" : "";
     const lenses = (result.lenses || []).length ? "<p class=\"muted\">Lenses: " + esc((result.lenses || []).join(", ")) + "</p>" : "";
     const receipt = result.receipt_url ? "<p class=\"muted\">Lattice receipt: <a href=\"" + esc(result.receipt_url) + "\">" + esc(result.run_id || "receipt") + "</a></p>" : "";
-    resultHtml = "<div id=\"ocrResult\"><h3>Extracted text</h3>" + rec + receipt + lenses + miss + "<pre class=\"verify\">" + esc(text || "(no text)") + "</pre><p class=\"muted\">Advisory spectral assist only. Not forensic. Not scribal truth. Author Aziel Eliab.</p></div>";
+    resultHtml = "<div id=\"ocrResult\"><h3>Extracted text</h3>" + rec + receipt + lenses + miss + "<pre class=\"verify\">" + esc(text || "(no text)") + "</pre><p class=\"muted\">Advisory spectral assist only. Not forensic. Not scribal truth.</p></div>";
   }
   return err +
     "<form id=\"ocrForm\" class=\"ocr-form media-form\" method=\"post\" action=\"/ocr\" enctype=\"multipart/form-data\" data-signed=\"" + (signed ? "1" : "0") + "\">" +
@@ -362,7 +376,7 @@ export function transcribeCard(payload) {
 
 export function ocrUploadCard(payload) {
   return "<div class=\"card\" id=\"ocr\"><h3>Hosted image / PDF OCR</h3>"
-    + "<p class=\"muted\">Images use Workers AI when bound. PDFs try an uncompressed text scan; if empty, snap a page photo instead of installing pdftoppm. Optional SpectralLock lenses mix into one pre-OCR overlay. " + SPECTRALLOCK_OCR_NOTE + " Every OCR run writes a lattice receipt. Author Aziel Eliab.</p>"
+    + "<p class=\"muted\">Images use Workers AI when bound. PDFs try an uncompressed text scan; if empty, snap a page photo instead of installing pdftoppm. Optional SpectralLock lenses mix into one pre-OCR overlay. " + SPECTRALLOCK_OCR_NOTE + " Every OCR run writes a lattice receipt.</p>"
     + ocrFormHtml(payload)
     + "</div>";
 }
@@ -376,7 +390,7 @@ export function blockedAvBody(payload) {
 }
 
 export function ocrPageBody(payload) {
-  return "<section class=\"hero\"><h1>OCR and transcription</h1><p class=\"muted\">Same hosted processors as <a href=\"/forensics\">Forensics</a>. Optional SpectralLock lenses mix into one pre-OCR overlay. " + SPECTRALLOCK_OCR_NOTE + " Every run writes a hash-chained lattice receipt. Author Aziel Eliab.</p></section>"
+  return "<section class=\"hero\"><h1>OCR and transcription</h1><p class=\"muted\">Same hosted processors as <a href=\"/forensics\">Forensics</a>. Optional SpectralLock lenses mix into one pre-OCR overlay. " + SPECTRALLOCK_OCR_NOTE + " Every run writes a hash-chained lattice receipt.</p></section>"
     + ocrUploadCard(payload) + transcribeCard(payload)
     + "<div class=\"card\"><h3>In-page OCR fallback</h3><p class=\"muted\">Runs Tesseract.js from a CDN in this browser so a phone camera photo can still be read when Workers AI is not ready. Checked SpectralLock lenses enhance the raster first. " + SPECTRALLOCK_OCR_NOTE + " Nothing is installed on your device. Browser-only fallback does not write the lattice; use Extract text above for a receipt.</p>"
     + "<label class=\"filepick\">Photo<input id=\"ocrFile\" type=\"file\" accept=\"image/*\" capture=\"environment\"></label>"
@@ -439,7 +453,7 @@ export function intelligenceBody(payload) {
   const recovery = operator
     ? "<div class=\"card\"><h3>OCR verification + recovery</h3><div class=\"grid\"><div><b>End-to-end OCR</b><div class=\"" + (verified ? "ok" : "bad") + "\">" + (verified ? "VERIFIED" : "NOT YET VERIFIED") + "</div><p class=\"muted\">Last test: " + esc((lastTest && lastTest.created_utc) || "never") + (lastTest && lastTest.missing ? " · " + esc(lastTest.missing) : "") + "</p></div><div><b>Image records</b><div class=\"metric\">" + Number(pending || 0).toLocaleString() + "</div><p class=\"muted\">Preserved originals that can be re-read by hosted OCR.</p></div></div><div class=\"map-tools\"><form method=\"post\" action=\"/ocr-selftest\"><button>Run OCR self-test</button></form><form method=\"post\" action=\"/ocr-reprocess\"><button>Reprocess pending scans</button></form></div><p class=\"muted\">Self-test succeeds only if hosted OCR reads AZIEL and OCR from the fixture. Processors stay on this Worker — there is no Tesseract/Poppler/Whisper download.</p></div>"
     : "";
-  return "<section class=\"hero\"><h1>Forensics</h1><p class=\"muted\">Hosted OCR, SpectralLock lenses, Whisper transcription, and verified .azm/.azk packages. " + SPECTRALLOCK_OCR_NOTE + " Author Aziel Eliab.</p>" + exploreRowHtml("/forensics") + "</section><div class=\"card\"><h2>Aziel Forensics Runtime</h2><p>Packages are <b>.azm</b> models and <b>.azk</b> knowledge kits. Manifests and payloads are hashed. All processors below run hosted — this page never asks you to install Tesseract, Poppler, or Whisper on your computer.</p>" + pkgForm + "</div><div class=\"card\"><h3>Hosted processors</h3><div class=\"grid\"><div class=\"card\"><b>Image OCR</b><div class=\"" + ocrCls + "\">" + ocrTxt + "</div><p class=\"muted\">" + (aiReady ? "Workers AI vision model extracts visible text." : "Workers AI is not bound or the vision model failed. Use the in-page Tesseract.js fallback.") + "</p></div><div class=\"card\"><b>Scanned PDF</b><div class=\"ok\">HOSTED (text-stream scan)</div><p class=\"muted\">Uncompressed PDF strings are read here. If a scan has no text layer, photograph a page for image OCR. pdftoppm is not offered as a download.</p></div><div class=\"card\"><b>Audio / video transcription</b><div class=\"" + whisperCls + "\">" + whisperTxt + "</div><p class=\"muted\">" + (aiReady ? "Workers AI Whisper transcribes audio. Video has no FFmpeg demux — extract an audio track if the container fails." : "Workers AI is not bound. There is no installer button.") + "</p></div></div></div>"
+  return "<section class=\"hero\"><h1>Forensics</h1><p class=\"muted\">Hosted OCR, SpectralLock lenses, Whisper transcription, and verified .azm/.azk packages. " + SPECTRALLOCK_OCR_NOTE + "</p>" + exploreRowHtml("/forensics") + "</section><div class=\"card\"><h2>Aziel Forensics Runtime</h2><p>Packages are <b>.azm</b> models and <b>.azk</b> knowledge kits. Manifests and payloads are hashed. All processors below run hosted — this page never asks you to install Tesseract, Poppler, or Whisper on your computer.</p>" + pkgForm + "</div><div class=\"card\"><h3>Hosted processors</h3><div class=\"grid\"><div class=\"card\"><b>Image OCR</b><div class=\"" + ocrCls + "\">" + ocrTxt + "</div><p class=\"muted\">" + (aiReady ? "Workers AI vision model extracts visible text." : "Workers AI is not bound or the vision model failed. Use the in-page Tesseract.js fallback.") + "</p></div><div class=\"card\"><b>Scanned PDF</b><div class=\"ok\">HOSTED (text-stream scan)</div><p class=\"muted\">Uncompressed PDF strings are read here. If a scan has no text layer, photograph a page for image OCR. pdftoppm is not offered as a download.</p></div><div class=\"card\"><b>Audio / video transcription</b><div class=\"" + whisperCls + "\">" + whisperTxt + "</div><p class=\"muted\">" + (aiReady ? "Workers AI Whisper transcribes audio. Video has no FFmpeg demux — extract an audio track if the container fails." : "Workers AI is not bound. There is no installer button.") + "</p></div></div></div>"
     + ocrUploadCard({ signed, operator, error })
     + transcribeCard({ signed, operator, aiReady })
     + "<div class=\"card\"><h3>In-page OCR fallback</h3><p class=\"muted\">Runs Tesseract.js from a CDN in this browser so a phone camera photo can still be read when Workers AI is not ready. Checked SpectralLock lenses on the form above enhance the raster first. " + SPECTRALLOCK_OCR_NOTE + " Nothing is installed on your device. Browser-only fallback does not write the lattice; use Extract text above for a receipt.</p><label class=\"filepick\">Photo<input id=\"ocrFile\" type=\"file\" accept=\"image/*\" capture=\"environment\"></label><p><img id=\"ocrPreview\" alt=\"Spectral overlay preview\" hidden width=\"640\" height=\"400\" style=\"max-width:100%;height:auto;border-radius:10px;border:1px solid var(--line)\"></p><pre id=\"ocrOut\" class=\"verify muted\">Choose a photo to read here.</pre></div>"
