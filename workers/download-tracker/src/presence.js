@@ -500,9 +500,9 @@ export function mergeLiveNodes(doc, local) {
 
 export function presenceNote() {
   return (
-    "Operator lock 2026-09-21: Live Nodes includes current human page viewers on azielcorpuslibrary.net "
-    + "plus mesh presence (human_mesh_users) via GET /v1/mesh SSoT. Prefer runtime /v1/mesh once it "
-    + "aggregates page viewers — do not add library viewers on top. Bots do not count. Uses stay on Nodes. "
+    "Operator lock 2026-09-21: Live Nodes is human mesh users plus concurrent human page viewers on "
+    + "godlock.uk, azieleliab.com, and azielcorpuslibrary.net (not hedidntjump.com) via GET /v1/mesh live_nodes. "
+    + "Do not paint a library-only viewer count in place of that fleet number. Bots do not count. Uses stay on Nodes. "
     + "NO-LIE: zero is honest. Author Aziel Eliab only."
   );
 }

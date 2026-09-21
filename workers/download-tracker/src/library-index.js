@@ -28,7 +28,7 @@ export const SOFTWARE_CATALOG_CACHE_URL = "https://azielcorpuslibrary.net/__cach
 export const RUNTIME_SOFTWARE_CACHE_URL = "https://azielcorpuslibrary.net/__cache/runtime-v1-software-v1";
 export const AUTHOR = "Aziel Eliab";
 export const INDEX_CACHE_URL = "https://azielcorpuslibrary.net/__cache/library-index-v1";
-export const HTML_CACHE_PREFIX = "https://azielcorpuslibrary.net/__cache/html-home-v6";
+export const HTML_CACHE_PREFIX = "https://azielcorpuslibrary.net/__cache/html-home-v8";
 
 const PROJECT = "aziel-corpus";
 

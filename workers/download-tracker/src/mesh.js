@@ -263,7 +263,7 @@ export const NODES_PLANE = "human-mesh-users-uses";
 export const RUNTIME_LIVE_NODES_PLANE = "human-mesh-users";
 export const RUNTIME_SITE_LIVE_PLANE = "human-mesh-users-site-viewers";
 export const LIVE_NODES_NOTE =
-  "Public Live Nodes (live_nodes / rollup.mesh) count current human presence: human mesh users (join/heartbeat/presence with human bearers) plus concurrent human page viewers on azielcorpuslibrary.net (operator lock 2026-09-21). Isolated humans stay on isolated_nodes. Not Softwares catalog length. Not downloaded Softwares instances. Not software_nodes. Not the cited human uses signal (USES stays on Nodes). Uses are interaction counters, not unique people. Prefer runtime GET /v1/mesh once it aggregates page viewers — do not double-count library viewers on top of that SSoT. Bots, prefetch, and machine routes do not inflate Live Nodes. Incomplete or unbound telemetry is reported honestly (0 + complete=false). Live Nodes does not invent users. Zero is honest when no humans are present.";
+  "Public Live Nodes (live_nodes / rollup.mesh) count current human presence: human mesh users (join/heartbeat/presence with human bearers) plus concurrent human page viewers on godlock.uk, azieleliab.com, and azielcorpuslibrary.net (operator lock 2026-09-21). hedidntjump.com is excluded. Isolated humans stay on isolated_nodes. Not Softwares catalog length. Not downloaded Softwares instances. Not software_nodes. Not the cited human uses signal (USES stays on Nodes). Uses are interaction counters, not unique people. The public count is runtime GET /v1/mesh live_nodes when that envelope includes site viewers — do not replace it with a library-only viewer count. Bots, prefetch, and machine routes do not inflate Live Nodes. Incomplete or unbound telemetry is reported honestly (0 + complete=false). Live Nodes does not invent users. Zero is honest when no humans are present.";
 export const NODES_NOTE =
   "Public Nodes (nodes_count / rollup.nodes) count human mesh users plus the cited human uses signal (USES / human_uses). Uses are interaction counters, not unique people. Incomplete or unbound telemetry is reported honestly (0 + complete=false). Nodes does not invent users. Zero is honest.";
 export const SOFTWARE_NODES_NOTE =
@@ -1064,35 +1064,63 @@ export function nodesCount(doc) {
 }
 
 /**
- * Live Nodes = mesh presence + page viewers.
- * Prefer runtime live_nodes when that envelope already includes site/page viewers.
- * Else human_mesh_users + local viewers. Post-break: numeric live_nodes when nodes is a scalar.
+ * Fleet site-viewer envelope: runtime live_nodes already includes godlock + ae + corpus.
+ * A library-presence recount is not that envelope.
+ */
+export function meshIncludesSiteViewers(doc) {
+  if (!doc || typeof doc !== "object") return false;
+  const comp = doc.live_nodes_components && typeof doc.live_nodes_components === "object"
+    ? doc.live_nodes_components
+    : null;
+  const flagged = doc.includes_site_viewers === true
+    || doc.includes_page_viewers === true
+    || doc.live_nodes_includes_viewers === true
+    || scalarCount(doc.site_live_viewers) != null
+    || !!(comp && scalarCount(comp.site_live_viewers) != null);
+  if (flagged) return true;
+  if (doc.page_viewers_source === "library-presence") return false;
+  if (comp && comp.page_viewers_source === "library-presence") return false;
+  return /site-viewer|page-viewer|website-viewer|site-live/.test(String(doc.live_nodes_plane || ""));
+}
+
+/**
+ * Public Live Nodes chrome. Paints runtime live_nodes only when site viewers are included.
+ * Never software_nodes. Never rollup.live (Softwares on a pass-through mesh).
+ * human_mesh_users is the presence count when that fleet envelope is absent.
+ */
+export function publicLiveNodes(doc) {
+  if (!doc || typeof doc !== "object") return 0;
+  if (softwareCoupledLiveNodes(doc)) return 0;
+  const live = scalarCount(doc.live_nodes);
+  const software = scalarCount(doc.software_nodes);
+  const users = scalarCount(doc.human_mesh_users);
+  const softwareLive = software != null && live != null && live === software && software > 0;
+  if (meshIncludesSiteViewers(doc) && live != null && !softwareLive) return live;
+  if (users != null) return users;
+  return 0;
+}
+
+/** Same pair the homepage statbar paints. local is ignored — not a fleet count. */
+export function chromeDualCounts(doc, local) {
+  void local;
+  if (!doc || typeof doc !== "object") return { nodes: 0, live: 0 };
+  return { nodes: nodesCount(doc), live: publicLiveNodes(doc) };
+}
+
+/**
+ * Live Nodes for the homepage SSR pair.
+ * Fleet live_nodes when the mesh doc includes site viewers.
+ * Never a local-only viewer count.
  */
 export function livePresenceCount(doc, local) {
-  const localViewers = local && typeof local === "object"
-    ? (scalarCount(local.page_viewers) ?? scalarCount(local.count) ?? 0)
-    : 0;
-  if (!doc || typeof doc !== "object") return localViewers;
-  if (softwareCoupledLiveNodes(doc)) return 0;
-  if (runtimeAggregatesPageViewers(doc)) {
-    const live = scalarCount(doc.live_nodes);
-    if (live != null) return live;
-  }
-  const users = scalarCount(doc.human_mesh_users);
-  if (users != null) return users + localViewers;
-  if (scalarCount(doc.nodes) != null) {
-    const live = scalarCount(doc.live_nodes);
-    if (live != null) return live + localViewers;
-  }
-  return localViewers;
+  void local;
+  return publicLiveNodes(doc);
 }
 
 /** Compact Nodes#/LiveNodes# pair. Softwares never enter either side. */
 export function dualNodesCounts(doc, local) {
-  return {
-    nodes: nodesCount(doc),
-    liveNodes: livePresenceCount(doc, local),
-  };
+  const pair = chromeDualCounts(doc, local);
+  return { nodes: pair.nodes, liveNodes: pair.live };
 }
 
 export function dualNodesLabel(doc) {
@@ -1100,7 +1128,7 @@ export function dualNodesLabel(doc) {
   return pair.nodes + "/" + pair.liveNodes;
 }
 
-/** Short-timeout mesh peek for homepage SSR. Client clock still refreshes. */
+/** Short-timeout mesh peek for homepage SSR. Fleet live_nodes only — does not read library viewers. Client clock still refreshes. */
 export async function peekMeshDualCounts(env, { timeoutMs = 400 } = {}) {
   const empty = { nodes: 0, liveNodes: 0 };
   const work = (async () => {
@@ -1117,13 +1145,7 @@ export async function peekMeshDualCounts(env, { timeoutMs = 400 } = {}) {
       return empty;
     }
     if (!doc || typeof doc !== "object") return empty;
-    let local = { page_viewers: 0, count: 0 };
-    try {
-      local = await readPageViewers(env);
-    } catch {
-      local = { page_viewers: 0, count: 0 };
-    }
-    return dualNodesCounts(doc, local);
+    return dualNodesCounts(doc);
   })();
   const ms = Number(timeoutMs);
   if (!Number.isFinite(ms) || ms <= 0) {
@@ -1468,16 +1490,12 @@ export async function proxyMeshRequest(request, destPathAndQuery, env) {
     return respondMeshEnvelope(request, meshDisableRefuseDoc({ source: LIBRARY_SOURCE }));
   }
 
-  const local = statusRead && (method === "GET" || method === "HEAD")
-    ? await localPresenceExtra(env)
-    : null;
-
   let res;
   try {
     res = await fetchRuntimeMesh(outbound, destPathAndQuery, env, bodyText);
   } catch {
     if (statusRead && (method === "GET" || method === "HEAD")) {
-      return respondMaybeHead(request, meshJson(meshOnDoc({ source: LIBRARY_SOURCE, page_viewers: local })));
+      return respondMaybeHead(request, meshJson(meshOnDoc({ source: LIBRARY_SOURCE })));
     }
     return respondMeshEnvelope(request, synthesizeMeshRefuse(method, destPath, payload, { source: LIBRARY_SOURCE }));
   }
@@ -1490,6 +1508,11 @@ export async function proxyMeshRequest(request, destPathAndQuery, env) {
       doc = null;
     }
   }
+
+  const fleet = !!(doc && meshIncludesSiteViewers(doc));
+  const local = statusRead && (method === "GET" || method === "HEAD") && !fleet
+    ? await localPresenceExtra(env)
+    : null;
 
   if (looksLikeMeshCode(doc)) {
     const source = originSource(env);
@@ -1593,6 +1616,15 @@ export function statbarClockScript() {
     if(typeof v==="string"&&v.trim()!==""){var n=Number(v);return isFinite(n)?n:null;}
     return null;
   }
+  function includesSite(j){
+    if(!j||typeof j!=="object")return false;
+    var comp=j.live_nodes_components&&typeof j.live_nodes_components==="object"?j.live_nodes_components:null;
+    var flagged=j.includes_site_viewers===true||j.includes_page_viewers===true||j.live_nodes_includes_viewers===true||(j.site_live_viewers!=null&&isFinite(Number(j.site_live_viewers)))||(comp&&comp.site_live_viewers!=null&&isFinite(Number(comp.site_live_viewers)));
+    if(flagged)return true;
+    if(j.page_viewers_source==="library-presence")return false;
+    if(comp&&comp.page_viewers_source==="library-presence")return false;
+    return /site-viewer|page-viewer|website-viewer|site-live/.test(String(j.live_nodes_plane||""));
+  }
   function dual(j){
     if(!j||typeof j!=="object")return {nodes:0,live:0};
     var nodesPref=scalar(j.nodes);
@@ -1600,10 +1632,6 @@ export function statbarClockScript() {
     var uses=scalar(j.human_uses);
     var live=scalar(j.live_nodes);
     var software=scalar(j.software_nodes);
-    var viewers=scalar(j.page_viewers);
-    if(viewers==null)viewers=scalar(j.human_page_viewers);
-    if(viewers==null)viewers=scalar(j.site_live_viewers);
-    var includes=j.includes_site_viewers===true||j.includes_page_viewers===true||(j.site_live_viewers!=null&&isFinite(Number(j.site_live_viewers)))||/site-viewer|page-viewer|website-viewer/.test(String(j.live_nodes_plane||""));
     var nodes;
     if(nodesPref!=null){
       if(software!=null&&nodesPref===software&&software>0&&users==null&&uses==null)nodes=0;
@@ -1611,10 +1639,10 @@ export function statbarClockScript() {
     }else{
       nodes=(users||0)+(uses||0);
     }
+    var softwareLive=software!=null&&live!=null&&live===software&&software>0;
     var presence;
-    if(includes&&live!=null)presence=live;
-    else if(users!=null)presence=users+(viewers||0);
-    else if(nodesPref!=null&&live!=null)presence=live;
+    if(includesSite(j)&&live!=null&&!softwareLive)presence=live;
+    else if(users!=null)presence=users;
     else presence=0;
     return {nodes:nodes,live:presence};
   }
@@ -1633,22 +1661,25 @@ export function statbarClockScript() {
     if(document.visibilityState&&document.visibilityState==="hidden")return;
     fetch("/v1/presence",{method:"POST",credentials:"same-origin",headers:{"Accept":"application/json","Content-Type":"application/json"},body:"{}",keepalive:true}).catch(function(){});
   }
+  function paintMesh(){
+    return meshDoc().then(function(mesh){
+      var d=dual(mesh);
+      set("nodes",d.nodes);
+      set("livenodes",d.live);
+    });
+  }
   function run(){
     if(!document.getElementById("views")&&!document.getElementById("nodes"))return;
     beat();
-    var stats=fetch("/v1/stats",{headers:{"Accept":"application/json","User-Agent":"Mozilla/5.0"}}).then(function(r){return r.json();});
-    Promise.all([stats,meshDoc()]).then(function(pair){
-      var s=pair[0]||{};
+    paintMesh().catch(function(){setTimeout(function(){paintMesh().catch(function(){});},1200);});
+    fetch("/v1/stats",{headers:{"Accept":"application/json","User-Agent":"Mozilla/5.0"}}).then(function(r){return r.json();}).then(function(s){
+      if(!s)return;
       if(s.views!=null)set("views",s.views);
       if(s.downloads!=null||s.total!=null)set("downloads",s.downloads!=null?s.downloads:s.total);
-      var d=dual(pair[1]);
-      set("nodes",d.nodes);
-      set("livenodes",d.live);
     }).catch(function(){});
   }
   document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible")run();});
-  if("requestIdleCallback" in window)requestIdleCallback(run,{timeout:2500});
-  else setTimeout(run,1);
+  run();
   setInterval(function(){if(!document.visibilityState||document.visibilityState==="visible")run();},60000);
 })();
 </script>`;
