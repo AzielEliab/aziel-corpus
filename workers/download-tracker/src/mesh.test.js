@@ -51,6 +51,11 @@ import {
   judgeUpdateProof,
   liveNodesCount,
   liveNodesLabel,
+  LIVE_NODES_NOTE,
+  LIVE_NODES_PLANE,
+  SOFTWARE_NODES_NOTE,
+  softwareCoupledLiveNodes,
+  workerHasHumanLiveNodes,
   liveSyncBodiesAllowed,
   mayEmitLast,
   mayUnsendUnverifiedBody,
@@ -457,6 +462,117 @@ test("mesh default ON; identity Aziel Eliab only", () => {
   assert.equal(liveNodesCount(on), 0);
   assert.equal(liveNodesLabel(on), "Live Nodes · 0");
   assert.doesNotMatch(liveNodesLabel(on), /off/i);
+  assert.equal(on.live_nodes_plane, LIVE_NODES_PLANE);
+  assert.equal(on.human_mesh_users, 0);
+  assert.equal(on.human_uses, 0);
+  assert.equal(on.human_uses_complete, false);
+  assert.equal(on.human_uses_kv, false);
+  assert.equal(on.human_uses_source, "unbound");
+  assert.equal(on.software_nodes, 0);
+  assert.match(on.live_nodes_note, /human mesh users/i);
+  assert.match(on.software_nodes_note, /never feed public Live Nodes/);
+  assert.match(MESH_NOTE, /not Softwares/);
+});
+
+test("Live Nodes never equals Softwares roster; prefers Worker human plane", () => {
+  assert.equal(LIVE_NODES_PLANE, "human-mesh-users-uses");
+  assert.match(LIVE_NODES_NOTE, /human mesh users/i);
+  assert.match(LIVE_NODES_NOTE, /Not software_nodes/);
+  assert.match(SOFTWARE_NODES_NOTE, /never feed public Live Nodes/);
+
+  const stale = {
+    live_nodes: 41,
+    software_nodes: 41,
+    rollup: { live: 41, mesh: 41, software: { live: 41, locked: 0, isolated: 0 } },
+    nodes: Array.from({ length: 41 }, (_, i) => ({ node_id: "p" + i + "-worker" })),
+    live_nodes_note: "Public Live Nodes count mesh size",
+  };
+  assert.equal(softwareCoupledLiveNodes(stale), true);
+  assert.equal(workerHasHumanLiveNodes(stale), false);
+  assert.equal(liveNodesCount(stale), 0);
+  assert.equal(liveNodesCount({ nodes: stale.nodes, rollup: stale.rollup }), 0);
+
+  const decoratedStale = decorateMeshDoc(stale);
+  assert.equal(decoratedStale.live_nodes, 0);
+  assert.equal(decoratedStale.software_nodes, 41);
+  assert.equal(decoratedStale.rollup.mesh, 0);
+  assert.equal(decoratedStale.live_nodes_plane, LIVE_NODES_PLANE);
+  assert.match(decoratedStale.live_nodes_note, /human mesh users/i);
+  assert.doesNotMatch(decoratedStale.live_nodes_note, /mesh size/);
+  assert.equal(liveNodesLabel(decoratedStale), "Live Nodes · 0");
+
+  const worker = {
+    live_nodes_plane: LIVE_NODES_PLANE,
+    live_nodes: 5,
+    human_mesh_users: 3,
+    human_uses: 2,
+    human_uses_complete: true,
+    software_nodes: 41,
+    live_nodes_note: LIVE_NODES_NOTE,
+    rollup: { live: 41, mesh: 5, software: { live: 41, locked: 0, isolated: 0 } },
+  };
+  assert.equal(workerHasHumanLiveNodes(worker), true);
+  assert.equal(softwareCoupledLiveNodes(worker), false);
+  assert.equal(liveNodesCount(worker), 5);
+  const decorated = decorateMeshDoc(worker);
+  assert.equal(decorated.live_nodes, 5);
+  assert.equal(decorated.human_mesh_users, 3);
+  assert.equal(decorated.human_uses, 2);
+  assert.equal(decorated.software_nodes, 41);
+  assert.equal(decorated.rollup.mesh, 5);
+  assert.notEqual(decorated.live_nodes, decorated.software_nodes);
+  assert.equal(liveNodesLabel(decorated), "Live Nodes · 5");
+
+  assert.equal(liveNodesCount({ human_mesh_users: 1, human_uses: 4 }), 5);
+  assert.equal(liveNodesCount({ live_nodes: 9, nodes: [{ id: "x" }] }), 9);
+});
+
+test("LIVE Worker d7b63ac1: live_nodes = 0 humans + uses; software_nodes 41 separate", () => {
+  const live = {
+    ok: true,
+    enabled: true,
+    live_nodes_plane: LIVE_NODES_PLANE,
+    live_nodes: 27147,
+    human_mesh_users: 0,
+    human_uses: 27147,
+    human_uses_complete: true,
+    human_uses_kv: true,
+    human_uses_source: "uses.total",
+    software_nodes: 41,
+    software_live_nodes: 41,
+    rollup: {
+      live: 41,
+      mesh: 27147,
+      software: { live: 41, locked: 0, isolated: 0 },
+      human: { live: 0, locked: 0, isolated: 0 },
+    },
+    live_nodes_note: LIVE_NODES_NOTE,
+    live_nodes_components: {
+      human_mesh_users: 0,
+      human_uses: 27147,
+      software_nodes_excluded: true,
+      instance_nodes_excluded: true,
+      invent_users: false,
+    },
+  };
+  assert.equal(live.live_nodes, live.human_mesh_users + live.human_uses);
+  assert.notEqual(live.live_nodes, live.software_nodes);
+  assert.equal(workerHasHumanLiveNodes(live), true);
+  assert.equal(softwareCoupledLiveNodes(live), false);
+  assert.equal(liveNodesCount(live), 27147);
+  const decorated = decorateMeshDoc(live);
+  assert.equal(decorated.live_nodes, 27147);
+  assert.equal(decorated.human_mesh_users, 0);
+  assert.equal(decorated.human_uses, 27147);
+  assert.equal(decorated.human_uses_kv, true);
+  assert.equal(decorated.human_uses_source, "uses.total");
+  assert.equal(decorated.software_nodes, 41);
+  assert.equal(decorated.rollup.mesh, 27147);
+  assert.equal(decorated.rollup.live, 41);
+  assert.notEqual(decorated.live_nodes, decorated.software_nodes);
+  assert.equal(liveNodesLabel(decorated), "Live Nodes · 27147");
+  assert.match(meshStatusHtml(decorated), /Live Nodes · 27147/);
+  assert.match(meshStatusHtml(decorated), /human mesh users/);
 });
 
 test("QNS-CD-1.0 cross-map is on Live Nodes payloads; not a Softwares-tab product", () => {
@@ -581,7 +697,11 @@ test("GET /v1/mesh proxies a runtime-enabled mesh and rewrites mesh_default", as
           enabled: true,
           mesh: "on",
           mesh_default: "off",
+          live_nodes_plane: "human-mesh-users-uses",
           live_nodes: 2,
+          human_mesh_users: 2,
+          human_uses: 0,
+          software_nodes: 41,
           nodes: [{ id: "n1" }, { id: "n2" }],
           qnm_s: false,
         }), { status: 200, headers: { "Content-Type": "application/json" } });
@@ -593,6 +713,10 @@ test("GET /v1/mesh proxies a runtime-enabled mesh and rewrites mesh_default", as
   const body = await res.json();
   assert.equal(body.enabled, true);
   assert.equal(body.live_nodes, 2);
+  assert.equal(body.human_mesh_users, 2);
+  assert.equal(body.software_nodes, 41);
+  assert.notEqual(body.live_nodes, body.software_nodes);
+  assert.equal(body.live_nodes_plane, LIVE_NODES_PLANE);
   assert.equal(body.nodes.length, 2);
   assert.equal(body.mesh_default, "on");
   assert.equal(body.author, "Aziel Eliab");
@@ -601,6 +725,31 @@ test("GET /v1/mesh proxies a runtime-enabled mesh and rewrites mesh_default", as
   assert.equal(body.qns_cd_spec, "QNS-CD-1.0");
   assert.equal(body.qns_cd.qnsd, "local");
   assert.equal(body.qnm_s, false);
+});
+
+test("GET /v1/mesh does not display stale software_nodes as Live Nodes", async () => {
+  const env = {
+    AZIEL_RUNTIME: {
+      fetch: async () => new Response(JSON.stringify({
+        ok: true,
+        enabled: true,
+        live_nodes: 41,
+        software_nodes: 41,
+        rollup: { live: 41, mesh: 41, software: { live: 41, locked: 0, isolated: 0 } },
+        nodes: [{ node_id: "godlock-worker" }],
+        live_nodes_note: "Public Live Nodes count mesh size",
+      }), { status: 200, headers: { "Content-Type": "application/json" } }),
+    },
+  };
+  const res = await handleMeshApi(req("/v1/mesh"), new URL(HOST + "/v1/mesh"), env);
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.live_nodes, 0);
+  assert.equal(body.software_nodes, 41);
+  assert.equal(body.rollup.mesh, 0);
+  assert.equal(body.live_nodes_plane, LIVE_NODES_PLANE);
+  assert.match(body.live_nodes_note, /human mesh users/i);
+  assert.doesNotMatch(body.live_nodes_note, /mesh size/);
 });
 
 test("GET /v1/mesh/nodes and /runtime/v1/mesh stay ON when origin 404s", async () => {
@@ -962,12 +1111,17 @@ test("human chrome shows Live Nodes · N without mesh-off copy", () => {
   const pill = meshStatusHtml(meshOnDoc());
   assert.match(pill, /Live Nodes · 0/);
   assert.match(pill, /href="\/v1\/mesh\/status"/);
-  assert.match(pill, /title="Live Nodes · suite mesh status"/);
+  assert.match(pill, /human mesh users/);
+  assert.doesNotMatch(pill, /title="Live Nodes · suite mesh status"/);
   assert.doesNotMatch(pill, /CROSS-NETWORK-SURVIVAL/);
   assert.doesNotMatch(pill, /NO-LIE-NO-REWRITE/);
   assert.match(meshStatusHtml(decorateMeshDoc({ enabled: true, live_nodes: 4 })), /Live Nodes · 4/);
   assert.match(meshRefreshScript(), /fetch\("\/v1\/mesh\/status"/);
   assert.match(meshRefreshScript(), /requestIdleCallback/);
+  assert.match(meshRefreshScript(), /human-mesh-users-uses/);
+  assert.match(meshRefreshScript(), /human_mesh_users/);
+  assert.doesNotMatch(meshRefreshScript(), /nodes&&d.nodes.length/);
+  assert.doesNotMatch(meshRefreshScript(), /rollup&&src.rollup.live/);
   assert.doesNotMatch(meshRefreshScript(), /Live Nodes · off/);
   const meta = headMeta({ title: "aziel-runtime", path: "/runtime", kind: "runtime" });
   assert.match(meta, /href="\/v1\/mesh"/);

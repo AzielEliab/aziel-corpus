@@ -194,7 +194,7 @@ const PRODUCT_LINES = [
   ["Aziel Digital Library (aziel-corpus)", HOST + "/", GITHUB_REPO],
   ["Software hub", HOST + "/software", HOST + "/software"],
   ["Aziel Runtime " + RUNTIME_VERSION, HOST + "/runtime", CATALOG + "/"],
-  ["Suite mesh / Live Nodes (read-only QNM ON)", HOST + "/v1/mesh", HOST + "/runtime/v1/mesh"],
+  ["Suite mesh / Live Nodes (human mesh users + uses; not Softwares)", HOST + "/v1/mesh", HOST + "/runtime/v1/mesh"],
   ["How it's scored", HOST + "/how-its-scored", HOST + "/how-its-scored"],
   ["AzielTether lattice", HOST + "/v1/lattice", HOST + "/software"],
   ["ZionPattern Solver", HOST + "/how-its-scored", HOST + "/pattern"],
@@ -931,7 +931,8 @@ export function llmsDoc(limitation, survival) {
     + "Runtime uses (this door): " + HOST + "/runtime/v1/uses\n"
     + "Suite mesh (read-only QNM ON): " + HOST + "/v1/mesh\n"
     + "Runtime mesh: " + HOST + "/runtime/v1/mesh\n"
-    + "Live Nodes: " + HOST + "/v1/mesh/nodes\n"
+    + "Live Nodes (human mesh users + cited human uses; not Softwares): " + HOST + "/v1/mesh\n"
+    + "Mesh roster: " + HOST + "/v1/mesh/nodes\n"
     + "QNS-CD-1.0 cross-map (photon QNS1; hub cite only; local qnsd in qnm-node; no public proxy): " + HOST + "/v1/mesh\n"
     + "Alternate origin (sameAs): " + CATALOG + "/\n"
     + "Compatible AI clients: " + AI_CLIENTS + "\n"
@@ -1056,7 +1057,7 @@ export function llmsDoc(limitation, survival) {
     + "- Launch cite: human UI on Runtime Worker (#op-panel #dashboard #fg-console #task-* + About Aziel + hashtags + /download). MCP Softwares via fraggate_call only. Lamb Lens " + LAMB_LENS_PATH + ".\n"
     + "- Softwares download: " + HOST + "/download  ·  " + HOST + "/v1/download\n"
     + "- Runtime uses (this door): " + HOST + "/runtime/v1/uses\n"
-    + "- Suite mesh / Live Nodes (read-only QNM ON): " + HOST + "/v1/mesh\n"
+    + "- Suite mesh / Live Nodes (human mesh users + cited human uses; not Softwares): " + HOST + "/v1/mesh\n"
     + "- Runtime mesh: " + HOST + "/runtime/v1/mesh\n"
     + "- Runtime FragGate: " + HOST + "/runtime/v1/fraggate\n"
     + "- Runtime FragGate list: " + HOST + "/runtime/v1/fraggate/list\n"
@@ -1296,7 +1297,7 @@ export function aiTxt(limitation, survival) {
     + "- Softwares list: " + PEACELOCK_NOTE + "\n"
     + "- Public version: Aziel Runtime / Softwares SSoT " + RUNTIME_VERSION + " (GET /v1/software catalog.version). Product versions stay on Softwares cards.\n"
     + "- Live software catalog: " + HOST + "/v1/software\n"
-    + "- Suite mesh / Live Nodes (read-only QNM ON): " + HOST + "/v1/mesh\n"
+    + "- Suite mesh / Live Nodes (human mesh users + cited human uses; not Softwares): " + HOST + "/v1/mesh\n"
     + "- Runtime mesh: " + HOST + "/runtime/v1/mesh\n"
     + "- MCP discovery: " + HOST + "/.well-known/mcp.json\n"
     + "- Library MCP: POST " + HOST + "/mcp\n"

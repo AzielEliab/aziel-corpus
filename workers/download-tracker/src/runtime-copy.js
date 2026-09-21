@@ -10,10 +10,10 @@ export const RUNTIME_ORIGIN = "https://aziel-runtime.vibelock.workers.dev";
 export const RUNTIME_VERSION = "2.0.0-rc1";
 export const SOFTWARES_SSOT_VERSION = RUNTIME_VERSION;
 /** Operator SoT: aziel-runtime main tip that the live Worker serves. */
-export const RUNTIME_GIT_SHA = "6a3798a";
-export const RUNTIME_GIT_FULL = "6a3798af3a94bfba3ed2e7aaadeed8777ea32bb4";
+export const RUNTIME_GIT_SHA = "31ccb56";
+export const RUNTIME_GIT_FULL = "31ccb56b6c01647f434a9981c9843602c5967899";
 /** Cloudflare Workers deployment id for that LIVE Worker (operator SoT; not health.version). */
-export const RUNTIME_VERSION_ID = "105fa1ee";
+export const RUNTIME_VERSION_ID = "d7b63ac1";
 export const RUNTIME_SOT_BRANCH = "main";
 export const RUNTIME_DOOR = "fraggate";
 export const RUNTIME_KERNEL = "https://github.com/AzielEliab/fraggate";
@@ -299,7 +299,7 @@ export function runtimeHowTo(host) {
     "- FragGate call: POST " + h + "/runtime/v1/fraggate/call",
     "- Health: " + h + "/runtime/v1/health",
     "- Uses (this door): " + h + "/runtime/v1/uses",
-    "- Suite mesh (read-only QNM ON): " + h + "/runtime/v1/mesh  (also " + h + "/v1/mesh). Counts/status rollup. QNS-CD-1.0 + CROSS-NETWORK-SURVIVAL-1.0 + MESH-SPLIT-WIRES-1.0 + MESH-COLD-COPY-1.0 + MESH-REEXPAND-1.0 + MESH-REHEAL-1.0. Re-expand is archive restore. Reheal is never neighbor majority. GET never enables. Disable is refused.",
+    "- Suite mesh (read-only QNM ON): " + h + "/runtime/v1/mesh  (also " + h + "/v1/mesh). Live Nodes = human mesh users + cited human uses (not software_nodes). Counts/status rollup. QNS-CD-1.0 + CROSS-NETWORK-SURVIVAL-1.0 + MESH-SPLIT-WIRES-1.0 + MESH-COLD-COPY-1.0 + MESH-REEXPAND-1.0 + MESH-REHEAL-1.0. Re-expand is archive restore. Reheal is never neighbor majority. GET never enables. Disable is refused.",
     "- Manifest: " + h + "/runtime/v1/runtime.json",
     "- Skill: " + h + "/runtime/v1/skill",
     "- OpenAPI: " + h + "/runtime/openapi.json",

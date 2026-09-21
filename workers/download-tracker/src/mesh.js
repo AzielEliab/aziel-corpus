@@ -242,10 +242,22 @@ export const REHEAL = Object.freeze({
     + "Author Aziel Eliab only.",
 });
 
+/** Public Live Nodes = human mesh users + cited human uses. Never Softwares. Worker SSoT: aziel-runtime#151. */
+export const LIVE_NODES_PLANE = "human-mesh-users-uses";
+export const LIVE_NODES_NOTE =
+  "Public Live Nodes (live_nodes / rollup.mesh) count human mesh users (join/heartbeat/presence with human bearers) plus the cited human uses signal (USES / human_uses). Isolated humans stay on isolated_nodes. Not Softwares catalog length. Not downloaded Softwares instances. Not software_nodes. software_nodes is the {slug}-worker roster and never feeds this pill. Uses are interaction counters, not unique people — incomplete or unbound telemetry is reported honestly (0 + complete=false). Live Nodes does not invent users. Zero is honest when no humans are present and uses are 0/unbound.";
+export const SOFTWARE_NODES_NOTE =
+  "software_nodes / rollup.software count Softwares product Workers ({slug}-worker) from suite-presence fan-out. They may appear in the mesh roster. They must never feed public Live Nodes.";
+export const HUMAN_NODES_NOTE =
+  "human_nodes / rollup.human count humans who exist as mesh users (join/heartbeat/presence — human bearers or kind=human). Auto-minted mesh_* joins are human participants. Named downloaded Softwares instance ids stay instance_nodes.";
+export const HUMAN_USES_NOTE =
+  "human_uses is the USES interaction counter (no PII), not a unique-user count. Incomplete or unbound telemetry is reported as 0 with complete=false. Live Nodes does not invent users from missing uses.";
+
 export const MESH_NOTE =
   "Suite decentralized node mesh. Public surface is read-only QNM ON. "
   + "Disable is refused — suite presence stays on. "
   + "Public Worker rollup is counts/status. "
+  + "Public Live Nodes count human mesh users plus cited human uses — not Softwares (software_nodes). "
   + "Cross-network survival (CROSS-NETWORK-SURVIVAL-1.0): if the network and live data die tomorrow, the chain still survives on cold copies across independent shelves (hosts, Workers, git, DOI, local vaults). Survival is bytes↔hash. Crawlers are extra shelves. Re-expand is operator verify-from-archive. Reheal is self tip + trusted pull or phoenix-WAIT. "
   + "Umbrella over MESH-SPLIT-WIRES-1.0 / MESH-COLD-COPY-1.0 / die-with-pull / MESH-REEXPAND-1.0 / MESH-REHEAL-1.0. "
   + "Split the wires (MESH-SPLIT-WIRES-1.0): 0.5–1s tick = presence + tip hash only; payload is receiver-pull; 1s loop and 777s gate never share a socket. "
@@ -895,7 +907,10 @@ export function citeMeshEnvelope(doc, extra = {}) {
   if (String(cited.op || extra.op || "").toLowerCase() === "disable") {
     return meshDisableRefuseDoc({
       source: cited.source,
-      live_nodes: cited.live_nodes,
+      live_nodes: liveNodesCount(cited),
+      human_mesh_users: cited.human_mesh_users,
+      human_uses: cited.human_uses,
+      software_nodes: cited.software_nodes,
       nodes: cited.nodes,
       rollup: cited.rollup,
     });
@@ -987,19 +1002,78 @@ export function isMeshEnabled(doc) {
   return def === "on";
 }
 
+function finiteCount(value) {
+  if (value == null || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Worker SoT after aziel-runtime#151 — live_nodes_plane or human_* fields. */
+export function workerHasHumanLiveNodes(doc) {
+  if (!doc || typeof doc !== "object") return false;
+  if (doc.live_nodes_plane === LIVE_NODES_PLANE) return true;
+  if (doc.human_mesh_users != null || doc.human_uses != null) return true;
+  if (doc.live_nodes_components && doc.live_nodes_components.software_nodes_excluded === true) return true;
+  return false;
+}
+
+/** Stale Worker: live_nodes equals software_nodes and no human plane. Do not display as Live Nodes. */
+export function softwareCoupledLiveNodes(doc) {
+  if (!doc || typeof doc !== "object") return false;
+  if (workerHasHumanLiveNodes(doc)) return false;
+  const live = finiteCount(doc.live_nodes);
+  const software = finiteCount(doc.software_nodes);
+  return live != null && software != null && live === software && software > 0;
+}
+
 export function liveNodesCount(doc) {
   if (!doc || typeof doc !== "object") return 0;
-  if (doc.live_nodes != null && Number.isFinite(Number(doc.live_nodes))) return Number(doc.live_nodes);
-  if (doc.node_count != null && Number.isFinite(Number(doc.node_count))) return Number(doc.node_count);
-  if (doc.rollup && doc.rollup.live != null && Number.isFinite(Number(doc.rollup.live))) {
-    return Number(doc.rollup.live);
+  if (softwareCoupledLiveNodes(doc)) return 0;
+  const live = finiteCount(doc.live_nodes);
+  if (workerHasHumanLiveNodes(doc)) {
+    if (live != null) return live;
+    return (finiteCount(doc.human_mesh_users) || 0) + (finiteCount(doc.human_uses) || 0);
   }
-  if (Array.isArray(doc.nodes)) return doc.nodes.length;
+  if (live != null) return live;
+  // Never nodes.length, rollup.live, or software_nodes — those are Softwares / all-plane.
   return 0;
 }
 
 export function liveNodesLabel(doc) {
   return "Live Nodes · " + liveNodesCount(doc);
+}
+
+export function liveNodesTitle(doc) {
+  if (doc && workerHasHumanLiveNodes(doc) && doc.live_nodes_note) return String(doc.live_nodes_note);
+  return LIVE_NODES_NOTE;
+}
+
+export function humanLiveNodesFields(doc = {}) {
+  const src = doc && typeof doc === "object" ? doc : {};
+  const users = finiteCount(src.human_mesh_users);
+  const uses = finiteCount(src.human_uses);
+  const preferWorkerNotes = workerHasHumanLiveNodes(src);
+  return {
+    live_nodes_plane: src.live_nodes_plane || LIVE_NODES_PLANE,
+    live_nodes_note: preferWorkerNotes && src.live_nodes_note ? src.live_nodes_note : LIVE_NODES_NOTE,
+    software_nodes_note: preferWorkerNotes && src.software_nodes_note ? src.software_nodes_note : SOFTWARE_NODES_NOTE,
+    human_nodes_note: preferWorkerNotes && src.human_nodes_note ? src.human_nodes_note : HUMAN_NODES_NOTE,
+    human_uses_note: preferWorkerNotes && src.human_uses_note ? src.human_uses_note : HUMAN_USES_NOTE,
+    human_mesh_users: users != null ? users : 0,
+    human_uses: uses != null ? uses : 0,
+    human_uses_complete: src.human_uses_complete === true,
+    human_uses_kv: src.human_uses_kv === true,
+    human_uses_source: src.human_uses_source || (src.human_uses_kv === true ? "uses.total" : "unbound"),
+    live_nodes_components: src.live_nodes_components && typeof src.live_nodes_components === "object"
+      ? src.live_nodes_components
+      : {
+        human_mesh_users: users != null ? users : 0,
+        human_uses: uses != null ? uses : 0,
+        software_nodes_excluded: true,
+        instance_nodes_excluded: true,
+        invent_users: false,
+      },
+  };
 }
 
 export function meshOnDoc(extra = {}) {
@@ -1008,16 +1082,28 @@ export function meshOnDoc(extra = {}) {
   delete rest.mesh;
   delete rest.mesh_default;
   delete rest.default;
+  const nodes = Array.isArray(rest.nodes) ? rest.nodes : [];
+  const draft = {
+    ok: true,
+    code: MESH_OK,
+    live_nodes: rest.live_nodes != null && Number.isFinite(Number(rest.live_nodes))
+      ? Number(rest.live_nodes)
+      : 0,
+    nodes,
+    ...rest,
+    nodes,
+  };
+  const live = liveNodesCount(draft);
   return {
+    ...draft,
+    ...humanLiveNodesFields({ ...draft, live_nodes: live }),
+    live_nodes: live,
+    software_nodes: finiteCount(draft.software_nodes) || 0,
     ok: true,
     code: MESH_OK,
     enabled: true,
     mesh: "on",
     mesh_default: "on",
-    live_nodes: rest.live_nodes != null && Number.isFinite(Number(rest.live_nodes))
-      ? Number(rest.live_nodes)
-      : 0,
-    nodes: Array.isArray(rest.nodes) ? rest.nodes : [],
     default: "on",
     until: "read-only",
     author: AUTHOR,
@@ -1025,13 +1111,8 @@ export function meshOnDoc(extra = {}) {
     host: HOST + "/v1/mesh",
     runtime: HOST + "/runtime/v1/mesh",
     origin: RUNTIME_ORIGIN + "/v1/mesh",
-    note: MESH_NOTE,
+    note: rest.note || MESH_NOTE,
     source: rest.source || LIBRARY_SOURCE,
-    ...rest,
-    enabled: true,
-    mesh: "on",
-    mesh_default: "on",
-    default: "on",
     qns_cd_spec: QNS_CD_SPEC,
     qns_cd: QNS_CD,
     ...meshLawCites(),
@@ -1047,10 +1128,16 @@ export function decorateMeshDoc(doc, extra = {}) {
   if (!doc || typeof doc !== "object") return meshOnDoc(extra);
   const nodes = Array.isArray(doc.nodes) ? doc.nodes : [];
   const live = liveNodesCount({ ...doc, enabled: true, mesh: "on", nodes });
+  const human = humanLiveNodesFields({ ...doc, live_nodes: live });
+  const rollup = doc.rollup && typeof doc.rollup === "object"
+    ? { ...doc.rollup, mesh: live }
+    : doc.rollup;
   return presentSuiteOn({
     ...doc,
     ok: doc.ok !== false,
+    ...human,
     live_nodes: live,
+    ...(rollup ? { rollup } : {}),
     nodes,
     until: "read-only",
     author: AUTHOR,
@@ -1239,7 +1326,7 @@ export async function handleMeshApi(request, url, env) {
 
 export function meshStatusHtml(doc) {
   const label = liveNodesLabel(doc);
-  return `<a class="pill ok" id="aziel-live-nodes" href="/v1/mesh/status" title="Live Nodes · suite mesh status">${esc(label)}</a>`;
+  return `<a class="pill ok" id="aziel-live-nodes" href="/v1/mesh/status" title="${esc(liveNodesTitle(doc))}">${esc(label)}</a>`;
 }
 
 export function meshRefreshScript() {
@@ -1251,9 +1338,21 @@ export function meshRefreshScript() {
     fetch("/v1/mesh/status",{headers:{"Accept":"application/json","User-Agent":"Mozilla/5.0"}}).then(function(r){return r.json();}).then(function(d){
       if(!d)return;
       var src=d.origin&&typeof d.origin==="object"?d.origin:d;
-      var n=d.live_nodes!=null?d.live_nodes:(src&&src.live_nodes!=null?src.live_nodes:(d.nodes&&d.nodes.length)||(src&&src.rollup&&src.rollup.live)||0);
+      var plane=d.live_nodes_plane||(src&&src.live_nodes_plane)||"";
+      var users=d.human_mesh_users!=null?d.human_mesh_users:(src&&src.human_mesh_users);
+      var uses=d.human_uses!=null?d.human_uses:(src&&src.human_uses);
+      var live=d.live_nodes!=null?d.live_nodes:(src&&src.live_nodes);
+      var software=d.software_nodes!=null?d.software_nodes:(src&&src.software_nodes);
+      var n=0;
+      if(plane==="human-mesh-users-uses"||users!=null||uses!=null){
+        n=live!=null?live:((Number(users)||0)+(Number(uses)||0));
+      }else if(live!=null&&!(software!=null&&Number(live)===Number(software)&&Number(software)>0)){
+        n=live;
+      }
       el.textContent="Live Nodes \\u00b7 "+n;
       el.className="pill ok";
+      var note=d.live_nodes_note||(src&&src.live_nodes_note);
+      if(note)el.title=note;
     }).catch(function(){});
   }
   if("requestIdleCallback" in window)requestIdleCallback(run,{timeout:2500});

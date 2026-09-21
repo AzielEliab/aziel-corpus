@@ -523,7 +523,7 @@ export function headMeta(opts) {
     linkRel("alternate", "/v1/products", " type=" + Q + "application/json" + Q + " title=" + Q + "azcorpus / azlibrary products" + Q),
     linkRel("alternate", "/v1/design-pack", " type=" + Q + "application/json" + Q + " title=" + Q + "Cap-7 design packs" + Q),
     linkRel("alternate", "/v1/software", " type=" + Q + "application/json" + Q + " title=" + Q + "Live software catalog" + Q),
-    linkRel("alternate", "/v1/mesh", " type=" + Q + "application/json" + Q + " title=" + Q + "Suite mesh / Live Nodes" + Q),
+    linkRel("alternate", "/v1/mesh", " type=" + Q + "application/json" + Q + " title=" + Q + "Suite mesh / Live Nodes (human users + uses)" + Q),
     linkRel("alternate", "/runtime/v1/mesh", " type=" + Q + "application/json" + Q + " title=" + Q + "Runtime mesh" + Q),
     linkRel("alternate", "/runtime/llms.txt", " type=" + Q + "text/plain" + Q + " title=" + Q + "Runtime llms.txt" + Q),
     linkRel("alternate", "/runtime/cite.json", " type=" + Q + "application/json" + Q + " title=" + Q + "Runtime cite.json" + Q),

@@ -527,8 +527,8 @@ test("public /shelves JSON cites CNS + NO-LIE; no 15:20 chrome; Growth-ON intact
   assert.equal(doc.planes.B.doi, null);
   assert.equal(doc.planes.B.zenodo_working_path, false);
   assert.equal(doc.planes.C.status, "slot");
-  assert.equal(doc.runtime_launch.sot.git, "6a3798a");
-  assert.equal(doc.runtime_launch.sot.version_id, "105fa1ee");
+  assert.equal(doc.runtime_launch.sot.git, "31ccb56");
+  assert.equal(doc.runtime_launch.sot.version_id, "d7b63ac1");
   assert.equal(doc.runtime_launch.shelves.plane_b_live, false);
   assert.equal(doc.runtime_launch.shelves.plane_b_refuse, "CNS-NO-FORGE-MIRROR");
   assert.equal(doc.runtime_launch.shelves.plane_c_refuse, "CNS-OPERATOR-ATTEST");

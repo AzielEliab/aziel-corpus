@@ -1069,7 +1069,7 @@ export function runtimeBody(version) {
 <ul>
 <li><a href="/runtime/v1/health"><code>/runtime/v1/health</code></a> — live health (version ${esc(ver)}, door=fraggate, ${esc(String(RUNTIME_LIVE_COUNT))} live engines)</li>
 <li><a href="/runtime/v1/uses"><code>/runtime/v1/uses</code></a> — local API use log for this door (does not increment)</li>
-<li><a href="/runtime/v1/mesh"><code>/runtime/v1/mesh</code></a> · <a href="/v1/mesh"><code>/v1/mesh</code></a> — suite Live Nodes / mesh status (read-only QNM ON; counts/status rollup; CROSS-NETWORK-SURVIVAL-1.0: cold copies survive a pull; crawlers are extra shelves; re-expand is archive restore (MESH-REEXPAND-1.0); reheal is self tip + trusted pull or phoenix-WAIT (MESH-REHEAL-1.0); NO-LIE-NO-REWRITE-1.0: network never lies to stay alive; no rewrite key)</li>
+<li><a href="/runtime/v1/mesh"><code>/runtime/v1/mesh</code></a> · <a href="/v1/mesh"><code>/v1/mesh</code></a> — suite Live Nodes / mesh status (human mesh users + cited human uses — not Softwares <code>software_nodes</code>; read-only QNM ON; counts/status rollup; CROSS-NETWORK-SURVIVAL-1.0: cold copies survive a pull; crawlers are extra shelves; re-expand is archive restore (MESH-REEXPAND-1.0); reheal is self tip + trusted pull or phoenix-WAIT (MESH-REHEAL-1.0); NO-LIE-NO-REWRITE-1.0: network never lies to stay alive; no rewrite key)</li>
 <li><a href="/runtime/v1/runtime.json"><code>/runtime/v1/runtime.json</code></a> — runtime manifest</li>
 <li><a href="/runtime/v1/skill"><code>/runtime/v1/skill</code></a> — runtime skill markdown</li>
 <li><a href="/runtime/v1/fraggate"><code>/runtime/v1/fraggate</code></a> · <a href="/runtime/v1/fraggate/list"><code>/runtime/v1/fraggate/list</code></a> · <code>POST /runtime/v1/fraggate/call</code></li>
@@ -1093,7 +1093,7 @@ export function runtimeBody(version) {
 <li><code>POST ${esc(RUNTIME_ORIGIN)}/mcp</code></li>
 <li><a href="${esc(RUNTIME_ORIGIN)}/llms.txt">llms.txt</a> · <a href="${esc(RUNTIME_ORIGIN)}/cite.json">cite.json</a> · <a href="${esc(RUNTIME_GITHUB)}">GitHub</a></li>
 </ul>
-<p class="muted">Counted downloads stay on each product Worker <code>/download</code> + <code>/count</code>. The Software tab lists those cards. AzielTether is the survival mesh for downloaded nodes. A counted download is a cold multiply of the vault tip. Suite mesh is read-only <strong>ON</strong> — Live Nodes via <a href="/v1/mesh"><code>/v1/mesh</code></a> (counts/status).</p>
+<p class="muted">Counted downloads stay on each product Worker <code>/download</code> + <code>/count</code>. The Software tab lists those cards. AzielTether is the survival mesh for downloaded nodes. A counted download is a cold multiply of the vault tip. Suite mesh is read-only <strong>ON</strong> — Live Nodes via <a href="/v1/mesh"><code>/v1/mesh</code></a> (human mesh users + cited human uses; Softwares stay <code>software_nodes</code>).</p>
 <p class="soft-links"><a class="button ghost" href="/software">Software catalog</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="runtime-muted" href="${esc(RUNTIME_ORIGIN)}/">Open alternate origin</a> <a class="button ghost" href="/runtime/v1/catalog.json">catalog.json</a> <a class="button ghost" href="/v1/lattice">Lattice API</a> <a class="button ghost" href="${esc(RUNTIME_GITHUB)}">GitHub</a></p>
 </div>`;
 }

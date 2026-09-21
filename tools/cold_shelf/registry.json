@@ -763,16 +763,16 @@
     "sot": {
       "live": true,
       "branch": "main",
-      "git": "6a3798a",
-      "git_full": "6a3798af3a94bfba3ed2e7aaadeed8777ea32bb4",
-      "version_id": "105fa1ee",
+      "git": "31ccb56",
+      "git_full": "31ccb56b6c01647f434a9981c9843602c5967899",
+      "version_id": "d7b63ac1",
       "version": "2.0.0-rc1",
       "origin": "https://aziel-runtime.vibelock.workers.dev/",
       "health": "https://aziel-runtime.vibelock.workers.dev/v1/health",
       "cite": "https://aziel-runtime.vibelock.workers.dev/cite.json",
       "engine_count": 41,
       "local_only": "VeilLock",
-      "note": "Operator SoT LIVE: aziel-runtime main 6a3798a / version_id 105fa1ee / 2.0.0-rc1 at https://aziel-runtime.vibelock.workers.dev. Cite live GET /v1/health for the engine snapshot. version_id is the Cloudflare Workers deployment id (not health.version)."
+      "note": "Operator SoT LIVE: aziel-runtime main 31ccb56 / version_id d7b63ac1 / 2.0.0-rc1 at https://aziel-runtime.vibelock.workers.dev. Cite live GET /v1/health for the engine snapshot. version_id is the Cloudflare Workers deployment id (not health.version)."
     },
     "human_ui": {
       "host": "https://aziel-runtime.vibelock.workers.dev/",
