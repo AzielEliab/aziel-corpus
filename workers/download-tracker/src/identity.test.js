@@ -573,8 +573,15 @@ test("GET /search is HTTP 200 and does not increment homepage views", async () =
   const env = {
     DOWNLOADS: {
       async get() { return null; },
-      async put() { views += 1; },
+      async put(key) { if (String(key).includes("__views__")) views += 1; },
       async list() { throw new Error("no list"); },
+    },
+    AZIEL_RUNTIME: {
+      async fetch() {
+        return new Response(JSON.stringify({ ok: true, human_mesh_users: 0, human_uses: 0, live_nodes: 0, nodes: 0 }), {
+          headers: { "Content-Type": "application/json" },
+        });
+      },
     },
   };
   const res = await worker.fetch(

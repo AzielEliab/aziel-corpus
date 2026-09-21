@@ -53,6 +53,7 @@ import {
   liveNodesLabel,
   livePresenceCount,
   nodesCount,
+  nodesLabel,
   dualNodesCounts,
   dualNodesLabel,
   peekMeshDualCounts,
@@ -60,6 +61,7 @@ import {
   statbarClockScript,
   LIVE_NODES_NOTE,
   LIVE_NODES_PLANE,
+  NODES_PLANE,
   SOFTWARE_NODES_NOTE,
   softwareCoupledLiveNodes,
   workerHasHumanLiveNodes,
@@ -488,7 +490,8 @@ test("mesh default ON; identity Aziel Eliab only", () => {
 });
 
 test("Live Nodes never equals Softwares roster; prefers Worker human plane", () => {
-  assert.equal(LIVE_NODES_PLANE, "human-mesh-users-uses");
+  assert.equal(LIVE_NODES_PLANE, "human-mesh-users-page-viewers");
+  assert.equal(NODES_PLANE, "human-mesh-users-uses");
   assert.match(LIVE_NODES_NOTE, /human mesh users/i);
   assert.match(LIVE_NODES_NOTE, /Not software_nodes/);
   assert.match(SOFTWARE_NODES_NOTE, /never feed public Live Nodes/);
@@ -515,29 +518,33 @@ test("Live Nodes never equals Softwares roster; prefers Worker human plane", () 
   assert.equal(liveNodesLabel(decoratedStale), "Live Nodes · 0");
 
   const worker = {
-    live_nodes_plane: LIVE_NODES_PLANE,
-    live_nodes: 5,
+    live_nodes_plane: "human-mesh-users",
+    live_nodes: 3,
     human_mesh_users: 3,
     human_uses: 2,
     human_uses_complete: true,
     software_nodes: 41,
     live_nodes_note: LIVE_NODES_NOTE,
-    rollup: { live: 41, mesh: 5, software: { live: 41, locked: 0, isolated: 0 } },
+    rollup: { live: 41, mesh: 3, software: { live: 41, locked: 0, isolated: 0 } },
   };
   assert.equal(workerHasHumanLiveNodes(worker), true);
   assert.equal(softwareCoupledLiveNodes(worker), false);
-  assert.equal(liveNodesCount(worker), 5);
+  assert.equal(liveNodesCount(worker), 3);
+  assert.equal(nodesCount(worker), 5);
   const decorated = decorateMeshDoc(worker);
-  assert.equal(decorated.live_nodes, 5);
+  assert.equal(decorated.live_nodes, 3);
   assert.equal(decorated.human_mesh_users, 3);
   assert.equal(decorated.human_uses, 2);
   assert.equal(decorated.software_nodes, 41);
-  assert.equal(decorated.rollup.mesh, 5);
+  assert.equal(decorated.rollup.mesh, 3);
   assert.notEqual(decorated.live_nodes, decorated.software_nodes);
-  assert.equal(liveNodesLabel(decorated), "Live Nodes · 5");
+  assert.equal(liveNodesLabel(decorated), "Live Nodes · 3");
+  assert.equal(nodesLabel(decorated), "Nodes · 5");
 
-  assert.equal(liveNodesCount({ human_mesh_users: 1, human_uses: 4 }), 5);
+  assert.equal(liveNodesCount({ human_mesh_users: 1, human_uses: 4 }), 1);
+  assert.equal(nodesCount({ human_mesh_users: 1, human_uses: 4 }), 5);
   assert.equal(liveNodesCount({ live_nodes: 9, nodes: [{ id: "x" }] }), 9);
+  assert.equal(liveNodesCount({ human_mesh_users: 2, human_uses: 10 }, { page_viewers: 3 }), 5);
 });
 
 test("dual Nodes/LiveNodes prefers numeric j.nodes; presence is human_mesh_users", () => {
@@ -583,14 +590,40 @@ test("peekMeshDualCounts reads human plane and never Softwares roster", async ()
     },
   };
   assert.deepEqual(await peekMeshDualCounts(broken, { timeoutMs: 0 }), { nodes: 28032, liveNodes: 3 });
+  const fleet = {
+    AZIEL_RUNTIME: {
+      async fetch() {
+        return new Response(JSON.stringify({
+          human_mesh_users: 1,
+          human_uses: 10,
+          live_nodes: 8,
+          site_live_viewers: 7,
+          includes_site_viewers: true,
+          live_nodes_plane: "human-mesh-users-site-viewers",
+          nodes: 11,
+          software_nodes: 41,
+        }), { headers: { "Content-Type": "application/json" } });
+      },
+    },
+    DOWNLOADS: {
+      async get() {
+        return JSON.stringify({ viewers: { a: Date.now() + 60_000 }, count: 4 });
+      },
+      async put() {},
+      async list() { throw new Error("KV.list forbidden"); },
+    },
+  };
+  assert.deepEqual(await peekMeshDualCounts(fleet, { timeoutMs: 0 }), { nodes: 11, liveNodes: 8 });
 });
 
-test("LIVE Worker a8f7fdc9: live_nodes = 0 humans + uses; software_nodes 41 separate", () => {
+test("LIVE Worker: live_nodes is presence; Nodes is users + uses; viewers add without uses", () => {
   const live = {
     ok: true,
     enabled: true,
-    live_nodes_plane: LIVE_NODES_PLANE,
-    live_nodes: 27147,
+    live_nodes_plane: "human-mesh-users",
+    nodes_plane: "human-mesh-users-uses",
+    live_nodes: 0,
+    nodes: 27147,
     human_mesh_users: 0,
     human_uses: 27147,
     human_uses_complete: true,
@@ -600,37 +633,57 @@ test("LIVE Worker a8f7fdc9: live_nodes = 0 humans + uses; software_nodes 41 sepa
     software_live_nodes: 41,
     rollup: {
       live: 41,
-      mesh: 27147,
+      mesh: 0,
+      nodes: 27147,
       software: { live: 41, locked: 0, isolated: 0 },
       human: { live: 0, locked: 0, isolated: 0 },
     },
-    live_nodes_note: LIVE_NODES_NOTE,
+    live_nodes_note: "Public Live Nodes count human mesh users",
     live_nodes_components: {
       human_mesh_users: 0,
-      human_uses: 27147,
       software_nodes_excluded: true,
       instance_nodes_excluded: true,
       invent_users: false,
     },
   };
-  assert.equal(live.live_nodes, live.human_mesh_users + live.human_uses);
+  assert.equal(live.live_nodes, live.human_mesh_users);
+  assert.equal(live.nodes, live.human_mesh_users + live.human_uses);
   assert.notEqual(live.live_nodes, live.software_nodes);
   assert.equal(workerHasHumanLiveNodes(live), true);
   assert.equal(softwareCoupledLiveNodes(live), false);
-  assert.equal(liveNodesCount(live), 27147);
+  assert.equal(liveNodesCount(live), 0);
+  assert.equal(nodesCount(live), 27147);
   const decorated = decorateMeshDoc(live);
-  assert.equal(decorated.live_nodes, 27147);
+  assert.equal(decorated.live_nodes, 0);
+  assert.equal(decorated.nodes_count, 27147);
   assert.equal(decorated.human_mesh_users, 0);
   assert.equal(decorated.human_uses, 27147);
   assert.equal(decorated.human_uses_kv, true);
   assert.equal(decorated.human_uses_source, "uses.total");
   assert.equal(decorated.software_nodes, 41);
-  assert.equal(decorated.rollup.mesh, 27147);
+  assert.equal(decorated.rollup.mesh, 0);
   assert.equal(decorated.rollup.live, 41);
   assert.notEqual(decorated.live_nodes, decorated.software_nodes);
-  assert.equal(liveNodesLabel(decorated), "Live Nodes · 27147");
-  assert.match(meshStatusHtml(decorated), /Live Nodes · 27147/);
-  assert.match(meshStatusHtml(decorated), /human mesh users/);
+  assert.equal(liveNodesLabel(decorated), "Live Nodes · 0");
+  assert.equal(nodesLabel(decorated), "Nodes · 27147");
+  assert.match(meshStatusHtml(decorated), /Live Nodes · 0/);
+  assert.match(meshStatusHtml(decorated), /Nodes · 27147/);
+  const withViewers = decorateMeshDoc(live, { page_viewers: { page_viewers: 2, count: 2, source: "library-presence" } });
+  assert.equal(withViewers.live_nodes, 2);
+  assert.equal(withViewers.page_viewers, 2);
+  assert.equal(withViewers.nodes_count, 27147);
+  assert.equal(withViewers.page_viewers_source, "library-presence");
+  const runtimeAgg = decorateMeshDoc({
+    ...live,
+    live_nodes: 4,
+    page_viewers: 4,
+    human_page_viewers: 4,
+    page_viewers_source: "runtime",
+    live_nodes_plane: "human-mesh-users-page-viewers",
+    live_nodes_components: { human_mesh_users: 0, page_viewers: 4, software_nodes_excluded: true },
+  }, { page_viewers: { page_viewers: 9, count: 9 } });
+  assert.equal(runtimeAgg.live_nodes, 4);
+  assert.equal(runtimeAgg.page_viewers, 4);
 });
 
 test("QNS-CD-1.0 cross-map is on Live Nodes payloads; not a Softwares-tab product", () => {
@@ -1157,33 +1210,37 @@ test("runtime skill and manifest cite mesh; GET mesh does not increment uses", (
   assert.equal(shouldCountRuntimeUse("POST", "/runtime/v1/mesh/enable"), true);
 });
 
-test("human chrome shows Live Nodes · N without mesh-off copy", () => {
-  const html = page("Search", "<div class=\"card\">shelf</div>", { path: "/", kind: "search" });
-  assert.doesNotMatch(html, /id="aziel-live-nodes"/);
-  assert.doesNotMatch(html, /Live Nodes · 0/);
+test("human chrome shows Nodes#/LiveNodes# dual pair without mesh-off copy", () => {
+  const html = page("Search", "<div class=\"card\">shelf</div>", { path: "/", kind: "search", nodes: 12, liveNodes: 2 });
+  assert.match(html, /id="nodes">12</);
+  assert.match(html, /id="livenodes">2</);
+  assert.match(html, /class="stat-slash"/);
   assert.doesNotMatch(html, /Live Nodes · off/);
   assert.doesNotMatch(html, /title="Live Nodes · suite mesh status"/);
-  assert.doesNotMatch(html, /title="[^"]*CROSS-NETWORK-SURVIVAL/);
-  assert.doesNotMatch(html, /title="[^"]*NO-LIE/);
   assert.doesNotMatch(html, /Default off until runtime enable/i);
   const pill = meshStatusHtml(meshOnDoc());
   assert.match(pill, /Live Nodes · 0/);
+  assert.match(pill, /Nodes · 0/);
   assert.match(pill, /href="\/v1\/mesh\/status"/);
   assert.match(pill, /human mesh users/);
   assert.doesNotMatch(pill, /title="Live Nodes · suite mesh status"/);
   assert.doesNotMatch(pill, /CROSS-NETWORK-SURVIVAL/);
   assert.doesNotMatch(pill, /NO-LIE-NO-REWRITE/);
-  assert.match(meshStatusHtml(decorateMeshDoc({ enabled: true, live_nodes: 4 })), /Live Nodes · 4/);
+  assert.match(meshStatusHtml(decorateMeshDoc({ enabled: true, live_nodes: 4, human_mesh_users: 4 })), /Live Nodes · 4/);
   assert.match(meshRefreshScript(), /fetch\("\/v1\/mesh\/status"/);
+  assert.match(meshRefreshScript(), /\/v1\/presence/);
   assert.match(meshRefreshScript(), /requestIdleCallback/);
-  assert.match(meshRefreshScript(), /human-mesh-users-uses/);
+  assert.match(meshRefreshScript(), /page_viewers/);
   assert.match(meshRefreshScript(), /human_mesh_users/);
+  assert.match(meshRefreshScript(), /nodes_count/);
   assert.doesNotMatch(meshRefreshScript(), /nodes&&d.nodes.length/);
   assert.doesNotMatch(meshRefreshScript(), /rollup&&src.rollup.live/);
   assert.doesNotMatch(meshRefreshScript(), /Live Nodes · off/);
   assert.match(statbarClockScript(), /fetch\("\/v1\/mesh"/);
   assert.match(statbarClockScript(), /\/runtime\/v1\/mesh/);
   assert.match(statbarClockScript(), /fetch\("\/v1\/stats"/);
+  assert.match(statbarClockScript(), /\/v1\/presence/);
+  assert.match(statbarClockScript(), /includes_site_viewers/);
   assert.match(statbarClockScript(), /human_mesh_users/);
   assert.match(statbarClockScript(), /set\("nodes"/);
   assert.match(statbarClockScript(), /set\("livenodes"/);

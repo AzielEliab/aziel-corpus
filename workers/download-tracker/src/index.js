@@ -37,6 +37,13 @@ import { isShelvesPath, shelvesDoc } from "./cold-shelf.js";
 import { serveSoftwareAsset, DEFAULT_ASSET as SOFTWARE_DEFAULT_ASSET } from "./software-download.js";
 import { classifyRequest, readBotManagement } from "./classify.js";
 import {
+  attachPresenceCookie,
+  commitPreparedViewer,
+  handlePresenceApi,
+  isPresencePath,
+  prepareViewerCookie,
+} from "./presence.js";
+import {
   isolatedKeys,
   isReservedCounterKey,
   shapeCountBody,
@@ -448,7 +455,21 @@ export default {
     try { signedEarly = await getSession(env, request); } catch { signedEarly = null; }
     const limited = await enforceRateLimit(request, env, { path: earlyPath, signed: signedEarly });
     if (limited && limited.response) return limited.response;
-    const attachVid = (res) => withRateCookie(res, limited);
+    const presencePrep = prepareViewerCookie(request, earlyPath);
+    if (presencePrep.counted && !isPresencePath(earlyPath)) {
+      const job = commitPreparedViewer(env, presencePrep)
+        .then((touch) => {
+          if (touch && touch.published && typeof touch.published.then === "function") {
+            return touch.published.catch(() => null);
+          }
+          return touch;
+        })
+        .catch(() => null);
+      const homePaint = earlyPath === "/" || earlyPath === "/search";
+      if (homePaint || !ctx || typeof ctx.waitUntil !== "function") await job;
+      else ctx.waitUntil(job);
+    }
+    const attachVid = (res) => attachPresenceCookie(withRateCookie(res, limited), presencePrep);
 
     if (isReadMethod(request.method) && shouldBackgroundWalk(earlyPath)) {
       const tunneled = await tryTunnelFirst(request, env);
