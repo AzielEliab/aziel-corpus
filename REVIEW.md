@@ -134,6 +134,18 @@ When **SPRE**, **CLCE**, and **PhysLing** have all verified a record, one combin
 
 `GET /v1/verify-backfill?all=1` walks **every stored Aziel Library and Corpus record** and writes triad, ZionPattern Solver secondary score, and exact-same-subject succession cites. Reports `total`, `scored`, `skipped`, `failed`. Auto-continues on first request after ship and on a minute cron until the cursor is exhausted. Local: `aziel-library backfill-review --all`. Safe to re-run. Skip already fully scored live zsolver + matching triad unless `force=1`. If the live zsolver API is down, the secondary score is queued and retried (not silently omitted).
 
+## TRIAD V3 recalibrate (existing papers)
+
+A prior V2 `full_backfill_done` cannot skip the remint. After this lands, every stored paper is walked through TRIAD V3 against content SHA-256 (`recalibrate_v3_cursor` / `recalibrate_v3_done_utc`). Cron and request-path walks continue that cursor. Operator trigger if you want it now or to watch progress:
+
+- `GET /v1/recalibrate-all` then repeat `GET /v1/recalibrate-all?all=1` until `done:true`
+- `GET /v1/recalibrate-all?status=1` — progress
+- Alias: `GET /v1/verify-backfill?recalibrate=1&all=1`
+- `force=1` remints even already-V3 frozen scores
+- Local vault: `python3 tools/recalibrate_all.py --vault ./aziel_library_data` or `aziel-library recalibrate-all`
+
+Ingest (`POST /ingest`, JSON ingest, Jeeves Add, operator library-ingest) always runs TRIAD V3. Persist refuses a published score that is not the 36-cycle mean frozen to content SHA-256. N/A factors omit. See [docs/TRIAD-V3-RECALIBRATE.md](docs/TRIAD-V3-RECALIBRATE.md).
+
 ## ZionPattern Solver (secondary public score)
 
 **ZionPattern Solver** is the secondary public score (not merged into the triad). It qualifies only for historical, research, investigation, and crime documents. Philosophy, software, hardware, and designs persist `not_applicable` and **omit** the ZionPattern line (never show 0). Zioncheck Visual Archive vols 1–5 are the seed baseline and always display **75**. Score 0 / non-match also persists `not_applicable`. Compact `zsolver` (`display`, `status`, `applicable`, seed flags) is written onto the lattice tip and packed `library:index:v1` so homepage / `/aziel-library` / `/v1/search` match `/v1/review`. Hard 75% confidence cap / 25% uncertainty floor. Provisional and assistive. Does not solve Zioncheck or any case. Author Aziel Eliab.
@@ -195,6 +207,7 @@ Fixed bottom-right research assistant. Drawer, not a full-page takeover. Answers
 - `GET /v1/poison-learn`
 - `GET /v1/pin?record_id=`
 - `GET /v1/verify-backfill`
+- `GET /v1/recalibrate-all` — TRIAD V3 remint of stored papers (post-merge job; repeat `?all=1` until `done:true`)
 - `GET /v1/verify-geo?force=1` / `?status=1` — chunked map pins (paper date × event × geolocation; never upload time)
 - `GET /v1/document-chain?record_id=`
 - `POST /v1/score` — preview only, no write

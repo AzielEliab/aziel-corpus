@@ -7,6 +7,9 @@ import {
   SHELF_SYNC_CURSOR_KEY,
   SHELF_SYNC_DONE_KEY,
   continueFullBackfill,
+  continueRecalibrateAll,
+  recalibrateAllStatus,
+  RECALIBRATE_V3_DONE_KEY,
   syncShelfScores,
 } from "./review-store.js";
 import { LIBRARY_INDEX_KEY } from "./library-index.js";
@@ -383,10 +386,52 @@ test("rebuild with ctx.waitUntil returns JSON before packed refresh", async () =
 
 test("shouldBackgroundWalk skips verify-backfill and verify-geo", () => {
   assert.equal(shouldBackgroundWalk("/v1/verify-backfill"), false);
+  assert.equal(shouldBackgroundWalk("/v1/recalibrate-all"), false);
   assert.equal(shouldBackgroundWalk("/v1/verify-geo"), false);
   assert.equal(shouldBackgroundWalk("/v1/content-hash-repair"), false);
   assert.equal(shouldBackgroundWalk("/v1/health"), true);
   assert.equal(shouldBackgroundWalk("/"), true);
+});
+
+test("old full_backfill done flag does not skip TRIAD V3 recalibrate", async () => {
+  const env = mockEnv(sampleRecords(), {
+    metadata: {
+      full_backfill_done_utc: "2026-09-12T00:00:00Z",
+      succession_backfill_utc: "2026-09-12T00:00:00Z",
+    },
+  });
+  const report = await continueRecalibrateAll(env, { ms: 4000, all: false, background: true });
+  assert.equal(report.job, "recalibrate_v3");
+  assert.equal(report.schema, "aziel.triad.v3");
+  assert.ok((report.scored + report.skipped + report.failed) > 0, "must walk; old full_backfill_done cannot skip V3 remint");
+  assert.doesNotMatch(JSON.stringify(report), BANNED);
+});
+
+test("GET /v1/recalibrate-all?status=1 reports the V3 job", async () => {
+  const env = mockEnv(sampleRecords(), {
+    metadata: { [RECALIBRATE_V3_DONE_KEY]: "2026-09-21T00:00:00Z" },
+  });
+  const res = await handleRuntimeApi(
+    new Request("https://www.azielcorpuslibrary.net/v1/recalibrate-all?status=1"),
+    new URL("https://www.azielcorpuslibrary.net/v1/recalibrate-all?status=1"),
+    env
+  );
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.job, "recalibrate_v3");
+  assert.equal(body.schema, "aziel.triad.v3");
+  assert.equal(body.done, true);
+  assert.match(body.trigger, /recalibrate-all/);
+  assert.doesNotMatch(JSON.stringify(body), BANNED);
+  const alias = await handleRuntimeApi(
+    new Request("https://www.azielcorpuslibrary.net/v1/verify-backfill?recalibrate=1&status=1"),
+    new URL("https://www.azielcorpuslibrary.net/v1/verify-backfill?recalibrate=1&status=1"),
+    env
+  );
+  const aliasBody = await alias.json();
+  assert.equal(aliasBody.job, "recalibrate_v3");
+  const status = await recalibrateAllStatus(env);
+  assert.equal(status.done, true);
 });
 
 test("chunk constants stay inside Worker-safe bounds", () => {

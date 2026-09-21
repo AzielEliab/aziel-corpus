@@ -390,6 +390,45 @@ def is_triad_frozen(triad):
     sha=str(triad.get("frozen_to") or "").strip().lower()
     return triad.get("triad_raw") is not None and bool(SHA256_HEX_RE.fullmatch(sha))
 
+class TriadV3Required(ValueError):
+    """Ingest/persist refuse: a published score must be TRIAD_V3 36-cycle."""
+    code = "TRIAD_V3_REQUIRED"
+
+def assert_triad_v3(review, content_sha256=None):
+    """Gate: no published score unless TRIAD_V3 cycle mean frozen to content SHA-256.
+
+    N/A factors may omit (applicable-only). An unready triad may persist for audit
+    only when combined is null — that is not a published score.
+    """
+    if not review:
+        raise TriadV3Required("TRIAD_V3_REQUIRED: missing review")
+    triad = review.get("triad") if isinstance(review, dict) else None
+    if not triad:
+        raise TriadV3Required("TRIAD_V3_REQUIRED: missing triad")
+    if triad.get("schema") != TRIAD_SCHEMA:
+        raise TriadV3Required("TRIAD_V3_REQUIRED: schema " + str(triad.get("schema") or "none"))
+    if triad.get("collection_offset"):
+        raise TriadV3Required("TRIAD_V3_REQUIRED: collection offset is deleted")
+    if not triad.get("ready"):
+        if triad.get("combined") is not None:
+            raise TriadV3Required("TRIAD_V3_REQUIRED: unready triad cannot publish combined")
+        return False
+    if triad.get("combined") is None or triad.get("triad_cycle_mean") is None:
+        raise TriadV3Required("TRIAD_V3_REQUIRED: cycle mean missing")
+    if triad.get("public_score") not in (None, "triad_cycle_mean"):
+        raise TriadV3Required("TRIAD_V3_REQUIRED: public_score is not triad_cycle_mean")
+    if triad.get("triad_raw") is None or not triad.get("frozen_to"):
+        raise TriadV3Required("TRIAD_V3_REQUIRED: triad_raw not frozen")
+    sha = str(content_sha256 or "").strip().lower()
+    if sha and SHA256_HEX_RE.fullmatch(sha) and str(triad.get("frozen_to") or "").lower() != sha:
+        raise TriadV3Required("TRIAD_V3_REQUIRED: frozen_to does not match content SHA-256")
+    try:
+        if abs(float(triad["combined"]) - float(triad["triad_cycle_mean"])) >= 0.0002:
+            raise TriadV3Required("TRIAD_V3_REQUIRED: combined is not cycle mean")
+    except (TypeError, ValueError) as e:
+        raise TriadV3Required("TRIAD_V3_REQUIRED: combined is not cycle mean") from e
+    return True
+
 def triad_composite(*, spre=None, clce=None, plr=None, bayesian=None, truth_formula=None, applicability=None, content_sha256=None):
     flags = applicability if isinstance(applicability, dict) else None
     if flags is None:

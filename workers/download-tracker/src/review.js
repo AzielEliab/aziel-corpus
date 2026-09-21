@@ -464,6 +464,36 @@ export function isTriadFrozen(triad) {
   return triad.triad_raw != null && /^[0-9a-f]{64}$/.test(sha);
 }
 
+/** Ingest/persist refuse: a published score must be TRIAD_V3 36-cycle. */
+export function assertTriadV3(review, contentSha256) {
+  const fail = (why) => {
+    const err = new Error("TRIAD_V3_REQUIRED: " + why);
+    err.code = "TRIAD_V3_REQUIRED";
+    err.status = 422;
+    throw err;
+  };
+  if (!review) fail("missing review");
+  const triad = review.triad;
+  if (!triad) fail("missing triad");
+  if (triad.schema !== TRIAD_SCHEMA) fail("schema " + (triad.schema || "none"));
+  if (triad.collection_offset) fail("collection offset is deleted");
+  if (!triad.ready) {
+    if (triad.combined != null) fail("unready triad cannot publish combined");
+    return false;
+  }
+  if (triad.combined == null || triad.triad_cycle_mean == null) fail("cycle mean missing");
+  if (triad.public_score && triad.public_score !== "triad_cycle_mean") fail("public_score is not triad_cycle_mean");
+  if (triad.triad_raw == null || !triad.frozen_to) fail("triad_raw not frozen");
+  const sha = String(contentSha256 || "").trim().toLowerCase();
+  if (sha && /^[0-9a-f]{64}$/.test(sha) && String(triad.frozen_to).toLowerCase() !== sha) {
+    fail("frozen_to does not match content SHA-256");
+  }
+  if (Math.abs(Number(triad.combined) - Number(triad.triad_cycle_mean)) >= 0.0002) {
+    fail("combined is not cycle mean");
+  }
+  return true;
+}
+
 export function triadComposite({ spre, clce, plr, bayesian, truth_formula, applicability, content_sha256 } = {}) {
   const heritage = !(applicability && typeof applicability === "object");
   const flags = heritage

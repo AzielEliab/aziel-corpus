@@ -6,7 +6,7 @@ Library: https://www.azielcorpuslibrary.net/
 Human guide. HTML explainer: https://www.azielcorpuslibrary.net/how-its-scored
 
 ## Triad (always)
-Every scored record publishes a triad first. TRIAD_V3 public combined is the 36-cycle mean: mean of all ordered pairings factor_i × factor_j among applicable factors of physics, linguistics, bayesian, truth_formula, CLCE, SPRE (36 when all six apply). geometric_mean_applicable of SPRE/CLCE/PLR is stored beside it. Display is round(combined × 100) and is never written back into combined. triad_raw freezes to the content SHA-256 at first REVIEW_SCORE. API: https://www.azielcorpuslibrary.net/v1/review?record_id=
+Every scored record publishes a triad first. TRIAD_V3 public combined is the 36-cycle mean: mean of all ordered pairings factor_i × factor_j among applicable factors of physics, linguistics, bayesian, truth_formula, CLCE, SPRE (36 when all six apply). geometric_mean_applicable of SPRE/CLCE/PLR is stored beside it. Display is round(combined × 100) and is never written back into combined. triad_raw freezes to the content SHA-256 at first REVIEW_SCORE. Ingest always runs V3. Stored papers remint at https://www.azielcorpuslibrary.net/v1/recalibrate-all. API: https://www.azielcorpuslibrary.net/v1/review?record_id=
 
 ## Component scores (when they apply)
 SPRE, CLCE, and PhysLing stay stored for audit. They appear on the record page and cite when they apply to the document's concept. N/A components are omitted (never shown as 0).

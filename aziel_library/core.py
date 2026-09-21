@@ -10,7 +10,7 @@ from .exporters import write_xlsx, write_pdf
 from .gazetteer import WorldGazetteer
 
 from .historical_geo import HistoricalGeography
-from .review import review_document, verify_bytes, lattice_anchor_tip, triad_composite, collection_triad, triad_coverage_points, poison_scan, is_triad_frozen, TRIAD_SCHEMA
+from .review import review_document, verify_bytes, lattice_anchor_tip, triad_composite, collection_triad, triad_coverage_points, poison_scan, is_triad_frozen, TRIAD_SCHEMA, assert_triad_v3
 from .lattice_learn import (
     apply_pin_from_upload, HASHCHAIN_LEARN_LAW, verify_chain_walk, poison_feature_receipt,
     match_learned_poison, load_poison_features, append_poison_learn, load_learn_stamps,
@@ -690,6 +690,7 @@ class AzielLibrary:
         raw=Path(stored).read_bytes() if Path(stored).is_file() else (text or '').encode()
         structure=verify_bytes(raw, filename)
         review=review_document(title=Path(filename).stem, body=text, filename=filename, sha256=digest, author='Aziel Eliab', library=library, structure=structure, coverage=coverage)
+        assert_triad_v3(review, digest)
         struct_payload={'record_id':record_id,'sha256':digest,'event':event,'ok':structure['ok'],'file_count':len(structure.get('files') or []),'errors':structure.get('errors') or []}
         entry=self._ledger('STRUCTURE_VERIFY',struct_payload)
         self._document_ledger(record_id,'STRUCTURE_VERIFY',struct_payload)
@@ -824,7 +825,7 @@ class AzielLibrary:
         sha=str(rec.get('sha256') or rec.get('content_sha256') or '').strip().lower()
         if sha and len(sha)==64 and triad.get('frozen_to')!=sha: return False
         return True
-    def backfill_reviews(self, *, limit=50, force=False, record_id=None, all_records=False):
+    def backfill_reviews(self, *, limit=50, force=False, record_id=None, all_records=False, event='verify_backfill'):
         self._assert_writable()
         try: succ=self.backfill_succession()
         except Exception: succ={'linked':0}
@@ -858,14 +859,21 @@ class AzielLibrary:
                     skipped+=1
                     results.append({'record_id':rec['record_id'],'skipped':True,'reason':'already fully scored'})
                     continue
-                review=self._apply_ingest_review(rec['record_id'], self.root/rec['stored_path'], rec['original_name'], rec.get('extracted_text') or '', rec.get('sha256') or '', library='aziel', event='verify_backfill')
+                review=self._apply_ingest_review(rec['record_id'], self.root/rec['stored_path'], rec['original_name'], rec.get('extracted_text') or '', rec.get('sha256') or '', library='aziel', event=event or 'verify_backfill')
                 processed+=1
                 rec2=self.get_record(rec['record_id'])
                 results.append({'record_id':rec['record_id'],'skipped':False,'triad_combined':(review.get('triad') or {}).get('combined'),'zsolver_score':(rec2.get('zsolver') or {}).get('capped_confidence'),'zsolver_status':(rec2.get('zsolver') or {}).get('status'),'quarantine_status':review.get('quarantine_status')})
             except Exception as e:
                 failed+=1
                 results.append({'record_id':raw.get('record_id'),'failed':True,'error':str(e)[:200]})
-        return {'ok':True,'force':bool(force),'all':bool(all_records),'total':total,'scored':processed,'processed':processed,'skipped':skipped,'failed':failed,'succession_linked':succ.get('linked',0),'results':results}
+        return {'ok':True,'force':bool(force),'all':bool(all_records),'job':event or 'verify_backfill','schema':TRIAD_SCHEMA,'total':total,'scored':processed,'processed':processed,'skipped':skipped,'failed':failed,'succession_linked':succ.get('linked',0),'results':results}
+    def recalibrate_all(self, *, force=False, record_id=None):
+        """One-shot TRIAD V3 remint of every stored paper against content SHA-256.
+
+        Skips papers already frozen as aziel.triad.v3 to the current hash unless force=True.
+        N/A factors omit. No collection offset. Downloads still do not remint.
+        """
+        return self.backfill_reviews(all_records=True, force=force, record_id=record_id, event='recalibrate_v3')
     def note_download(self, record_id):
         rec=self.get_record(record_id)
         payload={'record_id':record_id,'sha256':rec.get('sha256'),'filename':rec.get('original_name'),'quarantine_status':rec.get('quarantine_status') or 'CLEAR'}

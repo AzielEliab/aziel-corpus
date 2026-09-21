@@ -4,7 +4,7 @@
  */
 import { randomBytes } from "node:crypto";
 import { appendLedger, appendDocumentLedger, ensureLedger, hashPayload, isDocumentId } from "./ledger.js";
-import { reviewDocument, TRIAD_SCHEMA, publicizeReview, isTriadFrozen } from "./review.js";
+import { reviewDocument, TRIAD_SCHEMA, publicizeReview, isTriadFrozen, assertTriadV3 } from "./review.js";
 import { verifyBytes, verifyTextRecord, sha256hex } from "./structure.js";
 import { latticeAnchorTip } from "./lattice.js";
 import { appendPoisonLearn, HASHCHAIN_LEARN_LAW } from "./lattice-learn.js";
@@ -41,6 +41,16 @@ export const SHELF_SYNC_CHUNK_MAX = 50;
 export const SHELF_SYNC_MS = 12000;
 /** Rebuild HTTP path: tip chunk only. Packed refresh is deferred to waitUntil. */
 export const SHELF_REBUILD_MS = 4000;
+/** One-shot TRIAD V3 remint of stored papers. Separate from full_backfill so a prior V2 done flag cannot skip the shelf. */
+export const RECALIBRATE_V3_CURSOR_KEY = "recalibrate_v3_cursor";
+export const RECALIBRATE_V3_DONE_KEY = "recalibrate_v3_done_utc";
+export const RECALIBRATE_V3_STATS_KEY = "recalibrate_v3_stats";
+export const RECALIBRATE_V3_EVENT = "recalibrate_v3";
+
+const SCORE_WALK_KEYS = {
+  full_backfill: { cursor: "full_backfill_cursor", done: "full_backfill_done_utc", stats: "full_backfill_stats", event: "full_backfill" },
+  recalibrate_v3: { cursor: RECALIBRATE_V3_CURSOR_KEY, done: RECALIBRATE_V3_DONE_KEY, stats: RECALIBRATE_V3_STATS_KEY, event: RECALIBRATE_V3_EVENT },
+};
 
 export async function ensureReviewSchema(env) {
   if (!env || !env.DB) return;
@@ -143,6 +153,13 @@ export async function runReviewBundle({ title, body, filename, contentType, sha2
 
 export async function persistReview(env, { recordId, library, sha256, title, createdBy, event, structure, review, zsolver }) {
   await ensureReviewSchema(env);
+  if (!review || !review.triad) {
+    const err = new Error("TRIAD_V3_REQUIRED: missing triad");
+    err.code = "TRIAD_V3_REQUIRED";
+    err.status = 422;
+    throw err;
+  }
+  assertTriadV3(review, sha256);
   const when = new Date().toISOString();
   const qStatus = review.quarantine_status || "CLEAR";
   const reviewJson = JSON.stringify(review);
@@ -429,7 +446,7 @@ export function storedTriadMatches(row, review, coverage) {
 
 export { publicizeReview };
 
-export async function backfillReviews(env, { limit = 25, force = false, recordId = null } = {}) {
+export async function backfillReviews(env, { limit = 25, force = false, recordId = null, event = "verify_backfill" } = {}) {
   await ensureReviewSchema(env);
   const cap = Math.min(Math.max(Number(limit) || 25, 1), 50);
   let rows = [];
@@ -494,8 +511,8 @@ export async function backfillReviews(env, { limit = 25, force = false, recordId
       sha256: row.content_sha256,
       author: row.author,
       bytes,
-      createdBy: "verify-backfill",
-      event: "verify_backfill",
+      createdBy: event === RECALIBRATE_V3_EVENT ? "recalibrate-all" : "verify-backfill",
+      event: event || "verify_backfill",
       liveClce: false,
       coverage,
     });
@@ -537,7 +554,7 @@ async function countRecords(env) {
   } catch { return 0; }
 }
 
-export async function backfillOneRecord(env, row, { force = false } = {}) {
+export async function backfillOneRecord(env, row, { force = false, event = "full_backfill" } = {}) {
   const existing = await parseReviewJson(row.review_json);
   try { await applySuccessionForRecord(env, row); } catch { /* exact match only */ }
   const coverage = await successionCoverageFor(env, row.record_id);
@@ -586,8 +603,8 @@ export async function backfillOneRecord(env, row, { force = false } = {}) {
       sha256: row.content_sha256,
       author: row.author,
       bytes,
-      createdBy: "full-backfill",
-      event: "full_backfill",
+      createdBy: event === RECALIBRATE_V3_EVENT ? "recalibrate-all" : "full-backfill",
+      event: event || "full_backfill",
       liveClce: false,
       coverage,
     });
@@ -617,11 +634,12 @@ export async function backfillOneRecord(env, row, { force = false } = {}) {
   };
 }
 
-export async function continueFullBackfill(env, { ms = 18000, force = false, all = false, background = false } = {}) {
+export async function continueFullBackfill(env, { ms = 18000, force = false, all = false, background = false, job = "full_backfill" } = {}) {
   await ensureReviewSchema(env);
+  const keys = SCORE_WALK_KEYS[job] || SCORE_WALK_KEYS.full_backfill;
   const started = Date.now();
   const total = await countRecords(env);
-  const stats = { ok: true, total, scored: 0, skipped: 0, failed: 0, succession_linked: 0, zsolver_queue: null, done: false, cursor: "" };
+  const stats = { ok: true, job: job === "recalibrate_v3" ? "recalibrate_v3" : "full_backfill", total, scored: 0, skipped: 0, failed: 0, succession_linked: 0, zsolver_queue: null, done: false, cursor: "", schema: TRIAD_SCHEMA };
   try {
     const succ = await maybeBackfillSuccession(env);
     if (succ && succ.linked != null) stats.succession_linked = succ.linked;
@@ -633,8 +651,8 @@ export async function continueFullBackfill(env, { ms = 18000, force = false, all
     }
   } catch { /* succession best-effort */ }
   try { stats.zsolver_queue = await drainZsolverQueue(env, { limit: background ? 2 : 15 }); } catch { /* */ }
-  let cursor = await metaGet(env, "full_backfill_cursor");
-  const doneFlag = await metaGet(env, "full_backfill_done_utc");
+  let cursor = await metaGet(env, keys.cursor);
+  const doneFlag = await metaGet(env, keys.done);
   if (doneFlag && !force && !all) {
     stats.done = true;
     stats.cursor = cursor;
@@ -655,7 +673,7 @@ export async function continueFullBackfill(env, { ms = 18000, force = false, all
   }
   if (force) {
     cursor = "";
-    await metaSet(env, "full_backfill_done_utc", "");
+    await metaSet(env, keys.done, "");
   }
   while (all || Date.now() - started < ms) {
     let batch = [];
@@ -680,14 +698,14 @@ export async function continueFullBackfill(env, { ms = 18000, force = false, all
     }
     if (!batch.length) {
       stats.done = true;
-      await metaSet(env, "full_backfill_done_utc", new Date().toISOString());
-      await metaSet(env, "full_backfill_cursor", "");
-      await metaSet(env, "full_backfill_stats", JSON.stringify(stats));
+      await metaSet(env, keys.done, new Date().toISOString());
+      await metaSet(env, keys.cursor, "");
+      await metaSet(env, keys.stats, JSON.stringify(stats));
       break;
     }
     for (const row of batch) {
       try {
-        const one = await backfillOneRecord(env, row, { force });
+        const one = await backfillOneRecord(env, row, { force, event: keys.event });
         if (one.skipped) stats.skipped += 1;
         else stats.scored += 1;
       } catch {
@@ -697,8 +715,8 @@ export async function continueFullBackfill(env, { ms = 18000, force = false, all
       stats.cursor = cursor;
       if (!all && Date.now() - started >= ms) break;
     }
-    await metaSet(env, "full_backfill_cursor", cursor);
-    await metaSet(env, "full_backfill_stats", JSON.stringify({ ...stats, updated_utc: new Date().toISOString() }));
+    await metaSet(env, keys.cursor, cursor);
+    await metaSet(env, keys.stats, JSON.stringify({ ...stats, updated_utc: new Date().toISOString() }));
     if (!all && Date.now() - started >= ms) break;
   }
   try {
@@ -711,6 +729,31 @@ export async function continueFullBackfill(env, { ms = 18000, force = false, all
     });
   } catch { stats.shelf = null; }
   return stats;
+}
+
+/** Force-walk every stored paper through TRIAD_V3. Own cursor so a prior V2 backfill-done cannot skip the shelf. */
+export async function continueRecalibrateAll(env, opts = {}) {
+  return continueFullBackfill(env, { ...opts, job: "recalibrate_v3" });
+}
+
+export async function recalibrateAllStatus(env) {
+  const total = await countRecords(env);
+  const done = await metaGet(env, RECALIBRATE_V3_DONE_KEY);
+  const cursor = await metaGet(env, RECALIBRATE_V3_CURSOR_KEY);
+  let stats = null;
+  try { stats = JSON.parse(await metaGet(env, RECALIBRATE_V3_STATS_KEY) || "null"); } catch { stats = null; }
+  return {
+    ok: true,
+    job: "recalibrate_v3",
+    schema: TRIAD_SCHEMA,
+    total,
+    done: !!done,
+    done_utc: done || null,
+    cursor: cursor || "",
+    stats,
+    trigger: "GET /v1/recalibrate-all  (repeat ?all=1 until done:true). Alias GET /v1/verify-backfill?recalibrate=1. Local: aziel-library recalibrate-all / python3 tools/recalibrate_all.py",
+    note: "Remints stored papers that are not TRIAD_V3 frozen to content SHA-256. force=1 remints even already-V3. Ingest always runs V3. N/A factors omit. Softwares / Live Nodes / SPORE untouched.",
+  };
 }
 
 export async function fullBackfillStatus(env) {

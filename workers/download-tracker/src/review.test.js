@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { clceScore, spreScore, physLingReview, poisonScan, bayesianPosterior, reviewDocument, triadComposite, triadCoveragePoints } from "./review.js";
+import { clceScore, spreScore, physLingReview, poisonScan, bayesianPosterior, reviewDocument, triadComposite, triadCoveragePoints, assertTriadV3 } from "./review.js";
 import { deriveZsolverAnswers, localZsolverScore } from "./zsolver.js";
 import { proposeAllLinks, titleLineageCore, subjectKey } from "./succession.js";
 import { verifyBytes, verifyTextRecord, sha256hex } from "./structure.js";
@@ -303,6 +303,25 @@ test("fully scored rows skip backfill unless forced", () => {
   });
   assert.equal(isFullyScored({ triad_combined: review.triad.combined }, review), true);
   assert.equal(isFullyScored({ triad_combined: null }, { spre: {}, clce: {}, plr: {}, triad: { ready: false } }), false);
+  const v2 = { spre: {}, clce: {}, plr: {}, triad: { schema: "aziel.triad.v2", ready: true, combined: 0.8, triad_raw: 0.8, frozen_to: "b".repeat(64) } };
+  assert.equal(isFullyScored({ triad_combined: 0.8, content_sha256: "b".repeat(64) }, v2), false);
+});
+
+test("assertTriadV3 is the ingest gate — no published score except V3 cycle mean", () => {
+  const review = reviewDocument({
+    title: "Lab note",
+    body: "Independent primary source measurement of 12 joules at 3 kelvin. Archive hash recorded.",
+    filename: "note.txt",
+    sha256: "b".repeat(64),
+    author: "Aziel Eliab",
+    library: "corpus",
+    structure: { ok: true, files: [{ path: "note.txt", bytes: 20, sha256: "b".repeat(64) }] },
+  });
+  assert.equal(assertTriadV3(review, "b".repeat(64)), true);
+  assert.throws(() => assertTriadV3({ triad: { schema: "aziel.triad.v2", ready: true, combined: 0.5, triad_cycle_mean: 0.5, triad_raw: 0.5, frozen_to: "b".repeat(64) } }), /TRIAD_V3_REQUIRED/);
+  assert.throws(() => assertTriadV3({ triad: { schema: "aziel.triad.v3", ready: true, combined: 0.5, triad_cycle_mean: 0.5 } }), /TRIAD_V3_REQUIRED/);
+  assert.throws(() => assertTriadV3({ triad: { schema: "aziel.triad.v3", ready: true, combined: 0.9, triad_cycle_mean: 0.5, triad_raw: 0.9, frozen_to: "b".repeat(64), public_score: "triad_cycle_mean" } }), /cycle mean/);
+  assert.equal(assertTriadV3({ triad: { schema: "aziel.triad.v3", ready: false, combined: null, collection_offset: 0 } }), false);
 });
 
 test("Jeeves refuses score forgery and operator secrets", () => {
