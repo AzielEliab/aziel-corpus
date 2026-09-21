@@ -140,7 +140,7 @@ test("homepage brandrow is Aziel Corpus Library with Upload, Login, and Sign up"
     views: 380386,
     downloads: 2199,
     host: "https://www.azielcorpuslibrary.net",
-  }), { path: "/", kind: "search", views: 380386, downloads: 2199 });
+  }), { path: "/", kind: "search", views: 380386, downloads: 2199, nodes: 28032, liveNodes: 0 });
   assert.match(html, /class="sitehead"/);
   assert.match(html, /class="brandrow/);
   assert.match(html, /class="brandmark-link sigil-nav-btn"/);
@@ -157,13 +157,18 @@ test("homepage brandrow is Aziel Corpus Library with Upload, Login, and Sign up"
   const bar = html.match(/<div class="statbar"[^>]*>[\s\S]*?<\/div>/)[0];
   assert.match(bar, /id="views">380,386</);
   assert.match(bar, /id="downloads">2,199</);
+  assert.match(bar, /id="nodes">28,032</);
+  assert.match(bar, /id="livenodes">0</);
   assert.match(bar, />Views</);
   assert.match(bar, />Downloads</);
+  assert.match(bar, />Nodes</);
   assert.match(bar, /class="pill stat-counter"/);
+  assert.match(bar, /class="stat-slash"/);
   assert.doesNotMatch(bar, /<a /);
   assert.doesNotMatch(bar, /<button/);
   assert.doesNotMatch(bar, /href=/);
   assert.doesNotMatch(bar, /class="button"/);
+  assert.doesNotMatch(bar, /41/);
   assert.doesNotMatch(html, /id="aziel-live-nodes"/);
   assert.doesNotMatch(html, /anyone can view/);
   assert.doesNotMatch(html, /Runtime v/);
@@ -178,30 +183,39 @@ test("homepage brandrow is Aziel Corpus Library with Upload, Login, and Sign up"
   assert.match(CSS, /\.authbar\{/);
   assert.match(CSS, /\.statbar\{/);
   assert.match(CSS, /\.stat-counter\{/);
+  assert.match(CSS, /\.stat-slash\{/);
 });
 
 test("homepage views/downloads counter is a display, not a button", () => {
-  const pills = brandCountPills({ views: 380386, downloads: 2199 });
+  const pills = brandCountPills({ views: 380386, downloads: 2199, nodes: 28032, liveNodes: 0 });
   assert.match(pills, /class="statbar"/);
   assert.match(pills, /role="status"/);
-  assert.match(pills, /aria-label="Library views and downloads"/);
+  assert.match(pills, /aria-label="Library views, downloads, and Nodes\/Live Nodes"/);
   assert.match(pills, /id="views">380,386</);
   assert.match(pills, /id="downloads">2,199</);
+  assert.match(pills, /id="nodes">28,032</);
+  assert.match(pills, /id="livenodes">0</);
   assert.match(pills, /Views/);
   assert.match(pills, /Downloads/);
+  assert.match(pills, /Nodes/);
   assert.match(pills, /class="stat-sep"/);
+  assert.match(pills, /class="stat-slash"/);
   assert.doesNotMatch(pills, /<a /);
   assert.doesNotMatch(pills, /<button/);
   assert.doesNotMatch(pills, /href=/);
   assert.doesNotMatch(pills, /class="button"/);
   assert.doesNotMatch(pills, /id="aziel-live-nodes"/);
+  assert.doesNotMatch(pills, /software_nodes/);
   assert.equal(brandCountPills({}), "");
   assert.match(brandCountPills({ views: 0, downloads: 0 }), /id="views">0</);
+  assert.match(brandCountPills({ views: 0, downloads: 0 }), /id="nodes">0</);
+  assert.match(brandCountPills({ views: 0, downloads: 0 }), /id="livenodes">0</);
   const other = page("Software", softwareBody({
     products: [{ name: "aziel-runtime", version: "catalog", root: true, blurb: "Root source", links: [{ href: "/runtime", label: "Site front door", primary: true }] }],
   }), { path: "/software", kind: "software", views: 9, downloads: 2 });
   assert.doesNotMatch(other, /id="views"/);
   assert.doesNotMatch(other, /id="downloads"/);
+  assert.doesNotMatch(other, /id="nodes"/);
   assert.doesNotMatch(other, /class="statbar"/);
 });
 
@@ -255,8 +269,14 @@ test("homepage LCP fold keeps hero first and leaves entity-graph plus doors inta
   assert.match(html, /fetchpriority="high"/);
   assert.match(html, /id="views">12</);
   assert.match(html, /id="downloads">3</);
+  assert.match(html, /id="nodes">0</);
+  assert.match(html, /id="livenodes">0</);
   assert.match(html, /class="statbar"/);
+  assert.match(html, /fetch\("\/v1\/mesh"/);
+  assert.match(html, /fetch\("\/v1\/stats"/);
   assert.doesNotMatch(html, /id="aziel-live-nodes"/);
+  assert.doesNotMatch(html, /nodes&&d.nodes.length/);
+  assert.doesNotMatch(html, /j\.nodes\.length/);
   assert.match(html, /id="jeevesFab"/);
   assert.match(html, /"@type":"CollectionPage"/);
   assert.match(html, /"@id":"https:\/\/www\.azieleliab\.com\/#aziel"/);

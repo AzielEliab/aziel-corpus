@@ -2,6 +2,7 @@ import { handleRuntimeApi, corsHeaders, json, LIMITATION } from "./runtime.js";
 import { handleRuntimeRoot } from "./runtime-root.js";
 import { handleAuth, getSession } from "./auth.js";
 import { page, homeBody, homeSearchActive, streamLcpHtml } from "./ui.js";
+import { peekMeshDualCounts } from "./mesh.js";
 import { handleHosted } from "./hosted.js";
 import { robotsTxt, sitemapXml, sitemapIndexXml, sitemapRecordsXml, citeDoc, llmsDoc, aiTxt, humansTxt, mcpDiscovery, isReadMethod, crawlResponse, MIME } from "./crawl.js";
 import { helpRouteBody } from "./help.js";
@@ -351,11 +352,12 @@ async function indexHtml(env, request, signed) {
   const searching = homeSearchActive(browse);
   const held = String(url.searchParams.get("received") || "") === "held";
   const statsP = collectStats(env);
+  const meshP = peekMeshDualCounts(env);
   const rowsP = searching
     ? searchRecords(env, { q: browse.q, library: browse.lib, sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300 })
     : Promise.resolve([]);
   const signedP = signed !== undefined ? Promise.resolve(signed) : getSession(env, request);
-  const [stats, rows, session] = await Promise.all([statsP, rowsP, signedP]);
+  const [stats, rows, session, mesh] = await Promise.all([statsP, rowsP, signedP, meshP]);
   const error = held
     ? "Received. Safety review held this file off the public shelf. It is not deleted."
     : "";
@@ -369,7 +371,7 @@ async function indexHtml(env, request, signed) {
     records_aziel: stats.records_aziel,
     records_corpus: stats.records_corpus,
     host: HOST,
-  }), { signed: session, path: "/", kind: "search", views: stats.views || 0, downloads: stats.downloads || 0, donateStrip: false, ecosystem: false });
+  }), { signed: session, path: "/", kind: "search", views: stats.views || 0, downloads: stats.downloads || 0, nodes: mesh.nodes, liveNodes: mesh.liveNodes, donateStrip: false, ecosystem: false });
 }
 
 function llmsTxt() {
