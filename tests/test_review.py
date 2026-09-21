@@ -6,7 +6,7 @@ if str(ROOT) not in sys.path: sys.path.insert(0,str(ROOT))
 from aziel_library.review import (
     clce_score, spre_score, physling_review, poison_scan, bayesian_posterior,
     review_document, verify_bytes, lattice_anchor_tip, review_file, triad_composite,
-    triad_coverage_points,
+    triad_coverage_points, assert_triad_v3, TriadV3Required,
 )
 from aziel_library.lattice_learn import (
     possibility_score, poison_feature_receipt, match_learned_poison, verify_chain_walk,
@@ -46,6 +46,9 @@ class ReviewEngineTest(unittest.TestCase):
         self.assertTrue(b['unranked'])
         self.assertIsNone(b['sort_key'])
         self.assertGreater(b['posterior'],0.5)
+        self.assertEqual(b.get('kind'),'LIKELIHOOD')
+        self.assertEqual(b.get('of'),'internal_consistency')
+        self.assertTrue(b.get('not_truth'))
     def test_evidence_note_clear(self):
         r=review_document(title='Lab note',body='Independent primary source measurement of 12 joules at 3 kelvin. Archive hash recorded.',filename='note.txt',sha256='b'*64,author='Aziel Eliab',library='corpus',structure={'ok':True,'files':[{'path':'note.txt'}]})
         self.assertEqual(r['quarantine_status'],'CLEAR')
@@ -53,12 +56,28 @@ class ReviewEngineTest(unittest.TestCase):
         self.assertTrue(r['triad']['ready'])
         self.assertTrue(r['triad']['primary_visible'])
         self.assertGreater(r['triad']['combined'],0)
-    def test_triad_geometric_mean(self):
+        self.assertEqual(r['triad']['schema'],'aziel.triad.v3')
+        self.assertEqual(r['triad']['pairing_count'],36)
+        self.assertEqual(r['triad']['frozen_to'],'b'*64)
+        self.assertEqual(r['triad']['triad_raw'],r['triad']['combined'])
+        self.assertEqual(r['bayesian']['kind'],'LIKELIHOOD')
+        self.assertNotIn('b'*64, json.dumps(r['clce']))
+        self.assertEqual(r['clce']['public_term'],'structural_match')
+        self.assertGreaterEqual(r['clce']['structural'],0.7)
+        self.assertEqual(r['plr']['linguistic_neutrality'],1.0)
+    def test_triad_cycle_mean_and_geometric(self):
         t=triad_composite(spre={'pc':0.64},clce={'triple':0.8,'pairwise_avg':0.4},plr={'physics_coherence':1,'linguistic_neutrality':1})
         self.assertTrue(t['ready'])
+        self.assertEqual(t['schema'],'aziel.triad.v3')
         self.assertEqual(t['components']['clce_consistency'],0.8)
-        expected=(0.64*0.8*1)**(1/3)
-        self.assertAlmostEqual(t['combined'],round(expected,4))
+        cycle=((1+1+0.8+0.64)**2)/16
+        geo=(0.64*0.8*1)**(1/3)
+        self.assertAlmostEqual(t['combined'],round(cycle,4))
+        self.assertAlmostEqual(t['triad_cycle_mean'],round(cycle,4))
+        self.assertAlmostEqual(t['geometric_mean_applicable'],round(geo,4))
+        self.assertEqual(t['axis_products']['physics_linguistics'],1.0)
+        self.assertEqual(t['axis_products']['clce_spre'],round(0.8*0.64,4))
+        self.assertEqual(t['collection_offset'],0)
     def test_triad_not_ready_until_three(self):
         t=triad_composite(spre={'pc':0.5})
         self.assertFalse(t['ready'])
@@ -71,10 +90,18 @@ class ReviewEngineTest(unittest.TestCase):
         self.assertTrue(aziel['triad']['ready'])
         self.assertEqual(aziel['triad']['components'], corpus['triad']['components'])
         self.assertEqual(sorted(aziel['triad'].keys()), sorted(corpus['triad'].keys()))
-        self.assertEqual(aziel['triad']['display'], min(100, corpus['triad']['display']+25))
-        self.assertEqual(aziel['triad']['combined'], round(aziel['triad']['display']/100, 4))
+        self.assertEqual(aziel['triad']['display'], corpus['triad']['display'])
+        self.assertEqual(aziel['triad']['combined'], corpus['triad']['combined'])
+        self.assertEqual(aziel['triad']['triad_raw'], corpus['triad']['triad_raw'])
+        self.assertEqual(aziel['triad']['combined'], aziel['triad']['triad_cycle_mean'])
         dumped=json.dumps(aziel)
         self.assertNotRegex(dumped, r'boost|quiet|\+25')
+        self.assertTrue(assert_triad_v3(aziel, 'b'*64))
+        with self.assertRaises(TriadV3Required):
+            assert_triad_v3({'triad':{'schema':'aziel.triad.v2','ready':True,'combined':0.5,'triad_cycle_mean':0.5,'triad_raw':0.5,'frozen_to':'b'*64}})
+        with self.assertRaises(TriadV3Required):
+            assert_triad_v3({'triad':{'schema':'aziel.triad.v3','ready':True,'combined':0.5,'triad_cycle_mean':0.5}})
+        self.assertFalse(assert_triad_v3({'triad':{'schema':'aziel.triad.v3','ready':False,'combined':None,'collection_offset':0}}))
     def test_succession_requires_exact_subject_and_title_lineage(self):
         a={'record_id':'AZDOC-A','title':'A Treatise on Gravity Measurement','subjects':'Physics','created_utc':'2026-01-01','content_sha256':'a'*64}
         b={'record_id':'AZDOC-B','title':'A Treatise on Gravity Measurement (Revised)','subjects':'Physics','created_utc':'2026-02-01','content_sha256':'b'*64}
@@ -203,6 +230,25 @@ class ReviewVaultTest(unittest.TestCase):
         report=v.backfill_reviews(all_records=True)
         self.assertEqual(report['total'], report['scored']+report['skipped']+report['failed'])
         self.assertIn('scored',report)
+        smashed=v.get_record(rec['record_id'])
+        with v._write_lock, v._connect() as c:
+            row=c.execute('SELECT metadata_json FROM records WHERE record_id=?',(smashed['record_id'],)).fetchone()
+            md=json.loads(row['metadata_json'] if row else '{}')
+            md['aziel_review']=dict(md.get('aziel_review') or smashed.get('review') or {})
+            md['aziel_review']['triad']={'schema':'aziel.triad.v2','ready':True,'combined':0.5,'display':75,'triad_raw':0.5,'frozen_to':smashed['sha256']}
+            md['triad_combined']=0.5
+            c.execute('UPDATE records SET metadata_json=? WHERE record_id=?',(json.dumps(md),smashed['record_id']))
+        remint=v.recalibrate_all()
+        self.assertEqual(remint['job'],'recalibrate_v3')
+        self.assertGreaterEqual(remint['scored'],1)
+        fresh=v.get_record(smashed['record_id'])
+        self.assertEqual(fresh['review']['triad']['schema'],'aziel.triad.v3')
+        self.assertEqual(fresh['review']['triad']['frozen_to'],fresh['sha256'])
+        self.assertEqual(fresh['review']['triad']['combined'],fresh['review']['triad']['triad_cycle_mean'])
+        self.assertEqual(fresh['review']['triad']['collection_offset'],0)
+        self.assertTrue(assert_triad_v3(fresh['review'], fresh['sha256']))
+        again=v.recalibrate_all()
+        self.assertGreaterEqual(again['skipped'],1)
         j=jeeves_chat(v,'joules measurement')
         self.assertTrue(j['ok'])
         self.assertFalse(j['refused'])

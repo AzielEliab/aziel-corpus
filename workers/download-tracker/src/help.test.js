@@ -55,7 +55,7 @@ test("help txt stays affirmative and points at scores, records, upload, Software
   assert.match(index, /\/upload/);
   assert.match(index, /triad is always/);
   assert.match(index, /Find records/);
-  assert.match(index, /TRIAD_V2/);
+  assert.match(index, /TRIAD_V3/);
   assert.match(index, /never shown as 0/);
   assert.match(index, /\/record\/\{AZDOC/);
   assert.match(index, /\/llms\.txt/);
@@ -65,7 +65,7 @@ test("help txt stays affirmative and points at scores, records, upload, Software
   assert.match(addendum, /\/upload/);
   assert.match(addendum, /\/software/);
   assert.match(addendum, /\/llms\.txt/);
-  assert.match(scores, /TRIAD_V2|triad/);
+  assert.match(scores, /TRIAD_V3|triad/);
   assert.match(scores, /SPRE/);
   assert.match(scores, /when they apply|N\/A components/);
   assert.match(scores, /how-its-scored/);

@@ -17,9 +17,10 @@ After a successful upload the record is immediately findable at:
 Those machine surfaces are built from the live metadata and packed index. A new upload
 is live from metadata immediately.
 
-Scoring runs on ingest. The triad is always computed and shown when scoring finishes.
-SPRE, CLCE, and PhysLing are published when they apply to the filed concept.
+Scoring runs on ingest through TRIAD V3 only. A paper does not publish a score on any other path.
+SPRE, CLCE, PhysLing, and Truth Formula are published when they apply to the filed concept.
 N/A components are omitted (never shown as 0).
+Stored papers remint at https://www.azielcorpuslibrary.net/v1/recalibrate-all (repeat ?all=1 until done:true).
 
 Human help: https://www.azielcorpuslibrary.net/help.txt
 How it's scored: https://www.azielcorpuslibrary.net/how-its-scored

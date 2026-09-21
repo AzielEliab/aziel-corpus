@@ -12,7 +12,7 @@ import { continueContentHashRepair, sampleContentHashIntegrity } from "./content
 import { identityRouteBody } from "./identity.js";
 import { fetchLiveSurvival, isSurvivalSeoPath, SURVIVAL_SEO_CACHE_CONTROL } from "./ban-survival.js";
 import { searchRecords, parseBrowseParams, serveFile, serveFileByHash, normalizeContentHash } from "./library.js";
-import { continueFullBackfill } from "./review-store.js";
+import { continueFullBackfill, continueRecalibrateAll } from "./review-store.js";
 import { continueVerifyGeo } from "./geo.js";
 import {
   collectStats,
@@ -45,7 +45,7 @@ import {
 /** Operator walk APIs must not share the isolate with background backfill/geo or a tunnel hop. */
 export function shouldBackgroundWalk(pathname) {
   const path = String(pathname || "").replace(/\/+$/, "") || "/";
-  return path !== "/v1/verify-backfill" && path !== "/v1/verify-geo" && path !== "/v1/metadata-backfill" && path !== "/v1/content-hash-repair";
+  return path !== "/v1/verify-backfill" && path !== "/v1/recalibrate-all" && path !== "/v1/verify-geo" && path !== "/v1/metadata-backfill" && path !== "/v1/content-hash-repair";
 }
 
 /**
@@ -406,6 +406,7 @@ export default {
       await refreshPackedIndex(env).catch(() => null);
       await refreshGithubIntoIndex(env).catch(() => null);
       await continueFullBackfill(env, { ms: 12000, all: false, background: true }).catch(() => null);
+      await continueRecalibrateAll(env, { ms: 12000, all: false, background: true }).catch(() => null);
       await continueMetadataBackfill(env, { ms: 8000, all: false }).catch(() => null);
       await sampleContentHashIntegrity(env, { limit: 8 }).catch(() => null);
       await continueContentHashRepair(env, { ms: 4000, apply: false, all: false }).catch(() => null);
@@ -420,6 +421,7 @@ export default {
     if (ctx && typeof ctx.waitUntil === "function" && shouldBackgroundWalk(earlyPath)) {
       ctx.waitUntil((async () => {
         await continueFullBackfill(env, { ms: 8000, all: false, background: true }).catch(() => null);
+        await continueRecalibrateAll(env, { ms: 8000, all: false, background: true }).catch(() => null);
         await continueMetadataBackfill(env, { ms: 6000, all: false }).catch(() => null);
         await continueVerifyGeo(env, { ms: 8000, force: false }).catch(() => null);
       })());

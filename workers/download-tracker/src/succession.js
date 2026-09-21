@@ -13,7 +13,7 @@
  */
 import { randomBytes } from "node:crypto";
 import { appendLedger, appendDocumentLedger, isDocumentId } from "./ledger.js";
-import { triadComposite, triadCoveragePoints, collectionTriad } from "./review.js";
+import { triadCoveragePoints } from "./review.js";
 import { detectFirstHandPatternBreak, patternBreakContext, scoreZsolverForRecord } from "./zsolver.js";
 
 export const SUCCESSION_SCHEMA = "aziel.succession.v1";
@@ -403,33 +403,8 @@ export async function applyTriadCoverage(env, recordId) {
   if (!row || !row.review_json) return null;
   let review = null;
   try { review = JSON.parse(row.review_json); } catch { return null; }
-  if (!review || !review.spre || !review.clce || !review.plr) return null;
-  const coverage = await successionCoverageFor(env, recordId);
-  const triad = collectionTriad(triadComposite({
-    spre: review.spre,
-    clce: review.clce,
-    plr: review.plr,
-    applicability: review.applicability && review.applicability.flags,
-  }), row.library, coverage);
-  const stored = row.triad_combined != null ? Number(row.triad_combined) : review.triad && review.triad.combined;
-  if (triad.combined != null && stored != null && Number.isFinite(stored) && Math.abs(stored - triad.combined) < 0.0002) {
-    return triad;
-  }
-  review.triad = triad;
-  try {
-    await env.DB.prepare("UPDATE records SET review_json=?, triad_combined=? WHERE record_id=?")
-      .bind(JSON.stringify(review), triad.combined, recordId).run();
-  } catch { /* schema */ }
-  const payload = {
-    record_id: recordId,
-    library: row.library,
-    event: "succession_recalibrate",
-    triad_combined: triad.combined,
-    triad_ready: !!triad.ready,
-  };
-  await appendLedger(env, "REVIEW_SCORE", payload);
-  if (isDocumentId(recordId)) await appendDocumentLedger(env, recordId, "REVIEW_SCORE", payload);
-  return triad;
+  if (!review || !review.triad) return null;
+  return review.triad;
 }
 
 export async function applySuccessionForRecord(env, record, extras) {

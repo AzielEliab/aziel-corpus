@@ -119,19 +119,32 @@ GET `/v1/lattice?record_id=` returns the latest tip. Survival interdependence wi
 
 When **SPRE**, **CLCE**, and **PhysLing** have all verified a record, one combined score is computed and shown first.
 
-**TRIAD_V1 (auditable geometric mean):**
+**TRIAD_V3 (36-cycle mean, public shelf score):**
 
-`combined = (spre_pc × clce_consistency × plr_coherence)^(1/3)`
+`triad_cycle_mean = mean(factor_i × factor_j)` for i,j in {physics, linguistics, bayesian, truth_formula, CLCE, SPRE} (36 pairings when all six apply, including diagonals).
 
-- `clce_consistency` = CLCE.triple if triple ≥ 0.7, else pairwise_avg
-- `plr_coherence` = 0.6×physics_coherence + 0.4×linguistic_neutrality
-- Equal 1/3 engine weight. Epsilon 0.0001 avoids a zero product.
-- Display is `round(combined × 100)`.
-- Components stay stored for audit. Bayesian is **not** in this mean.
+- Public `combined` is the cycle mean. `geometric_mean_applicable = (Π applicable SPRE/CLCE/PLR)^(1/n)` is stored beside it.
+- Named axis products: physics×linguistics, bayesian×truth_formula, CLCE×SPRE.
+- Public CLCE is structural match (claims↔evidence + headings + verified-file). Token Jaccard is audit-only. SHA-256 hex is never layer P.
+- Bayesian is unranked likelihood of internal consistency. Never a shelf sort key.
+- `triad_raw` freezes to content SHA-256 at first REVIEW_SCORE. Downloads verify bytes and do not mint a new mean.
+- No collection offset. Display is `round(combined × 100)` and is never written back into combined.
 
 ## Backfill
 
 `GET /v1/verify-backfill?all=1` walks **every stored Aziel Library and Corpus record** and writes triad, ZionPattern Solver secondary score, and exact-same-subject succession cites. Reports `total`, `scored`, `skipped`, `failed`. Auto-continues on first request after ship and on a minute cron until the cursor is exhausted. Local: `aziel-library backfill-review --all`. Safe to re-run. Skip already fully scored live zsolver + matching triad unless `force=1`. If the live zsolver API is down, the secondary score is queued and retried (not silently omitted).
+
+## TRIAD V3 recalibrate (existing papers)
+
+A prior V2 `full_backfill_done` cannot skip the remint. After this lands, every stored paper is walked through TRIAD V3 against content SHA-256 (`recalibrate_v3_cursor` / `recalibrate_v3_done_utc`). Cron and request-path walks continue that cursor. Operator trigger if you want it now or to watch progress:
+
+- `GET /v1/recalibrate-all` then repeat `GET /v1/recalibrate-all?all=1` until `done:true`
+- `GET /v1/recalibrate-all?status=1` — progress
+- Alias: `GET /v1/verify-backfill?recalibrate=1&all=1`
+- `force=1` remints even already-V3 frozen scores
+- Local vault: `python3 tools/recalibrate_all.py --vault ./aziel_library_data` or `aziel-library recalibrate-all`
+
+Ingest (`POST /ingest`, JSON ingest, Jeeves Add, operator library-ingest) always runs TRIAD V3. Persist refuses a published score that is not the 36-cycle mean frozen to content SHA-256. N/A factors omit. See [docs/TRIAD-V3-RECALIBRATE.md](docs/TRIAD-V3-RECALIBRATE.md).
 
 ## ZionPattern Solver (secondary public score)
 
@@ -194,6 +207,7 @@ Fixed bottom-right research assistant. Drawer, not a full-page takeover. Answers
 - `GET /v1/poison-learn`
 - `GET /v1/pin?record_id=`
 - `GET /v1/verify-backfill`
+- `GET /v1/recalibrate-all` — TRIAD V3 remint of stored papers (post-merge job; repeat `?all=1` until `done:true`)
 - `GET /v1/verify-geo?force=1` / `?status=1` — chunked map pins (paper date × event × geolocation; never upload time)
 - `GET /v1/document-chain?record_id=`
 - `POST /v1/score` — preview only, no write

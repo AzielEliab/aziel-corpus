@@ -444,7 +444,7 @@ test("chrome page for how-its-scored does not leak the quiet triad boost", () =>
   const html = page("How it's scored", howItsScoredBody(), { path: "/how-its-scored", kind: "scored" });
   assert.match(html, /href="\/how-its-scored"/);
   assert.match(html, /SPRE × CLCE × PhysLing|geometric mean/);
-  assert.match(html, /TRIAD_V2|applicable/);
+  assert.match(html, /TRIAD_V3|36-cycle|applicable/);
   assert.match(html, /\/help\.txt/);
   assert.match(html, /intentional suppression confidence/);
   assert.match(html, /AZCoherence/);

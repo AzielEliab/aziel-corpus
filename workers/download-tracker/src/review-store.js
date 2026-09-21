@@ -4,8 +4,7 @@
  */
 import { randomBytes } from "node:crypto";
 import { appendLedger, appendDocumentLedger, ensureLedger, hashPayload, isDocumentId } from "./ledger.js";
-import { reviewDocument, triadComposite, collectionTriad, TRIAD_SCHEMA, publicizeReview } from "./review.js";
-import { classifyComponentApplicability } from "./review-applicability.js";
+import { reviewDocument, TRIAD_SCHEMA, publicizeReview, isTriadFrozen, assertTriadV3 } from "./review.js";
 import { verifyBytes, verifyTextRecord, sha256hex } from "./structure.js";
 import { latticeAnchorTip } from "./lattice.js";
 import { appendPoisonLearn, HASHCHAIN_LEARN_LAW } from "./lattice-learn.js";
@@ -42,6 +41,16 @@ export const SHELF_SYNC_CHUNK_MAX = 50;
 export const SHELF_SYNC_MS = 12000;
 /** Rebuild HTTP path: tip chunk only. Packed refresh is deferred to waitUntil. */
 export const SHELF_REBUILD_MS = 4000;
+/** One-shot TRIAD V3 remint of stored papers. Separate from full_backfill so a prior V2 done flag cannot skip the shelf. */
+export const RECALIBRATE_V3_CURSOR_KEY = "recalibrate_v3_cursor";
+export const RECALIBRATE_V3_DONE_KEY = "recalibrate_v3_done_utc";
+export const RECALIBRATE_V3_STATS_KEY = "recalibrate_v3_stats";
+export const RECALIBRATE_V3_EVENT = "recalibrate_v3";
+
+const SCORE_WALK_KEYS = {
+  full_backfill: { cursor: "full_backfill_cursor", done: "full_backfill_done_utc", stats: "full_backfill_stats", event: "full_backfill" },
+  recalibrate_v3: { cursor: RECALIBRATE_V3_CURSOR_KEY, done: RECALIBRATE_V3_DONE_KEY, stats: RECALIBRATE_V3_STATS_KEY, event: RECALIBRATE_V3_EVENT },
+};
 
 export async function ensureReviewSchema(env) {
   if (!env || !env.DB) return;
@@ -112,9 +121,10 @@ export function structureFromBytes(bytes, meta) {
 
 export async function runReviewBundle({ title, body, filename, contentType, sha256, author, library, bytes, liveClce = false, coverage, domain, subjects, keywords } = {}) {
   const structure = structureFromBytes(bytes, { filename, contentType });
-  const reality = [filename, sha256 || structure.sha256, structure.ok ? "structure verified" : "structure failed"].filter(Boolean).join(" ");
-  let clce = null;
-  if (liveClce) clce = await maybeLiveClce(title, body || title, reality);
+  const hashOk = /^[0-9a-f]{64}$/i.test(String(sha256 || structure.sha256 || ""));
+  const pLayer = [title, structure.ok && hashOk ? "structure verified" : "structure failed"].filter(Boolean).join(" ");
+  let live = null;
+  if (liveClce) live = await maybeLiveClce(title, body || title, pLayer);
   const review = reviewDocument({
     title,
     body,
@@ -123,7 +133,7 @@ export async function runReviewBundle({ title, body, filename, contentType, sha2
     author,
     library,
     structure,
-    clce,
+    clce: live,
     coverage,
     domain,
     subjects,
@@ -143,6 +153,13 @@ export async function runReviewBundle({ title, body, filename, contentType, sha2
 
 export async function persistReview(env, { recordId, library, sha256, title, createdBy, event, structure, review, zsolver }) {
   await ensureReviewSchema(env);
+  if (!review || !review.triad) {
+    const err = new Error("TRIAD_V3_REQUIRED: missing triad");
+    err.code = "TRIAD_V3_REQUIRED";
+    err.status = 422;
+    throw err;
+  }
+  assertTriadV3(review, sha256);
   const when = new Date().toISOString();
   const qStatus = review.quarantine_status || "CLEAR";
   const reviewJson = JSON.stringify(review);
@@ -187,6 +204,10 @@ export async function persistReview(env, { recordId, library, sha256, title, cre
     clce_triple: review.clce && review.clce.triple,
     plr_status: review.plr && review.plr.status,
     triad_combined: combined,
+    triad_raw: triad && triad.triad_raw,
+    frozen_to: triad && triad.frozen_to,
+    triad_cycle_mean: triad && triad.triad_cycle_mean,
+    pairing_count: triad && triad.pairing_count,
     triad_ready: !!(triad && triad.ready),
     bayesian_posterior: posterior,
     possibility: review.possibility && review.possibility.possibility != null ? review.possibility.possibility : null,
@@ -366,20 +387,31 @@ export async function addPeerReview(env, { recordId, stance, body, signed }) {
 export async function verifyDownloadBytes(env, { recordId, library, filename, contentType, bytes, createdBy, event }) {
   const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
   const sha = sha256hex(u8);
-  return reviewAndStore(env, {
-    recordId: recordId || "DOWNLOAD",
-    library: library || "package",
-    filename,
-    contentType,
-    sha256: sha,
-    title: filename || "download",
-    body: "",
-    author: "Aziel Eliab",
-    bytes: u8,
-    createdBy,
+  const structure = structureFromBytes(u8, { filename, contentType });
+  structure.sha256 = sha;
+  let stored = null;
+  if (env && env.DB && recordId) {
+    try {
+      const row = await env.DB.prepare("SELECT review_json, triad_combined, content_sha256 FROM records WHERE record_id=?").bind(recordId).first();
+      if (row && row.review_json) stored = await parseReviewJson(row.review_json);
+    } catch { stored = null; }
+  }
+  const bytesOk = !!(stored && stored.triad && stored.triad.frozen_to && stored.triad.frozen_to === sha);
+  if (structure.ok && stored && stored.triad && stored.triad.frozen_to && stored.triad.frozen_to !== sha) {
+    structure.ok = false;
+    structure.errors = (structure.errors || []).concat(["stored hash mismatch"]);
+  }
+  return {
+    structure,
+    review: stored || null,
+    quarantine_status: (stored && stored.quarantine_status) || "CLEAR",
+    bytes_ok: bytesOk || (stored && stored.triad && stored.triad.frozen_to == null),
+    minted: false,
     event: event || "download_verify",
-    liveClce: false,
-  });
+    sha256: sha,
+    createdBy: createdBy || null,
+    library: library || "package",
+  };
 }
 
 export function isFullyScored(row, review) {
@@ -394,38 +426,27 @@ export function isFullyScored(row, review) {
     triad &&
     triad.schema === TRIAD_SCHEMA &&
     triad.ready &&
+    triad.triad_raw != null &&
+    triad.frozen_to &&
     combined != null
   );
 }
 
 export function storedTriadMatches(row, review, coverage) {
   if (!isFullyScored(row, review)) return false;
-  const appl = (review && review.applicability && review.applicability.flags)
-    ? review.applicability.flags
-    : classifyComponentApplicability({
-        title: row && row.title,
-        body: row && row.body,
-        filename: row && row.filename,
-        sha256: row && row.content_sha256,
-        author: row && row.author,
-        domain: row && row.domain,
-        subjects: row && row.subjects,
-        keywords: row && row.keywords,
-      }).flags;
-  const expected = collectionTriad(triadComposite({
-    spre: review.spre,
-    clce: review.clce,
-    plr: review.plr,
-    applicability: appl,
-  }), row && row.library, coverage);
-  const stored = row && row.triad_combined != null ? Number(row.triad_combined) : review.triad && review.triad.combined;
-  if (expected.combined == null || stored == null || !Number.isFinite(Number(stored))) return false;
-  return Math.abs(Number(stored) - expected.combined) < 0.0002;
+  const triad = review.triad;
+  if (!isTriadFrozen(triad)) return false;
+  const stored = row && row.triad_combined != null ? Number(row.triad_combined) : triad.combined;
+  if (stored == null || !Number.isFinite(Number(stored))) return false;
+  if (Math.abs(Number(stored) - Number(triad.triad_raw)) >= 0.0002) return false;
+  const sha = String((row && (row.content_sha256 || row.sha256)) || "").trim().toLowerCase();
+  if (sha && /^[0-9a-f]{64}$/.test(sha) && triad.frozen_to !== sha) return false;
+  return true;
 }
 
 export { publicizeReview };
 
-export async function backfillReviews(env, { limit = 25, force = false, recordId = null } = {}) {
+export async function backfillReviews(env, { limit = 25, force = false, recordId = null, event = "verify_backfill" } = {}) {
   await ensureReviewSchema(env);
   const cap = Math.min(Math.max(Number(limit) || 25, 1), 50);
   let rows = [];
@@ -490,8 +511,8 @@ export async function backfillReviews(env, { limit = 25, force = false, recordId
       sha256: row.content_sha256,
       author: row.author,
       bytes,
-      createdBy: "verify-backfill",
-      event: "verify_backfill",
+      createdBy: event === RECALIBRATE_V3_EVENT ? "recalibrate-all" : "verify-backfill",
+      event: event || "verify_backfill",
       liveClce: false,
       coverage,
     });
@@ -533,7 +554,7 @@ async function countRecords(env) {
   } catch { return 0; }
 }
 
-export async function backfillOneRecord(env, row, { force = false } = {}) {
+export async function backfillOneRecord(env, row, { force = false, event = "full_backfill" } = {}) {
   const existing = await parseReviewJson(row.review_json);
   try { await applySuccessionForRecord(env, row); } catch { /* exact match only */ }
   const coverage = await successionCoverageFor(env, row.record_id);
@@ -582,8 +603,8 @@ export async function backfillOneRecord(env, row, { force = false } = {}) {
       sha256: row.content_sha256,
       author: row.author,
       bytes,
-      createdBy: "full-backfill",
-      event: "full_backfill",
+      createdBy: event === RECALIBRATE_V3_EVENT ? "recalibrate-all" : "full-backfill",
+      event: event || "full_backfill",
       liveClce: false,
       coverage,
     });
@@ -613,11 +634,12 @@ export async function backfillOneRecord(env, row, { force = false } = {}) {
   };
 }
 
-export async function continueFullBackfill(env, { ms = 18000, force = false, all = false, background = false } = {}) {
+export async function continueFullBackfill(env, { ms = 18000, force = false, all = false, background = false, job = "full_backfill" } = {}) {
   await ensureReviewSchema(env);
+  const keys = SCORE_WALK_KEYS[job] || SCORE_WALK_KEYS.full_backfill;
   const started = Date.now();
   const total = await countRecords(env);
-  const stats = { ok: true, total, scored: 0, skipped: 0, failed: 0, succession_linked: 0, zsolver_queue: null, done: false, cursor: "" };
+  const stats = { ok: true, job: job === "recalibrate_v3" ? "recalibrate_v3" : "full_backfill", total, scored: 0, skipped: 0, failed: 0, succession_linked: 0, zsolver_queue: null, done: false, cursor: "", schema: TRIAD_SCHEMA };
   try {
     const succ = await maybeBackfillSuccession(env);
     if (succ && succ.linked != null) stats.succession_linked = succ.linked;
@@ -629,8 +651,8 @@ export async function continueFullBackfill(env, { ms = 18000, force = false, all
     }
   } catch { /* succession best-effort */ }
   try { stats.zsolver_queue = await drainZsolverQueue(env, { limit: background ? 2 : 15 }); } catch { /* */ }
-  let cursor = await metaGet(env, "full_backfill_cursor");
-  const doneFlag = await metaGet(env, "full_backfill_done_utc");
+  let cursor = await metaGet(env, keys.cursor);
+  const doneFlag = await metaGet(env, keys.done);
   if (doneFlag && !force && !all) {
     stats.done = true;
     stats.cursor = cursor;
@@ -651,7 +673,7 @@ export async function continueFullBackfill(env, { ms = 18000, force = false, all
   }
   if (force) {
     cursor = "";
-    await metaSet(env, "full_backfill_done_utc", "");
+    await metaSet(env, keys.done, "");
   }
   while (all || Date.now() - started < ms) {
     let batch = [];
@@ -676,14 +698,14 @@ export async function continueFullBackfill(env, { ms = 18000, force = false, all
     }
     if (!batch.length) {
       stats.done = true;
-      await metaSet(env, "full_backfill_done_utc", new Date().toISOString());
-      await metaSet(env, "full_backfill_cursor", "");
-      await metaSet(env, "full_backfill_stats", JSON.stringify(stats));
+      await metaSet(env, keys.done, new Date().toISOString());
+      await metaSet(env, keys.cursor, "");
+      await metaSet(env, keys.stats, JSON.stringify(stats));
       break;
     }
     for (const row of batch) {
       try {
-        const one = await backfillOneRecord(env, row, { force });
+        const one = await backfillOneRecord(env, row, { force, event: keys.event });
         if (one.skipped) stats.skipped += 1;
         else stats.scored += 1;
       } catch {
@@ -693,8 +715,8 @@ export async function continueFullBackfill(env, { ms = 18000, force = false, all
       stats.cursor = cursor;
       if (!all && Date.now() - started >= ms) break;
     }
-    await metaSet(env, "full_backfill_cursor", cursor);
-    await metaSet(env, "full_backfill_stats", JSON.stringify({ ...stats, updated_utc: new Date().toISOString() }));
+    await metaSet(env, keys.cursor, cursor);
+    await metaSet(env, keys.stats, JSON.stringify({ ...stats, updated_utc: new Date().toISOString() }));
     if (!all && Date.now() - started >= ms) break;
   }
   try {
@@ -707,6 +729,31 @@ export async function continueFullBackfill(env, { ms = 18000, force = false, all
     });
   } catch { stats.shelf = null; }
   return stats;
+}
+
+/** Force-walk every stored paper through TRIAD_V3. Own cursor so a prior V2 backfill-done cannot skip the shelf. */
+export async function continueRecalibrateAll(env, opts = {}) {
+  return continueFullBackfill(env, { ...opts, job: "recalibrate_v3" });
+}
+
+export async function recalibrateAllStatus(env) {
+  const total = await countRecords(env);
+  const done = await metaGet(env, RECALIBRATE_V3_DONE_KEY);
+  const cursor = await metaGet(env, RECALIBRATE_V3_CURSOR_KEY);
+  let stats = null;
+  try { stats = JSON.parse(await metaGet(env, RECALIBRATE_V3_STATS_KEY) || "null"); } catch { stats = null; }
+  return {
+    ok: true,
+    job: "recalibrate_v3",
+    schema: TRIAD_SCHEMA,
+    total,
+    done: !!done,
+    done_utc: done || null,
+    cursor: cursor || "",
+    stats,
+    trigger: "GET /v1/recalibrate-all  (repeat ?all=1 until done:true). Alias GET /v1/verify-backfill?recalibrate=1. Local: aziel-library recalibrate-all / python3 tools/recalibrate_all.py",
+    note: "Remints stored papers that are not TRIAD_V3 frozen to content SHA-256. force=1 remints even already-V3. Ingest always runs V3. N/A factors omit. Softwares / Live Nodes / SPORE untouched.",
+  };
 }
 
 export async function fullBackfillStatus(env) {

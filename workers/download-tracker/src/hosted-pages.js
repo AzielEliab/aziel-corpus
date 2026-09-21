@@ -121,7 +121,7 @@ export function recordBody(payload) {
   const combined = triad && triad.combined != null ? triad.combined : row.triad_combined;
   const applicableNames = (flags.names && flags.names.length) ? flags.names.join(", ") : "the applicable checkers";
   const triadHtml = combined != null
-    ? "<div class=\"triad-card\"><h2>Triad score</h2><div class=\"triad\"><div class=\"metric\">" + (triad && triad.display != null ? triad.display : Math.round(Number(combined) * 100)) + "</div><div><p>One combined report card from " + esc(applicableNames) + ".</p><p class=\"muted\">" + esc((triad && triad.formula) || "TRIAD_V2 geometric mean of applicable components.") + " <a href=\"/how-its-scored\">How it's scored</a>.</p></div></div></div>"
+    ? "<div class=\"triad-card\"><h2>Triad score</h2><div class=\"triad\"><div class=\"metric\">" + (triad && triad.display != null ? triad.display : Math.round(Number(combined) * 100)) + "</div><div><p>One combined report card from " + esc(applicableNames) + ".</p><p class=\"muted\">" + esc((triad && triad.formula) || "TRIAD_V3 36-cycle mean of applicable factors.") + " <a href=\"/how-its-scored\">How it's scored</a>.</p></div></div></div>"
     : "<div class=\"triad-card\"><h2>Triad score</h2><p class=\"muted\">Not scored yet. A backfill walk will write the combined score.</p></div>";
   const ev = events.length
     ? events.map((e) => "<div class=\"pill\">" + esc(e.event_date) + " · " + esc(e.place_name) + " · " + Number(e.confidence || 0).toFixed(2) + "</div>").join(" ")

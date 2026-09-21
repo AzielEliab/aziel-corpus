@@ -10,7 +10,7 @@ This addendum sits beside the site-wide crawl files. Machine indexes stay /llms.
 Aziel Library is the operator collection of Aziel Eliab's published work (royal purple). Corpus is the public Lamb Lens shelf. Anyone may browse both. Upload at https://www.azielcorpuslibrary.net/upload — operator session files to Aziel Library; everyone else files to Corpus.
 
 ## Read a record
-Search from https://www.azielcorpuslibrary.net/ or https://www.azielcorpuslibrary.net/search. Open https://www.azielcorpuslibrary.net/record/{AZDOC-…}. The triad is always shown first. SPRE, CLCE, and PhysLing appear when that component applies to the document's concept. See https://www.azielcorpuslibrary.net/help/how-to-read-scores.txt and https://www.azielcorpuslibrary.net/how-its-scored.
+Search from https://www.azielcorpuslibrary.net/ or https://www.azielcorpuslibrary.net/search. Open https://www.azielcorpuslibrary.net/record/{AZDOC-…}. The triad is always shown first (TRIAD_V3 36-cycle mean). SPRE, CLCE, PhysLing, and Truth Formula appear when that component applies. See https://www.azielcorpuslibrary.net/help/how-to-read-scores.txt and https://www.azielcorpuslibrary.net/how-its-scored.
 
 Records stay findable as HTML (/record/{AZDOC-…}), metadata.json, file download, and per-record /record/{AZDOC-…}/llms.txt plus /record/{AZDOC-…}/cite.json.
 
