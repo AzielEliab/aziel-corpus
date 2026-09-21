@@ -154,6 +154,9 @@ test("Bayesian posterior is unranked", () => {
   assert.equal(b.unranked, true);
   assert.equal(b.sort_key, null);
   assert.ok(b.posterior > 0.5);
+  assert.equal(b.kind, "LIKELIHOOD");
+  assert.equal(b.of, "internal_consistency");
+  assert.equal(b.not_truth, true);
 });
 
 test("evidence-based physics note is not poison", () => {
@@ -173,20 +176,33 @@ test("evidence-based physics note is not poison", () => {
   assert.equal(r.triad.primary_visible, true);
   assert.equal(r.triad.bayesian_separate, true);
   assert.ok(r.triad.combined > 0 && r.triad.combined <= 1);
+  assert.equal(r.triad.schema, "aziel.triad.v3");
+  assert.equal(r.triad.pairing_count, 36);
+  assert.equal(r.triad.frozen_to, "b".repeat(64));
+  assert.equal(r.triad.triad_raw, r.triad.combined);
+  assert.equal(r.bayesian.kind, "LIKELIHOOD");
+  assert.equal(r.clce.public_term, "structural_match");
+  assert.ok(r.clce.structural >= 0.7);
+  assert.equal(JSON.stringify(r.clce).includes("b".repeat(64)), false);
+  assert.equal(r.plr.linguistic_neutrality, 1);
 });
 
-test("triad is geometric mean of the three verifiers", () => {
+test("triad is the 36-cycle mean; geometric mean is stored beside it", () => {
   const t = triadComposite({
     spre: { pc: 0.64 },
     clce: { triple: 0.8, pairwise_avg: 0.4 },
     plr: { physics_coherence: 1, linguistic_neutrality: 1 },
   });
   assert.equal(t.ready, true);
-  assert.equal(t.schema, "aziel.triad.v2");
+  assert.equal(t.schema, "aziel.triad.v3");
   assert.equal(t.components.clce_consistency, 0.8);
-  const expected = Math.pow(0.64 * 0.8 * 1, 1 / 3);
-  assert.ok(Math.abs(t.combined - expected) < 0.001);
-  assert.equal(t.display, Math.round(expected * 100));
+  const cycle = ((1 + 1 + 0.8 + 0.64) ** 2) / 16;
+  const geo = Math.pow(0.64 * 0.8 * 1, 1 / 3);
+  assert.ok(Math.abs(t.combined - cycle) < 0.001);
+  assert.ok(Math.abs(t.triad_cycle_mean - cycle) < 0.001);
+  assert.ok(Math.abs(t.geometric_mean_applicable - geo) < 0.001);
+  assert.equal(t.display, Math.round(cycle * 100));
+  assert.equal(t.collection_offset, 0);
 });
 
 test("aziel library triad display is a 0-100 integer", () => {
@@ -202,7 +218,7 @@ test("aziel library triad display is a 0-100 integer", () => {
   const aziel = reviewDocument({ ...input, library: "aziel" });
   assert.equal(corpus.triad.display, Math.round(corpus.triad.combined * 100));
   assert.ok(Number.isInteger(aziel.triad.display));
-  assert.ok(aziel.triad.display >= corpus.triad.display);
+  assert.equal(aziel.triad.display, corpus.triad.display);
   assert.ok(aziel.triad.display <= 100);
   assert.ok(aziel.triad.combined <= 1);
   assert.equal(aziel.triad.display, Math.round(aziel.triad.combined * 100));
@@ -243,7 +259,7 @@ test("triad is not ready until all three engines run", () => {
   assert.equal(t.combined, null);
 });
 
-test("Aziel Library published triad is collection-capped versus Corpus", () => {
+test("Aziel Library published triad equals Corpus — no collection offset", () => {
   const input = {
     title: "Lab note",
     body: "Independent primary source measurement of 12 joules at 3 kelvin. Archive hash recorded.",
@@ -258,8 +274,10 @@ test("Aziel Library published triad is collection-capped versus Corpus", () => {
   assert.equal(aziel.triad.ready, true);
   assert.deepEqual(aziel.triad.components, corpus.triad.components);
   assert.deepEqual(Object.keys(aziel.triad).sort(), Object.keys(corpus.triad).sort());
-  assert.equal(aziel.triad.display, Math.min(100, corpus.triad.display + 25));
-  assert.equal(aziel.triad.combined, Math.round((aziel.triad.display / 100) * 10000) / 10000);
+  assert.equal(aziel.triad.display, corpus.triad.display);
+  assert.equal(aziel.triad.combined, corpus.triad.combined);
+  assert.equal(aziel.triad.triad_raw, corpus.triad.triad_raw);
+  assert.equal(aziel.triad.combined, aziel.triad.triad_cycle_mean);
   const dumped = JSON.stringify(aziel);
   assert.equal(/boost|quiet|cap field|\+25/i.test(dumped), false);
 });

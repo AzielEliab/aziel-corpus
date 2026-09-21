@@ -215,7 +215,7 @@ class Handler(BaseHTTPRequestHandler):
             spre=review.get('spre') or {}; clce=review.get('clce') or {}; plr=review.get('plr') or {}; triad=review.get('triad') or r.get('triad') or {}
             combined=triad.get('display') if triad.get('display') is not None else (int(round(float(triad['combined'])*100)) if triad.get('combined') is not None else None)
             qbanner="<div class='q-banner'>Quarantine — poison suspect. Still downloadable for auditors. Not deleted.</div>" if q in {'POISON_SUSPECT','QUARANTINE'} else ''
-            triad_html=f"<div class='card'><h2>Triad score</h2><div class='triad'><div class='metric'>{combined if combined is not None else '—'}</div><div><p>One combined report card after SPRE, CLCE, and PhysLing all ran.</p><p class='muted'>{html.escape(str(triad.get('formula') or 'TRIAD_V1 geometric mean of the three verifiers.'))}</p></div></div></div>"
+            triad_html=f"<div class='card'><h2>Triad score</h2><div class='triad'><div class='metric'>{combined if combined is not None else '—'}</div><div><p>One combined report card. Public score is the TRIAD_V3 36-cycle mean.</p><p class='muted'>{html.escape(str(triad.get('formula') or 'TRIAD_V3 36-cycle mean of applicable factors.'))}</p></div></div></div>"
             zsolver=r.get('zsolver') or {}
             zdisp=zsolver.get('display') if zsolver.get('display') is not None else (int(round(float(zsolver['capped_confidence'])*100)) if zsolver.get('capped_confidence') is not None else None)
             zq=' Live score retry is queued.' if zsolver.get('status')=='queued' or zsolver.get('queued') else ''

@@ -195,7 +195,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(cite.how_its_scored, /\/how-its-scored$/);
   assert.equal(cite.record_llms, "https://www.azielcorpuslibrary.net/record/{record_id}/llms.txt");
   assert.equal(cite.record_cite, "https://www.azielcorpuslibrary.net/record/{record_id}/cite.json");
-  assert.match(cite.triad, /TRIAD_V2/);
+  assert.match(cite.triad, /TRIAD_V3/);
   assert.match(cite.forensics, /\/forensics$/);
   assert.match(cite.intelligence, /\/forensics$/);
   assert.doesNotMatch(cite.intelligence, /\/intelligence$/);

@@ -59,7 +59,7 @@ test("SPRE applies to a filed object; CLCE needs a descriptive layer", () => {
   assert.equal(clceThin.applicable, false);
 });
 
-test("PhysLing applies to energy/engineering and forensic language; philosophy and software omit it", () => {
+test("PhysLing applies to energy/engineering; bare forensic language does not qualify", () => {
   assert.equal(classifyPhysLingApplicability(LAB).applicable, true);
   assert.equal(classifyPhysLingApplicability(PHILOSOPHY).applicable, false);
   assert.equal(classifyPhysLingApplicability(SOFTWARE).applicable, false);
@@ -69,7 +69,7 @@ test("PhysLing applies to energy/engineering and forensic language; philosophy a
     domain: "history, investigation",
     subjects: "history",
   });
-  assert.equal(forensic.applicable, true);
+  assert.equal(forensic.applicable, false);
   const hardwareOnly = classifyPhysLingApplicability({
     title: "Hardware case",
     body: "A plastic enclosure and mounting plate for the handheld unit.",
@@ -105,11 +105,14 @@ test("philosophy review always has a triad and omits PhysLing numbers in public 
   assert.ok(pub.triad.ready);
   assert.doesNotMatch(JSON.stringify(pub), BANNED);
 
-  const expected = Math.pow(
-    Math.max(review.spre.pc, 0.0001) * Math.max(review.clce.triple >= 0.7 ? review.clce.triple : review.clce.pairwise_avg, 0.0001),
-    1 / 2
-  );
-  assert.ok(Math.abs(review.triad.combined - expected) < 0.002);
+  const clce = review.clce.structural != null
+    ? review.clce.structural
+    : (review.clce.triple >= 0.7 ? review.clce.triple : review.clce.pairwise_avg);
+  const factors = [review.bayesian.posterior, review.truth_formula.score, clce, review.spre.pc].filter((v) => v != null);
+  const sum = factors.reduce((a, b) => a + b, 0);
+  const cycle = (sum * sum) / (factors.length * factors.length);
+  assert.ok(Math.abs(review.triad.combined - cycle) < 0.002);
+  assert.equal(review.triad.combined, review.triad.triad_cycle_mean);
 });
 
 test("triadComposite heritage call still requires all three; flags drop N/A from the mean", () => {
@@ -122,8 +125,10 @@ test("triadComposite heritage call still requires all three; flags drop N/A from
     applicability: { spre: true, clce: true, plr: false },
   });
   assert.equal(two.ready, true);
-  const expected = Math.pow(0.64 * 0.8, 1 / 2);
-  assert.ok(Math.abs(two.combined - expected) < 0.001);
+  const cycle = ((0.64 + 0.8) ** 2) / 4;
+  const geo = Math.pow(0.64 * 0.8, 1 / 2);
+  assert.ok(Math.abs(two.combined - cycle) < 0.001);
+  assert.ok(Math.abs(two.geometric_mean_applicable - geo) < 0.001);
   assert.equal(two.weights.plr, 0);
   assert.deepEqual(two.applicable_components, ["spre", "clce"]);
 });

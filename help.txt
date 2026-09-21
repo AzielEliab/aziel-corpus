@@ -29,7 +29,7 @@ and Schema.org metadata at /record/{AZDOC-…}/metadata.json.
 
 ## Scores you will see
 The triad is always the primary published score on a scored record.
-TRIAD_V2 is the geometric mean of the checkers that apply to that document's concept.
+TRIAD_V3 public score is the 36-cycle mean of applicable factors (physics, linguistics, bayesian, truth_formula, CLCE, SPRE).
 SPRE, CLCE, and PhysLing appear when that component applies to the document's concept. N/A components are omitted (never shown as 0).
 ZionPattern appears when the document qualifies.
 Details: https://www.azielcorpuslibrary.net/help/how-to-read-scores.txt and https://www.azielcorpuslibrary.net/how-its-scored.

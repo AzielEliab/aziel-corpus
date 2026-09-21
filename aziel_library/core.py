@@ -10,7 +10,7 @@ from .exporters import write_xlsx, write_pdf
 from .gazetteer import WorldGazetteer
 
 from .historical_geo import HistoricalGeography
-from .review import review_document, verify_bytes, lattice_anchor_tip, triad_composite, collection_triad, triad_coverage_points, poison_scan
+from .review import review_document, verify_bytes, lattice_anchor_tip, triad_composite, collection_triad, triad_coverage_points, poison_scan, is_triad_frozen, TRIAD_SCHEMA
 from .lattice_learn import (
     apply_pin_from_upload, HASHCHAIN_LEARN_LAW, verify_chain_walk, poison_feature_receipt,
     match_learned_poison, load_poison_features, append_poison_learn, load_learn_stamps,
@@ -666,26 +666,7 @@ class AzielLibrary:
     def _apply_triad_coverage(self, record_id):
         rec=self.get_record(record_id)
         review=rec.get('review') or {}
-        if not (review.get('spre') and review.get('clce') and review.get('plr')): return None
-        coverage=self._succession_coverage(record_id)
-        triad=collection_triad(triad_composite(spre=review.get('spre'),clce=review.get('clce'),plr=review.get('plr')), 'aziel', coverage)
-        stored=rec.get('triad_combined') if rec.get('triad_combined') is not None else (review.get('triad') or {}).get('combined')
-        try:
-            if stored is not None and triad.get('combined') is not None and abs(float(stored)-float(triad['combined']))<0.0002:
-                return triad
-        except (TypeError,ValueError):
-            pass
-        review=dict(review); review['triad']=triad
-        payload={'record_id':record_id,'event':'succession_recalibrate','triad_combined':triad.get('combined'),'triad_ready':bool(triad.get('ready'))}
-        self._ledger('REVIEW_SCORE',payload)
-        self._document_ledger(record_id,'REVIEW_SCORE',payload)
-        with self._write_lock, self._connect() as c:
-            row=c.execute('SELECT metadata_json FROM records WHERE record_id=?',(record_id,)).fetchone()
-            try: md=json.loads(row['metadata_json'] if row else '{}')
-            except Exception: md={}
-            md['aziel_review']=review; md['triad_combined']=triad.get('combined')
-            if row: c.execute('UPDATE records SET metadata_json=? WHERE record_id=?',(json.dumps(md),record_id))
-        return triad
+        return (review.get('triad') or None)
     def backfill_succession(self):
         self._assert_writable()
         catalog=self._compact_records()
@@ -712,7 +693,7 @@ class AzielLibrary:
         struct_payload={'record_id':record_id,'sha256':digest,'event':event,'ok':structure['ok'],'file_count':len(structure.get('files') or []),'errors':structure.get('errors') or []}
         entry=self._ledger('STRUCTURE_VERIFY',struct_payload)
         self._document_ledger(record_id,'STRUCTURE_VERIFY',struct_payload)
-        score_payload={'record_id':record_id,'sha256':digest,'event':event,'spre_pc':review['spre']['pc'],'clce_triple':review['clce']['triple'],'plr_status':review['plr']['status'],'triad_combined':(review.get('triad') or {}).get('combined'),'triad_ready':bool((review.get('triad') or {}).get('ready')),'bayesian_posterior':review['bayesian']['posterior'],'unranked':True,'lights':review['lights'],'law':HASHCHAIN_LEARN_LAW}
+        score_payload={'record_id':record_id,'sha256':digest,'event':event,'spre_pc':review['spre']['pc'],'clce_structural':(review.get('clce') or {}).get('structural'),'clce_triple':review['clce']['triple'],'plr_status':review['plr']['status'],'triad_combined':(review.get('triad') or {}).get('combined'),'triad_raw':(review.get('triad') or {}).get('triad_raw'),'frozen_to':(review.get('triad') or {}).get('frozen_to'),'triad_cycle_mean':(review.get('triad') or {}).get('triad_cycle_mean'),'pairing_count':(review.get('triad') or {}).get('pairing_count'),'triad_ready':bool((review.get('triad') or {}).get('ready')),'bayesian_posterior':review['bayesian']['posterior'],'unranked':True,'lights':review['lights'],'law':HASHCHAIN_LEARN_LAW}
         self._ledger('REVIEW_SCORE',score_payload)
         self._document_ledger(record_id,'REVIEW_SCORE',score_payload)
         if review['quarantine_status']!='CLEAR':
@@ -780,7 +761,7 @@ class AzielLibrary:
         derived=possibility_score(anchors=anchors, learn_stamps=(load_learn_stamps(self, exclude_record_id=record_id)+local), lattice_ok=bool(walk.get('ok')), poison=str(rec.get('quarantine_status') or '')=='POISON_SUSPECT')
         stored=(rec.get('possibility') or (rec.get('review') or {}).get('possibility'))
         bayes=rec.get('bayesian') or (rec.get('review') or {}).get('bayesian')
-        return {'ok':bool(walk.get('ok')),'record_id':record_id,'possibility':derived,'stored':compact_possibility(stored),'bayesian':({'posterior':bayes.get('posterior'),'unranked':True,'schema':'aziel.bayesian.v1'} if bayes and bayes.get('posterior') is not None else None),'tip':walk.get('tip'),'map4d':MAP4D_CITE,'law':HASHCHAIN_LEARN_LAW}
+        return {'ok':bool(walk.get('ok')),'record_id':record_id,'possibility':derived,'stored':compact_possibility(stored),'bayesian':({'posterior':bayes.get('posterior'),'kind':bayes.get('kind') or 'LIKELIHOOD','of':'internal_consistency','unranked':True,'not_truth':True,'schema':bayes.get('schema') or 'aziel.bayesian.v2'} if bayes and bayes.get('posterior') is not None else None),'tip':walk.get('tip'),'map4d':MAP4D_CITE,'law':HASHCHAIN_LEARN_LAW}
     def pin_for(self, record_id):
         rec=self.get_record(record_id)
         walk=self.recollect(record_id, depth=64)
@@ -800,6 +781,13 @@ class AzielLibrary:
         rec=self.get_record(record_id)
         stored=(self.root/rec['stored_path']).resolve()
         stored.relative_to(self.root.resolve())
+        raw=stored.read_bytes() if stored.is_file() else b''
+        structure=verify_bytes(raw, rec['original_name'])
+        if rec.get('sha256') and structure.get('sha256') and rec['sha256']!=structure['sha256']:
+            structure=dict(structure); structure['ok']=False; structure.setdefault('errors',[]).append('stored hash mismatch')
+        review=rec.get('review') or {}
+        if event=='download_verify' and is_triad_frozen(review.get('triad')):
+            return review
         if self.readonly:
             return self.inspect_original(record_id)['review']
         return self._apply_ingest_review(record_id, stored, rec['original_name'], rec.get('extracted_text') or '', rec['sha256'], library='aziel', event=event)
@@ -821,15 +809,21 @@ class AzielLibrary:
         review=(rec.get('review') if rec else None) or {}
         triad=review.get('triad') or {}
         combined=rec.get('triad_combined') if rec and rec.get('triad_combined') is not None else triad.get('combined')
-        return bool(review.get('spre') and review.get('clce') and review.get('plr') and triad.get('ready') and combined is not None)
+        return bool(review.get('spre') and review.get('clce') and review.get('plr') and triad.get('schema')==TRIAD_SCHEMA and triad.get('ready') and triad.get('triad_raw') is not None and triad.get('frozen_to') and combined is not None)
     def _stored_triad_matches(self, rec):
         if not self._is_fully_scored(rec): return False
         review=rec.get('review') or {}
-        expected=collection_triad(triad_composite(spre=review.get('spre'),clce=review.get('clce'),plr=review.get('plr')), rec.get('library') or 'aziel', self._succession_coverage(rec.get('record_id')))
-        stored=rec.get('triad_combined') if rec.get('triad_combined') is not None else (review.get('triad') or {}).get('combined')
-        if expected.get('combined') is None or stored is None: return False
-        try: return abs(float(stored)-float(expected['combined']))<0.0002
-        except (TypeError,ValueError): return False
+        triad=review.get('triad') or {}
+        if not is_triad_frozen(triad): return False
+        stored=rec.get('triad_combined') if rec.get('triad_combined') is not None else triad.get('combined')
+        if stored is None: return False
+        try:
+            if abs(float(stored)-float(triad['triad_raw']))>=0.0002: return False
+        except (TypeError,ValueError):
+            return False
+        sha=str(rec.get('sha256') or rec.get('content_sha256') or '').strip().lower()
+        if sha and len(sha)==64 and triad.get('frozen_to')!=sha: return False
+        return True
     def backfill_reviews(self, *, limit=50, force=False, record_id=None, all_records=False):
         self._assert_writable()
         try: succ=self.backfill_succession()

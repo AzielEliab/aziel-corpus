@@ -4,8 +4,7 @@
  */
 import { randomBytes } from "node:crypto";
 import { appendLedger, appendDocumentLedger, ensureLedger, hashPayload, isDocumentId } from "./ledger.js";
-import { reviewDocument, triadComposite, collectionTriad, TRIAD_SCHEMA, publicizeReview } from "./review.js";
-import { classifyComponentApplicability } from "./review-applicability.js";
+import { reviewDocument, TRIAD_SCHEMA, publicizeReview, isTriadFrozen } from "./review.js";
 import { verifyBytes, verifyTextRecord, sha256hex } from "./structure.js";
 import { latticeAnchorTip } from "./lattice.js";
 import { appendPoisonLearn, HASHCHAIN_LEARN_LAW } from "./lattice-learn.js";
@@ -112,9 +111,10 @@ export function structureFromBytes(bytes, meta) {
 
 export async function runReviewBundle({ title, body, filename, contentType, sha256, author, library, bytes, liveClce = false, coverage, domain, subjects, keywords } = {}) {
   const structure = structureFromBytes(bytes, { filename, contentType });
-  const reality = [filename, sha256 || structure.sha256, structure.ok ? "structure verified" : "structure failed"].filter(Boolean).join(" ");
-  let clce = null;
-  if (liveClce) clce = await maybeLiveClce(title, body || title, reality);
+  const hashOk = /^[0-9a-f]{64}$/i.test(String(sha256 || structure.sha256 || ""));
+  const pLayer = [title, structure.ok && hashOk ? "structure verified" : "structure failed"].filter(Boolean).join(" ");
+  let live = null;
+  if (liveClce) live = await maybeLiveClce(title, body || title, pLayer);
   const review = reviewDocument({
     title,
     body,
@@ -123,7 +123,7 @@ export async function runReviewBundle({ title, body, filename, contentType, sha2
     author,
     library,
     structure,
-    clce,
+    clce: live,
     coverage,
     domain,
     subjects,
@@ -187,6 +187,10 @@ export async function persistReview(env, { recordId, library, sha256, title, cre
     clce_triple: review.clce && review.clce.triple,
     plr_status: review.plr && review.plr.status,
     triad_combined: combined,
+    triad_raw: triad && triad.triad_raw,
+    frozen_to: triad && triad.frozen_to,
+    triad_cycle_mean: triad && triad.triad_cycle_mean,
+    pairing_count: triad && triad.pairing_count,
     triad_ready: !!(triad && triad.ready),
     bayesian_posterior: posterior,
     possibility: review.possibility && review.possibility.possibility != null ? review.possibility.possibility : null,
@@ -366,20 +370,31 @@ export async function addPeerReview(env, { recordId, stance, body, signed }) {
 export async function verifyDownloadBytes(env, { recordId, library, filename, contentType, bytes, createdBy, event }) {
   const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
   const sha = sha256hex(u8);
-  return reviewAndStore(env, {
-    recordId: recordId || "DOWNLOAD",
-    library: library || "package",
-    filename,
-    contentType,
-    sha256: sha,
-    title: filename || "download",
-    body: "",
-    author: "Aziel Eliab",
-    bytes: u8,
-    createdBy,
+  const structure = structureFromBytes(u8, { filename, contentType });
+  structure.sha256 = sha;
+  let stored = null;
+  if (env && env.DB && recordId) {
+    try {
+      const row = await env.DB.prepare("SELECT review_json, triad_combined, content_sha256 FROM records WHERE record_id=?").bind(recordId).first();
+      if (row && row.review_json) stored = await parseReviewJson(row.review_json);
+    } catch { stored = null; }
+  }
+  const bytesOk = !!(stored && stored.triad && stored.triad.frozen_to && stored.triad.frozen_to === sha);
+  if (structure.ok && stored && stored.triad && stored.triad.frozen_to && stored.triad.frozen_to !== sha) {
+    structure.ok = false;
+    structure.errors = (structure.errors || []).concat(["stored hash mismatch"]);
+  }
+  return {
+    structure,
+    review: stored || null,
+    quarantine_status: (stored && stored.quarantine_status) || "CLEAR",
+    bytes_ok: bytesOk || (stored && stored.triad && stored.triad.frozen_to == null),
+    minted: false,
     event: event || "download_verify",
-    liveClce: false,
-  });
+    sha256: sha,
+    createdBy: createdBy || null,
+    library: library || "package",
+  };
 }
 
 export function isFullyScored(row, review) {
@@ -394,33 +409,22 @@ export function isFullyScored(row, review) {
     triad &&
     triad.schema === TRIAD_SCHEMA &&
     triad.ready &&
+    triad.triad_raw != null &&
+    triad.frozen_to &&
     combined != null
   );
 }
 
 export function storedTriadMatches(row, review, coverage) {
   if (!isFullyScored(row, review)) return false;
-  const appl = (review && review.applicability && review.applicability.flags)
-    ? review.applicability.flags
-    : classifyComponentApplicability({
-        title: row && row.title,
-        body: row && row.body,
-        filename: row && row.filename,
-        sha256: row && row.content_sha256,
-        author: row && row.author,
-        domain: row && row.domain,
-        subjects: row && row.subjects,
-        keywords: row && row.keywords,
-      }).flags;
-  const expected = collectionTriad(triadComposite({
-    spre: review.spre,
-    clce: review.clce,
-    plr: review.plr,
-    applicability: appl,
-  }), row && row.library, coverage);
-  const stored = row && row.triad_combined != null ? Number(row.triad_combined) : review.triad && review.triad.combined;
-  if (expected.combined == null || stored == null || !Number.isFinite(Number(stored))) return false;
-  return Math.abs(Number(stored) - expected.combined) < 0.0002;
+  const triad = review.triad;
+  if (!isTriadFrozen(triad)) return false;
+  const stored = row && row.triad_combined != null ? Number(row.triad_combined) : triad.combined;
+  if (stored == null || !Number.isFinite(Number(stored))) return false;
+  if (Math.abs(Number(stored) - Number(triad.triad_raw)) >= 0.0002) return false;
+  const sha = String((row && (row.content_sha256 || row.sha256)) || "").trim().toLowerCase();
+  if (sha && /^[0-9a-f]{64}$/.test(sha) && triad.frozen_to !== sha) return false;
+  return true;
 }
 
 export { publicizeReview };

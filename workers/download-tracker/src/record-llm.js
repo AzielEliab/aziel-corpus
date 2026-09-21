@@ -126,7 +126,7 @@ function publicTriad(review, row) {
   return {
     display: display != null && Number.isFinite(display) ? Math.round(display) : (combined != null ? Math.round(Number(combined) * 100) : null),
     combined: combined != null && Number.isFinite(Number(combined)) ? Number(combined) : null,
-    formula: (triad && triad.formula) || "TRIAD_V2 geometric mean over applicable components only",
+    formula: (triad && triad.formula) || "TRIAD_V3 36-cycle mean over applicable factors",
     applicable_components: names,
     ready: triad && triad.ready != null ? !!triad.ready : combined != null,
   };

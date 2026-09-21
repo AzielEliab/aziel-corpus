@@ -30,7 +30,7 @@ test("possibility is HEURISTIC and separate from Bayesian", () => {
     anchors: [{ date: "1936-08", lat: 47.6, lon: -122.3, place: "Seattle" }],
     latticeOk: true,
   });
-  assert.equal(bayes.schema, "aziel.bayesian.v1");
+  assert.equal(bayes.schema, "aziel.bayesian.v2");
   assert.equal(poss.schema, "aziel.possibility.v1");
   assert.equal(poss.kind, POSSIBILITY_KIND);
   assert.equal(poss.kind, "HEURISTIC");

@@ -446,7 +446,7 @@ export async function handleRuntimeApi(request, url, env, ctx) {
         learn: HASHCHAIN_LEARN_LAW + ". LEARN / POISON_LEARN / MAP_PIN / POSSIBILITY_SCORE append to document_ledger. Recollection is tip + prev-hash. " + LEARN_LIMITATION,
         poison_learn: "GET /v1/poison-learn — feature receipts only (hash + markers). No poison bodies. Repeats refuse faster.",
         pin: "Upload→pin on successful ingest. GET /v1/pin?record_id= · GET /v1/verify-geo. Fail closed on structure/poison. 4DMap cite 4DM-WP-1.0.",
-        triad: "TRIAD_V2 geometric mean over applicable SPRE, CLCE, and PhysLing only — primary visible score, always published when scored",
+        triad: "TRIAD_V3 36-cycle mean over applicable factors (physics, linguistics, bayesian, truth_formula, CLCE, SPRE) — primary visible score, always published when scored",
         backfill: "GET /v1/verify-backfill scores older unscored records",
         document_chain: "hash-chain bound to AZDOC- id; uploads/downloads/rescores/quarantine/peer notes append",
         succession: "Exact-same-subject paper cites (Supersedes / Superseded by). Uncertain matches are not chained.",

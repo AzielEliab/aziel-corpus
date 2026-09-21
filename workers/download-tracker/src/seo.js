@@ -196,7 +196,7 @@ export function defaultDescription(kind, runtimeVersion) {
   if (kind === "software") return softwareDescription(runtimeVersion);
   if (kind === "about") return LOCK_LINE + " About Aziel Eliab, publisher of Aziel Digital Library on this site. " + ABOUT_DESCRIPTION + " Signed Aziel Elroi Eliab. GodLock is one product on that record.";
   if (kind === "who") return LOCK_LINE;
-  if (kind === "scored" || kind === "how-its-scored") return "How Aziel Digital Library scores records: the triad is always published (geometric mean of applicable SPRE, CLCE, and PhysLing), AZCoherence second-pass triad coherence (peer AZ-CLCE), and ZionPattern meaning (75 is intentional suppression confidence; lower is more natural). Author Aziel Eliab.";
+  if (kind === "scored" || kind === "how-its-scored") return "How Aziel Digital Library scores records: the triad is always published (TRIAD_V3 36-cycle mean of applicable factors), AZCoherence second-pass triad coherence (peer AZ-CLCE), and ZionPattern meaning (75 is intentional suppression confidence; lower is more natural). Author Aziel Eliab.";
   if (kind === "pattern") return "Pattern clusters across Aziel Digital Library domains, subjects, and keywords. Author Aziel Eliab.";
   if (kind === "donate") return "AZL-DONATE-1.0. Donate to Aziel Digital Library. Static door. Exodus rails. No Worker KV. Not a catalog item. Author Aziel Eliab.";
   if (kind === "search") return SITE_DESCRIPTION + " Author Aziel Eliab.";

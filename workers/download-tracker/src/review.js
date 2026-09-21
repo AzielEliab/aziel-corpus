@@ -2,34 +2,43 @@
  * Aziel Digital Library review engines (Worker-side lightweight ports).
  * Author: Aziel Eliab only.
  *
- * SPRE  — Source Provenance Reliability Engine (PC score). Does not assert criminal guilt.
- * CLCE  — Cross-Layer Consistency Engine port (Jaccard R/D/P). Detects inconsistency, not intent.
- * PLR   — PhysLing Review (physics × linguistics third review).
+ * SPRE  — provenance completeness. Does not assert criminal guilt.
+ * CLCE  — public term is structural match (claims↔evidence + headings + verified-file).
+ *         Token Jaccard stays in the audit object only.
+ * PLR   — PhysLing Review (physics × linguistics, equal weight).
  * Poison — quarantine-or-flag filter. Never silently deletes. Hardest on public Corpus.
- * Bayesian — unranked Beta-Bernoulli posterior. Never used to sort the shelf.
- * Possibility — HEURISTIC time×geo lattice score. Separate from Bayesian / triad / ZionPattern.
+ * Bayesian — unranked likelihood of internal consistency. Never used to sort the shelf.
+ * Truth Formula — Cover-Up Truth Formula v1/v2 (applicable-only).
+ * TRIAD_V3 — public shelf score is the 36-cycle mean. triad_raw freezes at first REVIEW_SCORE.
  */
 import {
   classifyComponentApplicability,
   stampEngineApplicability,
   publicEngineView,
   applicabilityFlagsFrom,
+  extractClaims,
+  extractEvidenceSpans,
+  headingsPresent,
+  claimEvidenceRd,
 } from "./review-applicability.js";
 
 export const REVIEW_SCHEMA = "aziel.review.v1";
 export const SPRE_LIMITATION =
   "SPRE scores provenance completeness. It does not assert criminal guilt. Advisory only. Author Aziel Eliab.";
 export const CLCE_LIMITATION =
-  "CLCE detects inconsistency, not intent. Type D is a label, not a finding of malice. Advisory. Threshold 0.7 is not a truth verdict.";
+  "Public CLCE is structural match (claims↔evidence + headings + verified-file). Token Jaccard is audit-only. Type D is a label, not a finding of malice. Advisory. Threshold 0.7 is not a truth verdict.";
 export const PLR_LIMITATION =
-  "PhysLing Review (PLR) flags physics-impossible or linguistically manipulative framing. It is a third review beside SPRE and CLCE. Not a court finding.";
+  "PhysLing Review (PLR) flags physics-impossible or linguistically manipulative framing. Equal-weight physics × linguistics. Not a court finding.";
 export const POISON_LIMITATION =
   "Poison immunity quarantines suspected shells. Status is hash-chained. Records are never silently deleted. Official narrative is not merged into evidence.";
-export const TRIAD_SCHEMA = "aziel.triad.v2";
+export const TRUTH_LIMITATION =
+  "Cover-Up Truth Formula v1/v2 scores ΔT / suppression / metadata shadows / backpull on archival papers. Ordinary filings use a documented subset. Not a truth verdict. Author Aziel Eliab.";
+export const TRIAD_SCHEMA = "aziel.triad.v3";
 export const TRIAD_FORMULA =
-  "TRIAD_V2 geometric mean over applicable components only: combined = (Π applicable_i)^(1/n). SPRE applies when the record is a filed object with provenance. CLCE applies when a descriptive claim layer exists beside title or file. PhysLing applies when the document makes physics-evaluable or measurement claims, or is energy/engineering (or hardware with physical language). N/A components stay stored for audit with applicable:false and stay outside the public mean. clce_consistency = CLCE.triple if triple ≥ 0.7 else pairwise_avg. plr_coherence = 0.6×physics_coherence + 0.4×linguistic_neutrality. Equal weight among applicable engines. Bayesian peer score and HEURISTIC possibility are separate unranked fields.";
+  "TRIAD_V3: public combined = triad_cycle_mean = mean of all ordered pairings factor_i × factor_j among applicable factors of {physics, linguistics, bayesian, truth_formula, CLCE, SPRE} (36 when all six apply, including diagonals). Also stored: geometric_mean_applicable = (Π applicable engines SPRE/CLCE/PLR)^(1/n). Named axis products: physics×linguistics, bayesian×truth_formula, CLCE×SPRE. Bayesian is LIKELIHOOD of internal consistency, unranked, never a shelf sort key. triad_raw freezes to content SHA-256 at first REVIEW_SCORE. Downloads verify bytes and do not mint a new mean. No collection offset. Display is round(combined × 100) and is never written back into combined.";
 export const TRIAD_KID =
   "This one number is the report card from the checkers that apply to this document.";
+export const FACTOR_NAMES = Object.freeze(["physics", "linguistics", "bayesian", "truth_formula", "clce", "spre"]);
 
 const STOP = new Set(
   "a an the and or but if then of to for in on at by with from as is are was were be been being this that these those it its they them their you your we our not no".split(" ")
@@ -75,20 +84,59 @@ export function jaccardTriple(r, d, p) {
   return inter / union.size;
 }
 
+export function clceLayerP(title = "", structureOk = false, hashOk = false) {
+  const heading = String(title || "").trim();
+  const bit = structureOk && hashOk ? "structure verified" : "structure failed";
+  return (heading + " " + bit).trim();
+}
+
+export function clceStructuralMatch({ title = "", body = "", structureOk = false, hashOk = false } = {}) {
+  const claims = extractClaims(title, body);
+  if (!claims.length) {
+    return {
+      applicable: false,
+      structural: null,
+      rd: null,
+      sp: null,
+      headings_present: headingsPresent(title, body),
+      verified_file: !!(structureOk && hashOk),
+      claim_count: 0,
+      evidence_span_count: extractEvidenceSpans(body).length,
+      reason: "no claims — omit CLCE (never 0)",
+    };
+  }
+  const rd = claimEvidenceRd(claims);
+  const hp = headingsPresent(title, body);
+  const vf = !!(structureOk && hashOk);
+  const sp = 0.5 * (hp ? 1 : 0) + 0.5 * (vf ? 1 : 0);
+  const x = 0.7 * Number(rd) + 0.3 * sp;
+  return {
+    applicable: true,
+    structural: round4(x),
+    rd: round4(rd),
+    sp: round4(sp),
+    headings_present: hp,
+    verified_file: vf,
+    claim_count: claims.length,
+    evidence_span_count: extractEvidenceSpans(body).length,
+    reason: "structural match claims↔evidence + headings + verified-file",
+  };
+}
+
 /**
- * Lightweight AZ-CLCE port. Same Jaccard triple / pairwise idea as
- * https://azclce-download-tracker.vibelock.workers.dev/v1/score
+ * Lightweight AZ-CLCE port. Public term is structural match.
+ * Token Jaccard stays in audit_jaccard only.
  */
-export function clceScore({ r = "", d = "", p = "", n = "" } = {}) {
+export function clceScore({ r = "", d = "", p = "", n = "", title, body, structureOk = false, hashOk = false } = {}) {
   const R = tokenSet(r);
   const D = tokenSet(d);
   const P = tokenSet(p);
   const N = tokenSet(n);
   const triple = jaccardTriple(r, d, p);
-  const rd = jaccard(R, D);
+  const rdJ = jaccard(R, D);
   const dp = jaccard(D, P);
   const rp = jaccard(R, P);
-  const pairwise_avg = (rd + dp + rp) / 3;
+  const pairwise_avg = (rdJ + dp + rp) / 3;
   const union = new Set([...R, ...D, ...P]);
   const n_ratio = union.size ? [...N].filter((t) => union.has(t)).length / union.size : 0;
   const plus = clamp01(triple * (1 - 0.5 * n_ratio));
@@ -98,7 +146,7 @@ export function clceScore({ r = "", d = "", p = "", n = "" } = {}) {
     types.push("C");
     primary = "C";
   }
-  if (rd < 0.4 && dp >= rd && rp >= rd) {
+  if (rdJ < 0.4 && dp >= rdJ && rp >= rdJ) {
     types.push("A");
     if (primary === "OK") primary = "A";
   }
@@ -106,25 +154,41 @@ export function clceScore({ r = "", d = "", p = "", n = "" } = {}) {
     types.push("C");
     primary = "C";
   }
-  const band = triple >= 0.7 ? "consistent" : pairwise_avg >= 0.45 ? "partial" : "structural_inconsistency";
+  const jaccardBand = triple >= 0.7 ? "consistent" : pairwise_avg >= 0.45 ? "partial" : "structural_inconsistency";
+  const srcTitle = title != null ? title : r;
+  const srcBody = body != null ? body : d;
+  const structural = clceStructuralMatch({ title: srcTitle, body: srcBody, structureOk, hashOk });
+  const x = structural.structural;
   return {
     engine: "CLCE",
-    schema: "az-clce.report.v0.2.port",
+    schema: "az-clce.report.v0.3.port",
+    public_term: "structural_match",
+    structural: x == null ? null : round4(x),
+    rd: structural.rd,
+    sp: structural.sp,
+    headings_present: structural.headings_present,
+    verified_file: structural.verified_file,
+    claim_count: structural.claim_count,
+    evidence_span_count: structural.evidence_span_count,
     triple: round4(triple),
-    pairwise: { rd: round4(rd), dp: round4(dp), rp: round4(rp) },
+    pairwise: { rd: round4(rdJ), dp: round4(dp), rp: round4(rp) },
     pairwise_avg: round4(pairwise_avg),
     plus: round4(plus),
     n_ratio: round4(n_ratio),
-    band,
+    band: x != null && x >= 0.7 ? "consistent" : jaccardBand,
     primary,
     types,
+    audit_jaccard: { triple: round4(triple), pairwise_avg: round4(pairwise_avg), note: "audit only — not the public CLCE term" },
     kid_plain:
-      triple >= 0.7
-        ? "The picture, the writing, and the file agree enough."
-        : "These stories do not fully match. The title, the notes, and the real file are talking about different stuff.",
+      x != null && x >= 0.7
+        ? "The claims and the evidence spans agree enough."
+        : x != null
+          ? "These stories do not fully match. The title, the notes, and the real file are talking about different stuff."
+          : "No claims to match — CLCE omitted.",
     advisory: true,
     limitation: CLCE_LIMITATION,
     threshold: 0.7,
+    omit_if_no_claims: true,
   };
 }
 
@@ -165,8 +229,9 @@ export function spreScore({ title = "", body = "", filename = "", sha256 = "", s
   add(!!structureOk, 0.18, "structure_ok");
   add(!!String(author || "").trim(), 0.08, "author");
   add(has(EVIDENCE_RE, text), 0.12, "evidence_language");
-  add(has(INDEPENDENT_RE, text), 0.1, "independent_source_language");
-  add(has(PHYSICS_RE, text), 0.07, "physics_language");
+  const audit_flags = [];
+  if (has(INDEPENDENT_RE, text)) audit_flags.push("independent_source");
+  if (has(PHYSICS_RE, text)) audit_flags.push("physics_language");
   let penalty = 0;
   if (has(OFFICIAL_RE, text) && !has(EVIDENCE_RE, text) && !has(PHYSICS_RE, text)) {
     penalty += 0.25;
@@ -180,6 +245,7 @@ export function spreScore({ title = "", body = "", filename = "", sha256 = "", s
   return {
     engine: "SPRE",
     name: "Source Provenance Reliability Engine",
+    public_name: "provenance completeness",
     pc: round4(pc),
     band: pc >= 0.7 ? "strong" : pc >= 0.4 ? "partial" : "weak",
     kid_plain:
@@ -189,6 +255,7 @@ export function spreScore({ title = "", body = "", filename = "", sha256 = "", s
           ? "Yellow: some proof is here, but pieces are missing."
           : "Red: we cannot tell if this is a real source yet.",
     factors,
+    audit_flags,
     guilt_language: has(GUILT_RE, text),
     limitation: SPRE_LIMITATION,
   };
@@ -280,7 +347,7 @@ export function physLingReview({ title = "", body = "", filename = "" } = {}) {
   else if (reviewCount) status = "REVIEW";
 
   const physics_coherence = clamp01(1 - flagCount * 0.28 - reviewCount * 0.12);
-  const linguistic_neutrality = clamp01(lights.framing === "PASS" ? 0.86 : lights.framing === "REVIEW" ? 0.55 : 0.22);
+  const linguistic_neutrality = clamp01(lights.framing === "PASS" ? 1 : lights.framing === "REVIEW" ? 0.7 : 0.25);
 
   return {
     engine: "PLR",
@@ -339,6 +406,8 @@ export function poisonScan({ title = "", body = "", filename = "", library = "co
 
 export function clceConsistency(clce) {
   if (!clce) return null;
+  if (clce.structural != null) return clamp01(clce.structural);
+  if (clce.applicable === false) return null;
   const triple = clamp01(clce.triple);
   const avg = clamp01(clce.pairwise_avg);
   return triple >= 0.7 ? triple : avg;
@@ -346,7 +415,23 @@ export function clceConsistency(clce) {
 
 export function plrCoherence(plr) {
   if (!plr) return null;
-  return clamp01(0.6 * clamp01(plr.physics_coherence) + 0.4 * clamp01(plr.linguistic_neutrality));
+  return clamp01(0.5 * clamp01(plr.physics_coherence) + 0.5 * clamp01(plr.linguistic_neutrality));
+}
+
+export function cycleMean(factors) {
+  const vals = (factors || []).filter((v) => v != null).map((v) => clamp01(v));
+  if (!vals.length) return null;
+  const products = [];
+  for (let i = 0; i < vals.length; i++) {
+    for (let j = 0; j < vals.length; j++) products.push(vals[i] * vals[j]);
+  }
+  return products.reduce((a, b) => a + b, 0) / products.length;
+}
+
+export function geometricMean(values) {
+  const vals = (values || []).filter((v) => v != null).map((v) => Math.max(clamp01(v), 0.0001));
+  if (!vals.length) return null;
+  return Math.pow(vals.reduce((a, b) => a * b, 1), 1 / vals.length);
 }
 
 /**
@@ -360,43 +445,81 @@ export function triadCoveragePoints(chainLength) {
   return Math.min(12, Math.floor(n - 1) * 3);
 }
 
-export function triadComposite({ spre, clce, plr, applicability } = {}) {
-  const flags = applicability && typeof applicability === "object"
-    ? {
+export function freezeTriadRaw(triad, contentSha256, event = "REVIEW_SCORE") {
+  if (!triad || !triad.ready || triad.combined == null) return triad;
+  const sha = String(contentSha256 || "").trim().toLowerCase();
+  if (!/^[0-9a-f]{64}$/.test(sha)) return triad;
+  if (triad.triad_raw != null && triad.frozen_to) return triad;
+  return {
+    ...triad,
+    triad_raw: triad.combined,
+    frozen_to: sha,
+    frozen_event: event,
+  };
+}
+
+export function isTriadFrozen(triad) {
+  if (!triad) return false;
+  const sha = String(triad.frozen_to || "").trim().toLowerCase();
+  return triad.triad_raw != null && /^[0-9a-f]{64}$/.test(sha);
+}
+
+export function triadComposite({ spre, clce, plr, bayesian, truth_formula, applicability, content_sha256 } = {}) {
+  const heritage = !(applicability && typeof applicability === "object");
+  const flags = heritage
+    ? { spre: true, clce: true, plr: true, truth_formula: !!truth_formula, bayesian: !!bayesian, physics: true, linguistics: true }
+    : {
         spre: applicability.spre !== false,
         clce: applicability.clce !== false,
         plr: applicability.plr !== false,
-      }
-    : { spre: true, clce: true, plr: true };
+        truth_formula: applicability.truth_formula !== false,
+        bayesian: applicability.bayesian !== false,
+        physics: applicability.physics !== false,
+        linguistics: applicability.linguistics !== false,
+      };
   const spre_pc = spre && spre.pc != null ? clamp01(spre.pc) : null;
   const clce_consistency = clceConsistency(clce);
   const plr_coherence = plrCoherence(plr);
-  const eps = 0.0001;
-  const values = [];
+  const physics = plr && plr.physics_coherence != null ? clamp01(plr.physics_coherence) : null;
+  const linguistics = plr && plr.linguistic_neutrality != null ? clamp01(plr.linguistic_neutrality) : null;
+  const bayes_p = bayesian && bayesian.posterior != null ? clamp01(bayesian.posterior) : null;
+  const truth_s = truth_formula && truth_formula.score != null ? clamp01(truth_formula.score) : null;
+
+  const use_spre = flags.spre && spre_pc != null;
+  const use_clce = flags.clce && clce_consistency != null;
+  const use_plr = flags.plr && plr_coherence != null;
+  const use_physics = flags.physics && physics != null && use_plr;
+  const use_ling = flags.linguistics && linguistics != null && use_plr;
+  const use_bayes = flags.bayesian && bayes_p != null;
+  const use_truth = flags.truth_formula && truth_s != null;
+
+  const neededOk = heritage
+    ? spre_pc != null && clce_consistency != null && plr_coherence != null
+    : (flags.spre ? spre_pc != null : true)
+      && (flags.clce ? clce_consistency != null : true)
+      && (flags.plr ? plr_coherence != null : true);
+
+  const factorMap = {
+    physics: use_physics ? physics : null,
+    linguistics: use_ling ? linguistics : null,
+    bayesian: use_bayes ? bayes_p : null,
+    truth_formula: use_truth ? truth_s : null,
+    clce: use_clce ? clce_consistency : null,
+    spre: use_spre ? spre_pc : null,
+  };
+  const usedFactors = FACTOR_NAMES.filter((k) => factorMap[k] != null);
+  const cycle = cycleMean(usedFactors.map((k) => factorMap[k]));
   const used = [];
-  if (flags.spre && spre_pc != null) {
-    values.push(Math.max(spre_pc, eps));
-    used.push("spre");
-  }
-  if (flags.clce && clce_consistency != null) {
-    values.push(Math.max(clce_consistency, eps));
-    used.push("clce");
-  }
-  if (flags.plr && plr_coherence != null) {
-    values.push(Math.max(plr_coherence, eps));
-    used.push("plr");
-  }
-  const neededOk = (flags.spre ? spre_pc != null : true)
-    && (flags.clce ? clce_consistency != null : true)
-    && (flags.plr ? plr_coherence != null : true);
-  const ready = values.length > 0 && neededOk;
-  const n = values.length;
-  const combined = ready
-    ? Math.pow(values.reduce((a, b) => a * b, 1), 1 / n)
-    : null;
+  const geoVals = [];
+  if (use_spre) { geoVals.push(spre_pc); used.push("spre"); }
+  if (use_clce) { geoVals.push(clce_consistency); used.push("clce"); }
+  if (use_plr) { geoVals.push(plr_coherence); used.push("plr"); }
+  const geo = geometricMean(geoVals);
+  const ready = !!(neededOk && usedFactors.length && cycle != null);
+  const combined = ready ? cycle : null;
   const display = combined == null ? null : Math.round(combined * 100);
-  const weight = n ? 1 / n : 0;
-  return {
+  const weight = used.length ? 1 / used.length : 0;
+  const triad = {
     schema: TRIAD_SCHEMA,
     formula: TRIAD_FORMULA,
     ready,
@@ -404,7 +527,21 @@ export function triadComposite({ spre, clce, plr, applicability } = {}) {
       spre_pc: spre_pc == null ? null : round4(spre_pc),
       clce_consistency: clce_consistency == null ? null : round4(clce_consistency),
       plr_coherence: plr_coherence == null ? null : round4(plr_coherence),
+      physics: physics == null ? null : round4(physics),
+      linguistics: linguistics == null ? null : round4(linguistics),
+      bayesian: bayes_p == null ? null : round4(bayes_p),
+      truth_formula: truth_s == null ? null : round4(truth_s),
     },
+    factors: Object.fromEntries(FACTOR_NAMES.map((k) => [k, factorMap[k] == null ? null : round4(factorMap[k])])),
+    axis_products: {
+      physics_linguistics: use_physics && use_ling ? round4(physics * linguistics) : null,
+      bayesian_truth_formula: use_bayes && use_truth ? round4(bayes_p * truth_s) : null,
+      clce_spre: use_clce && use_spre ? round4(clce_consistency * spre_pc) : null,
+    },
+    cycle_factors: usedFactors,
+    pairing_count: usedFactors.length * usedFactors.length,
+    triad_cycle_mean: cycle == null ? null : round4(cycle),
+    geometric_mean_applicable: geo == null ? null : round4(geo),
     weights: {
       spre: used.includes("spre") ? weight : 0,
       clce: used.includes("clce") ? weight : 0,
@@ -416,7 +553,10 @@ export function triadComposite({ spre, clce, plr, applicability } = {}) {
     kid_plain: TRIAD_KID,
     primary_visible: true,
     bayesian_separate: true,
+    public_score: "triad_cycle_mean",
+    collection_offset: 0,
   };
+  return freezeTriadRaw(triad, content_sha256);
 }
 
 function inputHasConceptSignals(input = {}) {
@@ -430,7 +570,8 @@ function inputHasConceptSignals(input = {}) {
 
 function flagsEqual(a, b) {
   if (!a || !b) return false;
-  return a.spre === b.spre && a.clce === b.clce && a.plr === b.plr;
+  return a.spre === b.spre && a.clce === b.clce && a.plr === b.plr
+    && a.truth_formula === b.truth_formula && a.physics === b.physics && a.linguistics === b.linguistics;
 }
 
 /** Re-stamp stored reviews with live gates. Recompute the public triad only when gates change. */
@@ -453,20 +594,27 @@ export function applyApplicabilityToReview(review, input = {}, library, coverage
     spre: stampEngineApplicability(review.spre, appl.spre),
     clce: stampEngineApplicability(review.clce, appl.clce),
     plr: stampEngineApplicability(review.plr, appl.plr),
+    truth_formula: stampEngineApplicability(review.truth_formula, appl.truth_formula),
     applicability: appl,
   };
   const prevFlags = review.applicability && review.applicability.flags;
+  if (isTriadFrozen(review.triad)) {
+    next.triad = review.triad;
+    return next;
+  }
   if (flagsEqual(prevFlags, appl.flags) && review.triad && review.triad.ready) {
     next.triad = review.triad;
     return next;
   }
-  const triad = triadComposite({
+  next.triad = triadComposite({
     spre: next.spre,
     clce: next.clce,
     plr: next.plr,
+    bayesian: next.bayesian || review.bayesian,
+    truth_formula: next.truth_formula || review.truth_formula,
     applicability: appl.flags,
+    content_sha256: input.sha256 || input.content_sha256 || review.triad && review.triad.frozen_to,
   });
-  next.triad = collectionTriad(triad, library || review.library || input.library, coverage);
   return next;
 }
 
@@ -484,6 +632,7 @@ export function publicizeReview(review, row = {}) {
     spre: publicEngineView(stamped.spre),
     clce: publicEngineView(stamped.clce),
     plr: publicEngineView(stamped.plr),
+    truth_formula: publicEngineView(stamped.truth_formula),
     lights,
     applicability: stamped.applicability,
     triad: stamped.triad,
@@ -491,48 +640,138 @@ export function publicizeReview(review, row = {}) {
 }
 
 /**
- * Aziel Library collection score is the published triad (display capped at 100).
- * Corpus stays the geometric mean. No extra keys — do not re-apply in backfill.
+ * Identity. Collection +25 and coverage +0..12 are deleted.
+ * Do not write display back into combined.
  */
 export function collectionTriad(triad, library, coverage) {
-  if (!triad || !triad.ready || triad.display == null) return triad;
-  const cov = Math.max(0, Math.min(12, Math.round(Number(coverage) || 0)));
-  const aziel = String(library || "") === "aziel";
-  if (!cov && !aziel) return triad;
-  let display = Number(triad.display);
-  if (cov) display += cov;
-  if (aziel) display += 25;
-  display = Math.min(100, display);
-  triad.display = display;
-  triad.combined = round4(display / 100);
   return triad;
 }
 
-export function bayesianPosterior(priors) {
-  const keys = ["evidence_completeness", "physics_coherence", "linguistic_neutrality", "spre_pc", "clce_consistency"];
-  const used = {};
-  let alpha = 1;
-  let beta = 1;
-  for (const k of keys) {
-    const p = clamp01(priors[k]);
-    used[k] = round4(p);
-    alpha += p;
-    beta += 1 - p;
+export function truthFormulaScore({ title = "", body = "", filename = "", sha256 = "", structureOk = false, mode = "subset" } = {}) {
+  const text = [title, body, filename].join("\n");
+  const factors = [];
+  let score = 0;
+  const add = (ok, w, name) => {
+    if (ok) {
+      score += w;
+      factors.push(name);
+    }
+  };
+  const T0_RE = /\b(raw truth|primary source|contemporaneous|original document|first-?hand|unedited|instrument data)\b/i;
+  const T1_RE = /\b(official (account|narrative|story|version)|authorities (say|said)|officials? (confirm|say|said))\b/i;
+  const T2_RE = /\b(suppress\w*|cover-?up|shadow (layer|archive|path)|purge|destroyed (file|record)|missing attachment|chain.of.custody|euphemis\w*|vague (cause|reason)|delay)\b/i;
+  const DELTA_T_RE = /\b(contradict\w*|diverg\w*|discrepan\w*|ΔT|delta[- ]t|official.{0,40}(vs|versus|against)|raw.{0,40}official)\b/i;
+  const META_SHADOW_RE = /\b(metadata shadow|routing (slip|log)|index card|accession|destruction log|ledger|sha-?256|content hash)\b/i;
+  const BACKPULL_RE = /\b(backpull|mandatory (reporting|chain)|coroner|warden|patholog|registrar|governor|reconstruct|surviving (node|record|cop))\b/i;
+  let formula;
+  if (mode === "coverup") {
+    add(has(T0_RE, text) || has(EVIDENCE_RE, text), 0.2, "T0_raw");
+    add(has(T1_RE, text), 0.15, "T1_official_identified");
+    add(has(T2_RE, text), 0.15, "T2_suppression");
+    add(has(DELTA_T_RE, text), 0.15, "delta_T");
+    add(has(META_SHADOW_RE, text) || /^[0-9a-f]{64}$/i.test(String(sha256 || "")), 0.15, "metadata_shadow");
+    add(has(BACKPULL_RE, text), 0.2, "backpull");
+    if (has(OFFICIAL_RE, text) && !has(EVIDENCE_RE, text)) {
+      score -= 0.25;
+      factors.push("official_as_raw_without_evidence");
+    }
+    if (has(ADVOCACY_RE, text) && !has(EVIDENCE_RE, text)) {
+      score -= 0.2;
+      factors.push("advocacy_without_evidence");
+    }
+    formula = "coverup_v2: T0/T1/T2 + ΔT + metadata shadows + backpull; penalties for official-as-raw";
+  } else {
+    add(String(body || "").trim().length >= 20, 0.35, "T0_lite_body");
+    add(!(has(OFFICIAL_RE, text) && !has(EVIDENCE_RE, text)), 0.25, "no_unchallenged_official_as_truth");
+    add(/^[0-9a-f]{64}$/i.test(String(sha256 || "")), 0.25, "metadata_hash");
+    add(!!structureOk, 0.15, "structure_ok");
+    formula = "subset: T0-lite body + no unchallenged official-as-truth + metadata hash + structure";
   }
-  const posterior = alpha / (alpha + beta);
+  score = clamp01(score);
   return {
-    schema: "aziel.bayesian.v1",
+    engine: "TRUTH_FORMULA",
+    name: "Cover-Up Truth Formula",
+    schema: "aziel.truth_formula.v2",
+    mode,
+    score: round4(score),
+    factors,
+    formula,
+    limitation: TRUTH_LIMITATION,
+    not_truth: true,
+  };
+}
+
+export function bayesianPosterior(hypotheses = {}) {
+  const h = hypotheses || {};
+  const checks = [];
+  if ("h1" in h || "structure_ok" in h || "hash_ok" in h) {
+    checks.push({ id: "H1", pass: !!(h.h1 != null ? h.h1 : h.structure_ok && h.hash_ok) });
+  }
+  if (h.plr_applicable !== false && ("h2" in h || "physics_lights_pass" in h || "plr_applicable" in h)) {
+    checks.push({ id: "H2", pass: !!(h.h2 != null ? h.h2 : h.physics_lights_pass) });
+  }
+  if ("h3" in h || "framing_pass" in h) {
+    checks.push({ id: "H3", pass: !!(h.h3 != null ? h.h3 : h.framing_pass) });
+  }
+  if ("h4" in h || "rd" in h) {
+    const rd = h.rd;
+    checks.push({ id: "H4", pass: !!(h.h4 != null ? h.h4 : rd != null && Number(rd) >= 0.7) });
+  }
+  if ("h5" in h || "poison_markers" in h || "no_poison" in h) {
+    const markers = h.poison_markers || [];
+    checks.push({ id: "H5", pass: !!(h.h5 != null ? h.h5 : h.no_poison != null ? h.no_poison : markers.length === 0) });
+  }
+  const heritageKeys = ["evidence_completeness", "physics_coherence", "linguistic_neutrality", "spre_pc", "clce_consistency"];
+  if (!checks.length && heritageKeys.some((k) => k in h)) {
+    const used = {};
+    let alpha = 1;
+    let beta = 1;
+    for (const k of heritageKeys) {
+      const p = clamp01(h[k]);
+      used[k] = round4(p);
+      alpha += p;
+      beta += 1 - p;
+    }
+    return {
+      schema: "aziel.bayesian.v2",
+      kind: "LIKELIHOOD",
+      of: "internal_consistency",
+      not_truth: true,
+      unranked: true,
+      sort_key: null,
+      note: "Unranked likelihood of internal consistency. Never used to sort the shelf. Not world accuracy.",
+      priors: used,
+      hypotheses: [],
+      applied: 0,
+      alpha: round4(alpha),
+      beta: round4(beta),
+      posterior: round4(alpha / (alpha + beta)),
+      kid_plain: "This number is a likelihood of internal consistency. It does not move the books on the shelf.",
+      continuity: "Peers may endorse or challenge later. History is append-only if the operator is gone one day.",
+      possibility_separate: true,
+    };
+  }
+  const k = checks.length;
+  const hits = checks.filter((c) => c.pass).length;
+  const alpha = 1 + hits;
+  const beta = 1 + (k - hits);
+  return {
+    schema: "aziel.bayesian.v2",
+    kind: "LIKELIHOOD",
+    of: "internal_consistency",
+    not_truth: true,
     unranked: true,
     sort_key: null,
-    note: "Unranked metadata for manual peer-to-peer review. Never used to sort the shelf.",
-    priors: used,
+    note: "Unranked likelihood of internal consistency. Never used to sort the shelf. Not world accuracy.",
+    hypotheses: checks,
+    applied: k,
+    hits,
     alpha: round4(alpha),
     beta: round4(beta),
-    posterior: round4(posterior),
-    kid_plain: "This number is a confidence guess. It does not move the books on the shelf.",
+    posterior: round4(alpha / (alpha + beta)),
+    kid_plain: "This number is a likelihood of internal consistency. It does not move the books on the shelf.",
     continuity: "Peers may endorse or challenge later. History is append-only if the operator is gone one day.",
     possibility_separate: true,
-    not_truth: true,
   };
 }
 
@@ -544,7 +783,9 @@ export function reviewDocument(input = {}) {
   const author = String(input.author || "");
   const library = String(input.library || "corpus");
   const structure = input.structure || { ok: !!sha256, files: [] };
-  const reality = input.reality || [filename, sha256, structure.ok ? "structure verified" : "structure failed"].filter(Boolean).join(" ");
+  const structureOk = !!structure.ok;
+  const hashOk = /^[0-9a-f]{64}$/i.test(sha256);
+  const pLayer = clceLayerP(title, structureOk, hashOk);
   const appl = classifyComponentApplicability({
     title,
     body,
@@ -556,40 +797,82 @@ export function reviewDocument(input = {}) {
     keywords: input.keywords,
   });
 
-  const clce = stampEngineApplicability(input.clce || clceScore({ r: title, d: body || title, p: reality, n: input.noise || "" }), appl.clce);
-  const spre = stampEngineApplicability(spreScore({ title, body, filename, sha256, structureOk: !!structure.ok, author }), appl.spre);
+  const localClce = clceScore({
+    r: title,
+    d: body || title,
+    p: pLayer,
+    n: input.noise || "",
+    title,
+    body,
+    structureOk,
+    hashOk,
+  });
+  if (input.clce && typeof input.clce === "object" && input.clce.triple != null) {
+    localClce.audit_jaccard = {
+      triple: input.clce.triple,
+      pairwise_avg: input.clce.pairwise_avg,
+      source: input.clce.source || "provided",
+      note: "audit only — not the public CLCE term",
+    };
+    localClce.triple = input.clce.triple;
+    if (input.clce.pairwise_avg != null) localClce.pairwise_avg = input.clce.pairwise_avg;
+  }
+  const clce = stampEngineApplicability(localClce, appl.clce);
+  const spre = stampEngineApplicability(spreScore({ title, body, filename, sha256, structureOk, author }), appl.spre);
   const plr = stampEngineApplicability(physLingReview({ title, body, filename }), appl.plr);
   const poison = poisonScan({ title, body, filename, library });
-  const evidence_completeness = clamp01((spre.factors.includes("text") ? 0.35 : 0.05) + (spre.factors.includes("content_hash") ? 0.35 : 0) + (spre.factors.includes("evidence_language") ? 0.3 : 0.1));
+  const truth = stampEngineApplicability(
+    truthFormulaScore({
+      title,
+      body,
+      filename,
+      sha256,
+      structureOk,
+      mode: (appl.truth_formula && appl.truth_formula.mode) || "subset",
+    }),
+    appl.truth_formula
+  );
+  const physicsPass = ["units", "conservation", "causal", "temporal"].every((k) => (plr.lights || {})[k] === "PASS");
   const bayesian = bayesianPosterior({
-    evidence_completeness,
-    physics_coherence: plr.physics_coherence,
-    linguistic_neutrality: plr.linguistic_neutrality,
-    spre_pc: spre.pc,
-    clce_consistency: clce.triple >= 0.7 ? clce.triple : clce.pairwise_avg,
+    structure_ok: structureOk,
+    hash_ok: hashOk,
+    plr_applicable: !!appl.flags.plr,
+    physics_lights_pass: physicsPass,
+    framing_pass: (plr.lights || {}).framing === "PASS",
+    rd: clce.rd,
+    poison_markers: poison.markers || [],
   });
-
+  const clceX = clceConsistency(clce);
   const lights = {
-    structure: structure.ok ? "PASS" : "FLAG",
+    structure: structureOk ? "PASS" : "FLAG",
     spre: spre.pc >= 0.7 ? "PASS" : spre.pc >= 0.4 ? "REVIEW" : "FLAG",
-    clce: clce.triple >= 0.7 ? "PASS" : clce.pairwise_avg >= 0.45 ? "REVIEW" : "FLAG",
-    plr: plr.status,
     poison: poison.status === "CLEAR" ? "PASS" : poison.status === "FLAGGED" ? "REVIEW" : "FLAG",
   };
+  if (clceX != null) lights.clce = clceX >= 0.7 ? "PASS" : clceX >= 0.45 ? "REVIEW" : "FLAG";
+  if (appl.flags.plr) lights.plr = plr.status;
 
   return {
     schema: REVIEW_SCHEMA,
     author: "Aziel Eliab",
     library,
     lights,
-    structure: { ok: !!structure.ok, files: structure.files || [], errors: structure.errors || [] },
+    structure: { ok: structureOk, files: structure.files || [], errors: structure.errors || [] },
     spre,
     clce,
     plr,
+    truth_formula: truth,
     poison,
     bayesian,
     applicability: appl,
-    triad: collectionTriad(triadComposite({ spre, clce, plr, applicability: appl.flags }), library, input.coverage),
+    triad: triadComposite({
+      spre,
+      clce,
+      plr,
+      bayesian,
+      truth_formula: truth,
+      applicability: appl.flags,
+      content_sha256: sha256 || structure.sha256,
+    }),
     quarantine_status: poison.status === "QUARANTINE" ? "POISON_SUSPECT" : poison.status === "FLAGGED" ? "OPERATOR_FLAG" : "CLEAR",
     possibility: input.possibility || {
       schema: "aziel.possibility.v1",
@@ -602,7 +885,7 @@ export function reviewDocument(input = {}) {
       bayesian_separate: true,
       not_truth: true,
     },
-    limitation: [SPRE_LIMITATION, CLCE_LIMITATION, PLR_LIMITATION, POISON_LIMITATION, TRIAD_FORMULA].join(" "),
+    limitation: [SPRE_LIMITATION, CLCE_LIMITATION, PLR_LIMITATION, POISON_LIMITATION, TRUTH_LIMITATION, TRIAD_FORMULA].join(" "),
   };
 }
 

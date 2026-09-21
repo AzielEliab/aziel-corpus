@@ -1,6 +1,6 @@
 import { randomBytes, createHash } from "node:crypto";
 import { appendLedger, appendDocumentLedger, ensureLedger } from "./ledger.js";
-import { ensureReviewSchema, reviewAndStore, persistPossibilityOnReview } from "./review-store.js";
+import { ensureReviewSchema, reviewAndStore, persistPossibilityOnReview, verifyDownloadBytes } from "./review-store.js";
 import { preflightIngest, pinFromUpload, appendPoisonLearn } from "./lattice-learn.js";
 import { applySuccessionForRecord, maybeRescoreZsolverOnFirstHandPatternBreak, rescoreSuccessionMembers, successionCoverageFor, subjectKey } from "./succession.js";
 import { patchTipZsolver, scoreZsolverForRecord } from "./zsolver.js";
@@ -832,19 +832,14 @@ export async function serveFile(env, recordId) {
   const name = safeFilename(row.filename || (row.object_key ? "file" : (row.title || row.record_id) + ".txt"));
   let verify = null;
   try {
-    verify = await reviewAndStore(env, {
+    verify = await verifyDownloadBytes(env, {
       recordId: row.record_id,
       library: row.library,
-      title: row.title,
-      body: row.body,
       filename: name,
       contentType: ct,
-      sha256: liveSha,
-      author: row.author,
       bytes,
       createdBy: "download",
       event: "download_verify",
-      liveClce: false,
     });
   } catch { verify = null; }
   try {

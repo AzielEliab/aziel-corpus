@@ -992,15 +992,17 @@ export function howItsScoredBody() {
 <p class="muted">Public scoring on Aziel Corpus Library. Published numbers: the triad (always, when scored), ZionPattern Solver (when that reading applies), unranked Bayesian posterior, and HEURISTIC possibility.</p></section>
 <div class="card">
 <h2>Triad — always published</h2>
-<p>The <strong>triad</strong> is the primary report card. It is always computed and always shown on a scored record. TRIAD_V2 is the geometric mean of the checkers that apply to that document’s concept:</p>
-<p><code>combined = (Π applicable_i)<sup>1/n</sup></code></p>
-<p>When SPRE, CLCE, and PhysLing all apply, that is the familiar three-engine mean. Only applicable checkers enter the public mean. Omitted components stay stored for audit and never weight the triad as 0. Display is <code>round(combined × 100)</code>.</p>
+<p>The <strong>triad</strong> is the primary report card. It is always computed and always shown on a scored record. TRIAD_V3 public combined is the <strong>36-cycle mean</strong> of applicable factors:</p>
+<p><code>triad_cycle_mean = mean(factor_i × factor_j)</code> for i,j in {physics, linguistics, bayesian, truth_formula, CLCE, SPRE} (36 pairings when all six apply, including diagonals).</p>
+<p>Also stored: <code>geometric_mean_applicable = (Π applicable SPRE/CLCE/PLR)<sup>1/n</sup></code>. Named axis products: physics × linguistics, bayesian × truth_formula, CLCE × SPRE. Display is <code>round(combined × 100)</code> and is never written back into combined. <code>triad_raw</code> freezes to the content SHA-256 at first REVIEW_SCORE. Downloads verify bytes. They do not mint a new mean. No collection offset. Scores recalibrate when papers are uploaded so an early lie cannot poison the shelf forever.</p>
 <ul>
-<li><strong>SPRE</strong> — Source Provenance Reliability Engine. Applies when the record is a filed object with provenance (title, author, hash, filename, or body). How complete the provenance looks.</li>
-<li><strong>CLCE</strong> — claim-to-claim consistency (AZ-CLCE). Applies when a descriptive claim layer exists beside title or file. Triple agreement when it is strong; otherwise pairwise average.</li>
-<li><strong>PhysLing</strong> — physics coherence mixed with linguistic neutrality. Applies when the document makes physics-evaluable or measurement claims, or is classified energy/engineering (or hardware with physical language). Philosophy, software, and design stay on SPRE, CLCE, and the triad unless they make those claims.</li>
+<li><strong>SPRE</strong> — provenance completeness (title, body ≥ 20, hash, structure, author, evidence language). physics_language and independent_source are audit flags, not silent rank boosters.</li>
+<li><strong>CLCE</strong> — structural match: claims↔evidence + headings + verified-file bit. <code>x_CLCE = 0.7×rd + 0.3×sp</code>. Token Jaccard is audit-only. SHA-256 hex is never layer P. Omit if no claims (never 0). Light PASS iff x_CLCE ≥ 0.7.</li>
+<li><strong>PhysLing</strong> — equal-weight physics × linguistics. linguistic_neutrality is 1.00 PASS / 0.70 REVIEW / 0.25 FLAG. Applies on a unit span or (conservation/causal verb + quantity), or energy/engineering. Bare energy / force / forensic do not qualify.</li>
+<li><strong>Truth Formula</strong> — Cover-Up Truth Formula v1/v2 (T0/T1/T2, ΔT, suppression, metadata shadows, backpull) on archival/cover-up papers. Ordinary Softwares/AZDOC filings use a documented subset. Omit if N/A.</li>
+<li><strong>Bayesian</strong> — unranked likelihood of internal consistency (five Bernoulli checks). Not world accuracy. Never a shelf sort key.</li>
 </ul>
-<p>Equal weight among the applicable engines only. Internal scores stay stored for audit with <code>applicable:false</code> when a component is omitted. N/A components stay off the public page (never shown as 0). The unranked Bayesian peer number and the HEURISTIC possibility score stay outside this mean and never sort the shelf.</p>
+<p>N/A components stay stored for audit with <code>applicable:false</code> and never enter the cycle as 0. Possibility stays a separate HEURISTIC over lattice time×geo pins.</p>
 <p class="muted">See a record page, <code>GET /v1/review?record_id=</code>, or <a href="/help.txt">/help.txt</a> and <a href="/help/how-to-read-scores.txt">how to read scores</a>.</p>
 </div>
 <div class="card">
