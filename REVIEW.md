@@ -136,10 +136,10 @@ When **SPRE**, **CLCE**, and **PhysLing** have all verified a record, one combin
 
 ## TRIAD V3 recalibrate (existing papers)
 
-A prior V2 `full_backfill_done` cannot skip the remint. After this lands, every stored paper is walked through TRIAD V3 against content SHA-256 (`recalibrate_v3_cursor` / `recalibrate_v3_done_utc`). Cron and request-path walks continue that cursor. Operator trigger if you want it now or to watch progress:
+A prior V2 `full_backfill_done` cannot skip the remint. After this lands, every stored paper is walked through TRIAD V3 against content SHA-256 (`recalibrate_v3_cursor` / `recalibrate_v3_done_utc`). A single-walker lock (`recalibrate_v3_lock`, TTL 90s) lets only one remint advance the cursor. Cron and request-path walks continue that cursor when the lock is free; they defer with `RECALIBRATE_LOCKED` while an operator walk holds it. Operator trigger if you want it now or to watch progress:
 
-- `GET /v1/recalibrate-all` then repeat `GET /v1/recalibrate-all?all=1` until `done:true`
-- `GET /v1/recalibrate-all?status=1` — progress
+- `GET /v1/recalibrate-all` then repeat `GET /v1/recalibrate-all?all=1` until `done:true` (time-bounded chunks; 409 if another walker holds the lock)
+- `GET /v1/recalibrate-all?status=1` — progress (`scored`/`skipped`/`failed` cumulative; `lock` lease)
 - Alias: `GET /v1/verify-backfill?recalibrate=1&all=1`
 - `force=1` remints even already-V3 frozen scores
 - Local vault: `python3 tools/recalibrate_all.py --vault ./aziel_library_data` or `aziel-library recalibrate-all`

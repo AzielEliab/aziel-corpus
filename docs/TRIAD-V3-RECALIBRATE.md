@@ -21,16 +21,29 @@ Papers already frozen as `aziel.triad.v3` to the **current** hash skip unless `f
 
 A prior `full_backfill_done_utc` from TRIAD V2 **cannot** skip this walk. Recalibrate uses its own cursor (`recalibrate_v3_cursor` / `recalibrate_v3_done_utc`).
 
+## Single-walker lock
+
+Only one walker may advance `recalibrate_v3_cursor` at a time. That covers:
+
+- `GET /v1/recalibrate-all` and `GET /v1/verify-backfill?recalibrate=1`
+- cron / request-path background remint (`continueRecalibrateAll`)
+
+A second concurrent walk **does not** write the cursor. Operator HTTP returns **409** with `code: "RECALIBRATE_LOCKED"`. Cron / background walks return the same code with `deferred: true` and wait for the next tick after the lock clears.
+
+Lock key: `recalibrate_v3_lock`. **TTL is 90 seconds.** The holder is released on `done:true`, on walk error, or when the TTL expires (isolate kill / missing `finally`). `GET /v1/recalibrate-all?status=1` reports `lock.held`, `lock.holder`, `lock.expires_utc`, and `lock.ttl_ms`.
+
+`?all=1` is time-bounded (25s chunk). Repeat until `done:true`. Status `scored` / `skipped` / `failed` accumulate across chunks (they are not reset to the last page). When remint finishes, the packed-shelf done flag is cleared so `GET /v1/verify-backfill?rebuild=1` walks tips again.
+
 ## Live Worker — trigger after merge
 
-Cron and ordinary page-request walks continue the cursor automatically after deploy. If you want the shelf reminted now, or to watch progress:
+Cron and ordinary page-request walks continue the cursor automatically after deploy **unless the operator lock is held** (then cron defers). If you want the shelf reminted now, or to watch progress:
 
 ```
 GET https://www.azielcorpuslibrary.net/v1/recalibrate-all
 GET https://www.azielcorpuslibrary.net/v1/recalibrate-all?all=1
 ```
 
-Repeat `?all=1` until JSON `done: true`.
+Repeat `?all=1` until JSON `done: true`. If a response is `409 RECALIBRATE_LOCKED`, wait for `retry_after_s` (or the 90s TTL) and retry. Do not start a second overlapping `?all=1`.
 
 ```
 GET https://www.azielcorpuslibrary.net/v1/recalibrate-all?status=1

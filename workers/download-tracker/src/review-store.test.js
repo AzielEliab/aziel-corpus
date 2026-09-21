@@ -9,7 +9,16 @@ import {
   continueFullBackfill,
   continueRecalibrateAll,
   recalibrateAllStatus,
+  acquireRecalibrateLock,
+  releaseRecalibrateLock,
+  peekRecalibrateLock,
+  parseRecalibrateLock,
+  RECALIBRATE_V3_CURSOR_KEY,
   RECALIBRATE_V3_DONE_KEY,
+  RECALIBRATE_V3_LOCK_KEY,
+  RECALIBRATE_V3_LOCK_TTL_MS,
+  RECALIBRATE_V3_STATS_KEY,
+  RECALIBRATE_LOCKED,
   syncShelfScores,
 } from "./review-store.js";
 import { LIBRARY_INDEX_KEY } from "./library-index.js";
@@ -432,6 +441,9 @@ test("GET /v1/recalibrate-all?status=1 reports the V3 job", async () => {
   assert.equal(aliasBody.job, "recalibrate_v3");
   const status = await recalibrateAllStatus(env);
   assert.equal(status.done, true);
+  assert.equal(status.lock.held, false);
+  assert.equal(status.lock.ttl_ms, RECALIBRATE_V3_LOCK_TTL_MS);
+  assert.equal(status.lock.key, RECALIBRATE_V3_LOCK_KEY);
 });
 
 test("chunk constants stay inside Worker-safe bounds", () => {
@@ -467,4 +479,180 @@ test("continueFullBackfill skips shelf walk once scoring and shelf are done", as
   assert.equal(report.shelf.skipped, true);
   const walked = env.sqlLog.filter((s) => /all:SELECT record_id, title, filename/.test(s));
   assert.equal(walked.length, 0);
+});
+
+test("parseRecalibrateLock treats expired TTL as free", () => {
+  const expired = parseRecalibrateLock({
+    token: "dead",
+    holder: "operator",
+    expires_ms: Date.now() - 1000,
+    expires_utc: new Date(Date.now() - 1000).toISOString(),
+    ttl_ms: RECALIBRATE_V3_LOCK_TTL_MS,
+  });
+  assert.equal(expired.held, false);
+  const live = parseRecalibrateLock({
+    token: "live",
+    holder: "cron",
+    expires_ms: Date.now() + 30_000,
+    ttl_ms: RECALIBRATE_V3_LOCK_TTL_MS,
+  });
+  assert.equal(live.held, true);
+  assert.equal(live.holder, "cron");
+  assert.equal(RECALIBRATE_V3_LOCK_TTL_MS, 90_000);
+});
+
+test("acquireRecalibrateLock refuses a second live holder", async () => {
+  const env = mockEnv(sampleRecords());
+  const first = await acquireRecalibrateLock(env, { holder: "operator" });
+  assert.equal(first.ok, true);
+  assert.equal(first.holder, "operator");
+  const second = await acquireRecalibrateLock(env, { holder: "cron" });
+  assert.equal(second.ok, false);
+  assert.equal(second.code, RECALIBRATE_LOCKED);
+  assert.equal(second.holder, "operator");
+  const peek = await peekRecalibrateLock(env);
+  assert.equal(peek.held, true);
+  assert.equal(peek.token, first.token);
+  await releaseRecalibrateLock(env, first.token);
+  const after = await peekRecalibrateLock(env);
+  assert.equal(!after || !after.held, true);
+});
+
+test("expired D1 lock can be stolen after TTL", async () => {
+  const env = mockEnv(sampleRecords(), {
+    metadata: {
+      [RECALIBRATE_V3_LOCK_KEY]: JSON.stringify({
+        token: "stale",
+        holder: "cron",
+        acquired_utc: "2026-09-21T00:00:00.000Z",
+        expires_utc: "2026-09-21T00:00:01.000Z",
+        expires_ms: Date.now() - 5_000,
+        ttl_ms: RECALIBRATE_V3_LOCK_TTL_MS,
+      }),
+    },
+  });
+  const lease = await acquireRecalibrateLock(env, { holder: "operator" });
+  assert.equal(lease.ok, true);
+  assert.equal(lease.holder, "operator");
+  assert.notEqual(lease.token, "stale");
+  await releaseRecalibrateLock(env, lease.token);
+});
+
+test("concurrent continueRecalibrateAll: only one walker advances the cursor", async () => {
+  const env = mockEnv(sampleRecords(), {
+    metadata: { succession_backfill_utc: "2026-09-12T00:00:00Z" },
+  });
+  const [a, b] = await Promise.all([
+    continueRecalibrateAll(env, { ms: 4000, all: false }),
+    continueRecalibrateAll(env, { ms: 4000, all: false }),
+  ]);
+  const locked = [a, b].filter((r) => r.code === RECALIBRATE_LOCKED);
+  const walked = [a, b].filter((r) => r.code !== RECALIBRATE_LOCKED);
+  assert.equal(walked.length, 1, "exactly one walker remints");
+  assert.equal(locked.length, 1, "the other walker is RECALIBRATE_LOCKED");
+  assert.equal(locked[0].locked, true);
+  assert.equal(locked[0].ok, false);
+  assert.equal(locked[0].done, false);
+  assert.ok((walked[0].scored + walked[0].skipped + walked[0].failed) > 0);
+  const after = await peekRecalibrateLock(env);
+  assert.equal(!after || !after.held, true, "lock clears after the winning walk");
+});
+
+test("cron remint defers while operator lock is held and does not write cursor", async () => {
+  const env = mockEnv(sampleRecords(), {
+    metadata: {
+      succession_backfill_utc: "2026-09-12T00:00:00Z",
+      [RECALIBRATE_V3_CURSOR_KEY]: "AZDOC-B",
+      [RECALIBRATE_V3_STATS_KEY]: JSON.stringify({ job: "recalibrate_v3", scored: 12, skipped: 3, failed: 0 }),
+    },
+  });
+  const lease = await acquireRecalibrateLock(env, { holder: "operator" });
+  assert.equal(lease.ok, true);
+  const cron = await continueRecalibrateAll(env, { ms: 4000, all: false, background: true });
+  assert.equal(cron.code, RECALIBRATE_LOCKED);
+  assert.equal(cron.deferred, true);
+  assert.equal(cron.locked, true);
+  assert.equal(cron.holder, "operator");
+  assert.equal(cron.cursor, "AZDOC-B");
+  assert.equal(cron.scored, 12);
+  assert.equal(cron.skipped, 3);
+  assert.equal(env.metadata[RECALIBRATE_V3_CURSOR_KEY], "AZDOC-B");
+  await releaseRecalibrateLock(env, lease.token);
+  const resumed = await continueRecalibrateAll(env, { ms: 4000, all: false, background: true });
+  assert.notEqual(resumed.code, RECALIBRATE_LOCKED);
+  assert.ok((resumed.scored + resumed.skipped + resumed.failed) > 12);
+});
+
+test("GET /v1/recalibrate-all returns 409 RECALIBRATE_LOCKED on contention", async () => {
+  const env = mockEnv(sampleRecords(), {
+    metadata: {
+      succession_backfill_utc: "2026-09-12T00:00:00Z",
+      [RECALIBRATE_V3_CURSOR_KEY]: "AZDOC-A",
+    },
+  });
+  const lease = await acquireRecalibrateLock(env, { holder: "cron" });
+  const res = await handleRuntimeApi(
+    new Request("https://www.azielcorpuslibrary.net/v1/recalibrate-all?all=1"),
+    new URL("https://www.azielcorpuslibrary.net/v1/recalibrate-all?all=1"),
+    env
+  );
+  assert.equal(res.status, 409);
+  const body = await res.json();
+  assert.equal(body.code, RECALIBRATE_LOCKED);
+  assert.equal(body.locked, true);
+  assert.equal(body.cursor, "AZDOC-A");
+  assert.equal(env.metadata[RECALIBRATE_V3_CURSOR_KEY], "AZDOC-A");
+  assert.match(body.note, /RECALIBRATE_LOCKED/);
+  assert.doesNotMatch(JSON.stringify(body), BANNED);
+  await releaseRecalibrateLock(env, lease.token);
+});
+
+test("recalibrate scored/skipped accumulate across chunks", async () => {
+  const env = mockEnv(sampleRecords(), {
+    metadata: {
+      succession_backfill_utc: "2026-09-12T00:00:00Z",
+      [RECALIBRATE_V3_STATS_KEY]: JSON.stringify({ job: "recalibrate_v3", scored: 40, skipped: 7, failed: 1 }),
+    },
+  });
+  const report = await continueRecalibrateAll(env, { ms: 4000, all: false });
+  assert.equal(report.job, "recalibrate_v3");
+  assert.ok(report.scored >= 40);
+  assert.ok(report.skipped >= 7);
+  assert.ok(report.failed >= 1);
+  const persisted = JSON.parse(env.metadata[RECALIBRATE_V3_STATS_KEY]);
+  assert.ok(persisted.scored >= 40);
+  const status = await recalibrateAllStatus(env);
+  assert.equal(status.scored, persisted.scored);
+  assert.equal(status.skipped, persisted.skipped);
+});
+
+test("done recalibrate does not restart on ?all=1 unless force=1", async () => {
+  const env = mockEnv(sampleRecords(), {
+    metadata: {
+      succession_backfill_utc: "2026-09-12T00:00:00Z",
+      [RECALIBRATE_V3_DONE_KEY]: "2026-09-21T00:00:00Z",
+      [RECALIBRATE_V3_STATS_KEY]: JSON.stringify({ job: "recalibrate_v3", scored: 454, skipped: 0, failed: 0 }),
+    },
+  });
+  const report = await continueRecalibrateAll(env, { ms: 4000, all: true });
+  assert.equal(report.done, true);
+  assert.equal(report.scored, 454);
+  const walked = env.sqlLog.filter((s) => /all:SELECT record_id, title, body/.test(s));
+  assert.equal(walked.length, 0);
+});
+
+test("recalibrate done:true clears shelf sync so rebuild walks again", async () => {
+  const env = mockEnv(sampleRecords(), {
+    metadata: {
+      succession_backfill_utc: "2026-09-12T00:00:00Z",
+      [SHELF_SYNC_DONE_KEY]: "2026-09-12T00:00:00Z",
+      [SHELF_SYNC_CURSOR_KEY]: "AZDOC-E",
+    },
+  });
+  const report = await continueRecalibrateAll(env, { ms: 30_000, all: true });
+  assert.equal(report.done, true);
+  assert.equal(report.shelf_invalidated, true);
+  assert.ok(report.shelf);
+  assert.notEqual(report.shelf.skipped, true, "old shelf-done flag must not short-circuit after remint");
+  assert.ok((report.shelf.processed || 0) > 0 || report.shelf.done);
 });
