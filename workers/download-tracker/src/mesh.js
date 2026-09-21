@@ -1084,19 +1084,19 @@ export function meshIncludesSiteViewers(doc) {
 }
 
 /**
- * Public Live Nodes chrome. Paints runtime live_nodes when the doc includes site viewers.
- * Does not add a library-only viewer count. Does not use software_nodes.
- * human_mesh_users is the presence count when the fleet envelope is absent
- * (a uses-sum living in live_nodes stays off this pill).
+ * Public Live Nodes chrome. Paints runtime live_nodes only when site viewers are included.
+ * Never software_nodes. Never rollup.live (Softwares on a pass-through mesh).
+ * human_mesh_users is the presence count when that fleet envelope is absent.
  */
 export function publicLiveNodes(doc) {
   if (!doc || typeof doc !== "object") return 0;
   if (softwareCoupledLiveNodes(doc)) return 0;
   const live = scalarCount(doc.live_nodes);
+  const software = scalarCount(doc.software_nodes);
   const users = scalarCount(doc.human_mesh_users);
-  if (meshIncludesSiteViewers(doc) && live != null) return live;
+  const softwareLive = software != null && live != null && live === software && software > 0;
+  if (meshIncludesSiteViewers(doc) && live != null && !softwareLive) return live;
   if (users != null) return users;
-  if (scalarCount(doc.nodes) != null && live != null) return live;
   return 0;
 }
 
@@ -1639,11 +1639,10 @@ export function statbarClockScript() {
     }else{
       nodes=(users||0)+(uses||0);
     }
+    var softwareLive=software!=null&&live!=null&&live===software&&software>0;
     var presence;
-    if(includesSite(j)&&live!=null)presence=live;
-    else if(software!=null&&live!=null&&live===software&&software>0&&users==null&&uses==null)presence=0;
+    if(includesSite(j)&&live!=null&&!softwareLive)presence=live;
     else if(users!=null)presence=users;
-    else if(nodesPref!=null&&live!=null)presence=live;
     else presence=0;
     return {nodes:nodes,live:presence};
   }
@@ -1662,14 +1661,17 @@ export function statbarClockScript() {
     if(document.visibilityState&&document.visibilityState==="hidden")return;
     fetch("/v1/presence",{method:"POST",credentials:"same-origin",headers:{"Accept":"application/json","Content-Type":"application/json"},body:"{}",keepalive:true}).catch(function(){});
   }
-  function run(){
-    if(!document.getElementById("views")&&!document.getElementById("nodes"))return;
-    beat();
-    meshDoc().then(function(mesh){
+  function paintMesh(){
+    return meshDoc().then(function(mesh){
       var d=dual(mesh);
       set("nodes",d.nodes);
       set("livenodes",d.live);
-    }).catch(function(){});
+    });
+  }
+  function run(){
+    if(!document.getElementById("views")&&!document.getElementById("nodes"))return;
+    beat();
+    paintMesh().catch(function(){setTimeout(function(){paintMesh().catch(function(){});},1200);});
     fetch("/v1/stats",{headers:{"Accept":"application/json","User-Agent":"Mozilla/5.0"}}).then(function(r){return r.json();}).then(function(s){
       if(!s)return;
       if(s.views!=null)set("views",s.views);

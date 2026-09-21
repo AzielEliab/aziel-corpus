@@ -557,9 +557,9 @@ test("dual Nodes/LiveNodes prefers numeric j.nodes; presence is human_mesh_users
   assert.equal(nodesCount({ human_mesh_users: 0, human_uses: 28032, software_nodes: 41, nodes: [] }), 28032);
   assert.equal(livePresenceCount({ human_mesh_users: 0, human_uses: 28032, live_nodes: 28032, nodes: [] }), 0);
   assert.deepEqual(dualNodesCounts({ human_mesh_users: 2, human_uses: 9, software_nodes: 41 }), { nodes: 11, liveNodes: 2 });
-  assert.equal(dualNodesLabel({ nodes: 28032, live_nodes: 3 }), "28032/3");
+  assert.equal(dualNodesLabel({ nodes: 28032, live_nodes: 3 }), "28032/0");
   assert.equal(nodesCount({ nodes: 28032, live_nodes: 3 }), 28032);
-  assert.equal(livePresenceCount({ nodes: 28032, live_nodes: 3 }), 3);
+  assert.equal(livePresenceCount({ nodes: 28032, live_nodes: 3 }), 0);
   assert.equal(nodesCount({ nodes: 41, software_nodes: 41 }), 0);
   assert.equal(livePresenceCount({ nodes: [{ id: "soft" }], live_nodes: 41, software_nodes: 41 }), 0);
   assert.notEqual(nodesCount({ human_mesh_users: 0, human_uses: 5, software_nodes: 41 }), 41);
@@ -592,7 +592,7 @@ test("peekMeshDualCounts reads human plane and never Softwares roster", async ()
       },
     },
   };
-  assert.deepEqual(await peekMeshDualCounts(broken, { timeoutMs: 0 }), { nodes: 28032, liveNodes: 3 });
+  assert.deepEqual(await peekMeshDualCounts(broken, { timeoutMs: 0 }), { nodes: 28032, liveNodes: 0 });
   const fleet = {
     AZIEL_RUNTIME: {
       async fetch() {
@@ -1325,7 +1325,12 @@ test("human chrome shows Nodes#/LiveNodes# dual pair without mesh-off copy", () 
   const html = page("Search", "<div class=\"card\">shelf</div>", { path: "/", kind: "search", nodes: 12, liveNodes: 2 });
   assert.match(html, /id="nodes">12</);
   assert.match(html, /id="livenodes">2</);
+  assert.match(html, /stat-lbl">Nodes \/ Live Nodes</);
+  assert.doesNotMatch(html, /stat-lbl">Nodes</);
   assert.match(html, /class="stat-slash"/);
+  const dualAt = html.indexOf("function dual");
+  const wrapAt = html.indexOf('class="wrap"');
+  assert.ok(dualAt > 0 && wrapAt > dualAt, "mesh clock starts before the shelf so SSR counts are replaced on first paint");
   assert.doesNotMatch(html, /Live Nodes · off/);
   assert.doesNotMatch(html, /title="Live Nodes · suite mesh status"/);
   assert.doesNotMatch(html, /Default off until runtime enable/i);
@@ -1355,7 +1360,8 @@ test("human chrome shows Nodes#/LiveNodes# dual pair without mesh-off copy", () 
   assert.match(statbarClockScript(), /human_mesh_users/);
   assert.match(statbarClockScript(), /live_nodes_includes_viewers/);
   assert.match(statbarClockScript(), /site_live_viewers/);
-  assert.match(statbarClockScript(), /meshDoc\(\)\.then/);
+  assert.match(statbarClockScript(), /paintMesh\(\)/);
+  assert.match(statbarClockScript(), /setTimeout\(function\(\)\{paintMesh/);
   assert.match(statbarClockScript(), /\n  run\(\);/);
   assert.doesNotMatch(statbarClockScript(), /Promise\.all/);
   assert.doesNotMatch(statbarClockScript(), /users\+\(viewers/);
@@ -1401,6 +1407,38 @@ test("human chrome shows Nodes#/LiveNodes# dual pair without mesh-off copy", () 
   assert.deepEqual(dual.dual(localOnly), { nodes: 12, live: 2 });
   assert.deepEqual(dual.dual({ nodes: 41, software_nodes: 41, live_nodes: 41 }), { nodes: 0, live: 0 });
   assert.equal(dual.dual({ human_mesh_users: 0, human_uses: 28032, live_nodes: 28032, nodes: 28032 }).live, 0);
+  const passThrough = {
+    nodes: 28203,
+    live_nodes: 4,
+    software_nodes: 41,
+    rollup: { live: 41, mesh: 4 },
+  };
+  assert.deepEqual(dual.dual(passThrough), chromeDualCounts(passThrough));
+  assert.equal(dual.dual(passThrough).live, 0);
+  assert.notEqual(dual.dual(passThrough).live, passThrough.rollup.live);
+  const fleetOverSoftwares = {
+    nodes: 28203,
+    human_mesh_users: 0,
+    human_uses: 28203,
+    live_nodes: 22,
+    software_nodes: 41,
+    rollup: { live: 41 },
+    site_live_viewers: 22,
+    includes_site_viewers: true,
+    live_nodes_plane: "human-mesh-users-site-viewers",
+    live_nodes_components: { site_live_viewers: 22, hedidntjump_excluded: true, software_nodes_excluded: true },
+  };
+  assert.equal(dual.dual(fleetOverSoftwares).live, 22);
+  assert.equal(chromeDualCounts(fleetOverSoftwares).live, 22);
+  assert.equal(dual.dual({
+    nodes: 28203,
+    live_nodes: 41,
+    software_nodes: 41,
+    rollup: { live: 41 },
+    includes_site_viewers: true,
+    site_live_viewers: 41,
+    live_nodes_plane: "human-mesh-users-site-viewers",
+  }).live, 0);
   const meta = headMeta({ title: "aziel-runtime", path: "/runtime", kind: "runtime" });
   assert.match(meta, /href="\/v1\/mesh"/);
 });

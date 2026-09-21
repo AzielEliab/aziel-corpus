@@ -329,11 +329,11 @@ test("public HTML cache helpers share crawler and human Cache-Control", async ()
   assert.match(SOFTWARE_API_CACHE_CONTROL, /max-age=120/);
   assert.match(SOFTWARE_API_CACHE_CONTROL, /s-maxage=300/);
   assert.match(ASSET_CACHE_CONTROL, /max-age=604800/);
-  assert.match(HTML_CACHE_PREFIX, /html-home-v7$/);
+  assert.match(HTML_CACHE_PREFIX, /html-home-v8$/);
   const cache = memoryCache();
   const req = new Request("https://www.azielcorpuslibrary.net/?q=Florence");
   const url = htmlCacheUrl(req);
-  assert.match(url, /\/__cache\/html-home-v7\/\?q=Florence$/);
+  assert.match(url, /\/__cache\/html-home-v8\/\?q=Florence$/);
   await cachePutText(url, "<html>packed search</html>", cache);
   const hit = await cacheMatchText(url, cache);
   assert.match(hit, /packed search/);

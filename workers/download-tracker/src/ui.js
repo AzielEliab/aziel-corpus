@@ -416,7 +416,7 @@ export function brandCountPills({ views, downloads, nodes, liveNodes } = {}) {
   if ((views != null && views !== "") || (downloads != null && downloads !== "") || (nodes != null && nodes !== "") || (liveNodes != null && liveNodes !== "")) {
     const n = nodes != null && nodes !== "" ? nodes : 0;
     const live = liveNodes != null && liveNodes !== "" ? liveNodes : 0;
-    bits.push(`<span class="stat-num" id="nodes">${esc(formatStatCount(n))}</span><span class="stat-slash" aria-hidden="true">/</span><span class="stat-num" id="livenodes">${esc(formatStatCount(live))}</span><span class="stat-lbl">Nodes</span>`);
+    bits.push(`<span class="stat-num" id="nodes">${esc(formatStatCount(n))}</span><span class="stat-slash" aria-hidden="true">/</span><span class="stat-num" id="livenodes">${esc(formatStatCount(live))}</span><span class="stat-lbl">Nodes / Live Nodes</span>`);
   }
   if (!bits.length) return "";
   return `<div class="statbar" role="status" aria-label="Library views, downloads, and Nodes/Live Nodes"><span class="pill stat-counter">${bits.join('<span class="stat-sep" aria-hidden="true">·</span>')}</span></div>`;
@@ -486,10 +486,11 @@ export function page(title, body, { signed, scripts, path, kind, description, wo
 <div class="brandrow nav1">${brandMarkHtml()}<a class="brand" href="/">Aziel Corpus Library</a>${authBarHtml(signed)}${homeChrome ? brandCountPills({ views, downloads, nodes, liveNodes }) : ""}</div>
 ${sigilNavHtml()}
 </div></header>
+${homeChrome ? statbarClockScript() : ""}
 <div class="wrap">
 ${showDonate ? donateStripHtml() : ""}
 ${body}
-${showEco ? ecosystemBlockHtml() : ""}</div>${jeevesFabHtml()}${(scripts||[]).map((src)=>"<script src=\""+esc(src)+"\" defer></script>").join("")}${sigilNavScript()}${homeChrome ? statbarClockScript() : ""}${jsonLdScript(metaOpts)}</body></html>`;
+${showEco ? ecosystemBlockHtml() : ""}</div>${jeevesFabHtml()}${(scripts||[]).map((src)=>"<script src=\""+esc(src)+"\" defer></script>").join("")}${sigilNavScript()}${jsonLdScript(metaOpts)}</body></html>`;
 }
 
 function esc(s) {
