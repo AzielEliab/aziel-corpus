@@ -44,6 +44,7 @@ import {
 } from "./azcoherence.js";
 import { isChromeAuthorByline, isMachineFileTag, visibleTagEntries } from "./visible-tags.js";
 import { exploreRowHtml, startPathsHtml, agentsTabHtml } from "./explore-nav.js";
+import { statbarClockScript } from "./mesh.js";
 
 /** Master UI chrome from Aziel Digital Library v2.7.0 webapp. Author: Aziel Eliab. */
 export const CSS = `
@@ -74,10 +75,11 @@ a.brand:hover{color:var(--gold)}
 .authbar a.auth-link{background:transparent;border:1px solid var(--line);color:var(--gold)}
 .authbar .auth-who{color:var(--royal);font-weight:700}
 .statbar{display:flex;align-items:center;flex:0 0 auto;margin-left:8px}
-.stat-counter{display:inline-flex;align-items:center;cursor:default;user-select:text}
+.stat-counter{display:inline-flex;align-items:center;flex-wrap:wrap;cursor:default;user-select:text}
 .stat-counter .stat-num{color:var(--ink);font-weight:750;margin-left:0;font-variant-numeric:tabular-nums}
 .stat-counter .stat-lbl{color:var(--muted);font-weight:650;margin-left:6px}
 .stat-counter .stat-sep{color:var(--muted);margin:0 8px;font-weight:650}
+.stat-counter .stat-slash{color:var(--muted);margin:0 1px;font-weight:650}
 .nav1,.nav2,.top,.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .nav1{margin-bottom:6px}
 .nav2{margin:0;gap:2px;position:fixed;left:0;top:0;bottom:0;z-index:45;flex-direction:column;flex-wrap:nowrap;align-items:stretch;justify-content:flex-start;background:var(--paper);border:0;border-right:1px solid var(--gold);border-radius:0 16px 16px 0;padding:76px 12px 24px;width:min(360px,86vw);min-width:min(260px,86vw);max-width:86vw;height:100vh;max-height:100vh;overflow:auto;overflow-x:hidden;box-shadow:12px 0 40px #00000088}
@@ -402,8 +404,8 @@ function formatStatCount(n) {
   return String(n);
 }
 
-/** Compact homepage views/downloads counter. Display-only — not a button. */
-export function brandCountPills({ views, downloads } = {}) {
+/** Compact homepage Views · Downloads · Nodes#/LiveNodes# counter. Display-only — not a button. */
+export function brandCountPills({ views, downloads, nodes, liveNodes } = {}) {
   const bits = [];
   if (views != null && views !== "") {
     bits.push(`<span class="stat-num" id="views">${esc(formatStatCount(views))}</span><span class="stat-lbl">Views</span>`);
@@ -411,8 +413,13 @@ export function brandCountPills({ views, downloads } = {}) {
   if (downloads != null && downloads !== "") {
     bits.push(`<span class="stat-num" id="downloads">${esc(formatStatCount(downloads))}</span><span class="stat-lbl">Downloads</span>`);
   }
+  if ((views != null && views !== "") || (downloads != null && downloads !== "") || (nodes != null && nodes !== "") || (liveNodes != null && liveNodes !== "")) {
+    const n = nodes != null && nodes !== "" ? nodes : 0;
+    const live = liveNodes != null && liveNodes !== "" ? liveNodes : 0;
+    bits.push(`<span class="stat-num" id="nodes">${esc(formatStatCount(n))}</span><span class="stat-slash" aria-hidden="true">/</span><span class="stat-num" id="livenodes">${esc(formatStatCount(live))}</span><span class="stat-lbl">Nodes</span>`);
+  }
   if (!bits.length) return "";
-  return `<div class="statbar" role="status" aria-label="Library views and downloads"><span class="pill stat-counter">${bits.join('<span class="stat-sep" aria-hidden="true">·</span>')}</span></div>`;
+  return `<div class="statbar" role="status" aria-label="Library views, downloads, and Nodes/Live Nodes"><span class="pill stat-counter">${bits.join('<span class="stat-sep" aria-hidden="true">·</span>')}</span></div>`;
 }
 
 /** Left-edge sigil drawer. Pattern and Runtime stay off chrome. Login/Sign up live in the top bar. */
@@ -469,20 +476,20 @@ export function streamLcpHtml(html) {
   return readable;
 }
 
-export function page(title, body, { signed, scripts, path, kind, description, work, runtimeVersion, views, downloads, donateStrip = true, ecosystem = true } = {}) {
+export function page(title, body, { signed, scripts, path, kind, description, work, runtimeVersion, views, downloads, nodes, liveNodes, donateStrip = true, ecosystem = true } = {}) {
   const metaOpts = { title, path: path || "/", kind, description, work, runtimeVersion, includeJsonLd: false };
   const homeChrome = kind === "search";
   const showDonate = donateStrip && !homeChrome;
   const showEco = ecosystem && !homeChrome;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(documentTitle(kind, title))}</title>${headMeta(metaOpts)}${ingestReceiptHead()}<link rel="preload" href="/sigil.png" as="image" fetchpriority="high"><style>${CSS}</style></head><body>
 <header class="sitehead"><div class="sitehead-inner">
-<div class="brandrow nav1">${brandMarkHtml()}<a class="brand" href="/">Aziel Corpus Library</a>${authBarHtml(signed)}${homeChrome ? brandCountPills({ views, downloads }) : ""}</div>
+<div class="brandrow nav1">${brandMarkHtml()}<a class="brand" href="/">Aziel Corpus Library</a>${authBarHtml(signed)}${homeChrome ? brandCountPills({ views, downloads, nodes, liveNodes }) : ""}</div>
 ${sigilNavHtml()}
 </div></header>
 <div class="wrap">
 ${showDonate ? donateStripHtml() : ""}
 ${body}
-${showEco ? ecosystemBlockHtml() : ""}</div>${jeevesFabHtml()}${(scripts||[]).map((src)=>"<script src=\""+esc(src)+"\" defer></script>").join("")}${sigilNavScript()}${jsonLdScript(metaOpts)}</body></html>`;
+${showEco ? ecosystemBlockHtml() : ""}</div>${jeevesFabHtml()}${(scripts||[]).map((src)=>"<script src=\""+esc(src)+"\" defer></script>").join("")}${sigilNavScript()}${homeChrome ? statbarClockScript() : ""}${jsonLdScript(metaOpts)}</body></html>`;
 }
 
 function esc(s) {

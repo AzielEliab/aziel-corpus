@@ -1018,6 +1018,98 @@ function finiteCount(value) {
   return Number.isFinite(n) ? n : null;
 }
 
+/** Scalar count only. Arrays (roster) and objects never become a number. Number([]) is 0. */
+export function scalarCount(value) {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "string") {
+    const t = value.trim();
+    if (!t) return null;
+    const n = Number(t);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+/**
+ * Nodes = human mesh users + cited human uses.
+ * Prefer numeric j.nodes (post-break). Never roster length. Never software_nodes.
+ */
+export function nodesCount(doc) {
+  if (!doc || typeof doc !== "object") return 0;
+  const preferred = scalarCount(doc.nodes);
+  if (preferred != null) {
+    const software = scalarCount(doc.software_nodes);
+    const users = scalarCount(doc.human_mesh_users);
+    const uses = scalarCount(doc.human_uses);
+    if (software != null && preferred === software && software > 0 && users == null && uses == null) {
+      return 0;
+    }
+    return preferred;
+  }
+  return (scalarCount(doc.human_mesh_users) || 0) + (scalarCount(doc.human_uses) || 0);
+}
+
+/**
+ * Live Nodes = presence.
+ * Prefer j.human_mesh_users. Post-break: j.live_nodes when numeric j.nodes is present.
+ */
+export function livePresenceCount(doc) {
+  if (!doc || typeof doc !== "object") return 0;
+  const users = scalarCount(doc.human_mesh_users);
+  if (users != null) return users;
+  if (scalarCount(doc.nodes) != null) {
+    const live = scalarCount(doc.live_nodes);
+    if (live != null) return live;
+  }
+  return 0;
+}
+
+/** Compact Nodes#/LiveNodes# pair. Softwares never enter either side. */
+export function dualNodesCounts(doc) {
+  return {
+    nodes: nodesCount(doc),
+    liveNodes: livePresenceCount(doc),
+  };
+}
+
+export function dualNodesLabel(doc) {
+  const pair = dualNodesCounts(doc);
+  return pair.nodes + "/" + pair.liveNodes;
+}
+
+/** Short-timeout mesh peek for homepage SSR. Client clock still refreshes. */
+export async function peekMeshDualCounts(env, { timeoutMs = 400 } = {}) {
+  const empty = { nodes: 0, liveNodes: 0 };
+  const work = (async () => {
+    const fake = new Request(HOST + "/v1/mesh", {
+      method: "GET",
+      headers: { Accept: "application/json", "User-Agent": UA },
+    });
+    const res = await fetchRuntimeMesh(fake, "/v1/mesh", env, null);
+    if (!res) return empty;
+    let doc = null;
+    try {
+      doc = await res.json();
+    } catch {
+      return empty;
+    }
+    if (!doc || typeof doc !== "object") return empty;
+    return dualNodesCounts(doc);
+  })();
+  const ms = Number(timeoutMs);
+  if (!Number.isFinite(ms) || ms <= 0) {
+    try {
+      return await work;
+    } catch {
+      return empty;
+    }
+  }
+  return Promise.race([
+    work.catch(() => empty),
+    new Promise((resolve) => setTimeout(() => resolve(empty), ms)),
+  ]);
+}
+
 /** Worker SoT after aziel-runtime#151 — live_nodes_plane or human_* fields. */
 export function workerHasHumanLiveNodes(doc) {
   if (!doc || typeof doc !== "object") return false;
@@ -1363,6 +1455,61 @@ export function meshRefreshScript() {
       el.className="pill ok";
       var note=d.live_nodes_note||(src&&src.live_nodes_note);
       if(note)el.title=note;
+    }).catch(function(){});
+  }
+  if("requestIdleCallback" in window)requestIdleCallback(run,{timeout:2500});
+  else setTimeout(run,1);
+})();
+</script>`;
+}
+
+/** Homepage statbar clock: same tick updates Views, Downloads, and Nodes#/LiveNodes#. */
+export function statbarClockScript() {
+  return `<script>
+(function(){
+  function scalar(v){
+    if(typeof v==="number")return isFinite(v)?v:null;
+    if(typeof v==="string"&&v.trim()!==""){var n=Number(v);return isFinite(n)?n:null;}
+    return null;
+  }
+  function dual(j){
+    if(!j||typeof j!=="object")return {nodes:0,live:0};
+    var nodesPref=scalar(j.nodes);
+    var users=scalar(j.human_mesh_users);
+    var uses=scalar(j.human_uses);
+    var live=scalar(j.live_nodes);
+    var software=scalar(j.software_nodes);
+    var nodes;
+    if(nodesPref!=null){
+      if(software!=null&&nodesPref===software&&software>0&&users==null&&uses==null)nodes=0;
+      else nodes=nodesPref;
+    }else{
+      nodes=(users||0)+(uses||0);
+    }
+    var presence=users!=null?users:(nodesPref!=null&&live!=null?live:0);
+    return {nodes:nodes,live:presence};
+  }
+  function fmt(n){var x=Number(n);return isFinite(x)?x.toLocaleString("en-US"):String(n);}
+  function set(id,n){var el=document.getElementById(id);if(el)el.textContent=fmt(n);}
+  function meshDoc(){
+    var hdr={"Accept":"application/json","User-Agent":"Mozilla/5.0"};
+    return fetch("/v1/mesh",{headers:hdr}).then(function(r){
+      if(!r||!r.ok)throw new Error("mesh");
+      return r.json();
+    }).catch(function(){
+      return fetch("/runtime/v1/mesh",{headers:hdr}).then(function(r){return r.json();});
+    });
+  }
+  function run(){
+    if(!document.getElementById("views")&&!document.getElementById("nodes"))return;
+    var stats=fetch("/v1/stats",{headers:{"Accept":"application/json","User-Agent":"Mozilla/5.0"}}).then(function(r){return r.json();});
+    Promise.all([stats,meshDoc()]).then(function(pair){
+      var s=pair[0]||{};
+      if(s.views!=null)set("views",s.views);
+      if(s.downloads!=null||s.total!=null)set("downloads",s.downloads!=null?s.downloads:s.total);
+      var d=dual(pair[1]);
+      set("nodes",d.nodes);
+      set("livenodes",d.live);
     }).catch(function(){});
   }
   if("requestIdleCallback" in window)requestIdleCallback(run,{timeout:2500});

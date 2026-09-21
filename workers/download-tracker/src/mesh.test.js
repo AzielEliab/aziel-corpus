@@ -51,6 +51,13 @@ import {
   judgeUpdateProof,
   liveNodesCount,
   liveNodesLabel,
+  livePresenceCount,
+  nodesCount,
+  dualNodesCounts,
+  dualNodesLabel,
+  peekMeshDualCounts,
+  scalarCount,
+  statbarClockScript,
   LIVE_NODES_NOTE,
   LIVE_NODES_PLANE,
   SOFTWARE_NODES_NOTE,
@@ -531,6 +538,51 @@ test("Live Nodes never equals Softwares roster; prefers Worker human plane", () 
 
   assert.equal(liveNodesCount({ human_mesh_users: 1, human_uses: 4 }), 5);
   assert.equal(liveNodesCount({ live_nodes: 9, nodes: [{ id: "x" }] }), 9);
+});
+
+test("dual Nodes/LiveNodes prefers numeric j.nodes; presence is human_mesh_users", () => {
+  assert.equal(scalarCount([]), null);
+  assert.equal(scalarCount([{ id: "x" }]), null);
+  assert.equal(scalarCount("41"), 41);
+  assert.equal(nodesCount({ human_mesh_users: 0, human_uses: 28032, software_nodes: 41, nodes: [] }), 28032);
+  assert.equal(livePresenceCount({ human_mesh_users: 0, human_uses: 28032, live_nodes: 28032, nodes: [] }), 0);
+  assert.deepEqual(dualNodesCounts({ human_mesh_users: 2, human_uses: 9, software_nodes: 41 }), { nodes: 11, liveNodes: 2 });
+  assert.equal(dualNodesLabel({ nodes: 28032, live_nodes: 3 }), "28032/3");
+  assert.equal(nodesCount({ nodes: 28032, live_nodes: 3 }), 28032);
+  assert.equal(livePresenceCount({ nodes: 28032, live_nodes: 3 }), 3);
+  assert.equal(nodesCount({ nodes: 41, software_nodes: 41 }), 0);
+  assert.equal(livePresenceCount({ nodes: [{ id: "soft" }], live_nodes: 41, software_nodes: 41 }), 0);
+  assert.notEqual(nodesCount({ human_mesh_users: 0, human_uses: 5, software_nodes: 41 }), 41);
+});
+
+test("peekMeshDualCounts reads human plane and never Softwares roster", async () => {
+  const env = {
+    AZIEL_RUNTIME: {
+      async fetch() {
+        return new Response(JSON.stringify({
+          human_mesh_users: 1,
+          human_uses: 10,
+          software_nodes: 41,
+          live_nodes: 11,
+          nodes: [],
+        }), { headers: { "Content-Type": "application/json" } });
+      },
+    },
+  };
+  const pair = await peekMeshDualCounts(env, { timeoutMs: 0 });
+  assert.deepEqual(pair, { nodes: 11, liveNodes: 1 });
+  const broken = {
+    AZIEL_RUNTIME: {
+      async fetch() {
+        return new Response(JSON.stringify({
+          nodes: 28032,
+          live_nodes: 3,
+          software_nodes: 41,
+        }), { headers: { "Content-Type": "application/json" } });
+      },
+    },
+  };
+  assert.deepEqual(await peekMeshDualCounts(broken, { timeoutMs: 0 }), { nodes: 28032, liveNodes: 3 });
 });
 
 test("LIVE Worker a8f7fdc9: live_nodes = 0 humans + uses; software_nodes 41 separate", () => {
@@ -1129,6 +1181,18 @@ test("human chrome shows Live Nodes · N without mesh-off copy", () => {
   assert.doesNotMatch(meshRefreshScript(), /nodes&&d.nodes.length/);
   assert.doesNotMatch(meshRefreshScript(), /rollup&&src.rollup.live/);
   assert.doesNotMatch(meshRefreshScript(), /Live Nodes · off/);
+  assert.match(statbarClockScript(), /fetch\("\/v1\/mesh"/);
+  assert.match(statbarClockScript(), /\/runtime\/v1\/mesh/);
+  assert.match(statbarClockScript(), /fetch\("\/v1\/stats"/);
+  assert.match(statbarClockScript(), /human_mesh_users/);
+  assert.match(statbarClockScript(), /set\("nodes"/);
+  assert.match(statbarClockScript(), /set\("livenodes"/);
+  assert.match(statbarClockScript(), /set\("views"/);
+  assert.match(statbarClockScript(), /getElementById\(id\)/);
+  assert.doesNotMatch(statbarClockScript(), /nodes&&d.nodes.length/);
+  assert.doesNotMatch(statbarClockScript(), /j.nodes.length/);
+  assert.doesNotMatch(statbarClockScript(), /rollup&&src.rollup.live/);
+  assert.doesNotMatch(statbarClockScript(), /id="aziel-live-nodes"/);
   const meta = headMeta({ title: "aziel-runtime", path: "/runtime", kind: "runtime" });
   assert.match(meta, /href="\/v1\/mesh"/);
 });
