@@ -54,9 +54,12 @@ import {
   livePresenceCount,
   nodesCount,
   nodesLabel,
+  chromeDualCounts,
   dualNodesCounts,
   dualNodesLabel,
+  meshIncludesSiteViewers,
   peekMeshDualCounts,
+  publicLiveNodes,
   scalarCount,
   statbarClockScript,
   LIVE_NODES_NOTE,
@@ -614,6 +617,67 @@ test("peekMeshDualCounts reads human plane and never Softwares roster", async ()
     },
   };
   assert.deepEqual(await peekMeshDualCounts(fleet, { timeoutMs: 0 }), { nodes: 11, liveNodes: 8 });
+  const slowLocal = {
+    AZIEL_RUNTIME: fleet.AZIEL_RUNTIME,
+    DOWNLOADS: {
+      async get() {
+        throw new Error("local viewers must not gate fleet Live Nodes");
+      },
+    },
+  };
+  assert.deepEqual(await peekMeshDualCounts(slowLocal, { timeoutMs: 0 }), { nodes: 11, liveNodes: 8 });
+});
+
+test("public Live Nodes paints fleet live_nodes and never a library-only recount", () => {
+  const fleet = {
+    human_mesh_users: 1,
+    human_uses: 100,
+    nodes: 101,
+    live_nodes: 23,
+    site_live_viewers: 22,
+    includes_site_viewers: true,
+    live_nodes_plane: "human-mesh-users-site-viewers",
+    software_nodes: 41,
+    page_viewers: 9,
+    page_viewers_source: "library-presence",
+    live_nodes_components: {
+      human_mesh_users: 1,
+      site_live_viewers: 22,
+      software_nodes_excluded: true,
+      hedidntjump_excluded: true,
+    },
+  };
+  assert.equal(meshIncludesSiteViewers(fleet), true);
+  assert.equal(publicLiveNodes(fleet), 23);
+  assert.equal(livePresenceCount(fleet, { page_viewers: 9, count: 9 }), 23);
+  assert.deepEqual(chromeDualCounts(fleet, { page_viewers: 9 }), { nodes: 101, live: 23 });
+  assert.notEqual(publicLiveNodes(fleet), 1 + 9);
+  assert.notEqual(publicLiveNodes(fleet), 41);
+  assert.equal(nodesCount(fleet), 101);
+
+  const localOnly = {
+    human_mesh_users: 2,
+    human_uses: 10,
+    nodes: 12,
+    live_nodes: 11,
+    page_viewers: 9,
+    page_viewers_source: "library-presence",
+    live_nodes_plane: "human-mesh-users-page-viewers",
+    software_nodes: 41,
+  };
+  assert.equal(meshIncludesSiteViewers(localOnly), false);
+  assert.equal(publicLiveNodes(localOnly), 2);
+  assert.equal(livePresenceCount(localOnly, { page_viewers: 9 }), 2);
+  assert.notEqual(publicLiveNodes(localOnly), 9);
+  assert.notEqual(publicLiveNodes(localOnly), 11);
+
+  const usesSum = { human_mesh_users: 0, human_uses: 28032, live_nodes: 28032, nodes: 28032, software_nodes: 41 };
+  assert.equal(publicLiveNodes(usesSum), 0);
+  assert.equal(nodesCount(usesSum), 28032);
+
+  assert.match(LIVE_NODES_NOTE, /hedidntjump\.com is excluded/);
+  assert.match(LIVE_NODES_NOTE, /godlock\.uk, azieleliab\.com, and azielcorpuslibrary\.net/);
+  assert.match(LIVE_NODES_NOTE, /Not software_nodes/);
 });
 
 test("LIVE Worker: live_nodes is presence; Nodes is users + uses; viewers add without uses", () => {
@@ -861,6 +925,53 @@ test("GET /v1/mesh does not display stale software_nodes as Live Nodes", async (
   assert.equal(body.live_nodes_plane, LIVE_NODES_PLANE);
   assert.match(body.live_nodes_note, /human mesh users/i);
   assert.doesNotMatch(body.live_nodes_note, /mesh size/);
+});
+
+test("GET /v1/mesh pins Live Nodes to runtime live_nodes and skips the library viewer recount", async () => {
+  let kvReads = 0;
+  const env = {
+    AZIEL_RUNTIME: {
+      fetch: async () => new Response(JSON.stringify({
+        ok: true,
+        enabled: true,
+        mesh: "on",
+        live_nodes: 23,
+        live_nodes_plane: "human-mesh-users-site-viewers",
+        human_mesh_users: 1,
+        human_uses: 100,
+        nodes: 101,
+        site_live_viewers: 22,
+        includes_site_viewers: true,
+        site_live_viewers_excluded_hosts: ["hedidntjump.com"],
+        software_nodes: 41,
+        live_nodes_components: {
+          human_mesh_users: 1,
+          site_live_viewers: 22,
+          software_nodes_excluded: true,
+          hedidntjump_excluded: true,
+        },
+      }), { status: 200, headers: { "Content-Type": "application/json" } }),
+    },
+    DOWNLOADS: {
+      async get() {
+        kvReads += 1;
+        return JSON.stringify({ viewers: { local: Date.now() + 60_000 }, count: 9 });
+      },
+      async put() {},
+    },
+  };
+  const res = await handleMeshApi(req("/v1/mesh"), new URL(HOST + "/v1/mesh"), env);
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.live_nodes, 23);
+  assert.equal(body.nodes, 101);
+  assert.equal(body.human_mesh_users, 1);
+  assert.equal(body.software_nodes, 41);
+  assert.notEqual(body.live_nodes, body.software_nodes);
+  assert.notEqual(body.live_nodes, 1 + 9);
+  assert.equal(body.live_nodes_plane, "human-mesh-users-site-viewers");
+  assert.equal(kvReads, 0);
+  assert.match(body.live_nodes_note, /hedidntjump\.com is excluded/);
 });
 
 test("GET /v1/mesh/nodes and /runtime/v1/mesh stay ON when origin 404s", async () => {
@@ -1242,6 +1353,13 @@ test("human chrome shows Nodes#/LiveNodes# dual pair without mesh-off copy", () 
   assert.match(statbarClockScript(), /\/v1\/presence/);
   assert.match(statbarClockScript(), /includes_site_viewers/);
   assert.match(statbarClockScript(), /human_mesh_users/);
+  assert.match(statbarClockScript(), /live_nodes_includes_viewers/);
+  assert.match(statbarClockScript(), /site_live_viewers/);
+  assert.match(statbarClockScript(), /meshDoc\(\)\.then/);
+  assert.match(statbarClockScript(), /\n  run\(\);/);
+  assert.doesNotMatch(statbarClockScript(), /Promise\.all/);
+  assert.doesNotMatch(statbarClockScript(), /users\+\(viewers/);
+  assert.doesNotMatch(statbarClockScript(), /requestIdleCallback/);
   assert.match(statbarClockScript(), /set\("nodes"/);
   assert.match(statbarClockScript(), /set\("livenodes"/);
   assert.match(statbarClockScript(), /set\("views"/);
@@ -1250,6 +1368,39 @@ test("human chrome shows Nodes#/LiveNodes# dual pair without mesh-off copy", () 
   assert.doesNotMatch(statbarClockScript(), /j.nodes.length/);
   assert.doesNotMatch(statbarClockScript(), /rollup&&src.rollup.live/);
   assert.doesNotMatch(statbarClockScript(), /id="aziel-live-nodes"/);
+  const src = statbarClockScript();
+  const start = src.indexOf("function scalar");
+  const end = src.indexOf("function fmt");
+  const dual = new Function(src.slice(start, end) + "\nreturn {dual:dual,includesSite:includesSite};")();
+  const fleet = {
+    human_mesh_users: 1,
+    human_uses: 100,
+    nodes: 101,
+    live_nodes: 23,
+    site_live_viewers: 22,
+    includes_site_viewers: true,
+    live_nodes_plane: "human-mesh-users-site-viewers",
+    software_nodes: 41,
+    page_viewers: 9,
+    live_nodes_components: { site_live_viewers: 22, hedidntjump_excluded: true, software_nodes_excluded: true },
+  };
+  assert.equal(dual.includesSite(fleet), true);
+  assert.deepEqual(dual.dual(fleet), chromeDualCounts(fleet));
+  assert.equal(dual.dual(fleet).live, 23);
+  const localOnly = {
+    human_mesh_users: 2,
+    human_uses: 10,
+    nodes: 12,
+    live_nodes: 11,
+    page_viewers: 9,
+    page_viewers_source: "library-presence",
+    live_nodes_plane: "human-mesh-users-page-viewers",
+    software_nodes: 41,
+  };
+  assert.equal(dual.includesSite(localOnly), false);
+  assert.deepEqual(dual.dual(localOnly), { nodes: 12, live: 2 });
+  assert.deepEqual(dual.dual({ nodes: 41, software_nodes: 41, live_nodes: 41 }), { nodes: 0, live: 0 });
+  assert.equal(dual.dual({ human_mesh_users: 0, human_uses: 28032, live_nodes: 28032, nodes: 28032 }).live, 0);
   const meta = headMeta({ title: "aziel-runtime", path: "/runtime", kind: "runtime" });
   assert.match(meta, /href="\/v1\/mesh"/);
 });
