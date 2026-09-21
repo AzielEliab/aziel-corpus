@@ -406,6 +406,7 @@ export default {
       await refreshPackedIndex(env).catch(() => null);
       await refreshGithubIntoIndex(env).catch(() => null);
       await continueFullBackfill(env, { ms: 12000, all: false, background: true }).catch(() => null);
+      // TRIAD remint: continueRecalibrateAll acquires the single-walker lock or returns RECALIBRATE_LOCKED (cursor untouched).
       await continueRecalibrateAll(env, { ms: 12000, all: false, background: true }).catch(() => null);
       await continueMetadataBackfill(env, { ms: 8000, all: false }).catch(() => null);
       await sampleContentHashIntegrity(env, { limit: 8 }).catch(() => null);

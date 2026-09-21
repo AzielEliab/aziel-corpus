@@ -5,7 +5,7 @@
  */
 import { serveFileByHash, normalizeContentHash } from "./library.js";
 import { receiptForRecord, documentChain, isJsonDocumentId } from "./ledger.js";
-import { loadRecordReview, runReviewBundle, backfillReviews, continueFullBackfill, continueRecalibrateAll, recalibrateAllStatus, fullBackfillStatus, syncShelfScores, refreshPackedShelf, publicizeReview, SHELF_REBUILD_MS } from "./review-store.js";
+import { loadRecordReview, runReviewBundle, backfillReviews, continueFullBackfill, continueRecalibrateAll, recalibrateAllStatus, fullBackfillStatus, syncShelfScores, refreshPackedShelf, publicizeReview, SHELF_REBUILD_MS, RECALIBRATE_LOCKED } from "./review-store.js";
 import { latticeAnchorTip, LATTICE_NOTE } from "./lattice.js";
 import { handleJeevesApi, JEEVES_LIMITATION } from "./jeeves.js";
 import { handleOperatorIngestApi } from "./operator-ingest.js";
@@ -130,7 +130,7 @@ Ops (do **not** increment downloads):
 - \`GET /survival\` · \`GET /v1/survival\` (BAN-SURVIVAL-1.0 hub map; same SoT pull as \`/runtime/survival\`; short TTL). Cites Worker SPORE-1.0 last-resort + RE-COLD-STORE. Shelves stay intact (not failed).
 - \`POST /v1/score\` (document review preview)
 - \`GET /v1/verify-backfill?all=1\` (walk every stored Aziel Library + Corpus record)
-- \`GET /v1/recalibrate-all\` (TRIAD V3 remint of stored papers; own cursor so a prior V2 backfill-done cannot skip. Repeat ?all=1 until done:true. ?status=1 progress. Alias: ?recalibrate=1 on verify-backfill)
+- \`GET /v1/recalibrate-all\` (TRIAD V3 remint of stored papers; own cursor so a prior V2 backfill-done cannot skip. Single-walker lock TTL 90s; concurrent walk returns RECALIBRATE_LOCKED and does not advance the cursor. Repeat ?all=1 until done:true. ?status=1 progress. Alias: ?recalibrate=1 on verify-backfill)
 - \`GET /v1/verify-backfill?rebuild=1\` (chunked tip reconcile; JSON returns promptly with next_cursor / done; packed shelf refresh is deferred. Repeat with cursor or all=1 until done:true)
 - \`GET /v1/verify-geo?force=1\` / \`?status=1\` (chunked map pins: paper date × event × geolocation)
 - \`GET /v1/content-hash-repair\` (dry-run recompute of content_sha256 from served file bytes). \`?apply=1\` is operator-only. Does not rewrite file bytes. Append-only JSON_HASH_REPAIR tip.
@@ -223,7 +223,7 @@ function openapi() {
       "/runtime/v1/mesh/nodes": { get: { summary: "Same-origin proxy of aziel-runtime /v1/mesh/nodes. Live Nodes · N is human mesh users + cited human uses, not Softwares.", operationId: "runtimeProxyMeshNodes" } },
       "/v1/score": { post: { summary: "Preview document review (SPRE, CLCE port, PhysLing, poison, triad, Bayesian). Advisory. Does not write.", operationId: "score" } },
       "/v1/verify-backfill": { get: { summary: "Walk stored records: triad, ZionPattern Solver secondary score, and exact-same-subject succession. all=1 walks every remaining doc (chunked). rebuild=1 copies already-scored zsolver onto packed shelf + tip without live API, one cursor page per request. recalibrate=1 is the TRIAD V3 remint job (same as GET /v1/recalibrate-all). Reports total/processed/tips/done/next_cursor. Does not increment downloads.", operationId: "verifyBackfill", parameters: [{ name: "limit", in: "query", schema: { type: "integer", default: 25 } }, { name: "force", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "all", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "rebuild", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "recalibrate", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "cursor", in: "query", schema: { type: "string" } }, { name: "record_id", in: "query", schema: { type: "string" } }] } },
-      "/v1/recalibrate-all": { get: { summary: "TRIAD V3 36-cycle remint of every stored paper against content SHA-256. Own cursor (recalibrate_v3_*) so a prior V2 full_backfill_done cannot skip. Repeat all=1 until done:true. status=1 progress. force=1 remints even already-V3. Ingest always runs V3. N/A factors omit. Does not increment downloads.", operationId: "recalibrateAll", parameters: [{ name: "all", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "force", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "status", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "record_id", in: "query", schema: { type: "string" } }] } },
+      "/v1/recalibrate-all": { get: { summary: "TRIAD V3 36-cycle remint of every stored paper against content SHA-256. Own cursor (recalibrate_v3_*) so a prior V2 full_backfill_done cannot skip. Single-walker lock (TTL 90s): a second concurrent walk returns 409 RECALIBRATE_LOCKED and does not advance the cursor. Cron defers while the lock is held. Repeat all=1 until done:true (time-bounded chunks). status=1 progress including lock + cumulative scored/skipped. force=1 remints even already-V3. Ingest always runs V3. N/A factors omit. Does not increment downloads.", operationId: "recalibrateAll", parameters: [{ name: "all", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "force", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "status", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "record_id", in: "query", schema: { type: "string" } }] } },
       "/v1/verify-geo": { get: { summary: "Chunked geography reindex: date × event × geolocation pins for docs with geospatial anchors (paper time, never upload time). force=1 restarts. status=1 progress. Does not increment downloads.", operationId: "verifyGeo", parameters: [{ name: "force", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "status", in: "query", schema: { type: "string", enum: ["0", "1"] } }] } },
       "/v1/document-chain": { get: { summary: "Per-document hash-chain bound to record_id. No orphan chains.", operationId: "documentChain", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
       "/v1/jeeves/chat": { post: { summary: "Ask Jeeves research assistant over public records. Lamb Lens. Cannot change scores.", operationId: "jeevesChat" } },
@@ -449,7 +449,7 @@ export async function handleRuntimeApi(request, url, env, ctx) {
         poison_learn: "GET /v1/poison-learn — feature receipts only (hash + markers). No poison bodies. Repeats refuse faster.",
         pin: "Upload→pin on successful ingest. GET /v1/pin?record_id= · GET /v1/verify-geo. Fail closed on structure/poison. 4DMap cite 4DM-WP-1.0.",
         triad: "TRIAD_V3 36-cycle mean over applicable factors (physics, linguistics, bayesian, truth_formula, CLCE, SPRE) — primary visible score, always published when scored",
-        recalibrate_all: "GET /v1/recalibrate-all remints stored papers through TRIAD V3 (own cursor). Repeat ?all=1 until done:true. Alias GET /v1/verify-backfill?recalibrate=1. Local: aziel-library recalibrate-all / python3 tools/recalibrate_all.py. Ingest always runs V3.",
+        recalibrate_all: "GET /v1/recalibrate-all remints stored papers through TRIAD V3 (own cursor). Single-walker lock TTL 90s; concurrent walk returns RECALIBRATE_LOCKED. Repeat ?all=1 until done:true. Alias GET /v1/verify-backfill?recalibrate=1. Local: aziel-library recalibrate-all / python3 tools/recalibrate_all.py. Ingest always runs V3.",
         backfill: "GET /v1/verify-backfill scores older unscored records",
         document_chain: "hash-chain bound to AZDOC- id; uploads/downloads/rescores/quarantine/peer notes append",
         succession: "Exact-same-subject paper cites (Supersedes / Superseded by). Uncertain matches are not chained.",
@@ -656,11 +656,14 @@ export async function handleRuntimeApi(request, url, env, ctx) {
       const report = await backfillReviews(env, { force: true, recordId, event: "recalibrate_v3" });
       return json({ ...report, job: "recalibrate_v3", schema: "aziel.triad.v3", limitation: LIMITATION });
     }
-    const report = await continueRecalibrateAll(env, { ms: all ? 25000 : 18000, force, all });
+    const report = await continueRecalibrateAll(env, { ms: all ? 25000 : 18000, force, all, background: false });
+    if (report && report.code === RECALIBRATE_LOCKED) {
+      return json({ ...report, limitation: LIMITATION }, 409);
+    }
     const next = report.done ? "" : (report.cursor || "");
     const note = report.done
       ? "TRIAD V3 recalibrate finished. Packed shelf: GET /v1/verify-backfill?rebuild=1 until done:true."
-      : "Chunked TRIAD V3 remint. Repeat GET /v1/recalibrate-all?all=1 or ?cursor-walk until done:true. Next: GET /v1/recalibrate-all?all=1 (cursor " + encodeURIComponent(next) + ").";
+      : "Chunked TRIAD V3 remint (single-walker lock, TTL 90s). Repeat GET /v1/recalibrate-all?all=1 until done:true. Next: GET /v1/recalibrate-all?all=1 (cursor " + encodeURIComponent(next) + ").";
     return json({ ...report, note, limitation: LIMITATION });
   }
   if (path === "/v1/verify-backfill" && request.method === "GET") {

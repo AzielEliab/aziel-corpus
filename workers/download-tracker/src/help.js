@@ -63,7 +63,7 @@ export function helpIndexTxt() {
     + "## Scores you will see\n"
     + "The triad is always the primary published score on a scored record.\n"
     + "TRIAD_V3 public score is the 36-cycle mean of applicable factors (physics, linguistics, bayesian, truth_formula, CLCE, SPRE).\n"
-    + "Ingest always runs that path. Stored papers remint via GET /v1/recalibrate-all (repeat ?all=1 until done:true).\n"
+    + "Ingest always runs that path. Stored papers remint via GET /v1/recalibrate-all (repeat ?all=1 until done:true; single-walker lock TTL 90s).\n"
     + "SPRE, CLCE, and PhysLing appear when that component applies to the document's concept. N/A components are omitted (never shown as 0).\n"
     + "ZionPattern appears when the document qualifies.\n"
     + "Details: " + HOST + HELP_SCORES + " and " + HOST + "/how-its-scored.\n\n"

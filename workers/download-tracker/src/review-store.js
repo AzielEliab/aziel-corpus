@@ -46,6 +46,13 @@ export const RECALIBRATE_V3_CURSOR_KEY = "recalibrate_v3_cursor";
 export const RECALIBRATE_V3_DONE_KEY = "recalibrate_v3_done_utc";
 export const RECALIBRATE_V3_STATS_KEY = "recalibrate_v3_stats";
 export const RECALIBRATE_V3_EVENT = "recalibrate_v3";
+/** Single-walker lease. Second concurrent remint (operator or cron) must not advance the cursor. */
+export const RECALIBRATE_V3_LOCK_KEY = "recalibrate_v3_lock";
+/** Crash/TTL steal window. HTTP/cron chunks are 8–25s; 90s covers isolate kill without a finally. */
+export const RECALIBRATE_V3_LOCK_TTL_MS = 90_000;
+export const RECALIBRATE_LOCKED = "RECALIBRATE_LOCKED";
+/** Same-isolate mutex so Promise.all / waitUntil + scheduled cannot double-claim before D1 confirms. */
+const recalibrateIsolateLocks = new WeakMap();
 
 const SCORE_WALK_KEYS = {
   full_backfill: { cursor: "full_backfill_cursor", done: "full_backfill_done_utc", stats: "full_backfill_stats", event: "full_backfill" },
@@ -547,6 +554,118 @@ async function metaSet(env, key, value) {
   } catch { /* optional */ }
 }
 
+export function parseRecalibrateLock(raw, now = Date.now()) {
+  if (raw == null) return null;
+  let obj = raw;
+  if (typeof raw === "string") {
+    const text = raw.trim();
+    if (!text) return null;
+    try { obj = JSON.parse(text); } catch { return null; }
+  }
+  if (!obj || typeof obj !== "object") return null;
+  const expiresMs = Number(obj.expires_ms) || Date.parse(String(obj.expires_utc || "")) || 0;
+  const holder = obj.holder === "cron" || obj.holder === "background" ? "cron" : obj.holder === "operator" ? "operator" : String(obj.holder || "walker");
+  return {
+    token: String(obj.token || ""),
+    holder,
+    acquired_utc: obj.acquired_utc || null,
+    expires_utc: obj.expires_utc || (expiresMs ? new Date(expiresMs).toISOString() : null),
+    expires_ms: expiresMs,
+    ttl_ms: Number(obj.ttl_ms) || RECALIBRATE_V3_LOCK_TTL_MS,
+    held: Number.isFinite(expiresMs) && expiresMs > now,
+  };
+}
+
+function lockLease(token, holder, now) {
+  const expiresMs = now + RECALIBRATE_V3_LOCK_TTL_MS;
+  return {
+    token,
+    holder,
+    acquired_utc: new Date(now).toISOString(),
+    expires_utc: new Date(expiresMs).toISOString(),
+    expires_ms: expiresMs,
+    ttl_ms: RECALIBRATE_V3_LOCK_TTL_MS,
+  };
+}
+
+function lockHolderKind(holder) {
+  return holder === "cron" || holder === "background" ? "cron" : "operator";
+}
+
+export async function peekRecalibrateLock(env, now = Date.now()) {
+  const iso = recalibrateIsolateLocks.get(env);
+  if (iso && Number(iso.expires_ms) > now) {
+    return { ...iso, held: true, isolate: true };
+  }
+  return parseRecalibrateLock(await metaGet(env, RECALIBRATE_V3_LOCK_KEY), now);
+}
+
+export async function acquireRecalibrateLock(env, { holder = "operator", now = Date.now() } = {}) {
+  const kind = lockHolderKind(holder);
+  const iso = recalibrateIsolateLocks.get(env);
+  if (iso && Number(iso.expires_ms) > now) {
+    return { ok: false, code: RECALIBRATE_LOCKED, ...iso, held: true };
+  }
+  const token = randomBytes(8).toString("hex");
+  const lease = lockLease(token, kind, now);
+  recalibrateIsolateLocks.set(env, { ...lease, held: true });
+  try {
+    const current = parseRecalibrateLock(await metaGet(env, RECALIBRATE_V3_LOCK_KEY), now);
+    if (current && current.held && current.token !== token) {
+      recalibrateIsolateLocks.delete(env);
+      return { ok: false, code: RECALIBRATE_LOCKED, ...current };
+    }
+    await metaSet(env, RECALIBRATE_V3_LOCK_KEY, JSON.stringify(lease));
+    const confirm = parseRecalibrateLock(await metaGet(env, RECALIBRATE_V3_LOCK_KEY), now);
+    if (!confirm || confirm.token !== token) {
+      recalibrateIsolateLocks.delete(env);
+      return { ok: false, code: RECALIBRATE_LOCKED, ...(confirm || {}), held: true };
+    }
+    return { ok: true, code: null, ...lease, held: true };
+  } catch (err) {
+    recalibrateIsolateLocks.delete(env);
+    try { await metaSet(env, RECALIBRATE_V3_LOCK_KEY, ""); } catch { /* lock optional */ }
+    throw err;
+  }
+}
+
+export async function releaseRecalibrateLock(env, token) {
+  const iso = recalibrateIsolateLocks.get(env);
+  if (!token || (iso && iso.token === token)) recalibrateIsolateLocks.delete(env);
+  const current = parseRecalibrateLock(await metaGet(env, RECALIBRATE_V3_LOCK_KEY), Date.now());
+  if (!current || !current.token || current.token === token || !current.held) {
+    await metaSet(env, RECALIBRATE_V3_LOCK_KEY, "");
+    return { ok: true, cleared: true };
+  }
+  return { ok: false, cleared: false, holder: current.holder, token: current.token };
+}
+
+function lockedRecalibrateReport({ holder, expires_utc, expires_ms, background, cursor, total, prior }) {
+  const retryAfterS = Math.max(1, Math.ceil(((Number(expires_ms) || (Date.now() + RECALIBRATE_V3_LOCK_TTL_MS)) - Date.now()) / 1000));
+  return {
+    ok: false,
+    code: RECALIBRATE_LOCKED,
+    locked: true,
+    job: "recalibrate_v3",
+    schema: TRIAD_SCHEMA,
+    done: false,
+    deferred: !!background,
+    holder: holder || null,
+    expires_utc: expires_utc || null,
+    ttl_ms: RECALIBRATE_V3_LOCK_TTL_MS,
+    retry_after_s: retryAfterS,
+    cursor: cursor || "",
+    total: Number(total) || 0,
+    scored: Number(prior && prior.scored) || 0,
+    skipped: Number(prior && prior.skipped) || 0,
+    failed: Number(prior && prior.failed) || 0,
+    stats: prior || null,
+    note: background
+      ? "Cron TRIAD remint deferred; another walker holds the single-walker lock. Cursor not advanced. Resumes after lock clear or TTL (" + (RECALIBRATE_V3_LOCK_TTL_MS / 1000) + "s)."
+      : "Another walker holds the TRIAD V3 recalibrate lock (RECALIBRATE_LOCKED). Cursor not advanced. Retry after lock clear or TTL (" + (RECALIBRATE_V3_LOCK_TTL_MS / 1000) + "s).",
+  };
+}
+
 async function countRecords(env) {
   try {
     const row = await env.DB.prepare("SELECT COUNT(*) AS n FROM records").first();
@@ -638,8 +757,21 @@ export async function continueFullBackfill(env, { ms = 18000, force = false, all
   await ensureReviewSchema(env);
   const keys = SCORE_WALK_KEYS[job] || SCORE_WALK_KEYS.full_backfill;
   const started = Date.now();
+  const budgetMs = Math.max(1, Number(ms) || 18000);
+  const isRecal = job === "recalibrate_v3";
   const total = await countRecords(env);
-  const stats = { ok: true, job: job === "recalibrate_v3" ? "recalibrate_v3" : "full_backfill", total, scored: 0, skipped: 0, failed: 0, succession_linked: 0, zsolver_queue: null, done: false, cursor: "", schema: TRIAD_SCHEMA };
+  const stats = { ok: true, job: isRecal ? "recalibrate_v3" : "full_backfill", total, scored: 0, skipped: 0, failed: 0, succession_linked: 0, zsolver_queue: null, done: false, cursor: "", schema: TRIAD_SCHEMA };
+  if (!force) {
+    try {
+      const prior = JSON.parse(await metaGet(env, keys.stats) || "null");
+      if (prior && typeof prior === "object" && (prior.job === stats.job || !prior.job)) {
+        stats.scored = Number(prior.scored) || 0;
+        stats.skipped = Number(prior.skipped) || 0;
+        stats.failed = Number(prior.failed) || 0;
+        if (prior.succession_linked != null) stats.succession_linked = Number(prior.succession_linked) || 0;
+      }
+    } catch { /* fresh cumulative counters */ }
+  }
   try {
     const succ = await maybeBackfillSuccession(env);
     if (succ && succ.linked != null) stats.succession_linked = succ.linked;
@@ -653,9 +785,10 @@ export async function continueFullBackfill(env, { ms = 18000, force = false, all
   try { stats.zsolver_queue = await drainZsolverQueue(env, { limit: background ? 2 : 15 }); } catch { /* */ }
   let cursor = await metaGet(env, keys.cursor);
   const doneFlag = await metaGet(env, keys.done);
-  if (doneFlag && !force && !all) {
+  if (doneFlag && !force) {
     stats.done = true;
     stats.cursor = cursor;
+    stats.done_utc = doneFlag;
     const shelfDone = await metaGet(env, SHELF_SYNC_DONE_KEY);
     if (!shelfDone) {
       try {
@@ -673,9 +806,15 @@ export async function continueFullBackfill(env, { ms = 18000, force = false, all
   }
   if (force) {
     cursor = "";
+    stats.scored = 0;
+    stats.skipped = 0;
+    stats.failed = 0;
     await metaSet(env, keys.done, "");
+    await metaSet(env, keys.stats, JSON.stringify({ ...stats, updated_utc: new Date().toISOString() }));
   }
-  while (all || Date.now() - started < ms) {
+  // all=1 still honors the Worker time budget so isolate kill cannot leave the cursor racing.
+  // Repeat GET /v1/recalibrate-all?all=1 until done:true.
+  while (Date.now() - started < budgetMs) {
     let batch = [];
     try {
       if (cursor) {
@@ -700,7 +839,12 @@ export async function continueFullBackfill(env, { ms = 18000, force = false, all
       stats.done = true;
       await metaSet(env, keys.done, new Date().toISOString());
       await metaSet(env, keys.cursor, "");
-      await metaSet(env, keys.stats, JSON.stringify(stats));
+      await metaSet(env, keys.stats, JSON.stringify({ ...stats, updated_utc: new Date().toISOString() }));
+      if (isRecal) {
+        await metaSet(env, SHELF_SYNC_DONE_KEY, "");
+        await metaSet(env, SHELF_SYNC_CURSOR_KEY, "");
+        stats.shelf_invalidated = true;
+      }
       break;
     }
     for (const row of batch) {
@@ -713,11 +857,11 @@ export async function continueFullBackfill(env, { ms = 18000, force = false, all
       }
       cursor = row.record_id;
       stats.cursor = cursor;
-      if (!all && Date.now() - started >= ms) break;
+      if (Date.now() - started >= budgetMs) break;
     }
     await metaSet(env, keys.cursor, cursor);
     await metaSet(env, keys.stats, JSON.stringify({ ...stats, updated_utc: new Date().toISOString() }));
-    if (!all && Date.now() - started >= ms) break;
+    if (Date.now() - started >= budgetMs) break;
   }
   try {
     // Packed refresh only after a scoring walk. Full tip reconcile is chunked via rebuild=1
@@ -731,9 +875,40 @@ export async function continueFullBackfill(env, { ms = 18000, force = false, all
   return stats;
 }
 
-/** Force-walk every stored paper through TRIAD_V3. Own cursor so a prior V2 backfill-done cannot skip the shelf. */
+/** Force-walk every stored paper through TRIAD_V3. Own cursor so a prior V2 backfill-done cannot skip the shelf. Single-walker lock: only one remint may advance recalibrate_v3_cursor. */
 export async function continueRecalibrateAll(env, opts = {}) {
-  return continueFullBackfill(env, { ...opts, job: "recalibrate_v3" });
+  const background = !!opts.background;
+  const holder = background ? "cron" : "operator";
+  const lease = await acquireRecalibrateLock(env, { holder });
+  if (!lease.ok) {
+    const total = await countRecords(env);
+    const cursor = await metaGet(env, RECALIBRATE_V3_CURSOR_KEY);
+    let prior = null;
+    try { prior = JSON.parse(await metaGet(env, RECALIBRATE_V3_STATS_KEY) || "null"); } catch { prior = null; }
+    return lockedRecalibrateReport({
+      holder: lease.holder,
+      expires_utc: lease.expires_utc,
+      expires_ms: lease.expires_ms,
+      background,
+      cursor,
+      total,
+      prior,
+    });
+  }
+  try {
+    return await continueFullBackfill(env, { ...opts, job: "recalibrate_v3" });
+  } catch (err) {
+    return {
+      ok: false,
+      job: "recalibrate_v3",
+      schema: TRIAD_SCHEMA,
+      done: false,
+      code: "RECALIBRATE_ERROR",
+      error: err && err.message ? String(err.message) : String(err),
+    };
+  } finally {
+    await releaseRecalibrateLock(env, lease.token);
+  }
 }
 
 export async function recalibrateAllStatus(env) {
@@ -742,6 +917,8 @@ export async function recalibrateAllStatus(env) {
   const cursor = await metaGet(env, RECALIBRATE_V3_CURSOR_KEY);
   let stats = null;
   try { stats = JSON.parse(await metaGet(env, RECALIBRATE_V3_STATS_KEY) || "null"); } catch { stats = null; }
+  const lock = await peekRecalibrateLock(env);
+  const held = !!(lock && lock.held);
   return {
     ok: true,
     job: "recalibrate_v3",
@@ -750,9 +927,20 @@ export async function recalibrateAllStatus(env) {
     done: !!done,
     done_utc: done || null,
     cursor: cursor || "",
+    scored: Number(stats && stats.scored) || 0,
+    skipped: Number(stats && stats.skipped) || 0,
+    failed: Number(stats && stats.failed) || 0,
     stats,
+    lock: {
+      held,
+      holder: held ? lock.holder : null,
+      expires_utc: held ? lock.expires_utc : null,
+      ttl_ms: RECALIBRATE_V3_LOCK_TTL_MS,
+      key: RECALIBRATE_V3_LOCK_KEY,
+      code: held ? RECALIBRATE_LOCKED : null,
+    },
     trigger: "GET /v1/recalibrate-all  (repeat ?all=1 until done:true). Alias GET /v1/verify-backfill?recalibrate=1. Local: aziel-library recalibrate-all / python3 tools/recalibrate_all.py",
-    note: "Remints stored papers that are not TRIAD_V3 frozen to content SHA-256. force=1 remints even already-V3. Ingest always runs V3. N/A factors omit. Softwares / Live Nodes / SPORE untouched.",
+    note: "Remints stored papers that are not TRIAD_V3 frozen to content SHA-256. force=1 remints even already-V3. Ingest always runs V3. N/A factors omit. Single-walker lock (TTL " + (RECALIBRATE_V3_LOCK_TTL_MS / 1000) + "s) — concurrent walks return RECALIBRATE_LOCKED and do not advance the cursor. Cron defers while the lock is held. Softwares / Live Nodes / SPORE untouched.",
   };
 }
 
@@ -895,7 +1083,9 @@ export async function syncShelfScores(env, {
 
   if (reconcile && priorDone && !force && !explicitCursor && !all && resume) {
     stats.done = true;
+    stats.skipped = true;
     stats.next_cursor = "";
+    stats.note = "Shelf sync already marked done. force=1 restarts tip reconcile. TRIAD remint done:true clears this flag so rebuild walks again.";
     if (refreshPacked) {
       const packed = await refreshPackedShelf(env, cache);
       stats.packed = packed.packed;
