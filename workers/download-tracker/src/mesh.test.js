@@ -466,6 +466,8 @@ test("mesh default ON; identity Aziel Eliab only", () => {
   assert.equal(on.human_mesh_users, 0);
   assert.equal(on.human_uses, 0);
   assert.equal(on.human_uses_complete, false);
+  assert.equal(on.human_uses_kv, false);
+  assert.equal(on.human_uses_source, "unbound");
   assert.equal(on.software_nodes, 0);
   assert.match(on.live_nodes_note, /human mesh users/i);
   assert.match(on.software_nodes_note, /never feed public Live Nodes/);
@@ -523,6 +525,54 @@ test("Live Nodes never equals Softwares roster; prefers Worker human plane", () 
 
   assert.equal(liveNodesCount({ human_mesh_users: 1, human_uses: 4 }), 5);
   assert.equal(liveNodesCount({ live_nodes: 9, nodes: [{ id: "x" }] }), 9);
+});
+
+test("LIVE Worker d7b63ac1: live_nodes = 0 humans + uses; software_nodes 41 separate", () => {
+  const live = {
+    ok: true,
+    enabled: true,
+    live_nodes_plane: LIVE_NODES_PLANE,
+    live_nodes: 27147,
+    human_mesh_users: 0,
+    human_uses: 27147,
+    human_uses_complete: true,
+    human_uses_kv: true,
+    human_uses_source: "uses.total",
+    software_nodes: 41,
+    software_live_nodes: 41,
+    rollup: {
+      live: 41,
+      mesh: 27147,
+      software: { live: 41, locked: 0, isolated: 0 },
+      human: { live: 0, locked: 0, isolated: 0 },
+    },
+    live_nodes_note: LIVE_NODES_NOTE,
+    live_nodes_components: {
+      human_mesh_users: 0,
+      human_uses: 27147,
+      software_nodes_excluded: true,
+      instance_nodes_excluded: true,
+      invent_users: false,
+    },
+  };
+  assert.equal(live.live_nodes, live.human_mesh_users + live.human_uses);
+  assert.notEqual(live.live_nodes, live.software_nodes);
+  assert.equal(workerHasHumanLiveNodes(live), true);
+  assert.equal(softwareCoupledLiveNodes(live), false);
+  assert.equal(liveNodesCount(live), 27147);
+  const decorated = decorateMeshDoc(live);
+  assert.equal(decorated.live_nodes, 27147);
+  assert.equal(decorated.human_mesh_users, 0);
+  assert.equal(decorated.human_uses, 27147);
+  assert.equal(decorated.human_uses_kv, true);
+  assert.equal(decorated.human_uses_source, "uses.total");
+  assert.equal(decorated.software_nodes, 41);
+  assert.equal(decorated.rollup.mesh, 27147);
+  assert.equal(decorated.rollup.live, 41);
+  assert.notEqual(decorated.live_nodes, decorated.software_nodes);
+  assert.equal(liveNodesLabel(decorated), "Live Nodes · 27147");
+  assert.match(meshStatusHtml(decorated), /Live Nodes · 27147/);
+  assert.match(meshStatusHtml(decorated), /human mesh users/);
 });
 
 test("QNS-CD-1.0 cross-map is on Live Nodes payloads; not a Softwares-tab product", () => {

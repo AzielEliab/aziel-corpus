@@ -1062,6 +1062,8 @@ export function humanLiveNodesFields(doc = {}) {
     human_mesh_users: users != null ? users : 0,
     human_uses: uses != null ? uses : 0,
     human_uses_complete: src.human_uses_complete === true,
+    human_uses_kv: src.human_uses_kv === true,
+    human_uses_source: src.human_uses_source || (src.human_uses_kv === true ? "uses.total" : "unbound"),
     live_nodes_components: src.live_nodes_components && typeof src.live_nodes_components === "object"
       ? src.live_nodes_components
       : {

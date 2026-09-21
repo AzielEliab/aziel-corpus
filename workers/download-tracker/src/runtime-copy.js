@@ -10,10 +10,10 @@ export const RUNTIME_ORIGIN = "https://aziel-runtime.vibelock.workers.dev";
 export const RUNTIME_VERSION = "2.0.0-rc1";
 export const SOFTWARES_SSOT_VERSION = RUNTIME_VERSION;
 /** Operator SoT: aziel-runtime main tip that the live Worker serves. */
-export const RUNTIME_GIT_SHA = "6a3798a";
-export const RUNTIME_GIT_FULL = "6a3798af3a94bfba3ed2e7aaadeed8777ea32bb4";
+export const RUNTIME_GIT_SHA = "31ccb56";
+export const RUNTIME_GIT_FULL = "31ccb56b6c01647f434a9981c9843602c5967899";
 /** Cloudflare Workers deployment id for that LIVE Worker (operator SoT; not health.version). */
-export const RUNTIME_VERSION_ID = "105fa1ee";
+export const RUNTIME_VERSION_ID = "d7b63ac1";
 export const RUNTIME_SOT_BRANCH = "main";
 export const RUNTIME_DOOR = "fraggate";
 export const RUNTIME_KERNEL = "https://github.com/AzielEliab/fraggate";
