@@ -84,6 +84,7 @@ Live Nodes · N is counts/status. It is not a heal signal and not a vote. Distin
 | die-with-pull (PR #87) | Sites pulled → public rollup is down. Phoenix does not restore a public hostname. Supervisor restart is operator kit, not the public contract. |
 | [MESH-REEXPAND-1.0](MESH-REEXPAND-1.0.md) | Operator verify-from-archive. Stand a new local node on a hashed tip. Crawlers do not re-expand. |
 | [MESH-REHEAL-1.0](MESH-REHEAL-1.0.md) | Self tip + trusted pull, or phoenix-WAIT. Never neighbor majority. |
+| SPORE-1.0 (Worker GET /v1/survival) | Last-resort failsafe after live fronts and cold-shelf mutual backup: pause / preserve / wait / physical-wipe-only. Does not replace shelves. Shelves stay intact (not failed). RE-COLD-STORE is an honest hook (no invented destinations). Paper: https://github.com/AzielEliab/aziel-runtime/blob/main/docs/designs/SPORE-1.0.md |
 
 Child laws do not outrank this mandate. If a later paper would make survival depend on the live network, neighbor vote, crawler resurrection, or a summary without bytes, that paper is wrong.
 

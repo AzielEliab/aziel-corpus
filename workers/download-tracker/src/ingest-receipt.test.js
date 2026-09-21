@@ -180,6 +180,9 @@ test("cite.json, llms.txt, ai.txt, robots, sitemap carry the tip and keep crawle
   assert.equal(cite.no_lie_no_rewrite, NO_LIE_NO_REWRITE);
   assert.equal(cite.no_lie_no_rewrite_rule, NO_LIE_NO_REWRITE_RULE);
   assert.equal(cite.cold_multi_shelf, "COLD-MULTI-SHELF-1.0");
+  assert.equal(cite.spore_spec, "SPORE-1.0");
+  assert.equal(cite.spore_replaces_cold_shelves, false);
+  assert.equal(cite.re_cold_store_hook, "RE-COLD-STORE");
   assert.match(cite.shelves, /\/shelves$/);
   assert.match(cite.cold_copy, /\/cold-copy$/);
   assert.equal(cite.lockset_tip, LOCKSET_TIP);

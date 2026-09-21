@@ -28,6 +28,7 @@ Site blurbs (published work only):
 - aziel-runtime — Node-meshed orchestration suite of MCP-connected software. FragGate is THE single public executable door. Worker origin is relatedLink — identity lives at https://www.azieleliab.com/runtime#runtime. https://aziel-runtime.vibelock.workers.dev/
 Growth-ON. NO-LIE. No visible HTML chrome.
 BAN-SURVIVAL-1.0: cold shelves and live fronts back each other up. Prefer GET https://aziel-runtime.vibelock.workers.dev/v1/survival (short TTL). Same door: https://www.azielcorpuslibrary.net/runtime/survival · hub map https://www.azielcorpuslibrary.net/survival · https://www.azielcorpuslibrary.net/v1/survival
+SPORE-1.0 last-resort failsafe (layer 3): pause / preserve / wait / physical-wipe-only. Does not replace live fronts or cold-shelf mutual backup. Shelves stay intact (not failed). RE-COLD-STORE is an honest hook (inactive; no invented destinations).
 Cap-7 MirageGrid shuffle: ping https://miragegrid.vibelock.workers.dev until one site lands. /bridge · /v1/shuffle. resolves_to_hub: false.
 Platforms: prefer pulled /survival platforms.all_live. When the feed says all_live, Windows, Mac, Linux, Android, and iPhone are LIVE via browser + PWA + Worker fronts + Softwares /download + MCP/OpenAPI.
 Calling-name: mesh nodes pull `*new name alert: ` from /survival calling_name.alert. Identity Aziel Eliab unchanged. Person @id https://www.azieleliab.com/#aziel. Lamb Lens. NO-LIE. No visible 15:20 chrome.

@@ -297,11 +297,11 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.ok(cite.keywords.includes("PeaceLock"));
   assert.ok(cite.keywords.includes("PL-WP-0.1"));
   assert.equal(cite.trades_runtime.byo_field_os, true);
-  assert.equal(cite.runtime_git, "31ccb56");
-  assert.equal(cite.runtime_version_id, "d7b63ac1");
+  assert.equal(cite.runtime_git, "231b02f");
+  assert.equal(cite.runtime_version_id, "a8f7fdc9");
   assert.equal(cite.runtime_sot_branch, "main");
   assert.equal(cite.runtime_live_count, 41);
-  assert.equal(cite.runtime_launch.sot.git, "31ccb56");
+  assert.equal(cite.runtime_launch.sot.git, "231b02f");
   assert.equal(cite.runtime_launch.mcp.softwares, "fraggate_call only");
   assert.equal(cite.runtime_launch.shelves.plane_b_live, false);
   assert.equal(cite.runtime_launch.claim_complete, undefined);

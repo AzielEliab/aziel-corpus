@@ -10,10 +10,10 @@ export const RUNTIME_ORIGIN = "https://aziel-runtime.vibelock.workers.dev";
 export const RUNTIME_VERSION = "2.0.0-rc1";
 export const SOFTWARES_SSOT_VERSION = RUNTIME_VERSION;
 /** Operator SoT: aziel-runtime main tip that the live Worker serves. */
-export const RUNTIME_GIT_SHA = "31ccb56";
-export const RUNTIME_GIT_FULL = "31ccb56b6c01647f434a9981c9843602c5967899";
+export const RUNTIME_GIT_SHA = "231b02f";
+export const RUNTIME_GIT_FULL = "231b02fcbb7b50fbd52762a49329042bc1715fe9";
 /** Cloudflare Workers deployment id for that LIVE Worker (operator SoT; not health.version). */
-export const RUNTIME_VERSION_ID = "d7b63ac1";
+export const RUNTIME_VERSION_ID = "a8f7fdc9";
 export const RUNTIME_SOT_BRANCH = "main";
 export const RUNTIME_DOOR = "fraggate";
 export const RUNTIME_KERNEL = "https://github.com/AzielEliab/fraggate";
@@ -308,6 +308,7 @@ export function runtimeHowTo(host) {
     "- Runtime cite.json: " + h + "/runtime/cite.json",
     "- Runtime robots.txt: " + h + "/runtime/robots.txt",
     "- Ban survival (BAN-SURVIVAL-1.0; prefer pull, short TTL): " + h + "/survival · " + h + "/v1/survival · " + h + "/runtime/survival · " + h + "/runtime/v1/survival",
+    "- SPORE-1.0 last-resort failsafe + RE-COLD-STORE (cite Worker GET /v1/survival; shelves stay intact, not failed)",
     "- Softwares download: " + h + "/download  ·  " + h + "/v1/download",
     "- " + RUNTIME_GLAMA_LABEL + ": " + RUNTIME_GLAMA,
     "- Source on GitHub: " + RUNTIME_GITHUB,

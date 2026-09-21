@@ -42,6 +42,9 @@ async function fetchRuntimeJson(env, destPath) {
 export const AUTHOR = "Aziel Eliab";
 export const PERSON_ID = "https://www.azieleliab.com/#aziel";
 export const BAN_SURVIVAL_SPEC = "BAN-SURVIVAL-1.0";
+export const SPORE_SPEC = "SPORE-1.0";
+export const RE_COLD_STORE_HOOK = "RE-COLD-STORE";
+export const SPORE_PAPER = "https://github.com/AzielEliab/aziel-runtime/blob/main/docs/designs/SPORE-1.0.md";
 export const CALLING_NAME_ALERT_PREFIX = "*new name alert: ";
 export const SURVIVAL_TTL_S = 60;
 export const SURVIVAL_SEO_CACHE_CONTROL =
@@ -86,8 +89,13 @@ function withTimeout(promise, ms) {
 export function isSurvivalDoc(doc) {
   if (!doc || typeof doc !== "object") return false;
   const spec = String(doc.spec || "");
-  if (spec.includes("BAN-SURVIVAL")) return true;
-  return Boolean(doc.mutual_backup != null || (doc.platforms && typeof doc.platforms === "object"));
+  if (spec.includes("BAN-SURVIVAL") || spec.includes("SPORE")) return true;
+  return Boolean(
+    doc.mutual_backup != null
+    || (doc.platforms && typeof doc.platforms === "object")
+    || (doc.spore && typeof doc.spore === "object")
+    || (doc.re_cold_store && typeof doc.re_cold_store === "object")
+  );
 }
 
 /** Cite-the-pull fallback. Does not invent a LIVE door, ban, or rotated calling name. */
@@ -147,6 +155,12 @@ export function survivalFallbackCite() {
       is_live_door: false,
       role: "cold-shelf-backup",
     }),
+    spore_spec: SPORE_SPEC,
+    spore_role: "failsafe",
+    spore_replaces_cold_shelves: false,
+    spore: compactSpore(null, { prefer_pull: true }),
+    re_cold_store: compactReColdStore(null, { prefer_pull: true }),
+    survival_stack: defaultSurvivalStack(),
     visible_1520: false,
     visible_1520_chrome: false,
     lamb_lens: true,
@@ -242,6 +256,119 @@ function compactShelf(shelf) {
   });
 }
 
+function defaultSurvivalStack() {
+  return Object.freeze([
+    Object.freeze({
+      layer: 1,
+      id: "live-fronts",
+      spec: BAN_SURVIVAL_SPEC,
+      role: "failover",
+    }),
+    Object.freeze({
+      layer: 2,
+      id: "cold-shelves",
+      spec: "COLD-MULTI-SHELF-1.0",
+      role: "mutual-backup",
+      plane_b: "slot",
+      plane_c: "slot",
+      replaced: false,
+      failed: false,
+    }),
+    Object.freeze({
+      layer: 3,
+      id: "spore",
+      spec: SPORE_SPEC,
+      role: "failsafe",
+      last_resort: true,
+      replaces_cold_shelves: false,
+      replaces_ban_survival: false,
+    }),
+  ]);
+}
+
+function compactSurvivalStack(stack) {
+  const rows = Array.isArray(stack) ? stack : defaultSurvivalStack();
+  return Object.freeze(rows.map((row) => {
+    const src = row && typeof row === "object" ? row : {};
+    const id = String(src.id || "");
+    const isShelves = id === "cold-shelves" || Number(src.layer) === 2;
+    return Object.freeze({
+      layer: Number(src.layer) || 0,
+      id,
+      spec: src.spec || "",
+      role: src.role || "",
+      last_resort: src.last_resort === true,
+      replaces_cold_shelves: src.replaces_cold_shelves === true,
+      replaces_ban_survival: src.replaces_ban_survival === true,
+      plane_b: src.plane_b || (isShelves ? "slot" : undefined),
+      plane_c: src.plane_c || (isShelves ? "slot" : undefined),
+      replaced: isShelves ? false : src.replaced === true,
+      failed: isShelves ? false : src.failed === true,
+    });
+  }));
+}
+
+function compactReColdStore(rec, extra) {
+  const src = rec && typeof rec === "object" ? rec : {};
+  const dests = Array.isArray(src.destinations)
+    ? src.destinations.filter((d) => d && typeof d === "string")
+    : [];
+  return Object.freeze({
+    hook: src.hook || RE_COLD_STORE_HOOK,
+    prefer_pull: extra && extra.prefer_pull === true,
+    allowed: src.allowed !== false,
+    trigger: src.trigger || "cold-shelves-wiped-or-failed",
+    active: src.active === true,
+    shelves_failed: false,
+    shelves_intact: src.shelves_intact !== false,
+    invent_live: false,
+    invent_hash: false,
+    invent_receipt: false,
+    invent_destination: false,
+    public_inventory_required: false,
+    destinations: Object.freeze(dests),
+    opaque_placement: src.opaque_placement !== false,
+    note:
+      src.note
+      || "When cold stores are wiped or fail, the mesh may re-cold-store DNA wherever available. Never invent LIVE stores, hashes, receipts, or destinations. No required public inventory. Does not claim a wipe is happening now.",
+  });
+}
+
+function compactSpore(spore, extra) {
+  const src = spore && typeof spore === "object" ? spore : {};
+  const faces = Array.isArray(src.faces) && src.faces.length
+    ? src.faces.map(String)
+    : ["pause", "preserve", "wait", "physical-wipe-only"];
+  return Object.freeze({
+    spec: src.spec || SPORE_SPEC,
+    prefer_pull: extra && extra.prefer_pull === true,
+    role: src.role || src.spore_role || "failsafe",
+    last_resort: src.last_resort !== false,
+    failsafe: src.failsafe !== false,
+    replaces_cold_shelves: false,
+    replaces_ban_survival: false,
+    cold_shelves_intact: src.cold_shelves_intact !== false,
+    mutual_backup_intact: src.mutual_backup_intact !== false,
+    faces: Object.freeze(faces),
+    software_tab: false,
+    fraggate_slug: false,
+    paper: src.paper || "docs/designs/SPORE-1.0.md",
+    paper_url: SPORE_PAPER,
+    re_cold_store: compactReColdStore(src.re_cold_store, extra),
+    honesty: Object.freeze({
+      shelves_not_replaced: true,
+      shelves_not_marked_failed: true,
+      do_not_paint_slot_as_live: true,
+      power_off_is_not_wipe: true,
+    }),
+    tip: src.tip || "SPORE-1.0: last-resort failsafe. pause / preserve / wait / physical-wipe-only. Not a replacement for cold shelves.",
+    note:
+      src.rule
+      || src.note
+      || "Last-resort failsafe after live fronts and cold-shelf mutual backup. Does not replace BAN-SURVIVAL or COLD-MULTI-SHELF. Shelves stay intact.",
+  });
+}
+
 export function projectSurvival(doc, extra) {
   const fallback = survivalFallbackCite();
   if (!isSurvivalDoc(doc)) return fallback;
@@ -271,6 +398,12 @@ export function projectSurvival(doc, extra) {
     calling_name: compactCallingName(doc.calling_name),
     cap7_aznet: compactCap7(doc.cap7_aznet),
     shelf_backup: compactShelf(doc.shelf_backup),
+    spore_spec: String(doc.spore_spec || (doc.spore && doc.spore.spec) || SPORE_SPEC),
+    spore_role: String(doc.spore_role || (doc.spore && doc.spore.role) || "failsafe"),
+    spore_replaces_cold_shelves: false,
+    spore: compactSpore(doc.spore || { spec: doc.spore_spec, role: doc.spore_role }),
+    re_cold_store: compactReColdStore(doc.re_cold_store || (doc.spore && doc.spore.re_cold_store)),
+    survival_stack: compactSurvivalStack(doc.survival_stack || (doc.spore && doc.spore.stack)),
     visible_1520: doc.visible_1520 === true,
     visible_1520_chrome: false,
     lamb_lens: true,
@@ -333,6 +466,17 @@ export function callingNameAlertLine(survival) {
   return "Calling-name: mesh nodes pull `" + CALLING_NAME_ALERT_PREFIX + "` from /survival calling_name.alert. Identity Aziel Eliab unchanged.";
 }
 
+export function sporeLine(survival) {
+  const src = survival && survival.spore ? survival.spore : compactSpore(null, { prefer_pull: true });
+  const rec = survival && survival.re_cold_store ? survival.re_cold_store : src.re_cold_store;
+  return (
+    "SPORE-1.0 last-resort failsafe (layer 3): pause / preserve / wait / physical-wipe-only. "
+    + "Does not replace live fronts or cold-shelf mutual backup. Shelves stay intact (not failed). "
+    + "RE-COLD-STORE is an honest hook"
+    + (rec && rec.active === true ? " (active)." : " (inactive; no invented destinations).")
+  );
+}
+
 export function platformsLine(survival) {
   const plat = survival && survival.platforms ? survival.platforms : {};
   if (plat.all_live === true) {
@@ -364,6 +508,12 @@ export function survivalCiteFields(survival) {
     calling_name_alert_prefix: CALLING_NAME_ALERT_PREFIX,
     cap7_aznet: src.cap7_aznet,
     shelf_backup: src.shelf_backup,
+    spore_spec: SPORE_SPEC,
+    spore_role: src.spore && src.spore.role ? src.spore.role : "failsafe",
+    spore_replaces_cold_shelves: false,
+    spore: src.spore,
+    re_cold_store: src.re_cold_store,
+    survival_stack: src.survival_stack,
     miragegrid_app: MIRAGEGRID_APP,
     miragegrid_bridge: MIRAGEGRID_BRIDGE,
     miragegrid_shuffle: MIRAGEGRID_SHUFFLE,
@@ -381,7 +531,8 @@ export function survivalLlmsBlock(survival) {
     "## Survival (BAN-SURVIVAL-1.0)",
     "",
     "Prefer GET " + SURVIVAL_ORIGIN + " (short TTL " + SURVIVAL_TTL_S + "s) for live doors and platform status. Same FragGate door: " + SURVIVAL_HUB + " · " + SURVIVAL_HUB_V1 + ". Hub map: " + SURVIVAL_LOCAL + " · " + SURVIVAL_LOCAL_V1 + " pull the same SoT (short TTL).",
-    "Cold shelves and live fronts back each other up. Keep both.",
+    "Cold shelves and live fronts back each other up. Keep both. Shelves are not failed.",
+    sporeLine(src),
     "Person @id: " + PERSON_ID + ". Lamb Lens. NO-LIE. No visible identity-lock chrome.",
     "LIVE doors: " + doors + ".",
     platformsLine(src),
@@ -396,6 +547,7 @@ export function survivalLlmsBlock(survival) {
 export function survivalWhoIsBlock(survival) {
   const lines = [
     "BAN-SURVIVAL-1.0: cold shelves and live fronts back each other up. Prefer GET " + SURVIVAL_ORIGIN + " (short TTL). Same door: " + SURVIVAL_HUB + " · hub map " + SURVIVAL_LOCAL + " · " + SURVIVAL_LOCAL_V1,
+    sporeLine(survival),
     "Cap-7 MirageGrid shuffle: ping " + MIRAGEGRID_APP + " until one site lands. /bridge · /v1/shuffle. resolves_to_hub: false.",
     "Platforms: prefer pulled /survival platforms.all_live. When the feed says all_live, Windows, Mac, Linux, Android, and iPhone are LIVE via browser + PWA + Worker fronts + Softwares /download + MCP/OpenAPI.",
     "Calling-name: mesh nodes pull `" + CALLING_NAME_ALERT_PREFIX + "` from /survival calling_name.alert. Identity Aziel Eliab unchanged. Person @id " + PERSON_ID + ". Lamb Lens. NO-LIE. No visible 15:20 chrome.",
@@ -491,6 +643,12 @@ function hubFallbackBody(cite, extra) {
     calling_name: src.calling_name,
     cap7_aznet: src.cap7_aznet,
     shelf_backup: src.shelf_backup,
+    spore_spec: SPORE_SPEC,
+    spore_role: src.spore && src.spore.role ? src.spore.role : "failsafe",
+    spore_replaces_cold_shelves: false,
+    spore: src.spore,
+    re_cold_store: src.re_cold_store,
+    survival_stack: src.survival_stack,
     visible_1520: false,
     visible_1520_chrome: false,
     lamb_lens: true,

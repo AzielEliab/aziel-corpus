@@ -102,6 +102,7 @@ ${runtimeHowTo(HOST)}
 - Runtime llms.txt: ${HOST}/runtime/llms.txt
 - Runtime cite.json: ${HOST}/runtime/cite.json
 - Ban survival (BAN-SURVIVAL-1.0; prefer pull, short TTL): \`GET ${HOST}/survival\` · \`GET ${HOST}/v1/survival\` · \`GET ${HOST}/runtime/survival\` · \`GET ${HOST}/runtime/v1/survival\`
+- SPORE-1.0 last-resort failsafe + RE-COLD-STORE: cite Worker GET /v1/survival. Shelves stay intact (not failed). Not a Softwares-tab product.
 - Counted downloads: each product Worker's \`/download\` + \`/count\` (listed in catalog / pull)
 - Session tools (\`/runtime/v1/session/*\`) are advanced/internal. Prefer \`fraggate_call\`.
 

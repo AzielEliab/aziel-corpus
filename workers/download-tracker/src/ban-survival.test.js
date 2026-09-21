@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import {
   AUTHOR,
   BAN_SURVIVAL_SPEC,
+  RE_COLD_STORE_HOOK,
+  SPORE_SPEC,
   CALLING_NAME_ALERT_PREFIX,
   MIRAGEGRID_APP,
   MIRAGEGRID_BRIDGE,
@@ -21,6 +23,7 @@ import {
   isSurvivalSeoPath,
   platformsLine,
   projectSurvival,
+  sporeLine,
   survivalCiteFields,
   survivalFallbackCite,
   survivalLlmsBlock,
@@ -53,6 +56,20 @@ test("fallback cites the pull and does not invent LIVE doors", () => {
   assert.equal(fb.software_runtime_ssot, true);
   assert.equal(fb.local, SURVIVAL_LOCAL);
   assert.equal(fb.local_v1, SURVIVAL_LOCAL_V1);
+  assert.equal(fb.spore_spec, SPORE_SPEC);
+  assert.equal(fb.spore_replaces_cold_shelves, false);
+  assert.equal(fb.spore.last_resort, true);
+  assert.equal(fb.spore.replaces_cold_shelves, false);
+  assert.equal(fb.spore.cold_shelves_intact, true);
+  assert.equal(fb.spore.honesty.shelves_not_marked_failed, true);
+  assert.equal(fb.re_cold_store.hook, RE_COLD_STORE_HOOK);
+  assert.equal(fb.re_cold_store.active, false);
+  assert.equal(fb.re_cold_store.shelves_failed, false);
+  assert.equal(fb.re_cold_store.shelves_intact, true);
+  assert.deepEqual(fb.re_cold_store.destinations, []);
+  const shelvesLayer = fb.survival_stack.find((row) => row.id === "cold-shelves");
+  assert.equal(shelvesLayer.failed, false);
+  assert.equal(shelvesLayer.replaced, false);
   assert.match(fb.note, /short TTL/);
   assert.match(fb.note, /Same FragGate door/);
   assert.equal(isSurvivalDoc(fb), true);
@@ -93,6 +110,34 @@ test("projectSurvival keeps pulled mutual backup, platforms, Cap-7, calling-name
       shuffle: { spec: "CAP7-SHUFFLE-1.0", layout: "live", public_worker_shuffle: "slot", hardcoded_single_host: false },
     },
     shelf_backup: { role: "death-by-ban-backup", is_live_door: false, shelves: "https://www.azielcorpuslibrary.net/shelves" },
+    spore_spec: SPORE_SPEC,
+    spore_role: "failsafe",
+    spore: {
+      spec: SPORE_SPEC,
+      last_resort: true,
+      replaces_cold_shelves: false,
+      cold_shelves_intact: true,
+      faces: ["pause", "preserve", "wait", "physical-wipe-only"],
+      re_cold_store: {
+        hook: RE_COLD_STORE_HOOK,
+        active: false,
+        shelves_failed: false,
+        shelves_intact: true,
+        destinations: [],
+      },
+    },
+    re_cold_store: {
+      hook: RE_COLD_STORE_HOOK,
+      active: false,
+      shelves_failed: false,
+      shelves_intact: true,
+      destinations: [],
+    },
+    survival_stack: [
+      { layer: 1, id: "live-fronts", spec: BAN_SURVIVAL_SPEC, role: "failover" },
+      { layer: 2, id: "cold-shelves", spec: "COLD-MULTI-SHELF-1.0", role: "mutual-backup", replaced: false, failed: false },
+      { layer: 3, id: "spore", spec: SPORE_SPEC, role: "failsafe", last_resort: true, replaces_cold_shelves: false },
+    ],
     visible_1520: false,
     lie_to_survive: false,
   });
@@ -105,6 +150,17 @@ test("projectSurvival keeps pulled mutual backup, platforms, Cap-7, calling-name
   assert.equal(projected.cap7_aznet.resolves_to_hub, false);
   assert.equal(projected.cap7_aznet.hosted_status, "slot");
   assert.equal(projected.calling_name.alert, null);
+  assert.equal(projected.spore_spec, SPORE_SPEC);
+  assert.equal(projected.spore.last_resort, true);
+  assert.equal(projected.spore.replaces_cold_shelves, false);
+  assert.equal(projected.spore.honesty.shelves_not_marked_failed, true);
+  assert.equal(projected.re_cold_store.hook, RE_COLD_STORE_HOOK);
+  assert.equal(projected.re_cold_store.shelves_failed, false);
+  assert.equal(projected.re_cold_store.active, false);
+  assert.equal(projected.survival_stack.find((row) => row.id === "cold-shelves").failed, false);
+  assert.match(sporeLine(projected), /SPORE-1\.0 last-resort/);
+  assert.match(sporeLine(projected), /Shelves stay intact/);
+  assert.match(sporeLine(projected), /RE-COLD-STORE/);
   assert.match(callingNameAlertLine(projected), /new name alert:/);
   assert.doesNotMatch(callingNameAlertLine(projected), /Whitestone/);
   const alerted = projectSurvival({
@@ -113,6 +169,16 @@ test("projectSurvival keeps pulled mutual backup, platforms, Cap-7, calling-name
     platforms: { all_live: true, platforms: [] },
   });
   assert.equal(callingNameAlertLine(alerted), CALLING_NAME_ALERT_PREFIX + "Eliab Runtime");
+  const forcedFail = projectSurvival({
+    spec: BAN_SURVIVAL_SPEC,
+    spore: { last_resort: true, replaces_cold_shelves: true, cold_shelves_intact: false },
+    re_cold_store: { active: true, shelves_failed: true, shelves_intact: false, destinations: ["https://example.invalid"] },
+    survival_stack: [{ layer: 2, id: "cold-shelves", spec: "COLD-MULTI-SHELF-1.0", failed: true, replaced: true }],
+  });
+  assert.equal(forcedFail.spore.replaces_cold_shelves, false);
+  assert.equal(forcedFail.re_cold_store.shelves_failed, false);
+  assert.equal(forcedFail.survival_stack[0].failed, false);
+  assert.equal(forcedFail.survival_stack[0].replaced, false);
 });
 
 test("machine LLM/SEO surfaces cite pull + Cap-7 shuffle + platforms + calling-name", () => {
@@ -131,10 +197,19 @@ test("machine LLM/SEO surfaces cite pull + Cap-7 shuffle + platforms + calling-n
   assert.equal(cite.person_id, PERSON_ID);
   assert.equal(cite.calling_name_alert_prefix, CALLING_NAME_ALERT_PREFIX);
   assert.equal(cite.software_runtime_ssot, true);
+  assert.equal(cite.spore_spec, SPORE_SPEC);
+  assert.equal(cite.spore_replaces_cold_shelves, false);
+  assert.equal(cite.spore.last_resort, true);
+  assert.equal(cite.re_cold_store.hook, RE_COLD_STORE_HOOK);
+  assert.equal(cite.re_cold_store.shelves_failed, false);
+  assert.equal(cite.re_cold_store.active, false);
 
   const llms = llmsDoc("LIMIT");
   assert.match(llms, /BAN-SURVIVAL-1\.0/);
   assert.match(llms, /cold shelves and live fronts/);
+  assert.match(llms, /SPORE-1\.0 last-resort/);
+  assert.match(llms, /RE-COLD-STORE/);
+  assert.match(llms, /Shelves stay intact/);
   assert.match(llms, /v1\/survival/);
   assert.match(llms, /short TTL/);
   assert.match(llms, /miragegrid\.vibelock\.workers\.dev/);
@@ -168,6 +243,9 @@ test("machine LLM/SEO surfaces cite pull + Cap-7 shuffle + platforms + calling-n
 test("who-is is machine-only BAN-SURVIVAL awareness without Whitestone or extra 15:20 chrome", () => {
   const who = whoIsTxt();
   assert.match(who, /BAN-SURVIVAL-1\.0/);
+  assert.match(who, /SPORE-1\.0 last-resort/);
+  assert.match(who, /RE-COLD-STORE/);
+  assert.match(who, /Shelves stay intact/);
   assert.match(who, /cold shelves and live fronts/);
   assert.match(who, /new name alert:/);
   assert.match(who, /miragegrid\.vibelock\.workers\.dev/);
@@ -307,6 +385,9 @@ test("hub /survival fail-soft cites the pull and does not invent LIVE doors", as
   assert.equal(body.pulled, false);
   assert.equal(body.live_doors, null);
   assert.equal(body.local, SURVIVAL_LOCAL);
+  assert.equal(body.spore_spec, SPORE_SPEC);
+  assert.equal(body.spore.last_resort, true);
+  assert.equal(body.re_cold_store.shelves_failed, false);
   assert.equal(body.visible_1520_chrome, false);
   assert.doesNotMatch(JSON.stringify(body), VISIBLE_1520);
 
