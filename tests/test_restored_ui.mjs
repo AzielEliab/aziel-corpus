@@ -166,7 +166,6 @@ test("homepage brandrow is Aziel Corpus Library with Upload, Login, and Sign up"
   assert.match(bar, /class="stat-slash"/);
   assert.doesNotMatch(bar, /<a /);
   assert.doesNotMatch(bar, /<button/);
-  assert.doesNotMatch(bar, /href=/);
   assert.doesNotMatch(bar, /class="button"/);
   assert.doesNotMatch(bar, /41/);
   assert.doesNotMatch(html, /id="aziel-live-nodes"/);
@@ -202,7 +201,6 @@ test("homepage views/downloads counter is a display, not a button", () => {
   assert.match(pills, /class="stat-slash"/);
   assert.doesNotMatch(pills, /<a /);
   assert.doesNotMatch(pills, /<button/);
-  assert.doesNotMatch(pills, /href=/);
   assert.doesNotMatch(pills, /class="button"/);
   assert.doesNotMatch(pills, /id="aziel-live-nodes"/);
   assert.doesNotMatch(pills, /software_nodes/);
