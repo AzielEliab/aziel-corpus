@@ -520,6 +520,9 @@ test("public /shelves JSON cites CNS + NO-LIE; no 15:20 chrome; Growth-ON intact
   assert.equal(doc.fifth_product, false);
   assert.match(doc.cap7.note, /design_of the four hubs/);
   assert.match(shelvesLlmsBlock(), /resolves_to_hub: false/);
+  assert.match(shelvesLlmsBlock(), /SPORE-1\.0 last-resort/);
+  assert.match(shelvesLlmsBlock(), /Shelves stay intact/);
+  assert.match(shelvesLlmsBlock(), /RE-COLD-STORE/);
   assert.match(doc.registry.note, /FoldLock/);
   assert.equal(doc.registry.lockset_doi, null);
   assert.equal(doc.planes.A.status, "live");
@@ -527,8 +530,8 @@ test("public /shelves JSON cites CNS + NO-LIE; no 15:20 chrome; Growth-ON intact
   assert.equal(doc.planes.B.doi, null);
   assert.equal(doc.planes.B.zenodo_working_path, false);
   assert.equal(doc.planes.C.status, "slot");
-  assert.equal(doc.runtime_launch.sot.git, "31ccb56");
-  assert.equal(doc.runtime_launch.sot.version_id, "d7b63ac1");
+  assert.equal(doc.runtime_launch.sot.git, "231b02f");
+  assert.equal(doc.runtime_launch.sot.version_id, "a8f7fdc9");
   assert.equal(doc.runtime_launch.shelves.plane_b_live, false);
   assert.equal(doc.runtime_launch.shelves.plane_b_refuse, "CNS-NO-FORGE-MIRROR");
   assert.equal(doc.runtime_launch.shelves.plane_c_refuse, "CNS-OPERATOR-ATTEST");

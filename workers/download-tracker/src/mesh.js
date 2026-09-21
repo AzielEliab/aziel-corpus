@@ -12,6 +12,9 @@
  * CROSS-NETWORK-SURVIVAL-1.0 umbrella over MESH-SPLIT-WIRES-1.0 +
  * MESH-COLD-COPY-1.0 + die-with-pull (PR #87) + MESH-REEXPAND-1.0 +
  * MESH-REHEAL-1.0 (archive restore vs self tip + trusted pull or phoenix-WAIT).
+ * SPORE-1.0 last-resort failsafe after live fronts + cold-shelf mutual backup
+ * (pause / preserve / wait / physical-wipe-only; shelves stay intact, not failed).
+ * RE-COLD-STORE is an honest hook (no invented destinations). Cite Worker GET /v1/survival.
  * NO-LIE-NO-REWRITE-1.0: network never lies to stay alive; no rewrite key;
  * copies not all on one tunnel. Cites the live ingest lockset; does not replace it.
  */
@@ -148,6 +151,10 @@ export const CROSS_NETWORK_SURVIVAL = Object.freeze({
   reheal: "self-tip+trusted-pull-or-phoenix-WAIT",
   neighbor_majority_heals: false,
   cold_multi_shelf: "COLD-MULTI-SHELF-1.0",
+  spore: "SPORE-1.0",
+  spore_role: "last-resort-failsafe",
+  spore_replaces_cold_shelves: false,
+  re_cold_store: "RE-COLD-STORE",
   live_network_required: false,
   die_with_pull: true,
   public_worker_is_cell: false,
@@ -161,6 +168,7 @@ export const CROSS_NETWORK_SURVIVAL = Object.freeze({
     + "Re-expand (MESH-REEXPAND-1.0) is operator verify-from-archive. "
     + "Reheal (MESH-REHEAL-1.0) is self tip + trusted pull or phoenix-WAIT — not neighbor majority. "
     + "Executable shelves: COLD-MULTI-SHELF-1.0 planes A/B/C (GET /shelves). Plane A = one CF/GitHub tunnel (5 surfaces / 2 family radii); B = alt independent forge/archive tip-pack SLOT (Codeberg / archive.org / Framagit); C = USB airgap SLOT + RESTORE-DRILL schema. Extra E/F/G SLOTs stay url-null. "
+    + "SPORE-1.0 is last-resort failsafe after live fronts and cold-shelf mutual backup (pause / preserve / wait / physical-wipe-only). Shelves stay intact (not failed). RE-COLD-STORE is an honest hook (no invented destinations). Cite Worker GET /v1/survival. "
     + "Author Aziel Eliab only.",
 });
 
@@ -267,6 +275,7 @@ export const MESH_NOTE =
   + "Ingest-as-receipt + re-expand-from-archive: cite, don't merge; bytes survive; crawlers do not re-expand. "
   + "No-lie / no-rewrite (NO-LIE-NO-REWRITE-1.0): network never lies to stay alive; hash-absolute beats survival; no rewrite key; copies not all on one tunnel; verify without the author's voice. Cites the live lockset AZLOCK-INGEST-REEXPAND-1.0; does not replace that tip. "
   + "Cold multi-shelf (COLD-MULTI-SHELF-1.0): planes A/B/C — A = one CF/GitHub tunnel (5 published surfaces / 2 family radii); B = alt independent forge/archive tip-pack SLOT (Codeberg / archive.org / Framagit); C = USB airgap SLOT + RESTORE-DRILL schema. Extra E/F/G SLOTs stay url-null. Executable export/verify + honest live|slot|refused registry on GET /shelves. "
+  + "SPORE-1.0 last-resort failsafe after live fronts and cold-shelf mutual backup: pause / preserve / wait / physical-wipe-only. Does not replace shelves. Shelves stay intact (not failed). RE-COLD-STORE is an honest hook (no invented destinations). Cite Worker GET /v1/survival. "
   + "QNS-CD-1.0 photon QNS1 packet transfer (local qnsd in qnm-node; runtime cite only; no public proxy; no Node Gate). "
   + "Public VPN / channel plane as on live aziel-runtime GET /v1/mesh (SoT " + RUNTIME_VERSION + " " + RUNTIME_GIT_SHA + " / version_id " + RUNTIME_VERSION_ID + "): vpn HTTPS/WS REAL; WireGuard/OpenVPN/L3 SLOT; default_vpn_backend azvpn auto_use true; channel_plane worker_hardware:false (wifi/bluetooth/rf/photon cites ON on local qnm-node). GET never enables radios beyond suite-presence. "
   + "Identity Aziel Eliab only.";
@@ -814,6 +823,7 @@ function qnmFrame() {
       + "Parent will roll that package. This runtime is suite rollup + read-only public presence. "
       + "This public Worker is not the cell. Split the wires: 0.5–1s tick = presence + tip hash only; payload is receiver-pull; 1s loop and 777s gate never share a socket. "
       + "CROSS-NETWORK-SURVIVAL-1.0: if the network and live data die tomorrow, the chain still survives on cold copies (bytes↔hash) across independent shelves. Crawlers are extra shelves, not resurrection. Re-expand is operator verify-from-archive. Reheal is self tip + trusted pull or phoenix-WAIT — not neighbor majority. "
+      + "SPORE-1.0 last-resort failsafe after live fronts and cold-shelf mutual backup: pause / preserve / wait / physical-wipe-only. Shelves stay intact (not failed). RE-COLD-STORE is an honest hook (no invented destinations). Cite Worker GET /v1/survival. "
       + "Vault-on-transfer is cold multiply. Live sync of bodies is refused. A server pull cannot wipe a cold replica. Poison is hash-absolute refuse. Equivocation isolates. Data outlives creators. "
       + "Re-expand is archive restore (MESH-REEXPAND-1.0): original receipts, each prev-hash, new local node on that tip. Bytes survive, not summaries. Crawlers do not re-expand. Training residue is rumor. "
       + "Reheal of a poisoned live node (MESH-REHEAL-1.0) is self tip + trusted pull or phoenix-WAIT — never neighbor majority. Distinct from re-expand. "

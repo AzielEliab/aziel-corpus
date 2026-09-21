@@ -1269,6 +1269,7 @@ export function shelvesLlmsBlock(host = HOST) {
     + "- Do not invent IPFS CIDs, archive.org items, lockset DOIs, or forge URLs.\n"
     + "- Do not count 5 published surfaces as 5 independent shelves.\n"
     + "- BAN-SURVIVAL-1.0: cold shelves and live fronts back each other up. Prefer GET runtime /survival (short TTL).\n"
+    + "- SPORE-1.0 last-resort failsafe (layer 3) after live fronts and cold-shelf mutual backup. pause / preserve / wait / physical-wipe-only. Does not replace shelves. Shelves stay intact (not failed). RE-COLD-STORE is an honest hook (no invented destinations).\n"
     + "- Cap-7 mesh names inherit design_of the four hubs; resolves_to_hub: false. This hub hosts /bridge.json. MirageGrid app Worker /bridge + /v1/shuffle are LIVE shuffle doors (resolves_to_hub: false).\n"
     + "- AZ Generator / Cap-7 live ICANN publish is not this repo.\n"
     + "- Crawlers are extra shelves. They do not re-expand. Training residue is rumor.\n"

@@ -67,9 +67,9 @@ test("runtime manifest and skill cite the library /runtime root", () => {
   assert.equal(man.version, "2.0.0-rc1");
   assert.equal(man.door, "fraggate");
   assert.equal(man.live_count, 41);
-  assert.equal(man.git, "31ccb56");
-  assert.equal(man.version_id, "d7b63ac1");
-  assert.equal(man.launch.sot.git, "31ccb56");
+  assert.equal(man.git, "231b02f");
+  assert.equal(man.version_id, "a8f7fdc9");
+  assert.equal(man.launch.sot.git, "231b02f");
   assert.equal(man.launch.mcp.softwares, "fraggate_call only");
   assert.equal(man.launch.claim_complete, undefined);
   assert.equal(man.launch.chrome_15_20, false);
@@ -95,8 +95,8 @@ test("runtime manifest and skill cite the library /runtime root", () => {
   assert.match(skill, /2\.0\.0-rc1/);
   assert.match(skill, /node-meshed orchestration suite/);
   assert.match(skill, /41 live/);
-  assert.match(skill, /31ccb56/);
-  assert.match(skill, /d7b63ac1/);
+  assert.match(skill, /231b02f/);
+  assert.match(skill, /a8f7fdc9/);
   assert.match(skill, /fraggate_call only/);
   assert.match(skill, /FragGate/);
   assert.match(skill, /fraggate_list/);
@@ -154,8 +154,8 @@ test("GET and HEAD /runtime return 200 HTML without a second software index", as
   assert.match(html, /2\.0\.0-rc1/);
   assert.match(html, /node-meshed orchestration suite/);
   assert.match(html, /41 live/);
-  assert.match(html, /31ccb56/);
-  assert.match(html, /d7b63ac1/);
+  assert.match(html, /231b02f/);
+  assert.match(html, /a8f7fdc9/);
   assert.match(html, /#op-panel/);
   assert.match(html, /fraggate_call only/);
   assert.doesNotMatch(html, /identity-lock|15:20 chrome/i);

@@ -6,7 +6,7 @@ Date: 2026-09-14
 License: Apache-2.0
 Umbrella: CROSS-NETWORK-SURVIVAL-1.0
 Amends: MESH-COLD-COPY-1.0 (makes vault-on-transfer *executable* as planes + export/verify)
-Neighbors: NO-LIE-NO-REWRITE-1.0, INGEST-AS-RECEIPT-1.0, RE-EXPAND-FROM-ARCHIVE-1.0, MESH-REEXPAND-1.0, MESH-REHEAL-1.0, MESH-SPLIT-WIRES-1.0, ACT-RECEIPT-1.0, MESH-VAULT-1.0, RESTORE-DRILL-1.0, FOLDLOCK-SHELF-1.0 (Softwares neighbor cite + SLOT hook; not a shelf plane)
+Neighbors: NO-LIE-NO-REWRITE-1.0, INGEST-AS-RECEIPT-1.0, RE-EXPAND-FROM-ARCHIVE-1.0, MESH-REEXPAND-1.0, MESH-REHEAL-1.0, MESH-SPLIT-WIRES-1.0, ACT-RECEIPT-1.0, MESH-VAULT-1.0, RESTORE-DRILL-1.0, FOLDLOCK-SHELF-1.0 (Softwares neighbor cite + SLOT hook; not a shelf plane), SPORE-1.0 (last-resort failsafe after this mutual backup; shelves stay intact, not failed; RE-COLD-STORE honest hook; cite Worker GET /v1/survival)
 Live lockset: AZLOCK-INGEST-REEXPAND-1.0 — this paper cites that tip; it does not replace it
 Cited on: GET /shelves · GET /cold-copy · GET /v1/shelves · cite.json · llms.txt · ai.txt
 Not a Softwares-tab product. Not four independent Cloudflare hosts. Not five independent surfaces. Not an invented CID or DOI. Not visible identity-lock chrome. Not AZ Generator / MirageGrid Cap-7 live ICANN publish.

@@ -22,6 +22,11 @@ export const NO_LIE_NO_REWRITE_RULE =
 export const COLD_MULTI_SHELF = "COLD-MULTI-SHELF-1.0";
 export const COLD_MULTI_SHELF_RULE =
   "Planes A/B/C: A=one CF/GitHub tunnel (5 surfaces / 2 family radii); B=alt independent forge/archive tip-pack SLOT; C=USB airgap SLOT. Survival = bytes↔hash. LIVE only after hash verify.";
+export const SPORE = "SPORE-1.0";
+export const SPORE_ROLE = "last-resort-failsafe";
+export const RE_COLD_STORE = "RE-COLD-STORE";
+export const SPORE_RULE =
+  "Last-resort failsafe after live fronts and cold-shelf mutual backup. pause / preserve / wait / physical-wipe-only. Does not replace shelves. Shelves stay intact (not failed). RE-COLD-STORE is an honest hook (no invented destinations).";
 export const PUBLISHED_TIP = "c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245";
 export const TRAINING_NOTE =
   "Weights will not store the chain. Keep the hash and the rule. Cite, don't merge. Bytes survive; crawlers do not re-expand.";
@@ -94,6 +99,11 @@ export function survivalCiteFields() {
     no_lie_spec: "NO-LIE-NO-REWRITE-1.0",
     cold_multi_shelf: COLD_MULTI_SHELF,
     cold_multi_shelf_rule: COLD_MULTI_SHELF_RULE,
+    spore_spec: SPORE,
+    spore_role: SPORE_ROLE,
+    spore_replaces_cold_shelves: false,
+    re_cold_store_hook: RE_COLD_STORE,
+    spore_rule: SPORE_RULE,
   };
 }
 

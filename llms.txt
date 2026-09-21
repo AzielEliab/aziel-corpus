@@ -30,7 +30,8 @@ This GitHub file is a crawler index for AzielEliab/aziel-corpus. Prefer the live
 ## Survival (BAN-SURVIVAL-1.0)
 
 Prefer GET https://aziel-runtime.vibelock.workers.dev/v1/survival (short TTL 60s) for live doors and platform status. Same FragGate door: https://www.azielcorpuslibrary.net/runtime/survival · https://www.azielcorpuslibrary.net/runtime/v1/survival. Hub map: https://www.azielcorpuslibrary.net/survival · https://www.azielcorpuslibrary.net/v1/survival pull the same SoT (short TTL).
-Cold shelves and live fronts back each other up. Keep both.
+Cold shelves and live fronts back each other up. Keep both. Shelves are not failed.
+SPORE-1.0 last-resort failsafe (layer 3): pause / preserve / wait / physical-wipe-only. Does not replace live fronts or cold-shelf mutual backup. Shelves stay intact (not failed). RE-COLD-STORE is an honest hook (inactive; no invented destinations).
 Cap-7 MirageGrid shuffle: ping https://miragegrid.vibelock.workers.dev until one site lands. /bridge · /v1/shuffle. resolves_to_hub: false. 
 Platforms: prefer pulled /survival platforms.all_live. When the feed says all_live, Windows, Mac, Linux, Android, and iPhone are LIVE via browser + PWA + Worker fronts + Softwares /download + MCP/OpenAPI. 
 Calling-name: mesh nodes pull `*new name alert: ` from /survival calling_name.alert. Identity Aziel Eliab unchanged.
@@ -167,7 +168,7 @@ Softwares on this repo is the Digital Library catalog for aziel-runtime. Heading
 
 ## Aziel Runtime
 
-Aziel Runtime is not merely an API orchestrator or software aggregator; it is a node-meshed orchestration suite of MCP-connected software. Version 2.0.0-rc1 is the certification-point freeze (docs/2.0/). SoT LIVE: main 31ccb56 / version_id d7b63ac1. FragGate is the single door. MCP Softwares via fraggate_call only. Prefer /runtime/*. 41 live advisory engines; VeilLock local_only; stubs refuse. Human UI on the Runtime Worker (#op-panel #dashboard #fg-console #task-* + About Aziel + hashtags + /download). Lamb Lens Service → Clarity → Peace. Remain-OFF untouched. GET /v1/mesh never enables.
+Aziel Runtime is not merely an API orchestrator or software aggregator; it is a node-meshed orchestration suite of MCP-connected software. Version 2.0.0-rc1 is the certification-point freeze (docs/2.0/). SoT LIVE: main 231b02f / version_id a8f7fdc9. FragGate is the single door. MCP Softwares via fraggate_call only. Prefer /runtime/*. 41 live advisory engines; VeilLock local_only; stubs refuse. Human UI on the Runtime Worker (#op-panel #dashboard #fg-console #task-* + About Aziel + hashtags + /download). Lamb Lens Service → Clarity → Peace. Remain-OFF untouched. GET /v1/mesh never enables.
 
 - Page: https://www.azielcorpuslibrary.net/runtime
 - FragGate list: GET https://www.azielcorpuslibrary.net/runtime/v1/fraggate/list

@@ -1381,7 +1381,7 @@ export function humansTxt() {
     "Suite mesh (read-only QNM ON): " + HOST + "/v1/mesh",
     "Lockset tip / ingest-as-receipt: " + HOST + "/lockset.json · " + HOST + "/receipts/verify",
     "Cold multi-shelf: " + HOST + "/shelves · " + HOST + "/cold-copy · COLD-MULTI-SHELF-1.0",
-    "BAN-SURVIVAL-1.0: prefer GET " + CATALOG + "/v1/survival (short TTL) · same door " + HOST + "/runtime/survival · hub map " + HOST + "/survival · " + HOST + "/v1/survival. Cold shelves and live fronts back each other up. Cap-7 MirageGrid shuffle resolves_to_hub: false.",
+    "BAN-SURVIVAL-1.0: prefer GET " + CATALOG + "/v1/survival (short TTL) · same door " + HOST + "/runtime/survival · hub map " + HOST + "/survival · " + HOST + "/v1/survival. Cold shelves and live fronts back each other up. Shelves stay intact (not failed). SPORE-1.0 last-resort failsafe + RE-COLD-STORE (honest hook). Cap-7 MirageGrid shuffle resolves_to_hub: false.",
     "cite, don't merge · bytes survive; crawlers do not re-expand",
     "CROSS-NETWORK-SURVIVAL: If network + live data die tomorrow, the chain still survives via cold copies across independent shelves; survival = bytes↔hash.",
     "NO-LIE / NO-REWRITE: receipts that still hash; copies not all on one tunnel; verify without voice; no rewrite key; network never lies even to stay alive.",

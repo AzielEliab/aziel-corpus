@@ -127,7 +127,7 @@ Ops (do **not** increment downloads):
 - \`POST /v1/pin\` (operator/record pin-from-upload receipt; fail closed on structure/poison)
 - \`GET /v1/mesh\` · \`GET /v1/mesh/status\` · \`GET /v1/mesh/nodes\` (suite mesh; Live Nodes = human mesh users + cited human uses, not software_nodes; read-only QNM ON; counts/status rollup; QNS-CD-1.0 + CROSS-NETWORK-SURVIVAL-1.0 + MESH-SPLIT-WIRES-1.0 + MESH-COLD-COPY-1.0 + MESH-REEXPAND-1.0 + MESH-REHEAL-1.0 + NO-LIE-NO-REWRITE-1.0 on the payload)
 - \`GET /runtime/v1/mesh\` (same-origin proxy of runtime mesh)
-- \`GET /survival\` · \`GET /v1/survival\` (BAN-SURVIVAL-1.0 hub map; same SoT pull as \`/runtime/survival\`; short TTL)
+- \`GET /survival\` · \`GET /v1/survival\` (BAN-SURVIVAL-1.0 hub map; same SoT pull as \`/runtime/survival\`; short TTL). Cites Worker SPORE-1.0 last-resort + RE-COLD-STORE. Shelves stay intact (not failed).
 - \`POST /v1/score\` (document review preview)
 - \`GET /v1/verify-backfill?all=1\` (walk every stored Aziel Library + Corpus record)
 - \`GET /v1/verify-backfill?rebuild=1\` (chunked tip reconcile; JSON returns promptly with next_cursor / done; packed shelf refresh is deferred. Repeat with cursor or all=1 until done:true)
@@ -235,7 +235,7 @@ function openapi() {
       "/v1/design-pack/{slug}/download": { get: { summary: "Attachment of one design+content pack. Does not increment. Counted twin: GET /download?product=azcorpus|azlibrary. Anyone may download. resolves_to_hub: false.", operationId: "designPackDownload", parameters: [{ name: "slug", in: "path", required: true, schema: { type: "string" } }] } },
       "/bridge.json": { get: { summary: "Cap-7 sites inherit design_of the four hubs. resolves_to_hub: false. name_may_change: true. public_icann: false. No fifth product. Plane A UI: azcorpus + azlibrary on this Worker. No AZ-GEN publish cadence. MirageGrid app Worker /bridge + /v1/shuffle are LIVE shuffle doors (resolves_to_hub: false). Prefer pulled runtime /survival cap7_aznet.", operationId: "bridgeJson" } },
       "/survival": { get: { summary: "BAN-SURVIVAL-1.0 hub map. Pulls runtime SoT the same way /runtime/survival does (short TTL). Person @id https://www.azieleliab.com/#aziel.", operationId: "hubSurvival" } },
-      "/v1/survival": { get: { summary: "BAN-SURVIVAL-1.0 hub map JSON. Same SoT pull as /survival and /runtime/v1/survival. Short TTL. Same FragGate door.", operationId: "hubSurvivalV1" } },
+      "/v1/survival": { get: { summary: "BAN-SURVIVAL-1.0 hub map JSON. Same SoT pull as /survival and /runtime/v1/survival. Cites Worker SPORE-1.0 last-resort + RE-COLD-STORE. Shelves stay intact (not failed). Short TTL. Same FragGate door.", operationId: "hubSurvivalV1" } },
       "/runtime/survival": { get: { summary: "BAN-SURVIVAL-1.0 via same-origin proxy of aziel-runtime /survival. Prefer this pull (short TTL). Person @id https://www.azieleliab.com/#aziel.", operationId: "runtimeSurvival" } },
       "/help.txt": { get: { summary: "Human help index: find records, scores (triad always; SPRE/CLCE/PhysLing when applicable), per-record LLM access points. Author Aziel Eliab.", operationId: "helpTxt" } },
       "/addendum.txt": { get: { summary: "Human addendum: two shelves, record pages, cite, Softwares. Author Aziel Eliab.", operationId: "addendumTxt" } },

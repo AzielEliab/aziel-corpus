@@ -351,6 +351,12 @@ test("CROSS-NETWORK-SURVIVAL-1.0 umbrella: bytes↔hash; crawlers are not resurr
   assert.match(MESH_NOTE, /cite, don't merge/);
   assert.match(MESH_NOTE, /COLD-MULTI-SHELF-1\.0/);
   assert.match(MESH_NOTE, /planes A\/B\/C/);
+  assert.match(MESH_NOTE, /SPORE-1\.0 last-resort/);
+  assert.match(MESH_NOTE, /RE-COLD-STORE/);
+  assert.match(MESH_NOTE, /Shelves stay intact/);
+  assert.equal(CROSS_NETWORK_SURVIVAL.spore, "SPORE-1.0");
+  assert.equal(CROSS_NETWORK_SURVIVAL.spore_replaces_cold_shelves, false);
+  assert.equal(CROSS_NETWORK_SURVIVAL.re_cold_store, "RE-COLD-STORE");
   assert.match(CROSS_NETWORK_SURVIVAL.note, /planes A\/B\/C/);
   assert.match(CROSS_NETWORK_SURVIVAL.note, /Plane A = one CF\/GitHub tunnel/);
   assert.doesNotMatch(MESH_NOTE, /upcoming/i);
@@ -527,7 +533,7 @@ test("Live Nodes never equals Softwares roster; prefers Worker human plane", () 
   assert.equal(liveNodesCount({ live_nodes: 9, nodes: [{ id: "x" }] }), 9);
 });
 
-test("LIVE Worker d7b63ac1: live_nodes = 0 humans + uses; software_nodes 41 separate", () => {
+test("LIVE Worker a8f7fdc9: live_nodes = 0 humans + uses; software_nodes 41 separate", () => {
   const live = {
     ok: true,
     enabled: true,
