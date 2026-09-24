@@ -284,6 +284,26 @@ test("homepage LCP fold keeps hero first and leaves entity-graph plus doors inta
   assert.match(CSS, /html,body\{[^}]*overflow-y:auto/);
 });
 
+test("keyboard focus, color scheme, and phone search stay in the library chrome", () => {
+  assert.match(CSS, /:focus-visible\{outline:2px solid var\(--focus\)/);
+  assert.match(CSS, /color-scheme:dark/);
+  assert.match(CSS, /@media \(prefers-color-scheme: light\)/);
+  assert.match(CSS, /color-scheme:light/);
+  assert.match(CSS, /--royal-ink:#c4a6e8/);
+  assert.match(CSS, /--line:#7a6c5c/);
+  assert.match(CSS, /\.hero-search \.search\{flex:1 1 auto;height:auto;min-height:44px/);
+  assert.match(CSS, /\.search::placeholder\{font-size:13px\}/);
+  assert.match(CSS, /\.stat-group\{display:inline-flex/);
+  assert.match(CSS, /\.library-count a\{white-space:nowrap\}/);
+  const html = page("Corpus Search", homeBody({ rows: [], host: "https://www.azielcorpuslibrary.net" }), { path: "/", kind: "search", views: 12, downloads: 3, nodes: 4, liveNodes: 1 });
+  assert.match(html, /name="color-scheme" content="dark light"/);
+  assert.match(html, /class="stat-group"/);
+  assert.match(html, /id="views">12</);
+  assert.match(html, /id="livenodes">1</);
+  assert.doesNotMatch(html, /identity-lock/i);
+  assert.doesNotMatch(html, />Pattern</);
+});
+
 test("black/gold theme and royal purple Aziel Library text are in CSS", () => {
   assert.match(CSS, /--bg:#12100c/);
   assert.match(CSS, /--gold:#c9a227/);
