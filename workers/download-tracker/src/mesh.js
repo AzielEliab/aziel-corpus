@@ -19,6 +19,7 @@
  * copies not all on one tunnel. Cites the live ingest lockset; does not replace it.
  */
 import { HOST, RUNTIME_ORIGIN, RUNTIME_GITHUB, RUNTIME_GIT_SHA, RUNTIME_VERSION_ID, RUNTIME_VERSION } from "./runtime-copy.js";
+import { handleMeshOutlet } from "./mesh-outlet.js";
 import {
   NO_LIE,
   NO_LIE_SPEC,
@@ -1539,6 +1540,8 @@ export async function proxyMeshRequest(request, destPathAndQuery, env) {
 
 export async function handleMeshApi(request, url, env) {
   const path = url.pathname.replace(/\/+$/, "") || "/";
+  const outlet = await handleMeshOutlet(request, url, env);
+  if (outlet) return outlet;
   if (!isMeshLibraryPath(path)) return null;
   if (request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders() });

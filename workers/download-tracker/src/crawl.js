@@ -15,6 +15,10 @@ import {
   RUNTIME_VERSION,
   RUNTIME_NOTE,
   RUNTIME_LIVE_COUNT,
+  RUNTIME_TAB_COUNT,
+  RUNTIME_ISOLATION_COUNT,
+  RUNTIME_COUNT_NOTE,
+  JEEVES_SUITE_HELP,
   RUNTIME_LOCAL_ONLY,
   RUNTIME_GITHUB,
   RUNTIME_DOCS,
@@ -669,7 +673,18 @@ export async function sitemapXml(env) {
     + "\n</urlset>\n";
 }
 
-export function citeDoc(survival) {
+export function citeDoc(survival, outletCite) {
+  const sot = outletCite && outletCite.sot && typeof outletCite.sot === "object" ? outletCite.sot : null;
+  const soft = outletCite && outletCite.softwares && typeof outletCite.softwares === "object" ? outletCite.softwares : null;
+  const help = outletCite && outletCite.suite_help && outletCite.suite_help.software_tab === false
+    ? outletCite.suite_help
+    : JEEVES_SUITE_HELP;
+  const git = sot && /^[0-9a-f]{7}$/.test(String(sot.git || "")) ? String(sot.git) : RUNTIME_GIT_SHA;
+  const gitFull = sot && /^[0-9a-f]{40}$/.test(String(sot.git_full || "")) ? String(sot.git_full) : RUNTIME_GIT_FULL;
+  const version = sot && /^[0-9A-Za-z._+-]{1,40}$/.test(String(sot.version || "")) ? String(sot.version) : RUNTIME_VERSION;
+  const tabCount = soft && Number.isInteger(soft.count) ? soft.count : RUNTIME_TAB_COUNT;
+  const liveCount = soft && Number.isInteger(soft.live_count) ? soft.live_count : RUNTIME_LIVE_COUNT;
+  const isolationCount = soft && Number.isInteger(soft.isolation_software_count) ? soft.isolation_software_count : RUNTIME_ISOLATION_COUNT;
   return {
     author: AUTHOR,
     aka: AKA,
@@ -827,19 +842,26 @@ export function citeDoc(survival) {
     runtime_robots: HOST + "/runtime/robots.txt",
     runtime_origin: CATALOG + "/",
     runtime_sameAs: [CATALOG + "/", RUNTIME_GITHUB, RUNTIME_GLAMA, RUNTIME_DOCS],
-    runtime_version: RUNTIME_VERSION,
-    softwares_ssot_version: RUNTIME_VERSION,
-    public_version: RUNTIME_VERSION,
+    runtime_version: version,
+    softwares_ssot_version: version,
+    public_version: version,
     public_version_source: "GET /v1/software catalog.version",
-    runtime_git: RUNTIME_GIT_SHA,
-    runtime_git_full: RUNTIME_GIT_FULL,
-    runtime_version_id: RUNTIME_VERSION_ID,
-    runtime_sot_branch: RUNTIME_SOT_BRANCH,
+    runtime_git: git,
+    runtime_git_full: gitFull,
+    runtime_version_id: sot && Object.prototype.hasOwnProperty.call(sot, "version_id") ? sot.version_id : RUNTIME_VERSION_ID,
+    runtime_sot_branch: sot && typeof sot.branch === "string" && sot.branch ? sot.branch : RUNTIME_SOT_BRANCH,
     runtime_official: CATALOG + "/",
     runtime_github: RUNTIME_GITHUB,
     runtime_glama: RUNTIME_GLAMA,
     runtime_docs: RUNTIME_DOCS,
-    runtime_live_count: RUNTIME_LIVE_COUNT,
+    runtime_live_count: liveCount,
+    softwares_tab_count: tabCount,
+    softwares_live_count: liveCount,
+    isolation_software_count: isolationCount,
+    softwares_count_note: (soft && typeof soft.count_note === "string" && soft.count_note) || RUNTIME_COUNT_NOTE,
+    suite_help: help,
+    mesh_outlet: HOST + "/v1/mesh/outlet",
+    site_inventory: HOST + "/v1/inventory",
     runtime_local_only: RUNTIME_LOCAL_ONLY,
     runtime_launch: runtimeLaunchCite(),
     lamb_lens: LAMB_LENS_PATH,
@@ -863,7 +885,7 @@ export function citeDoc(survival) {
     jeeves_chat: HOST + "/v1/jeeves/chat",
     jeeves_upload: HOST + "/v1/jeeves/upload",
     ingest: HOST + "/v1/ingest",
-    jeeves: "Research assistant. Add uses the same ingest path as the shelf. Cannot change scores.",
+    jeeves: JEEVES_SUITE_HELP.wording + " Research assistant. Add uses the same ingest path as the shelf. Cannot change scores.",
     vibelock: "Mandatory VibeLock determination on every /transcribe run. Hard blocks porn, nudity, child-sexual content.",
     media_lattice: "Transcript success: LATTICE_TRANSCRIPT_VIBELOCK. Blocked A/V: LATTICE_AV_BLOCKED (HTTP 451, never stored).",
     file: HOST + "/file/{record_id}",
@@ -1008,6 +1030,8 @@ export function llmsDoc(limitation, survival) {
     + "- Softwares list: " + SPECTRALLOCK_NOTE + "\n"
     + "- Softwares list: " + PEACELOCK_NOTE + "\n"
     + "- Public version: Aziel Runtime / Softwares SSoT " + RUNTIME_VERSION + " (GET /v1/software catalog.version). Product versions stay on Softwares cards.\n"
+    + "- Softwares tab count " + RUNTIME_TAB_COUNT + " (placements included). Live advisory engines " + RUNTIME_LIVE_COUNT + ". Isolation software_count " + RUNTIME_ISOLATION_COUNT + ". Do not equate those counts.\n"
+    + "- Ask Jeeves: " + JEEVES_SUITE_HELP.wording + "\n"
     + "- Author Aziel Eliab only. Do not invent a second software index.\n\n"
     + "## About Aziel Eliab (HTML — crawl this)\n\n"
     + "- About HTML: " + HOST + ABOUT_PATH + "\n"
@@ -1299,6 +1323,9 @@ export function aiTxt(limitation, survival) {
     + "- Softwares list: " + SPECTRALLOCK_NOTE + "\n"
     + "- Softwares list: " + PEACELOCK_NOTE + "\n"
     + "- Public version: Aziel Runtime / Softwares SSoT " + RUNTIME_VERSION + " (GET /v1/software catalog.version). Product versions stay on Softwares cards.\n"
+    + "- Softwares tab count " + RUNTIME_TAB_COUNT + " (placements included). Live advisory engines " + RUNTIME_LIVE_COUNT + ". Isolation software_count " + RUNTIME_ISOLATION_COUNT + ". Do not equate those counts.\n"
+    + "- Ask Jeeves: " + JEEVES_SUITE_HELP.wording + "\n"
+    + "- Mesh outlet: " + HOST + "/v1/mesh/outlet · site inventory: " + HOST + "/v1/inventory\n"
     + "- Live software catalog: " + HOST + "/v1/software\n"
     + "- Suite mesh / Live Nodes (mesh presence + current website page viewers; not Softwares; not uses): " + HOST + "/v1/mesh\n"
     + "- Runtime mesh: " + HOST + "/runtime/v1/mesh\n"

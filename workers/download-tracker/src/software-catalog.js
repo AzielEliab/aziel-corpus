@@ -47,6 +47,7 @@ import {
   cachePutJson,
   collectStats,
 } from "./library-index.js";
+import { isSuiteHelpSlug, softwareFramingFields } from "./mesh-outlet.js";
 
 const UA = "Mozilla/5.0 AzielDigitalLibrary";
 
@@ -308,7 +309,7 @@ export function softwareTabCatalog(catalog, opts = {}) {
   const collected = collectCatalogProducts(norm).map(mapSoftwareProduct);
   const merged = passThrough ? collected : mergeSoftwareExtras(collected);
   const products = merged
-    .filter((p) => !isKernelExtraSlug(p.slug))
+    .filter((p) => !isKernelExtraSlug(p.slug) && !isSuiteHelpSlug(p.slug, p.name))
     .map((p) => (passThrough ? slimSoftwareProduct(p) : p));
   let extras = collectCatalogExtras(norm);
   if (passThrough) {
@@ -693,6 +694,7 @@ export function publicSoftwarePayload(live, opts = {}) {
     live_count: tab.live_count || products.length,
     framing: tab.framing || "",
     sort_law: tab.sort_law || "",
+    ...softwareFramingFields(catalog, opts.outlet, { source: workerSsot ? "live" : (live && live.source) || "empty" }),
     products,
     extras,
     download_url: (corpus && (corpus.download_url || corpus.download)) || LIBRARY_DOWNLOAD,

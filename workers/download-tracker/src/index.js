@@ -5,6 +5,7 @@ import { page, homeBody, homeSearchActive, streamLcpHtml } from "./ui.js";
 import { peekMeshDualCounts } from "./mesh.js";
 import { handleHosted } from "./hosted.js";
 import { robotsTxt, sitemapXml, sitemapIndexXml, sitemapRecordsXml, citeDoc, llmsDoc, aiTxt, humansTxt, mcpDiscovery, isReadMethod, crawlResponse, MIME } from "./crawl.js";
+import { readOutletState } from "./mesh-outlet.js";
 import { helpRouteBody } from "./help.js";
 import { bridgeDoc, productBySlug } from "./ai-surface.js";
 import { serveDesignPack } from "./design-pack.js";
@@ -666,7 +667,8 @@ export default {
       return crawlResponse(request, JSON.stringify(mcpDiscovery(), null, 2), MIME.json, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
     }
     if (isReadMethod(request.method) && crawlPath === "/cite.json") {
-      return crawlResponse(request, JSON.stringify(citeDoc(survival), null, 2), MIME.json, { "Cache-Control": seoCache, ...corsHeaders() });
+      const outlet = await readOutletState(env);
+      return crawlResponse(request, JSON.stringify(citeDoc(survival, outlet && outlet.cite), null, 2), MIME.json, { "Cache-Control": seoCache, ...corsHeaders() });
     }
     if (isReadMethod(request.method) && crawlPath === "/bridge.json") {
       return crawlResponse(request, JSON.stringify(bridgeDoc(), null, 2), MIME.json, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });

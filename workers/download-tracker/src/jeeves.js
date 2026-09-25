@@ -5,6 +5,7 @@
  * Not sovereign. Not operator. Cannot change scores. Corpus-only Add.
  */
 import { searchRecords, ingestRecord, asFile, isOperator, operatorSession } from "./library.js";
+import { JEEVES_SUITE_HELP } from "./runtime-copy.js";
 import { isOperatorRequest } from "./rate-limit.js";
 import { lookupPlaces, listEvents } from "./geo.js";
 
@@ -21,8 +22,10 @@ function json(body, status = 200) {
 }
 
 export const JEEVES_NAME = "Ask Jeeves";
+export { JEEVES_SUITE_HELP };
 export const JEEVES_LIMITATION =
-  "Ask Jeeves is a research assistant over public library text. It is not sovereign, not the operator, and cannot change SPRE, CLCE, PhysLing, Bayesian, or triad scores. Add uses the same ingest path as the shelf (structure, SPRE × CLCE × PhysLing, Bayesian, document hash-chain). Signed-in public Add files to Corpus (Lamb Lens). Operator Add files to Aziel Library.";
+  "Ask Jeeves is a research assistant over public library text. It is not sovereign, not the operator, and cannot change SPRE, CLCE, PhysLing, Bayesian, or triad scores. Add uses the same ingest path as the shelf (structure, SPRE × CLCE × PhysLing, Bayesian, document hash-chain). Signed-in public Add files to Corpus (Lamb Lens). Operator Add files to Aziel Library. "
+  + JEEVES_SUITE_HELP.wording;
 
 
 /** Classic Ask Jeeves easter eggs (tongue-in-cheek; not theology). */

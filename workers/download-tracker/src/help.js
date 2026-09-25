@@ -76,7 +76,15 @@ export function helpIndexTxt() {
     + "them with rel=alternate. They are listed on sitemap-records.xml.\n\n"
     + "## Softwares\n"
     + "The Software tab lists live product cards from the runtime catalog. "
+    + "Softwares tab count is 42 (placements included). 41 live advisory engines. "
+    + "Isolation software_count is 33. Do not equate those counts. "
     + "Counted downloads stay on each product Worker.\n\n"
+    + "## Ask Jeeves\n"
+    + "Ask Jeeves is FragGate op jeeves on aziel-corpus (suite help). "
+    + "software_tab is false. It is not a Softwares-tab card. "
+    + "It answers from filed public text. POST " + HOST + "/v1/jeeves/chat.\n"
+    + "Mesh outlet: " + HOST + "/v1/mesh/outlet\n"
+    + "Site inventory: " + HOST + "/v1/inventory\n\n"
     + "Growth-ON. AI crawlers stay Allowed, including GPTBot. NO-LIE. Do not invent DOIs.\n";
 }
 

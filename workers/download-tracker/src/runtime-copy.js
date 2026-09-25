@@ -30,7 +30,36 @@ export const RUNTIME_WORKER_LABEL = "Official Runtime";
 /** Must match live GET /v1/health count (41 true-engine slugs, including VeilLock local_only). */
 export const RUNTIME_LIVE_COUNT = 41;
 export const RUNTIME_PRODUCT_COUNT = 41;
+/**
+ * Softwares-tab `count` from live GET /v1/software.
+ * Includes placements. Do not equate with RUNTIME_LIVE_COUNT or the isolation software_count.
+ */
+export const RUNTIME_TAB_COUNT = 42;
+/** Isolation domain software_count. domains_are_doors stays false. */
+export const RUNTIME_ISOLATION_COUNT = 33;
 export const RUNTIME_LOCAL_ONLY = "VeilLock";
+/** Live GET /v1/software count_note. Authority for Softwares count framing. */
+export const RUNTIME_COUNT_NOTE =
+  "Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence / zkattest / mmconsensus / toolbench / azvpn / whitestone). Isolation domain software_count is 33 (domains_are_doors:false). Do not equate the two. EmbryoLock is live-with-local-destructive-boundary (Vault/Custody with ARK); wipe/unlock stay FG-STUB on the public mesh. AZChat is LIVE+bound (mesh default off). AZVPN is the automatic public VPN concentrator placement (HTTPS/WS REAL; WireGuard/OpenVPN SLOT; auto_use true). Whitestone is a live Worker-only placement (FragGate status none; Case Mode is a product feature). VeilLock hub card is local_only (matches FragGate; no public door). Sister products such as trades-runtime are cite-only extras (live_backends false). FragGate remains THE single door.";
+
+/**
+ * Ask Jeeves is suite help on Aziel Corpus. FragGate op `jeeves`.
+ * software_tab is false. It is not a Softwares-tab card and does not change the tab count.
+ */
+export const JEEVES_SUITE_HELP = Object.freeze({
+  name: "Ask Jeeves",
+  slug: "jeeves",
+  software_tab: false,
+  kind: "suite_help_assistant",
+  parent_slug: "aziel-corpus",
+  fraggate_slug: "aziel-corpus",
+  fraggate_op: "jeeves",
+  interface_call: "jeeves_help",
+  named_tool: true,
+  isolation_software: false,
+  wording:
+    "Ask Jeeves is FragGate op jeeves on aziel-corpus (suite help). software_tab is false. It is suite help on the corpus, and it is not a Softwares-tab card.",
+});
 export const LIBRARY_DOWNLOAD = HOST + "/download";
 export const LIBRARY_V1_DOWNLOAD = HOST + "/v1/download";
 export const LIBRARY_COUNT = HOST + "/count";
@@ -155,9 +184,17 @@ export function runtimeDistributionLinks() {
 }
 
 /** Hub card on /software. FragGate is the door product, not a version mash. */
+export function softwareCountFraming() {
+  return "Softwares tab count " + RUNTIME_TAB_COUNT
+    + " (placements included). " + RUNTIME_LIVE_COUNT
+    + " live advisory engines. Isolation software_count " + RUNTIME_ISOLATION_COUNT
+    + ". Do not equate those counts.";
+}
+
 export function softwareHubBlurb(_version) {
   return RUNTIME_ABSTRACT + " Softwares catalog for aziel-runtime on the Aziel Digital Library — heading then list. "
-    + RUNTIME_LIVE_COUNT + " live advisory engines; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse. "
+    + softwareCountFraming() + " " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse. "
+    + JEEVES_SUITE_HELP.wording + " "
     + "Discover with fraggate_list, execute with fraggate_call. Author Aziel Eliab.";
 }
 
@@ -234,7 +271,12 @@ export function runtimeLaunchCite() {
       path: HOST + "/software",
       live: HOST + "/v1/software",
       origin: RUNTIME_ORIGIN + "/v1/software",
+      tab_count: RUNTIME_TAB_COUNT,
+      live_count: RUNTIME_LIVE_COUNT,
+      isolation_software_count: RUNTIME_ISOLATION_COUNT,
+      count_note: RUNTIME_COUNT_NOTE,
     },
+    suite_help: JEEVES_SUITE_HELP,
     dual_surface: true,
     lamb_lens: LAMB_LENS_PATH,
     no_lie: true,
