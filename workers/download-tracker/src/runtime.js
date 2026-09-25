@@ -38,6 +38,7 @@ import {
 } from "./software-catalog.js";
 import { handleV1Download, serveSoftwareAsset, LIBRARY_INSTALL } from "./software-download.js";
 import { handleMeshApi, MESH_NOTE, QNS_CD_SPEC } from "./mesh.js";
+import { handleSiteInventory, readOutletState } from "./mesh-outlet.js";
 import { handlePresenceApi } from "./presence.js";
 import { handleSurvivalHub } from "./ban-survival.js";
 import {
@@ -218,6 +219,8 @@ function openapi() {
       "/v1/poison-learn": { get: { summary: "Poison-learn feature lattice (AZDOC-POISONLEARN). Hash + markers + token hashes only. No poison bodies.", operationId: "poisonLearn" } },
       "/v1/pin": { get: { summary: "Pin receipt for a record (time×geo anchors + possibility). Same lattice as upload→pin.", operationId: "pinGet", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
       "/v1/presence": { get: { summary: "Concurrent human page-viewer presence on this host. Bots do not count. Does not increment views. Author Aziel Eliab.", operationId: "presence" }, post: { summary: "Heartbeat or leave for one human page viewer (cookie). Bots refused. Does not increment views. Author Aziel Eliab.", operationId: "presenceBeat" } },
+      "/v1/mesh/outlet": { get: { summary: "MESH-OUTLET-1.0 cite-sync consumer. Public read of the last-known runtime SoT cite (version, git, Softwares tab count vs live engines vs isolation software_count, Ask Jeeves suite help). sync=1 pulls GET /v1/software and requires X-Aziel-Operator-Token. Does not increment downloads. Does not invent library rows. Author Aziel Eliab.", operationId: "meshOutlet" }, post: { summary: "Receive one SoT fan-out envelope. Requires X-Aziel-Operator-Token. Identity Aziel Eliab only. Ask Jeeves stays FragGate op jeeves on aziel-corpus (software_tab false). Counter fields are dropped. Library row arrays are refused. Does not increment downloads.", operationId: "meshOutletFanout" } },
+      "/v1/inventory": { get: { summary: "Peer-hub library inventory. Public GET returns last-known rows or an honest not-synced empty list. sync=1 requires X-Aziel-Operator-Token. Unreachable hubs keep last-known rows and say unreachable. No invented AZDOC rows. Does not increment downloads. Author Aziel Eliab.", operationId: "siteInventory" } },
       "/v1/mesh": { get: { summary: "Suite mesh status. Live Nodes (live_nodes) = human mesh presence + current website page viewers (operator lock 2026-09-21). Prefer runtime /v1/mesh once it aggregates; no double-count. Nodes = human mesh users + cited uses. software_nodes is Softwares and never Live Nodes. Read-only QNM ON. Counts/status rollup. Proxies /v1/mesh. Cites QNS-CD-1.0, CROSS-NETWORK-SURVIVAL-1.0, MESH-SPLIT-WIRES-1.0, MESH-COLD-COPY-1.0, MESH-REEXPAND-1.0, MESH-REHEAL-1.0, NO-LIE-NO-REWRITE-1.0. Author Aziel Eliab.", operationId: "mesh" } },
       "/v1/mesh/status": { get: { summary: "Suite mesh status alias. Live Nodes = mesh presence + current page viewers, not software_nodes, not uses. Read-only QNM ON. Author Aziel Eliab.", operationId: "meshStatus" } },
       "/v1/mesh/nodes": { get: { summary: "Suite mesh roster. Nodes · N is human mesh users + cited uses. Live Nodes · N is presence + page viewers. Author Aziel Eliab.", operationId: "meshNodes" } },
@@ -230,7 +233,7 @@ function openapi() {
       "/v1/recalibrate-all": { get: { summary: "TRIAD V3 36-cycle remint of every stored paper against content SHA-256. Own cursor (recalibrate_v3_*) so a prior V2 full_backfill_done cannot skip. Single-walker lock (TTL 90s): a second concurrent walk returns 409 RECALIBRATE_LOCKED and does not advance the cursor. Cron defers while the lock is held. Repeat all=1 until done:true (time-bounded chunks). status=1 progress including lock + cumulative scored/skipped. force=1 remints even already-V3. Ingest always runs V3. N/A factors omit. Does not increment downloads.", operationId: "recalibrateAll", parameters: [{ name: "all", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "force", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "status", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "record_id", in: "query", schema: { type: "string" } }] } },
       "/v1/verify-geo": { get: { summary: "Chunked geography reindex: date × event × geolocation pins for docs with geospatial anchors (paper time, never upload time). force=1 restarts. status=1 progress. Does not increment downloads.", operationId: "verifyGeo", parameters: [{ name: "force", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "status", in: "query", schema: { type: "string", enum: ["0", "1"] } }] } },
       "/v1/document-chain": { get: { summary: "Per-document hash-chain bound to record_id. No orphan chains.", operationId: "documentChain", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
-      "/v1/jeeves/chat": { post: { summary: "Ask Jeeves research assistant over public records. Lamb Lens. Cannot change scores.", operationId: "jeevesChat" } },
+      "/v1/jeeves/chat": { post: { summary: "Ask Jeeves research assistant over public records. FragGate op jeeves on aziel-corpus (suite help). software_tab false. Not a Softwares-tab card. Lamb Lens. Cannot change scores.", operationId: "jeevesChat" } },
       "/v1/ingest": { post: { summary: "AI/OpenAPI upload (ingest/receipt). Session cookie writes Corpus / azcorpus (Lamb Lens). X-Aziel-Operator-Token writes live hub azlibrary only. Anonymous JSON refused. Plane A UI on this Worker. Cap-7 names inherit design_of hubs; resolves_to_hub: false. CROSS-NETWORK-SURVIVAL on the receipt. Compatible AI clients: " + AI_CLIENTS + ".", operationId: "ingestRecord" } },
       "/v1/jeeves/upload": { post: { summary: "Ask Jeeves Add — same ingest as the shelf (structure, SPRE × CLCE × PhysLing, Bayesian). Signed-in public writes Corpus / azcorpus; operator writes live hub Aziel Library / azlibrary.", operationId: "jeevesUpload" } },
       "/v1/operator/library-ingest": { post: { summary: "Operator Aziel Library ingest (SOFTWARE-SITE-DOSSIER-1.0). Same ingestRecord pipeline as Jeeves/shelf. Requires X-Aziel-Operator-Token or operator session. Writes live hub azlibrary only. Idempotent same-SHA; exact-same-subject supersedes. Writes discovery metadata sidecar in the same ingest. No public write hole.", operationId: "operatorLibraryIngest" } },
@@ -327,6 +330,8 @@ export async function handleRuntimeApi(request, url, env, ctx) {
   if (packs) return packs;
   const presence = await handlePresenceApi(request, url, env);
   if (presence) return presence;
+  const inventory = await handleSiteInventory(request, url, env);
+  if (inventory) return inventory;
   const mesh = await handleMeshApi(request, url, env);
   if (mesh) return mesh;
   const survival = await handleSurvivalHub(request, url, env);
@@ -342,7 +347,11 @@ export async function handleRuntimeApi(request, url, env, ctx) {
     if (live && live.fromCache && ctx && typeof ctx.waitUntil === "function") {
       ctx.waitUntil(fetchLiveSoftwareCatalog(env, { preferCache: false, skipEnrich: true, tabView, timeoutMs: SOFTWARE_API_TIMEOUT_MS }).catch(() => null));
     }
-    const res = json(publicSoftwarePayload(live, { view: url.searchParams.get("view") }));
+    const outletState = await readOutletState(env);
+    const res = json(publicSoftwarePayload(live, {
+      view: url.searchParams.get("view"),
+      outlet: outletState && outletState.cite,
+    }));
     res.headers.set("Cache-Control", SOFTWARE_API_CACHE_CONTROL);
     if (request.method === "HEAD") return new Response(null, { status: res.status, headers: res.headers });
     return res;

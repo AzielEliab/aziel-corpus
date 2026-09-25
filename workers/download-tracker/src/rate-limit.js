@@ -192,6 +192,7 @@ export function isFanoutPath(pathname, method = "GET") {
   if (path === "/v1/score" && verb === "POST") return true;
   if (path.startsWith("/v1/jeeves/") && verb === "POST") return true;
   if (path.startsWith("/v1/operator/") && verb === "POST") return true;
+  if (path === "/v1/mesh/outlet" && verb === "POST") return true;
   if (path === "/v1/ingest" && verb === "POST") return true;
   if (path === "/mcp" && verb === "POST") return true;
   if ((path === "/ocr" || path === "/transcribe") && verb === "POST") return true;
