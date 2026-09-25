@@ -24,6 +24,8 @@ import {
   sealPackedIndex,
   writePackedIndex,
   cardFromRecord,
+  noteIngestedRecord,
+  SHELF_INDEX_LIMIT,
   libraryHealthFields,
   packedRecordCounts,
 } from "./library-index.js";
@@ -168,7 +170,31 @@ test("searchPackedRecords filters the packed shelf without KV", () => {
   const card = publicSearchCard(hits[0]);
   assert.equal(card.id, "AZDOC-1");
   assert.equal(card.shelf, "corpus");
+  assert.equal(card.llms_url, "/record/AZDOC-1/llms.txt");
+  assert.equal(card.cite_url, "/record/AZDOC-1/cite.json");
   assert.ok(!("body" in card));
+});
+
+test("noteIngestedRecord appends llms and cite urls without KV.list", async () => {
+  const kv = throwingListKv(new Map([[LIBRARY_INDEX_KEY, JSON.stringify(sealPackedIndex({
+    records: [cardFromRecord({ record_id: "AZDOC-OLD", title: "Old", library: "aziel", author: "Aziel Eliab" })],
+  }))]]));
+  const env = { DOWNLOADS: kv };
+  const doc = await noteIngestedRecord(env, {
+    record_id: "AZDOC-NEW",
+    title: "New upload",
+    library: "corpus",
+    author: "Aziel Eliab",
+    content_sha256: "c".repeat(64),
+    created_utc: "2026-09-25T00:00:00Z",
+  });
+  assert.equal(kv.calls.list, 0);
+  assert.equal(doc.records[0].record_id, "AZDOC-NEW");
+  assert.equal(doc.records[0].llms_url, "/record/AZDOC-NEW/llms.txt");
+  assert.equal(doc.records[0].cite_url, "/record/AZDOC-NEW/cite.json");
+  assert.equal(doc.records[1].record_id, "AZDOC-OLD");
+  assert.ok(doc.records.length <= SHELF_INDEX_LIMIT);
+  assert.equal(doc.kv_list_hot_path, false);
 });
 
 test("GET /v1/health is failover-ready standby and does not list KV", async () => {

@@ -288,7 +288,24 @@ export function buildRecordLlms(ctx) {
   return text;
 }
 
-export function recordLlmsResponse(text, status = 200) {
+export function recordMachineUrls(recordId) {
+  const id = encodeURIComponent(String(recordId || "").trim());
+  return {
+    html: "/record/" + id,
+    llms_url: "/record/" + id + "/llms.txt",
+    cite_url: "/record/" + id + "/cite.json",
+  };
+}
+
+export function recordMachineLinkHeader(recordId, alias) {
+  const urls = recordMachineUrls(recordId);
+  const parts = ["<" + urls.html + ">; rel=\"canonical\""];
+  if (alias !== "llms.txt") parts.push("<" + urls.llms_url + ">; rel=\"alternate\"; type=\"text/plain\"");
+  if (alias !== "cite.json") parts.push("<" + urls.cite_url + ">; rel=\"alternate\"; type=\"application/json\"");
+  return parts.join(", ");
+}
+
+export function recordLlmsResponse(text, status = 200, extraHeaders) {
   return new Response(text, {
     status,
     headers: {
@@ -296,6 +313,7 @@ export function recordLlmsResponse(text, status = 200) {
       "Cache-Control": "public, max-age=300, stale-while-revalidate=3600",
       "X-Robots-Tag": "index, follow",
       ...corsPlain(),
+      ...(extraHeaders || {}),
     },
   });
 }
@@ -313,6 +331,11 @@ export async function serveRecordMachine(env, pathname) {
     if (parsed.alias === "cite.json") return discoveryJsonResponse({ error: "not found" }, 404);
     return recordLlmsResponse("not found\n", 404);
   }
-  if (parsed.alias === "cite.json") return discoveryJsonResponse(buildRecordCite(ctx), 200);
-  return recordLlmsResponse(buildRecordLlms(ctx), 200);
+  const link = recordMachineLinkHeader(paper, parsed.alias);
+  if (parsed.alias === "cite.json") {
+    const res = discoveryJsonResponse(buildRecordCite(ctx), 200);
+    res.headers.set("Link", link);
+    return res;
+  }
+  return recordLlmsResponse(buildRecordLlms(ctx), 200, { Link: link });
 }

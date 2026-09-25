@@ -4,7 +4,7 @@ import { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, hea
 import { json, corsHeaders } from "./runtime.js";
 import { receiptForRecord, sha256hex, isJsonDocumentId } from "./ledger.js";
 import { serveRecordMetadata, parseRecordMetadataPath, receiptForJsonMetadata } from "./record-metadata.js";
-import { serveRecordMachine, parseRecordMachinePath } from "./record-llm.js";
+import { serveRecordMachine, parseRecordMachinePath, loadRecordMachineContext, recordMachineLinkHeader } from "./record-llm.js";
 import { isHelpPath } from "./help.js";
 import { isOperator, asFile, getObject, putObject, objectExists, ingestRecord, safeFilename, serveDerived, patternClusters } from "./library.js";
 import {
@@ -68,7 +68,7 @@ async function receiptForAny(env, id) {
 
 function html(pageBody, extra) {
   extra = extra || {};
-  const headers = { "Content-Type": "text/html; charset=utf-8", ...corsHeaders() };
+  const headers = { "Content-Type": "text/html; charset=utf-8", ...corsHeaders(), ...(extra.headers || {}) };
   headers["Cache-Control"] = extra.cacheControl || HTML_CACHE_CONTROL;
   if (!String(headers["Cache-Control"] || "").includes("no-store")) {
     headers["X-Robots-Tag"] = "index, follow, max-image-preview:large";
@@ -115,6 +115,20 @@ async function assetFromPublic(env, request, name, contentType) {
   if (len) headers.set("Content-Length", len);
   for (const [k, v] of Object.entries(corsHeaders())) headers.set(k, v);
   return new Response(res.body, { status: 200, headers });
+}
+
+/** D1 row, or the packed-index card when the shelf catalog has the id. */
+export async function loadHostedRecordRow(env, recordId) {
+  const id = decodeURIComponent(String(recordId || "").trim());
+  if (!id) return null;
+  let row = null;
+  try { row = await getRecordRow(env, id); } catch { row = null; }
+  if (row && row.record_id) return row;
+  try {
+    const ctx = await loadRecordMachineContext(env, id);
+    if (ctx && ctx.row && ctx.row.record_id) return ctx.row;
+  } catch { /* packed catalog */ }
+  return null;
 }
 
 export async function handleHosted(request, url, env, ctx, signed, stats) {
@@ -515,7 +529,7 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
   }
   const recMatch = path.match(/^\/record\/([^/]+)$/);
   if (recMatch && read) {
-    const row = await getRecordRow(env, decodeURIComponent(recMatch[1]));
+    const row = await loadHostedRecordRow(env, decodeURIComponent(recMatch[1]));
     if (!row) return pageHtml(page("Not found", recordBody({ row: null, events: [] }), { signed, path: path, kind: "record" }), { status: 404 });
     const events = await recordEvents(env, row.record_id);
     const extra = await loadRecordReview(env, row);
@@ -540,7 +554,9 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
         content_sha256: row.content_sha256,
         content: String(row.snippet || row.body || "").replace(/\s+/g, " ").trim().slice(0, 400),
       },
-    }));
+    }), {
+      headers: { Link: recordMachineLinkHeader(row.record_id, "html") },
+    });
   }
   const derMatch = path.match(/^\/derived\/([^/]+)$/);
   if (derMatch && read) {

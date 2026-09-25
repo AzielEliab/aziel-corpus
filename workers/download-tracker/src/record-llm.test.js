@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseRecordMachinePath, buildRecordLlms, buildRecordCite, serveRecordMachine } from "./record-llm.js";
+import { parseRecordMachinePath, buildRecordLlms, buildRecordCite, serveRecordMachine, recordMachineLinkHeader } from "./record-llm.js";
+import { LIBRARY_INDEX_KEY } from "./library-index.js";
+import { loadHostedRecordRow } from "./hosted.js";
 import { reviewDocument } from "./review.js";
 import { metadataUrls } from "./record-metadata.js";
 
@@ -94,4 +96,58 @@ test("unknown record machine path is 404", async () => {
   const cite = await serveRecordMachine(env, "/record/AZDOC-MISSING0000/cite.json");
   assert.equal(cite.status, 404);
   assert.equal(await serveRecordMachine(env, "/help.txt"), null);
+});
+
+test("packed index ids get llms.txt and cite.json without a D1 row", async () => {
+  const records = [];
+  for (let i = 0; i < 429; i++) {
+    const library = i < 422 ? "aziel" : "corpus";
+    const n = i.toString(16).padStart(12, "0").toUpperCase();
+    records.push({
+      record_id: "AZDOC-" + n,
+      title: "Record " + n,
+      library,
+      author: "Aziel Eliab",
+      created_utc: "2024-06-01T00:00:00Z",
+      content_sha256: "b".repeat(64),
+    });
+  }
+  const env = {
+    DOWNLOADS: {
+      async get() {
+        return JSON.stringify({ key: LIBRARY_INDEX_KEY, version: 1, records });
+      },
+      async list() { throw new Error("KV.list is not allowed"); },
+    },
+  };
+  const sample = [records[0], records[399], records[421], records[422], records[428]];
+  for (const row of sample) {
+    const page = await loadHostedRecordRow(env, row.record_id);
+    assert.equal(page && page.record_id, row.record_id);
+    assert.equal(page.title, row.title);
+    const llms = await serveRecordMachine(env, "/record/" + row.record_id + "/llms.txt");
+    const cite = await serveRecordMachine(env, "/record/" + row.record_id + "/cite.json");
+    assert.equal(llms.status, 200, row.record_id);
+    assert.equal(cite.status, 200, row.record_id);
+    assert.match(llms.headers.get("Link") || "", /rel="canonical"/);
+    assert.match(llms.headers.get("Link") || "", /cite\.json/);
+    const text = await llms.text();
+    assert.match(text, new RegExp(row.record_id));
+    assert.match(text, /Author: Aziel Eliab/);
+    const doc = await cite.json();
+    assert.equal(doc.record_id, row.record_id);
+    assert.equal(doc.llms.endsWith("/llms.txt"), true);
+    assert.equal(doc.cite.endsWith("/cite.json"), true);
+    assert.equal(doc.content_sha256, "b".repeat(64));
+    assert.equal(doc.identity, "Aziel Eliab");
+  }
+  let ok = 0;
+  for (const row of records) {
+    const ctxPath = "/record/" + row.record_id + "/llms.txt";
+    const res = await serveRecordMachine(env, ctxPath);
+    if (res.status === 200) ok += 1;
+  }
+  assert.equal(ok, 429);
+  assert.match(recordMachineLinkHeader(records[422].record_id, "html"), /llms\.txt/);
+  assert.match(recordMachineLinkHeader(records[422].record_id, "html"), /cite\.json/);
 });

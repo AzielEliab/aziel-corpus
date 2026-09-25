@@ -767,6 +767,26 @@ export async function ingestRecord(env, args) {
       reviewBundle.review = await persistPossibilityOnReview(env, id, pin.possibility, reviewBundle.review);
     }
   } catch { pin = null; }
+  try {
+    const { noteIngestedRecord } = await import("./library-index.js");
+    await noteIngestedRecord(env, {
+      record_id: id,
+      title: finalTitle,
+      author: biblioAuthor,
+      library,
+      content_sha256: contentSha,
+      created_utc: createdUtc,
+      domain: domainIn,
+      subjects: subjectsIn,
+      keywords: keywordsIn,
+      filename,
+      chain_tip: reviewBundle && reviewBundle.tip && reviewBundle.tip.ledger_entry_hash,
+      triad_combined: reviewBundle && reviewBundle.review && reviewBundle.review.triad
+        ? reviewBundle.review.triad.combined
+        : null,
+      zsolver_json: zsolver ? JSON.stringify(zsolver) : null,
+    });
+  } catch { /* packed index is a catalog copy; the D1 row is already the record */ }
   return {
     id,
     library,
@@ -788,6 +808,8 @@ export async function ingestRecord(env, args) {
     pin,
     possibility: pin && pin.possibility,
     metadata_url: "/record/" + id + "/metadata.json",
+    llms_url: "/record/" + id + "/llms.txt",
+    cite_url: "/record/" + id + "/cite.json",
     json_record_id: discovery && discovery.json_record_id,
     discovery,
   };

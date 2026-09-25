@@ -8,6 +8,13 @@ import { createHash } from "node:crypto";
 import { compactZsolverPublic, shelfScoreState, zsolverFromRow } from "./zsolver.js";
 
 export const LIBRARY_INDEX_KEY = "library:index:v1";
+/**
+ * Ceiling for the packed shelf refresh and the sitemap D1 supplement.
+ * Hot path stays one KV get of library:index:v1 (never KV.list).
+ * Live audit 2026-09-25: 429 index ids; a 400-row sitemap window dropped
+ * every Corpus record plus 22 older Aziel Library records.
+ */
+export const SHELF_INDEX_LIMIT = 5000;
 export const KV_CACHE_TTL = 3600;
 export const MAX_HOT_KV_OPS = 8;
 export const PUBLIC_CACHE_CONTROL = "public, max-age=60, s-maxage=300, stale-while-revalidate=3600";
@@ -302,6 +309,8 @@ export function cardFromRecord(row) {
     filename: String(row.filename || ""),
     href: "/record/" + id,
     metadata_url: "/record/" + id + "/metadata.json",
+    llms_url: "/record/" + id + "/llms.txt",
+    cite_url: "/record/" + id + "/cite.json",
     triad_combined: row.triad_combined != null ? Number(row.triad_combined) : null,
     triad_display: scores.triad_display,
     zsolver: z,
@@ -335,6 +344,8 @@ export function publicSearchCard(row) {
     filename: card.filename,
     href: card.href,
     metadata_url: card.metadata_url,
+    llms_url: card.llms_url,
+    cite_url: card.cite_url,
   };
   if (card.triad_display != null) out.triad_display = card.triad_display;
   if (card.zsolver_display != null) out.zsolver_display = card.zsolver_display;
@@ -346,9 +357,9 @@ export function publicSearchCard(row) {
   return out;
 }
 
-export async function loadShelfCards(env, { limit = 500 } = {}) {
+export async function loadShelfCards(env, { limit = SHELF_INDEX_LIMIT } = {}) {
   if (!env || !env.DB || typeof env.DB.prepare !== "function") return [];
-  const lim = Math.min(Math.max(Number(limit) || 500, 1), 500);
+  const lim = Math.min(Math.max(Number(limit) || SHELF_INDEX_LIMIT, 1), SHELF_INDEX_LIMIT);
   const sql =
     "SELECT record_id, title, author, library, content_sha256, chain_tip, created_utc, domain, subjects, keywords, filename, triad_combined, zsolver_score, zsolver_status, zsolver_json FROM records WHERE IFNULL(shelf_hidden,0) = 0 AND UPPER(IFNULL(quarantine_status,'CLEAR')) NOT IN ('POISON_SUSPECT','QUARANTINE') ORDER BY created_utc DESC LIMIT ?";
   try {
@@ -514,6 +525,24 @@ export async function patchPackedRecordSha(env, recordId, sha, { cache } = {}) {
     return Object.assign({}, r, { content_sha256: want });
   });
   return writePackedIndex(env, Object.assign({}, current, { records }), { cache });
+}
+
+/**
+ * Ingest hook. Puts the new card on library:index:v1 immediately so sitemap
+ * and /record/{id}/llms.txt can see it before the next full D1 refresh.
+ * One get + one put. Never KV.list().
+ */
+export async function noteIngestedRecord(env, row) {
+  const card = cardFromRecord(row);
+  if (!card) return null;
+  const current = await readPackedIndex(env, { cacheTtl: 60 });
+  const records = Array.isArray(current.records)
+    ? current.records.filter((r) => String(r.record_id || r.id || "") !== card.record_id)
+    : [];
+  records.unshift(card);
+  return writePackedIndex(env, Object.assign({}, current, {
+    records: records.slice(0, SHELF_INDEX_LIMIT),
+  }));
 }
 
 /** Cron / ingest / operator refresh. D1 + known counter keys. No KV.list(). */
