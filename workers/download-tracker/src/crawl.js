@@ -42,6 +42,7 @@ import { spectrallockCiteFields, spectrallockLlmsBlock, SPECTRALLOCK_SITEMAP } f
 import { peacelockCiteFields, peacelockLlmsBlock } from "./peacelock.js";
 import { tradesRuntimeCiteFields, tradesRuntimeLlmsBlock, tradesRuntimeMcpDiscovery } from "./trades-runtime.js";
 import { redlineCiteFields } from "./redline-cite.js";
+import { readPackedIndex, SHELF_INDEX_LIMIT } from "./library-index.js";
 import {
   IDENTITY_ROUTES,
   identitySameAsLine,
@@ -101,7 +102,7 @@ const VERSION = "2.7.0";
 const SITE_LASTMOD = "2026-09-20";
 const AUTHOR = "Aziel Eliab";
 const AKA = "Aziel Elroi Eliab";
-const RECORD_SITEMAP_CAP = 400;
+const RECORD_SITEMAP_CAP = SHELF_INDEX_LIMIT;
 
 export const MIME = {
   plain: "text/plain; charset=utf-8",
@@ -520,29 +521,72 @@ export function softwareRelatedPaths() {
   ];
 }
 
-export async function sitemapRecordsXml(env) {
-  const rows = [];
+function rememberSitemapRecord(byId, row) {
+  if (!row) return;
+  const id = String(row.record_id || row.id || "").trim();
+  if (!id) return;
+  const created = row.created_utc || row.updated || row.ts || "";
+  const library = row.library || row.shelf || "";
+  const prev = byId.get(id);
+  if (!prev) {
+    byId.set(id, { record_id: id, created_utc: created, library });
+    return;
+  }
+  if (!prev.created_utc && created) prev.created_utc = created;
+  if (!prev.library && library) prev.library = library;
+}
+
+async function d1SitemapRecords(env) {
+  if (!env || !env.DB || typeof env.DB.prepare !== "function") return [];
   try {
-    let recs = [];
+    return (await env.DB.prepare(
+      "SELECT record_id, created_utc, library FROM records WHERE IFNULL(shelf_hidden,0)=0 ORDER BY CASE WHEN lower(library)='aziel' THEN 0 ELSE 1 END, created_utc DESC LIMIT ?"
+    ).bind(RECORD_SITEMAP_CAP).all()).results || [];
+  } catch {
     try {
-      recs = (await env.DB.prepare(
-        "SELECT record_id, created_utc, library FROM records WHERE IFNULL(shelf_hidden,0)=0 ORDER BY CASE WHEN lower(library)='aziel' THEN 0 ELSE 1 END, created_utc DESC LIMIT ?"
-      ).bind(RECORD_SITEMAP_CAP).all()).results || [];
-    } catch {
-      recs = (await env.DB.prepare(
+      return (await env.DB.prepare(
         "SELECT record_id, created_utc, library FROM records ORDER BY CASE WHEN lower(library)='aziel' THEN 0 ELSE 1 END, created_utc DESC LIMIT ?"
       ).bind(RECORD_SITEMAP_CAP).all()).results || [];
+    } catch {
+      return [];
     }
-    for (const r of recs) {
-      const lastmod = isoDay(r.created_utc, SITE_LASTMOD);
-      const id = encodeURIComponent(r.record_id);
-      rows.push({ loc: HOST + "/record/" + id, lastmod });
-      rows.push({ loc: HOST + "/record/" + id + "/metadata.json", lastmod });
-      rows.push({ loc: HOST + "/record/" + id + ".json", lastmod });
-      rows.push({ loc: HOST + "/record/" + id + "/llms.txt", lastmod });
-      rows.push({ loc: HOST + "/record/" + id + "/cite.json", lastmod });
-    }
+  }
+}
+
+/** Packed index (one KV get) union the D1 shelf. Every index id is listed. No KV.list(). */
+export async function collectSitemapRecords(env) {
+  const byId = new Map();
+  try {
+    const packed = await readPackedIndex(env);
+    const recs = packed && Array.isArray(packed.records) ? packed.records : [];
+    for (const row of recs) rememberSitemapRecord(byId, row);
+  } catch { /* packed optional */ }
+  try {
+    const recs = await d1SitemapRecords(env);
+    for (const row of recs) rememberSitemapRecord(byId, row);
   } catch { /* empty set still valid */ }
+  return [...byId.values()].sort((a, b) => {
+    const az = (row) => String(row.library || "").toLowerCase() === "aziel" ? 0 : 1;
+    const shelf = az(a) - az(b);
+    if (shelf) return shelf;
+    return String(b.created_utc || "").localeCompare(String(a.created_utc || ""));
+  });
+}
+
+function pushRecordLocs(rows, rec, { aliasJson = false } = {}) {
+  const lastmod = isoDay(rec.created_utc, SITE_LASTMOD);
+  const id = encodeURIComponent(rec.record_id);
+  rows.push({ loc: HOST + "/record/" + id, lastmod });
+  rows.push({ loc: HOST + "/record/" + id + "/metadata.json", lastmod });
+  if (aliasJson) rows.push({ loc: HOST + "/record/" + id + ".json", lastmod });
+  rows.push({ loc: HOST + "/record/" + id + "/llms.txt", lastmod });
+  rows.push({ loc: HOST + "/record/" + id + "/cite.json", lastmod });
+}
+
+export async function sitemapRecordsXml(env) {
+  const rows = [];
+  const recs = await collectSitemapRecords(env);
+  for (const r of recs) pushRecordLocs(rows, r, { aliasJson: true });
   return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n"
     + rows.map((u) => sitemapUrl(u.loc, u.lastmod)).join("\n")
     + "\n</urlset>\n";
@@ -645,24 +689,8 @@ export async function sitemapXml(env) {
   }
   rows.push({ loc: GITHUB_REPO, lastmod: SITE_LASTMOD });
   try {
-    let recs = [];
-    try {
-      recs = (await env.DB.prepare(
-        "SELECT record_id, created_utc, library FROM records WHERE IFNULL(shelf_hidden,0)=0 ORDER BY CASE WHEN lower(library)='aziel' THEN 0 ELSE 1 END, created_utc DESC LIMIT ?"
-      ).bind(RECORD_SITEMAP_CAP).all()).results || [];
-    } catch {
-      recs = (await env.DB.prepare(
-        "SELECT record_id, created_utc, library FROM records ORDER BY CASE WHEN lower(library)='aziel' THEN 0 ELSE 1 END, created_utc DESC LIMIT ?"
-      ).bind(RECORD_SITEMAP_CAP).all()).results || [];
-    }
-    for (const r of recs) {
-      const lastmod = isoDay(r.created_utc, SITE_LASTMOD);
-      const id = encodeURIComponent(r.record_id);
-      rows.push({ loc: HOST + "/record/" + id, lastmod });
-      rows.push({ loc: HOST + "/record/" + id + "/metadata.json", lastmod });
-      rows.push({ loc: HOST + "/record/" + id + "/llms.txt", lastmod });
-      rows.push({ loc: HOST + "/record/" + id + "/cite.json", lastmod });
-    }
+    const recs = await collectSitemapRecords(env);
+    for (const r of recs) pushRecordLocs(rows, r);
   } catch (e) { /* sitemap still lists static routes */ }
   return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n"
     + rows.map((u) => sitemapUrl(u.loc, u.lastmod, u.hints)).join("\n")

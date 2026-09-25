@@ -1,10 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { SHELF_INDEX_LIMIT, LIBRARY_INDEX_KEY } from "./library-index.js";
 import {
   robotsTxt,
   sitemapXml,
   sitemapIndexXml,
   sitemapRecordsXml,
+  collectSitemapRecords,
   mcpDiscovery,
   citeDoc,
   llmsDoc,
@@ -611,4 +613,63 @@ test("Worker SEO documents are 200 with long public cache and never empty for Go
     else assert.match(body, /azielcorpuslibrary\.net/);
   }
   assert.match(SEO_CACHE_CONTROL, /s-maxage=3600/);
+});
+
+test("sitemap lists every packed index id, including rows the old 400-cap D1 window dropped", async () => {
+  const packed = [];
+  for (let i = 0; i < 429; i++) {
+    const library = i < 422 ? "aziel" : "corpus";
+    const n = i.toString(16).padStart(12, "0").toUpperCase();
+    packed.push({
+      record_id: "AZDOC-" + n,
+      title: "Record " + n,
+      library,
+      author: "Aziel Eliab",
+      created_utc: "2026-01-" + String((i % 28) + 1).padStart(2, "0") + "T00:00:00Z",
+      content_sha256: n.padEnd(64, "a").slice(0, 64),
+    });
+  }
+  const d1Window = packed.filter((r) => r.library === "aziel").slice(0, 400);
+  let bound = 0;
+  let lists = 0;
+  const env = {
+    DB: {
+      prepare() {
+        return {
+          bind(n) { bound = n; return this; },
+          async all() { return { results: d1Window }; },
+        };
+      },
+    },
+    DOWNLOADS: {
+      async get() {
+        return JSON.stringify({ key: LIBRARY_INDEX_KEY, version: 1, records: packed });
+      },
+      async put() {},
+      async list() { lists += 1; throw new Error("KV.list is not allowed"); },
+    },
+  };
+  const rows = await collectSitemapRecords(env);
+  assert.equal(rows.length, 429);
+  assert.equal(bound, SHELF_INDEX_LIMIT);
+  assert.ok(SHELF_INDEX_LIMIT >= 429);
+  assert.equal(lists, 0);
+  const corpus = packed.filter((r) => r.library === "corpus");
+  assert.equal(corpus.length, 7);
+  const dropped = packed.filter((r) => !d1Window.some((d) => d.record_id === r.record_id));
+  assert.equal(dropped.length, 29);
+  const xml = await sitemapXml(env);
+  const recordsXml = await sitemapRecordsXml(env);
+  for (const row of dropped) {
+    const id = row.record_id;
+    assert.match(xml, new RegExp("/record/" + id + "/llms\\.txt"));
+    assert.match(xml, new RegExp("/record/" + id + "/cite\\.json"));
+    assert.match(xml, new RegExp("/record/" + id + "<"));
+    assert.match(recordsXml, new RegExp("/record/" + id + "/llms\\.txt"));
+    assert.match(recordsXml, new RegExp("/record/" + id + "/cite\\.json"));
+    assert.match(recordsXml, new RegExp("/record/" + id + "\\.json"));
+  }
+  assert.equal((recordsXml.match(/\/llms\.txt/g) || []).length, 429);
+  assert.equal((recordsXml.match(/\/cite\.json/g) || []).length, 429);
+  assert.equal((xml.match(/\/record\/AZDOC-[0-9A-F]+\/llms\.txt/g) || []).length, 429);
 });

@@ -106,6 +106,8 @@ export async function operatorLibraryIngest(env, { signed, request, file, title,
         content_sha256: existing.content_sha256 || sha,
         href: "/record/" + existing.record_id,
         metadata_url: "/record/" + existing.record_id + "/metadata.json",
+        llms_url: "/record/" + existing.record_id + "/llms.txt",
+        cite_url: "/record/" + existing.record_id + "/cite.json",
         download: "/file/" + existing.record_id,
       };
     }
@@ -154,6 +156,8 @@ export async function operatorLibraryIngest(env, { signed, request, file, title,
       : null,
     href: "/record/" + record.id,
     metadata_url: "/record/" + record.id + "/metadata.json",
+    llms_url: record.llms_url || "/record/" + record.id + "/llms.txt",
+    cite_url: record.cite_url || "/record/" + record.id + "/cite.json",
     json_record_id: record.json_record_id || null,
     download: "/file/" + record.id,
   };

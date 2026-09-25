@@ -268,6 +268,8 @@ test("ingestRecord writes discovery sidecar in the same upload", async () => {
   });
   assert.match(rec.id, /^AZDOC-/);
   assert.equal(rec.metadata_url, "/record/" + rec.id + "/metadata.json");
+  assert.equal(rec.llms_url, "/record/" + rec.id + "/llms.txt");
+  assert.equal(rec.cite_url, "/record/" + rec.id + "/cite.json");
   assert.equal(rec.json_record_id, "JSON" + rec.id);
   const pkg = packageMetadataKey("aziel", rec.id);
   const tree = jsonTreeKey(rec.id);
@@ -391,5 +393,7 @@ test("operator ingest response cites metadata_url", async () => {
   const body = await res.json();
   assert.equal(body.ok, true);
   assert.equal(body.metadata_url, "/record/" + body.record_id + "/metadata.json");
+  assert.equal(body.llms_url, "/record/" + body.record_id + "/llms.txt");
+  assert.equal(body.cite_url, "/record/" + body.record_id + "/cite.json");
   assert.ok(env.files.has(packageMetadataKey("aziel", body.record_id)));
 });
