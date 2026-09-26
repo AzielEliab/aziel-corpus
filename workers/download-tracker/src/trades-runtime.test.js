@@ -35,9 +35,9 @@ const HOST = "https://www.azielcorpuslibrary.net";
 test("Trades-Runtime cite is a local-first Softwares extra, not a FragGate engine", () => {
   assert.equal(TRADES_RUNTIME.slug, "trades-runtime");
   assert.equal(TRADES_RUNTIME.name, "Trades-Runtime");
-  assert.equal(TRADES_RUNTIME_VERSION, "0.4.4");
+  assert.equal(TRADES_RUNTIME_VERSION, "0.4.5");
   assert.equal(TRADES_RUNTIME.version, TRADES_RUNTIME_VERSION);
-  assert.equal(TRADES_RUNTIME_SOFTWARE_EXTRA.version, "0.4.4");
+  assert.equal(TRADES_RUNTIME_SOFTWARE_EXTRA.version, "0.4.5");
   assert.equal(TRADES_RUNTIME.kind, "plain");
   assert.equal(TRADES_RUNTIME.fraggate_engine, false);
   assert.equal(TRADES_RUNTIME.live_backends, false);
@@ -59,7 +59,7 @@ test("Trades-Runtime cite is a local-first Softwares extra, not a FragGate engin
   assert.match(TRADES_RUNTIME.note, /local-first BYO field OS/);
   assert.match(TRADES_RUNTIME.one_line, /BYO field OS/);
   assert.match(TRADES_RUNTIME.note, /own read-only MCP/);
-  assert.match(TRADES_RUNTIME.how_to_cite, /Trades-Runtime 0\.4\.4/);
+  assert.match(TRADES_RUNTIME.how_to_cite, /Trades-Runtime 0\.4\.5/);
   assert.ok(TRADES_RUNTIME.sameAs.includes(TRADES_RUNTIME_GITHUB));
   assert.ok(TRADES_RUNTIME.sameAs.includes(TRADES_RUNTIME_MCP));
   assert.ok(isTradesRuntimeSlug("trades-runtime"));
@@ -85,9 +85,9 @@ test("cite.json / llms.txt / humans.txt / ai.txt cite Trades-Runtime honestly", 
   assert.equal(cite.trades_runtime.pages, "off");
   assert.equal(cite.trades_runtime.fraggate_engine, false);
   assert.equal(cite.trades_runtime.doi, null);
-  assert.match(cite.trades_runtime.how_to_cite, /Trades-Runtime 0\.4\.4/);
-  assert.equal(cite.trades_runtime.version, "0.4.4");
-  assert.equal(cite.products_trades_runtime.version, "0.4.4");
+  assert.match(cite.trades_runtime.how_to_cite, /Trades-Runtime 0\.4\.5/);
+  assert.equal(cite.trades_runtime.version, "0.4.5");
+  assert.equal(cite.products_trades_runtime.version, "0.4.5");
   assert.equal(cite.products_trades_runtime.slug, "trades-runtime");
   assert.equal(cite.products_trades_runtime.mcp, TRADES_RUNTIME_MCP);
   assert.ok(cite.products_trades_runtime.sameAs.includes(TRADES_RUNTIME_GITHUB));

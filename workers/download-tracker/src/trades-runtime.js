@@ -19,7 +19,7 @@ export const TRADES_RUNTIME_NAME = "Trades-Runtime";
  * Not the Glama MCP listing Latest/Version — that public listing is still ~0.3.4
  * and Create Release there is blocked. Do not cite Glama as this version.
  */
-export const TRADES_RUNTIME_VERSION = "0.4.4";
+export const TRADES_RUNTIME_VERSION = "0.4.5";
 export const TRADES_RUNTIME_GITHUB = "https://github.com/AzielEliab/trades-runtime";
 export const TRADES_RUNTIME_WORKER = "trades-runtime";
 export const TRADES_RUNTIME_WORKER_HOME = "https://trades-runtime.vibelock.workers.dev/";
