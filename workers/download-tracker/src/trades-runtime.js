@@ -12,7 +12,14 @@ import { GODLOCK_IDENTITY } from "./seo.js";
 export const AUTHOR = "Aziel Eliab";
 export const TRADES_RUNTIME_SLUG = "trades-runtime";
 export const TRADES_RUNTIME_NAME = "Trades-Runtime";
-export const TRADES_RUNTIME_VERSION = "0.3.3";
+/**
+ * Public Worker / giveaway version.
+ * Matches GET https://trades-runtime.vibelock.workers.dev/v1/health `version`
+ * (role public-giveaway). Softwares pill and machine cite use this string.
+ * Not the Glama MCP listing Latest/Version — that public listing is still ~0.3.4
+ * and Create Release there is blocked. Do not cite Glama as this version.
+ */
+export const TRADES_RUNTIME_VERSION = "0.4.4";
 export const TRADES_RUNTIME_GITHUB = "https://github.com/AzielEliab/trades-runtime";
 export const TRADES_RUNTIME_WORKER = "trades-runtime";
 export const TRADES_RUNTIME_WORKER_HOME = "https://trades-runtime.vibelock.workers.dev/";
@@ -137,7 +144,7 @@ export const TRADES_RUNTIME = Object.freeze({
   identity: AUTHOR,
   note: TRADES_RUNTIME_NOTE,
   how_to_cite:
-    "Eliab, Aziel. (2026). Trades-Runtime 0.3.3 [Software]. Apache-2.0. "
+    "Eliab, Aziel. (2026). Trades-Runtime " + TRADES_RUNTIME_VERSION + " [Software]. Apache-2.0. "
     + TRADES_RUNTIME_GITHUB + " · " + TRADES_RUNTIME_WORKER_HOME,
 });
 
