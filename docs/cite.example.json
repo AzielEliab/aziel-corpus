@@ -80,7 +80,7 @@
   "trades_runtime": {
     "slug": "trades-runtime",
     "name": "Trades-Runtime",
-    "version": "0.4.4",
+    "version": "0.4.5",
     "one_line": "Shadow-first local BYO field OS for HVAC, plumbing, electrical, sewer, and cross-trades. Operators bring their own ServiceTitan + ProBooks. Human authority wins. live_backends: false.",
     "byo_field_os": true,
     "live_backends": false,
@@ -93,7 +93,7 @@
     "mcp": "https://trades-runtime.vibelock.workers.dev/mcp",
     "doi": null,
     "license": "Apache-2.0",
-    "how_to_cite": "Eliab, Aziel. (2026). Trades-Runtime 0.4.4 [Software]. Apache-2.0. https://github.com/AzielEliab/trades-runtime · https://trades-runtime.vibelock.workers.dev/",
+    "how_to_cite": "Eliab, Aziel. (2026). Trades-Runtime 0.4.5 [Software]. Apache-2.0. https://github.com/AzielEliab/trades-runtime · https://trades-runtime.vibelock.workers.dev/",
     "sameAs": [
       "https://github.com/AzielEliab/trades-runtime",
       "https://trades-runtime.vibelock.workers.dev/",
@@ -105,7 +105,7 @@
   "products_trades_runtime": {
     "slug": "trades-runtime",
     "name": "Trades-Runtime",
-    "version": "0.4.4",
+    "version": "0.4.5",
     "description": "Shadow-first local BYO field OS for HVAC, plumbing, electrical, sewer, and cross-trades. Operators bring their own ServiceTitan + ProBooks. Human authority wins. live_backends: false.",
     "github": "https://github.com/AzielEliab/trades-runtime",
     "download": "https://trades-runtime.vibelock.workers.dev/download",
