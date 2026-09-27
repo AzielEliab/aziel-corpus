@@ -98,6 +98,15 @@ test("reader links an in-library cite and pages a multi-page paper", () => {
   assert.match(reader, /data-views="3"/);
   assert.match(reader, /data-downloads="1"/);
   assert.match(reader, /href="\/aziellibrary\/cockroach-doctrine"/);
+  assert.match(reader, /class="page-turner page-turner-top"/);
+  assert.match(reader, /class="page-turner page-turner-end"/);
+  assert.match(reader, /class="page-turn"/);
+  assert.match(reader, /rel="prev" href="\/azielcorpus\/usersubmitted\/field-methods-note"/);
+  assert.match(reader, /rel="next" href="\/azielcorpus\/usersubmitted\/field-methods-note\/p\/3"/);
+  assert.match(reader, /class="paper-actions"/);
+  assert.match(reader, /href="\/file\/AZDOC-BBB222"/);
+  assert.match(reader, /href="\/download\?record=AZDOC-BBB222"/);
+  assert.match(html, /class="paper-cite"/);
   assert.match(reader, /Lamb Lens: Service/);
   assert.match(reader, /Clarity/);
   assert.match(reader, /Peace/);

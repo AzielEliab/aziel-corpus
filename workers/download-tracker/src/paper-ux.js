@@ -317,7 +317,7 @@ export function linkCitations(raw, catalog, selfId) {
   let cursor = 0;
   for (const span of kept) {
     html += esc(text.slice(cursor, span.start));
-    html += "<a href=\"" + esc(span.href) + "\">" + esc(text.slice(span.start, span.end)) + "</a>";
+    html += "<a class=\"paper-cite\" href=\"" + esc(span.href) + "\">" + esc(text.slice(span.start, span.end)) + "</a>";
     cursor = span.end;
   }
   html += esc(text.slice(cursor));
@@ -355,16 +355,24 @@ export function renderPaperReader({
   const shown = redactIdentityCluster(pageText).text;
   const linked = split.mode === "pdf-deferred" ? "" : linkCitations(shown, catalog, id);
   const base = link || ("/record/" + id);
-  let turner = "";
-  if (split.mode === "paged") {
+  function turnerNav(place) {
+    if (split.mode !== "paged") return "";
     const prev = pageIndex > 1 ? (pageIndex === 2 ? base : base + "/p/" + (pageIndex - 1)) : "";
     const next = pageIndex < split.page_count ? base + "/p/" + (pageIndex + 1) : "";
-    turner = "<nav class=\"page-turner\" aria-label=\"Pages\" data-page=\"" + pageIndex + "\" data-pages=\"" + split.page_count + "\">"
-      + (prev ? "<a rel=\"prev\" href=\"" + esc(prev) + "\">Previous</a>" : "<span class=\"muted\">Previous</span>")
-      + "<span>Page " + pageIndex + " of " + split.page_count + "</span>"
-      + (next ? "<a rel=\"next\" href=\"" + esc(next) + "\">Next</a>" : "<span class=\"muted\">Next</span>")
+    const prevCtl = prev
+      ? "<a class=\"page-turn\" rel=\"prev\" href=\"" + esc(prev) + "\">Previous</a>"
+      : "<span class=\"page-turn\" aria-disabled=\"true\">Previous</span>";
+    const nextCtl = next
+      ? "<a class=\"page-turn\" rel=\"next\" href=\"" + esc(next) + "\">Next</a>"
+      : "<span class=\"page-turn\" aria-disabled=\"true\">Next</span>";
+    return "<nav class=\"page-turner page-turner-" + place + "\" aria-label=\"Pages\" data-page=\"" + pageIndex + "\" data-pages=\"" + split.page_count + "\">"
+      + prevCtl
+      + "<span class=\"page-status\">Page " + pageIndex + " of " + split.page_count + "</span>"
+      + nextCtl
       + "</nav>";
   }
+  const turnerTop = turnerNav("top");
+  const turnerEnd = turnerNav("end");
   let countsHtml = "<p class=\"paper-counts\" data-source=\"unread\">Views and downloads load with the paper page.</p>";
   if (counts && counts.available === false) {
     countsHtml = "<p class=\"paper-counts\" data-source=\"unavailable\">Per-paper counters are not available on this render.</p>";
@@ -402,11 +410,16 @@ export function renderPaperReader({
   const share = link
     ? "<p class=\"paper-permalink\"><a href=\"" + esc(link) + "\">" + esc(link) + "</a></p>"
     : "";
+  const fileHref = id ? "/file/" + encodeURIComponent(id) : "";
+  const countHref = id ? "/download?record=" + encodeURIComponent(id) : "";
+  const actions = id
+    ? "<p class=\"paper-actions\"><a class=\"button\" href=\"" + esc(fileHref) + "\">Download</a><a class=\"button ghost\" href=\"" + esc(countHref) + "\">Counted download</a></p>"
+    : "";
   const mode = split.mode === "pdf-deferred" ? "pdf-deferred" : split.mode;
   return "<article class=\"paper-reader\" data-reader=\"" + mode + "\" data-record=\"" + esc(id) + "\" data-pages=\"" + (split.page_count || 0) + "\">"
     + "<header class=\"paper-head\"><p class=\"paper-kicker\">" + esc(shelfName) + (filed.undated ? " · Undated" : "") + "</p>"
-    + countsHtml + share + "</header>"
-    + "<div class=\"paper-layout\"><div class=\"paper-body\">" + turner + bodyHtml + trunc + turner + "</div>" + meta + "</div></article>";
+    + countsHtml + actions + share + "</header>"
+    + "<div class=\"paper-layout\"><div class=\"paper-body\">" + turnerTop + bodyHtml + trunc + turnerEnd + "</div>" + meta + "</div></article>";
 }
 
 async function readInt(kv, key) {

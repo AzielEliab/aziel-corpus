@@ -894,6 +894,14 @@ test("sigil drawer hides hashes on cards, follows record facets, and keeps hones
   const ranked = trendingHtml([{ record_id: "AZDOC-1", title: "Counted", views: 4 }, { record_id: "AZDOC-2", title: "Skip", views: 0 }]);
   assert.match(ranked, /href="\/record\/AZDOC-1">Counted</);
   assert.match(ranked, /4 views/);
+  assert.match(html, /name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/);
+  assert.match(CSS, /\.stat-group\{/);
+  assert.match(CSS, /@media \(max-width:720px\)\{[\s\S]*\.statbar\{[^}]*max-width:100%/);
+  assert.match(CSS, /\.page-turn\{[^}]*min-height:44px/);
+  assert.match(CSS, /\.page-turner-end\{[^}]*position:fixed/);
+  assert.match(CSS, /\.paper-body a\.paper-cite\{/);
+  assert.match(CSS, /\.paper-actions/);
+  assert.match(CSS, /\.trend \.event-row a\{[^}]*min-height:48px/);
   assert.doesNotMatch(ranked, /AZDOC-2/);
 
   const cardHome = homeBody({
