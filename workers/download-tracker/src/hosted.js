@@ -44,6 +44,8 @@ import {
 import {
   parsePaperPermalink,
   findPaperBySlug,
+  lookupPaperSlug,
+  paperAliasLocation,
   stampPermalinks,
   loadReaderText,
   readPaperCounts,
@@ -600,7 +602,22 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     let card = null;
     try {
       const packed = await readPackedIndex(env);
-      card = findPaperBySlug((packed && packed.records) || [], paperPath.shelf, paperPath.slug);
+      const records = (packed && packed.records) || [];
+      const hit = lookupPaperSlug(records, paperPath.shelf, paperPath.slug);
+      if (hit && hit.alias) {
+        const dest = paperAliasLocation(hit.row, paperPath.page);
+        if (dest && dest !== path) {
+          return new Response(null, {
+            status: 301,
+            headers: {
+              Location: dest + (url.search || ""),
+              "Cache-Control": "public, s-maxage=86400",
+              ...corsHeaders(),
+            },
+          });
+        }
+      }
+      card = hit && !hit.alias ? hit.row : findPaperBySlug(records, paperPath.shelf, paperPath.slug);
     } catch { card = null; }
     if (!card) return pageHtml(page("Not found", recordBody({ row: null, events: [] }), { signed, path, kind: "record" }), { status: 404 });
     const row = await loadHostedRecordRow(env, card.record_id);
