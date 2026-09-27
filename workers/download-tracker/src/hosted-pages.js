@@ -226,6 +226,8 @@ export function recordBody(payload) {
     catalog: payload.catalog || [],
     page: payload.page || 1,
     truncated: payload.truncated,
+    fileBytes: payload.fileBytes || null,
+    fileSkip: payload.fileSkip || "",
   });
   const authorName = String(row.author || "").trim();
   const heroBits = authorName && !isChromeAuthorByline(authorName) ? [authorName] : [];

@@ -6,7 +6,7 @@ import { receiptForRecord, sha256hex, isJsonDocumentId } from "./ledger.js";
 import { serveRecordMetadata, parseRecordMetadataPath, receiptForJsonMetadata } from "./record-metadata.js";
 import { serveRecordMachine, parseRecordMachinePath, loadRecordMachineContext, recordMachineLinkHeader } from "./record-llm.js";
 import { isHelpPath } from "./help.js";
-import { isOperator, asFile, getObject, putObject, objectExists, ingestRecord, safeFilename, serveDerived, patternClusters } from "./library.js";
+import { isOperator, asFile, getObject, putObject, objectExists, ingestRecord, safeFilename, serveDerived, patternClusters, loadServedFileBytes } from "./library.js";
 import {
   persistOcrRun, persistMediaRun, receiptForMediaRun, isMediaRunId, truthy, bytesAsFile,
   libraryNotes, publicRunPayload, linkRunToRecord, MEDIA_MAX_BYTES, guessMediaMime,
@@ -50,7 +50,9 @@ import {
   loadReaderText,
   readPaperCounts,
   bumpPaperCount,
+  readerKind,
 } from "./paper-ux.js";
+import { READER_FILE_CAP, oversizeReaderReason, readerWantsBytes } from "./office-extract.js";
 
 function intelScripts() {
   var c = [104,116,116,112,115,58,47,47,99,100,110,46,106,115,100,101,108,105,118,114,46,110,101,116,47,110,112,109,47,116,101,115,115,101,114,97,99,116,46,106,115,64,53,47,100,105,115,116,47,116,101,115,115,101,114,97,99,116,46,109,105,110,46,106,115];
@@ -155,6 +157,27 @@ async function servePaperPage(request, env, ctx, signed, row, { permalink = "", 
   const mine = catalog.find((item) => item.record_id === row.record_id);
   const link = (mine && mine.permalink) || permalink || ("/record/" + row.record_id);
   const loaded = await loadReaderText(env, row);
+  const previewKind = readerKind({
+    contentType: loaded.contentType || row.content_type,
+    filename: row.filename,
+    body: loaded.text,
+  });
+  let fileBytes = null;
+  let fileSkip = "";
+  if (readerWantsBytes(previewKind)) {
+    const declared = Number(row.byte_size) || 0;
+    if (declared > READER_FILE_CAP) {
+      fileSkip = oversizeReaderReason(declared);
+    } else {
+      try { fileBytes = await loadServedFileBytes(env, row); } catch { fileBytes = null; }
+      if (fileBytes && fileBytes.byteLength > READER_FILE_CAP) {
+        fileSkip = oversizeReaderReason(fileBytes.byteLength);
+        fileBytes = null;
+      } else if (!fileBytes) {
+        fileSkip = "The stored file could not be read, so the reader did not paint it. Download stays below.";
+      }
+    }
+  }
   const counts = await readPaperCounts(env, row.record_id);
   const asked = Math.max(Number(pageNum) || 1, 1);
   if (request.method === "GET" && !isSeoBot(request)) {
@@ -177,6 +200,8 @@ async function servePaperPage(request, env, ctx, signed, row, { permalink = "", 
     catalog,
     page: asked,
     truncated: loaded.truncated,
+    fileBytes,
+    fileSkip,
   }), {
     signed,
     path: link,

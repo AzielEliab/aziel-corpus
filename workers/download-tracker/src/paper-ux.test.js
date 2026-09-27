@@ -193,7 +193,7 @@ test("reader links an in-library cite and pages a multi-page paper", () => {
   assert.match(deferred, /data-reader="pdf"/);
   assert.match(deferred, /class="paper-embed paper-pdf"/);
   assert.match(deferred, /src="\/file\/AZDOC-PDF"/);
-  assert.match(deferred, /download="scan.pdf"/);
+  assert.match(deferred, /class="button ghost" href="\/file\/AZDOC-PDF" download="scan.pdf"/);
   assert.match(deferred, /<strong>0<\/strong> views/);
   assert.doesNotMatch(deferred, /%PDF/);
   assert.doesNotMatch(deferred, /Page images are not rendered/);
@@ -274,9 +274,12 @@ test("reader links an in-library cite and pages a multi-page paper", () => {
   });
   assert.match(zip, /data-reader="opaque"/);
   assert.match(zip, /ZIP archive \(\.zip\)/);
-  assert.match(zip, /cannot paint this type/);
+  assert.match(zip, /did not read the archive/);
+  assert.match(zip, /nothing is listed/);
+  assert.match(zip, /class="button" href="\/file\/AZDOC-ZIP" download="bundle.zip"/);
   assert.match(zip, /Notes kept with the archive/);
   assert.doesNotMatch(zip, /<iframe/);
+  assert.doesNotMatch(zip, /cannot paint this type/);
   const markdown = renderPaperReader({
     row: {
       record_id: "AZDOC-MD",

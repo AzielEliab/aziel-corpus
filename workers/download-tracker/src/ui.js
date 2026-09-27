@@ -402,6 +402,18 @@ code{white-space:pre-wrap}
 .paper-image{width:auto;height:auto;max-width:100%;border:0;border-radius:12px;background:transparent}
 .paper-av{width:100%}
 .paper-unrendered{margin:0 0 12px}
+.paper-office h2,.paper-sheet-block h2,.paper-slide h2{font-size:1.35rem;line-height:1.3;margin:0 0 .55em}
+.paper-office h3{font-size:1.12rem;line-height:1.35;margin:1em 0 .4em}
+.paper-table-wrap{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 0 12px}
+.paper-grid,.paper-archive{width:100%;border-collapse:collapse;font-size:15px;line-height:1.45}
+.paper-grid td,.paper-grid th,.paper-archive td,.paper-archive th{border:1px solid var(--line);padding:8px;text-align:left;vertical-align:top;overflow-wrap:anywhere;word-break:break-word}
+.paper-archive th{color:var(--gold);font-size:12px;letter-spacing:.03em;text-transform:uppercase}
+.paper-slide,.paper-sheet-block{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 12px}
+.paper-slide p,.paper-sheet-block p,.paper-office p{overflow-wrap:anywhere}
+@media (max-width:720px){
+  .paper-grid,.paper-archive{font-size:16px}
+  .paper-slide,.paper-sheet-block{padding:12px}
+}
 .paper-stored{margin:12px 0 0;border:1px solid var(--line);border-radius:12px;padding:0 12px;background:var(--paper)}
 .paper-stored summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:700;color:var(--gold)}
 .paper-body a.paper-cite{text-decoration:underline;text-underline-offset:.18em;text-decoration-thickness:2px;overflow-wrap:anywhere}
