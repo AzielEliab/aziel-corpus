@@ -6,7 +6,7 @@ import { applySuccessionForRecord, maybeRescoreZsolverOnFirstHandPatternBreak, r
 import { patchTipZsolver, scoreZsolverForRecord } from "./zsolver.js";
 import { applyAutoClassification } from "./domain-classify.js";
 import { isHumanTag, normalizeTag } from "./visible-tags.js";
-import { redactIdentityCluster } from "./paper-ux.js";
+import { fileOpensInline, redactIdentityCluster } from "./paper-ux.js";
 
 const MAX_BYTES = 25 * 1024 * 1024;
 const TEXT_CAP = 200000;
@@ -911,6 +911,56 @@ export async function ingestRecord(env, args) {
 }
 
 
+/** When the stored type is missing or octet-stream, label bytes the browser can paint. */
+function sniffedViewType(contentType, filename, bytes) {
+  const mime = String(contentType || "").toLowerCase().split(";")[0].trim();
+  if (mime && mime !== "application/octet-stream") return contentType;
+  const u8 = asUint8(bytes || new Uint8Array());
+  const ascii = (n) => {
+    let s = "";
+    const end = Math.min(n, u8.length);
+    for (let i = 0; i < end; i++) s += String.fromCharCode(u8[i]);
+    return s;
+  };
+  if (u8.length >= 5 && ascii(5) === "%PDF-") return "application/pdf";
+  if (u8.length >= 8 && u8[0] === 0x89 && u8[1] === 0x50 && u8[2] === 0x4e && u8[3] === 0x47) return "image/png";
+  if (u8.length >= 3 && u8[0] === 0xff && u8[1] === 0xd8 && u8[2] === 0xff) return "image/jpeg";
+  if (u8.length >= 6 && (ascii(6) === "GIF87a" || ascii(6) === "GIF89a")) return "image/gif";
+  if (u8.length >= 12 && ascii(4) === "RIFF" && ascii(12).slice(8, 12) === "WEBP") return "image/webp";
+  const ext = String(filename || "").toLowerCase().split(".").pop();
+  const byExt = {
+    pdf: null,
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    gif: "image/gif",
+    webp: "image/webp",
+    svg: "image/svg+xml",
+    avif: "image/avif",
+    bmp: "image/bmp",
+    ico: "image/x-icon",
+    mp3: "audio/mpeg",
+    wav: "audio/wav",
+    ogg: "audio/ogg",
+    oga: "audio/ogg",
+    m4a: "audio/mp4",
+    flac: "audio/flac",
+    aac: "audio/aac",
+    opus: "audio/opus",
+    weba: "audio/webm",
+    mp4: "video/mp4",
+    webm: "video/webm",
+    ogv: "video/ogg",
+    mov: "video/quicktime",
+    m4v: "video/mp4",
+    html: "text/html; charset=utf-8",
+    htm: "text/html; charset=utf-8",
+    xhtml: "application/xhtml+xml",
+  };
+  if (ext && Object.prototype.hasOwnProperty.call(byExt, ext) && byExt[ext]) return byExt[ext];
+  return contentType || "application/octet-stream";
+}
+
 export async function serveFile(env, recordId) {
   const id = String(recordId || "").trim();
   if (!id || !env || !env.DB) {
@@ -943,10 +993,11 @@ export async function serveFile(env, recordId) {
   bytes = asUint8(bytes);
   const liveSha = digestBytes(bytes);
   const storedSha = normalizeContentHash(row.content_sha256);
-  const ct = row.object_key
+  const storedType = row.object_key
     ? (row.content_type || (obj && obj.httpMetadata && obj.httpMetadata.contentType) || "application/octet-stream")
     : "text/plain; charset=utf-8";
   const name = safeFilename(row.filename || (row.object_key ? "file" : (row.title || row.record_id) + ".txt"));
+  const ct = sniffedViewType(storedType, name, bytes);
   let verify = null;
   try {
     verify = await verifyDownloadBytes(env, {
@@ -969,10 +1020,15 @@ export async function serveFile(env, recordId) {
     });
   } catch { /* document chain */ }
   const q = String((verify && verify.quarantine_status) || row.quarantine_status || "CLEAR").toUpperCase();
-  const inline = /^image\//i.test(ct) || ct === "application/pdf" || /\.(pdf|png|jpe?g|gif|webp|svg)$/i.test(name);
+  const inline = fileOpensInline(ct, name);
   const headers = new Headers();
   headers.set("Content-Type", ct);
   headers.set("Content-Disposition", `${inline ? "inline" : "attachment"}; filename="${name.replaceAll('"', "")}"`);
+  const servedMime = String(ct || "").toLowerCase().split(";")[0].trim();
+  if (servedMime === "text/html" || servedMime === "application/xhtml+xml" || servedMime === "image/svg+xml") {
+    headers.set("Content-Security-Policy", "sandbox");
+    headers.set("X-Content-Type-Options", "nosniff");
+  }
   headers.set("Cache-Control", "public, max-age=3600");
   headers.set("Content-Length", String(bytes.byteLength || bytes.length));
   headers.set("X-Aziel-SHA256", liveSha);

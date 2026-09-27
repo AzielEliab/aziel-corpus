@@ -149,7 +149,7 @@ test("reader links an in-library cite and pages a multi-page paper", () => {
   assert.equal(alone.mode, "standalone");
   assert.equal(alone.page_count, 1);
   const pdf = splitPaperPages("%PDF-1.7 binary", { contentType: "application/pdf" });
-  assert.equal(pdf.mode, "pdf-deferred");
+  assert.equal(pdf.mode, "binary");
   assert.equal(pdf.pages.length, 0);
   const reader = renderPaperReader({
     row: { record_id: "AZDOC-BBB222", title: "Field Methods Note", library: "corpus", content_sha256: "ab".repeat(32) },
@@ -178,14 +178,121 @@ test("reader links an in-library cite and pages a multi-page paper", () => {
   assert.match(reader, /Peace/);
   assert.doesNotMatch(reader, /%PDF/);
   const deferred = renderPaperReader({
-    row: { record_id: "AZDOC-PDF", title: "Scan", library: "aziel", content_type: "application/pdf" },
+    row: {
+      record_id: "AZDOC-PDF",
+      title: "Scan",
+      library: "aziel",
+      content_type: "application/pdf",
+      filename: "scan.pdf",
+      object_key: "aziel/AZDOC-PDF/scan.pdf",
+    },
     body: "%PDF-1.7\nstream",
     counts: { views: 0, downloads: 0, available: true },
     permalink: "/aziellibrary/scan",
   });
-  assert.match(deferred, /data-reader="pdf-deferred"/);
+  assert.match(deferred, /data-reader="pdf"/);
+  assert.match(deferred, /class="paper-embed paper-pdf"/);
+  assert.match(deferred, /src="\/file\/AZDOC-PDF"/);
+  assert.match(deferred, /download="scan.pdf"/);
   assert.match(deferred, /<strong>0<\/strong> views/);
   assert.doesNotMatch(deferred, /%PDF/);
+  assert.doesNotMatch(deferred, /Page images are not rendered/);
+  const noted = renderPaperReader({
+    row: {
+      record_id: "AZDOC-PDF",
+      title: "Scan",
+      library: "aziel",
+      content_type: "application/pdf",
+      filename: "scan.pdf",
+      object_key: "aziel/AZDOC-PDF/scan.pdf",
+    },
+    body: "A note stored beside the scan.",
+    counts: { views: 0, downloads: 0, available: true },
+    permalink: "/aziellibrary/scan",
+  });
+  assert.match(noted, /data-reader="pdf"/);
+  assert.match(noted, /Stored text/);
+  assert.match(noted, /A note stored beside the scan/);
+  const image = renderPaperReader({
+    row: {
+      record_id: "AZDOC-IMG",
+      title: "Plate",
+      library: "aziel",
+      content_type: "image/png",
+      filename: "plate.png",
+      object_key: "aziel/AZDOC-IMG/plate.png",
+    },
+    body: "",
+    counts: { views: 0, downloads: 0, available: true },
+    permalink: "/aziellibrary/plate",
+  });
+  assert.match(image, /data-reader="image"/);
+  assert.match(image, /<img class="paper-embed paper-image" src="\/file\/AZDOC-IMG"/);
+  const audio = renderPaperReader({
+    row: {
+      record_id: "AZDOC-AUD",
+      title: "Take",
+      library: "corpus",
+      content_type: "audio/mpeg",
+      filename: "take.mp3",
+      object_key: "corpus/AZDOC-AUD/take.mp3",
+    },
+    body: "",
+    counts: { views: 1, downloads: 0, available: true },
+    permalink: "/azielcorpus/usersubmitted/take",
+  });
+  assert.match(audio, /<audio class="paper-embed paper-av av-player" controls/);
+  const htmlFile = renderPaperReader({
+    row: {
+      record_id: "AZDOC-HTM",
+      title: "Page",
+      library: "corpus",
+      content_type: "text/html",
+      filename: "page.html",
+      object_key: "corpus/AZDOC-HTM/page.html",
+    },
+    body: "<p>Hello</p>",
+    counts: { views: 0, downloads: 0, available: true },
+    permalink: "/azielcorpus/usersubmitted/page",
+  });
+  assert.match(htmlFile, /data-reader="html"/);
+  assert.match(htmlFile, /sandbox=""/);
+  assert.match(htmlFile, /src="\/file\/AZDOC-HTM"/);
+  assert.doesNotMatch(htmlFile, /<p>Hello<\/p>/);
+  const zip = renderPaperReader({
+    row: {
+      record_id: "AZDOC-ZIP",
+      title: "Bundle",
+      library: "aziel",
+      content_type: "application/zip",
+      filename: "bundle.zip",
+      object_key: "aziel/AZDOC-ZIP/bundle.zip",
+    },
+    body: "Notes kept with the archive.",
+    counts: { views: 0, downloads: 0, available: true },
+    permalink: "/aziellibrary/bundle",
+  });
+  assert.match(zip, /data-reader="opaque"/);
+  assert.match(zip, /ZIP archive \(\.zip\)/);
+  assert.match(zip, /cannot paint this type/);
+  assert.match(zip, /Notes kept with the archive/);
+  assert.doesNotMatch(zip, /<iframe/);
+  const markdown = renderPaperReader({
+    row: {
+      record_id: "AZDOC-MD",
+      title: "Note",
+      library: "aziel",
+      content_type: "text/markdown",
+      filename: "note.md",
+      object_key: "aziel/AZDOC-MD/note.md",
+    },
+    body: "First line.\n\nSecond line.",
+    counts: { views: 0, downloads: 0, available: true },
+    permalink: "/aziellibrary/note",
+  });
+  assert.match(markdown, /data-reader="standalone"/);
+  assert.match(markdown, /<p>First line\.<\/p><p>Second line\.<\/p>/);
+  assert.doesNotMatch(markdown, /<iframe/);
   const undated = renderPaperReader({
     row: { record_id: "AZDOC-UNDATED", title: "No date", library: "aziel" },
     body: "Text.",

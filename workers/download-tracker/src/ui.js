@@ -292,8 +292,12 @@ a.runtime-muted:hover{color:var(--ink)}
 .jeeves-ask,.jeeves-up{display:flex;flex-direction:column;gap:8px;margin:8px 0}
 .jeeves-links{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 0}
 .jeeves-links a{min-height:44px}
-.trend{margin:18px 0}
-.trend h2{margin:0 0 8px;font-size:20px;color:var(--gold)}
+.trend{margin:18px 0;border:1px solid var(--line);border-radius:14px;background:var(--paper);padding:0 14px}
+.trend summary{cursor:pointer;min-height:48px;display:flex;align-items:center;font-weight:750;color:var(--gold);list-style-position:outside}
+.trend summary::-webkit-details-marker,.trend summary::marker{color:var(--gold)}
+.trend summary h2{margin:0;font-size:20px;line-height:1.3;color:var(--gold);font-weight:750}
+.trend[open]{padding-bottom:8px}
+.trend .trend-body{padding:0 0 6px}
 .follow-footer{margin:22px 0 8px}
 .follow-footer h2{margin:0 0 8px;font-size:18px}
 .follow-group{margin:10px 0}
@@ -392,6 +396,14 @@ code{white-space:pre-wrap}
 .paper-body{font-size:18px;line-height:1.65;overflow-wrap:anywhere;word-break:break-word}
 .paper-body p{margin:0 0 1em;overflow-wrap:anywhere;word-break:break-word;max-width:100%}
 .paper-body img,.paper-body video,.paper-body svg{max-width:100%;height:auto}
+.paper-view{margin:0 0 12px;max-width:100%;min-width:0}
+.paper-embed{display:block;max-width:100%}
+.paper-pdf,.paper-html{width:100%;height:72vh;min-height:420px;border:1px solid var(--line);border-radius:12px;background:#f4f1ea}
+.paper-image{width:auto;height:auto;max-width:100%;border:0;border-radius:12px;background:transparent}
+.paper-av{width:100%}
+.paper-unrendered{margin:0 0 12px}
+.paper-stored{margin:12px 0 0;border:1px solid var(--line);border-radius:12px;padding:0 12px;background:var(--paper)}
+.paper-stored summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:700;color:var(--gold)}
 .paper-body a.paper-cite{text-decoration:underline;text-underline-offset:.18em;text-decoration-thickness:2px;overflow-wrap:anywhere}
 .paper-meta{border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:var(--paper)}
 .paper-meta h2{margin:0 0 8px;font-size:16px}
@@ -874,32 +886,31 @@ function topListHtml(items, { label, field, empty }) {
     .filter((r) => r && Number(r[field]) > 0)
     .sort((a, b) => Number(b[field]) - Number(a[field]))
     .slice(0, 5);
-  if (!rows.length) {
-    return `<section class="trend" aria-label="${esc(label)}"><h2>${esc(label)}</h2><div class="empty"><strong>${esc(empty)}</strong><p>This list stays empty until a real count is stored. Ranks are not invented.</p></div></section>`;
-  }
-  const cards = rows.map((r) => {
-    const href = r.permalink || ("/record/" + (r.record_id || ""));
-    const title = esc(r.title || r.record_id || "Record");
-    const n = Number(r[field]);
-    const word = field === "downloads" ? "downloads" : "views";
-    return `<p class="event-row"><a href="${esc(href)}">${title}<span class="muted"> ${n.toLocaleString("en-US")} ${word}</span></a></p>`;
-  }).join("");
-  return `<section class="trend" aria-label="${esc(label)}"><h2>${esc(label)}</h2>${cards}</section>`;
+  const body = !rows.length
+    ? `<div class="empty"><strong>${esc(empty)}</strong><p>This list stays empty until a real count is stored. Ranks are not invented.</p></div>`
+    : rows.map((r) => {
+      const href = r.permalink || ("/record/" + (r.record_id || ""));
+      const title = esc(r.title || r.record_id || "Record");
+      const n = Number(r[field]);
+      const word = field === "downloads" ? "downloads" : "views";
+      return `<p class="event-row"><a href="${esc(href)}">${title}<span class="muted"> ${n.toLocaleString("en-US")} ${word}</span></a></p>`;
+    }).join("");
+  return `<details class="trend" data-trend="${esc(field)}"><summary><h2>${esc(label)}</h2></summary><div class="trend-body">${body}</div></details>`;
 }
 
-/** Honest top 5 by stored per-paper views. Zero and unknown papers are not ranked. */
+/** Honest top 5 by stored per-paper views. Zero and unknown papers are not ranked. Collapsed until opened. */
 export function trendingHtml(items = []) {
   return topListHtml(items, {
-    label: "Top viewed",
+    label: "Top 5 viewed",
     field: "views",
     empty: "No counted paper views yet.",
   });
 }
 
-/** Honest top 5 by stored per-paper downloads. */
+/** Honest top 5 by stored per-paper downloads. Collapsed until opened. */
 export function downloadedHtml(items = []) {
   return topListHtml(items, {
-    label: "Top downloaded",
+    label: "Top 5 downloaded",
     field: "downloads",
     empty: "No counted paper downloads yet.",
   });

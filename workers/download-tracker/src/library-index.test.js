@@ -471,6 +471,24 @@ test("homepage and shelf chrome show packed file counts and invent none", () => 
   assert.match(home, /href="\/corpus">Corpus 1</);
   assert.doesNotMatch(home, /15:20/);
   assert.doesNotMatch(home, /claim_complete/);
+  assert.match(home, /Top 5 viewed/);
+  assert.match(home, /Top 5 downloaded/);
+  assert.match(home, /<details class="trend" data-trend="views">/);
+  assert.match(home, /<details class="trend" data-trend="downloads">/);
+  assert.doesNotMatch(home, /<details class="trend"[^>]* open/);
+
+  const ranked = homeBody({
+    rows: [],
+    trending: [{ record_id: "AZDOC-AAA", title: "Alpha Paper", views: 4, downloads: 1, permalink: "/aziellibrary/alpha-paper" }],
+    downloaded: [{ record_id: "AZDOC-BBB", title: "Beta Paper", views: 1, downloads: 9, permalink: "/azielcorpus/usersubmitted/beta-paper" }],
+  });
+  assert.match(ranked, /Top 5 viewed/);
+  assert.match(ranked, /Top 5 downloaded/);
+  assert.match(ranked, /Alpha Paper/);
+  assert.match(ranked, /4 views/);
+  assert.match(ranked, /Beta Paper/);
+  assert.match(ranked, /9 downloads/);
+  assert.doesNotMatch(ranked, /<details class="trend"[^>]* open/);
 
   const aziel = azielLibraryBody({
     rows: [],

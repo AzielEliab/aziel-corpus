@@ -5,7 +5,7 @@
  * Author: Aziel Eliab.
  */
 import { classifyRequest } from "./classify.js";
-import { isHumanTag, visibleTagEntries } from "./visible-tags.js";
+import { isHumanTag, isMachineFileTag, visibleTagEntries } from "./visible-tags.js";
 
 export const PAPER_METRICS_KEY = "library:paper-metrics:v1";
 export const PAPER_UX_SPEC = "PAPER-UX-1.0";
@@ -305,13 +305,29 @@ function esc(s) {
     .replace(/"/g, "&quot;");
 }
 
-export function looksBinaryText(text, contentType) {
+const IMAGE_EXT = new Set(["png", "jpg", "jpeg", "gif", "webp", "svg", "avif", "bmp", "ico"]);
+const AUDIO_EXT = new Set(["mp3", "wav", "ogg", "oga", "m4a", "flac", "aac", "opus", "weba"]);
+const VIDEO_EXT = new Set(["mp4", "webm", "ogv", "mov", "m4v"]);
+const HTML_EXT = new Set(["html", "htm", "xhtml"]);
+const TEXT_EXT = new Set(["txt", "md", "markdown", "json", "csv", "tsv", "xml", "yml", "yaml", "log"]);
+
+function mimeOf(contentType) {
+  return String(contentType || "").toLowerCase().split(";")[0].trim();
+}
+
+function extOfName(filename) {
+  const base = String(filename || "").split(/[/\\]/).pop() || "";
+  const i = base.lastIndexOf(".");
+  if (i <= 0 || i === base.length - 1) return "";
+  return base.slice(i + 1).toLowerCase();
+}
+
+/** The stored text itself is binary noise, not a content-type guess. */
+export function textIsBinary(text) {
   const t = String(text || "");
-  const ct = String(contentType || "").toLowerCase();
   if (t.startsWith("%PDF")) return true;
-  if (ct.includes("pdf") && !/[A-Za-z]{40}/.test(t)) return true;
   const sample = t.slice(0, 2000);
-  if (!sample) return ct.includes("pdf") || ct.includes("octet-stream");
+  if (!sample) return false;
   let weird = 0;
   for (let i = 0; i < sample.length; i++) {
     const c = sample.charCodeAt(i);
@@ -320,18 +336,96 @@ export function looksBinaryText(text, contentType) {
   return weird / sample.length > 0.05;
 }
 
+export function looksBinaryText(text, contentType) {
+  if (textIsBinary(text)) return true;
+  const sample = String(text || "").slice(0, 2000);
+  if (sample) return false;
+  const ct = mimeOf(contentType);
+  return ct === "application/pdf" || ct === "application/x-pdf" || ct === "application/octet-stream" || ct.startsWith("image/") || ct.startsWith("audio/") || ct.startsWith("video/");
+}
+
+/**
+ * How the reader paints a record.
+ * text — stored text / markdown, including the page turner.
+ * pdf, image, audio, video, html — in-browser view of the stored file.
+ * opaque — this browser cannot paint the type. Say so.
+ */
+export function readerKind({ contentType = "", filename = "", body = "" } = {}) {
+  const ct = mimeOf(contentType);
+  const ext = extOfName(filename);
+  const raw = String(body || "");
+  if (ct.startsWith("image/")) return "image";
+  if (ct.startsWith("audio/")) return "audio";
+  if (ct.startsWith("video/")) return "video";
+  if (ct === "text/html" || ct === "application/xhtml+xml") return "html";
+  if (ct === "application/pdf" || ct === "application/x-pdf") return "pdf";
+  const loose = !ct || ct === "application/octet-stream";
+  if (loose || (!ct.startsWith("text/") && ct !== "application/json" && ct !== "application/xml")) {
+    if (IMAGE_EXT.has(ext)) return "image";
+    if (AUDIO_EXT.has(ext)) return "audio";
+    if (VIDEO_EXT.has(ext)) return "video";
+    if (HTML_EXT.has(ext)) return "html";
+    if (ext === "pdf") return "pdf";
+  }
+  if (loose && raw.startsWith("%PDF")) return "pdf";
+  const textish = ct.startsWith("text/")
+    || ct === "application/json"
+    || ct === "application/ld+json"
+    || ct === "application/xml"
+    || ct === "text/xml"
+    || ct === "application/javascript"
+    || ct === "text/javascript"
+    || TEXT_EXT.has(ext)
+    || (!ct && !ext);
+  if (textish && !textIsBinary(raw)) return "text";
+  return "opaque";
+}
+
+/** Browser can paint these from GET /file without a download prompt. */
+export function fileOpensInline(contentType, filename) {
+  const kind = readerKind({ contentType, filename, body: "" });
+  return kind === "pdf" || kind === "image" || kind === "audio" || kind === "video" || kind === "html";
+}
+
+export function opaqueFileLabel({ contentType = "", filename = "" } = {}) {
+  const ext = extOfName(filename);
+  const ct = mimeOf(contentType);
+  const named = {
+    zip: "a ZIP archive",
+    gz: "a gzip file",
+    tgz: "a gzip archive",
+    "7z": "a 7-Zip archive",
+    rar: "a RAR archive",
+    doc: "a Word document",
+    docx: "a Word document",
+    xls: "a spreadsheet",
+    xlsx: "a spreadsheet",
+    ppt: "a slide deck",
+    pptx: "a slide deck",
+    odt: "an OpenDocument text file",
+    ods: "an OpenDocument spreadsheet",
+    odp: "an OpenDocument presentation",
+    epub: "an EPUB book",
+    azm: "an .azm package",
+    azk: "an .azk package",
+    azh: "an .azh package",
+    wasm: "a WebAssembly module",
+    bin: "a binary file",
+    exe: "an executable",
+  };
+  if (named[ext]) return named[ext] + " (." + ext + ")";
+  if (ext) return "a ." + ext + " file";
+  if (ct && ct !== "application/octet-stream") return "a " + ct + " file";
+  return "a binary file";
+}
+
 const PAGE_LINE = /^(?:<!--\s*)?page\s+\d+(?:\s*of\s*\d+)?(?:\s*-->)?$|^\[\[page\s+\d+\]\]$|^---\s*page\s*break\s*---$/i;
 
-/** Split stored text into reader pages. One block stays a standalone paper. */
+/** Split stored text into reader pages. One block stays a standalone paper. Binary noise is not a page. */
 export function splitPaperPages(text, { contentType = "" } = {}) {
   const raw = String(text || "");
-  if (looksBinaryText(raw, contentType)) {
-    return {
-      mode: "pdf-deferred",
-      pages: [],
-      page_count: 0,
-      note: "This file is a PDF (or other binary). Page images are not rendered in the library reader. Download the original. Extracted text is shown when the upload stored it.",
-    };
+  if (textIsBinary(raw) || (!raw.trim() && looksBinaryText(raw, contentType))) {
+    return { mode: "binary", pages: [], page_count: 0, note: "" };
   }
   const chunks = raw.split(/\f|(?:\r?\n)\s*(?=(?:<!--\s*)?page\s+\d+|\[\[page\s+\d+\]\]|---\s*page\s*break\s*---)/i);
   const pages = [];
@@ -408,6 +502,67 @@ function paragraphsHtml(linked) {
   return parts.map((block) => "<p>" + block.replace(/\n/g, "<br>") + "</p>").join("");
 }
 
+function fileSrc(id) {
+  return "/file/" + encodeURIComponent(id);
+}
+
+function downloadAttr(filename) {
+  const name = String(filename || "").replace(/[\r\n"]/g, "").trim();
+  if (!name || isMachineFileTag(name)) return " download";
+  return " download=\"" + esc(name) + "\"";
+}
+
+function storedNotesText(body, filename) {
+  const raw = String(body || "").trim();
+  if (!raw || textIsBinary(raw)) return "";
+  const name = String(filename || "").trim();
+  if (name && raw === name) return "";
+  return raw;
+}
+
+function storedTextBlock(raw, catalog, selfId, truncated, open) {
+  if (!raw) return "";
+  const shown = redactIdentityCluster(raw).text;
+  const linked = linkCitations(shown, catalog, selfId);
+  const trunc = truncated
+    ? "<p class=\"muted\">Stored text is longer than the reader window (" + READER_TEXT_CAP.toLocaleString("en-US") + " characters). Download the file for the rest.</p>"
+    : "";
+  return "<details class=\"paper-stored\"" + (open ? " open" : "") + "><summary>Stored text</summary>" + paragraphsHtml(linked) + trunc + "</details>";
+}
+
+function viewFrame(kind, src, title) {
+  const label = esc(title || "Filed file");
+  const href = esc(src);
+  if (kind === "pdf") {
+    return "<div class=\"paper-view\"><iframe class=\"paper-embed paper-pdf\" src=\"" + href + "\" title=\"" + label + "\"></iframe></div>"
+      + "<p class=\"muted\">PDF pages open in the browser viewer. If this pane stays blank, this browser did not paint the PDF. Download stays below.</p>";
+  }
+  if (kind === "image") {
+    return "<div class=\"paper-view\"><img class=\"paper-embed paper-image\" src=\"" + href + "\" alt=\"" + label + "\"></div>";
+  }
+  if (kind === "audio") {
+    return "<div class=\"paper-view\"><audio class=\"paper-embed paper-av av-player\" controls src=\"" + href + "\"><p>This browser did not play the audio. Download stays below.</p></audio></div>";
+  }
+  if (kind === "video") {
+    return "<div class=\"paper-view\"><video class=\"paper-embed paper-av av-player\" controls playsinline src=\"" + href + "\"><p>This browser did not play the video. Download stays below.</p></video></div>";
+  }
+  if (kind === "html") {
+    return "<div class=\"paper-view\"><iframe class=\"paper-embed paper-html\" sandbox=\"\" src=\"" + href + "\" title=\"" + label + "\"></iframe></div>"
+      + "<p class=\"muted\">HTML is shown with scripts off. Download stays below.</p>";
+  }
+  return "";
+}
+
+function htmlSrcdoc(body, title) {
+  return "<div class=\"paper-view\"><iframe class=\"paper-embed paper-html\" sandbox=\"\" srcdoc=\"" + esc(body) + "\" title=\"" + esc(title || "Filed HTML") + "\"></iframe></div>"
+    + "<p class=\"muted\">HTML is shown with scripts off. Download stays below.</p>";
+}
+
+function missingFileNote(kind) {
+  const what = kind === "pdf" ? "PDF" : kind === "image" ? "image" : kind === "audio" ? "audio" : kind === "video" ? "video" : "HTML file";
+  return "<p class=\"paper-unrendered\">This " + what + " has no stored file object, so the reader cannot paint it.</p>";
+}
+
 export function renderPaperReader({
   row,
   body = "",
@@ -424,13 +579,19 @@ export function renderPaperReader({
   const shelfName = shelf === "aziel" ? "Aziel Library" : "Corpus";
   const link = permalink || (row && row.permalink) || "";
   const filed = filedLabel(row);
-  const split = splitPaperPages(body, { contentType: contentType || (row && row.content_type) || "" });
+  const filename = String((row && row.filename) || "");
+  const ct = contentType || (row && row.content_type) || "";
+  const kind = readerKind({ contentType: ct, filename, body });
+  const hasFile = !!(row && String(row.object_key || "").trim());
+  const split = kind === "text"
+    ? splitPaperPages(body, { contentType: ct })
+    : { mode: kind, pages: [], page_count: 0, note: "" };
   const asked = Math.max(Number(page) || 1, 1);
   const inRange = split.mode !== "paged" || asked <= split.page_count;
   const pageIndex = split.mode === "paged" ? Math.min(asked, Math.max(split.page_count, 1)) : 1;
-  const pageText = split.mode === "pdf-deferred" ? "" : (split.pages[pageIndex - 1] || "");
+  const pageText = split.mode === "paged" || split.mode === "standalone" ? (split.pages[pageIndex - 1] || "") : "";
   const shown = redactIdentityCluster(pageText).text;
-  const linked = split.mode === "pdf-deferred" ? "" : linkCitations(shown, catalog, id);
+  const linked = split.mode === "paged" || split.mode === "standalone" ? linkCitations(shown, catalog, id) : "";
   const base = link || ("/record/" + id);
   function turnerNav(place) {
     if (split.mode !== "paged") return "";
@@ -480,23 +641,42 @@ export function renderPaperReader({
   const rangeNote = !inRange
     ? "<p class=\"muted\">Page " + asked + " is not in this paper" + (split.page_count ? " (" + split.page_count + (split.page_count === 1 ? " page" : " pages") + ")" : "") + ".</p>"
     : "";
-  const bodyHtml = split.mode === "pdf-deferred"
-    ? "<p>" + esc(split.note) + "</p>"
-    : rangeNote + paragraphsHtml(linked);
-  const trunc = truncated ? "<p class=\"muted\">Stored text is longer than the reader window (" + READER_TEXT_CAP.toLocaleString("en-US") + " characters). Download the file for the rest.</p>" : "";
+  const notes = storedNotesText(body, filename);
+  const src = id ? fileSrc(id) : "";
+  let bodyHtml = "";
+  let mode = kind;
+  if (kind === "text" && (split.mode === "paged" || split.mode === "standalone")) {
+    mode = split.mode;
+    const trunc = truncated ? "<p class=\"muted\">Stored text is longer than the reader window (" + READER_TEXT_CAP.toLocaleString("en-US") + " characters). Download the file for the rest.</p>" : "";
+    bodyHtml = rangeNote + paragraphsHtml(linked) + trunc;
+  } else if (kind === "html" && !hasFile && notes) {
+    mode = "html";
+    bodyHtml = htmlSrcdoc(notes, title);
+  } else if ((kind === "pdf" || kind === "image" || kind === "audio" || kind === "video" || kind === "html") && hasFile && src) {
+    mode = kind;
+    const extra = kind === "html" ? "" : storedTextBlock(notes, catalog, id, truncated);
+    bodyHtml = viewFrame(kind, src, title) + extra;
+  } else if (kind === "pdf" || kind === "image" || kind === "audio" || kind === "video" || kind === "html") {
+    mode = kind;
+    bodyHtml = missingFileNote(kind) + storedTextBlock(notes, catalog, id, truncated, true);
+  } else {
+    mode = "opaque";
+    bodyHtml = "<p class=\"paper-unrendered\">This file is " + esc(opaqueFileLabel({ contentType: ct, filename })) + ". The reader cannot paint this type in the page. Download stays below.</p>"
+      + storedTextBlock(notes, catalog, id, truncated);
+  }
   const share = link
     ? "<p class=\"paper-permalink\"><a href=\"" + esc(link) + "\">" + esc(link) + "</a></p>"
     : "";
   const fileHref = id ? "/file/" + encodeURIComponent(id) : "";
   const countHref = id ? "/download?record=" + encodeURIComponent(id) : "";
   const actions = id
-    ? "<p class=\"paper-actions\"><a class=\"button\" href=\"" + esc(fileHref) + "\">Download</a><a class=\"button ghost\" href=\"" + esc(countHref) + "\">Counted download</a></p>"
+    ? "<p class=\"paper-actions\"><a class=\"button ghost\" href=\"" + esc(fileHref) + "\"" + downloadAttr(filename) + ">Download</a><a class=\"button ghost\" href=\"" + esc(countHref) + "\">Counted download</a></p>"
     : "";
-  const mode = split.mode === "pdf-deferred" ? "pdf-deferred" : split.mode;
-  return "<article class=\"paper-reader\" data-reader=\"" + mode + "\" data-record=\"" + esc(id) + "\" data-pages=\"" + (split.page_count || 0) + "\">"
+  const pagesAttr = mode === "paged" || mode === "standalone" ? (split.page_count || 0) : 0;
+  return "<article class=\"paper-reader\" data-reader=\"" + mode + "\" data-record=\"" + esc(id) + "\" data-pages=\"" + pagesAttr + "\">"
     + "<header class=\"paper-head\"><p class=\"paper-kicker\">" + esc(shelfName) + (filed.undated ? " · Undated" : "") + "</p>"
-    + countsHtml + actions + share + "</header>"
-    + "<div class=\"paper-layout\"><div class=\"paper-body\">" + turnerTop + bodyHtml + trunc + turnerEnd + "</div>" + meta + "</div></article>";
+    + countsHtml + share + "</header>"
+    + "<div class=\"paper-layout\"><div class=\"paper-body\">" + turnerTop + bodyHtml + actions + turnerEnd + "</div>" + meta + "</div></article>";
 }
 
 async function readInt(kv, key) {
