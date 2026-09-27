@@ -22,15 +22,15 @@ Slug comes from the title. A locked slug is not changed. When two unlocked paper
 
 Each paper has its own views and downloads in KV (`aziel-corpus|paper|{AZDOC}|views` and `|downloads`). The paper page reads those keys. A missing key is 0. If KV is absent, the page says counters are unavailable and does not print a fake 0.
 
-Homepage "Top viewed" and "Top downloaded" list at most 5 papers that exist in the packed index and have a stored count above 0. Unknown ids are not turned into rows.
+Homepage "Top 5 viewed" and "Top 5 downloaded" are collapsed dropdowns. Each lists at most 5 papers that exist in the packed index and have a stored count above 0. Unknown ids are not turned into rows. Both sections stay on the homepage when a list is empty.
 
 A view increments on a human or other non-SEO GET of the reader. A download increments on `GET /download?record={AZDOC}`. A hash download increments only when exactly one packed card owns that `content_sha256`.
 
 ## Reader
 
-Text papers open in a Zenodo-style record aside plus a Wikipedia-style body. Form-feed and page-break markers become a page turner with a page count. One block stays a standalone paper.
+Text papers open in a Zenodo-style record aside plus a Wikipedia-style body. Form-feed and page-break markers become a page turner with a page count. One block stays a standalone paper. Markdown stays that text view.
 
-PDF and other binary files are not dumped into the page. The reader says page images are not rendered and keeps the download link. Extracted text is shown when the upload stored it.
+PDFs, images, audio, video, and HTML are painted in the reader from the stored file. HTML is shown with scripts off. Download stays under the view. A type the browser cannot paint (archives, office documents, and other binaries) says so in plain language. Stored text is shown when the upload stored readable text and that text is not the file bytes.
 
 A title or AZDOC id becomes a link only when that paper is already in the library. Lamb Lens on the reader: Service, then Clarity, then Peace.
 

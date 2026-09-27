@@ -495,3 +495,74 @@ test("known=1 repairs the nine confirmed live AZDOCs without rewriting bodies", 
     assert.equal(res.headers.get("X-Aziel-SHA256"), live);
   }
 });
+
+test("viewable files open inline and HTML cannot script the library origin", async () => {
+  const pdfBytes = new TextEncoder().encode("%PDF-1.4\n");
+  const htmlBytes = new TextEncoder().encode("<p>Hello</p><script>alert(1)</script>");
+  const zipBytes = new TextEncoder().encode("PK\x03\x04");
+  const env = hashEnv([
+    {
+      record_id: "AZDOC-PDF",
+      title: "Scan",
+      body: "",
+      filename: "scan.pdf",
+      content_type: "application/pdf",
+      object_key: "aziel/AZDOC-PDF/scan.pdf",
+      byte_size: pdfBytes.byteLength,
+      content_sha256: sha(pdfBytes),
+      library: "aziel",
+    },
+    {
+      record_id: "AZDOC-HTM",
+      title: "Page",
+      body: "<p>Hello</p>",
+      filename: "page.html",
+      content_type: "text/html",
+      object_key: "corpus/AZDOC-HTM/page.html",
+      byte_size: htmlBytes.byteLength,
+      content_sha256: sha(htmlBytes),
+      library: "corpus",
+    },
+    {
+      record_id: "AZDOC-ZIP",
+      title: "Bundle",
+      body: "",
+      filename: "bundle.zip",
+      content_type: "application/zip",
+      object_key: "aziel/AZDOC-ZIP/bundle.zip",
+      byte_size: zipBytes.byteLength,
+      content_sha256: sha(zipBytes),
+      library: "aziel",
+    },
+  ]);
+  env.files.set("aziel/AZDOC-PDF/scan.pdf", pdfBytes);
+  env.files.set("corpus/AZDOC-HTM/page.html", htmlBytes);
+  env.files.set("aziel/AZDOC-ZIP/bundle.zip", zipBytes);
+  const pdf = await serveFile(env, "AZDOC-PDF");
+  assert.equal(pdf.status, 200);
+  assert.match(pdf.headers.get("Content-Disposition") || "", /^inline;/);
+  assert.equal(pdf.headers.get("Content-Type"), "application/pdf");
+  const html = await serveFile(env, "AZDOC-HTM");
+  assert.match(html.headers.get("Content-Disposition") || "", /^inline;/);
+  assert.equal(html.headers.get("Content-Security-Policy"), "sandbox");
+  assert.equal(html.headers.get("X-Content-Type-Options"), "nosniff");
+  const zip = await serveFile(env, "AZDOC-ZIP");
+  assert.match(zip.headers.get("Content-Disposition") || "", /^attachment;/);
+  assert.equal(zip.headers.get("Content-Security-Policy"), null);
+  const loosePdf = new TextEncoder().encode("%PDF-1.4 loose\n");
+  env.store.records.push({
+    record_id: "AZDOC-LOOSE",
+    title: "Loose",
+    body: "",
+    filename: "loose.bin",
+    content_type: "application/octet-stream",
+    object_key: "aziel/AZDOC-LOOSE/loose.bin",
+    byte_size: loosePdf.byteLength,
+    content_sha256: sha(loosePdf),
+    library: "aziel",
+  });
+  env.files.set("aziel/AZDOC-LOOSE/loose.bin", loosePdf);
+  const loose = await serveFile(env, "AZDOC-LOOSE");
+  assert.equal(loose.headers.get("Content-Type"), "application/pdf");
+  assert.match(loose.headers.get("Content-Disposition") || "", /^inline;/);
+});
