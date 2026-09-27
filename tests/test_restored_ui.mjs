@@ -773,7 +773,8 @@ test("homepage first screen names browse, upload, explore, and a footer Agents t
   assert.match(home, /Aziel Corpus Library is the public MASTER of hashed records/);
   assert.match(home, /Ask Jeeves/);
   assert.match(home, /class="trend"/);
-  assert.match(home, /Per-record view counts are not published/);
+  assert.match(home, /No counted paper views yet/);
+  assert.match(home, /No counted paper downloads yet/);
   assert.match(home, /class="start-paths"/);
   assert.match(home, /href="\/aziel-library">Aziel Library</);
   assert.match(home, /href="\/corpus">Corpus</);
@@ -888,7 +889,7 @@ test("sigil drawer hides hashes on cards, follows record facets, and keeps hones
 
   const emptyTrend = trendingHtml([]);
   assert.match(emptyTrend, /class="trend"/);
-  assert.match(emptyTrend, /Per-record view counts are not published/);
+  assert.match(emptyTrend, /No counted paper views yet/);
   assert.doesNotMatch(emptyTrend, /class="shelf"/);
   const ranked = trendingHtml([{ record_id: "AZDOC-1", title: "Counted", views: 4 }, { record_id: "AZDOC-2", title: "Skip", views: 0 }]);
   assert.match(ranked, /href="\/record\/AZDOC-1">Counted</);

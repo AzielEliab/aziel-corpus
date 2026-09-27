@@ -13,6 +13,7 @@ import { handleLibraryIngestApi, handleLibraryMcp } from "./library-mcp.js";
 import { handleDesignPackApi } from "./design-pack.js";
 import { DUAL_SURFACE, MCP_TOOLS, AI_PATH_NOTE } from "./ai-surface.js";
 import { continueMetadataBackfill, metadataBackfillStatus, receiptForJsonMetadata } from "./record-metadata.js";
+import { continuePaperBackfill, paperBackfillStatus } from "./paper-ux.js";
 import { continueContentHashRepair, contentHashRepairStatus, sampleContentHashIntegrity } from "./content-hash-repair.js";
 import { isOperatorRequest } from "./rate-limit.js";
 import { receiptForMediaRun, isMediaRunId } from "./media.js";
@@ -254,6 +255,7 @@ function openapi() {
       "/runtime/v1/survival": { get: { summary: "BAN-SURVIVAL-1.0 via same-origin proxy of aziel-runtime /v1/survival. Short TTL. Same FragGate door.", operationId: "runtimeSurvivalV1" } },
       "/mcp": { post: { summary: "Library MCP JSON-RPC (aziel-corpus_health, search, skill, download, ingest, design_pack, receipt). Dual surface. Upload requires session/operator token. Public, no OAuth.", operationId: "libraryMcp" }, get: { summary: "Library MCP discovery (tool names). Runtime FragGate door stays POST /runtime/mcp.", operationId: "libraryMcpDiscover" } },
       "/v1/metadata-backfill": { get: { summary: "Idempotent discovery-metadata backfill. Writes {library}/{AZDOC}/JSONAZDOC-….json beside the paper and mirrors under .Json/. JSON-prefixed document_ledger receipts copy the paper lattice and never rewrite paper chain_tip. all=1 walks remaining; force=1 restarts; status=1 progress. Cron and request walks also continue. Does not increment downloads.", operationId: "metadataBackfill", parameters: [{ name: "all", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "force", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "status", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "record_id", in: "query", schema: { type: "string" } }] } },
+      "/v1/paper-backfill": { get: { summary: "PAPER-UX-1.0 permalink backfill. Stamps permalink_slug on packed library:index:v1 and appends permalink fields onto discovery JSON. Does not remove fields, invent counters, or rewrite paper chain_tip. all=1 walks remaining; force=1 restarts; status=1 progress. Does not increment downloads.", operationId: "paperBackfill", parameters: [{ name: "all", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "force", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "status", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "record_id", in: "query", schema: { type: "string" } }] } },
       "/v1/content-hash-repair": { get: { summary: "Recompute content_sha256 from the exact bytes GET /file serves (R2/KV object, else legacy body). Dry-run by default. known=1 is the 9 confirmed live AZDOCs. apply=1 is operator-only and updates D1 + packed library:index:v1 without rewriting file bytes. Appends JSON_HASH_REPAIR (does not delete discovery history). Unreadable objects are flagged HASH_UNVERIFIED. sample=1 is a cron/CI integrity check.", operationId: "contentHashRepair", parameters: [{ name: "apply", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "known", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "all", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "force", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "status", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "sample", in: "query", schema: { type: "string", enum: ["0", "1"] } }, { name: "record_id", in: "query", schema: { type: "string" } }] } },
       "/record/{record_id}/metadata.json": { get: { summary: "Public Schema.org discovery metadata for one AZDOC record (no auth). Co-located with the paper package and mirrored under .Json/. Alias: /record/{record_id}.json.", operationId: "recordMetadata", parameters: [{ name: "record_id", in: "path", required: true, schema: { type: "string" } }] } },
       "/record/{record_id}.json": { get: { summary: "Alias of /record/{record_id}/metadata.json.", operationId: "recordMetadataAlias", parameters: [{ name: "record_id", in: "path", required: true, schema: { type: "string" } }] } },
@@ -577,6 +579,15 @@ export async function handleRuntimeApi(request, url, env, ctx) {
     const recordId = (url.searchParams.get("record_id") || url.searchParams.get("id") || "").trim() || null;
     if (statusOnly) return json({ ...(await metadataBackfillStatus(env)), limitation: LIMITATION });
     const report = await continueMetadataBackfill(env, { ms: all ? 25000 : 12000, force, all, recordId });
+    return json({ ...report, limitation: LIMITATION });
+  }
+  if (path === "/v1/paper-backfill" && request.method === "GET") {
+    const force = url.searchParams.get("force") === "1" || url.searchParams.get("force") === "true";
+    const all = url.searchParams.get("all") === "1" || url.searchParams.get("all") === "true";
+    const statusOnly = url.searchParams.get("status") === "1" || url.searchParams.get("status") === "true";
+    const recordId = (url.searchParams.get("record_id") || url.searchParams.get("id") || "").trim() || null;
+    if (statusOnly) return json({ ...(await paperBackfillStatus(env)), limitation: LIMITATION });
+    const report = await continuePaperBackfill(env, { ms: all ? 25000 : 12000, force, all, recordId });
     return json({ ...report, limitation: LIMITATION });
   }
   if (path === "/v1/content-hash-repair" && request.method === "GET") {

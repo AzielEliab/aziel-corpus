@@ -99,9 +99,11 @@ export async function loadRecordMachineContext(env, recordId) {
   if (!paper || !isDocumentId(paper)) return null;
   let row = null;
   try { row = await loadPaperRow(env, paper, null); } catch { row = null; }
-  const card = (!row || !row.title) ? await packedCard(env, paper) : null;
-  const base = row && row.record_id ? row : (card ? { ...card, record_id: paper } : null);
+  const card = await packedCard(env, paper);
+  const base = row && row.record_id ? { ...row } : (card ? { ...card, record_id: paper } : null);
   if (!base) return null;
+  if (card && card.permalink) base.permalink = card.permalink;
+  if (card && card.permalink_slug) base.permalink_slug = card.permalink_slug;
   let meta = null;
   try { meta = await loadDiscoveryMetadata(env, paper, { persistIfMissing: false }); } catch { meta = null; }
   let review = parseJson(base.review_json || base.review);
@@ -214,6 +216,12 @@ export function buildRecordCite(ctx) {
   if (zion) cite.zionpattern = zion;
   if (hashes.content_sha256) cite.content_sha256 = hashes.content_sha256;
   if (hashes.metadata_sha256) cite.metadata_sha256 = hashes.metadata_sha256;
+  if (row.permalink) {
+    const abs = String(row.permalink).startsWith("http") ? String(row.permalink) : HOST + row.permalink;
+    cite.permalink = abs;
+    if (!cite.sameAs.includes(abs)) cite.sameAs = cite.sameAs.concat([abs]);
+  }
+  if (row.permalink_slug) cite.permalink_slug = row.permalink_slug;
   cite.how_its_scored = HOST + "/how-its-scored";
   cite.help = HOST + "/help.txt";
   cite.identity = "Aziel Eliab";
@@ -245,6 +253,7 @@ export function buildRecordLlms(ctx) {
     "Library shelf: " + shelfLabel(row),
     "Record: " + paper,
     "Canonical HTML: " + urls.url,
+    ...(row.permalink ? ["Permalink: " + (String(row.permalink).startsWith("http") ? row.permalink : HOST + row.permalink)] : []),
     "Metadata JSON: " + urls.metadata_url,
     "Cite JSON: " + urls.url + "/cite.json",
     "Content / file: " + urls.file_url,

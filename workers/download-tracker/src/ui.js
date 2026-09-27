@@ -364,6 +364,23 @@ code{white-space:pre-wrap}
   table.plain th,table.plain td{overflow-wrap:anywhere;word-break:break-word}
   .media-actions .button,.media-actions button{width:100%}
 }
+.paper-reader{margin:12px 0 18px}
+.paper-kicker{margin:0 0 6px;color:var(--gold);font-size:13px;letter-spacing:.04em;text-transform:uppercase}
+.paper-counts{font-variant-numeric:tabular-nums;margin:6px 0}
+.paper-permalink{margin:6px 0 0;overflow-wrap:anywhere}
+.paper-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(200px,280px);gap:18px;align-items:start}
+.paper-body{font-size:18px;line-height:1.6}
+.paper-body p{margin:0 0 1em}
+.paper-meta{border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:var(--paper)}
+.paper-meta h2{margin:0 0 8px;font-size:16px}
+.paper-meta dl{margin:0}
+.paper-meta dt{font-size:12px;color:var(--gold);margin-top:8px}
+.paper-meta dd{margin:0;overflow-wrap:anywhere}
+.page-turner{display:flex;gap:14px;align-items:center;margin:8px 0 14px;flex-wrap:wrap}
+@media (max-width:720px){
+  .paper-layout{grid-template-columns:1fr}
+  .paper-body{font-size:17px}
+}
 `;
 
 export function pwField(name = "password") {
@@ -708,7 +725,8 @@ function docCards(rows, state = {}, path = "/") {
           : "";
       const extraRow = extra ? `<div class="mini-chips">${extra}</div>` : "";
       const docCls = aziel ? "doc doc-aziel" : "doc";
-      return `<article class="${docCls}">${libTag(r.library)}${qBadge}<h3><a href="/record/${esc(r.record_id)}">${esc(r.title)}</a></h3>${byline}${extraRow}${triadRow}${zRow}<p class="meta">${file}${when ? " · " + when : ""}</p><p class="excerpt">${esc(cardExcerpt(r.snippet || r.body || ""))}</p>${open}</article>`;
+      const href = r.permalink || ("/record/" + r.record_id);
+      return `<article class="${docCls}">${libTag(r.library)}${qBadge}<h3><a href="${esc(href)}">${esc(r.title)}</a></h3>${byline}${extraRow}${triadRow}${zRow}<p class="meta">${file}${when ? " · " + when : ""}</p><p class="excerpt">${esc(cardExcerpt(r.snippet || r.body || ""))}</p>${open}</article>`;
     })
     .join("")}</div>`;
 }
@@ -808,25 +826,47 @@ ${metaInputs({ authorPlaceholder: "Author (optional)" })}
 </div>`;
 }
 
-/** Honest Top viewed. Packed library views are site-wide, not per-record — never invent ranks. */
-export function trendingHtml(items = []) {
+function topListHtml(items, { label, field, empty }) {
   const rows = (Array.isArray(items) ? items : [])
-    .filter((r) => r && Number(r.views) > 0)
-    .sort((a, b) => Number(b.views) - Number(a.views))
+    .filter((r) => r && Number(r[field]) > 0)
+    .sort((a, b) => Number(b[field]) - Number(a[field]))
     .slice(0, 5);
   if (!rows.length) {
-    return `<section class="trend" aria-label="Top viewed"><h2>Top viewed</h2><div class="empty"><strong>Per-record view counts are not published.</strong><p>Library-wide views stay on Stats when counted. This list stays empty rather than invent ranks.</p></div></section>`;
+    return `<section class="trend" aria-label="${esc(label)}"><h2>${esc(label)}</h2><div class="empty"><strong>${esc(empty)}</strong><p>This list stays empty until a real count is stored. Ranks are not invented.</p></div></section>`;
   }
   const cards = rows.map((r) => {
-    const id = esc(r.record_id || "");
+    const href = r.permalink || ("/record/" + (r.record_id || ""));
     const title = esc(r.title || r.record_id || "Record");
-    const n = Number(r.views);
-    return `<p class="event-row"><a href="/record/${id}">${title}</a> <span class="muted">${n.toLocaleString("en-US")} views</span></p>`;
+    const n = Number(r[field]);
+    const word = field === "downloads" ? "downloads" : "views";
+    return `<p class="event-row"><a href="${esc(href)}">${title}</a> <span class="muted">${n.toLocaleString("en-US")} ${word}</span></p>`;
   }).join("");
-  return `<section class="trend" aria-label="Top viewed"><h2>Top viewed</h2>${cards}</section>`;
+  return `<section class="trend" aria-label="${esc(label)}"><h2>${esc(label)}</h2>${cards}</section>`;
 }
 
-export function homeBody({ q, lib, sort, domain, subject, keyword, author, rows, error, records_packed, records_aziel, records_corpus, trending } = {}) {
+/** Honest top 5 by stored per-paper views. Zero and unknown papers are not ranked. */
+export function trendingHtml(items = []) {
+  return topListHtml(items, {
+    label: "Top viewed",
+    field: "views",
+    empty: "No counted paper views yet.",
+  });
+}
+
+/** Honest top 5 by stored per-paper downloads. */
+export function downloadedHtml(items = []) {
+  return topListHtml(items, {
+    label: "Top downloaded",
+    field: "downloads",
+    empty: "No counted paper downloads yet.",
+  });
+}
+
+export function homeTopHtml({ viewed, downloaded } = {}) {
+  return trendingHtml(viewed) + downloadedHtml(downloaded);
+}
+
+export function homeBody({ q, lib, sort, domain, subject, keyword, author, rows, error, records_packed, records_aziel, records_corpus, trending, downloaded } = {}) {
   const state = browseState({ q, lib, sort, domain, subject, keyword, author });
   const searching = homeSearchActive(state);
   const tools = browseTools({ action: "/", showLibChips: false, ...state });
@@ -841,7 +881,7 @@ ${libraryFileCountHtml({ records_packed, records_aziel, records_corpus })}
 </section>
 ${tools}
 ${homeLibraryChips(state)}
-${trendingHtml(trending)}
+${homeTopHtml({ viewed: trending, downloaded })}
 ${LCP_FOLD}
 ${results}
 ${startPathsHtml()}

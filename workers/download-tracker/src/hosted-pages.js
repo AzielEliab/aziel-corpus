@@ -5,6 +5,7 @@ import { isChromeAuthorByline, isMachineFileTag, visibleTagEntries } from "./vis
 import { publicComponentFlags, isComponentApplicable } from "./review-applicability.js";
 import { applyApplicabilityToReview } from "./review.js";
 import { exploreRowHtml } from "./explore-nav.js";
+import { redactIdentityCluster, renderPaperReader } from "./paper-ux.js";
 
 function esc(s) {
   const q = String.fromCharCode(34);
@@ -27,7 +28,8 @@ export function treeBody(payload) {
   const standalone = payload.standalone || [];
   function docs(list) {
     return "<ul>" + (list || []).map((r) => {
-      return "<li><a href=\"/record/" + esc(r.record_id) + "\">" + esc(r.title || r.record_id) + "</a>" +
+      const href = r.permalink || ("/record/" + r.record_id);
+      return "<li><a href=\"" + esc(href) + "\">" + esc(r.title || r.record_id) + "</a>" +
         (r.author && !isChromeAuthorByline(r.author) ? " <span class=\"muted\">· " + esc(r.author) + "</span>" : "") + "</li>";
     }).join("") + "</ul>";
   }
@@ -213,7 +215,18 @@ export function recordBody(payload) {
       "</p></div>"
     : "";
   const azielCls = String(row.library || "").toLowerCase() === "aziel" ? " record-aziel" : "";
-  const fileLabel = row.filename && !isMachineFileTag(row.filename) ? String(row.filename) : "text record";
+  const shownTitle = redactIdentityCluster(row.title || "Record").text;
+  const fileLabel = redactIdentityCluster(row.filename && !isMachineFileTag(row.filename) ? String(row.filename) : "text record").text;
+  const reader = payload.paper_html || renderPaperReader({
+    row: { ...row, title: shownTitle },
+    body: String(row.body || row.snippet || ""),
+    contentType: row.content_type,
+    counts: payload.counts || null,
+    permalink: payload.permalink || row.permalink || "",
+    catalog: payload.catalog || [],
+    page: payload.page || 1,
+    truncated: payload.truncated,
+  });
   const authorName = String(row.author || "").trim();
   const heroBits = authorName && !isChromeAuthorByline(authorName) ? [authorName] : [];
   function followGroup(label, items, param) {
@@ -230,13 +243,12 @@ export function recordBody(payload) {
     followGroup("Micro domains", row.micro || row.micro_domain || row.micro_domains || row.micros, "q"),
   ].filter(Boolean).join("");
   const followFooter = follow ? "<footer class=\"follow-footer\"><h2>Follow</h2>" + follow + "</footer>" : "";
-  return "<section class=\"hero" + azielCls + "\">" + libTag(row.library) + " " + qBadge + "<h1>" + esc(row.title) + "</h1>" + (heroBits.length ? "<p class=\"muted\">" + esc(heroBits.join(" · ")) + "</p>" : "") + "</section>" +
-    qBanner + triadHtml + zsolverHtml + successionHtml +
+  return "<section class=\"hero" + azielCls + "\">" + libTag(row.library) + " " + qBadge + "<h1>" + esc(shownTitle) + "</h1>" + (heroBits.length ? "<p class=\"muted\">" + esc(heroBits.join(" · ")) + "</p>" : "") + "</section>" +
+    qBanner + reader + triadHtml + zsolverHtml + successionHtml +
     "<div class=\"card\"><h2>Status lights</h2><p class=\"muted\">Green means go. Yellow means read again. Red means stop and check. Easy enough for a 6th grader; kept for government use.</p>" + lightsHtml + "</div>" +
     "<div class=\"card\"><p class=\"meta\">" + esc(fileLabel) + (row.created_utc ? " · " + esc(String(row.created_utc).replace("T", " ").slice(0, 16)) : "") + "</p>" + verifyHtml + open +
     "<p class=\"muted\">Machine surfaces: <a href=\"/record/" + esc(row.record_id) + "/llms.txt\">llms.txt</a> · <a href=\"/record/" + esc(row.record_id) + "/cite.json\">cite.json</a> · <a href=\"/record/" + esc(row.record_id) + "/metadata.json\">metadata.json</a> · <a href=\"/help.txt\">help</a></p>" +
     (spreHtml || clceHtml || plrHtml ? "<h3>" + esc(applicableNames) + "</h3>" + spreHtml + clceHtml + plrHtml : "") +
-    "<h3>Snippet</h3><p>" + esc(String(row.body || row.snippet || "").slice(0, 2000)) + "</p>" +
     "<h3>Derived artifacts</h3>" + der +
     "<h3>Temporal-geospatial events</h3>" + ev + tipHtml + "</div>" +
     bayesHtml + possHtml +

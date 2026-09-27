@@ -220,7 +220,41 @@ export function buildDiscoveryMetadata(row, extras = {}) {
   if (row.library || lib) doc.library = lib;
   if (extras.hash_repair) doc.hash_repair = extras.hash_repair;
   if (extras.content_sha256_previous) doc.content_sha256_previous = extras.content_sha256_previous;
+  const permalink = absolutePermalink(extras.permalink || row.permalink);
+  if (permalink) {
+    doc.permalink = permalink;
+    if (!doc.sameAs.includes(permalink)) doc.sameAs = doc.sameAs.concat([permalink]);
+  }
+  if (extras.permalink_slug || row.permalink_slug) doc.permalink_slug = String(extras.permalink_slug || row.permalink_slug);
+  if (extras.permalink_shelf || row.permalink_shelf) doc.permalink_shelf = String(extras.permalink_shelf || row.permalink_shelf);
   return doc;
+}
+
+function absolutePermalink(value) {
+  const v = String(value || "").trim();
+  if (!v) return "";
+  if (v.startsWith("http")) return v;
+  return HOST + (v.startsWith("/") ? v : "/" + v);
+}
+
+/** Keep keys a later walk did not emit. Does not delete permalink or other appended fields. */
+export function keepAppendedKeys(previous, doc) {
+  if (!previous || typeof previous !== "object" || Array.isArray(previous)) return doc;
+  const out = { ...doc };
+  for (const [key, value] of Object.entries(previous)) {
+    if (!(key in out)) out[key] = value;
+  }
+  if (Array.isArray(previous.sameAs) && Array.isArray(out.sameAs)) {
+    const seen = new Set(out.sameAs.map((item) => typeof item === "string" ? item : JSON.stringify(item)));
+    for (const item of previous.sameAs) {
+      const token = typeof item === "string" ? item : JSON.stringify(item);
+      if (!seen.has(token)) {
+        out.sameAs = out.sameAs.concat([item]);
+        seen.add(token);
+      }
+    }
+  }
+  return out;
 }
 
 export function jsonLatticeTip(paperRow, paperTip, jsonId, metadataSha) {
@@ -354,11 +388,18 @@ export async function persistRecordDiscoveryMetadata(env, hint = {}) {
       paper_chain_tip: hint.chain_tip || row.chain_tip || (paperTip && paperTip.ledger_entry_hash) || null,
       paper_chain_sequence: hint.chain_sequence != null ? hint.chain_sequence : row.chain_sequence,
       content_sha256: hint.content_sha256 || row.content_sha256,
+      permalink: hint.permalink || row.permalink,
+      permalink_slug: hint.permalink_slug || row.permalink_slug,
+      permalink_shelf: hint.permalink_shelf || row.permalink_shelf,
     };
     let doc = buildDiscoveryMetadata(row, extras);
+    const libEarly = shelfOf(row);
+    const previous = await readSidecarJson(env, packageMetadataKey(libEarly, paper))
+      || await readSidecarJson(env, jsonTreeKey(paper));
+    doc = keepAppendedKeys(previous, doc);
     const body = JSON.stringify(doc, null, 2) + "\n";
     const metadataSha = sha256hex(body);
-    doc = buildDiscoveryMetadata(row, { ...extras, metadata_sha256: metadataSha });
+    doc = keepAppendedKeys(previous, buildDiscoveryMetadata(row, { ...extras, metadata_sha256: metadataSha }));
     doc.metadata_sha256 = metadataSha;
     const finalBody = JSON.stringify(doc, null, 2) + "\n";
     const finalSha = sha256hex(finalBody);
