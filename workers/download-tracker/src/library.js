@@ -6,6 +6,7 @@ import { applySuccessionForRecord, maybeRescoreZsolverOnFirstHandPatternBreak, r
 import { patchTipZsolver, scoreZsolverForRecord } from "./zsolver.js";
 import { applyAutoClassification } from "./domain-classify.js";
 import { isHumanTag, normalizeTag } from "./visible-tags.js";
+import { redactIdentityCluster } from "./paper-ux.js";
 
 const MAX_BYTES = 25 * 1024 * 1024;
 const TEXT_CAP = 200000;
@@ -519,6 +520,7 @@ export async function ingestRecord(env, args) {
   let contentSha = null;
   let duplicateOf = null;
   let fileBytes = null;
+  let ingestRedacted = false;
   const f = asFile(file);
   let domainIn = csvField(domain);
   let subjectsIn = csvField(subjects);
@@ -541,10 +543,44 @@ export async function ingestRecord(env, args) {
     fileBytes = bytes;
     byteSize = bytes.byteLength;
     contentSha = digestBytes(bytes);
+    if (looksText(filename, contentType)) {
+      const text = new TextDecoder("utf-8", { fatal: false }).decode(bytes).slice(0, TEXT_CAP);
+      const fileRed = redactIdentityCluster(text);
+      const notesRed = redactIdentityCluster(notes);
+      searchBody = [notesRed.text, fileRed.text].filter(Boolean).join("\n\n");
+      if (notesRed.redacted) ingestRedacted = true;
+      if (fileRed.redacted) {
+        fileBytes = new TextEncoder().encode(fileRed.text);
+        byteSize = fileBytes.byteLength;
+        contentSha = digestBytes(fileBytes);
+        ingestRedacted = true;
+      }
+    } else {
+      const notesRed = redactIdentityCluster([notes, filename].filter(Boolean).join("\n"));
+      searchBody = notesRed.text;
+      if (notesRed.redacted) ingestRedacted = true;
+    }
     let existing = null;
     try {
       existing = await env.DB.prepare("SELECT record_id, object_key FROM records WHERE content_sha256=? AND object_key IS NOT NULL LIMIT 1").bind(contentSha).first();
     } catch { existing = null; }
+    if (existing && existing.object_key && ingestRedacted) {
+      try {
+        await verifyStoredObject(env, existing.object_key, contentSha);
+        return {
+          id: existing.record_id,
+          library,
+          duplicate: true,
+          redacted: true,
+          content_sha256: contentSha,
+          object_key: existing.object_key,
+          title: String(title || filename || existing.record_id),
+          metadata_url: "/record/" + existing.record_id + "/metadata.json",
+        };
+      } catch {
+        existing = null;
+      }
+    }
     if (existing && existing.object_key) {
       try {
         await verifyStoredObject(env, existing.object_key, contentSha);
@@ -556,14 +592,8 @@ export async function ingestRecord(env, args) {
     }
     if (!objectKey) {
       objectKey = library + "/" + id + "/" + filename;
-      await putObject(env, objectKey, bytes, contentType);
+      await putObject(env, objectKey, fileBytes, contentType);
       await verifyStoredObject(env, objectKey, contentSha);
-    }
-    if (looksText(filename, contentType)) {
-      const text = new TextDecoder("utf-8", { fatal: false }).decode(bytes).slice(0, TEXT_CAP);
-      searchBody = [notes, text].filter(Boolean).join("\n\n");
-    } else {
-      searchBody = [notes, filename].filter(Boolean).join("\n");
     }
     if (!args.skipOcrHint && String(contentType).toLowerCase().startsWith("image/")) {
       ocrHint = { bytes, contentType };
@@ -571,6 +601,16 @@ export async function ingestRecord(env, args) {
   }
   let finalTitle = String(title || "").trim();
   if (!finalTitle) finalTitle = filename || id;
+  const titleRed = redactIdentityCluster(finalTitle);
+  if (titleRed.redacted) {
+    finalTitle = titleRed.text;
+    ingestRedacted = true;
+  }
+  const indexedRed = redactIdentityCluster(searchBody || notes);
+  if (indexedRed.redacted) {
+    searchBody = indexedRed.text;
+    ingestRedacted = true;
+  }
   if (!finalTitle) {
     const err = new Error("title or file required");
     err.status = 400;
@@ -596,10 +636,15 @@ export async function ingestRecord(env, args) {
   if (metaBits.length) {
     searchBody = [searchBody, metaBits.join("\n")].filter(Boolean).join("\n\n");
   }
+  const afterMeta = redactIdentityCluster(searchBody || "");
+  if (afterMeta.redacted) {
+    searchBody = afterMeta.text;
+    ingestRedacted = true;
+  }
   // Text-only: hash the exact final body that is inserted and served. Never title-only
   // when author/domain/subjects were appended (AZDOC-697F4E1D8C34 / AZDOC-498664EBE53C).
   if (!f) {
-    const servedText = searchBody || notes || finalTitle || id;
+    const servedText = searchBody || finalTitle || id;
     searchBody = servedText;
     const textBytes = new TextEncoder().encode(servedText);
     fileBytes = textBytes;
@@ -607,6 +652,27 @@ export async function ingestRecord(env, args) {
     contentSha = digestBytes(textBytes);
     filename = filename || safeFilename(finalTitle + ".txt");
     contentType = contentType || "text/plain; charset=utf-8";
+    if (ingestRedacted) {
+      let existingText = null;
+      try {
+        existingText = await env.DB.prepare("SELECT record_id, object_key FROM records WHERE content_sha256=? AND object_key IS NOT NULL LIMIT 1").bind(contentSha).first();
+      } catch { existingText = null; }
+      if (existingText && existingText.object_key) {
+        try {
+          await verifyStoredObject(env, existingText.object_key, contentSha);
+          return {
+            id: existingText.record_id,
+            library,
+            duplicate: true,
+            redacted: true,
+            content_sha256: contentSha,
+            object_key: existingText.object_key,
+            title: finalTitle,
+            metadata_url: "/record/" + existingText.record_id + "/metadata.json",
+          };
+        } catch { /* store a new copy */ }
+      }
+    }
     if (env && env.FILES) {
       objectKey = library + "/" + id + "/" + filename;
       await putObject(env, objectKey, textBytes, contentType);
@@ -734,6 +800,27 @@ export async function ingestRecord(env, args) {
       zsolver_json: zsolver ? JSON.stringify(zsolver) : null,
     }, succession && succession.cite);
   } catch { /* first-hand pattern-break rescore optional */ }
+  let paperUx = null;
+  try {
+    const { readPackedIndex } = await import("./library-index.js");
+    const { stampPermalinks } = await import("./paper-ux.js");
+    const packed = await readPackedIndex(env);
+    const prior = ((packed && packed.records) || []).filter((r) => String(r.record_id || "") !== id);
+    const catalog = stampPermalinks(prior).map((r) => ({ ...r, permalink_locked: true }));
+    const stamped = stampPermalinks([...catalog, {
+      record_id: id,
+      title: finalTitle,
+      library,
+      created_utc: createdUtc,
+      author: biblioAuthor,
+      domain: domainIn,
+      subjects: subjectsIn,
+      keywords: keywordsIn,
+      content_sha256: contentSha,
+      chain_tip: reviewBundle && reviewBundle.tip && reviewBundle.tip.ledger_entry_hash,
+    }]);
+    paperUx = stamped.find((r) => r.record_id === id) || null;
+  } catch { paperUx = null; }
   let discovery = null;
   try {
     const { persistRecordDiscoveryMetadata } = await import("./record-metadata.js");
@@ -752,6 +839,9 @@ export async function ingestRecord(env, args) {
       created_utc: createdUtc,
       lattice_tip: reviewBundle && reviewBundle.tip,
       chain_tip: reviewBundle && reviewBundle.tip && reviewBundle.tip.ledger_entry_hash,
+      permalink: paperUx && paperUx.permalink,
+      permalink_slug: paperUx && paperUx.permalink_slug,
+      permalink_shelf: library === "aziel" ? "aziellibrary" : "azielcorpus/usersubmitted",
     });
   } catch { discovery = null; }
   let pin = null;
@@ -781,6 +871,8 @@ export async function ingestRecord(env, args) {
       keywords: keywordsIn,
       filename,
       chain_tip: reviewBundle && reviewBundle.tip && reviewBundle.tip.ledger_entry_hash,
+      permalink_slug: paperUx && paperUx.permalink_slug,
+      permalink_locked: !!(paperUx && paperUx.permalink_slug),
       triad_combined: reviewBundle && reviewBundle.review && reviewBundle.review.triad
         ? reviewBundle.review.triad.combined
         : null,
@@ -810,6 +902,9 @@ export async function ingestRecord(env, args) {
     metadata_url: "/record/" + id + "/metadata.json",
     llms_url: "/record/" + id + "/llms.txt",
     cite_url: "/record/" + id + "/cite.json",
+    permalink: paperUx && paperUx.permalink,
+    permalink_slug: paperUx && paperUx.permalink_slug,
+    chain_tip: reviewBundle && reviewBundle.tip && reviewBundle.tip.ledger_entry_hash,
     json_record_id: discovery && discovery.json_record_id,
     discovery,
   };

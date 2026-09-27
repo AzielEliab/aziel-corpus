@@ -581,6 +581,9 @@ function pushRecordLocs(rows, rec, { aliasJson = false } = {}) {
   const lastmod = isoDay(rec.created_utc, SITE_LASTMOD);
   const id = encodeURIComponent(rec.record_id);
   rows.push({ loc: HOST + "/record/" + id, lastmod });
+  if (rec.permalink && String(rec.permalink).startsWith("/")) {
+    rows.push({ loc: HOST + rec.permalink, lastmod });
+  }
   rows.push({ loc: HOST + "/record/" + id + "/metadata.json", lastmod });
   if (aliasJson) rows.push({ loc: HOST + "/record/" + id + ".json", lastmod });
   rows.push({ loc: HOST + "/record/" + id + "/llms.txt", lastmod });

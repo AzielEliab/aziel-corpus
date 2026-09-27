@@ -10,6 +10,7 @@ import { helpRouteBody } from "./help.js";
 import { bridgeDoc, productBySlug } from "./ai-surface.js";
 import { serveDesignPack } from "./design-pack.js";
 import { continueMetadataBackfill } from "./record-metadata.js";
+import { bumpPaperCount, continuePaperBackfill, permalinksForRows, readPaperMetrics, recordIdForContentHash, stampPermalinks, topPapers } from "./paper-ux.js";
 import { continueContentHashRepair, sampleContentHashIntegrity } from "./content-hash-repair.js";
 import { identityRouteBody } from "./identity.js";
 import { fetchLiveSurvival, isSurvivalSeoPath, SURVIVAL_SEO_CACHE_CONTROL } from "./ban-survival.js";
@@ -20,7 +21,9 @@ import {
   collectStats,
   notePackedIncrement,
   patchPackedStats,
+  readPackedIndex,
   refreshPackedIndex,
+  statsFromPacked,
   tryTunnelFirst,
   HTML_CACHE_CONTROL,
   HTML_EDGE_CACHE_CONTROL,
@@ -54,7 +57,7 @@ import {
 /** Operator walk APIs must not share the isolate with background backfill/geo or a tunnel hop. */
 export function shouldBackgroundWalk(pathname) {
   const path = String(pathname || "").replace(/\/+$/, "") || "/";
-  return path !== "/v1/verify-backfill" && path !== "/v1/recalibrate-all" && path !== "/v1/verify-geo" && path !== "/v1/metadata-backfill" && path !== "/v1/content-hash-repair";
+  return path !== "/v1/verify-backfill" && path !== "/v1/recalibrate-all" && path !== "/v1/verify-geo" && path !== "/v1/metadata-backfill" && path !== "/v1/content-hash-repair" && path !== "/v1/paper-backfill";
 }
 
 /**
@@ -359,25 +362,31 @@ async function indexHtml(env, request, signed) {
   const browse = parseBrowseParams(url);
   const searching = homeSearchActive(browse);
   const held = String(url.searchParams.get("received") || "") === "held";
-  const statsP = collectStats(env);
   const meshP = peekMeshDualCounts(env);
   const rowsP = searching
     ? searchRecords(env, { q: browse.q, library: browse.lib, sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300 })
     : Promise.resolve([]);
   const signedP = signed !== undefined ? Promise.resolve(signed) : getSession(env, request);
-  const [stats, rows, session, mesh] = await Promise.all([statsP, rowsP, signedP, meshP]);
+  const packedP = readPackedIndex(env);
+  const metricsP = readPaperMetrics(env);
+  const [packed, rows, session, mesh, metrics] = await Promise.all([packedP, rowsP, signedP, meshP, metricsP]);
+  const stats = statsFromPacked(packed);
+  const catalog = stampPermalinks((packed && packed.records) || []);
+  const linkedRows = permalinksForRows(rows, catalog);
   const error = held
     ? "Received. Safety review held this file off the public shelf. It is not deleted."
     : "";
   return page("Corpus Search", homeBody({
     ...browse,
-    rows,
+    rows: linkedRows,
     error,
     views: stats.views || 0,
     downloads: stats.downloads || 0,
     records_packed: stats.records_packed,
     records_aziel: stats.records_aziel,
     records_corpus: stats.records_corpus,
+    trending: topPapers(metrics, catalog, "views", 5),
+    downloaded: topPapers(metrics, catalog, "downloads", 5),
     host: HOST,
   }), { signed: session, path: "/", kind: "search", views: stats.views || 0, downloads: stats.downloads || 0, nodes: mesh.nodes, liveNodes: mesh.liveNodes, donateStrip: false, ecosystem: false });
 }
@@ -419,6 +428,7 @@ export default {
       // TRIAD remint: continueRecalibrateAll acquires the single-walker lock or returns RECALIBRATE_LOCKED (cursor untouched).
       await continueRecalibrateAll(env, { ms: 12000, all: false, background: true }).catch(() => null);
       await continueMetadataBackfill(env, { ms: 8000, all: false }).catch(() => null);
+      await continuePaperBackfill(env, { ms: 4000, all: false }).catch(() => null);
       await sampleContentHashIntegrity(env, { limit: 8 }).catch(() => null);
       await continueContentHashRepair(env, { ms: 4000, apply: false, all: false }).catch(() => null);
       await continueVerifyGeo(env, { ms: 12000, force: false }).catch(() => null);
@@ -434,6 +444,7 @@ export default {
         await continueFullBackfill(env, { ms: 8000, all: false, background: true }).catch(() => null);
         await continueRecalibrateAll(env, { ms: 8000, all: false, background: true }).catch(() => null);
         await continueMetadataBackfill(env, { ms: 6000, all: false }).catch(() => null);
+        await continuePaperBackfill(env, { ms: 3000, all: false }).catch(() => null);
         await continueVerifyGeo(env, { ms: 8000, force: false }).catch(() => null);
       })());
     }
@@ -619,7 +630,10 @@ export default {
       if (recordId) {
         const dims = parseDims(url.searchParams);
         dims.asset = "record:" + recordId;
-        if (request.method === "GET") await increment(env, dims, request);
+        if (request.method === "GET") {
+          await increment(env, dims, request);
+          await bumpPaperCount(env, recordId, "downloads", request).catch(() => null);
+        }
         return serveFile(env, recordId);
       }
       const rawHash = (url.searchParams.get("hash") || url.searchParams.get("sha256") || url.searchParams.get("content_sha256") || "").trim();
@@ -628,7 +642,11 @@ export default {
       if (hash) {
         const dims = parseDims(url.searchParams);
         dims.asset = "hash:" + hash;
-        if (request.method === "GET") await increment(env, dims, request);
+        if (request.method === "GET") {
+          await increment(env, dims, request);
+          const hashedId = await recordIdForContentHash(env, hash);
+          if (hashedId) await bumpPaperCount(env, hashedId, "downloads", request).catch(() => null);
+        }
         return serveFileByHash(env, hash);
       }
       const dims = parseDims(url.searchParams);

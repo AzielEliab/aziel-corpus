@@ -39,7 +39,16 @@ import {
   htmlCacheUrl,
   cacheMatchText,
   cachePutText,
+  readPackedIndex,
 } from "./library-index.js";
+import {
+  parsePaperPermalink,
+  findPaperBySlug,
+  stampPermalinks,
+  loadReaderText,
+  readPaperCounts,
+  bumpPaperCount,
+} from "./paper-ux.js";
 
 function intelScripts() {
   var c = [104,116,116,112,115,58,47,47,99,100,110,46,106,115,100,101,108,105,118,114,46,110,101,116,47,110,112,109,47,116,101,115,115,101,114,97,99,116,46,106,115,64,53,47,100,105,115,116,47,116,101,115,115,101,114,97,99,116,46,109,105,110,46,106,115];
@@ -129,6 +138,65 @@ export async function loadHostedRecordRow(env, recordId) {
     if (ctx && ctx.row && ctx.row.record_id) return ctx.row;
   } catch { /* packed catalog */ }
   return null;
+}
+
+async function servePaperPage(request, env, ctx, signed, row, { permalink = "", pageNum = 1, path = "" } = {}) {
+  const pageHtml = (pageBody, extra) => html(pageBody, extra || {});
+  if (!row) {
+    return pageHtml(page("Not found", recordBody({ row: null, events: [] }), { signed, path: path || "/record", kind: "record" }), { status: 404 });
+  }
+  let catalog = [];
+  try {
+    const packed = await readPackedIndex(env);
+    catalog = stampPermalinks((packed && packed.records) || []);
+  } catch { catalog = []; }
+  const mine = catalog.find((item) => item.record_id === row.record_id);
+  const link = (mine && mine.permalink) || permalink || ("/record/" + row.record_id);
+  const loaded = await loadReaderText(env, row);
+  const counts = await readPaperCounts(env, row.record_id);
+  const asked = Math.max(Number(pageNum) || 1, 1);
+  if (request.method === "GET" && !isSeoBot(request)) {
+    const job = bumpPaperCount(env, row.record_id, "views", request).catch(() => null);
+    if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(job);
+    else await job;
+  }
+  const events = await recordEvents(env, row.record_id);
+  const extra = await loadRecordReview(env, row);
+  let derived = [];
+  try { derived = await listDerivedArtifacts(env, row.record_id); } catch { derived = []; }
+  return pageHtml(page(row.title || "Record", recordBody({
+    row: { ...row, body: loaded.text, content_type: loaded.contentType || row.content_type },
+    events,
+    signed,
+    derived,
+    ...extra,
+    counts,
+    permalink: link,
+    catalog,
+    page: asked,
+    truncated: loaded.truncated,
+  }), {
+    signed,
+    path: link,
+    kind: "record",
+    description: recordDescription(row),
+    work: {
+      title: row.title,
+      author: row.author,
+      library: row.library,
+      record_id: row.record_id,
+      datePublished: row.created_utc,
+      dateCreated: row.created_utc,
+      dateModified: row.created_utc,
+      subjects: row.subjects,
+      keywords: row.keywords,
+      domain: row.domain,
+      content_sha256: row.content_sha256,
+      content: String(loaded.text || row.snippet || row.body || "").replace(/\s+/g, " ").trim().slice(0, 400),
+    },
+  }), {
+    headers: { Link: recordMachineLinkHeader(row.record_id, "html") },
+  });
 }
 
 export async function handleHosted(request, url, env, ctx, signed, stats) {
@@ -527,36 +595,21 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     const report = await verifyHosted(env, request);
     return pageHtml(page("Verify", verifyBody({ report }), { signed, path: "/verify", kind: "verify" }));
   }
-  const recMatch = path.match(/^\/record\/([^/]+)$/);
-  if (recMatch && read) {
+  const paperPath = parsePaperPermalink(path);
+  if (paperPath && read && !paperPath.legacy) {
+    let card = null;
+    try {
+      const packed = await readPackedIndex(env);
+      card = findPaperBySlug((packed && packed.records) || [], paperPath.shelf, paperPath.slug);
+    } catch { card = null; }
+    if (!card) return pageHtml(page("Not found", recordBody({ row: null, events: [] }), { signed, path, kind: "record" }), { status: 404 });
+    const row = await loadHostedRecordRow(env, card.record_id);
+    return servePaperPage(request, env, ctx, signed, row, { permalink: card.permalink, pageNum: paperPath.page, path });
+  }
+  const recMatch = path.match(/^\/record\/([^/]+)(?:\/p\/(\d+))?$/);
+  if (recMatch && read && !parseRecordMetadataPath(path) && !parseRecordMachinePath(path)) {
     const row = await loadHostedRecordRow(env, decodeURIComponent(recMatch[1]));
-    if (!row) return pageHtml(page("Not found", recordBody({ row: null, events: [] }), { signed, path: path, kind: "record" }), { status: 404 });
-    const events = await recordEvents(env, row.record_id);
-    const extra = await loadRecordReview(env, row);
-    let derived = [];
-    try { derived = await listDerivedArtifacts(env, row.record_id); } catch { derived = []; }
-    return pageHtml(page(row.title || "Record", recordBody({ row, events, signed, derived, ...extra }), {
-      signed,
-      path: "/record/" + row.record_id,
-      kind: "record",
-      description: recordDescription(row),
-      work: {
-        title: row.title,
-        author: row.author,
-        library: row.library,
-        record_id: row.record_id,
-        datePublished: row.created_utc,
-        dateCreated: row.created_utc,
-        dateModified: row.created_utc,
-        subjects: row.subjects,
-        keywords: row.keywords,
-        domain: row.domain,
-        content_sha256: row.content_sha256,
-        content: String(row.snippet || row.body || "").replace(/\s+/g, " ").trim().slice(0, 400),
-      },
-    }), {
-      headers: { Link: recordMachineLinkHeader(row.record_id, "html") },
-    });
+    return servePaperPage(request, env, ctx, signed, row, { pageNum: recMatch[2] ? Number(recMatch[2]) : 1, path });
   }
   const derMatch = path.match(/^\/derived\/([^/]+)$/);
   if (derMatch && read) {

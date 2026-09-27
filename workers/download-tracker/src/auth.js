@@ -3,6 +3,7 @@ import { json, corsHeaders } from "./runtime.js";
 import { page, pwField, azielLibraryBody, corpusBody, homeBody, uploadBody, streamLcpHtml } from "./ui.js";
 import { isOperator, ingestRecord, searchRecords, listFacets, parseBrowseParams, asFile, guestSession } from "./library.js";
 import { extractEventsForRecord } from "./geo.js";
+import { attachPermalinks } from "./paper-ux.js";
 import { ocrIngestHint } from "./ocr.js";
 import {
   collectStats,
@@ -137,8 +138,9 @@ async function renderShelfHtml(env, signed, browse, spec) {
     listFacets(env, { library: spec.library }),
     packedFileCounts(env),
   ]);
+  const linked = await attachPermalinks(env, rows);
   return page(spec.title, spec.render({
-    rows,
+    rows: linked,
     facets,
     ...browse,
     lib: spec.library,

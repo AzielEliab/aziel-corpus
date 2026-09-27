@@ -6,6 +6,7 @@
  */
 import { createHash } from "node:crypto";
 import { compactZsolverPublic, shelfScoreState, zsolverFromRow } from "./zsolver.js";
+import { conceptFromRow, mergeLockedPermalinks, permalinkPath, stampPermalinks } from "./paper-ux.js";
 
 export const LIBRARY_INDEX_KEY = "library:index:v1";
 /**
@@ -35,7 +36,7 @@ export const SOFTWARE_CATALOG_CACHE_URL = "https://azielcorpuslibrary.net/__cach
 export const RUNTIME_SOFTWARE_CACHE_URL = "https://azielcorpuslibrary.net/__cache/runtime-v1-software-v1";
 export const AUTHOR = "Aziel Eliab";
 export const INDEX_CACHE_URL = "https://azielcorpuslibrary.net/__cache/library-index-v1";
-export const HTML_CACHE_PREFIX = "https://azielcorpuslibrary.net/__cache/html-home-v8";
+export const HTML_CACHE_PREFIX = "https://azielcorpuslibrary.net/__cache/html-home-v9";
 
 const PROJECT = "aziel-corpus";
 
@@ -319,6 +320,14 @@ export function cardFromRecord(row) {
   };
   if (scores.zsolver_display != null) card.zsolver_display = scores.zsolver_display;
   if (scores.zsolver_seed) card.zsolver_seed = true;
+  const concept = conceptFromRow(row);
+  if (concept) card.concept = concept;
+  const slug = String(row.permalink_slug || "").trim().toLowerCase();
+  if (slug) {
+    card.permalink_slug = slug;
+    card.permalink = permalinkPath(shelf, slug);
+    if (row.permalink_locked) card.permalink_locked = true;
+  }
   return card;
 }
 
@@ -347,6 +356,9 @@ export function publicSearchCard(row) {
     llms_url: card.llms_url,
     cite_url: card.cite_url,
   };
+  if (card.permalink) out.permalink = card.permalink;
+  if (card.permalink_slug) out.permalink_slug = card.permalink_slug;
+  if (card.concept) out.concept = card.concept;
   if (card.triad_display != null) out.triad_display = card.triad_display;
   if (card.zsolver_display != null) out.zsolver_display = card.zsolver_display;
   if (card.zsolver && card.zsolver.status === "not_applicable") {
@@ -536,12 +548,14 @@ export async function noteIngestedRecord(env, row) {
   const card = cardFromRecord(row);
   if (!card) return null;
   const current = await readPackedIndex(env, { cacheTtl: 60 });
-  const records = Array.isArray(current.records)
+  const prior = Array.isArray(current.records)
     ? current.records.filter((r) => String(r.record_id || r.id || "") !== card.record_id)
     : [];
-  records.unshift(card);
+  const stamped = stampPermalinks(mergeLockedPermalinks([card, ...prior], current.records));
+  const mine = stamped.find((r) => r.record_id === card.record_id) || card;
+  const rest = stamped.filter((r) => r.record_id !== mine.record_id);
   return writePackedIndex(env, Object.assign({}, current, {
-    records: records.slice(0, SHELF_INDEX_LIMIT),
+    records: [mine, ...rest].slice(0, SHELF_INDEX_LIMIT),
   }));
 }
 
@@ -549,7 +563,8 @@ export async function noteIngestedRecord(env, row) {
 export async function refreshPackedIndex(env, { cache, github } = {}) {
   const kv = downloadsKv(env);
   const current = await readPackedIndex(env, { cache, cacheTtl: 60 });
-  const records = await loadShelfCards(env);
+  const fresh = await loadShelfCards(env);
+  const records = stampPermalinks(mergeLockedPermalinks(fresh, current.records));
   const views = kv ? await readInt(kv, viewsKey()) : Number(current.views) || 0;
   const downloads = kv ? await readInt(kv, totalKey()) : Number(current.downloads) || 0;
   const gh = github || (kv ? await readGithub(kv) : current.github);
