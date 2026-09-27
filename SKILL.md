@@ -9,7 +9,7 @@ Self-contained immutable local digital library and intelligence runtime. Public 
 
 **THIS IS:** Aziel Digital Library v2.7.0 (search, records, map, gazetteer, counted zip, poison immunity, PhysLing Review, unranked Bayesian scores, HEURISTIC possibility, hashchain-lattice LEARN / poison-learn, exact-same-subject succession cites). Adaptive learning via hashchain lattice for recollection and reasoning. Library Softwares catalog lives at `/software`.
 
-**THIS IS NOT:** a 26-card software index. Not Zenodo. Not Horton. Do not mash Aziel Runtime version + FragGate into Softwares blurbs.
+**THIS IS NOT:** a 26-card software index. Not Zenodo. Not a former legal surname. Do not mash Aziel Runtime version + FragGate into Softwares blurbs.
 
 Always send `User-Agent: Mozilla/5.0`.
 
