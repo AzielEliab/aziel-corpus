@@ -3,7 +3,9 @@
  * Public Softwares extra / cite — BYO field OS
  * (HVAC / plumbing / electrical / sewer / cross-trades).
  * Operators bring their own ServiceTitan + ProBooks. Human authority wins.
- * Sister product; live_backends false. Public get = this product Worker download.
+ * Sister product; live_backends false. Humans use the giveaway Worker UI on the
+ * VibeLock host (browser / PWA) without downloading first. Agents use OpenAPI
+ * and MCP. The optional counted pack is GET /download.
  * GitHub Pages stay off. Identity: Aziel Eliab only.
  */
 import { HOST, RUNTIME_ORIGIN, AI_CLIENTS } from "./runtime-copy.js";
@@ -19,7 +21,7 @@ export const TRADES_RUNTIME_NAME = "Trades-Runtime";
  * Not the Glama MCP listing Latest/Version — that public listing is still ~0.3.4
  * and Create Release there is blocked. Do not cite Glama as this version.
  */
-export const TRADES_RUNTIME_VERSION = "0.4.10";
+export const TRADES_RUNTIME_VERSION = "0.4.11";
 export const TRADES_RUNTIME_GITHUB = "https://github.com/AzielEliab/trades-runtime";
 export const TRADES_RUNTIME_WORKER = "trades-runtime";
 export const TRADES_RUNTIME_WORKER_HOME = "https://trades-runtime.vibelock.workers.dev/";
@@ -48,7 +50,7 @@ export const TRADES_RUNTIME_DUAL_SURFACE =
 export const TRADES_RUNTIME_NOTE =
   "Trades-Runtime is a public Softwares extra / local-first BYO field OS. "
   + "Library MCP stays corpus-search; this product hosts its own read-only MCP (health, stats, cite, skill). "
-  + "GitHub Pages stay off. Public get = Worker download. "
+  + "GitHub Pages stay off. Humans use the giveaway Worker UI on the VibeLock host (browser / PWA) without downloading first. Agents use OpenAPI and MCP. The optional counted pack is GET /download. "
   + TRADES_RUNTIME_DUAL_SURFACE
   + " Compatible AI clients: " + AI_CLIENTS + ". Identity Aziel Eliab only.";
 
@@ -154,7 +156,7 @@ export function tradesRuntimeLlmsBlock(host = HOST) {
     "Trades-Runtime (trades-runtime) is a public Softwares extra / BYO field OS.",
     TRADES_RUNTIME_ONE_LINE,
     TRADES_RUNTIME_DUAL_SURFACE,
-    "GitHub Pages off. Public get = Worker download. Counters live at /v1/stats.",
+    "GitHub Pages off. Humans use the giveaway Worker UI on the VibeLock host (browser / PWA) without downloading first. Agents use OpenAPI and MCP. The optional counted pack is GET /download. Counters live at /v1/stats.",
     "Product MCP is read-only (health, stats, cite, skill). Library MCP stays corpus-search and does not write ServiceTitan or ProBooks.",
     "Compatible AI clients: " + AI_CLIENTS + ".",
     "- Trades-Runtime Softwares card: " + h + "/software",
