@@ -113,7 +113,7 @@ export function recordBody(payload) {
   const verifyHtml = "<details class=\"verify-panel\" id=\"hashes\"><summary>Hashes</summary>" +
     (sha ? "<p class=\"meta\">SHA-256 " + esc(sha) + "</p><p class=\"meta\">chain <a href=\"/v1/document-chain?record_id=" + esc(row.record_id) + "\">tip</a></p>" : "") +
     "<p class=\"meta\"><a href=\"/receipt/" + esc(row.record_id) + "\">receipt</a></p></details>";
-  const open = "<p><a class=\"button\" href=\"/file/" + esc(row.record_id) + "\">Download</a> <a class=\"button ghost\" href=\"/download?record=" + esc(row.record_id) + "\">Counted download</a>" + (sha ? " <a class=\"button ghost\" href=\"/download?hash=" + esc(sha) + "\">By hash</a> <a class=\"button ghost\" href=\"/v1/docs/" + esc(sha) + "/download\">API hash</a>" : "") + "</p>";
+  const open = "<p class=\"record-actions\"><a class=\"button\" href=\"/file/" + esc(row.record_id) + "\">Download</a><a class=\"button ghost\" href=\"/download?record=" + esc(row.record_id) + "\">Counted download</a>" + (sha ? "<a class=\"button ghost\" href=\"/download?hash=" + esc(sha) + "\">By hash</a><a class=\"button ghost\" href=\"/v1/docs/" + esc(sha) + "/download\">API hash</a>" : "") + "</p>";
   const qBanner = (q === "POISON_SUSPECT" || q === "QUARANTINE")
     ? "<div class=\"q-banner\">Quarantine — poison suspect. The file is still downloadable for auditors. It was not deleted.</div>"
     : "";
@@ -247,7 +247,7 @@ export function recordBody(payload) {
     qBanner + reader + triadHtml + zsolverHtml + successionHtml +
     "<div class=\"card\"><h2>Status lights</h2><p class=\"muted\">Green means go. Yellow means read again. Red means stop and check. Easy enough for a 6th grader; kept for government use.</p>" + lightsHtml + "</div>" +
     "<div class=\"card\"><p class=\"meta\">" + esc(fileLabel) + (row.created_utc ? " · " + esc(String(row.created_utc).replace("T", " ").slice(0, 16)) : "") + "</p>" + verifyHtml + open +
-    "<p class=\"muted\">Machine surfaces: <a href=\"/record/" + esc(row.record_id) + "/llms.txt\">llms.txt</a> · <a href=\"/record/" + esc(row.record_id) + "/cite.json\">cite.json</a> · <a href=\"/record/" + esc(row.record_id) + "/metadata.json\">metadata.json</a> · <a href=\"/help.txt\">help</a></p>" +
+    "<p class=\"machine-cites\"><span class=\"muted\">Machine surfaces</span><a href=\"/record/" + esc(row.record_id) + "/llms.txt\">llms.txt</a><a href=\"/record/" + esc(row.record_id) + "/cite.json\">cite.json</a><a href=\"/record/" + esc(row.record_id) + "/metadata.json\">metadata.json</a><a href=\"/help.txt\">help</a></p>" +
     (spreHtml || clceHtml || plrHtml ? "<h3>" + esc(applicableNames) + "</h3>" + spreHtml + clceHtml + plrHtml : "") +
     "<h3>Derived artifacts</h3>" + der +
     "<h3>Temporal-geospatial events</h3>" + ev + tipHtml + "</div>" +

@@ -44,17 +44,60 @@ export function redactIdentityCluster(value) {
   return { text: next, redacted: next !== text };
 }
 
-export function slugifyTitle(title) {
-  const s = String(title || "")
+const SLUG_LIMIT = 72;
+const ARTICLE_RE = /^(?:the|a|an)-/;
+const ALIAS_RANK = { "full-title": 4, "longer-cut": 3, "leading-title": 2, "shorter-cut": 1 };
+
+export function slugifyTitle(title, limit = SLUG_LIMIT) {
+  let s = String(title || "")
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/&/g, " and ")
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 72)
-    .replace(/-+$/g, "");
+    .replace(/^-+|-+$/g, "");
+  const cap = Number(limit);
+  if (Number.isFinite(cap) && cap > 0) s = s.slice(0, cap).replace(/-+$/g, "");
   return s;
+}
+
+function unboundedSlug(title) {
+  return slugifyTitle(title, 0);
+}
+
+function stripArticle(slug) {
+  const next = String(slug || "").replace(ARTICLE_RE, "");
+  return next && next !== slug ? next : "";
+}
+
+function hyphenCut(guess, stem) {
+  return !!guess && !!stem && guess !== stem && guess.includes("-") && guess.length >= 12 && stem.startsWith(guess + "-");
+}
+
+function longerCut(guess, locked, full) {
+  return !!guess && !!locked && !!full && guess.length > locked.length && guess.startsWith(locked) && full.startsWith(guess);
+}
+
+function leadingClause(title) {
+  const clause = String(title || "").split(/\s*(?::|\u2014|\u2013|\s-\s|\|)\s*/)[0];
+  return unboundedSlug(clause);
+}
+
+/** How a non-canonical guess interlocks with one locked slug. Empty when it does not. */
+function aliasKind(row, guess) {
+  const locked = String(row.permalink_slug || "").toLowerCase();
+  const full = unboundedSlug(row.title) || locked;
+  if (!locked || guess === locked) return "";
+  const truncated = full.length > SLUG_LIMIT && full !== locked;
+  const bareFull = truncated ? stripArticle(full) : "";
+  const bareLocked = truncated ? stripArticle(locked) : "";
+  if (guess === full || (bareFull && guess === bareFull)) return "full-title";
+  if (longerCut(guess, locked, full) || (bareLocked && longerCut(guess, bareLocked, bareFull))) return "longer-cut";
+  const lead = truncated ? leadingClause(row.title) : "";
+  const bareLead = lead ? stripArticle(lead) : "";
+  if ((lead && guess === lead) || (bareLead && guess === bareLead)) return "leading-title";
+  if (hyphenCut(guess, locked) || (bareLocked && hyphenCut(guess, bareLocked))) return "shorter-cut";
+  return "";
 }
 
 export function permalinkPath(shelf, slug) {
@@ -207,11 +250,45 @@ export function parsePaperPermalink(pathname) {
 }
 
 export function findPaperBySlug(records, shelf, slug) {
+  const hit = lookupPaperSlug(records, shelf, slug);
+  if (!hit || hit.alias) return null;
+  return hit.row;
+}
+
+/**
+ * Exact locked slug, or one interlocking alias of a paper that already exists.
+ * Longer and shorter cuts must sit on that paper's real title slug.
+ * A truncated slug also answers its leading title (`cockroach-doctrine`).
+ * Two matches at the same strength return null. Does not add rows or rewrite slugs.
+ */
+export function lookupPaperSlug(records, shelf, slug) {
   const want = String(slug || "").trim().toLowerCase();
   const shelfWant = shelf === "aziel" ? "aziel" : "corpus";
   if (!want) return null;
-  const stamped = stampPermalinks(records || []);
-  return stamped.find((row) => shelfOfPaper(row) === shelfWant && row.permalink_slug === want) || null;
+  const stamped = stampPermalinks(records || []).filter((row) => shelfOfPaper(row) === shelfWant && row.permalink_slug);
+  const exact = stamped.find((row) => row.permalink_slug === want);
+  if (exact) return { row: exact, alias: false, kind: "exact" };
+  const best = new Map();
+  for (const row of stamped) {
+    const kind = aliasKind(row, want);
+    if (!kind) continue;
+    const prev = best.get(row.record_id);
+    if (!prev || ALIAS_RANK[kind] > ALIAS_RANK[prev.kind]) best.set(row.record_id, { row, kind });
+  }
+  if (!best.size) return null;
+  const ranked = [...best.values()];
+  const top = Math.max(...ranked.map((hit) => ALIAS_RANK[hit.kind]));
+  const winners = ranked.filter((hit) => ALIAS_RANK[hit.kind] === top);
+  if (winners.length !== 1) return null;
+  return { row: winners[0].row, alias: true, kind: winners[0].kind };
+}
+
+/** Canonical locked path for an alias. Page 1 stays unsuffixed. */
+export function paperAliasLocation(row, page) {
+  const base = (row && row.permalink) || (row && row.record_id ? "/record/" + row.record_id : "");
+  if (!base) return "";
+  const n = Math.max(Number(page) || 1, 1);
+  return n <= 1 ? base : base + "/p/" + n;
 }
 
 export function filedLabel(row) {
@@ -317,7 +394,7 @@ export function linkCitations(raw, catalog, selfId) {
   let cursor = 0;
   for (const span of kept) {
     html += esc(text.slice(cursor, span.start));
-    html += "<a href=\"" + esc(span.href) + "\">" + esc(text.slice(span.start, span.end)) + "</a>";
+    html += "<a class=\"paper-cite\" href=\"" + esc(span.href) + "\">" + esc(text.slice(span.start, span.end)) + "</a>";
     cursor = span.end;
   }
   html += esc(text.slice(cursor));
@@ -355,16 +432,24 @@ export function renderPaperReader({
   const shown = redactIdentityCluster(pageText).text;
   const linked = split.mode === "pdf-deferred" ? "" : linkCitations(shown, catalog, id);
   const base = link || ("/record/" + id);
-  let turner = "";
-  if (split.mode === "paged") {
+  function turnerNav(place) {
+    if (split.mode !== "paged") return "";
     const prev = pageIndex > 1 ? (pageIndex === 2 ? base : base + "/p/" + (pageIndex - 1)) : "";
     const next = pageIndex < split.page_count ? base + "/p/" + (pageIndex + 1) : "";
-    turner = "<nav class=\"page-turner\" aria-label=\"Pages\" data-page=\"" + pageIndex + "\" data-pages=\"" + split.page_count + "\">"
-      + (prev ? "<a rel=\"prev\" href=\"" + esc(prev) + "\">Previous</a>" : "<span class=\"muted\">Previous</span>")
-      + "<span>Page " + pageIndex + " of " + split.page_count + "</span>"
-      + (next ? "<a rel=\"next\" href=\"" + esc(next) + "\">Next</a>" : "<span class=\"muted\">Next</span>")
+    const prevCtl = prev
+      ? "<a class=\"page-turn\" rel=\"prev\" href=\"" + esc(prev) + "\">Previous</a>"
+      : "<span class=\"page-turn\" aria-disabled=\"true\">Previous</span>";
+    const nextCtl = next
+      ? "<a class=\"page-turn\" rel=\"next\" href=\"" + esc(next) + "\">Next</a>"
+      : "<span class=\"page-turn\" aria-disabled=\"true\">Next</span>";
+    return "<nav class=\"page-turner page-turner-" + place + "\" aria-label=\"Pages\" data-page=\"" + pageIndex + "\" data-pages=\"" + split.page_count + "\">"
+      + prevCtl
+      + "<span class=\"page-status\">Page " + pageIndex + " of " + split.page_count + "</span>"
+      + nextCtl
       + "</nav>";
   }
+  const turnerTop = turnerNav("top");
+  const turnerEnd = turnerNav("end");
   let countsHtml = "<p class=\"paper-counts\" data-source=\"unread\">Views and downloads load with the paper page.</p>";
   if (counts && counts.available === false) {
     countsHtml = "<p class=\"paper-counts\" data-source=\"unavailable\">Per-paper counters are not available on this render.</p>";
@@ -402,11 +487,16 @@ export function renderPaperReader({
   const share = link
     ? "<p class=\"paper-permalink\"><a href=\"" + esc(link) + "\">" + esc(link) + "</a></p>"
     : "";
+  const fileHref = id ? "/file/" + encodeURIComponent(id) : "";
+  const countHref = id ? "/download?record=" + encodeURIComponent(id) : "";
+  const actions = id
+    ? "<p class=\"paper-actions\"><a class=\"button\" href=\"" + esc(fileHref) + "\">Download</a><a class=\"button ghost\" href=\"" + esc(countHref) + "\">Counted download</a></p>"
+    : "";
   const mode = split.mode === "pdf-deferred" ? "pdf-deferred" : split.mode;
   return "<article class=\"paper-reader\" data-reader=\"" + mode + "\" data-record=\"" + esc(id) + "\" data-pages=\"" + (split.page_count || 0) + "\">"
     + "<header class=\"paper-head\"><p class=\"paper-kicker\">" + esc(shelfName) + (filed.undated ? " · Undated" : "") + "</p>"
-    + countsHtml + share + "</header>"
-    + "<div class=\"paper-layout\"><div class=\"paper-body\">" + turner + bodyHtml + trunc + turner + "</div>" + meta + "</div></article>";
+    + countsHtml + actions + share + "</header>"
+    + "<div class=\"paper-layout\"><div class=\"paper-body\">" + turnerTop + bodyHtml + trunc + turnerEnd + "</div>" + meta + "</div></article>";
 }
 
 async function readInt(kv, key) {

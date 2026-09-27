@@ -6,6 +6,8 @@ import {
   continuePaperBackfill,
   findPaperBySlug,
   linkCitations,
+  lookupPaperSlug,
+  paperAliasLocation,
   parsePaperPermalink,
   permalinkPath,
   readPaperCounts,
@@ -60,6 +62,70 @@ test("permalinks map shelves and stay locked", () => {
   assert.equal(rows.find((row) => row.record_id === "AZDOC-BBB").created_utc, "");
 });
 
+test("truncated doctrine slug interlocks with the full title and the short name", () => {
+  const doctrine = {
+    record_id: "AZDOC-A53F8E3052E2",
+    title: "The Cockroach Doctrine: A Resilience Doctrine for Remaining Operational Under Repeated Asymmetric Disruption",
+    library: "aziel",
+    permalink_locked: true,
+    permalink_slug: "the-cockroach-doctrine-a-resilience-doctrine-for-remaining-operational-u",
+  };
+  const pageOne = {
+    record_id: "AZDOC-EBA502F4610D",
+    title: "The Cockroach Doctrine — Page 1 — The Cockroach Doctrine",
+    library: "aziel",
+    permalink_locked: true,
+    permalink_slug: "the-cockroach-doctrine-page-1-the-cockroach-doctrine",
+  };
+  const records = [doctrine, pageOne];
+  const before = JSON.stringify(records);
+  const canonical = doctrine.permalink_slug;
+  const full = slugifyTitle(doctrine.title, 0);
+  assert.ok(full.length > 72);
+  assert.equal(slugifyTitle(doctrine.title), canonical);
+  assert.equal(full.startsWith(canonical), true);
+  const exact = lookupPaperSlug(records, "aziel", canonical);
+  assert.equal(exact.alias, false);
+  assert.equal(exact.row.record_id, doctrine.record_id);
+  assert.equal(findPaperBySlug(records, "aziel", canonical).record_id, doctrine.record_id);
+  const long = lookupPaperSlug(records, "aziel", full);
+  assert.equal(long.alias, true);
+  assert.equal(long.kind, "full-title");
+  assert.equal(long.row.record_id, doctrine.record_id);
+  assert.equal(paperAliasLocation(long.row, 1), "/aziellibrary/" + canonical);
+  assert.equal(paperAliasLocation(long.row, 2), "/aziellibrary/" + canonical + "/p/2");
+  const bareFull = full.replace(/^the-/, "");
+  assert.equal(lookupPaperSlug(records, "aziel", bareFull).row.record_id, doctrine.record_id);
+  const mid = full.slice(0, 90);
+  assert.equal(lookupPaperSlug(records, "aziel", mid).kind, "longer-cut");
+  assert.equal(lookupPaperSlug(records, "aziel", mid).row.record_id, doctrine.record_id);
+  const short = lookupPaperSlug(records, "aziel", "cockroach-doctrine");
+  assert.equal(short.alias, true);
+  assert.equal(short.kind, "leading-title");
+  assert.equal(short.row.record_id, doctrine.record_id);
+  assert.equal(lookupPaperSlug(records, "aziel", "the-cockroach-doctrine").row.record_id, doctrine.record_id);
+  assert.equal(lookupPaperSlug(records, "aziel", "the-cockroach-doctrine-a-resilience-doctrine").row.record_id, doctrine.record_id);
+  assert.equal(lookupPaperSlug(records, "aziel", "the-cockroach"), null);
+  assert.equal(lookupPaperSlug(records, "aziel", "cockroach-doctrine-not-filed"), null);
+  assert.equal(lookupPaperSlug(records, "corpus", "cockroach-doctrine"), null);
+  assert.equal(findPaperBySlug(records, "aziel", "cockroach-doctrine"), null);
+  const pageHit = lookupPaperSlug(records, "aziel", pageOne.permalink_slug);
+  assert.equal(pageHit.alias, false);
+  assert.equal(pageHit.row.record_id, pageOne.record_id);
+  assert.equal(lookupPaperSlug(records, "aziel", "the-cockroach-doctrine-page-1").row.record_id, pageOne.record_id);
+  const named = {
+    record_id: "AZDOC-SHORT",
+    title: "Cockroach Doctrine",
+    library: "aziel",
+    permalink_locked: true,
+    permalink_slug: "cockroach-doctrine",
+  };
+  const exactShort = lookupPaperSlug([named, doctrine], "aziel", "cockroach-doctrine");
+  assert.equal(exactShort.alias, false);
+  assert.equal(exactShort.row.record_id, "AZDOC-SHORT");
+  assert.equal(JSON.stringify(records), before);
+});
+
 test("reader links an in-library cite and pages a multi-page paper", () => {
   const catalog = stampPermalinks([
     { record_id: "AZDOC-AAA111", title: "Cockroach Doctrine", library: "aziel", permalink_locked: true, permalink_slug: "cockroach-doctrine" },
@@ -98,6 +164,15 @@ test("reader links an in-library cite and pages a multi-page paper", () => {
   assert.match(reader, /data-views="3"/);
   assert.match(reader, /data-downloads="1"/);
   assert.match(reader, /href="\/aziellibrary\/cockroach-doctrine"/);
+  assert.match(reader, /class="page-turner page-turner-top"/);
+  assert.match(reader, /class="page-turner page-turner-end"/);
+  assert.match(reader, /class="page-turn"/);
+  assert.match(reader, /rel="prev" href="\/azielcorpus\/usersubmitted\/field-methods-note"/);
+  assert.match(reader, /rel="next" href="\/azielcorpus\/usersubmitted\/field-methods-note\/p\/3"/);
+  assert.match(reader, /class="paper-actions"/);
+  assert.match(reader, /href="\/file\/AZDOC-BBB222"/);
+  assert.match(reader, /href="\/download\?record=AZDOC-BBB222"/);
+  assert.match(html, /class="paper-cite"/);
   assert.match(reader, /Lamb Lens: Service/);
   assert.match(reader, /Clarity/);
   assert.match(reader, /Peace/);

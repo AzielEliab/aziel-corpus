@@ -195,6 +195,48 @@ test("GET /gazetteer stays hosted without a public nav tab", async () => {
   assert.match(html, />Forensics</);
 });
 
+test("Cockroach Doctrine slug guesses redirect to the locked permalink", async () => {
+  const canonical = "/aziellibrary/the-cockroach-doctrine-a-resilience-doctrine-for-remaining-operational-u";
+  const records = [
+    {
+      record_id: "AZDOC-A53F8E3052E2",
+      title: "The Cockroach Doctrine: A Resilience Doctrine for Remaining Operational Under Repeated Asymmetric Disruption",
+      library: "aziel",
+      permalink_locked: true,
+      permalink_slug: "the-cockroach-doctrine-a-resilience-doctrine-for-remaining-operational-u",
+    },
+    {
+      record_id: "AZDOC-EBA502F4610D",
+      title: "The Cockroach Doctrine — Page 1 — The Cockroach Doctrine",
+      library: "aziel",
+      permalink_locked: true,
+      permalink_slug: "the-cockroach-doctrine-page-1-the-cockroach-doctrine",
+    },
+  ];
+  const env = stubEnv();
+  env.DOWNLOADS = {
+    async get(key) {
+      if (key === "library:index:v1") return JSON.stringify({ version: 1, key, records });
+      return null;
+    },
+  };
+  const full = "the-cockroach-doctrine-a-resilience-doctrine-for-remaining-operational-under-repeated-asymmetric-disruption";
+  for (const path of ["/aziellibrary/cockroach-doctrine", "/aziellibrary/" + full, "/aziellibrary/cockroach-doctrine/p/2"]) {
+    const res = await handleHosted(req(path), new URL(HOST + path), env, {}, null, null);
+    assert.equal(res.status, 301, path);
+    const expect = path.endsWith("/p/2") ? canonical + "/p/2" : canonical;
+    assert.equal(res.headers.get("location"), expect, path);
+  }
+  const qs = await handleHosted(req("/aziellibrary/cockroach-doctrine?src=guess"), new URL(HOST + "/aziellibrary/cockroach-doctrine?src=guess"), env, {}, null, null);
+  assert.equal(qs.status, 301);
+  assert.equal(qs.headers.get("location"), canonical + "?src=guess");
+  const missing = await handleHosted(req("/aziellibrary/not-a-filed-paper"), new URL(HOST + "/aziellibrary/not-a-filed-paper"), env, {}, null, null);
+  assert.equal(missing.status, 404);
+  const locked = await handleHosted(req(canonical), new URL(HOST + canonical), env, {}, null, null);
+  assert.notEqual(locked.status, 301);
+  assert.equal(locked.headers.get("location"), null);
+});
+
 test("HEAD /about is a permanent redirect and HEAD /AzielEliab is HTML without a body", async () => {
   const about = await handleHosted(req("/about", "HEAD"), new URL(HOST + "/about"), stubEnv(), {}, null, null);
   assert.equal(about.status, 301);
