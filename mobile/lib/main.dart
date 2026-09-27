@@ -6,7 +6,7 @@ const limitation =
     'THIS IS Aziel Digital Library v2.7.0 — a self-contained immutable local '
     'digital library and intelligence runtime. Public site is MASTER. '
     'Anonymous GET is read-only. Signed-in accounts may ingest. '
-    'THIS IS NOT a 26-card software index. Not Zenodo. Not Horton. '
+    'THIS IS NOT a 26-card software index. Not Zenodo. Not a former legal surname. '
     'Author Aziel Eliab only.';
 
 const endpoints = <Map<String, String>>[
