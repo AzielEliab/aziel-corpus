@@ -5,6 +5,7 @@
  * Author: Aziel Eliab.
  */
 import { classifyRequest } from "./classify.js";
+import { extractReaderView, packagedKind, readerWantsBytes } from "./office-extract.js";
 import { isHumanTag, isMachineFileTag, visibleTagEntries } from "./visible-tags.js";
 
 export const PAPER_METRICS_KEY = "library:paper-metrics:v1";
@@ -348,7 +349,10 @@ export function looksBinaryText(text, contentType) {
  * How the reader paints a record.
  * text — stored text / markdown, including the page turner.
  * pdf, image, audio, video, html — in-browser view of the stored file.
- * opaque — this browser cannot paint the type. Say so.
+ * office, sheet, slides — Worker-extracted text from the stored package.
+ * archive — ZIP central-directory listing. Entries are not opened.
+ * legacy-doc, legacy-xls, legacy-ppt — binary Office containers. Painted only when the bytes are actually a supported package.
+ * opaque — this render cannot paint the type. Say so.
  */
 export function readerKind({ contentType = "", filename = "", body = "" } = {}) {
   const ct = mimeOf(contentType);
@@ -359,6 +363,8 @@ export function readerKind({ contentType = "", filename = "", body = "" } = {}) 
   if (ct.startsWith("video/")) return "video";
   if (ct === "text/html" || ct === "application/xhtml+xml") return "html";
   if (ct === "application/pdf" || ct === "application/x-pdf") return "pdf";
+  const packaged = packagedKind(ct, filename);
+  if (packaged) return packaged;
   const loose = !ct || ct === "application/octet-stream";
   if (loose || (!ct.startsWith("text/") && ct !== "application/json" && ct !== "application/xml")) {
     if (IMAGE_EXT.has(ext)) return "image";
@@ -563,6 +569,105 @@ function missingFileNote(kind) {
   return "<p class=\"paper-unrendered\">This " + what + " has no stored file object, so the reader cannot paint it.</p>";
 }
 
+function inlineText(text) {
+  return esc(redactIdentityCluster(text).text).replace(/\n/g, "<br>");
+}
+
+function tableHtml(rows) {
+  const body = (rows || []).map((row) => "<tr>" + (row || []).map((cell) => "<td>" + inlineText(cell) + "</td>").join("") + "</tr>").join("");
+  if (!body) return "";
+  return "<div class=\"paper-table-wrap\"><table class=\"paper-grid\"><tbody>" + body + "</tbody></table></div>";
+}
+
+function blocksHtml(view) {
+  const mode = view.mode === "sheet" || view.mode === "slides" ? view.mode : "office";
+  const note = view.note ? "<p class=\"muted paper-extract-note\">" + esc(view.note) + "</p>" : "";
+  const trunc = view.truncated
+    ? "<p class=\"muted\">Extracted text is longer than the reader window (" + READER_TEXT_CAP.toLocaleString("en-US") + " characters). Download the file for the rest.</p>"
+    : "";
+  const parts = (view.blocks || []).map((block) => {
+    if (!block) return "";
+    if (block.type === "h2") return "<h2>" + inlineText(block.text) + "</h2>";
+    if (block.type === "h3") return "<h3>" + inlineText(block.text) + "</h3>";
+    if (block.type === "table") return tableHtml(block.rows);
+    if (block.type === "sheet") {
+      return "<section class=\"paper-sheet-block\"><h2>" + inlineText(block.title || "Sheet") + "</h2>"
+        + (tableHtml(block.rows) || "<p class=\"muted\">No cached cells in this sheet.</p>") + "</section>";
+    }
+    if (block.type === "slide") {
+      const paras = (block.paragraphs || []).map((p) => "<p>" + inlineText(p) + "</p>").join("");
+      const notes = (block.notes || []).length
+        ? "<p class=\"muted\">Speaker notes</p>" + block.notes.map((p) => "<p>" + inlineText(p) + "</p>").join("")
+        : "";
+      return "<section class=\"paper-slide\"><h2>" + inlineText(block.title || "Slide") + "</h2>"
+        + (paras || "<p class=\"muted\">No readable text on this slide.</p>") + notes + "</section>";
+    }
+    return "<p>" + inlineText(block.text || "") + "</p>";
+  }).join("");
+  const empty = parts ? "" : "<p class=\"paper-unrendered\">No readable text was found in this file.</p>";
+  return "<div class=\"paper-view paper-" + mode + "\">" + note + parts + empty + trunc + "</div>";
+}
+
+const EXEC_NAME = /\.(exe|dll|so|dylib|bat|cmd|com|msi|scr|ps1|sh|app|wasm|jar)$/i;
+
+function formatByteSize(n) {
+  if (n == null || !Number.isFinite(Number(n)) || Number(n) < 0) return "size not listed";
+  return Number(n).toLocaleString("en-US") + " bytes";
+}
+
+function archiveHtml(view) {
+  const note = "<p class=\"muted paper-extract-note\">" + esc(view.note || "Archive entries are listed, not opened or executed.") + "</p>";
+  const rows = (view.entries || []).map((entry) => {
+    const size = entry.directory ? "directory" : formatByteSize(entry.bytes);
+    const reader = entry.encrypted ? "encrypted, listed only" : (EXEC_NAME.test(entry.name || "") ? "listed only, not executed" : "listed only");
+    return "<tr><td>" + inlineText(entry.name || "") + "</td><td>" + esc(size) + "</td><td>" + reader + "</td></tr>";
+  }).join("");
+  const table = rows
+    ? "<div class=\"paper-table-wrap\"><table class=\"paper-archive\"><thead><tr><th>Name</th><th>Size</th><th>In reader</th></tr></thead><tbody>" + rows + "</tbody></table></div>"
+    : "<p class=\"paper-unrendered\">This ZIP has no entries.</p>";
+  const more = view.truncated ? "<p class=\"muted\">Further entries are not listed. Download the archive for the full set.</p>" : "";
+  return "<div class=\"paper-view paper-archive\">" + note + table + more + "</div>";
+}
+
+function unreadPackagedReason(kind, contentType, filename) {
+  const label = opaqueFileLabel({ contentType, filename });
+  if (kind === "archive") {
+    return "This file is " + label + ". Entries are listed only when the ZIP bytes are readable. This render did not read the archive, so nothing is listed. Download stays below.";
+  }
+  if (kind === "legacy-doc") {
+    return "This file is " + label + ". Binary .doc stays download-only unless the bytes are RTF, HTML, or a Word package, and this render did not read the file. Download stays below.";
+  }
+  if (kind === "legacy-xls") {
+    return "This is a binary Excel .xls workbook. The reader does not parse BIFF, so nothing is painted. Download stays below.";
+  }
+  if (kind === "legacy-ppt") {
+    return "This is a binary PowerPoint .ppt file. The reader does not parse that container. Download stays below.";
+  }
+  return "This file is " + label + ". The reader did not read the stored bytes, so nothing was painted. Download stays below.";
+}
+
+function knownGapReason(filename) {
+  const ext = extOfName(filename);
+  const gap = {
+    "7z": "This is a 7-Zip archive. The reader does not list 7z entries. Download stays below.",
+    rar: "This is a RAR archive. The reader does not list RAR entries. Download stays below.",
+    gz: "This is a gzip stream, not a ZIP directory. The reader does not unpack it. Download stays below.",
+    tgz: "This is a gzip archive, not a ZIP directory. The reader does not unpack it. Download stays below.",
+    epub: "This is an EPUB package. The reader does not open the spine. Download stays below.",
+  };
+  return gap[ext] || "";
+}
+
+function packagedViewHtml(view) {
+  if (!view || !view.painted) {
+    const reason = (view && view.reason) || "The reader could not paint this file. Download stays below.";
+    return { mode: "opaque", html: "<p class=\"paper-unrendered\">" + esc(reason) + "</p>" };
+  }
+  if (view.mode === "archive") return { mode: "archive", html: archiveHtml(view) };
+  const mode = view.mode === "sheet" || view.mode === "slides" ? view.mode : "office";
+  return { mode, html: blocksHtml(view) };
+}
+
 export function renderPaperReader({
   row,
   body = "",
@@ -572,6 +677,8 @@ export function renderPaperReader({
   catalog = [],
   page = 1,
   truncated = false,
+  fileBytes = null,
+  fileSkip = "",
 } = {}) {
   const id = recordIdOf(row);
   const title = redactIdentityCluster((row && row.title) || id || "Paper").text;
@@ -659,9 +766,25 @@ export function renderPaperReader({
   } else if (kind === "pdf" || kind === "image" || kind === "audio" || kind === "video" || kind === "html") {
     mode = kind;
     bodyHtml = missingFileNote(kind) + storedTextBlock(notes, catalog, id, truncated, true);
+  } else if (readerWantsBytes(kind)) {
+    let view;
+    try {
+      view = fileSkip
+        ? { painted: false, reason: fileSkip }
+        : (fileBytes && fileBytes.byteLength
+          ? extractReaderView(fileBytes, { kind })
+          : { painted: false, reason: unreadPackagedReason(kind, ct, filename) });
+    } catch {
+      view = { painted: false, reason: "The reader hit an error while opening this file. Nothing was painted. Download stays below." };
+    }
+    const painted = packagedViewHtml(view);
+    mode = painted.mode;
+    bodyHtml = painted.html + storedTextBlock(notes, catalog, id, truncated, mode === "opaque");
   } else {
     mode = "opaque";
-    bodyHtml = "<p class=\"paper-unrendered\">This file is " + esc(opaqueFileLabel({ contentType: ct, filename })) + ". The reader cannot paint this type in the page. Download stays below.</p>"
+    const gap = knownGapReason(filename);
+    const sentence = gap || ("This file is " + opaqueFileLabel({ contentType: ct, filename }) + ". The reader cannot paint this type in the page. Download stays below.");
+    bodyHtml = "<p class=\"paper-unrendered\">" + esc(sentence) + "</p>"
       + storedTextBlock(notes, catalog, id, truncated);
   }
   const share = link
@@ -669,8 +792,9 @@ export function renderPaperReader({
     : "";
   const fileHref = id ? "/file/" + encodeURIComponent(id) : "";
   const countHref = id ? "/download?record=" + encodeURIComponent(id) : "";
+  const downloadClass = kind === "archive" ? "button" : "button ghost";
   const actions = id
-    ? "<p class=\"paper-actions\"><a class=\"button ghost\" href=\"" + esc(fileHref) + "\"" + downloadAttr(filename) + ">Download</a><a class=\"button ghost\" href=\"" + esc(countHref) + "\">Counted download</a></p>"
+    ? "<p class=\"paper-actions\"><a class=\"" + downloadClass + "\" href=\"" + esc(fileHref) + "\"" + downloadAttr(filename) + ">Download</a><a class=\"button ghost\" href=\"" + esc(countHref) + "\">Counted download</a></p>"
     : "";
   const pagesAttr = mode === "paged" || mode === "standalone" ? (split.page_count || 0) : 0;
   return "<article class=\"paper-reader\" data-reader=\"" + mode + "\" data-record=\"" + esc(id) + "\" data-pages=\"" + pagesAttr + "\">"
