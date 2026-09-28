@@ -20,6 +20,7 @@ import {
 } from "./paper-ux.js";
 import { keepAppendedKeys } from "./record-metadata.js";
 import { recordBody } from "./hosted-pages.js";
+import { CSS, page, READER_ZOOM_STEPS, readerStageHeight, readerZoomScript } from "./ui.js";
 
 const BANNED = /Collin Horton|GodLock\.AZ|\+25|10\.5281\/zenodo/i;
 
@@ -192,7 +193,7 @@ test("reader links an in-library cite and pages a multi-page paper", () => {
   });
   assert.match(deferred, /data-reader="pdf"/);
   assert.match(deferred, /class="paper-embed paper-pdf"/);
-  assert.match(deferred, /src="\/file\/AZDOC-PDF"/);
+  assert.match(deferred, /src="\/file\/AZDOC-PDF#view=FitH"/);
   assert.match(deferred, /class="button ghost" href="\/file\/AZDOC-PDF" download="scan.pdf"/);
   assert.match(deferred, /<strong>0<\/strong> views/);
   assert.doesNotMatch(deferred, /%PDF/);
@@ -304,6 +305,121 @@ test("reader links an in-library cite and pages a multi-page paper", () => {
   });
   assert.match(undated, /Undated/);
   assert.doesNotMatch(undated, BANNED);
+});
+
+test("painted readers offer zoom and fit the pane; opaque files stay download-only", () => {
+  assert.equal(readerStageHeight(900, 260, 110, 0), 530);
+  assert.equal(readerStageHeight(740, 400, 176, 0), 564);
+  assert.equal(readerStageHeight(360, 180, 140, 0), 220);
+  assert.equal(readerStageHeight(900, 260, 110, 180), 180);
+  assert.equal(readerStageHeight(900, 260, 110, 2000), 530);
+  assert.equal(readerStageHeight(300, 220, 160, 0), 140);
+  assert.ok(READER_ZOOM_STEPS.includes(1));
+  const pdf = renderPaperReader({
+    row: {
+      record_id: "AZDOC-PDF",
+      title: "Scan",
+      library: "aziel",
+      content_type: "application/pdf",
+      filename: "scan.pdf",
+      object_key: "aziel/AZDOC-PDF/scan.pdf",
+    },
+    body: "",
+    counts: { views: 0, downloads: 0, available: true },
+    permalink: "/aziellibrary/scan",
+  });
+  assert.match(pdf, /class="paper-stage paper-stage-framed"/);
+  assert.match(pdf, /data-stage="pdf"/);
+  assert.match(pdf, /data-scale="1"/);
+  assert.match(pdf, /src="\/file\/AZDOC-PDF#view=FitH"/);
+  assert.match(pdf, />Zoom out</);
+  assert.match(pdf, />Zoom in</);
+  assert.match(pdf, />Fit</);
+  assert.match(pdf, />Reset</);
+  assert.match(pdf, /class="paper-zoom-readout"/);
+  assert.doesNotMatch(pdf, /<script/i);
+  const image = renderPaperReader({
+    row: {
+      record_id: "AZDOC-IMG",
+      title: "Plate",
+      library: "aziel",
+      content_type: "image/png",
+      filename: "plate.png",
+      object_key: "aziel/AZDOC-IMG/plate.png",
+    },
+    body: "",
+    counts: { views: 0, downloads: 0, available: true },
+    permalink: "/aziellibrary/plate",
+  });
+  assert.match(image, /data-stage="image"/);
+  assert.match(image, /paper-stage-framed/);
+  assert.match(image, />Zoom in</);
+  const note = renderPaperReader({
+    row: {
+      record_id: "AZDOC-MD",
+      title: "Note",
+      library: "aziel",
+      content_type: "text/markdown",
+      filename: "note.md",
+      object_key: "aziel/AZDOC-MD/note.md",
+    },
+    body: "First line.\n\nSecond line.",
+    counts: { views: 0, downloads: 0, available: true },
+    permalink: "/aziellibrary/note",
+  });
+  assert.match(note, /data-stage="text"/);
+  assert.match(note, /paper-stage-flow/);
+  assert.match(note, />Fit</);
+  assert.doesNotMatch(note, /<iframe/);
+  assert.doesNotMatch(note, /<script/i);
+  const zip = renderPaperReader({
+    row: {
+      record_id: "AZDOC-ZIP",
+      title: "Bundle",
+      library: "aziel",
+      content_type: "application/zip",
+      filename: "bundle.zip",
+      object_key: "aziel/AZDOC-ZIP/bundle.zip",
+    },
+    body: "Notes kept with the archive.",
+    counts: { views: 0, downloads: 0, available: true },
+    permalink: "/aziellibrary/bundle",
+  });
+  assert.match(zip, /data-reader="opaque"/);
+  assert.doesNotMatch(zip, /paper-stage/);
+  assert.doesNotMatch(zip, /Zoom in/);
+  assert.doesNotMatch(zip, /<iframe/);
+  const audio = renderPaperReader({
+    row: {
+      record_id: "AZDOC-AUD",
+      title: "Take",
+      library: "corpus",
+      content_type: "audio/mpeg",
+      filename: "take.mp3",
+      object_key: "corpus/AZDOC-AUD/take.mp3",
+    },
+    body: "",
+    counts: { views: 1, downloads: 0, available: true },
+    permalink: "/azielcorpus/usersubmitted/take",
+  });
+  assert.doesNotMatch(audio, /paper-stage/);
+  assert.match(audio, /<audio /);
+  const shell = page("Scan", pdf, { path: "/aziellibrary/scan", kind: "record" });
+  assert.match(shell, /aziel-reader-zoom:v1:/);
+  assert.match(shell, /sessionStorage/);
+  assert.equal(shell.includes("min-height:420px"), false);
+  const home = page("Home", "<p>Search</p>", { kind: "search" });
+  assert.doesNotMatch(home, /aziel-reader-zoom/);
+  assert.match(CSS, /\.paper-stage-framed\{/);
+  assert.doesNotMatch(CSS, /min-height:420px/);
+  const script = readerZoomScript();
+  assert.doesNotMatch(script, BANNED);
+  const start = script.indexOf("function readerStageHeight");
+  const end = script.indexOf("var root=");
+  const fromScript = new Function(`${script.slice(start, end)} return readerStageHeight;`)();
+  for (const args of [[900, 260, 110, 0], [740, 400, 176, 0], [360, 180, 140, 0], [900, 260, 110, 180], [300, 220, 160, 0], [280, 40, 200, 0]]) {
+    assert.equal(fromScript(...args), readerStageHeight(...args), args.join(","));
+  }
 });
 
 test("identity cluster is black-barred only when a name token is present", () => {
