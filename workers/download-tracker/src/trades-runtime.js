@@ -3,10 +3,12 @@
  * Public Softwares extra / cite — BYO field OS
  * (HVAC / plumbing / electrical / sewer / cross-trades).
  * Operators bring their own ServiceTitan + ProBooks. Human authority wins.
- * Sister product; live_backends false. Humans use the giveaway Worker UI on the
- * VibeLock host (browser / PWA) without downloading first. Agents use OpenAPI
- * and MCP. The optional counted pack is GET /download.
+ * Sister product; live_backends false. Product label: Local Softwares 1.0 (installable).
+ * Humans use the giveaway Worker UI on the VibeLock host (browser / PWA) without downloading first.
+ * Agents use OpenAPI and MCP. The optional counted pack is GET /download
+ * (trades-runtime-1.0.0-local.tgz).
  * Local CLI common commands: help, softwares, version, health.
+ * Honesty locks: live_backends false, pilot_started false, hosted_company_os false.
  * GitHub Pages stay off. Identity: Aziel Eliab only.
  */
 import { HOST, RUNTIME_ORIGIN, AI_CLIENTS } from "./runtime-copy.js";
@@ -18,11 +20,12 @@ export const TRADES_RUNTIME_NAME = "Trades-Runtime";
 /**
  * Public Worker / giveaway version.
  * Matches GET https://trades-runtime.vibelock.workers.dev/v1/health `version`
- * (role public-giveaway). Softwares pill and machine cite use this string.
- * Not the Glama MCP listing Latest/Version — that public listing is still ~0.3.4
- * and Create Release there is blocked. Do not cite Glama as this version.
+ * (role public-giveaway) and product_label "Local Softwares 1.0".
+ * Softwares pill and machine cite use this string.
+ * The public Glama MCP listing stays ~0.3.4. Do not cite that listing as this version.
  */
-export const TRADES_RUNTIME_VERSION = "0.4.12";
+export const TRADES_RUNTIME_VERSION = "1.0.0-local";
+export const TRADES_RUNTIME_PRODUCT_LABEL = "Local Softwares 1.0";
 export const TRADES_RUNTIME_GITHUB = "https://github.com/AzielEliab/trades-runtime";
 export const TRADES_RUNTIME_WORKER = "trades-runtime";
 export const TRADES_RUNTIME_WORKER_HOME = "https://trades-runtime.vibelock.workers.dev/";
@@ -50,9 +53,12 @@ export const TRADES_RUNTIME_DUAL_SURFACE =
 
 export const TRADES_RUNTIME_NOTE =
   "Trades-Runtime is a public Softwares extra / local-first BYO field OS. "
+  + "Product label: " + TRADES_RUNTIME_PRODUCT_LABEL + " (installable). "
   + "Library MCP stays corpus-search; this product hosts its own read-only MCP (health, stats, cite, skill). "
-  + "GitHub Pages stay off. Humans use the giveaway Worker UI on the VibeLock host (browser / PWA) without downloading first. Agents use OpenAPI and MCP. The optional counted pack is GET /download. "
+  + "GitHub Pages stay off. Humans use the giveaway Worker UI on the VibeLock host (browser / PWA) without downloading first. Agents use OpenAPI and MCP. The optional counted pack is GET /download (trades-runtime-" + TRADES_RUNTIME_VERSION + ".tgz). "
   + "Local CLI common commands: help, softwares, version, health. "
+  + "Honesty locks: live_backends false; pilot_started false; hosted_company_os false. "
+  + "Public Glama MCP listing stays ~0.3.4. "
   + TRADES_RUNTIME_DUAL_SURFACE
   + " Compatible AI clients: " + AI_CLIENTS + ". Identity Aziel Eliab only.";
 
@@ -98,9 +104,12 @@ export const TRADES_RUNTIME_SOFTWARE_EXTRA = Object.freeze({
   mcp: TRADES_RUNTIME_MCP,
   fraggate_engine: false,
   live_backends: false,
+  pilot_started: false,
+  field_claim: false,
   hosted_company_os: false,
   byo_field_os: true,
   pages: "off",
+  product_label: TRADES_RUNTIME_PRODUCT_LABEL,
   one_line: TRADES_RUNTIME_ONE_LINE,
 });
 
@@ -117,8 +126,11 @@ export const TRADES_RUNTIME = Object.freeze({
   not_aziel_runtime: true,
   not_a_second_door: true,
   live_backends: false,
+  pilot_started: false,
+  field_claim: false,
   hosted_company_os: false,
   byo_field_os: true,
+  product_label: TRADES_RUNTIME_PRODUCT_LABEL,
   tenant_data: false,
   servicetitan_write: false,
   probooks_write: false,
@@ -156,9 +168,12 @@ export function tradesRuntimeLlmsBlock(host = HOST) {
   const h = String(host || HOST).replace(/\/+$/, "");
   return [
     "Trades-Runtime (trades-runtime) is a public Softwares extra / BYO field OS.",
+    "Product label: " + TRADES_RUNTIME_PRODUCT_LABEL + " (installable). Version " + TRADES_RUNTIME_VERSION + ".",
     TRADES_RUNTIME_ONE_LINE,
     TRADES_RUNTIME_DUAL_SURFACE,
-    "GitHub Pages off. Humans use the giveaway Worker UI on the VibeLock host (browser / PWA) without downloading first. Agents use OpenAPI and MCP. The optional counted pack is GET /download. Local CLI common commands: help, softwares, version, health. Counters live at /v1/stats.",
+    "GitHub Pages off. Humans use the giveaway Worker UI on the VibeLock host (browser / PWA) without downloading first. Agents use OpenAPI and MCP. The optional counted pack is GET /download (trades-runtime-" + TRADES_RUNTIME_VERSION + ".tgz). Local CLI common commands: help, softwares, version, health. Counters live at /v1/stats.",
+    "Honesty locks: live_backends false; pilot_started false; hosted_company_os false.",
+    "Public Glama MCP listing stays ~0.3.4.",
     "Product MCP is read-only (health, stats, cite, skill). Library MCP stays corpus-search and does not write ServiceTitan or ProBooks.",
     "Compatible AI clients: " + AI_CLIENTS + ".",
     "- Trades-Runtime Softwares card: " + h + "/software",
@@ -187,6 +202,7 @@ export function tradesRuntimeCiteFields(host = HOST) {
       slug: TRADES_RUNTIME_SLUG,
       name: TRADES_RUNTIME_NAME,
       version: TRADES_RUNTIME_VERSION,
+      product_label: TRADES_RUNTIME_PRODUCT_LABEL,
       description: TRADES_RUNTIME_ONE_LINE,
       github: TRADES_RUNTIME_GITHUB,
       download: TRADES_RUNTIME_DOWNLOAD,
@@ -194,6 +210,9 @@ export function tradesRuntimeCiteFields(host = HOST) {
       stats: TRADES_RUNTIME_STATS,
       software: h + "/software",
       live_backends: false,
+      pilot_started: false,
+      field_claim: false,
+      hosted_company_os: false,
       pages: "off",
       how_to_cite: TRADES_RUNTIME.how_to_cite,
       sameAs: TRADES_RUNTIME_SAME_AS.slice(),
@@ -215,6 +234,8 @@ export function tradesRuntimeMcpDiscovery() {
     author: AUTHOR,
     identity: AUTHOR,
     version: TRADES_RUNTIME_VERSION,
+    product_label: TRADES_RUNTIME_PRODUCT_LABEL,
     live_backends: false,
+    pilot_started: false,
   };
 }
