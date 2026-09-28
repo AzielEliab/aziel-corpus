@@ -536,15 +536,35 @@ function storedTextBlock(raw, catalog, selfId, truncated, open) {
   return "<details class=\"paper-stored\"" + (open ? " open" : "") + "><summary>Stored text</summary>" + paragraphsHtml(linked) + trunc + "</details>";
 }
 
+function zoomBarHtml() {
+  return "<div class=\"paper-zoombar\" role=\"toolbar\" aria-label=\"Zoom\">"
+    + "<button type=\"button\" class=\"paper-zoom-btn\" data-zoom=\"out\">Zoom out</button>"
+    + "<button type=\"button\" class=\"paper-zoom-btn\" data-zoom=\"in\">Zoom in</button>"
+    + "<button type=\"button\" class=\"paper-zoom-btn\" data-zoom=\"fit\">Fit</button>"
+    + "<button type=\"button\" class=\"paper-zoom-btn\" data-zoom=\"reset\">Reset</button>"
+    + "<span class=\"paper-zoom-readout\" aria-live=\"polite\">Fit</span>"
+    + "</div>";
+}
+
+/** Framed panes (PDF, HTML, image) get a viewport height. Flow panes reflow text to the column. */
+function stageHtml(stageKind, frame, inner) {
+  const framed = frame === "framed" ? " paper-stage-framed" : " paper-stage-flow";
+  return "<div class=\"paper-stage" + framed + "\" data-stage=\"" + esc(stageKind) + "\" data-scale=\"1\" style=\"--paper-zoom:1\">"
+    + zoomBarHtml()
+    + "<div class=\"paper-stage-viewport\"><div class=\"paper-stage-canvas\">"
+    + inner
+    + "</div></div></div>";
+}
+
 function viewFrame(kind, src, title) {
   const label = esc(title || "Filed file");
   const href = esc(src);
   if (kind === "pdf") {
-    return "<div class=\"paper-view\"><iframe class=\"paper-embed paper-pdf\" src=\"" + href + "\" title=\"" + label + "\"></iframe></div>"
-      + "<p class=\"muted\">PDF pages open in the browser viewer. If this pane stays blank, this browser did not paint the PDF. Download stays below.</p>";
+    return "<div class=\"paper-view\">" + stageHtml("pdf", "framed", "<iframe class=\"paper-embed paper-pdf\" src=\"" + href + "#view=FitH\" title=\"" + label + "\"></iframe>") + "</div>"
+      + "<p class=\"muted paper-view-note\">PDF pages open in the browser viewer, fit to the pane width. If this pane stays blank, this browser did not paint the PDF. Download stays below.</p>";
   }
   if (kind === "image") {
-    return "<div class=\"paper-view\"><img class=\"paper-embed paper-image\" src=\"" + href + "\" alt=\"" + label + "\"></div>";
+    return "<div class=\"paper-view\">" + stageHtml("image", "framed", "<img class=\"paper-embed paper-image\" src=\"" + href + "\" alt=\"" + label + "\">") + "</div>";
   }
   if (kind === "audio") {
     return "<div class=\"paper-view\"><audio class=\"paper-embed paper-av av-player\" controls src=\"" + href + "\"><p>This browser did not play the audio. Download stays below.</p></audio></div>";
@@ -553,15 +573,15 @@ function viewFrame(kind, src, title) {
     return "<div class=\"paper-view\"><video class=\"paper-embed paper-av av-player\" controls playsinline src=\"" + href + "\"><p>This browser did not play the video. Download stays below.</p></video></div>";
   }
   if (kind === "html") {
-    return "<div class=\"paper-view\"><iframe class=\"paper-embed paper-html\" sandbox=\"\" src=\"" + href + "\" title=\"" + label + "\"></iframe></div>"
-      + "<p class=\"muted\">HTML is shown with scripts off. Download stays below.</p>";
+    return "<div class=\"paper-view\">" + stageHtml("html", "framed", "<iframe class=\"paper-embed paper-html\" sandbox=\"\" src=\"" + href + "\" title=\"" + label + "\"></iframe>") + "</div>"
+      + "<p class=\"muted paper-view-note\">HTML is shown with scripts off. Download stays below.</p>";
   }
   return "";
 }
 
 function htmlSrcdoc(body, title) {
-  return "<div class=\"paper-view\"><iframe class=\"paper-embed paper-html\" sandbox=\"\" srcdoc=\"" + esc(body) + "\" title=\"" + esc(title || "Filed HTML") + "\"></iframe></div>"
-    + "<p class=\"muted\">HTML is shown with scripts off. Download stays below.</p>";
+  return "<div class=\"paper-view\">" + stageHtml("html", "framed", "<iframe class=\"paper-embed paper-html\" sandbox=\"\" srcdoc=\"" + esc(body) + "\" title=\"" + esc(title || "Filed HTML") + "\"></iframe>") + "</div>"
+    + "<p class=\"muted paper-view-note\">HTML is shown with scripts off. Download stays below.</p>";
 }
 
 function missingFileNote(kind) {
@@ -605,7 +625,7 @@ function blocksHtml(view) {
     return "<p>" + inlineText(block.text || "") + "</p>";
   }).join("");
   const empty = parts ? "" : "<p class=\"paper-unrendered\">No readable text was found in this file.</p>";
-  return "<div class=\"paper-view paper-" + mode + "\">" + note + parts + empty + trunc + "</div>";
+  return "<div class=\"paper-view paper-" + mode + "\">" + stageHtml(mode, "flow", note + parts + empty + trunc) + "</div>";
 }
 
 const EXEC_NAME = /\.(exe|dll|so|dylib|bat|cmd|com|msi|scr|ps1|sh|app|wasm|jar)$/i;
@@ -626,7 +646,7 @@ function archiveHtml(view) {
     ? "<div class=\"paper-table-wrap\"><table class=\"paper-archive\"><thead><tr><th>Name</th><th>Size</th><th>In reader</th></tr></thead><tbody>" + rows + "</tbody></table></div>"
     : "<p class=\"paper-unrendered\">This ZIP has no entries.</p>";
   const more = view.truncated ? "<p class=\"muted\">Further entries are not listed. Download the archive for the full set.</p>" : "";
-  return "<div class=\"paper-view paper-archive\">" + note + table + more + "</div>";
+  return "<div class=\"paper-view paper-archive\">" + stageHtml("archive", "flow", note + table + more) + "</div>";
 }
 
 function unreadPackagedReason(kind, contentType, filename) {
@@ -755,7 +775,7 @@ export function renderPaperReader({
   if (kind === "text" && (split.mode === "paged" || split.mode === "standalone")) {
     mode = split.mode;
     const trunc = truncated ? "<p class=\"muted\">Stored text is longer than the reader window (" + READER_TEXT_CAP.toLocaleString("en-US") + " characters). Download the file for the rest.</p>" : "";
-    bodyHtml = rangeNote + paragraphsHtml(linked) + trunc;
+    bodyHtml = "<div class=\"paper-view\">" + stageHtml("text", "flow", rangeNote + paragraphsHtml(linked) + trunc) + "</div>";
   } else if (kind === "html" && !hasFile && notes) {
     mode = "html";
     bodyHtml = htmlSrcdoc(notes, title);

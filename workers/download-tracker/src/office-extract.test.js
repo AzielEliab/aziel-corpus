@@ -143,6 +143,11 @@ test("docx text, heading, table, and header paint with scripts escaped", () => {
   assert.doesNotMatch(html, /Collin/);
   assert.doesNotMatch(html, /<script/i);
   assert.match(html, /class="button ghost" href="\/file\/AZDOC-OFFICE"/);
+  assert.match(html, /data-stage="office"/);
+  assert.match(html, /paper-stage-flow/);
+  assert.match(html, />Zoom in</);
+  assert.match(html, />Zoom out</);
+  assert.match(html, />Fit</);
   assert.doesNotMatch(html, /<iframe/);
 });
 
@@ -185,6 +190,8 @@ test("odt, rtf, and html-in-doc paint text; OLE doc stays download-only", () => 
   assert.match(oleHtml, /data-reader="opaque"/);
   assert.match(oleHtml, /does not parse that container/);
   assert.doesNotMatch(oleHtml, /data-reader="office"/);
+  assert.doesNotMatch(oleHtml, /paper-stage/);
+  assert.doesNotMatch(oleHtml, /Zoom in/);
 });
 
 test("xlsx and ods paint cached cells; xls stays download-only", () => {
@@ -229,6 +236,7 @@ test("xlsx and ods paint cached cells; xls stays download-only", () => {
   const xls = paper(ole, { content_type: "application/vnd.ms-excel", filename: "old.xls" });
   assert.match(xls, /data-reader="opaque"/);
   assert.match(xls, /does not parse that container/);
+  assert.doesNotMatch(xls, /paper-stage/);
 });
 
 test("pptx and odp paint slide text only", () => {
@@ -270,6 +278,7 @@ test("pptx and odp paint slide text only", () => {
   const ppt = paper(ole, { content_type: "application/vnd.ms-powerpoint", filename: "old.ppt" });
   assert.match(ppt, /data-reader="opaque"/);
   assert.match(ppt, /does not parse that container/);
+  assert.doesNotMatch(ppt, /paper-stage/);
 });
 
 test("zip entries are listed and not executed, including odd methods and unsafe names", () => {
@@ -302,6 +311,9 @@ test("zip entries are listed and not executed, including odd methods and unsafe 
   assert.doesNotMatch(html, /href="[^"]*tool\.exe/);
   assert.match(html, /<a class="button" href="\/file\/AZDOC-OFFICE" download="bundle.zip"/);
   assert.match(html, /class="button ghost" href="\/download\?record=AZDOC-OFFICE"/);
+  assert.match(html, /data-stage="archive"/);
+  assert.match(html, />Zoom in</);
+  assert.doesNotMatch(html, /<iframe/);
 });
 
 test("unreadable and oversized packages stay download-only", () => {
@@ -330,6 +342,7 @@ test("unreadable and oversized packages stay download-only", () => {
   assert.match(skipped, /data-reader="opaque"/);
   assert.match(skipped, new RegExp("up to " + READER_FILE_CAP.toLocaleString("en-US") + " bytes"));
   assert.doesNotMatch(skipped, /data-reader="office"/);
+  assert.doesNotMatch(skipped, /paper-stage/);
 
   const seven = renderPaperReader({
     row: { record_id: "AZDOC-7Z", title: "Pack", library: "aziel", content_type: "application/x-7z-compressed", filename: "pack.7z", object_key: "aziel/AZDOC-7Z/pack.7z" },
