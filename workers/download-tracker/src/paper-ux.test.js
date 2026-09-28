@@ -308,11 +308,11 @@ test("reader links an in-library cite and pages a multi-page paper", () => {
 });
 
 test("painted readers offer zoom and fit the pane; opaque files stay download-only", () => {
-  assert.equal(readerStageHeight(900, 260, 110, 0), 530);
+  assert.equal(readerStageHeight(900, 260, 110, 0), 790);
   assert.equal(readerStageHeight(740, 400, 176, 0), 564);
   assert.equal(readerStageHeight(360, 180, 140, 0), 220);
   assert.equal(readerStageHeight(900, 260, 110, 180), 180);
-  assert.equal(readerStageHeight(900, 260, 110, 2000), 530);
+  assert.equal(readerStageHeight(900, 260, 110, 2000), 790);
   assert.equal(readerStageHeight(300, 220, 160, 0), 140);
   assert.ok(READER_ZOOM_STEPS.includes(1));
   const pdf = renderPaperReader({

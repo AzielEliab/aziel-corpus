@@ -405,7 +405,7 @@ code{white-space:pre-wrap}
 .paper-zoom-readout{font-variant-numeric:tabular-nums;font-weight:750;color:var(--gold);min-width:3.2em;padding:0 4px}
 .paper-stage-viewport{max-width:100%;min-width:0}
 .paper-stage-framed{display:flex;flex-direction:column;height:min(72dvh,calc(100dvh - 8.5rem));min-height:min(16rem,calc(100svh - 7.5rem));max-height:calc(100dvh - 5.25rem)}
-.paper-stage-framed .paper-stage-viewport{flex:1 1 auto;min-height:0;overflow:auto;border:1px solid var(--line);border-radius:12px;background:#f4f1ea;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.paper-stage-framed .paper-stage-viewport{flex:1 1 auto;min-height:0;overflow:auto;border:1px solid var(--line);border-radius:12px;background:#f4f1ea;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;scrollbar-gutter:stable}
 .paper-stage-framed:not([data-stage="image"]) .paper-stage-canvas{width:calc(100% * var(--paper-zoom, 1));height:calc(100% * var(--paper-zoom, 1))}
 .paper-stage-framed:not([data-stage="image"]) iframe.paper-embed{width:calc(100% / var(--paper-zoom, 1));height:calc(100% / var(--paper-zoom, 1));transform:scale(var(--paper-zoom, 1));transform-origin:top left;border:0;border-radius:0;display:block;background:#f4f1ea}
 .paper-stage-framed[data-stage="image"] .paper-stage-canvas{width:100%;height:auto;min-height:0}
@@ -426,7 +426,8 @@ video.paper-av{width:100%;max-width:100%;max-height:calc(100dvh - 8.5rem);height
 .paper-slide,.paper-sheet-block{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 12px}
 .paper-slide p,.paper-sheet-block p,.paper-office p{overflow-wrap:anywhere}
 @media (max-width:720px){
-  .paper-zoom-btn{flex:1 1 calc(50% - 8px);width:auto}
+  .paper-zoombar{flex-wrap:nowrap;overflow-x:auto}
+  .paper-zoom-btn{flex:0 0 auto;width:auto;white-space:nowrap}
   .paper-stage-framed{height:min(68dvh,calc(100dvh - 7.5rem));min-height:min(12rem,calc(100svh - 8rem));max-height:calc(100dvh - 6.75rem)}
   body:has(.page-turner-end) .paper-stage-framed{max-height:calc(100dvh - 9.25rem)}
   .paper-grid,.paper-archive{font-size:0.9em}
@@ -585,21 +586,21 @@ export const READER_ZOOM_STEPS = [0.5, 0.67, 0.75, 0.85, 1, 1.15, 1.25, 1.5, 1.7
 
 /**
  * Height of a framed reader stage.
- * room is the viewport minus controls that must stay visible (notes, download, mobile page turner).
- * When the reader already fits on the first screen, use that leftover so the controls are not clipped.
- * When chrome above the stage would crush it, use the full room instead of a tiny pane.
+ * room is the viewport minus the note, download row, and mobile page turner under the stage.
+ * The pane uses that room, capped to the viewport, so a PDF is not a short strip and does not
+ * run past the screen. docTop is the stage's document offset; it does not shrink the pane.
  * imageWant shrinks a short image at fit so the frame does not keep an empty band.
  */
 export function readerStageHeight(viewH, docTop, reserve, imageWant) {
-  const room = Number(viewH) - Number(reserve);
-  if (!(room > 0)) return Math.max(64, Math.round(Number(viewH) * 0.45));
-  let h = room;
-  const firstScreen = Number(viewH) - Number(docTop) - Number(reserve);
-  if (firstScreen >= 240) h = Math.min(room, firstScreen);
+  const view = Number(viewH);
+  const room = view - Number(reserve);
+  if (!(room > 0)) return Math.max(64, Math.round(view * 0.45));
+  let h = Math.min(room, Math.max(64, view - 12));
   const want = Number(imageWant) || 0;
   if (want > 88 && want < h) h = want;
   if (h > room) h = room;
   if (h < 96 && room >= 96) h = 96;
+  void docTop;
   return Math.round(h);
 }
 
@@ -609,11 +610,10 @@ export function readerZoomScript() {
 (function(){
   var steps=${JSON.stringify(READER_ZOOM_STEPS)};
   function readerStageHeight(viewH, docTop, reserve, imageWant) {
-    var room = Number(viewH) - Number(reserve);
-    if (!(room > 0)) return Math.max(64, Math.round(Number(viewH) * 0.45));
-    var h = room;
-    var firstScreen = Number(viewH) - Number(docTop) - Number(reserve);
-    if (firstScreen >= 240) h = Math.min(room, firstScreen);
+    var view = Number(viewH);
+    var room = view - Number(reserve);
+    if (!(room > 0)) return Math.max(64, Math.round(view * 0.45));
+    var h = Math.min(room, Math.max(64, view - 12));
     var want = Number(imageWant) || 0;
     if (want > 88 && want < h) h = want;
     if (h > room) h = room;
