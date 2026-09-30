@@ -5,6 +5,7 @@ import { isChromeAuthorByline, isMachineFileTag, visibleTagEntries } from "./vis
 import { publicComponentFlags, isComponentApplicable } from "./review-applicability.js";
 import { applyApplicabilityToReview } from "./review.js";
 import { exploreRowHtml } from "./explore-nav.js";
+import { LIBRARY_HUB_PATH } from "./film.js";
 import { redactIdentityCluster, renderPaperReader } from "./paper-ux.js";
 
 function esc(s) {
@@ -235,7 +236,7 @@ export function recordBody(payload) {
     const entries = visibleTagEntries(items);
     if (!entries.length) return "";
     return "<div class=\"follow-group\"><span class=\"facet-label\">" + esc(label) + "</span><div class=\"mini-chips record-tags\">" +
-      entries.map((t) => "<a class=\"mini-chip\" href=\"/?" + param + "=" + encodeURIComponent(t.value) + "\">" + esc(t.label) + "</a>").join("") +
+      entries.map((t) => "<a class=\"mini-chip\" href=\"" + LIBRARY_HUB_PATH + "?" + param + "=" + encodeURIComponent(t.value) + "\">" + esc(t.label) + "</a>").join("") +
       "</div></div>";
   }
   const follow = [

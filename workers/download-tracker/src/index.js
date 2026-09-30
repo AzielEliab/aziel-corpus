@@ -2,6 +2,7 @@ import { handleRuntimeApi, corsHeaders, json, LIMITATION } from "./runtime.js";
 import { handleRuntimeRoot } from "./runtime-root.js";
 import { handleAuth, getSession } from "./auth.js";
 import { page, homeBody, homeSearchActive, streamLcpHtml } from "./ui.js";
+import { filmTheaterHtml, libraryHubRedirect, LIBRARY_HUB_PATH } from "./film.js";
 import { peekMeshDualCounts } from "./mesh.js";
 import { handleHosted } from "./hosted.js";
 import { robotsTxt, sitemapXml, sitemapIndexXml, sitemapRecordsXml, citeDoc, llmsDoc, aiTxt, humansTxt, mcpDiscovery, isReadMethod, crawlResponse, MIME } from "./crawl.js";
@@ -26,11 +27,7 @@ import {
   statsFromPacked,
   tryTunnelFirst,
   HTML_CACHE_CONTROL,
-  HTML_EDGE_CACHE_CONTROL,
   SEO_CACHE_CONTROL,
-  cacheMatchText,
-  cachePutText,
-  htmlCacheUrl,
 } from "./library-index.js";
 import { enforceRateLimit, rememberCatalog, isSeoBot } from "./rate-limit.js";
 import { handleDonate, DONATE_PATH } from "./donate.js";
@@ -388,7 +385,7 @@ async function indexHtml(env, request, signed) {
     trending: topPapers(metrics, catalog, "views", 5),
     downloaded: topPapers(metrics, catalog, "downloads", 5),
     host: HOST,
-  }), { signed: session, path: "/", kind: "search", views: stats.views || 0, downloads: stats.downloads || 0, nodes: mesh.nodes, liveNodes: mesh.liveNodes, donateStrip: false, ecosystem: false });
+  }), { signed: session, path: LIBRARY_HUB_PATH, kind: "search", views: stats.views || 0, downloads: stats.downloads || 0, nodes: mesh.nodes, liveNodes: mesh.liveNodes, donateStrip: false, ecosystem: false });
 }
 
 function llmsTxt() {
@@ -534,25 +531,23 @@ export default {
     }
 
     if (url.pathname === "/" && isReadMethod(request.method)) {
+      const hub = libraryHubRedirect(url);
+      if (hub) {
+        return new Response(null, {
+          status: 302,
+          headers: { Location: hub, "Cache-Control": "no-store", ...corsHeaders() },
+        });
+      }
       const htmlHeaders = { "Cache-Control": HTML_CACHE_CONTROL, "X-Robots-Tag": "index, follow, max-image-preview:large", ...corsHeaders() };
       if (request.method === "HEAD") {
         return crawlResponse(request, "", "text/html; charset=utf-8", htmlHeaders);
-      }
-      const cacheUrl = htmlCacheUrl(request);
-      if (!signedEarly) {
-        const cached = await cacheMatchText(cacheUrl);
-        if (cached) {
-          return attachVid(crawlResponse(request, streamLcpHtml(cached), "text/html; charset=utf-8", htmlHeaders));
-        }
       }
       if (!isSeoBot(request)) {
         const bump = incrementViews(env, request).catch(() => null);
         if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(bump);
         else await bump;
       }
-      const html = await indexHtml(env, request, signedEarly);
-      if (!signedEarly) await cachePutText(cacheUrl, html, undefined, { cacheControl: HTML_EDGE_CACHE_CONTROL });
-      return attachVid(crawlResponse(request, streamLcpHtml(html), "text/html; charset=utf-8", htmlHeaders));
+      return attachVid(crawlResponse(request, filmTheaterHtml(), "text/html; charset=utf-8", htmlHeaders));
     }
 
     const signed = await getSession(env, request);

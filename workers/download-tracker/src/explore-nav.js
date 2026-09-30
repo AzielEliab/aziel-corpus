@@ -3,13 +3,15 @@
  * Author: Aziel Eliab only.
  */
 
+import { LIBRARY_HUB_PATH } from "./film.js";
+
 function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
 
 /** Public explore doors. Keep Gazetteer off chrome. */
 export const EXPLORE_LINKS = Object.freeze([
-  Object.freeze({ href: "/", label: "Search" }),
+  Object.freeze({ href: LIBRARY_HUB_PATH, label: "Search" }),
   Object.freeze({ href: "/aziel-library", label: "Aziel Library" }),
   Object.freeze({ href: "/corpus", label: "Corpus" }),
   Object.freeze({ href: "/upload", label: "Upload" }),

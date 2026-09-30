@@ -528,7 +528,7 @@ test("Pattern, Software, About, and runtime pages render live copy", () => {
     crosses: [{ domain: "research", subject: "succession", n: 1 }],
   });
   assert.match(pattern, /<h1>Pattern<\/h1>/);
-  assert.match(pattern, /href="\/\?domain=research"/);
+  assert.match(pattern, /href="\/search\?domain=research"/);
   const soft = softwareBody({
     products: [{ name: "aziel-runtime", version: "catalog", root: true, countLabel: "1 downloads", blurb: "Root source", links: [{ href: "/runtime", label: "Site front door", primary: true }] }],
     fetched: 1,
@@ -938,10 +938,10 @@ test("sigil drawer hides hashes on cards, follows record facets, and keeps hones
   assert.match(rec, /class="verify-panel"/);
   assert.match(rec, /SHA-256 cdcd/);
   assert.match(rec, /class="follow-footer"/);
-  assert.match(rec, /href="\/\?domain=research">research</);
-  assert.match(rec, /href="\/\?subject=doctrine">doctrine</);
-  assert.match(rec, /href="\/\?keyword=clarity">clarity</);
-  assert.match(rec, /href="\/\?q=micro-shelf">micro-shelf</);
+  assert.match(rec, /href="\/search\?domain=research">research</);
+  assert.match(rec, /href="\/search\?subject=doctrine">doctrine</);
+  assert.match(rec, /href="\/search\?keyword=clarity">clarity</);
+  assert.match(rec, /href="\/search\?q=micro-shelf">micro-shelf</);
   assert.doesNotMatch(rec, /Author Aziel Eliab/i);
   const hashesAt = rec.indexOf('id="hashes"');
   const shaAt = rec.indexOf("SHA-256");
