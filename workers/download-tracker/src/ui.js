@@ -1,4 +1,5 @@
 import { isOperator } from "./library.js";
+import { LIBRARY_HUB_PATH } from "./film.js";
 import { shelfScoreState } from "./zsolver.js";
 import {
   headMeta,
@@ -529,7 +530,7 @@ export function brandCountPills({ views, downloads, nodes, liveNodes } = {}) {
 
 /** Left-edge sigil drawer. Pattern and Runtime stay off chrome. Login/Sign up live in the top bar. */
 export function sigilNavHtml() {
-  return `<div class="sigil-nav-scrim" id="sigilNavScrim" hidden aria-hidden="true"></div><nav class="nav2 quiet" id="sigilNav" hidden><a href="/">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/how-its-scored">How it's scored</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/forensics">Forensics</a><span class="sep">|</span><a class="nav-aziel" href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a><span class="sep">|</span><a href="/receipts">Receipts</a><span class="sep">|</span><a href="/donate">Donate</a><span class="sep">|</span><a href="/upload">Upload</a></nav>`;
+  return `<div class="sigil-nav-scrim" id="sigilNavScrim" hidden aria-hidden="true"></div><nav class="nav2 quiet" id="sigilNav" hidden><a href="${LIBRARY_HUB_PATH}">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/how-its-scored">How it's scored</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/forensics">Forensics</a><span class="sep">|</span><a class="nav-aziel" href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a><span class="sep">|</span><a href="/receipts">Receipts</a><span class="sep">|</span><a href="/donate">Donate</a><span class="sep">|</span><a href="/upload">Upload</a></nav>`;
 }
 
 export function sigilNavScript() {
@@ -829,7 +830,7 @@ function browseHref(path, state, extra = {}) {
     if (v == null) continue;
     v = String(v).trim();
     if (!v) continue;
-    if (key === "lib" && (v === "all" || path !== "/")) continue;
+    if (key === "lib" && (v === "all" || (path !== "/" && path !== LIBRARY_HUB_PATH))) continue;
     if (key === "sort" && v === "newest") continue;
     if (key === "offset" && v === "0") continue;
     sp.set(key, v);
@@ -867,7 +868,7 @@ function browseTools({ action = "/", showLibChips = true, ...raw }) {
   const opts = SORTS.map(
     ([v, lab]) => `<option value="${v}"${sortKey === v ? " selected" : ""}>${lab}</option>`
   ).join("");
-  const hiddenLib = action === "/" ? `<input type="hidden" name="lib" value="${esc(state.lib)}">` : "";
+  const hiddenLib = action === "/" || action === LIBRARY_HUB_PATH ? `<input type="hidden" name="lib" value="${esc(state.lib)}">` : "";
   const libChips = showLibChips
     ? `<div class="chips">${chip("All", browseHref("/", state, { lib: "all" }), state.lib === "all" || !state.lib)}${chip("Aziel Library", browseHref("/", state, { lib: "aziel" }), state.lib === "aziel")}${chip("Corpus", browseHref("/", state, { lib: "corpus" }), state.lib === "corpus")}</div>`
     : "";
@@ -1054,12 +1055,12 @@ function emptyShelfHtml(path = "/") {
     : here === "/corpus"
       ? `<a class="button ghost" href="/corpus">Open Corpus</a>`
       : `<a class="button ghost" href="/aziel-library">Browse Aziel Library</a><a class="button ghost" href="/corpus">Browse Corpus</a>`;
-  return `<div class="shelf"><div class="empty"><strong>No matching records yet.</strong><p>Try a shorter word, clear a filter, or open a shelf.</p><p class="empty-actions">${browse}<a class="button" href="/upload">Upload a file</a><a class="button ghost" href="/">New search</a></p></div></div>`;
+  return `<div class="shelf"><div class="empty"><strong>No matching records yet.</strong><p>Try a shorter word, clear a filter, or open a shelf.</p><p class="empty-actions">${browse}<a class="button" href="/upload">Upload a file</a><a class="button ghost" href="${LIBRARY_HUB_PATH}">New search</a></p></div></div>`;
 }
 
 function homeLibraryChips(state) {
   const st = browseState(state);
-  return `<div class="chips">${chip("All", "/", !st.q && !st.domain && !st.subject && !st.keyword && !st.author)}${chip("Aziel Library", "/aziel-library", false)}${chip("Corpus", "/corpus", false)}</div>`;
+  return `<div class="chips">${chip("All", LIBRARY_HUB_PATH, !st.q && !st.domain && !st.subject && !st.keyword && !st.author)}${chip("Aziel Library", "/aziel-library", false)}${chip("Corpus", "/corpus", false)}</div>`;
 }
 
 function homeSignupCard() {
@@ -1138,9 +1139,9 @@ export function homeTopHtml({ viewed, downloaded } = {}) {
 export function homeBody({ q, lib, sort, domain, subject, keyword, author, rows, error, records_packed, records_aziel, records_corpus, trending, downloaded } = {}) {
   const state = browseState({ q, lib, sort, domain, subject, keyword, author });
   const searching = homeSearchActive(state);
-  const tools = browseTools({ action: "/", showLibChips: false, ...state });
+  const tools = browseTools({ action: LIBRARY_HUB_PATH, showLibChips: false, ...state });
   const results = searching
-    ? docCards(rows, state, "/")
+    ? docCards(rows, state, LIBRARY_HUB_PATH)
     : "";
   return `<section class="hero">
 <h1>Search the libraries</h1>
@@ -1264,10 +1265,10 @@ function patternCard(href, n, label, kind) {
 
 export function patternBody({ total, domains, subjects, keywords, crosses } = {}) {
   const n = Number(total) || 0;
-  const domainCards = (domains || []).map((x) => patternCard("/?domain=" + encodeURIComponent(x.label), x.n, x.label, "domain")).join("");
-  const subjectCards = (subjects || []).map((x) => patternCard("/?subject=" + encodeURIComponent(x.label), x.n, x.label, "subject")).join("");
-  const keywordCards = (keywords || []).map((x) => patternCard("/?keyword=" + encodeURIComponent(x.label), x.n, x.label, "keyword")).join("");
-  const crossCards = (crosses || []).map((x) => patternCard("/?domain=" + encodeURIComponent(x.domain) + "&subject=" + encodeURIComponent(x.subject), x.n, x.domain + " × " + x.subject, "domain × subject")).join("");
+  const domainCards = (domains || []).map((x) => patternCard(LIBRARY_HUB_PATH + "?domain=" + encodeURIComponent(x.label), x.n, x.label, "domain")).join("");
+  const subjectCards = (subjects || []).map((x) => patternCard(LIBRARY_HUB_PATH + "?subject=" + encodeURIComponent(x.label), x.n, x.label, "subject")).join("");
+  const keywordCards = (keywords || []).map((x) => patternCard(LIBRARY_HUB_PATH + "?keyword=" + encodeURIComponent(x.label), x.n, x.label, "keyword")).join("");
+  const crossCards = (crosses || []).map((x) => patternCard(LIBRARY_HUB_PATH + "?domain=" + encodeURIComponent(x.domain) + "&subject=" + encodeURIComponent(x.subject), x.n, x.domain + " × " + x.subject, "domain × subject")).join("");
   return `<section class="hero"><h1>Pattern</h1><p class="muted">Domain, subject, and keyword clusters across ${esc(n)} recent records. Cards open Search with that filter.</p>${exploreRowHtml("/pattern")}</section>
 <div class="card"><h2>Domains</h2><div class="pattern-grid">${domainCards || "<p class=\"muted\">No domains yet.</p>"}</div></div>
 <div class="card"><h2>Subjects</h2><div class="pattern-grid">${subjectCards || "<p class=\"muted\">No subjects yet.</p>"}</div></div>

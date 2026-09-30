@@ -281,7 +281,7 @@ function openapi() {
       "/graph.jsonld": { get: { summary: "AZindex graph: Person, Who-is + 15:20 FAQ, WebSite publisher, library role, stats tether.", operationId: "graphJsonLd" } },
       "/who-is-aziel-eliab.txt": { get: { summary: "Verbatim Who is Aziel Eliab answer from the identity lock.", operationId: "whoIsAzielEliab" } },
       "/who-is": { get: { summary: "Plain-text alias of /who-is-aziel-eliab.txt.", operationId: "whoIs" } },
-      "/search": { get: { summary: "Corpus Search HTML (HTTP 200). Same shelf as /; does not increment homepage views.", operationId: "searchPage" } },
+      "/search": { get: { summary: "Corpus Search HTML (HTTP 200). Library hub behind the film at /. Does not increment homepage views.", operationId: "searchPage" } },
       "/.well-known/aziel.json": { get: { summary: "Shared azieleliab-pack mission object. Not a biography. doi null.", operationId: "wellKnownAziel" } },
       "/.well-known/person.jsonld": { get: { summary: "Alias of /person.jsonld. Same Person @id https://www.azieleliab.com/#aziel.", operationId: "wellKnownPersonJsonLd" } },
       "/runtime": { get: { summary: "Aziel Runtime " + RUNTIME_VERSION + " on this domain. Prefer /runtime/*. " + RUNTIME_NOTE, operationId: "runtimePage" } },

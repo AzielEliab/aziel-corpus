@@ -1,6 +1,7 @@
 import { scryptSync, randomBytes, timingSafeEqual } from "node:crypto";
 import { json, corsHeaders } from "./runtime.js";
 import { page, pwField, azielLibraryBody, corpusBody, homeBody, uploadBody, streamLcpHtml } from "./ui.js";
+import { LIBRARY_HUB_PATH } from "./film.js";
 import { isOperator, ingestRecord, searchRecords, listFacets, parseBrowseParams, asFile, guestSession } from "./library.js";
 import { extractEventsForRecord } from "./geo.js";
 import { attachPermalinks } from "./paper-ux.js";
@@ -212,7 +213,7 @@ export async function handleAuth(request, url, env, ctx) {
     const token = randomBytes(24).toString("hex");
     const exp = new Date(Date.now() + 7 * 864e5).toISOString();
     await env.DB.prepare("INSERT INTO sessions(token,user_id,username,role,expires_utc) VALUES(?,?,?,?,?)").bind(token, id, username, "user", exp).run();
-    return new Response(null, { status: 303, headers: { Location: "/", "Set-Cookie": cookie(token) } });
+    return new Response(null, { status: 303, headers: { Location: LIBRARY_HUB_PATH, "Set-Cookie": cookie(token) } });
   }
   if (path === "/login" && request.method === "POST") {
     const form = await request.formData();
@@ -237,7 +238,7 @@ export async function handleAuth(request, url, env, ctx) {
     const token = randomBytes(24).toString("hex");
     const exp = new Date(Date.now() + 7 * 864e5).toISOString();
     await env.DB.prepare("INSERT INTO sessions(token,user_id,username,role,expires_utc) VALUES(?,?,?,?,?)").bind(token, userId, sessionName, role, exp).run();
-    return new Response(null, { status: 303, headers: { Location: "/", "Set-Cookie": cookie(token) } });
+    return new Response(null, { status: 303, headers: { Location: LIBRARY_HUB_PATH, "Set-Cookie": cookie(token) } });
   }
 
   if (path === "/aziel-library" && (request.method === "GET" || request.method === "HEAD")) {
@@ -330,7 +331,7 @@ export async function handleAuth(request, url, env, ctx) {
     const title = String(form.get("title") || "").trim();
     const body = String(form.get("body") || form.get("notes") || "");
     const meta = formMeta(form);
-    const homeErr = (message, status = 400) => html(page("Corpus Search", homeBody({ error: message, host: "https://www.azielcorpuslibrary.net" }), { signed, path: "/", kind: "search" }), { status, signed });
+    const homeErr = (message, status = 400) => html(page("Corpus Search", homeBody({ error: message, host: "https://www.azielcorpuslibrary.net" }), { signed, path: LIBRARY_HUB_PATH, kind: "search" }), { status, signed });
     if (!title) {
       if (fromHome) return homeErr("Title is required.");
       const rows = await searchRecords(env, { library: "corpus", limit: 300 });
@@ -341,7 +342,7 @@ export async function handleAuth(request, url, env, ctx) {
       await afterIngest(env, rec, ctx);
       if (fromHome) {
         const held = rec && rec.quarantine_status && String(rec.quarantine_status).toUpperCase() !== "CLEAR";
-        return new Response(null, { status: 303, headers: { Location: held ? "/?received=held#upload-anonymous" : "/record/" + rec.id } });
+        return new Response(null, { status: 303, headers: { Location: held ? LIBRARY_HUB_PATH + "?received=held#upload-anonymous" : "/record/" + rec.id } });
       }
     } catch (err) {
       const message = err && err.message ? err.message : "Upload failed.";

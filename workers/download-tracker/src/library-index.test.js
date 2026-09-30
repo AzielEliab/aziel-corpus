@@ -414,7 +414,7 @@ test("GET /v1/health reports packed shelf file counts from the index", async () 
   assert.equal(kv.calls.list, 0);
 });
 
-test("GET / renders packed file counts from library:index:v1", async () => {
+test("GET /search renders packed file counts from library:index:v1", async () => {
   const packed = sealPackedIndex({
     views: 9,
     downloads: 2,
@@ -427,7 +427,7 @@ test("GET / renders packed file counts from library:index:v1", async () => {
   const kv = throwingListKv(new Map([[LIBRARY_INDEX_KEY, JSON.stringify(packed)]]));
   const { default: worker } = await import("./index.js");
   const res = await worker.fetch(
-    new Request("https://www.azielcorpuslibrary.net/", { headers: { "User-Agent": "Mozilla/5.0" } }),
+    new Request("https://www.azielcorpuslibrary.net/search", { headers: { "User-Agent": "Mozilla/5.0" } }),
     { DOWNLOADS: kv },
     {}
   );

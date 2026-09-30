@@ -173,7 +173,7 @@ export function websiteNode() {
       "@type": "SearchAction",
       target: {
         "@type": "EntryPoint",
-        urlTemplate: CANON_HOST + "/?q={search_term_string}",
+        urlTemplate: CANON_HOST + "/search?q={search_term_string}",
       },
       "query-input": "required name=search_term_string",
     },
@@ -333,11 +333,12 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
     });
   }
   if (kind === "search" || path === "/") {
+    const hubPath = kind === "search" && path && path !== "/" ? path : "/";
     graph.push({
       "@type": "CollectionPage",
-      "@id": CANON_HOST + "/#homepage",
+      "@id": CANON_HOST + (hubPath === "/" ? "/#homepage" : hubPath + "#search"),
       name: SITE,
-      url: CANON_HOST + "/",
+      url: CANON_HOST + hubPath,
       description: defaultDescription("search"),
       isPartOf: { "@id": WEBSITE_ID },
       author: who,
