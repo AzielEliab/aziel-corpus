@@ -10,6 +10,19 @@ These components remain third-party works governed by their own licenses. Aziel 
 
 The archival originals, Aziel IDs, SQLite corpus, hash ledger, native extraction, deterministic vector index, `.azm`/`.azk` formats, and PDF/XLSX exporters continue to work without those optional processors.
 
+## Historical basemap sheets (1914, 1945, 1994, 2010)
+
+The hosted map ships four simplified GeoJSON sheets, copied byte-for-byte from [AzielEliab/4dmap](https://github.com/AzielEliab/4dmap) `fourdmap/static/geo` at `bd7295bafe03ac8bcb09f51d543f0a569fccef29`:
+
+- `era-1914.geojson`
+- `era-1945.geojson`
+- `era-1994.geojson`
+- `era-2010.geojson`
+
+Upstream is André Ourednik's [historical-basemaps](https://github.com/aourednik/historical-basemaps), **GPL-3.0**. These files stay under that license. They are not relicensed as Apache-2.0. Coordinates were already rounded in the 4dmap copy; this repository does not move them. See `workers/download-tracker/public/historical/SOURCE.txt`.
+
+Only those four sheet years are bundled. A different year is answered with the nearest sheet, and the payload says when the requested year is not the sheet year. This cut does not add topography, satellite, ocean, street, or LiDAR layers, and it does not claim a boundary for every year between the sheets.
+
 ## Natural Earth low-resolution world boundaries
 Aziel Digital Library v2.2 bundles a compact low-resolution world boundary GeoJSON derived from Natural Earth data 
 

@@ -6,6 +6,7 @@ import { unzipEntries, zipText } from "./zip.js";
 import { appendLedger, verifyLedger, ensureLedger } from "./ledger.js";
 import { ensureReviewSchema } from "./review-store.js";
 import { mergeKitPlaces, sha256hex, utcNow, newId, ensureSchema } from "./geo.js";
+import { BUNDLED_YEARS } from "./historical-eras.js";
 import { isOperator, libraryFor, ingestRecord, asFile, safeFilename, objectExists, putObject } from "./library.js";
 import { persistOcrRun, ensureMediaSchema } from "./media.js";
 import { enhancePngBytes, normalizeLenses, LIMITATION as SPECTRAL_LIMITATION, VERSION as SPECTRAL_VERSION } from "./spectral.js";
@@ -465,7 +466,7 @@ export async function healthSnapshot(env, extra = {}) {
     events,
     gazetteer_places: places,
     packages,
-    historical_layers: layers,
+    historical_layers: layers + BUNDLED_YEARS.length,
     quarantined: await count("SELECT COUNT(*) AS n FROM records WHERE IFNULL(quarantine_status,'CLEAR') IN ('POISON_SUSPECT','QUARANTINE')"),
     views: extra.views || 0,
     downloads: extra.downloads || 0,

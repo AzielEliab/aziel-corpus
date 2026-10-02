@@ -285,6 +285,16 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     const date = url.searchParams.get("date") || url.searchParams.get("year") || "";
     return json(await historicalGeojson(env, date));
   }
+  if (path === "/api/unresolved" && read) {
+    let unresolved = [];
+    try { unresolved = await unresolvedPlaceMentions(env); } catch { unresolved = []; }
+    return json({
+      ok: true,
+      unresolved,
+      sample: true,
+      note: "Sample of recent records only, not a full-corpus scan. Names stay unpinned until one gazetteer place matches. Undated events stay undated.",
+    });
+  }
   if (path === "/api/map-event" && method === "POST") {
     if (!signed) return json({ error: "login required" }, 401);
     const form = await request.formData();
@@ -568,10 +578,8 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
   if (path === "/map" && read) {
     const gst = await gazetteerStatus(env, ctx);
     const events = await listEvents(env);
-    let unresolved = [];
-    try { unresolved = await unresolvedPlaceMentions(env); } catch { unresolved = []; }
     const hst = await historicalStatus(env);
-    return pageHtml(page("Temporal Map", mapBody({ events, unresolved, gazetteer: gst, historical: hst, signed }), { signed, path: "/map", scripts: ["/map-client.js"], kind: "map" }));
+    return pageHtml(page("Temporal Map", mapBody({ events, gazetteer: gst, historical: hst, signed }), { signed, path: "/map", scripts: ["/map-client.js"], kind: "map" }));
   }
   if (path === "/historical" && read) {
     const st = await historicalStatus(env);
