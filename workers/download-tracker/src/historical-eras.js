@@ -4,11 +4,10 @@
  * at bd7295bafe03ac8bcb09f51d543f0a569fccef29.
  * Upstream: aourednik/historical-basemaps (GPL-3.0).
  * Years are sheet years, not invented validity spans.
+ *
+ * The sheets ship in public/historical and are read through the ASSETS
+ * binding at /historical/era-YYYY.geojson. There is no filesystem fallback.
  */
-import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 
 export const LAYER_CAP_BYTES = 1024 * 1024;
 export const BUNDLED_YEARS = Object.freeze([1914, 1945, 1994, 2010]);
@@ -30,7 +29,7 @@ export const BUNDLED_ERAS = Object.freeze([
   Object.freeze({ year: 2010, file: "era-2010.geojson", name: "world_2010", feature_count: 240, bytes: 641027, sha256: "48c955b683d1a0d242e79e691d3ff29d7b466536d0d7968c6d7d35ab84451be2" }),
 ]);
 
-const ERA_DIR = join(dirname(fileURLToPath(import.meta.url)), "../public/historical");
+const ASSET_ORIGIN = "https://azielcorpuslibrary.net";
 const eraByYear = new Map(BUNDLED_ERAS.map((era) => [era.year, era]));
 const collectionCache = new Map();
 
@@ -95,18 +94,33 @@ export function eraHonesty(requestedYear, sheetYear) {
   };
 }
 
-function eraPath(file) {
-  return join(ERA_DIR, file);
+function eraAssetPath(file) {
+  return "/historical/" + file;
 }
 
 async function readEraText(env, file) {
-  if (env && env.ASSETS && typeof env.ASSETS.fetch === "function") {
-    try {
-      const res = await env.ASSETS.fetch(new Request("https://azielcorpuslibrary.net/historical/" + file));
-      if (res && res.ok) return await res.text();
-    } catch { /* tests and local runs use the file copy */ }
+  const path = eraAssetPath(file);
+  const assets = env && env.ASSETS;
+  if (!assets || typeof assets.fetch !== "function") {
+    const err = new Error("ASSETS binding required to read " + path);
+    err.status = 500;
+    throw err;
   }
-  return readFile(eraPath(file), "utf8");
+  let res;
+  try {
+    res = await assets.fetch(new Request(new URL(path, ASSET_ORIGIN), { method: "GET" }));
+  } catch (cause) {
+    const err = new Error("ASSETS fetch failed for " + path);
+    err.status = 502;
+    err.cause = cause;
+    throw err;
+  }
+  if (!res || !res.ok) {
+    const err = new Error("bundled historical sheet missing: " + path);
+    err.status = res && res.status ? res.status : 404;
+    throw err;
+  }
+  return await res.text();
 }
 
 export async function loadBundledEraCollection(env, year) {
@@ -160,12 +174,4 @@ export function mapBundledFeature(feature, honesty) {
     },
     geometry: feature.geometry,
   };
-}
-
-export function fileSha256(buf) {
-  return createHash("sha256").update(buf).digest("hex");
-}
-
-export function eraFilePath(file) {
-  return eraPath(file);
 }

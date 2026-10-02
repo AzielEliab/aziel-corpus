@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { handleHosted } from "./hosted.js";
 import { mapBody } from "./hosted-pages.js";
 import {
@@ -14,13 +16,35 @@ import {
   BUNDLED_ERAS,
   BUNDLED_YEARS,
   LAYER_CAP_BYTES,
-  eraFilePath,
   eraHonesty,
-  fileSha256,
+  loadBundledEraCollection,
   nearestBundledEra,
 } from "./historical-eras.js";
 
 const HOST = "https://www.azielcorpuslibrary.net";
+const ERA_DIR = join(dirname(fileURLToPath(import.meta.url)), "../public/historical");
+
+function sheetBytes(file) {
+  return readFileSync(join(ERA_DIR, file));
+}
+
+function stubAssets(fetches) {
+  return {
+    async fetch(request) {
+      const name = new URL(request.url).pathname.split("/").filter(Boolean).pop();
+      if (fetches) fetches.push(new URL(request.url).pathname);
+      try {
+        const body = sheetBytes(name);
+        return new Response(body, {
+          status: 200,
+          headers: { "Content-Type": "application/geo+json" },
+        });
+      } catch {
+        return new Response("missing", { status: 404 });
+      }
+    },
+  };
+}
 
 function stubEnv() {
   const queries = [];
@@ -42,6 +66,7 @@ function stubEnv() {
   }
   return {
     queries,
+    ASSETS: stubAssets(),
     DB: {
       prepare(sql) {
         queries.push(sql);
@@ -61,11 +86,10 @@ test("bundled sheets are exactly 1914, 1945, 1994, and 2010 under the 1MB cap", 
   assert.equal(LAYER_CAP_BYTES, LAYER_CAP);
   assert.equal(BUNDLED_ERAS.length, 4);
   for (const era of BUNDLED_ERAS) {
-    const bytes = readFileSync(eraFilePath(era.file));
+    const bytes = sheetBytes(era.file);
     assert.equal(bytes.length, era.bytes);
     assert.ok(bytes.length <= LAYER_CAP, era.file);
     assert.equal(createHash("sha256").update(bytes).digest("hex"), era.sha256);
-    assert.equal(fileSha256(bytes), era.sha256);
     const fc = JSON.parse(bytes.toString("utf8"));
     assert.equal(fc.type, "FeatureCollection");
     assert.equal(Number(fc.year), era.year);
@@ -206,6 +230,22 @@ test("undated events stay undated in the map list", () => {
   });
   assert.match(html, /undated — Uyo/);
   assert.doesNotMatch(html, /undated — Uyo[\s\S]{0,80}2010/);
+});
+
+test("era loader reads /historical sheets from ASSETS and does not use node:fs", async () => {
+  const src = readFileSync(new URL("./historical-eras.js", import.meta.url), "utf8");
+  assert.doesNotMatch(src, /node:fs|node:path|node:crypto|node:url|fileURLToPath|readFile\(/);
+  assert.match(src, /\/historical\//);
+  assert.match(src, /ASSETS/);
+  await assert.rejects(
+    () => loadBundledEraCollection({}, 1994),
+    /ASSETS binding required to read \/historical\/era-1994\.geojson/,
+  );
+  const fetches = [];
+  const loaded = await loadBundledEraCollection({ ASSETS: stubAssets(fetches) }, 1994);
+  assert.deepEqual(fetches, ["/historical/era-1994.geojson"]);
+  assert.equal(loaded.era.year, 1994);
+  assert.equal(loaded.collection.features.length, 240);
 });
 
 test("map client paints events before lazy historical and unresolved fetches", () => {
