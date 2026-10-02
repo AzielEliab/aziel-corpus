@@ -1207,7 +1207,7 @@ export function llmsDoc(limitation, survival) {
     + "- GET " + HOST + "/v1/metadata-backfill  (idempotent; writes package + .Json sidecars)\n"
     + "- GET " + HOST + "/receipt/{id}  (AZDOC-, JSONAZDOC-, or AZRUN-)\n"
     + "- GET " + HOST + "/ledger/{id}\n"
-    + "- GET " + HOST + "/api/events\n"
+    + "- GET " + HOST + "/api/events  (map pins hydrate from here; not inlined on GET /map)\n"
     + "- GET " + HOST + "/api/gazetteer?q=Florence\n"
     + "- GET " + HOST + "/api/historical?date=YYYY  (nearest of sheets 1914, 1945, 1994, 2010; labeled when the year is not the sheet year)\n"
     + "- GET " + HOST + "/api/unresolved  (deferred place sample; not on the /map critical path)\n"
