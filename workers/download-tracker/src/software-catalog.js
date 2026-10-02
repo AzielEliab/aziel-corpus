@@ -32,6 +32,7 @@ import {
   TRADES_RUNTIME_SOFTWARE_EXTRA,
   TRADES_RUNTIME_SLUG,
   TRADES_RUNTIME_STATS,
+  alignTradesRuntimeExtra,
   isTradesRuntimeSlug,
 } from "./trades-runtime.js";
 import {
@@ -310,12 +311,13 @@ export function softwareTabCatalog(catalog, opts = {}) {
   const merged = passThrough ? collected : mergeSoftwareExtras(collected);
   const products = merged
     .filter((p) => !isKernelExtraSlug(p.slug) && !isSuiteHelpSlug(p.slug, p.name))
+    .map((p) => alignTradesRuntimeExtra(p))
     .map((p) => (passThrough ? slimSoftwareProduct(p) : p));
   let extras = collectCatalogExtras(norm);
   if (passThrough) {
     extras = extras.concat(extrasMissingFromProducts(products, extras));
   }
-  extras = extras.map(slimSoftwareExtra);
+  extras = extras.map((row) => slimSoftwareExtra(alignTradesRuntimeExtra(row)));
   return {
     version: firstText(norm.version, catalog && catalog.version),
     products,
@@ -339,12 +341,13 @@ export function mergeSoftwareExtras(products) {
     const slug = canonicalSoftwareSlug(door.slug);
     const i = index.get(slug);
     if (i == null) {
-      list.push(Object.assign({ extra: true }, door, { slug, one_line: hubSoftwareCopy(door.one_line) }));
+      const added = Object.assign({ extra: true }, door, { slug, one_line: hubSoftwareCopy(door.one_line) });
+      list.push(isTradesRuntimeSlug(slug) ? alignTradesRuntimeExtra(added) : added);
       index.set(slug, list.length - 1);
       continue;
     }
     const prev = list[i] || {};
-    list[i] = Object.assign({}, door, prev, {
+    const merged = Object.assign({}, door, prev, {
       extra: true,
       slug,
       door: prev.door || door.door,
@@ -357,8 +360,9 @@ export function mergeSoftwareExtras(products) {
       fraggate_engine: prev.fraggate_engine != null ? prev.fraggate_engine : door.fraggate_engine,
       one_line: hubSoftwareCopy(preferWorkerSoftwareCopy(prev, door)),
       name: prev.name || door.name,
-      version: prev.version || door.version,
+      version: isTradesRuntimeSlug(slug) ? firstText(door.version, prev.version) : (prev.version || door.version),
     });
+    list[i] = isTradesRuntimeSlug(slug) ? alignTradesRuntimeExtra(merged) : merged;
   }
   return list;
 }
@@ -591,6 +595,7 @@ export const SOFTWARE_PASS_KEYS = [
   "fraggate_engine", "fraggate_status", "fraggate_call", "catalog_only",
   "door", "engine_digest", "note", "updated_at", "git_sha", "extra",
   "local_not_hosted", "href", "url", "live_backends", "hosted_company_os",
+  "pilot_started", "field_claim", "product_label", "pages", "byo_field_os",
   "surface", "software_tab", "enabled_default", "path", "spec",
 ];
 
@@ -606,12 +611,14 @@ export const SOFTWARE_EXTRA_KEYS = [
   "slug", "name", "one_line", "banner", "version", "status", "kind",
   "github", "download", "download_url", "worker", "worker_home", "count",
   "mcp", "path", "href", "url", "fraggate_engine", "catalog_only", "door",
-  "extra", "live_backends", "hosted_company_os",
+  "extra", "live_backends", "hosted_company_os", "pilot_started", "field_claim",
+  "product_label", "pages", "byo_field_os",
 ];
 
 const SOFTWARE_FALSE_KEYS = [
   "engine", "fraggate_engine", "fraggate_call", "catalog_only", "door",
-  "extra", "live_backends", "hosted_company_os", "software_tab", "enabled_default",
+  "extra", "live_backends", "hosted_company_os", "pilot_started", "field_claim",
+  "software_tab", "enabled_default",
 ];
 
 export function isWorkerSoftwareSource(source) {

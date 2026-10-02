@@ -27,6 +27,7 @@ import {
   tradesRuntimeLlmsBlock,
   tradesRuntimeCiteFields,
   tradesRuntimeMcpDiscovery,
+  alignTradesRuntimeExtra,
 } from "./trades-runtime.js";
 
 const BANNED = /Collin Horton|GodLock\.AZ|\+25|quiet (Aziel|triad|boost)|10\.5281\/zenodo/i;
@@ -41,7 +42,14 @@ test("Trades-Runtime cite is a local-first Softwares extra, not a FragGate engin
   assert.equal(TRADES_RUNTIME.product_label, "Local Softwares 1.0");
   assert.equal(TRADES_RUNTIME_SOFTWARE_EXTRA.product_label, "Local Softwares 1.0");
   assert.equal(TRADES_RUNTIME.kind, "plain");
+  assert.equal(TRADES_RUNTIME.door, "none");
+  assert.equal(TRADES_RUNTIME.software_tab, false);
+  assert.equal(TRADES_RUNTIME.fraggate_call, false);
   assert.equal(TRADES_RUNTIME.fraggate_engine, false);
+  assert.equal(TRADES_RUNTIME_SOFTWARE_EXTRA.door, false);
+  assert.equal(TRADES_RUNTIME_SOFTWARE_EXTRA.software_tab, false);
+  assert.equal(TRADES_RUNTIME_SOFTWARE_EXTRA.fraggate_call, false);
+  assert.equal(TRADES_RUNTIME.version_id, undefined);
   assert.equal(TRADES_RUNTIME.live_backends, false);
   assert.equal(TRADES_RUNTIME.pilot_started, false);
   assert.equal(TRADES_RUNTIME.field_claim, false);
@@ -70,11 +78,15 @@ test("Trades-Runtime cite is a local-first Softwares extra, not a FragGate engin
   assert.match(TRADES_RUNTIME.note, /Agents use OpenAPI and MCP/);
   assert.match(TRADES_RUNTIME.note, /optional counted pack is GET \/download \(trades-runtime-1\.0\.0-local\.tgz\)/);
   assert.match(TRADES_RUNTIME.note, /Local CLI common commands: help, softwares, version, health/);
-  assert.match(TRADES_RUNTIME.note, /Honesty locks: live_backends false; pilot_started false; hosted_company_os false/);
-  assert.match(TRADES_RUNTIME.note, /Public Glama MCP listing stays ~0\.3\.4/);
+  assert.match(TRADES_RUNTIME.note, /Honesty locks: live_backends false; pilot_started false; field_claim false; hosted_company_os false/);
+  assert.match(TRADES_RUNTIME.note, /Public Glama MCP listing stays ~0\.3\.4 \/ Latest pre-0\.4\.4 parked/);
+  assert.match(TRADES_RUNTIME.note, /FragGate door none/);
+  assert.match(TRADES_RUNTIME.note, /software_tab false/);
+  assert.match(TRADES_RUNTIME.note, /fraggate_call does not execute trades-runtime/);
   assert.doesNotMatch(TRADES_RUNTIME.note, /Public get = Worker download/);
   assert.doesNotMatch(TRADES_RUNTIME.note, /Track [LF]/);
   assert.doesNotMatch(TRADES_RUNTIME.note, /Field 1\.0/);
+  assert.doesNotMatch(TRADES_RUNTIME.note, /Office 1\.0/);
   assert.doesNotMatch(TRADES_RUNTIME.note, /company OS live/);
   assert.doesNotMatch(TRADES_RUNTIME.note, /Glama Latest|Make Release/);
   assert.match(TRADES_RUNTIME.how_to_cite, /Trades-Runtime 1\.0\.0-local/);
@@ -86,7 +98,9 @@ test("Trades-Runtime cite is a local-first Softwares extra, not a FragGate engin
   assert.equal(isTradesRuntimeSlug("aziel-runtime"), false);
   assert.doesNotMatch(JSON.stringify(TRADES_RUNTIME), BANNED);
   assert.doesNotMatch(JSON.stringify(TRADES_RUNTIME), /Field 1\.0/);
+  assert.doesNotMatch(JSON.stringify(TRADES_RUNTIME), /Office 1\.0/);
   assert.doesNotMatch(JSON.stringify(TRADES_RUNTIME), /company OS live/);
+  assert.equal(Object.prototype.hasOwnProperty.call(TRADES_RUNTIME, "version_id"), false);
   assert.doesNotMatch(JSON.stringify(TRADES_RUNTIME), /Glama Latest|Make Release/);
   assert.doesNotMatch(TRADES_RUNTIME.one_line, /hosted multi-tenant company OS$/);
   assert.doesNotMatch(JSON.stringify(TRADES_RUNTIME), /"live_backends": true/);
@@ -141,8 +155,12 @@ test("cite.json / llms.txt / humans.txt / ai.txt cite Trades-Runtime honestly", 
   assert.match(llms, /Trades-Runtime \(trades-runtime\) is a public Softwares extra \/ BYO field OS/);
   assert.match(llms, /Local Softwares 1\.0 \(installable\)/);
   assert.match(llms, /pilot_started false/);
-  assert.match(llms, /Public Glama MCP listing stays ~0\.3\.4/);
+  assert.match(llms, /field_claim false/);
+  assert.match(llms, /Public Glama MCP listing stays ~0\.3\.4 \/ Latest pre-0\.4\.4 parked/);
+  assert.match(llms, /FragGate door none/);
+  assert.match(llms, /fraggate_call does not execute trades-runtime/);
   assert.doesNotMatch(llms, /Field 1\.0/);
+  assert.doesNotMatch(llms, /Office 1\.0/);
   assert.doesNotMatch(llms, /company OS live/);
   assert.doesNotMatch(llms, /Glama Latest|Make Release/);
   assert.doesNotMatch(llms, /not a FragGate-exec true engine/i);
@@ -163,8 +181,10 @@ test("cite.json / llms.txt / humans.txt / ai.txt cite Trades-Runtime honestly", 
   assert.match(block, /optional counted pack is GET \/download \(trades-runtime-1\.0\.0-local\.tgz\)/);
   assert.match(block, /Local CLI common commands: help, softwares, version, health/);
   assert.match(block, /Local Softwares 1\.0 \(installable\)/);
-  assert.match(block, /Honesty locks: live_backends false; pilot_started false; hosted_company_os false/);
-  assert.match(block, /Public Glama MCP listing stays ~0\.3\.4/);
+  assert.match(block, /Honesty locks: live_backends false; pilot_started false; field_claim false; hosted_company_os false/);
+  assert.match(block, /Public Glama MCP listing stays ~0\.3\.4 \/ Latest pre-0\.4\.4 parked/);
+  assert.match(block, /FragGate door none/);
+  assert.match(block, /fraggate_call does not execute trades-runtime/);
   assert.doesNotMatch(block, /Public get = Worker download/);
   assert.doesNotMatch(block, /Field 1\.0/);
   assert.doesNotMatch(block, /company OS live/);
@@ -189,6 +209,13 @@ test("SOFTWARE_EXTRAS lists Trades-Runtime with github, download, mcp, and /v1/s
   assert.equal(tr.github, TRADES_RUNTIME_GITHUB);
   assert.equal(tr.mcp, TRADES_RUNTIME_MCP);
   assert.equal(tr.fraggate_engine, false);
+  assert.equal(tr.fraggate_call, false);
+  assert.equal(tr.software_tab, false);
+  assert.equal(tr.door, false);
+  assert.equal(tr.version, "1.0.0-local");
+  assert.equal(tr.product_label, "Local Softwares 1.0");
+  assert.equal(tr.pilot_started, false);
+  assert.equal(tr.field_claim, false);
   assert.equal(countUrlForProduct(tr), TRADES_RUNTIME_STATS);
   assert.equal(countUrlForProduct({ slug: "trades-runtime", count: null }), TRADES_RUNTIME_STATS);
   assert.equal(countUrlForProduct({ slug: "tradesruntime" }), TRADES_RUNTIME_STATS);
@@ -204,6 +231,72 @@ test("SOFTWARE_EXTRAS lists Trades-Runtime with github, download, mcp, and /v1/s
   const aliasMerged = mergeSoftwareExtras([{ slug: "tradesruntime", name: "Trades Runtime" }]);
   assert.equal(aliasMerged.filter((p) => p.slug === "trades-runtime").length, 1);
   assert.ok(!aliasMerged.some((p) => p.slug === "tradesruntime"));
+});
+
+test("stale suite row 0.4.9 is replaced by live health 1.0.0-local", () => {
+  const stale = alignTradesRuntimeExtra({
+    slug: "trades-runtime",
+    version: "0.4.9",
+    live_backends: true,
+    pilot_started: true,
+    field_claim: true,
+    fraggate_call: true,
+    software_tab: true,
+    door: true,
+    how_to_cite: "Eliab, Aziel. (2026). Trades-Runtime 0.4.9 [Software]. Apache-2.0. https://github.com/AzielEliab/trades-runtime",
+  });
+  assert.equal(stale.version, "1.0.0-local");
+  assert.equal(stale.product_label, "Local Softwares 1.0");
+  assert.equal(stale.live_backends, false);
+  assert.equal(stale.pilot_started, false);
+  assert.equal(stale.field_claim, false);
+  assert.equal(stale.fraggate_call, false);
+  assert.equal(stale.software_tab, false);
+  assert.equal(stale.door, false);
+  assert.equal(stale.hosted_company_os, false);
+
+  const merged = mergeSoftwareExtras([{
+    slug: "trades-runtime",
+    name: "Trades-Runtime",
+    version: "0.4.9",
+    live_backends: true,
+    pilot_started: true,
+    field_claim: true,
+    hosted_company_os: true,
+    fraggate_call: true,
+    software_tab: true,
+    door: true,
+  }]);
+  const tr = merged.find((p) => p.slug === "trades-runtime");
+  assert.equal(tr.version, "1.0.0-local");
+  assert.equal(tr.product_label, "Local Softwares 1.0");
+  assert.equal(tr.live_backends, false);
+  assert.equal(tr.pilot_started, false);
+  assert.equal(tr.field_claim, false);
+  assert.equal(tr.hosted_company_os, false);
+  assert.equal(tr.fraggate_call, false);
+  assert.equal(tr.software_tab, false);
+  assert.equal(tr.door, false);
+  assert.doesNotMatch(JSON.stringify(tr), /0\.4\.9/);
+  assert.doesNotMatch(JSON.stringify(tr), /Field 1\.0|Office 1\.0/);
+
+  const tab = softwareTabCatalog({
+    version: "2.0.0-rc1",
+    software: [{ slug: "peacelock", name: "PeaceLock" }],
+    extras: [{ slug: "trades-runtime", name: "Trades-Runtime", version: "0.4.9", live_backends: true, door: true, fraggate_call: true, software_tab: true }],
+  }, { passThrough: true });
+  const extra = tab.extras.find((e) => e.slug === "trades-runtime");
+  assert.ok(extra);
+  assert.equal(extra.version, "1.0.0-local");
+  assert.equal(extra.product_label, "Local Softwares 1.0");
+  assert.equal(extra.pilot_started, false);
+  assert.equal(extra.field_claim, false);
+  assert.equal(extra.live_backends, false);
+  assert.equal(extra.fraggate_call, false);
+  assert.equal(extra.software_tab, false);
+  assert.equal(extra.door, false);
+  assert.equal(extra.pages, "off");
+  assert.ok(!tab.products.some((p) => p.slug === "trades-runtime"));
 });
 
 test("softwareTabCatalog extras merge includes trades-runtime without promoting FragGate", () => {
@@ -234,6 +327,10 @@ test("MCP discovery cites the product host and does not invent ST write tools", 
   assert.equal(disc.product_label, "Local Softwares 1.0");
   assert.equal(disc.live_backends, false);
   assert.equal(disc.pilot_started, false);
+  assert.equal(disc.field_claim, false);
+  assert.equal(disc.software_tab, false);
+  assert.equal(disc.fraggate_call, false);
+  assert.equal(disc.door, "none");
   assert.match(disc.note, /health, stats, cite, skill/);
   assert.doesNotMatch(disc.note, /Field 1\.0|company OS live|Glama Latest|Make Release/);
 });
