@@ -1,0 +1,31 @@
+Historical boundary sheets on the Aziel Corpus map
+================================================
+
+These four GeoJSON files are a simplified offline subset copied byte-for-byte
+from AzielEliab/4dmap fourdmap/static/geo at commit
+bd7295bafe03ac8bcb09f51d543f0a569fccef29:
+
+- era-1914.geojson
+- era-1945.geojson
+- era-1994.geojson
+- era-2010.geojson
+
+Upstream work: André Ourednik, historical-basemaps
+https://github.com/aourednik/historical-basemaps
+License: GNU General Public License v3.0 (GPL-3.0)
+https://www.gnu.org/licenses/gpl-3.0.html
+
+The sheets are not relicensed under Apache-2.0. Apache-2.0 covers Aziel code
+in this repository, not these four files.
+
+What this copy is:
+- Political boundaries for the sheet years 1914, 1945, 1994, and 2010 only.
+- Coordinates were already rounded in the 4dmap copy. This repository does not
+  move them.
+- A requested year that is not one of those four is answered with the nearest
+  sheet, and the response says the year is not the sheet year.
+
+What this copy is not:
+- Not a continuous atlas of every year.
+- Not a surveyed boundary.
+- Not topography, satellite imagery, oceanography, street map, or LiDAR.

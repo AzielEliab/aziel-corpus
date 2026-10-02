@@ -107,13 +107,48 @@ async function renderHistory(year) {
       var d = geomPath(f.geometry); if (!d) return; n++;
       var p = f.properties || {};
       var path = mk('path', {d:d, fill:'#647cb033', stroke:'#465d86', 'stroke-width':1.2, 'fill-rule':'evenodd'});
-      var title = mk('title', {}); title.textContent = (p.name||'')+'\n'+(p.jurisdiction||'')+'\n'+(p.valid_from||'')+' — '+(p.valid_to||'')+'\n'+(p.source_name||'');
+      var when = p.sheet_year ? ('Sheet year ' + p.sheet_year + (p.year_matches_sheet === false && p.requested_year != null ? (' · requested ' + p.requested_year + ' ≠ sheet') : '')) : ((p.valid_from||'')+' — '+(p.valid_to||''));
+      var title = mk('title', {}); title.textContent = (p.name||'')+'\n'+(p.jurisdiction||'')+'\n'+when+'\n'+(p.source_name||'')+(p.honesty?'\n'+p.honesty:'');
       path.appendChild(title);
-      path.addEventListener('click', function(){ document.getElementById('historyDetail').innerHTML = '<b>'+esc(p.name||p.jurisdiction||'Historical region')+'</b><br>'+esc(p.jurisdiction||'')+(p.affiliation?'<br>Affiliation: '+esc(p.affiliation):'')+'<br><span class="muted">Valid: '+esc(p.valid_from||'open')+' → '+esc(p.valid_to||'open')+' · confidence '+Number(p.confidence||0).toFixed(2)+'<br>Layer: '+esc(p.aziel_layer_id||'')+'<br>Source: '+esc(p.source_name||'')+' · '+esc(p.license||'')+'<br>'+esc(p.attribution||'')+'</span>'; });
+      path.addEventListener('click', function(){ document.getElementById('historyDetail').innerHTML = '<b>'+esc(p.name||p.jurisdiction||'Historical region')+'</b><br>'+esc(p.jurisdiction||'')+(p.affiliation?'<br>Affiliation: '+esc(p.affiliation):'')+'<br><span class="muted">'+esc(when)+(p.confidence!=null?' · confidence '+Number(p.confidence||0).toFixed(2):'')+'<br>Layer: '+esc(p.aziel_layer_id||'')+'<br>Source: '+esc(p.source_name||'')+' · '+esc(p.license||'')+'<br>'+esc(p.attribution||'')+(p.honesty?'<br>'+esc(p.honesty):'')+'</span>'; });
       history.appendChild(path);
     });
-    if (hs) hs.textContent = n + ' historical feature(s) active in ' + formatYearLabel(year) + '. Overlaps may represent competing source layers.';
+    var sheet = fc.sheet_year;
+    var requested = fc.requested_year;
+    var mismatch = fc.year_matches_sheet === false && sheet != null && requested != null;
+    var honesty = fc.honesty ? (' ' + fc.honesty) : '';
+    if (hs) {
+      if (mismatch) hs.textContent = n + ' feature(s) from sheet ' + sheet + '. Requested ' + requested + ' is not that sheet.' + honesty;
+      else if (sheet != null) hs.textContent = n + ' feature(s) from sheet ' + sheet + '. Requested year matches this sheet.' + honesty;
+      else hs.textContent = n + ' historical feature(s).' + honesty;
+    }
   } catch (err) { if (hs) hs.textContent = 'Historical layer unavailable: ' + err; }
+}
+function scheduleAfterPaint(fn) {
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(function(){ requestAnimationFrame(fn); });
+  else setTimeout(fn, 0);
+}
+function loadUnresolved() {
+  var list = document.getElementById('unresolvedList');
+  if (!list) return;
+  fetch('/api/unresolved').then(function(r){ return r.json(); }).then(function(payload){
+    var rows = (payload && payload.unresolved) || [];
+    var note = document.getElementById('unresolvedNote');
+    if (note && payload && payload.note) note.textContent = payload.note;
+    if (!rows.length) { list.innerHTML = '<li>None in this sample.</li>'; return; }
+    list.innerHTML = rows.map(function(x){ return '<li>' + esc(x.name) + ' — ' + esc(x.documents) + ' document(s)</li>'; }).join('');
+  }).catch(function(){
+    list.innerHTML = '<li>Unresolved place list did not load. Pins above do not wait on it.</li>';
+  });
+}
+function startLazyLayers() {
+  if (startLazyLayers.done) return;
+  startLazyLayers.done = true;
+  scheduleAfterPaint(function(){
+    var yearSlider = document.getElementById('contextYear');
+    if (yearSlider) renderHistory(yearSlider.value);
+    loadUnresolved();
+  });
 }
 function transform(){ vp.setAttribute('transform', 'translate('+tx+' '+ty+') scale('+scale+')'); }
 svg.addEventListener('wheel', function(e){ e.preventDefault(); scale = Math.max(1, Math.min(8, scale * (e.deltaY < 0 ? 1.2 : 0.8333))); transform(); }, {passive:false});
@@ -136,5 +171,5 @@ var histTimer;
 var slider = document.getElementById('contextYear');
 if (slider) slider.addEventListener('input', function(e){ clearTimeout(histTimer); var y = e.target.value; var lab=document.getElementById('contextLabel'); if (lab) lab.textContent=formatYearLabel(y); histTimer=setTimeout(function(){ renderHistory(y); }, 90); });
 renderEvents();
-if (slider) renderHistory(slider.value);
+startLazyLayers();
 })();

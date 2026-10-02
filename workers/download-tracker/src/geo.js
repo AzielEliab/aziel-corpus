@@ -9,6 +9,23 @@ import { isOperator, getObject } from "./library.js";
 import { appendLedger, ensureLedger } from "./ledger.js";
 import { ensureReviewSchema } from "./review-store.js";
 import { expandTreePaths } from "./domain-classify.js";
+import {
+  bundledLayerRows,
+  bundledFeatureTotal,
+  eraHonesty,
+  loadBundledEraCollection,
+  mapBundledFeature,
+  nearestBundledEra,
+  parseSheetYear,
+  BUNDLED_YEARS,
+  BUNDLED_NOTE,
+  BUNDLED_COVERAGE_NOTE,
+  SOURCE_NAME,
+  SOURCE_URL,
+  SOURCE_LICENSE,
+  ATTRIBUTION,
+  COPIED_FROM,
+} from "./historical-eras.js";
 
 const GEONAMES_ATTRIBUTION = "GeoNames geographical data — https://www.geonames.org/ — CC BY 4.0";
 const LAYER_CAP = 1024 * 1024;
@@ -949,17 +966,32 @@ export async function addManualEvent(env, { signed, date, place, lat, lon, title
   return eid;
 }
 
+const UNRESOLVED_RECORD_CAP = 24;
+const UNRESOLVED_BODY_CHARS = 1200;
+const UNRESOLVED_PHRASE_CAP = 6;
+const UNRESOLVED_LOOKUP_CAP = 36;
+
+/**
+ * Sample of recent place-like phrases that did not resolve to one gazetteer hit.
+ * Off the GET /map critical path. Bounded so phrase × D1 cannot stall the isolate.
+ */
 export async function unresolvedPlaceMentions(env) {
   await ensurePlaces(env);
-  const rows = (await env.DB.prepare("SELECT record_id,title,body FROM records ORDER BY created_utc DESC LIMIT 80").all()).results || [];
+  const rows = (await env.DB.prepare(
+    "SELECT record_id,title,substr(body,1,?) AS body FROM records ORDER BY created_utc DESC LIMIT ?"
+  ).bind(UNRESOLVED_BODY_CHARS, UNRESOLVED_RECORD_CAP).all()).results || [];
   const counts = new Map();
+  let lookups = 0;
   for (const r of rows) {
-    const phrases = candidatePhrases((r.title || "") + "\n" + (r.body || ""), 80);
+    if (lookups >= UNRESOLVED_LOOKUP_CAP) break;
+    const phrases = candidatePhrases((r.title || "") + "\n" + (r.body || ""), UNRESOLVED_PHRASE_CAP);
     const seen = new Set();
     for (const p of phrases) {
+      if (lookups >= UNRESOLVED_LOOKUP_CAP) break;
       const n = normName(p);
       if (!n || seen.has(n)) continue;
       seen.add(n);
+      lookups += 1;
       const hit = await resolveUnique(env, p);
       if (hit) continue;
       const cur = counts.get(n) || { name: p, documents: 0 };
@@ -972,24 +1004,34 @@ export async function unresolvedPlaceMentions(env) {
 
 export async function historicalStatus(env) {
   await ensureSchema(env);
+  let importedLayers = 0;
+  let importedFeatures = 0;
   try {
-    const row = await env.DB.prepare("SELECT COUNT(*) AS n, IFNULL(SUM(feature_count),0) AS f, MIN(NULLIF(valid_from,'')) AS mn, MAX(NULLIF(valid_to,'')) AS mx FROM historical_layers").first();
-    const layers = Number(row && row.n) || 0;
-    return {
-      state: layers ? "READY" : "EMPTY",
-      layers,
-      features: Number(row && row.f) || 0,
-      min_year: row && row.mn ? String(row.mn).slice(0, 4) : "",
-      max_year: row && row.mx ? String(row.mx).slice(0, 4) : "",
-    };
-  } catch {
-    return { state: "EMPTY", layers: 0, features: 0, min_year: "", max_year: "" };
-  }
+    const row = await env.DB.prepare("SELECT COUNT(*) AS n, IFNULL(SUM(feature_count),0) AS f FROM historical_layers").first();
+    importedLayers = Number(row && row.n) || 0;
+    importedFeatures = Number(row && row.f) || 0;
+  } catch { /* imported kits are optional */ }
+  const layers = importedLayers + BUNDLED_YEARS.length;
+  return {
+    state: layers ? "READY" : "EMPTY",
+    layers,
+    features: importedFeatures + bundledFeatureTotal(),
+    imported_layers: importedLayers,
+    bundled_eras: BUNDLED_YEARS.slice(),
+    sheet_years: BUNDLED_YEARS.join(", "),
+    min_year: "",
+    max_year: "",
+    coverage_note: BUNDLED_COVERAGE_NOTE,
+  };
 }
 
 export async function historicalLayers(env) {
   await ensureSchema(env);
-  return (await env.DB.prepare("SELECT layer_id,name,valid_from,valid_to,feature_count,confidence,source_name,license,attribution,source_sha256,created_utc FROM historical_layers ORDER BY created_utc DESC").all()).results || [];
+  let imported = [];
+  try {
+    imported = (await env.DB.prepare("SELECT layer_id,name,valid_from,valid_to,feature_count,confidence,source_name,license,attribution,source_sha256,created_utc FROM historical_layers ORDER BY created_utc DESC").all()).results || [];
+  } catch { imported = []; }
+  return bundledLayerRows().concat(imported);
 }
 
 function layerActiveOn(layer, dateStr) {
@@ -1011,9 +1053,14 @@ function featureActiveOn(props, dateStr, layer) {
 
 export async function historicalGeojson(env, date) {
   await ensureSchema(env);
-  const layers = (await env.DB.prepare("SELECT * FROM historical_layers").all()).results || [];
-  const features = [];
   const d = String(date || "").trim();
+  const year = parseSheetYear(d);
+  const features = [];
+  let importedFeatureCount = 0;
+  let layers = [];
+  try {
+    layers = (await env.DB.prepare("SELECT * FROM historical_layers").all()).results || [];
+  } catch { layers = []; }
   for (const layer of layers) {
     if (d && !layerActiveOn(layer, d)) continue;
     let fc;
@@ -1024,7 +1071,7 @@ export async function historicalGeojson(env, date) {
       if (d && !featureActiveOn(p, d, layer)) continue;
       const props = {
         ...p,
-        name: p.name || layer.name,
+        name: p.name || p.NAME || layer.name,
         aziel_layer_id: layer.layer_id,
         source_name: layer.source_name,
         license: layer.license,
@@ -1032,11 +1079,60 @@ export async function historicalGeojson(env, date) {
         valid_from: prop(p, ["valid_from", "start_date", "start", "from", "year_start", "begin"], layer.valid_from),
         valid_to: prop(p, ["valid_to", "end_date", "end", "to", "year_end", "finish"], layer.valid_to),
         confidence: p.confidence != null ? p.confidence : layer.confidence,
+        bundled: false,
       };
       features.push({ type: "Feature", properties: props, geometry: f.geometry });
+      importedFeatureCount += 1;
     }
   }
-  return { type: "FeatureCollection", date: d, features };
+  const base = {
+    type: "FeatureCollection",
+    date: d,
+    bundled_eras: BUNDLED_YEARS.slice(),
+    source: SOURCE_NAME,
+    source_url: SOURCE_URL,
+    license: SOURCE_LICENSE,
+    attribution: ATTRIBUTION,
+    copied_from: COPIED_FROM,
+    topography: false,
+    note: BUNDLED_NOTE,
+    imported_feature_count: importedFeatureCount,
+  };
+  if (year == null) {
+    return {
+      ...base,
+      features,
+      requested_year: null,
+      sheet_year: null,
+      nearest_era: null,
+      year_matches_sheet: false,
+      bundled_feature_count: 0,
+      honesty: "No year supplied. Bundled sheets are 1914, 1945, 1994, and 2010 only. A year selects the nearest sheet and says when it is not that year.",
+    };
+  }
+  const sheet = nearestBundledEra(year);
+  const honesty = eraHonesty(year, sheet);
+  let bundledFeatureCount = 0;
+  let loadError = "";
+  try {
+    const loaded = await loadBundledEraCollection(env, sheet);
+    for (const feature of loaded.collection.features || []) {
+      if (!feature || !feature.geometry) continue;
+      const kind = feature.geometry.type;
+      if (kind !== "Polygon" && kind !== "MultiPolygon") continue;
+      features.push(mapBundledFeature(feature, honesty));
+      bundledFeatureCount += 1;
+    }
+  } catch (err) {
+    loadError = err && err.message ? err.message : "bundled sheet unavailable";
+  }
+  return {
+    ...base,
+    ...honesty,
+    features,
+    bundled_feature_count: bundledFeatureCount,
+    load_error: loadError,
+  };
 }
 
 export async function importHistorical(env, { filename, bytes }) {
