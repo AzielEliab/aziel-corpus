@@ -88,6 +88,9 @@
     "pilot_started": false,
     "field_claim": false,
     "hosted_company_os": false,
+    "software_tab": false,
+    "fraggate_call": false,
+    "door": "none",
     "pages": "off",
     "fraggate_engine": false,
     "github": "https://github.com/AzielEliab/trades-runtime",
@@ -120,6 +123,9 @@
     "pilot_started": false,
     "field_claim": false,
     "hosted_company_os": false,
+    "software_tab": false,
+    "fraggate_call": false,
+    "door": "none",
     "pages": "off"
   },
   "sameAs": [

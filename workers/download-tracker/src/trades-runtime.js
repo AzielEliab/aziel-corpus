@@ -8,7 +8,8 @@
  * Agents use OpenAPI and MCP. The optional counted pack is GET /download
  * (trades-runtime-1.0.0-local.tgz).
  * Local CLI common commands: help, softwares, version, health.
- * Honesty locks: live_backends false, pilot_started false, hosted_company_os false.
+ * Honesty locks: live_backends false, pilot_started false, field_claim false, hosted_company_os false.
+ * FragGate door none. software_tab false. fraggate_call does not execute trades-runtime.
  * GitHub Pages stay off. Identity: Aziel Eliab only.
  */
 import { HOST, RUNTIME_ORIGIN, AI_CLIENTS } from "./runtime-copy.js";
@@ -22,7 +23,9 @@ export const TRADES_RUNTIME_NAME = "Trades-Runtime";
  * Matches GET https://trades-runtime.vibelock.workers.dev/v1/health `version`
  * (role public-giveaway) and product_label "Local Softwares 1.0".
  * Softwares pill and machine cite use this string.
- * The public Glama MCP listing stays ~0.3.4. Do not cite that listing as this version.
+ * The public Glama MCP listing stays ~0.3.4 / Latest pre-0.4.4 parked.
+ * Do not cite that listing as this version.
+ * GET /v1/health has no version_id. Do not invent one.
  */
 export const TRADES_RUNTIME_VERSION = "1.0.0-local";
 export const TRADES_RUNTIME_PRODUCT_LABEL = "Local Softwares 1.0";
@@ -57,8 +60,9 @@ export const TRADES_RUNTIME_NOTE =
   + "Library MCP stays corpus-search; this product hosts its own read-only MCP (health, stats, cite, skill). "
   + "GitHub Pages stay off. Humans use the giveaway Worker UI on the VibeLock host (browser / PWA) without downloading first. Agents use OpenAPI and MCP. The optional counted pack is GET /download (trades-runtime-" + TRADES_RUNTIME_VERSION + ".tgz). "
   + "Local CLI common commands: help, softwares, version, health. "
-  + "Honesty locks: live_backends false; pilot_started false; hosted_company_os false. "
-  + "Public Glama MCP listing stays ~0.3.4. "
+  + "Honesty locks: live_backends false; pilot_started false; field_claim false; hosted_company_os false. "
+  + "Public Glama MCP listing stays ~0.3.4 / Latest pre-0.4.4 parked. "
+  + "FragGate door none. software_tab false. fraggate_call does not execute trades-runtime. "
   + TRADES_RUNTIME_DUAL_SURFACE
   + " Compatible AI clients: " + AI_CLIENTS + ". Identity Aziel Eliab only.";
 
@@ -103,6 +107,10 @@ export const TRADES_RUNTIME_SOFTWARE_EXTRA = Object.freeze({
   count: TRADES_RUNTIME_STATS,
   mcp: TRADES_RUNTIME_MCP,
   fraggate_engine: false,
+  fraggate_call: false,
+  software_tab: false,
+  /** Catalog cards use boolean false. The string "none" would paint a door via Boolean("none"). */
+  door: false,
   live_backends: false,
   pilot_started: false,
   field_claim: false,
@@ -120,8 +128,10 @@ export const TRADES_RUNTIME = Object.freeze({
   version: TRADES_RUNTIME_VERSION,
   kind: "plain",
   placement: "softwares-extra",
-  door: null,
+  door: "none",
   fraggate_engine: false,
+  fraggate_call: false,
+  software_tab: false,
   fraggate_single_door: false,
   not_aziel_runtime: true,
   not_a_second_door: true,
@@ -172,8 +182,9 @@ export function tradesRuntimeLlmsBlock(host = HOST) {
     TRADES_RUNTIME_ONE_LINE,
     TRADES_RUNTIME_DUAL_SURFACE,
     "GitHub Pages off. Humans use the giveaway Worker UI on the VibeLock host (browser / PWA) without downloading first. Agents use OpenAPI and MCP. The optional counted pack is GET /download (trades-runtime-" + TRADES_RUNTIME_VERSION + ".tgz). Local CLI common commands: help, softwares, version, health. Counters live at /v1/stats.",
-    "Honesty locks: live_backends false; pilot_started false; hosted_company_os false.",
-    "Public Glama MCP listing stays ~0.3.4.",
+    "Honesty locks: live_backends false; pilot_started false; field_claim false; hosted_company_os false.",
+    "Public Glama MCP listing stays ~0.3.4 / Latest pre-0.4.4 parked.",
+    "FragGate door none. software_tab false. fraggate_call does not execute trades-runtime.",
     "Product MCP is read-only (health, stats, cite, skill). Library MCP stays corpus-search and does not write ServiceTitan or ProBooks.",
     "Compatible AI clients: " + AI_CLIENTS + ".",
     "- Trades-Runtime Softwares card: " + h + "/software",
@@ -213,6 +224,9 @@ export function tradesRuntimeCiteFields(host = HOST) {
       pilot_started: false,
       field_claim: false,
       hosted_company_os: false,
+      software_tab: false,
+      fraggate_call: false,
+      door: "none",
       pages: "off",
       how_to_cite: TRADES_RUNTIME.how_to_cite,
       sameAs: TRADES_RUNTIME_SAME_AS.slice(),
@@ -237,5 +251,32 @@ export function tradesRuntimeMcpDiscovery() {
     product_label: TRADES_RUNTIME_PRODUCT_LABEL,
     live_backends: false,
     pilot_started: false,
+    field_claim: false,
+    software_tab: false,
+    fraggate_call: false,
+    door: "none",
   };
+}
+
+/**
+ * Health pin wins over a stale suite row (for example version 0.4.9).
+ * Catalog door stays boolean false so Softwares cards do not paint a FragGate door.
+ */
+export function alignTradesRuntimeExtra(row) {
+  if (!row || typeof row !== "object" || !isTradesRuntimeSlug(row.slug || row.name)) return row;
+  return Object.assign({}, row, {
+    slug: TRADES_RUNTIME_SLUG,
+    version: TRADES_RUNTIME_VERSION,
+    product_label: TRADES_RUNTIME_PRODUCT_LABEL,
+    live_backends: false,
+    pilot_started: false,
+    field_claim: false,
+    hosted_company_os: false,
+    fraggate_engine: false,
+    fraggate_call: false,
+    software_tab: false,
+    door: false,
+    byo_field_os: true,
+    pages: "off",
+  });
 }
