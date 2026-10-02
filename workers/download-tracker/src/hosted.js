@@ -233,7 +233,10 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
   const read = method === "GET" || head;
   const pageHtml = (pageBody, extra) =>
     html(pageBody, Object.assign({ cacheControl: signed ? "private, no-store" : HTML_CACHE_CONTROL }, extra, { head }));
-  const staticPriority = path === "/software" || path === ABOUT_PATH || path === WHO_PATH || path === "/how-its-scored" || isHelpPath(path);
+  // /map is a shell. Cold ensureSchema (sequential D1 DDL) plus gazetteer,
+  // event, and historical counts were the multi-second TTFB. Pins hydrate
+  // from GET /api/events. Historical polygons and unresolved names stay lazy.
+  const staticPriority = path === "/software" || path === ABOUT_PATH || path === WHO_PATH || path === "/how-its-scored" || path === "/map" || isHelpPath(path);
   if (!staticPriority) await ensureSchema(env);
 
   if (read && parseRecordMetadataPath(path)) {
@@ -576,10 +579,7 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     return pageHtml(page("Corpus Tree", treeBody(tree), { signed, path: "/tree", kind: "tree" }));
   }
   if (path === "/map" && read) {
-    const gst = await gazetteerStatus(env, ctx);
-    const events = await listEvents(env);
-    const hst = await historicalStatus(env);
-    return pageHtml(page("Temporal Map", mapBody({ events, gazetteer: gst, historical: hst, signed }), { signed, path: "/map", scripts: ["/map-client.js"], kind: "map" }));
+    return pageHtml(page("Temporal Map", mapBody({ signed }), { signed, path: "/map", scripts: ["/map-client.js?v=2"], kind: "map" }));
   }
   if (path === "/historical" && read) {
     const st = await historicalStatus(env);

@@ -918,6 +918,7 @@ export async function reindexGeography(env) {
   return { records: rows.length, events_created: events };
 }
 
+/** Stored pins for GET /api/events. GET /map does not call this. */
 export async function listEvents(env, { minConfidence = 0 } = {}) {
   await ensureSchema(env);
   try {

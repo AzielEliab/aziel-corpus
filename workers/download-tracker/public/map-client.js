@@ -1,8 +1,6 @@
 'use strict';
 (function(){
-var holder = document.getElementById('map-events');
 var EVENTS = [];
-if (holder) { try { EVENTS = JSON.parse(holder.value || holder.textContent || '[]'); } catch (e) { EVENTS = []; } }
 var svg = document.getElementById('worldMap');
 if (!svg) return;
 var vp = document.getElementById('viewport');
@@ -170,6 +168,21 @@ var conf = document.getElementById('conf'); if (conf) conf.addEventListener('cha
 var histTimer;
 var slider = document.getElementById('contextYear');
 if (slider) slider.addEventListener('input', function(e){ clearTimeout(histTimer); var y = e.target.value; var lab=document.getElementById('contextLabel'); if (lab) lab.textContent=formatYearLabel(y); histTimer=setTimeout(function(){ renderHistory(y); }, 90); });
-renderEvents();
-startLazyLayers();
+function paintPinsThenLazy() {
+  renderEvents();
+  startLazyLayers();
+}
+function takeEvents(list, failed) {
+  EVENTS = Array.isArray(list) ? list : [];
+  paintPinsThenLazy();
+  if (!failed) return;
+  var st = document.getElementById('mapStatus');
+  if (st) st.textContent = 'Event pins did not load. The basemap still pans. Historical layers load on their own.';
+}
+var boot = window.__mapEventsPromise;
+if (boot && typeof boot.then === 'function') {
+  boot.then(function(list){ takeEvents(list, false); }).catch(function(){ takeEvents([], true); });
+} else {
+  fetch('/api/events', { headers: { Accept: 'application/json' } }).then(function(r){ return r.json(); }).then(function(b){ takeEvents((b && b.events) || [], false); }).catch(function(){ takeEvents([], true); });
+}
 })();

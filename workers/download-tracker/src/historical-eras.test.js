@@ -176,22 +176,53 @@ test("historical status lists the four sheets and does not draw a fake year span
   assert.ok(layers.every((x) => x.source_name === "aourednik/historical-basemaps" && x.license === "GPL-3.0"));
 });
 
-test("GET /map does not wait on unresolved place scans", async () => {
-  const env = stubEnv();
+test("GET /map shell returns before D1 or ASSETS", async () => {
+  const queries = [];
+  const fetches = [];
+  const env = {
+    queries,
+    ASSETS: {
+      fetch(request) {
+        fetches.push(new URL(request.url).pathname);
+        return new Promise(() => {});
+      },
+    },
+    DB: {
+      prepare(sql) {
+        queries.push(sql);
+        const self = {
+          bind() { return self; },
+          run() { return new Promise(() => {}); },
+          first() { return new Promise(() => {}); },
+          all() { return new Promise(() => {}); },
+        };
+        return self;
+      },
+      async batch() { return new Promise(() => {}); },
+    },
+  };
   const url = new URL(HOST + "/map");
   const started = Date.now();
-  const res = await handleHosted(req("/map"), url, env, { waitUntil() {} }, null, null);
+  const res = await Promise.race([
+    handleHosted(req("/map"), url, env, { waitUntil() {} }, null, null),
+    new Promise((_, reject) => setTimeout(() => reject(new Error("GET /map hung")), 2000)),
+  ]);
   const elapsed = Date.now() - started;
   assert.equal(res.status, 200);
   assert.ok(elapsed < 2000, "TTFB " + elapsed + "ms");
+  assert.deepEqual(queries, []);
+  assert.deepEqual(fetches, []);
   const html = await res.text();
+  assert.ok(html.length < 90000, "html bytes " + html.length);
   assert.match(html, /id="worldMap"/);
-  assert.match(html, /id="map-events"/);
+  assert.match(html, /window\.__mapEventsPromise=fetch\("\/api\/events"/);
   assert.match(html, /id="unresolvedList"/);
   assert.match(html, /Waiting until the basemap and event pins paint/);
-  assert.match(html, /src="\/map-client\.js"/);
+  assert.match(html, /src="\/map-client\.js\?v=2"/);
+  assert.match(html, /nearest bundled sheet \(1914, 1945, 1994, or 2010\)/);
+  assert.doesNotMatch(html, /id="map-events"/);
+  assert.doesNotMatch(html, /AZEVT-/);
   assert.doesNotMatch(html, /No historical boundary layers installed yet/);
-  assert.ok(!env.queries.some((sql) => /FROM records/i.test(sql) && /body/i.test(sql)));
 });
 
 test("GET /historical lists the bundled sheets", async () => {
@@ -223,13 +254,13 @@ test("GET /api/historical?date=2010 is the 2010 sheet", async () => {
 });
 
 test("undated events stay undated in the map list", () => {
-  const html = mapBody({
-    events: [{ event_date: "", place_name: "Uyo", title: "No paper date", confidence: 0.4, source: "REVIEW" }],
-    gazetteer: { state: "READY", places: 1, profile: "lite" },
-    historical: { state: "READY" },
-  });
-  assert.match(html, /undated — Uyo/);
-  assert.doesNotMatch(html, /undated — Uyo[\s\S]{0,80}2010/);
+  const src = readFileSync(new URL("../public/map-client.js", import.meta.url), "utf8");
+  assert.match(src, /Undated place pins remain visible across year filters/);
+  assert.match(src, /e\.event_date\|\|'undated'\)\+' — '\+esc\(e\.place_name\)/);
+  assert.doesNotMatch(src, /event_date\|\|'undated'\)\+' — '\+esc\(e\.place_name\)[^;]{0,80}2010/);
+  const html = mapBody({ signed: null });
+  assert.doesNotMatch(html, /undated — Uyo/);
+  assert.match(html, /Undated events stay undated/);
 });
 
 test("era loader reads /historical sheets from ASSETS and does not use node:fs", async () => {
@@ -250,9 +281,12 @@ test("era loader reads /historical sheets from ASSETS and does not use node:fs",
 
 test("map client paints events before lazy historical and unresolved fetches", () => {
   const src = readFileSync(new URL("../public/map-client.js", import.meta.url), "utf8");
-  assert.match(src, /renderEvents\(\);\nstartLazyLayers\(\);/);
+  assert.match(src, /renderEvents\(\);\n\s*startLazyLayers\(\);/);
+  assert.match(src, /__mapEventsPromise/);
+  assert.match(src, /\/api\/events/);
   assert.match(src, /scheduleAfterPaint/);
   assert.match(src, /\/api\/unresolved/);
   assert.match(src, /\/api\/historical\?date=/);
   assert.doesNotMatch(src, /if \(slider\) renderHistory/);
+  assert.doesNotMatch(src, /map-events/);
 });
