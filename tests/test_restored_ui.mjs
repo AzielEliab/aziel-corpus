@@ -949,3 +949,26 @@ test("sigil drawer hides hashes on cards, follows record facets, and keeps hones
   assert.ok(hashesAt > 0 && shaAt > hashesAt, "hash text lives inside the Hashes panel");
   assert.ok(faceEnd > 0 && rec.slice(0, faceEnd).indexOf("SHA-256") < 0, "hash is not on the record face");
 });
+
+test("click me hint points at the rose-star sigil and dismisses for the session", () => {
+  const html = chrome("<p>ok</p>");
+  const mark = brandMarkHtml();
+  assert.doesNotMatch(mark, /click me/);
+  assert.match(mark, /src="\/sigil\.png"/);
+  const hint = html.match(/<span class="sigil-click-hint"[^>]*>click me<\/span>/);
+  assert.ok(hint, "hint text is exactly click me");
+  const markAt = html.indexOf('id="sigilNavBtn"');
+  const hintAt = html.indexOf('id="sigilClickHint"');
+  const brandAt = html.indexOf('class="brand"');
+  assert.ok(markAt >= 0 && hintAt > markAt && brandAt > hintAt, "hint sits with the sigil, before the title");
+  assert.match(html, /sessionStorage\.getItem\("aziel-sigil-click-hint"\)==="1"/);
+  assert.match(html, /sessionStorage\.setItem\(HINT_KEY,"1"\)/);
+  assert.match(html, /btn\.addEventListener\("click",function\(e\)\{e\.preventDefault\(\);e\.stopPropagation\(\);hideHint\(\);toggle\(\);\}/);
+  assert.doesNotMatch(html, /localStorage\.setItem\(HINT_KEY/);
+  assert.doesNotMatch(html, /document\.cookie[^;]{0,80}aziel-sigil-click-hint/);
+  assert.match(CSS, /\.sigil-click-hint\{[^}]*pointer-events:none/);
+  assert.match(CSS, /\.sigil-click-hint\{[^}]*position:fixed/);
+  assert.match(CSS, /\.sigil-click-hint::before\{[^}]*transparent transparent var\(--gold\)/);
+  assert.match(CSS, /html\.sigil-hint-off \.sigil-click-hint\{[^}]*display:none/);
+  assert.doesNotMatch(html, /id="sigilClickHint"[^>]*role="dialog"/);
+});

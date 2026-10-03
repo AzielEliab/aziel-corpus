@@ -69,6 +69,11 @@ body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;lin
 .sigil-nav-scrim{position:fixed;inset:0;z-index:44;background:#00000088;margin:0;border:0;padding:0;cursor:pointer}
 .sigil-nav-scrim[hidden]{display:none!important}
 .brandmark{width:40px;height:40px;border-radius:10px;object-fit:cover;flex:0 0 40px;box-shadow:0 0 0 1px #0003,0 0 0 1px var(--gold)}
+.sigil-click-hint{position:fixed;z-index:47;visibility:hidden;pointer-events:none;margin:0;padding:3px 8px;font-size:12px;font-weight:650;line-height:1.2;letter-spacing:.01em;color:var(--ink);background:var(--paper);border:1px solid var(--gold);border-radius:8px;box-shadow:0 4px 12px #00000055;white-space:nowrap}
+.sigil-click-hint.is-placed{visibility:visible}
+.sigil-click-hint[hidden],html.sigil-hint-off .sigil-click-hint{display:none!important}
+.sigil-click-hint::before{content:"";position:absolute;left:var(--sigil-arrow,18px);top:-6px;transform:translateX(-50%);border-width:0 6px 6px 6px;border-style:solid;border-color:transparent transparent var(--gold) transparent}
+.sigil-click-hint::after{content:"";position:absolute;left:var(--sigil-arrow,18px);top:-5px;transform:translateX(-50%);border-width:0 5px 5px 5px;border-style:solid;border-color:transparent transparent var(--paper) transparent}
 .brand{font-size:23px;font-weight:800;letter-spacing:-.02em;line-height:1.2;color:var(--ink);text-decoration:none}
 a.brand{color:var(--ink)}
 a.brand:hover{color:var(--gold)}
@@ -533,23 +538,65 @@ export function sigilNavHtml() {
   return `<div class="sigil-nav-scrim" id="sigilNavScrim" hidden aria-hidden="true"></div><nav class="nav2 quiet" id="sigilNav" hidden><a href="${LIBRARY_HUB_PATH}">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/how-its-scored">How it's scored</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/forensics">Forensics</a><span class="sep">|</span><a class="nav-aziel" href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a><span class="sep">|</span><a href="/receipts">Receipts</a><span class="sep">|</span><a href="/donate">Donate</a><span class="sep">|</span><a href="/upload">Upload</a></nav>`;
 }
 
+/** Session-only dismissal for the sigil "click me" callout. Not a cookie. */
+export const SIGIL_HINT_KEY = "aziel-sigil-click-hint";
+
+export function sigilHintBootScript() {
+  return `<script>try{if(sessionStorage.getItem("${SIGIL_HINT_KEY}")==="1")document.documentElement.classList.add("sigil-hint-off")}catch(e){}</script>`;
+}
+
 export function sigilNavScript() {
   return `<script>
 (function(){
   var btn=document.getElementById("sigilNavBtn");
   var nav=document.getElementById("sigilNav");
   var scrim=document.getElementById("sigilNavScrim");
+  var hint=document.getElementById("sigilClickHint");
+  var HINT_KEY="${SIGIL_HINT_KEY}";
   if(!btn||!nav)return;
+  function hintDismissed(){try{return sessionStorage.getItem(HINT_KEY)==="1";}catch(e){return false;}}
+  function hideHint(){
+    if(!hint)return;
+    hint.hidden=true;
+    hint.classList.remove("is-placed");
+    try{sessionStorage.setItem(HINT_KEY,"1");}catch(e){}
+  }
+  function placeHint(){
+    if(!hint||hint.hidden||hintDismissed())return;
+    var r=btn.getBoundingClientRect();
+    if(!r.width&&!r.height)return;
+    if(r.bottom<4||r.top>window.innerHeight-4){hint.classList.remove("is-placed");return;}
+    hint.style.position="fixed";
+    hint.style.top=(r.bottom+7)+"px";
+    var w=hint.offsetWidth||72;
+    var center=r.left+r.width/2;
+    var left=center-w/2;
+    var minLeft=8;
+    var maxLeft=Math.max(minLeft,(document.documentElement.clientWidth||window.innerWidth)-w-8);
+    if(left<minLeft)left=minLeft;
+    if(left>maxLeft)left=maxLeft;
+    hint.style.left=left+"px";
+    hint.style.setProperty("--sigil-arrow",Math.round(center-left)+"px");
+    hint.classList.add("is-placed");
+  }
+  if(hintDismissed()){if(hint)hint.hidden=true;}
+  else{
+    placeHint();
+    window.addEventListener("resize",placeHint);
+    window.addEventListener("scroll",placeHint,{passive:true});
+    if(window.visualViewport)window.visualViewport.addEventListener("resize",placeHint);
+  }
   function open(){nav.hidden=false;if(scrim){scrim.hidden=false;scrim.setAttribute("aria-hidden","false");}btn.setAttribute("aria-expanded","true");}
   function shut(){nav.hidden=true;if(scrim){scrim.hidden=true;scrim.setAttribute("aria-hidden","true");}btn.setAttribute("aria-expanded","false");}
   function toggle(){if(nav.hidden)open();else shut();}
-  btn.addEventListener("click",function(e){e.preventDefault();e.stopPropagation();toggle();});
+  btn.addEventListener("click",function(e){e.preventDefault();e.stopPropagation();hideHint();toggle();});
   if(scrim)scrim.addEventListener("click",function(){shut();});
   document.addEventListener("click",function(e){if(nav.hidden)return;if(nav.contains(e.target)||btn.contains(e.target)||(scrim&&scrim.contains(e.target)))return;shut();});
   document.addEventListener("keydown",function(e){
     if(e.key==="Escape"&&!nav.hidden){shut();btn.focus();}
-    if((e.key==="Enter"||e.key===" ")&&document.activeElement===btn){e.preventDefault();toggle();}
+    if((e.key==="Enter"||e.key===" ")&&document.activeElement===btn){e.preventDefault();hideHint();toggle();}
   });
+  window.addEventListener("pageshow",function(){if(hintDismissed()){if(hint)hint.hidden=true;}else placeHint();});
 })();
 </script>`;
 }
@@ -771,9 +818,9 @@ export function page(title, body, { signed, scripts, path, kind, description, wo
   const showDonate = donateStrip && !homeChrome;
   const showEco = ecosystem && !homeChrome;
   const zoomScript = String(body || "").includes("class=\"paper-stage") ? readerZoomScript() : "";
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>${esc(documentTitle(kind, title))}</title>${headMeta(metaOpts)}${ingestReceiptHead()}<link rel="preload" href="/sigil.png" as="image" fetchpriority="high"><style>${CSS}</style></head><body>
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">${sigilHintBootScript()}<title>${esc(documentTitle(kind, title))}</title>${headMeta(metaOpts)}${ingestReceiptHead()}<link rel="preload" href="/sigil.png" as="image" fetchpriority="high"><style>${CSS}</style></head><body>
 <header class="sitehead"><div class="sitehead-inner">
-<div class="brandrow nav1">${brandMarkHtml()}<a class="brand" href="/">Aziel Corpus Library</a>${authBarHtml(signed)}${homeChrome ? brandCountPills({ views, downloads, nodes, liveNodes }) : ""}</div>
+<div class="brandrow nav1">${brandMarkHtml()}<span class="sigil-click-hint" id="sigilClickHint" aria-hidden="true">click me</span><a class="brand" href="/">Aziel Corpus Library</a>${authBarHtml(signed)}${homeChrome ? brandCountPills({ views, downloads, nodes, liveNodes }) : ""}</div>
 ${sigilNavHtml()}
 </div></header>
 ${homeChrome ? statbarClockScript() : ""}
