@@ -144,51 +144,72 @@ export async function loadHostedRecordRow(env, recordId) {
   return null;
 }
 
+/** Record-page reads that do not depend on each other. They run in one round. */
+export async function loadRecordPageParts(env, row) {
+  const id = row && row.record_id;
+  const declared = Number(row && row.byte_size) || 0;
+  const kindGuess = readerKind({
+    contentType: row && row.content_type,
+    filename: row && row.filename,
+    body: row && (row.body || row.snippet) || "",
+  });
+  const wantBytes = readerWantsBytes(kindGuess) && declared <= READER_FILE_CAP;
+  const [packed, loaded, counts, events, extra, derived, fileBytes] = await Promise.all([
+    readPackedIndex(env).catch(() => null),
+    loadReaderText(env, row),
+    readPaperCounts(env, id),
+    recordEvents(env, id),
+    loadRecordReview(env, row),
+    listDerivedArtifacts(env, id).catch(() => []),
+    wantBytes ? loadServedFileBytes(env, row).catch(() => null) : Promise.resolve(null),
+  ]);
+  return { packed, loaded, counts, events, extra, derived: derived || [], fileBytes, wantBytes, declared };
+}
+
 async function servePaperPage(request, env, ctx, signed, row, { permalink = "", pageNum = 1, path = "" } = {}) {
   const pageHtml = (pageBody, extra) => html(pageBody, extra || {});
   if (!row) {
     return pageHtml(page("Not found", recordBody({ row: null, events: [] }), { signed, path: path || "/record", kind: "record" }), { status: 404 });
   }
+  const parts = await loadRecordPageParts(env, row);
   let catalog = [];
-  try {
-    const packed = await readPackedIndex(env);
-    catalog = stampPermalinks((packed && packed.records) || []);
-  } catch { catalog = []; }
+  try { catalog = stampPermalinks((parts.packed && parts.packed.records) || []); } catch { catalog = []; }
   const mine = catalog.find((item) => item.record_id === row.record_id);
   const link = (mine && mine.permalink) || permalink || ("/record/" + row.record_id);
-  const loaded = await loadReaderText(env, row);
+  const loaded = parts.loaded;
   const previewKind = readerKind({
     contentType: loaded.contentType || row.content_type,
     filename: row.filename,
     body: loaded.text,
   });
-  let fileBytes = null;
+  let fileBytes = parts.fileBytes;
   let fileSkip = "";
   if (readerWantsBytes(previewKind)) {
-    const declared = Number(row.byte_size) || 0;
-    if (declared > READER_FILE_CAP) {
-      fileSkip = oversizeReaderReason(declared);
-    } else {
+    if (parts.declared > READER_FILE_CAP) {
+      fileSkip = oversizeReaderReason(parts.declared);
+      fileBytes = null;
+    } else if (!parts.wantBytes) {
       try { fileBytes = await loadServedFileBytes(env, row); } catch { fileBytes = null; }
-      if (fileBytes && fileBytes.byteLength > READER_FILE_CAP) {
-        fileSkip = oversizeReaderReason(fileBytes.byteLength);
-        fileBytes = null;
-      } else if (!fileBytes) {
-        fileSkip = "The stored file could not be read, so the reader did not paint it. Download stays below.";
-      }
     }
+    if (fileBytes && fileBytes.byteLength > READER_FILE_CAP) {
+      fileSkip = oversizeReaderReason(fileBytes.byteLength);
+      fileBytes = null;
+    } else if (!fileBytes && parts.declared <= READER_FILE_CAP) {
+      fileSkip = "The stored file could not be read, so the reader did not paint it. Download stays below.";
+    }
+  } else {
+    fileBytes = null;
   }
-  const counts = await readPaperCounts(env, row.record_id);
+  const counts = parts.counts;
   const asked = Math.max(Number(pageNum) || 1, 1);
   if (request.method === "GET" && !isSeoBot(request)) {
     const job = bumpPaperCount(env, row.record_id, "views", request).catch(() => null);
     if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(job);
     else await job;
   }
-  const events = await recordEvents(env, row.record_id);
-  const extra = await loadRecordReview(env, row);
-  let derived = [];
-  try { derived = await listDerivedArtifacts(env, row.record_id); } catch { derived = []; }
+  const events = parts.events;
+  const extra = parts.extra;
+  const derived = parts.derived;
   return pageHtml(page(row.title || "Record", recordBody({
     row: { ...row, body: loaded.text, content_type: loaded.contentType || row.content_type },
     events,

@@ -129,6 +129,7 @@ test("refreshPackedIndex loads D1 cards and writes library:index:v1 without list
       chain_tip: "tip",
       created_utc: "2026-09-01T00:00:00Z",
       triad_combined: 0.79,
+      triad_input: "document_text",
       zsolver_json: JSON.stringify({ display: 75, status: "scored", applicable: true, seed_corpus: true, baseline: true, capped_confidence: 0.75 }),
     },
   ];

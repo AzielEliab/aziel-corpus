@@ -26,7 +26,7 @@ A prior `full_backfill_done_utc` from TRIAD V2 **cannot** skip this walk. Recali
 Only one walker may advance `recalibrate_v3_cursor` at a time. That covers:
 
 - `GET /v1/recalibrate-all` and `GET /v1/verify-backfill?recalibrate=1`
-- cron / request-path background remint (`continueRecalibrateAll`)
+- cron remint (`continueRecalibrateAll`). Page views do not start it.
 
 A second concurrent walk **does not** write the cursor. Operator HTTP returns **409** with `code: "RECALIBRATE_LOCKED"`. Cron / background walks return the same code with `deferred: true` and wait for the next tick after the lock clears.
 
@@ -36,7 +36,7 @@ Lock key: `recalibrate_v3_lock`. **TTL is 90 seconds.** The holder is released o
 
 ## Live Worker — trigger after merge
 
-Cron and ordinary page-request walks continue the cursor automatically after deploy **unless the operator lock is held** (then cron defers). If you want the shelf reminted now, or to watch progress:
+Cron continues the cursor after deploy **unless the operator lock is held** (then cron defers). Page views (`/`, `/record`, search, and other HTML) do not start remint, backfill, metadata, paper, or geo walks. If you want the shelf reminted now, or to watch progress:
 
 ```
 GET https://www.azielcorpuslibrary.net/v1/recalibrate-all

@@ -125,7 +125,7 @@ export async function searchRecords(env, { q, library, sort, author, domain, sub
   const query = String(q || "").trim();
   const lib = String(library || "all").toLowerCase();
   let sql =
-    "SELECT record_id, title, substr(body,1,280) AS snippet, created_by, created_utc, library, filename, content_type, object_key, byte_size, author, domain, subjects, keywords, content_sha256, quarantine_status, triad_combined, zsolver_score, zsolver_status, zsolver_json, chain_tip, chain_sequence FROM records";
+    "SELECT record_id, title, substr(body,1,280) AS snippet, created_by, created_utc, library, filename, content_type, object_key, byte_size, author, domain, subjects, keywords, content_sha256, quarantine_status, triad_combined, json_extract(review_json, '$.triad.triad_input') AS triad_input, zsolver_score, zsolver_status, zsolver_json, chain_tip, chain_sequence FROM records";
   const where = [];
   const binds = [];
   if (query) {
@@ -170,7 +170,10 @@ export async function searchRecords(env, { q, library, sort, author, domain, sub
   try {
     return (await env.DB.prepare(sql).bind(...binds).all()).results || [];
   } catch {
-    let fallback = sql.replace(", zsolver_score, zsolver_status, zsolver_json", "").replace(", zsolver_score, zsolver_status", "");
+    let fallback = sql
+      .replace(", json_extract(review_json, '$.triad.triad_input') AS triad_input", "")
+      .replace(", zsolver_score, zsolver_status, zsolver_json", "")
+      .replace(", zsolver_score, zsolver_status", "");
     try {
       return (await env.DB.prepare(fallback).bind(...binds).all()).results || [];
     } catch {
@@ -874,7 +877,11 @@ export async function ingestRecord(env, args) {
       permalink_slug: paperUx && paperUx.permalink_slug,
       permalink_locked: !!(paperUx && paperUx.permalink_slug),
       triad_combined: reviewBundle && reviewBundle.review && reviewBundle.review.triad
+        && reviewBundle.review.triad.triad_input === "document_text"
         ? reviewBundle.review.triad.combined
+        : null,
+      triad_input: reviewBundle && reviewBundle.review && reviewBundle.review.triad
+        ? reviewBundle.review.triad.triad_input
         : null,
       zsolver_json: zsolver ? JSON.stringify(zsolver) : null,
     });

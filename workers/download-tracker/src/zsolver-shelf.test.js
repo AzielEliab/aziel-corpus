@@ -22,6 +22,7 @@ const SEED_VOL = {
   subjects: "history, investigation",
   domain: "history",
   triad_combined: 0.79,
+  triad_input: "document_text",
   zsolver: seedBaselineZsolver(),
 };
 
@@ -31,6 +32,7 @@ const PHILOSOPHY = {
   subjects: "philosophy, doctrine",
   domain: "philosophy",
   triad_combined: 0.58,
+  triad_input: "document_text",
   zsolver: notApplicableZsolver("not applicable for philosophy"),
 };
 
@@ -135,7 +137,7 @@ test("compact tip zsolver has display/status/applicable/seed flags", () => {
 test("record page omits ZionPattern when not_applicable and shows seed 75", () => {
   const seedHtml = recordBody({
     row: SEED_VOL,
-    review: { triad: { display: 79, combined: 0.79, ready: true, formula: "TRIAD_V1" } },
+    review: { triad: { display: 79, combined: 0.79, ready: true, formula: "TRIAD_V1", triad_input: "document_text" } },
     zsolver: seedBaselineZsolver(),
     events: [],
     peers: [],
@@ -144,7 +146,7 @@ test("record page omits ZionPattern when not_applicable and shows seed 75", () =
   assert.match(seedHtml, /ZionPattern Solver/);
   const philoHtml = recordBody({
     row: PHILOSOPHY,
-    review: { triad: { display: 58, combined: 0.58, ready: true } },
+    review: { triad: { display: 58, combined: 0.58, ready: true, triad_input: "document_text" } },
     zsolver: notApplicableZsolver("philosophy"),
     events: [],
     peers: [],

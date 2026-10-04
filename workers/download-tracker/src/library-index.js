@@ -6,6 +6,7 @@
  */
 import { createHash } from "node:crypto";
 import { compactZsolverPublic, shelfScoreState, zsolverFromRow } from "./zsolver.js";
+import { triadInputFromRow } from "./triad-input.js";
 import { conceptFromRow, mergeLockedPermalinks, permalinkPath, stampPermalinks } from "./paper-ux.js";
 
 export const LIBRARY_INDEX_KEY = "library:index:v1";
@@ -291,6 +292,7 @@ export function cardFromRecord(row) {
   const shelf = shelfOf(row);
   const updated = String(row.updated || row.updated_utc || row.ts || row.created_utc || "");
   const scores = shelfScoreState(row);
+  const triadInput = triadInputFromRow(row);
   const z = compactZsolverPublic(zsolverFromRow(row));
   const card = {
     id,
@@ -312,8 +314,9 @@ export function cardFromRecord(row) {
     metadata_url: "/record/" + id + "/metadata.json",
     llms_url: "/record/" + id + "/llms.txt",
     cite_url: "/record/" + id + "/cite.json",
-    triad_combined: row.triad_combined != null ? Number(row.triad_combined) : null,
+    triad_combined: triadInput === "document_text" && row.triad_combined != null ? Number(row.triad_combined) : null,
     triad_display: scores.triad_display,
+    triad_input: triadInput || null,
     zsolver: z,
     zsolver_status: z && z.status,
     zsolver_applicable: z ? z.applicable !== false : null,
@@ -359,7 +362,8 @@ export function publicSearchCard(row) {
   if (card.permalink) out.permalink = card.permalink;
   if (card.permalink_slug) out.permalink_slug = card.permalink_slug;
   if (card.concept) out.concept = card.concept;
-  if (card.triad_display != null) out.triad_display = card.triad_display;
+  if (card.triad_input === "document_text" && card.triad_display != null) out.triad_display = card.triad_display;
+  if (card.triad_input) out.triad_input = card.triad_input;
   if (card.zsolver_display != null) out.zsolver_display = card.zsolver_display;
   if (card.zsolver && card.zsolver.status === "not_applicable") {
     /* omit ZionPattern from search JSON when N/A */
@@ -373,7 +377,7 @@ export async function loadShelfCards(env, { limit = SHELF_INDEX_LIMIT } = {}) {
   if (!env || !env.DB || typeof env.DB.prepare !== "function") return [];
   const lim = Math.min(Math.max(Number(limit) || SHELF_INDEX_LIMIT, 1), SHELF_INDEX_LIMIT);
   const sql =
-    "SELECT record_id, title, author, library, content_sha256, chain_tip, created_utc, domain, subjects, keywords, filename, triad_combined, zsolver_score, zsolver_status, zsolver_json FROM records WHERE IFNULL(shelf_hidden,0) = 0 AND UPPER(IFNULL(quarantine_status,'CLEAR')) NOT IN ('POISON_SUSPECT','QUARANTINE') ORDER BY created_utc DESC LIMIT ?";
+    "SELECT record_id, title, author, library, content_sha256, chain_tip, created_utc, domain, subjects, keywords, filename, triad_combined, json_extract(review_json, '$.triad.triad_input') AS triad_input, zsolver_score, zsolver_status, zsolver_json FROM records WHERE IFNULL(shelf_hidden,0) = 0 AND UPPER(IFNULL(quarantine_status,'CLEAR')) NOT IN ('POISON_SUSPECT','QUARANTINE') ORDER BY created_utc DESC LIMIT ?";
   try {
     const rows = (await env.DB.prepare(sql).bind(lim).all()).results || [];
     return rows.map(cardFromRecord).filter(Boolean);

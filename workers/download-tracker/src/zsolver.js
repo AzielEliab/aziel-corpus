@@ -9,6 +9,7 @@
  */
 import { appendLedger, appendDocumentLedger, isDocumentId } from "./ledger.js";
 import { classifyDomains } from "./domain-classify.js";
+import { triadInputFromRow } from "./triad-input.js";
 
 export const ZSOLVER_HOST = "https://zsolver-download-tracker.vibelock.workers.dev";
 export const ZSOLVER_DISCLAIMER =
@@ -462,6 +463,7 @@ export function compactZsolverPublic(report) {
 
 export function triadDisplayFromRow(row) {
   if (!row || typeof row !== "object") return null;
+  if (triadInputFromRow(row) !== "document_text") return null;
   if (row.triad_display != null && row.triad_display !== "") {
     const n = Number(row.triad_display);
     if (Number.isFinite(n)) return Math.round(n);

@@ -116,6 +116,8 @@ export async function loadRecordMachineContext(env, recordId) {
 
 function publicTriad(review, row) {
   const triad = review && review.triad ? review.triad : null;
+  const input = (triad && triad.triad_input) || (row && row.triad_input) || "";
+  if (input !== "document_text") return null;
   const flags = applicabilityFlagsFrom(review, row);
   const names = applicableComponentNames(flags);
   let display = triad && triad.display != null ? Number(triad.display) : null;
