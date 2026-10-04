@@ -994,7 +994,7 @@ export function shelfScoreRows(row) {
   const st = shelfScoreState(row);
   const triadRow = st.triad_display != null
     ? `<p class="triad"><span class="metric">${esc(st.triad_display)}</span><span class="muted">Triad score</span></p>`
-    : `<p class="muted">Triad score pending backfill</p>`;
+    : `<p class="muted">Triad score unavailable</p>`;
   let zRow = "";
   if (st.zsolver_omit) {
     zRow = "";
@@ -1359,7 +1359,7 @@ export function howItsScoredBody() {
 <p class="muted">Public scoring on Aziel Corpus Library. Published numbers: the triad (always, when scored), ZionPattern Solver (when that reading applies), unranked Bayesian posterior, and HEURISTIC possibility.</p></section>
 <div class="card">
 <h2>Triad — always published</h2>
-<p>The <strong>triad</strong> is the primary report card. It is always computed and always shown on a scored record. TRIAD_V3 public combined is the <strong>36-cycle mean</strong> of applicable factors:</p>
+<p>The <strong>triad</strong> is the primary report card. It is computed from document text and shown when that text was read. A filing stub (filename, author, domain, subjects, keywords) is not a score: the shelf says unavailable and does not publish 45. A PDF with no extractable words stays unavailable. TRIAD_V3 public combined is the <strong>36-cycle mean</strong> of applicable factors:</p>
 <p><code>triad_cycle_mean = mean(factor_i × factor_j)</code> for i,j in {physics, linguistics, bayesian, truth_formula, CLCE, SPRE} (36 pairings when all six apply, including diagonals).</p>
 <p>Also stored: <code>geometric_mean_applicable = (Π applicable SPRE/CLCE/PLR)<sup>1/n</sup></code>. Named axis products: physics × linguistics, bayesian × truth_formula, CLCE × SPRE. Display is <code>round(combined × 100)</code> and is never written back into combined. <code>triad_raw</code> freezes to the content SHA-256 at first REVIEW_SCORE. Downloads verify bytes. They do not mint a new mean. No collection offset. Ingest always runs this path. Stored papers remint via <code>GET /v1/recalibrate-all</code> (repeat <code>?all=1</code> until <code>done:true</code>; alias <code>GET /v1/verify-backfill?recalibrate=1</code>). Scores recalibrate when papers are uploaded so an early lie cannot poison the shelf forever.</p>
 <ul>

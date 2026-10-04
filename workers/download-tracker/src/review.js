@@ -21,6 +21,7 @@ import {
   headingsPresent,
   claimEvidenceRd,
 } from "./review-applicability.js";
+import { classifyTriadInput } from "./triad-input.js";
 
 export const REVIEW_SCHEMA = "aziel.review.v1";
 export const SPRE_LIMITATION =
@@ -604,9 +605,70 @@ function flagsEqual(a, b) {
     && a.truth_formula === b.truth_formula && a.physics === b.physics && a.linguistics === b.linguistics;
 }
 
+/** A filing stub, an unread PDF, or a PDF with no words is not a score. */
+export function unavailableTriad(kind, { settled } = {}) {
+  const input = kind || "filing_stub";
+  const isSettled = settled != null ? !!settled : input !== "unread";
+  return {
+    schema: TRIAD_SCHEMA,
+    formula: TRIAD_FORMULA,
+    ready: false,
+    components: {
+      spre_pc: null,
+      clce_consistency: null,
+      plr_coherence: null,
+      physics: null,
+      linguistics: null,
+      bayesian: null,
+      truth_formula: null,
+    },
+    factors: Object.fromEntries(FACTOR_NAMES.map((k) => [k, null])),
+    axis_products: { physics_linguistics: null, bayesian_truth_formula: null, clce_spre: null },
+    cycle_factors: [],
+    pairing_count: 0,
+    triad_cycle_mean: null,
+    geometric_mean_applicable: null,
+    weights: { spre: 0, clce: 0, plr: 0 },
+    applicable_components: [],
+    combined: null,
+    display: null,
+    triad_input: input,
+    settled: isSettled,
+    unavailable: true,
+    kid_plain: "Triad score unavailable. Checkers publish a number only from document text.",
+    primary_visible: false,
+    bayesian_separate: true,
+    public_score: null,
+    collection_offset: 0,
+  };
+}
+
+export function unavailableReview(input = {}, kind) {
+  const resolved = kind && kind.triad_input ? kind : { triad_input: kind || "filing_stub", settled: kind !== "unread" };
+  return {
+    schema: REVIEW_SCHEMA,
+    author: "Aziel Eliab",
+    library: String((input && input.library) || "corpus"),
+    lights: {},
+    structure: (input && input.structure) || { ok: false, files: [], errors: [] },
+    triad: unavailableTriad(resolved.triad_input, { settled: resolved.settled }),
+    quarantine_status: "CLEAR",
+    limitation: TRIAD_FORMULA,
+  };
+}
+
+function stampDocumentTriad(triad) {
+  if (!triad) return triad;
+  return { ...triad, triad_input: "document_text", settled: true, unavailable: false };
+}
+
 /** Re-stamp stored reviews with live gates. Recompute the public triad only when gates change. */
 export function applyApplicabilityToReview(review, input = {}, library, coverage) {
   if (!review || typeof review !== "object") return review;
+  const storedInput = review.triad && review.triad.triad_input;
+  if (storedInput && storedInput !== "document_text") {
+    return { ...review, triad: unavailableTriad(storedInput, { settled: review.triad.settled }) };
+  }
   const appl = (review.applicability && review.applicability.flags && !inputHasConceptSignals(input))
     ? review.applicability
     : classifyComponentApplicability({
@@ -627,16 +689,25 @@ export function applyApplicabilityToReview(review, input = {}, library, coverage
     truth_formula: stampEngineApplicability(review.truth_formula, appl.truth_formula),
     applicability: appl,
   };
+  if (storedInput === "document_text") {
+    next.triad = stampDocumentTriad(review.triad);
+    return next;
+  }
   const prevFlags = review.applicability && review.applicability.flags;
   if (isTriadFrozen(review.triad)) {
-    next.triad = review.triad;
+    next.triad = storedInput === "document_text" ? stampDocumentTriad(review.triad) : review.triad;
     return next;
   }
-  if (flagsEqual(prevFlags, appl.flags) && review.triad && review.triad.ready) {
-    next.triad = review.triad;
+  if (flagsEqual(prevFlags, appl.flags) && review.triad && review.triad.ready && storedInput === "document_text") {
+    next.triad = stampDocumentTriad(review.triad);
     return next;
   }
-  next.triad = triadComposite({
+  const gate = classifyTriadInput(input);
+  if (gate.triad_input !== "document_text") {
+    next.triad = unavailableTriad(gate.triad_input, { settled: gate.settled });
+    return next;
+  }
+  next.triad = stampDocumentTriad(triadComposite({
     spre: next.spre,
     clce: next.clce,
     plr: next.plr,
@@ -644,7 +715,7 @@ export function applyApplicabilityToReview(review, input = {}, library, coverage
     truth_formula: next.truth_formula || review.truth_formula,
     applicability: appl.flags,
     content_sha256: input.sha256 || input.content_sha256 || review.triad && review.triad.frozen_to,
-  });
+  }));
   return next;
 }
 
@@ -665,7 +736,12 @@ export function publicizeReview(review, row = {}) {
     truth_formula: publicEngineView(stamped.truth_formula),
     lights,
     applicability: stamped.applicability,
-    triad: stamped.triad,
+    triad: stamped.triad && stamped.triad.triad_input === "document_text"
+      ? stamped.triad
+      : unavailableTriad(
+        (stamped.triad && stamped.triad.triad_input) || "filing_stub",
+        { settled: stamped.triad ? stamped.triad.settled : true }
+      ),
   };
 }
 
@@ -806,8 +882,18 @@ export function bayesianPosterior(hypotheses = {}) {
 }
 
 export function reviewDocument(input = {}) {
+  const gate = input.triad_input_hint
+    ? {
+      triad_input: input.triad_input_hint,
+      text: input.triad_input_hint === "document_text" ? String(input.body || "") : "",
+      settled: input.triad_input_hint !== "unread",
+    }
+    : classifyTriadInput(input);
+  if (gate.triad_input !== "document_text") {
+    return unavailableReview(input, gate);
+  }
   const title = String(input.title || "");
-  const body = String(input.body || "");
+  const body = String(gate.text || "");
   const filename = String(input.filename || "");
   const sha256 = String(input.sha256 || "");
   const author = String(input.author || "");
@@ -894,7 +980,7 @@ export function reviewDocument(input = {}) {
     poison,
     bayesian,
     applicability: appl,
-    triad: triadComposite({
+    triad: stampDocumentTriad(triadComposite({
       spre,
       clce,
       plr,
@@ -902,7 +988,7 @@ export function reviewDocument(input = {}) {
       truth_formula: truth,
       applicability: appl.flags,
       content_sha256: sha256 || structure.sha256,
-    }),
+    })),
     quarantine_status: poison.status === "QUARANTINE" ? "POISON_SUSPECT" : poison.status === "FLAGGED" ? "OPERATOR_FLAG" : "CLEAR",
     possibility: input.possibility || {
       schema: "aziel.possibility.v1",

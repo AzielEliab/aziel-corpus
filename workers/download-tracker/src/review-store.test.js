@@ -65,6 +65,7 @@ function sampleRecords() {
       chain_tip: "tip-a",
       created_utc: "2026-01-01T00:00:00Z",
       triad_combined: 0.79,
+      triad_input: "document_text",
       zsolver_score: 0.75,
       zsolver_status: "scored",
       zsolver_json: seedJson(),
@@ -83,6 +84,7 @@ function sampleRecords() {
       chain_tip: "tip-b",
       created_utc: "2026-01-02T00:00:00Z",
       triad_combined: 0.58,
+      triad_input: "document_text",
       zsolver_score: null,
       zsolver_status: "not_applicable",
       zsolver_json: naJson(),
@@ -101,6 +103,7 @@ function sampleRecords() {
       chain_tip: "tip-c",
       created_utc: "2026-01-03T00:00:00Z",
       triad_combined: 0.66,
+      triad_input: "document_text",
       zsolver_score: 0.6,
       zsolver_status: "scored",
       zsolver_json: scoredJson(60),
@@ -119,6 +122,7 @@ function sampleRecords() {
       chain_tip: "tip-d",
       created_utc: "2026-01-04T00:00:00Z",
       triad_combined: 0.7,
+      triad_input: "document_text",
       zsolver_score: 0.4,
       zsolver_status: "scored",
       zsolver_json: scoredJson(40),
@@ -137,6 +141,7 @@ function sampleRecords() {
       chain_tip: "tip-e",
       created_utc: "2026-01-05T00:00:00Z",
       triad_combined: 0.72,
+      triad_input: "document_text",
       zsolver_score: 0.5,
       zsolver_status: "scored",
       zsolver_json: scoredJson(50),
@@ -393,13 +398,15 @@ test("rebuild with ctx.waitUntil returns JSON before packed refresh", async () =
   assert.doesNotMatch(JSON.stringify(body), BANNED);
 });
 
-test("shouldBackgroundWalk skips verify-backfill and verify-geo", () => {
+test("shouldBackgroundWalk skips verify-backfill, verify-geo, and page views", () => {
   assert.equal(shouldBackgroundWalk("/v1/verify-backfill"), false);
   assert.equal(shouldBackgroundWalk("/v1/recalibrate-all"), false);
   assert.equal(shouldBackgroundWalk("/v1/verify-geo"), false);
   assert.equal(shouldBackgroundWalk("/v1/content-hash-repair"), false);
   assert.equal(shouldBackgroundWalk("/v1/health"), true);
-  assert.equal(shouldBackgroundWalk("/"), true);
+  assert.equal(shouldBackgroundWalk("/"), false);
+  assert.equal(shouldBackgroundWalk("/record/AZDOC-1"), false);
+  assert.equal(shouldBackgroundWalk("/search"), false);
 });
 
 test("old full_backfill done flag does not skip TRIAD V3 recalibrate", async () => {

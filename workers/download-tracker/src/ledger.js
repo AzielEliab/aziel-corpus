@@ -178,9 +178,10 @@ export async function ledgerEntriesForRecord(env, recordId) {
   await ensureLedger(env);
   const id = String(recordId || "");
   if (!id) return [];
+  const like = "%" + id.replace(/[%_\\]/g, "") + "%";
   const rows = (await env.DB.prepare(
-    "SELECT sequence, timestamp_utc, action, payload_json, previous_hash, entry_hash FROM ledger ORDER BY sequence ASC"
-  ).all()).results || [];
+    "SELECT sequence, timestamp_utc, action, payload_json, previous_hash, entry_hash FROM ledger WHERE payload_json LIKE ? ORDER BY sequence ASC"
+  ).bind(like).all()).results || [];
   const out = [];
   for (const row of rows) {
     let payload = {};

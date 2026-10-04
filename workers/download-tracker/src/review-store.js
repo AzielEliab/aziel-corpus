@@ -4,7 +4,9 @@
  */
 import { randomBytes } from "node:crypto";
 import { appendLedger, appendDocumentLedger, ensureLedger, hashPayload, isDocumentId } from "./ledger.js";
-import { reviewDocument, TRIAD_SCHEMA, publicizeReview, isTriadFrozen, assertTriadV3 } from "./review.js";
+import { reviewDocument, TRIAD_SCHEMA, publicizeReview, isTriadFrozen, assertTriadV3, unavailableReview } from "./review.js";
+import { classifyTriadInput, isPdfDocument } from "./triad-input.js";
+import { extractPdfText } from "./ocr.js";
 import { verifyBytes, verifyTextRecord, sha256hex } from "./structure.js";
 import { latticeAnchorTip } from "./lattice.js";
 import { appendPoisonLearn, HASHCHAIN_LEARN_LAW } from "./lattice-learn.js";
@@ -126,15 +128,69 @@ export function structureFromBytes(bytes, meta) {
   return verifyTextRecord({ title: meta && meta.title, body: meta && meta.body });
 }
 
+export function scoringTextForRecord({ title, body, filename, contentType, bytes, author, domain, subjects, keywords } = {}) {
+  const pdf = isPdfDocument({ filename, contentType, bytes });
+  const raw = bytes instanceof Uint8Array
+    ? bytes
+    : (bytes instanceof ArrayBuffer ? new Uint8Array(bytes) : (bytes && bytes.byteLength ? new Uint8Array(bytes) : null));
+  const bytesLoaded = !!(raw && raw.byteLength);
+  const extractedText = pdf && bytesLoaded ? extractPdfText(raw) : "";
+  let kind = classifyTriadInput({
+    pdf,
+    bytesLoaded: pdf ? bytesLoaded : false,
+    extractedText,
+    title,
+    body,
+    filename,
+    author,
+    domain,
+    subjects,
+    keywords,
+    contentType,
+  });
+  if (!pdf && bytesLoaded && kind.triad_input !== "document_text") {
+    const decoded = new TextDecoder("utf-8", { fatal: false }).decode(raw);
+    const fromFile = classifyTriadInput({
+      pdf: false,
+      title,
+      body: decoded,
+      filename,
+      author,
+      domain,
+      subjects,
+      keywords,
+    });
+    if (fromFile.triad_input === "document_text") kind = fromFile;
+  }
+  return { ...kind, pdf, bytes: pdf ? (bytesLoaded ? raw : null) : (raw || null) };
+}
+
 export async function runReviewBundle({ title, body, filename, contentType, sha256, author, library, bytes, liveClce = false, coverage, domain, subjects, keywords } = {}) {
-  const structure = structureFromBytes(bytes, { filename, contentType });
+  const scored = scoringTextForRecord({ title, body, filename, contentType, bytes, author, domain, subjects, keywords });
+  const structureBytes = scored.triad_input === "document_text"
+    ? (scored.bytes || new TextEncoder().encode(scored.text || ""))
+    : (scored.pdf ? scored.bytes : null);
+  const structure = structureFromBytes(structureBytes, { filename, contentType });
+  if (scored.triad_input !== "document_text") {
+    const review = unavailableReview({ library, structure }, scored);
+    if (!structure.ok) review.lights = { structure: "FLAG" };
+    review.structure = {
+      ok: structure.ok,
+      files: structure.files,
+      errors: structure.errors,
+      sha256: structure.sha256,
+      byte_size: structure.byte_size,
+      kind: structure.kind,
+    };
+    return { structure, review };
+  }
   const hashOk = /^[0-9a-f]{64}$/i.test(String(sha256 || structure.sha256 || ""));
   const pLayer = [title, structure.ok && hashOk ? "structure verified" : "structure failed"].filter(Boolean).join(" ");
   let live = null;
-  if (liveClce) live = await maybeLiveClce(title, body || title, pLayer);
+  if (liveClce) live = await maybeLiveClce(title, scored.text || title, pLayer);
   const review = reviewDocument({
     title,
-    body,
+    body: scored.text,
     filename,
     sha256: sha256 || structure.sha256,
     author,
@@ -145,6 +201,7 @@ export async function runReviewBundle({ title, body, filename, contentType, sha2
     domain,
     subjects,
     keywords,
+    triad_input_hint: "document_text",
   });
   review.structure = {
     ok: structure.ok,
@@ -319,31 +376,36 @@ export async function parseReviewJson(raw) {
 
 export async function loadRecordReview(env, row) {
   await ensureReviewSchema(env);
-  const review = await parseReviewJson(row && row.review_json);
-  let peers = [];
-  try {
-    peers = (await env.DB.prepare(
-      "SELECT review_id, record_id, stance, body, created_by, created_utc, entry_hash FROM peer_reviews WHERE record_id=? ORDER BY created_utc ASC"
-    ).bind(row.record_id).all()).results || [];
-  } catch { peers = []; }
-  let tip = await parseReviewJson(row && row.lattice_tip_json);
-  if (!tip) {
+  const id = row && row.record_id;
+  const reviewP = parseReviewJson(row && row.review_json);
+  const peersP = (async () => {
+    if (!id || !env || !env.DB) return [];
+    try {
+      return (await env.DB.prepare(
+        "SELECT review_id, record_id, stance, body, created_by, created_utc, entry_hash FROM peer_reviews WHERE record_id=? ORDER BY created_utc ASC"
+      ).bind(id).all()).results || [];
+    } catch { return []; }
+  })();
+  const tipP = (async () => {
+    let tip = await parseReviewJson(row && row.lattice_tip_json);
+    if (tip || !id || !env || !env.DB) return tip;
     try {
       const trow = await env.DB.prepare(
         "SELECT tip_json FROM lattice_tips WHERE record_id=? ORDER BY created_utc DESC LIMIT 1"
-      ).bind(row.record_id).first();
-      tip = trow ? await parseReviewJson(trow.tip_json) : null;
-    } catch { tip = null; }
-  }
-  let succession = null;
-  try { succession = await loadSuccessionCite(env, row && row.record_id); } catch { succession = null; }
-  let zsolver = parseZsolver(row && row.zsolver_json);
-  if (!zsolver && row && row.record_id) {
+      ).bind(id).first();
+      return trow ? await parseReviewJson(trow.tip_json) : null;
+    } catch { return null; }
+  })();
+  const successionP = loadSuccessionCite(env, id).catch(() => null);
+  const zsolverP = (async () => {
+    let zsolver = parseZsolver(row && row.zsolver_json);
+    if (zsolver || !id || !env || !env.DB) return zsolver;
     try {
-      const zrow = await env.DB.prepare("SELECT zsolver_json FROM records WHERE record_id=?").bind(row.record_id).first();
-      zsolver = parseZsolver(zrow && zrow.zsolver_json);
-    } catch { zsolver = null; }
-  }
+      const zrow = await env.DB.prepare("SELECT zsolver_json FROM records WHERE record_id=?").bind(id).first();
+      return parseZsolver(zrow && zrow.zsolver_json);
+    } catch { return null; }
+  })();
+  const [review, peers, tip, succession, zsolver] = await Promise.all([reviewP, peersP, tipP, successionP, zsolverP]);
   return { review, peers, tip, succession, zsolver, quarantine_status: (row && row.quarantine_status) || (review && review.quarantine_status) || "CLEAR" };
 }
 
@@ -440,8 +502,14 @@ export function isFullyScored(row, review) {
 }
 
 export function storedTriadMatches(row, review, coverage) {
+  const triad = review && review.triad;
+  const input = triad && triad.triad_input;
+  if (input && input !== "document_text") {
+    if (input === "unread" || triad.settled === false) return false;
+    return triad.display == null && triad.combined == null;
+  }
+  if (input !== "document_text") return false;
   if (!isFullyScored(row, review)) return false;
-  const triad = review.triad;
   if (!isTriadFrozen(triad)) return false;
   const stored = row && row.triad_combined != null ? Number(row.triad_combined) : triad.combined;
   if (stored == null || !Number.isFinite(Number(stored))) return false;
@@ -452,6 +520,58 @@ export function storedTriadMatches(row, review, coverage) {
 }
 
 export { publicizeReview };
+
+async function loadScoreBytes(env, row) {
+  let bytes = null;
+  if (row && row.object_key && env && env.FILES) {
+    try {
+      const store = env.FILES;
+      const obj = typeof store.get === "function" ? await store.get(row.object_key) : null;
+      if (obj && obj.arrayBuffer) bytes = await obj.arrayBuffer();
+      else if (obj && obj.body && typeof obj.body.arrayBuffer === "function") bytes = await obj.body.arrayBuffer();
+      else if (obj && obj.body instanceof ArrayBuffer) bytes = obj.body;
+      else if (obj && obj.body instanceof Uint8Array) bytes = obj.body;
+      if (!bytes && typeof store.getWithMetadata === "function") {
+        const res = await store.getWithMetadata(row.object_key, { type: "arrayBuffer" });
+        if (res && res.value) bytes = res.value;
+      }
+    } catch {
+      bytes = null;
+    }
+  }
+  if (bytes) return bytes;
+  if (isPdfDocument(row || {})) return null;
+  if (row && row.body && String(row.body).trim()) return new TextEncoder().encode(String(row.body));
+  return null;
+}
+
+/** Re-read PDFs that were not loaded last pass. Does not append another unread receipt. */
+export async function retryUnreadTriads(env, { limit = 4, event = "recalibrate_v3" } = {}) {
+  if (!env || !env.DB) return { retried: 0, pending: 0, scored: 0 };
+  const cap = Math.min(Math.max(Number(limit) || 4, 1), 8);
+  let rows = [];
+  try {
+    rows = (await env.DB.prepare(
+      "SELECT record_id, filename, content_type, object_key, library, author, content_sha256, review_json, triad_combined, subjects, keywords, domain, zsolver_json, title, body FROM records WHERE review_json LIKE ? ORDER BY record_id ASC LIMIT ?"
+    ).bind('%"triad_input":"unread"%', cap).all()).results || [];
+  } catch {
+    rows = [];
+  }
+  let retried = 0;
+  let pending = 0;
+  let scored = 0;
+  for (const row of rows) {
+    retried += 1;
+    try {
+      const one = await backfillOneRecord(env, row, { force: true, event });
+      if (one && one.triad_input === "unread") pending += 1;
+      else if (one && !one.pending) scored += 1;
+    } catch {
+      pending += 1;
+    }
+  }
+  return { retried, pending, scored };
+}
 
 export async function backfillReviews(env, { limit = 25, force = false, recordId = null, event = "verify_backfill" } = {}) {
   await ensureReviewSchema(env);
@@ -492,22 +612,7 @@ export async function backfillReviews(env, { limit = 25, force = false, recordId
       results.push({ record_id: row.record_id, skipped: true, reason: "already fully scored", zsolver_status: zsolver && zsolver.status, zsolver_score: zsolver && zsolver.capped_confidence });
       continue;
     }
-    let bytes = null;
-    if (row.object_key && env.FILES) {
-      try {
-        const store = env.FILES;
-        const obj = typeof store.head === "function" ? await store.get(row.object_key) : null;
-        if (obj && obj.arrayBuffer) bytes = await obj.arrayBuffer();
-        else if (obj && obj.body && typeof obj.body.arrayBuffer === "function") bytes = await obj.body.arrayBuffer();
-        if (!bytes && typeof store.getWithMetadata === "function") {
-          const res = await store.getWithMetadata(row.object_key, { type: "arrayBuffer" });
-          if (res && res.value) bytes = res.value;
-        }
-      } catch {
-        bytes = null;
-      }
-    }
-    if (!bytes) bytes = new TextEncoder().encode(String(row.body || row.title || row.record_id));
+    const bytes = await loadScoreBytes(env, row);
     const stored = await reviewAndStore(env, {
       recordId: row.record_id,
       library: row.library,
@@ -702,16 +807,27 @@ export async function backfillOneRecord(env, row, { force = false, event = "full
     };
   }
   if (!triadOk) {
-    let bytes = null;
-    if (row.object_key && env.FILES) {
-      try {
-        const store = env.FILES;
-        const obj = typeof store.get === "function" ? await store.get(row.object_key) : null;
-        if (obj && obj.arrayBuffer) bytes = await obj.arrayBuffer();
-        else if (obj && obj.body && typeof obj.body.arrayBuffer === "function") bytes = await obj.body.arrayBuffer();
-      } catch { bytes = null; }
+    const bytes = await loadScoreBytes(env, row);
+    const preview = scoringTextForRecord({
+      title: row.title,
+      body: row.body,
+      filename: row.filename,
+      contentType: row.content_type,
+      author: row.author,
+      domain: row.domain,
+      subjects: row.subjects,
+      keywords: row.keywords,
+      bytes,
+    });
+    if (preview.triad_input === "unread" && existing && existing.triad && existing.triad.triad_input === "unread") {
+      return {
+        record_id: row.record_id,
+        skipped: false,
+        pending: true,
+        triad_input: "unread",
+        triad_combined: null,
+      };
     }
-    if (!bytes) bytes = new TextEncoder().encode(String(row.body || row.title || row.record_id));
     const stored = await reviewAndStore(env, {
       recordId: row.record_id,
       library: row.library,
@@ -789,6 +905,13 @@ export async function continueFullBackfill(env, { ms = 18000, force = false, all
     stats.done = true;
     stats.cursor = cursor;
     stats.done_utc = doneFlag;
+    if (isRecal) {
+      try {
+        const retry = await retryUnreadTriads(env, { limit: 4, event: keys.event });
+        stats.unread_retried = retry.retried;
+        stats.unread_pending = retry.pending;
+      } catch { /* unread retry is the next cron */ }
+    }
     const shelfDone = await metaGet(env, SHELF_SYNC_DONE_KEY);
     if (!shelfDone) {
       try {
@@ -850,7 +973,8 @@ export async function continueFullBackfill(env, { ms = 18000, force = false, all
     for (const row of batch) {
       try {
         const one = await backfillOneRecord(env, row, { force, event: keys.event });
-        if (one.skipped) stats.skipped += 1;
+        if (one.pending) stats.skipped += 1;
+        else if (one.skipped) stats.skipped += 1;
         else stats.scored += 1;
       } catch {
         stats.failed += 1;
@@ -1012,8 +1136,8 @@ function clampShelfChunk(limit) {
 async function loadShelfSyncBatch(env, cursor, cap) {
   if (!env || !env.DB) return [];
   const hidden = "IFNULL(shelf_hidden,0) = 0";
-  const cols = "record_id, title, filename, subjects, keywords, domain, zsolver_json, triad_combined, lattice_tip_json";
-  const lite = "record_id, title, filename, subjects, keywords, domain, zsolver_json, triad_combined";
+  const cols = "record_id, title, filename, subjects, keywords, domain, zsolver_json, triad_combined, json_extract(review_json, '$.triad.triad_input') AS triad_input, lattice_tip_json";
+  const lite = "record_id, title, filename, subjects, keywords, domain, zsolver_json, triad_combined, json_extract(review_json, '$.triad.triad_input') AS triad_input";
   try {
     if (cursor) {
       return (await env.DB.prepare(

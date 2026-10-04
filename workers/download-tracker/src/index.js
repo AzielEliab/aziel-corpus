@@ -51,10 +51,42 @@ import {
   shapeHumanBotFields,
 } from "./stats-shape.js";
 
-/** Operator walk APIs must not share the isolate with background backfill/geo or a tunnel hop. */
+const WALK_API = new Set([
+  "/v1/verify-backfill",
+  "/v1/recalibrate-all",
+  "/v1/verify-geo",
+  "/v1/metadata-backfill",
+  "/v1/content-hash-repair",
+  "/v1/paper-backfill",
+]);
+
+function barePath(pathname) {
+  return String(pathname || "").replace(/\/+$/, "") || "/";
+}
+
+/** HTML and record reads. These must not start backfill, remint, metadata, paper, or geo walks. */
+export function isPageView(pathname) {
+  const path = barePath(pathname);
+  if (path === "/" || path === "/search") return true;
+  if (path === "/record" || path.startsWith("/record/")) return true;
+  if (path.startsWith("/azielcorpus/") || path.startsWith("/aziellibrary/")) return true;
+  if (path.startsWith("/help")) return true;
+  if (path.startsWith("/receipt/")) return true;
+  if (WALK_API.has(path) || path.startsWith("/v1/") || path.startsWith("/api/") || path.startsWith("/runtime")) return false;
+  if (path.startsWith("/file/") || path === "/download" || path.startsWith("/download/") || path === "/go" || path === "/count" || path === "/stats" || path === "/event") return false;
+  return true;
+}
+
+/** Operator walk APIs must not share the isolate with background backfill/geo. Page views must not start those walks. Cron and GET /v1/recalibrate-all still remint. */
 export function shouldBackgroundWalk(pathname) {
-  const path = String(pathname || "").replace(/\/+$/, "") || "/";
-  return path !== "/v1/verify-backfill" && path !== "/v1/recalibrate-all" && path !== "/v1/verify-geo" && path !== "/v1/metadata-backfill" && path !== "/v1/content-hash-repair" && path !== "/v1/paper-backfill";
+  const path = barePath(pathname);
+  if (isPageView(path)) return false;
+  return !WALK_API.has(path);
+}
+
+/** Tunnel hop stays off operator walk APIs. Page views may still tunnel; they do not start walks. */
+export function shouldTunnelFirst(pathname) {
+  return !WALK_API.has(barePath(pathname));
 }
 
 /**
@@ -480,7 +512,7 @@ export default {
     }
     const attachVid = (res) => attachPresenceCookie(withRateCookie(res, limited), presencePrep);
 
-    if (isReadMethod(request.method) && shouldBackgroundWalk(earlyPath)) {
+    if (isReadMethod(request.method) && shouldTunnelFirst(earlyPath)) {
       const tunneled = await tryTunnelFirst(request, env);
       if (tunneled) return tunneled;
     }
