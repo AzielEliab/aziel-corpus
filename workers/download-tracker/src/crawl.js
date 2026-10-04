@@ -103,7 +103,14 @@ const GITHUB_REPO = "https://github.com/AzielEliab/aziel-corpus";
 const GITHUB_AUTHOR = "https://github.com/AzielEliab";
 const DEFAULT_ASSET = "aziel-digital-library-2.7.0.zip";
 const VERSION = "2.7.0";
-const SITE_LASTMOD = "2026-09-20";
+/** This host's urlset and its own sitemap documents. Current date so reindex leaves 2026-09-20. */
+const SITE_LASTMOD = "2026-10-04";
+/** godlock, azieleliab, hedidntjump, and workers.dev sitemap documents keep their prior stamp. */
+const FOREIGN_SITEMAP_LASTMOD = "2026-09-20";
+/** IndexNow key for www.azielcorpuslibrary.net only. Not the azieleliab.com or hedidntjump.com keys. */
+export const INDEXNOW_KEY = "520f37f4-c12f-4555-982b-f834dc8cb56b";
+export const INDEXNOW_KEY_PATH = "/" + INDEXNOW_KEY + ".txt";
+export const INDEXNOW_WELL_KNOWN_PATH = "/.well-known/indexnow-key.txt";
 const AUTHOR = "Aziel Eliab";
 const AKA = "Aziel Elroi Eliab";
 const RECORD_SITEMAP_CAP = SHELF_INDEX_LIMIT;
@@ -297,6 +304,8 @@ export function robotsTxt() {
     "Allow: /search",
     "Allow: /.well-known/aziel.json",
     "Allow: /.well-known/person.jsonld",
+    "Allow: " + INDEXNOW_WELL_KNOWN_PATH,
+    "Allow: " + INDEXNOW_KEY_PATH,
     "Allow: /llms.txt",
     "Allow: /ai.txt",
     "Allow: /humans.txt",
@@ -362,6 +371,9 @@ const STATIC_SITEMAP = [
   "/runtime/v1/mesh",
   "/sitemap-index.xml",
   "/sitemap-records.xml",
+  "/sitemap.xml",
+  INDEXNOW_KEY_PATH,
+  INDEXNOW_WELL_KNOWN_PATH,
   "/mcp.json",
   "/.well-known/mcp.json",
   "/mcp",
@@ -599,10 +611,21 @@ export async function sitemapRecordsXml(env) {
     + "\n</urlset>\n";
 }
 
+export function indexNowKeyBody() {
+  return INDEXNOW_KEY;
+}
+
+export function isIndexNowKeyPath(pathname) {
+  const path = String(pathname || "").replace(/\/+$/, "") || "/";
+  return path === INDEXNOW_KEY_PATH || path === INDEXNOW_WELL_KNOWN_PATH;
+}
+
 export function sitemapIndexXml() {
-  const locs = [
+  const own = [
     HOST + "/sitemap.xml",
     HOST + "/sitemap-records.xml",
+  ];
+  const foreign = [
     CATALOG + "/sitemap.xml",
     CATALOG + "/sitemap-index.xml",
     SPECTRALLOCK_SITEMAP,
@@ -610,8 +633,10 @@ export function sitemapIndexXml() {
     HEDIDNTJUMP_HOME.replace(/\/+$/, "") + "/sitemap.xml",
     HUB_ORIGIN + "/sitemap.xml",
   ];
+  const entries = own.map((loc) => ({ loc, lastmod: SITE_LASTMOD }))
+    .concat(foreign.map((loc) => ({ loc, lastmod: FOREIGN_SITEMAP_LASTMOD })));
   return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n"
-    + locs.map((loc) => "  <sitemap><loc>" + loc + "</loc><lastmod>" + SITE_LASTMOD + "</lastmod></sitemap>").join("\n")
+    + entries.map((u) => "  <sitemap><loc>" + u.loc + "</loc><lastmod>" + u.lastmod + "</lastmod></sitemap>").join("\n")
     + "\n</sitemapindex>\n";
 }
 

@@ -5,7 +5,7 @@ import { page, homeBody, homeSearchActive, streamLcpHtml } from "./ui.js";
 import { filmTheaterHtml, libraryHubRedirect, LIBRARY_HUB_PATH } from "./film.js";
 import { peekMeshDualCounts } from "./mesh.js";
 import { handleHosted } from "./hosted.js";
-import { robotsTxt, sitemapXml, sitemapIndexXml, sitemapRecordsXml, citeDoc, llmsDoc, aiTxt, humansTxt, mcpDiscovery, isReadMethod, crawlResponse, MIME } from "./crawl.js";
+import { robotsTxt, sitemapXml, sitemapIndexXml, sitemapRecordsXml, citeDoc, llmsDoc, aiTxt, humansTxt, mcpDiscovery, isReadMethod, crawlResponse, MIME, isIndexNowKeyPath, indexNowKeyBody } from "./crawl.js";
 import { readOutletState } from "./mesh-outlet.js";
 import { helpRouteBody } from "./help.js";
 import { bridgeDoc, productBySlug } from "./ai-surface.js";
@@ -694,6 +694,9 @@ export default {
       ? await fetchLiveSurvival(env)
       : null;
     const seoCache = isSurvivalSeoPath(crawlPath) ? SURVIVAL_SEO_CACHE_CONTROL : SEO_CACHE_CONTROL;
+    if (isReadMethod(request.method) && isIndexNowKeyPath(crawlPath)) {
+      return crawlResponse(request, indexNowKeyBody(), MIME.plain, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
+    }
     if (isReadMethod(request.method) && crawlPath === "/robots.txt") {
       return crawlResponse(request, robotsTxt(), MIME.plain, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
     }
