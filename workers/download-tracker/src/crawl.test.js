@@ -16,6 +16,10 @@ import {
   crawlResponse,
   MIME,
   AI_BOTS,
+  INDEXNOW_KEY,
+  INDEXNOW_KEY_PATH,
+  INDEXNOW_WELL_KNOWN_PATH,
+  indexNowKeyBody,
 } from "./crawl.js";
 
 const BANNED = /Collin Horton|GodLock\.AZ|\+25|quiet (Aziel|triad|boost)|10\.5281\/zenodo/i;
@@ -672,4 +676,108 @@ test("sitemap lists every packed index id, including rows the old 400-cap D1 win
   assert.equal((recordsXml.match(/\/llms\.txt/g) || []).length, 429);
   assert.equal((recordsXml.match(/\/cite\.json/g) || []).length, 429);
   assert.equal((xml.match(/\/record\/AZDOC-[0-9A-F]+\/llms\.txt/g) || []).length, 429);
+});
+
+const OTHER_HOST_INDEXNOW_KEYS = [
+  "74f44bd8-2322-41ed-bbb0-23594a6646f8",
+  "4241818f-5799-488c-9457-da724a30831c",
+];
+const HOST_SITEMAP_LASTMOD = "2026-10-04";
+const FOREIGN_SITEMAP_LASTMOD = "2026-09-20";
+
+function sitemapLocs(xml) {
+  return [...xml.matchAll(/<loc>([^<]+)<\/loc><lastmod>([^<]+)<\/lastmod>/g)].map((m) => ({
+    loc: m[1],
+    lastmod: m[2],
+  }));
+}
+
+test("IndexNow key file equals the key, robots allow it, and this host's sitemap lastmod left 2026-09-20", async () => {
+  assert.match(INDEXNOW_KEY, /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+  assert.equal(OTHER_HOST_INDEXNOW_KEYS.includes(INDEXNOW_KEY), false);
+  assert.equal(indexNowKeyBody(), INDEXNOW_KEY);
+  assert.equal(citeDoc().person_id, "https://www.azieleliab.com/#aziel");
+
+  const robots = robotsTxt();
+  assert.match(robots, /User-agent: \*\nAllow: \//);
+  assert.match(robots, /Content-Signal: search=yes, ai-input=yes, ai-train=yes/);
+  assert.match(robots, /Disallow: \/logout/);
+  assert.match(robots, /Disallow: \/signup/);
+  assert.match(robots, /Disallow: \/api\//);
+  assert.match(robots, /Disallow: \/admin\//);
+  assert.match(robots, new RegExp("Allow: " + INDEXNOW_KEY_PATH.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.match(robots, /Allow: \/\.well-known\/indexnow-key\.txt/);
+  for (const foreignKey of OTHER_HOST_INDEXNOW_KEYS) {
+    assert.equal(robots.includes(foreignKey), false);
+  }
+
+  const { default: worker } = await import("./index.js");
+  const env = {
+    DOWNLOADS: { async get() { return null; }, async put() {}, async list() { throw new Error("no list"); } },
+  };
+  for (const path of [INDEXNOW_KEY_PATH, INDEXNOW_WELL_KNOWN_PATH]) {
+    const res = await worker.fetch(
+      new Request("https://www.azielcorpuslibrary.net" + path, { headers: { "User-Agent": "Googlebot/2.1" } }),
+      env,
+      {}
+    );
+    assert.equal(res.status, 200, path);
+    assert.match(res.headers.get("content-type") || "", /^text\/plain\b/);
+    const body = await res.text();
+    assert.equal(body, INDEXNOW_KEY);
+    assert.equal(body.includes("<"), false);
+  }
+
+  const xml = await sitemapXml({});
+  const hostPages = sitemapLocs(xml).filter((row) => row.loc.startsWith("https://www.azielcorpuslibrary.net"));
+  assert.ok(hostPages.length > 10);
+  for (const row of hostPages) {
+    assert.notEqual(row.lastmod, "2026-09-20", row.loc);
+    assert.equal(row.lastmod, HOST_SITEMAP_LASTMOD, row.loc);
+  }
+  for (const path of [INDEXNOW_KEY_PATH, INDEXNOW_WELL_KNOWN_PATH, "/sitemap.xml", "/sitemap-index.xml", "/sitemap-records.xml"]) {
+    const loc = "https://www.azielcorpuslibrary.net" + path;
+    assert.equal(hostPages.some((row) => row.loc === loc && row.lastmod === HOST_SITEMAP_LASTMOD), true, loc);
+  }
+
+  const undated = await sitemapRecordsXml({
+    DB: {
+      prepare() {
+        return {
+          bind() { return this; },
+          async all() {
+            return { results: [{ record_id: "AZDOC-NODATE", created_utc: "", library: "aziel" }] };
+          },
+        };
+      },
+    },
+  });
+  const undatedHost = sitemapLocs(undated).filter((row) => row.loc.startsWith("https://www.azielcorpuslibrary.net"));
+  assert.ok(undatedHost.length > 0);
+  for (const row of undatedHost) {
+    assert.notEqual(row.lastmod, "2026-09-20", row.loc);
+    assert.equal(row.lastmod, HOST_SITEMAP_LASTMOD, row.loc);
+  }
+
+  const index = sitemapIndexXml();
+  const indexRows = sitemapLocs(index);
+  const own = indexRows.filter((row) => row.loc.startsWith("https://www.azielcorpuslibrary.net/"));
+  const foreign = indexRows.filter((row) => !row.loc.startsWith("https://www.azielcorpuslibrary.net/"));
+  assert.deepEqual(own.map((row) => row.loc), [
+    "https://www.azielcorpuslibrary.net/sitemap.xml",
+    "https://www.azielcorpuslibrary.net/sitemap-records.xml",
+  ]);
+  for (const row of own) assert.equal(row.lastmod, HOST_SITEMAP_LASTMOD, row.loc);
+  assert.ok(foreign.length >= 6);
+  for (const row of foreign) assert.equal(row.lastmod, FOREIGN_SITEMAP_LASTMOD, row.loc);
+  for (const loc of [
+    "https://godlock.uk/sitemap.xml",
+    "https://www.hedidntjump.com/sitemap.xml",
+    "https://www.azieleliab.com/sitemap.xml",
+    "https://aziel-runtime.vibelock.workers.dev/sitemap.xml",
+    "https://aziel-runtime.vibelock.workers.dev/sitemap-index.xml",
+    "https://spectrallock-download-tracker.vibelock.workers.dev/sitemap.xml",
+  ]) {
+    assert.equal(foreign.some((row) => row.loc === loc && row.lastmod === FOREIGN_SITEMAP_LASTMOD), true, loc);
+  }
 });
