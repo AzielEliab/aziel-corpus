@@ -669,7 +669,7 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     return pageHtml(rendered.html);
   }
   if (path === "/map" && read) {
-    return pageHtml(page("Temporal Map", mapBody({ signed }), { signed, path: "/map", scripts: ["/map-client.js?v=2"], kind: "map" }));
+    return pageHtml(page("Temporal Map", mapBody({ signed }), { signed, path: "/map", scripts: ["/map-pins.js?v=1", "/map-client.js?v=3"], kind: "map" }));
   }
   if (path === "/historical" && read) {
     const st = await historicalStatus(env);
