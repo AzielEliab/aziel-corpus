@@ -1069,6 +1069,7 @@ function formatFileCount(n) {
 
 /** Visible file count from packed library:index:v1. Omit when the index was not read. */
 export function libraryFileCountHtml({ records_packed, records_aziel, records_corpus, shelf } = {}) {
+  if (records_packed == null || records_packed === "") return ""; // unknown, not 0
   const total = Number(records_packed);
   if (!Number.isFinite(total)) return "";
   const az = Number(records_aziel);

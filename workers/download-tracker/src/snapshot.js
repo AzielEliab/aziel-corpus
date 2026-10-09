@@ -4,7 +4,8 @@
  * honest stale label. Crawlers are always served from the snapshot.
  * Author: Aziel Eliab.
  */
-import { HTML_CACHE_PREFIX } from "./library-index.js";
+import { HTML_CACHE_PREFIX, cacheMatchTextAged, cachePutText, needsRevalidate } from "./library-index.js";
+import { isQuotaError, isTransientOverload } from "./quota.js";
 import { isCrawlerRequest } from "./crawler.js";
 export { isCrawlerRequest };
 
@@ -84,7 +85,7 @@ function escHtml(s) {
  */
 export function staleNoticeHtml({ asOf, source, cause } = {}) {
   const when = asOf ? escHtml(String(asOf).replace("T", " ").slice(0, 16)) + " UTC" : "an earlier time";
-  const what = source === "lastgood" ? "a saved copy of this page" : "the shelf snapshot";
+  const what = source === "lastgood" ? "a saved copy of this page" : source === "cache" ? "a cached copy of this page" : "the shelf snapshot";
   const why = cause === "daily"
     ? "The live catalog is paused because the Cloudflare daily limit was reached. Search inside documents is unavailable until the limit resets at 00:00 UTC."
     : "The live catalog is not answering right now (a temporary overload or outage). Try again in a minute.";
@@ -107,4 +108,73 @@ export function sortTreeRows(rows) {
     for (let i = 0; i < ka.length; i++) { const c = ka[i].localeCompare(kb[i]); if (c) return c; }
     return 0;
   });
+}
+
+/**
+ * D1 outage marker. A cached shelf/tree page is served for up to a day; when its
+ * background re-render fails on quota/overload we record that here (Cache API, no
+ * D1/KV), so cached hits older than SHELF_REVALIDATE_MS carry a Stale banner until a
+ * re-render succeeds. Fresh copies (< SHELF_REVALIDATE_MS) never get a banner.
+ */
+export const OUTAGE_URL = LASTGOOD_PREFIX + "/__outage";
+export const OUTAGE_TTL_MS = SHELF_REVALIDATE_MS;
+
+async function edgeCache() {
+  try { return (globalThis.caches && globalThis.caches.default) || null; } catch { return null; }
+}
+
+export async function noteOutage(err) {
+  if (!isQuotaError(err) && !isTransientOverload(err)) return false;
+  if (err && err.code === "SNAPSHOT_UNAVAILABLE") return false; // KV index, not D1
+  const cause = isQuotaError(err) ? "daily" : "outage";
+  return cachePutText(OUTAGE_URL, JSON.stringify({ cause, at: new Date().toISOString() }), undefined, {
+    cacheControl: "public, max-age=" + Math.round(OUTAGE_TTL_MS / 1000),
+    contentType: "application/json; charset=utf-8",
+  });
+}
+
+export async function clearOutage() {
+  const c = await edgeCache();
+  if (!c || typeof c.delete !== "function") return false;
+  try { return await c.delete(new Request(OUTAGE_URL, { method: "GET" })); } catch { return false; }
+}
+
+export async function readOutage() {
+  const hit = await cacheMatchTextAged(OUTAGE_URL);
+  if (!hit || !hit.text || !(hit.ageMs < OUTAGE_TTL_MS)) return null;
+  try {
+    const doc = JSON.parse(hit.text);
+    return { cause: doc && doc.cause === "daily" ? "daily" : "outage", at: (doc && doc.at) || "" };
+  } catch {
+    return null;
+  }
+}
+
+/** Background re-render of a cached page: success stores and clears the outage marker; quota/overload sets it. */
+export function revalidateInBackground(ctx, render, store) {
+  if (!ctx || typeof ctx.waitUntil !== "function") return;
+  ctx.waitUntil(Promise.resolve()
+    .then(render)
+    .then(async (r) => { await store(r); await clearOutage(); })
+    .catch((e) => noteOutage(e).catch(() => null)));
+}
+
+/** Banner for a cached hit, or "" when the copy is fresh or no outage is recorded. */
+export async function cachedStaleNotice(aged) {
+  if (!aged || !needsRevalidate(aged, SHELF_REVALIDATE_MS)) return "";
+  const outage = await readOutage();
+  if (!outage) return "";
+  const asOf = Number.isFinite(aged.ageMs) ? new Date(Date.now() - aged.ageMs).toISOString() : "";
+  return staleNoticeHtml({ asOf, source: "cache", cause: outage.cause });
+}
+
+/**
+ * Zero-result /search pages are cached briefly (D1 + CPU for repeated misses).
+ * Separate key space from shelf/tree, which never cache an empty render.
+ */
+export const EMPTY_SEARCH_TTL_MS = 5 * 60 * 1000;
+export const EMPTY_SEARCH_CACHE_CONTROL = "public, max-age=300";
+
+export function emptySearchCacheUrl(browse) {
+  return canonicalShelfCacheUrl("/__search-empty", browse);
 }

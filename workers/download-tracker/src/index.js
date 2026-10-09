@@ -1,8 +1,8 @@
 import { handleRuntimeApi, corsHeaders, json, LIMITATION } from "./runtime.js";
-import { isQuotaError, isTransientOverload, quotaResponse } from "./quota.js";
+import { isQuotaError, isTransientOverload, quotaResponse, countsUnavailableResponse } from "./quota.js";
 import { bumpCounters, readCounters } from "./counters.js";
 import { isCrawlerRequest } from "./crawler.js";
-import { isInternalCachePath } from "./snapshot.js";
+import { emptySearchCacheUrl, EMPTY_SEARCH_CACHE_CONTROL, EMPTY_SEARCH_TTL_MS, isInternalCachePath } from "./snapshot.js";
 // Durable Object class must be exported from the Worker entry (wrangler.toml HIT_COUNTERS).
 export { HitCounters } from "./hit-counters.js";
 import { handleRuntimeRoot } from "./runtime-root.js";
@@ -29,6 +29,9 @@ import {
   readPackedIndex,
   refreshPackedIndex,
   statsFromPacked,
+  cacheMatchTextAged,
+  cachePutText,
+  countsAvailable,
   tryTunnelFirst,
   HTML_CACHE_CONTROL,
   SEO_CACHE_CONTROL,
@@ -385,7 +388,7 @@ function withRateCookie(res, limited) {
 
 function workCardsHtml() { return ""; }
 
-async function indexHtml(env, request, signed) {
+async function indexHtml(env, request, signed, meta) {
   const url = new URL(request.url);
   const browse = parseBrowseParams(url);
   const searching = homeSearchActive(browse);
@@ -398,7 +401,18 @@ async function indexHtml(env, request, signed) {
   const packedP = readPackedIndex(env);
   const metricsP = readPaperMetrics(env);
   const [packed, rows, session, mesh, metrics] = await Promise.all([packedP, rowsP, signedP, meshP, metricsP]);
+  if (meta && typeof meta === "object") {
+    meta.searching = searching;
+    meta.empty = searching && (!Array.isArray(rows) || rows.length === 0);
+    meta.held = held;
+    meta.signed = Boolean(session);
+  }
   const stats = statsFromPacked(packed);
+  // Missing index: say "unavailable", never a 0 counter.
+  const shown = countsAvailable(stats)
+    ? { views: stats.views || 0, downloads: stats.downloads || 0 }
+    : { views: "unavailable", downloads: "unavailable" };
+  if (meta && typeof meta === "object") meta.countsOk = countsAvailable(stats);
   const catalog = stampPermalinks((packed && packed.records) || []);
   const linkedRows = permalinksForRows(rows, catalog);
   const error = held
@@ -408,15 +422,15 @@ async function indexHtml(env, request, signed) {
     ...browse,
     rows: linkedRows,
     error,
-    views: stats.views || 0,
-    downloads: stats.downloads || 0,
+    views: shown.views,
+    downloads: shown.downloads,
     records_packed: stats.records_packed,
     records_aziel: stats.records_aziel,
     records_corpus: stats.records_corpus,
     trending: topPapers(metrics, catalog, "views", 5),
     downloaded: topPapers(metrics, catalog, "downloads", 5),
     host: HOST,
-  }), { signed: session, path: LIBRARY_HUB_PATH, kind: "search", views: stats.views || 0, downloads: stats.downloads || 0, nodes: mesh.nodes, liveNodes: mesh.liveNodes, donateStrip: false, ecosystem: false });
+  }), { signed: session, path: LIBRARY_HUB_PATH, kind: "search", views: shown.views, downloads: shown.downloads, nodes: mesh.nodes, liveNodes: mesh.liveNodes, donateStrip: false, ecosystem: false });
 }
 
 function llmsTxt() {
@@ -596,7 +610,21 @@ async function handleFetch(request, env, ctx) {
       if (request.method === "HEAD") {
         return crawlResponse(request, "", "text/html; charset=utf-8", htmlHeaders);
       }
-      const html = await indexHtml(env, request, signedEarly);
+      // Zero-result searches are cached for 5 min (separate key; shelf/tree empty-render rule unchanged).
+      const browse = parseBrowseParams(url);
+      const emptyKey = homeSearchActive(browse) && !signedEarly && !url.searchParams.has("received") ? emptySearchCacheUrl(browse) : "";
+      if (emptyKey) {
+        const hit = await cacheMatchTextAged(emptyKey);
+        if (hit && hit.text && hit.ageMs < EMPTY_SEARCH_TTL_MS) {
+          return attachVid(crawlResponse(request, streamLcpHtml(hit.text), "text/html; charset=utf-8", { ...htmlHeaders, "X-Aziel-Cache": "empty-search" }));
+        }
+      }
+      const meta = {};
+      const html = await indexHtml(env, request, signedEarly, meta);
+      if (emptyKey && meta.empty && meta.countsOk && !meta.held && !meta.signed) {
+        const put = cachePutText(emptyKey, html, undefined, { cacheControl: EMPTY_SEARCH_CACHE_CONTROL }).catch(() => null);
+        if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(put); else await put;
+      }
       return attachVid(crawlResponse(request, streamLcpHtml(html), "text/html; charset=utf-8", htmlHeaders));
     }
 
@@ -631,6 +659,7 @@ async function handleFetch(request, env, ctx) {
 
     if (url.pathname === "/count" && request.method === "GET") {
       const stats = await collectStats(env, request);
+      if (!countsAvailable(stats)) return attachVid(countsUnavailableResponse({ headers: corsHeaders() }));
       const __enriched = await withHumanBotStats(env, request, {
         project: PROJECT,
         views: stats.views || 0,
@@ -646,6 +675,7 @@ async function handleFetch(request, env, ctx) {
 
     if (url.pathname === "/stats" && request.method === "GET") {
       const stats = await collectStats(env, request);
+      if (!countsAvailable(stats)) return attachVid(countsUnavailableResponse({ headers: corsHeaders() }));
       const __enriched = await withHumanBotStats(env, request, stats);
       const res = json(__enriched);
       res.headers.set("Cache-Control", "public, s-maxage=300, stale-while-revalidate=3600");

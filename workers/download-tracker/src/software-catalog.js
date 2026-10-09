@@ -469,6 +469,7 @@ export function productLinks(product) {
 }
 
 export function parseCountPayload(j) {
+  if (j && typeof j === "object" && (j.code === "COUNTS_UNAVAILABLE" || j.counts_available === false)) return { downloads: null, views: null, uploads: null, unavailable: true };
   if (!j || typeof j !== "object" || j.error) return { downloads: null, views: null, uploads: null };
   const num = (v) => {
     const n = Number(v);
@@ -568,8 +569,13 @@ export function countUrlForProduct(product) {
 export function countPills({ downloads, views, uploads, uses } = {}, opts = {}) {
   const requireVD = Boolean(opts.requireViewsDownloads);
   const pills = [];
-  if (requireVD || downloads != null) pills.push(String(downloads != null ? downloads : 0) + " downloads");
-  if (requireVD || views != null) pills.push(String(views != null ? views : 0) + " views");
+  // An unknown count is "unavailable", never a 0.
+  if (opts.unavailable && downloads == null && views == null) {
+    pills.push("downloads unavailable", "views unavailable");
+  } else {
+    if (requireVD || downloads != null) pills.push(String(downloads != null ? downloads : 0) + " downloads");
+    if (requireVD || views != null) pills.push(String(views != null ? views : 0) + " views");
+  }
   if (uploads != null) pills.push(String(uploads) + " uploads");
   if (uses != null) pills.push(String(uses) + " uses");
   return pills;
@@ -958,6 +964,8 @@ export async function fetchLiveSoftwareCatalog(env, opts = {}) {
 
 function statsAsCount(stats) {
   if (!stats || typeof stats !== "object") return { downloads: null, views: null, uploads: null };
+  // Missing packed index: unknown, never 0.
+  if (stats.counts_available === false || stats.views == null || stats.downloads == null) return { downloads: null, views: null, uploads: null, unavailable: true };
   return {
     downloads: Number(stats.downloads) || 0,
     views: Number(stats.views) || 0,
@@ -974,7 +982,7 @@ async function fetchCountDoc(url, opts = {}) {
       init.signal = AbortSignal.timeout(ms);
     }
     const res = await fetch(url, init);
-    if (!res.ok) { await discardBody(res); return { downloads: null, views: null, uploads: null }; }
+    if (!res.ok) { await discardBody(res); return { downloads: null, views: null, uploads: null, unavailable: res.status === 503 }; }
     return parseCountPayload(await res.json());
   } catch {
     return { downloads: null, views: null, uploads: null };
@@ -1060,7 +1068,7 @@ export async function loadSoftwareCatalog(env, stats, opts = {}) {
     }
     if (downloads != null || views != null || uploads != null) fetched += 1;
     const uses = usesForSlug(usesDoc, slug);
-    const pills = countPills({ downloads, views, uploads, uses }, { requireViewsDownloads: requireCountPills });
+    const pills = countPills({ downloads, views, uploads, uses }, { requireViewsDownloads: requireCountPills, unavailable: Boolean(count.unavailable) });
     const countHint = pills.length ? "" : (p.count || countUrlForProduct(p) ? "downloads live on Worker" : "");
     return toCard(p, { pills, countHint });
   }).sort(compareSoftware);
@@ -1081,7 +1089,11 @@ export async function loadSoftwareCatalog(env, stats, opts = {}) {
     downloads: hubDownloads,
     views: hubViews,
     uses: localUses,
-  }, { requireViewsDownloads: requireCountPills });
+  }, {
+    requireViewsDownloads: requireCountPills,
+    // Missing packed index and no other product counts: unknown, never "0 views".
+    unavailable: hubViews == null && hubDownloads == null && Boolean(localStats && localStats.counts_available === false),
+  });
   if (originUses != null && Number.isFinite(originUses)) {
     hubPills.push(String(originUses) + " origin uses");
   }

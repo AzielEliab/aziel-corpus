@@ -39,6 +39,27 @@ export function isTransientOverload(err) {
 
 export const TRANSIENT_RETRY_AFTER_S = 30;
 
+/** Public counters with no readable index: 503 + short Retry-After, never a 0. */
+export function countsUnavailableResponse({ headers = {} } = {}) {
+  return new Response(JSON.stringify({
+    ok: false,
+    error: "counts temporarily unavailable",
+    code: "COUNTS_UNAVAILABLE",
+    counts_available: false,
+    retry_after_s: TRANSIENT_RETRY_AFTER_S,
+    note: "The packed index could not be read. Counts are not zero and are not lost. Try again after Retry-After.",
+    author: "Aziel Eliab",
+  }, null, 2), {
+    status: 503,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      "Retry-After": String(TRANSIENT_RETRY_AFTER_S),
+      "Cache-Control": "no-store",
+      ...headers,
+    },
+  });
+}
+
 function errMessage(err) {
   const own = typeof err === "string" ? err : String((err && err.message) || "");
   const cause = err && err.cause && err.cause.message ? " " + String(err.cause.message) : "";

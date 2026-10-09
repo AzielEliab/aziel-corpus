@@ -308,6 +308,7 @@ export function packedRecordCounts(doc) {
 }
 
 export function statsFromPacked(doc) {
+  if (doc && doc.missing) return unavailableStats(doc);
   const packed = normalizePackedIndex(doc || {});
   const counts = packedRecordCounts(packed);
   const out = {
@@ -324,6 +325,7 @@ export function statsFromPacked(doc) {
     index_ts: packed.ts,
     kv_list_hot_path: false,
     ...counts,
+    counts_available: true,
     counts_as_of: packed.ts,
     counts_refresh_s: COUNTS_REFRESH_S,
     counts_note: COUNTS_NOTE,
@@ -332,6 +334,38 @@ export function statsFromPacked(doc) {
   if (packed.views_human != null) out.views_human = Number(packed.views_human) || 0;
   if (packed.downloads_human != null) out.downloads_human = Number(packed.downloads_human) || 0;
   return out;
+}
+
+/**
+ * The KV index is missing: counts are UNKNOWN, not zero. Public readers must answer
+ * 503 (JSON) or say "unavailable" (HTML) instead of showing 0.
+ */
+export function unavailableStats(doc) {
+  return {
+    project: PROJECT,
+    views: null,
+    downloads: null,
+    total: null,
+    by_repo: {},
+    by_branch: {},
+    by_fork: {},
+    breakdown: [],
+    github: null,
+    index_sha256: "",
+    index_ts: (doc && doc.ts) || null,
+    kv_list_hot_path: false,
+    records_packed: null,
+    records_aziel: null,
+    records_corpus: null,
+    counts_available: false,
+    counts_as_of: null,
+    counts_refresh_s: COUNTS_REFRESH_S,
+    counts_note: "Counts are unavailable right now (the packed index " + LIBRARY_INDEX_KEY + " could not be read). They are not zero. Try again shortly.",
+  };
+}
+
+export function countsAvailable(stats) {
+  return !!stats && stats.counts_available !== false && stats.views != null && stats.downloads != null;
 }
 
 /** Views/Downloads are exact but delayed: they are folded into the packed index by the 30-min cron. */

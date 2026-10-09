@@ -1,3 +1,4 @@
+import { countsUnavailableResponse } from "./quota.js";
 /**
  * Aziel Digital Library hosted runtime. /v1 does not increment download counters.
  * Packed library:index:v1 may be read (one get, never list) for health / failover.
@@ -53,6 +54,7 @@ import {
   libraryHealthFields,
   publicSearchCard,
   readPackedIndex,
+  countsAvailable,
   refreshPackedIndex,
   searchPackedRecords,
 } from "./library-index.js";
@@ -412,6 +414,11 @@ export async function handleRuntimeApi(request, url, env, ctx) {
   }
   if (path === "/v1/stats" && (request.method === "GET" || request.method === "HEAD")) {
     const stats = await collectStats(env);
+    if (!countsAvailable(stats)) {
+      const off = countsUnavailableResponse();
+      if (request.method === "HEAD") return new Response(null, { status: off.status, headers: off.headers });
+      return off;
+    }
     const res = json({
       ok: true,
       author: "Aziel Eliab",

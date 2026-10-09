@@ -747,7 +747,7 @@ export function renderPaperReader({
   } else if (counts && counts.views != null && counts.downloads != null) {
     const views = Number(counts.views) || 0;
     const downloads = Number(counts.downloads) || 0;
-    countsHtml = "<p class=\"paper-counts\" data-source=\"kv\" data-views=\"" + views + "\" data-downloads=\"" + downloads + "\"><strong>"
+    countsHtml = "<p class=\"paper-counts\" data-source=\"" + escAttrSource(counts.source) + "\" data-views=\"" + views + "\" data-downloads=\"" + downloads + "\"><strong>"
       + views.toLocaleString("en-US") + "</strong> views · <strong>" + downloads.toLocaleString("en-US") + "</strong> downloads</p>";
   }
   const tip = String((row && (row.chain_tip || row.paper_chain_tip)) || "").trim();
@@ -1234,4 +1234,9 @@ export async function paperBackfillStatus(env) {
     invented: false,
     author: AUTHOR,
   };
+}
+
+/** data-source attribute for the counts line: where the totals came from. Never claims "kv" alone. */
+function escAttrSource(source) {
+  return String(source || "kv+d1+do").replace(/[^a-z0-9+_-]/gi, "") || "kv+d1+do";
 }

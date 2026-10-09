@@ -6,7 +6,7 @@ import { isOperator, ingestRecord, searchRecords, listFacets, facetsFromRows, pa
 import { extractEventsForRecord } from "./geo.js";
 import { attachPermalinks, permalinksForRows } from "./paper-ux.js";
 import { isQuotaError, isTransientOverload } from "./quota.js";
-import { canonicalShelfCacheUrl, injectNotice, isCrawlerRequest, isSnapshotUnavailable, lastGoodUrl, LASTGOOD_CACHE_CONTROL, SHELF_EDGE_CACHE_CONTROL, SHELF_REVALIDATE_MS, snapshotRecords, staleNoticeHtml } from "./snapshot.js";
+import { canonicalShelfCacheUrl, injectNotice, isCrawlerRequest, cachedStaleNotice, isSnapshotUnavailable, lastGoodUrl, noteOutage, revalidateInBackground, LASTGOOD_CACHE_CONTROL, SHELF_EDGE_CACHE_CONTROL, SHELF_REVALIDATE_MS, snapshotRecords, staleNoticeHtml } from "./snapshot.js";
 import { ocrIngestHint } from "./ocr.js";
 import {
   collectStats,
@@ -210,8 +210,11 @@ async function serveShelfPage(request, url, env, ctx, signed, spec) {
     const aged = await cacheMatchTextAged(cacheUrl);
     if (aged && aged.text) {
       // Re-render at most once per SHELF_REVALIDATE_MS, never on every hit (CPU 1102, D1 reads).
-      if (needsRevalidate(aged, SHELF_REVALIDATE_MS) && ctx && typeof ctx.waitUntil === "function") {
-        ctx.waitUntil(renderFresh().then(store).catch(() => null));
+      if (needsRevalidate(aged, SHELF_REVALIDATE_MS)) revalidateInBackground(ctx, renderFresh, store);
+      // An old copy during a recorded D1 outage carries a Stale banner (not up to a day of silence).
+      const notice = await cachedStaleNotice(aged);
+      if (notice) {
+        return html(streamLcpHtml(injectNotice(aged.text, notice)), { signed, extraHeaders: { "Cache-Control": "no-store", "X-Aziel-Stale": "cache; age-s=" + Math.round(aged.ageMs / 1000) } });
       }
       return html(streamLcpHtml(aged.text), { signed, extraHeaders: { "Cache-Control": HTML_CACHE_CONTROL } });
     }
@@ -222,6 +225,7 @@ async function serveShelfPage(request, url, env, ctx, signed, spec) {
   } catch (err) {
     if (!isQuotaError(err) && !isTransientOverload(err)) throw err;
     const cause = isQuotaError(err) ? "daily" : "outage";
+    if (!crawler && ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(noteOutage(err).catch(() => null));
     // D1 refused: packed snapshot with a stale label (unless the snapshot is what failed),
     // then a last-good copy, then 503 + Retry-After.
     if (!isSnapshotUnavailable(err)) {

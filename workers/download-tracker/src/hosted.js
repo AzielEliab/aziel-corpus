@@ -3,7 +3,7 @@ import { recordDescription, ABOUT_PATH, ABOUT_NAV_LABEL, FORENSICS_PATH, WHO_PAT
 import { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, blockedAvBody } from "./hosted-pages.js";
 import { json, corsHeaders } from "./runtime.js";
 import { isQuotaError, isTransientOverload, rethrowIfQuota } from "./quota.js";
-import { injectNotice, isCrawlerRequest, isSnapshotUnavailable, lastGoodUrl, LASTGOOD_CACHE_CONTROL, SHELF_EDGE_CACHE_CONTROL, SHELF_REVALIDATE_MS, snapshotRecords, sortTreeRows, staleNoticeHtml } from "./snapshot.js";
+import { cachedStaleNotice, injectNotice, isCrawlerRequest, isSnapshotUnavailable, lastGoodUrl, noteOutage, revalidateInBackground, LASTGOOD_CACHE_CONTROL, SHELF_EDGE_CACHE_CONTROL, SHELF_REVALIDATE_MS, snapshotRecords, sortTreeRows, staleNoticeHtml } from "./snapshot.js";
 import { receiptForRecord, sha256hex, isJsonDocumentId } from "./ledger.js";
 import { serveRecordMetadata, parseRecordMetadataPath, receiptForJsonMetadata } from "./record-metadata.js";
 import { serveRecordMachine, parseRecordMachinePath, loadRecordMachineContext, recordMachineLinkHeader } from "./record-llm.js";
@@ -636,9 +636,10 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
       // Edge-cached HTML, re-rendered at most once per SHELF_REVALIDATE_MS (CPU 1102, D1 reads).
       const aged = await cacheMatchTextAged(treeCacheUrl);
       if (aged && aged.text) {
-        if (needsRevalidate(aged, SHELF_REVALIDATE_MS) && ctx && typeof ctx.waitUntil === "function") {
-          ctx.waitUntil(renderTree().then(store).catch(() => null));
-        }
+        if (needsRevalidate(aged, SHELF_REVALIDATE_MS)) revalidateInBackground(ctx, renderTree, store);
+        // An old copy during a recorded D1 outage carries a Stale banner.
+        const notice = await cachedStaleNotice(aged);
+        if (notice) return html(injectNotice(aged.text, notice), { cacheControl: "no-store", headers: { "X-Aziel-Stale": "cache; age-s=" + Math.round(aged.ageMs / 1000) } });
         return pageHtml(aged.text);
       }
     }
@@ -648,6 +649,7 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     } catch (err) {
       if (!isQuotaError(err) && !isTransientOverload(err)) throw err;
       const cause = isQuotaError(err) ? "daily" : "outage";
+      if (!crawler && ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(noteOutage(err).catch(() => null));
       if (!isSnapshotUnavailable(err)) {
         try {
           const snap = await fromSnapshot();
