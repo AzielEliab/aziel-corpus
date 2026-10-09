@@ -123,25 +123,46 @@ test("paper dates reject far-future year tokens such as 2099", () => {
   assert.ok(!dates.some((d) => String(d.date).startsWith("2099")));
 });
 
-test("coordinate pair + paper date creates a Map pin (never upload time)", async () => {
-  const env = mockEnv();
-  const n = await extractEventsForText(env, {
-    recordId: "AZDOC-TESTCOORD",
-    title: "Field survey notebook",
+test("coordinate pair + paper date pins only next to a gazetteer-resolved place (GEO-PIN-QUALITY-1.0)", async () => {
+  const seattle = { geonameid: 5809844, name: "Seattle", asciiname: "Seattle", lat: 47.6062, lon: -122.3321 };
+  let env = mockEnv();
+  let n = await extractEventsForText(env, {
+    recordId: "AZDOC-TESTCOORD", title: "Field survey notebook",
     body: "Survey stake at 47.6062, -122.3321 on August 1936.",
-    createdBy: "test",
-    skipGazetteer: true,
-    resolve: async () => null,
+    createdBy: "test", skipGazetteer: true, resolve: async () => null,
   });
-  assert.equal(n, 1);
-  assert.equal(env.events.length, 1);
-  const e = env.events[0];
-  assert.equal(e.event_date, "1936-08");
-  assert.equal(e.source, "AUTO_COORD");
-  assert.ok(Math.abs(e.lat - 47.6062) < 1e-6);
-  assert.ok(Math.abs(e.lon + 122.3321) < 1e-6);
-  assert.doesNotMatch(String(e.event_date), /^2026-09/);
-  assert.match(e.place_name, /47\.6062/);
+  assert.equal(n, 0, "a bare coordinate pair with no resolved place is not pinned");
+  env = mockEnv();
+  n = await extractEventsForText(env, {
+    recordId: "AZDOC-TESTCOORD", title: "Field survey notebook",
+    body: "Survey stake at 47.6062, -122.3321 near Seattle on August 1936.",
+    createdBy: "test", skipGazetteer: true, resolve: async (p) => (/seattle/i.test(p) ? seattle : null),
+  });
+  // The coordinate pin and the sentence pin name the same place and date: one pin per document survives.
+  const coord = env.events.filter((e) => e.place_name === "Seattle" && e.event_date === "1936-08");
+  assert.equal(coord.length, 1);
+  assert.equal(env.events.filter((e) => /^coord /.test(e.place_name)).length, 0);
+  assert.equal(coord[0].event_date, "1936-08");
+  assert.equal(coord[0].place_name, "Seattle");
+  assert.ok(Math.abs(coord[0].lat - 47.6062) < 1e-6);
+  assert.doesNotMatch(String(coord[0].event_date), /^2026-09/);
+});
+
+test("coordinate junk patterns are refused and stored junk is retracted on read", async () => {
+  const { coordinateLooksReal, eventRetraction, dedupePerDocument } = await import("./geo.js");
+  for (const [lat, lon] of [[0.0001, 0.0094], [0.1075, 0.1144], [84, 0], [40, 0], [0, 12.5], [32, 41], [91, 10]]) assert.equal(coordinateLooksReal(lat, lon), false, lat + "," + lon);
+  assert.equal(coordinateLooksReal(47.6062, -122.3321), true);
+  assert.equal(eventRetraction({ place_name: "coord 84.0000,0.0000", lat: 84, lon: 0 }).retracted, "geoparser_junk");
+  assert.equal(eventRetraction({ place_name: "Seattle", lat: 0.1, lon: 0.1 }).retracted, "geoparser_junk");
+  assert.equal(eventRetraction({ place_name: "Seattle", lat: 47.6, lon: -122.3 }), null);
+  const d = dedupePerDocument([
+    { event_id: "A", record_id: "R", event_date: "1900", place_name: "Chicago", confidence: 0.7 },
+    { event_id: "B", record_id: "R", event_date: "1900", place_name: "Chicago", confidence: 0.9 },
+    { event_id: "C", record_id: "S", event_date: "1900", place_name: "Chicago", confidence: 0.7 },
+  ]);
+  assert.equal(d.find((e) => e.event_id === "A").retracted, "duplicate_in_document");
+  assert.equal(d.find((e) => e.event_id === "B").retracted, undefined);
+  assert.equal(d.find((e) => e.event_id === "C").retracted, undefined, "other documents are not deduped");
 });
 
 test("Zioncheck-like title seed optionally pins Seattle × 1936-08 via gazetteer resolveUnique", async () => {

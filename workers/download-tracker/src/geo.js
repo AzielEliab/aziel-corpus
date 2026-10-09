@@ -579,6 +579,48 @@ export async function derivedTextForRecord(env, recordId, opts = {}) {
   return chunks.join("\n\n").slice(0, BAG_BODY_CAP);
 }
 
+/**
+ * GEO-PIN-QUALITY-1.0. A coordinate pair is pinned only when it looks like a real place AND a
+ * gazetteer-resolved place named in the same text lies within COORD_PLACE_KM. Patterns that are
+ * not places are refused: the 1-degree box around 0,0 ("null island"), a latitude or longitude of
+ * exactly 0, and whole-degree pairs (table values such as "84, 0"). One pin per document per
+ * (date, place); the most confident one is kept.
+ */
+export const COORD_PLACE_KM = 100;
+export const PIN_QUALITY_SPEC = "GEO-PIN-QUALITY-1.0";
+export function coordinateLooksReal(lat, lon) {
+  lat = Number(lat); lon = Number(lon);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return false;
+  if (Math.abs(lat) < 1 && Math.abs(lon) < 1) return false;
+  if (lat === 0 || lon === 0) return false;
+  if (Number.isInteger(lat) && Number.isInteger(lon)) return false;
+  return true;
+}
+function kmBetween(aLat, aLon, bLat, bLon) {
+  const r = Math.PI / 180;
+  const h = Math.sin(((bLat - aLat) * r) / 2) ** 2 + Math.cos(aLat * r) * Math.cos(bLat * r) * Math.sin(((bLon - aLon) * r) / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+/** Why a stored event is not a real pin (null when it is). Same rule on read and on write. */
+export function eventRetraction(e) {
+  const name = String((e && e.place_name) || "").trim();
+  if (!name || /^coord\s/i.test(name)) return { retracted: "geoparser_junk", reason: "No gazetteer-resolved place name: the pin was made from a bare coordinate pair (" + (name || "no name") + ")." };
+  if (!coordinateLooksReal(e.lat, e.lon)) return { retracted: "geoparser_junk", reason: "The coordinates (" + e.lat + ", " + e.lon + ") match a pattern that is not a real place (near 0,0, an exact 0, or whole degrees)." };
+  return null;
+}
+/** One pin per document per (date, place): keep the most confident, retract the rest. */
+export function dedupePerDocument(events) {
+  const best = new Map();
+  for (const e of events) {
+    const k = [e.record_id || "", e.event_date || "", String(e.place_name || "").toLowerCase()].join("|");
+    const cur = best.get(k);
+    const c = Number(e.confidence == null ? 1 : e.confidence);
+    if (!cur || c > Number(cur.confidence == null ? 1 : cur.confidence) || (c === Number(cur.confidence) && String(e.event_id) < String(cur.event_id))) best.set(k, e);
+  }
+  const keep = new Set([...best.values()].map((e) => e.event_id));
+  return events.map((e) => (keep.has(e.event_id) ? e : { ...e, retracted: "duplicate_in_document", retract_reason: "Same document, date and place as " + best.get([e.record_id || "", e.event_date || "", String(e.place_name || "").toLowerCase()].join("|")).event_id + ", which is kept." }));
+}
+
 export async function extractEventsForText(env, opts = {}) {
   const {
     recordId, title, body, subjects, keywords, author, domain, filename,
@@ -604,9 +646,29 @@ export async function extractEventsForText(env, opts = {}) {
     made.push(e);
   };
 
+  // Gazetteer places named in the text (used by the coordinate rule and the sentence pins).
+  const resolved = [];
+  if (dates.length) {
+    const tried = new Set();
+    for (const p of candidatePhrases(raw)) {
+      const n = normName(p);
+      if (!n || tried.has(n)) continue;
+      tried.add(n);
+      const hit = await resolvePlace(p);
+      if (hit && hit.lat != null && hit.lon != null) resolved.push({ phrase: p, place: hit });
+    }
+  }
+
   if (dates.length && coords.length) {
     const bounds = sentenceBounds(raw);
     for (const c of coords) {
+      if (!coordinateLooksReal(c.lat, c.lon)) continue;
+      let near = null;
+      for (const r of resolved) {
+        const km = kmBetween(c.lat, c.lon, Number(r.place.lat), Number(r.place.lon));
+        if (km <= COORD_PLACE_KM && (!near || km < near.km)) near = { km, place: r.place };
+      }
+      if (!near) continue;
       const candidates = [];
       for (const dm of dates) {
         let gap;
@@ -625,7 +687,7 @@ export async function extractEventsForText(env, opts = {}) {
       candidates.sort((a, b) => a.gap - b.gap);
       const pick = candidates[0];
       if (!pick) continue;
-      const placeName = "coord " + c.lat.toFixed(4) + "," + c.lon.toFixed(4);
+      const placeName = near.place.name;
       const eid = "AZEVT-" + sha256hex([recordId || "", pick.dm.date, placeName, String(c.start)].join("|")).slice(0, 12).toUpperCase();
       add({
         event_id: eid,
@@ -645,16 +707,6 @@ export async function extractEventsForText(env, opts = {}) {
   }
 
   if (dates.length) {
-    const phrases = candidatePhrases(raw);
-    const resolved = [];
-    const tried = new Set();
-    for (const p of phrases) {
-      const n = normName(p);
-      if (!n || tried.has(n)) continue;
-      tried.add(n);
-      const hit = await resolvePlace(p);
-      if (hit && hit.lat != null && hit.lon != null) resolved.push({ phrase: p, place: hit });
-    }
     const pmentions = [];
     for (const item of resolved) {
       for (const sp of mentionSpans(raw, [item.phrase, item.place.name, item.place.asciiname])) {
@@ -728,8 +780,9 @@ export async function extractEventsForText(env, opts = {}) {
     }
   }
 
-  if (!made.length) return 0;
-  return persistEvents(env, made);
+  const kept = dedupePerDocument(made).filter((e) => !e.retracted && !eventRetraction(e));
+  if (!kept.length) return 0;
+  return persistEvents(env, kept);
 }
 
 export async function extractEventsForRecord(env, recordId) {
@@ -925,7 +978,21 @@ export function mapPinTypeForLibrary(library) {
   return String(library || "").toLowerCase() === "aziel" ? "library-aziel-event" : "corpus-event";
 }
 
-export async function listEvents(env, { minConfidence = 0 } = {}) {
+/** Stored pins with the quality rule applied on read. Retracted pins are hidden unless includeRetracted. */
+export async function listEvents(env, { minConfidence = 0, includeRetracted = false } = {}) {
+  const stored = await listStoredEvents(env, { minConfidence });
+  const junk = [];
+  const real = [];
+  for (const e of stored) {
+    const r = eventRetraction(e);
+    if (r) junk.push({ ...e, retracted: r.retracted, retract_reason: r.reason });
+    else real.push(e);
+  }
+  const out = [...dedupePerDocument(real), ...junk];
+  return includeRetracted ? out : out.filter((e) => !e.retracted);
+}
+
+async function listStoredEvents(env, { minConfidence = 0 } = {}) {
   await ensureSchema(env);
   try {
     let rows;
