@@ -8,6 +8,7 @@
  */
 import { HOST, RUNTIME_ORIGIN } from "./runtime-copy.js";
 import { cacheMatchJson, cachePutJson } from "./library-index.js";
+import { discardBody } from "./http-body.js";
 
 const UA = "Mozilla/5.0 AzielDigitalLibrary";
 
@@ -30,7 +31,7 @@ async function fetchRuntimeJson(env, destPath) {
   try {
     const got = await runtimeGet(env, destPath);
     const res = got && got.res;
-    if (!res || !res.ok) return null;
+    if (!res || !res.ok) { await discardBody(res); return null; }
     const doc = await res.json();
     if (!doc || typeof doc !== "object" || doc.error) return null;
     return doc;

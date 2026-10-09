@@ -2,7 +2,8 @@ import { page, patternBody, softwareBody, aboutBody, whoBody, howItsScoredBody, 
 import { recordDescription, ABOUT_PATH, ABOUT_NAV_LABEL, FORENSICS_PATH, WHO_PATH, aboutRedirectFrom, forensicsRedirectFrom } from "./seo.js";
 import { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, blockedAvBody } from "./hosted-pages.js";
 import { json, corsHeaders } from "./runtime.js";
-import { isQuotaError, rethrowIfQuota } from "./quota.js";
+import { isQuotaError, isTransientOverload, rethrowIfQuota } from "./quota.js";
+import { injectNotice, isCrawlerRequest, isSnapshotUnavailable, lastGoodUrl, LASTGOOD_CACHE_CONTROL, SHELF_EDGE_CACHE_CONTROL, SHELF_REVALIDATE_MS, snapshotRecords, sortTreeRows, staleNoticeHtml } from "./snapshot.js";
 import { receiptForRecord, sha256hex, isJsonDocumentId } from "./ledger.js";
 import { serveRecordMetadata, parseRecordMetadataPath, receiptForJsonMetadata } from "./record-metadata.js";
 import { serveRecordMachine, parseRecordMachinePath, loadRecordMachineContext, recordMachineLinkHeader } from "./record-llm.js";
@@ -22,7 +23,7 @@ import {
   ensureSchema, ensurePlaces, gazetteerStatus, gazetteerSearch, lookupPlaces,
   reindexGeography, listEvents, addManualEvent, unresolvedPlaceMentions,
   historicalStatus, historicalLayers, historicalGeojson, importHistorical,
-  corpusTree, getRecordRow, recordEvents, extractEventsForRecord,
+  corpusTree, treeFromRows, getRecordRow, recordEvents, extractEventsForRecord,
 } from "./geo.js";
 import {
   aiBound, ocrFile, ocrSelftest, lastOcrSelftest, pendingOcrCount, reprocessPendingOcr,
@@ -34,11 +35,15 @@ import { loadSoftwareCatalog, SOFTWARE_HTML_TIMEOUT_MS } from "./software-catalo
 import { isSeoBot } from "./rate-limit.js";
 import {
   HTML_CACHE_CONTROL,
+  HTML_CACHE_PREFIX,
+  HTML_EDGE_CACHE_CONTROL,
   SOFTWARE_HTML_CACHE_CONTROL,
   SEO_CACHE_CONTROL,
   ASSET_CACHE_CONTROL,
   htmlCacheUrl,
   cacheMatchText,
+  cacheMatchTextAged,
+  needsRevalidate,
   cachePutText,
   readPackedIndex,
 } from "./library-index.js";
@@ -137,12 +142,12 @@ export async function loadHostedRecordRow(env, recordId) {
   if (!id) return null;
   let row = null;
   let quota = null;
-  try { row = await getRecordRow(env, id); } catch (e) { row = null; if (isQuotaError(e)) quota = e; }
+  try { row = await getRecordRow(env, id); } catch (e) { row = null; if (isQuotaError(e) || isTransientOverload(e)) quota = e; }
   if (row && row.record_id) return row;
   try {
     const ctx = await loadRecordMachineContext(env, id);
     if (ctx && ctx.row && ctx.row.record_id) return ctx.row;
-  } catch (e) { if (isQuotaError(e)) quota = quota || e; /* packed catalog */ }
+  } catch (e) { if (isQuotaError(e) || isTransientOverload(e)) quota = quota || e; /* packed catalog */ }
   // D1 throttled and no packed card: 503 + Retry-After, not a false 404.
   if (quota) rethrowIfQuota(quota, "loadHostedRecordRow");
   return null;
@@ -262,7 +267,11 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
   // event, and historical counts were the multi-second TTFB. Pins hydrate
   // from GET /api/events. Historical polygons and unresolved names stay lazy.
   const staticPriority = path === "/software" || path === ABOUT_PATH || path === WHO_PATH || path === "/how-its-scored" || path === "/map" || isHelpPath(path);
-  if (!staticPriority) await ensureSchema(env);
+  if (!staticPriority) {
+    // Schema exists in production. A D1 quota/overload on these DDL checks must not take down
+    // pages that can still answer from the packed snapshot (/tree, /record from packed cards).
+    try { await ensureSchema(env); } catch (e) { if (!isQuotaError(e) && !isTransientOverload(e)) throw e; }
+  }
 
   if (read && parseRecordMetadataPath(path)) {
     return serveRecordMetadata(env, path);
@@ -599,9 +608,65 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     return new Response(null, { status: 303, headers: { Location: FORENSICS_PATH } });
   }
   if (path === "/tree" && read) {
-    await ensurePlaces(env, ctx);
-    const tree = await corpusTree(env);
-    return pageHtml(page("Corpus Tree", treeBody(tree), { signed, path: "/tree", kind: "tree" }));
+    // No gazetteer seeding here: the tree does not read places, and an unfinished seed
+    // re-ran seedAll (thousands of city rows: CPU + D1 writes) in waitUntil on every GET /tree.
+    if (head) return pageHtml("");
+    const crawler = !signed && isCrawlerRequest(request);
+    const treePage = (tree) => page("Corpus Tree", treeBody(tree), { signed, path: "/tree", kind: "tree" });
+    const fromSnapshot = async () => {
+      const packed = await readPackedIndex(env);
+      // Missing or zero-record index is unavailable, never an empty tree.
+      const records = snapshotRecords(packed);
+      return { html: treePage(treeFromRows(sortTreeRows(records))), asOf: packed.ts, empty: false };
+    };
+    const fromD1 = async () => {
+      const tree = await corpusTree(env);
+      const empty = (!tree.libraries || tree.libraries.size === 0) && (!tree.standalone || tree.standalone.length === 0);
+      return { html: treePage(tree), empty };
+    };
+    // Crawlers get the packed snapshot (no D1). People get the live D1 tree.
+    const renderTree = () => (crawler ? fromSnapshot() : fromD1());
+    const treeCacheUrl = HTML_CACHE_PREFIX + "/tree";
+    // Never cache or last-good-write an empty render.
+    const store = (r) => (!r || r.empty || !r.html) ? Promise.resolve(null) : Promise.all([
+      cachePutText(treeCacheUrl, r.html, undefined, { cacheControl: SHELF_EDGE_CACHE_CONTROL }),
+      cachePutText(lastGoodUrl(treeCacheUrl), r.html, undefined, { cacheControl: LASTGOOD_CACHE_CONTROL }),
+    ]).catch(() => null);
+    if (!signed) {
+      // Edge-cached HTML, re-rendered at most once per SHELF_REVALIDATE_MS (CPU 1102, D1 reads).
+      const aged = await cacheMatchTextAged(treeCacheUrl);
+      if (aged && aged.text) {
+        if (needsRevalidate(aged, SHELF_REVALIDATE_MS) && ctx && typeof ctx.waitUntil === "function") {
+          ctx.waitUntil(renderTree().then(store).catch(() => null));
+        }
+        return pageHtml(aged.text);
+      }
+    }
+    let rendered;
+    try {
+      rendered = await renderTree();
+    } catch (err) {
+      if (!isQuotaError(err) && !isTransientOverload(err)) throw err;
+      const cause = isQuotaError(err) ? "daily" : "outage";
+      if (!isSnapshotUnavailable(err)) {
+        try {
+          const snap = await fromSnapshot();
+          return html(injectNotice(snap.html, staleNoticeHtml({ asOf: snap.asOf, source: "snapshot", cause })), { cacheControl: "no-store", headers: { "X-Aziel-Stale": "snapshot; cause=" + cause + "; as-of=" + (snap.asOf || "") } });
+        } catch { /* KV refused or snapshot missing/empty */ }
+      }
+      const saved = await cacheMatchTextAged(lastGoodUrl(treeCacheUrl));
+      if (saved && saved.text) {
+        const asOf = Number.isFinite(saved.ageMs) ? new Date(Date.now() - saved.ageMs).toISOString() : "";
+        return html(injectNotice(saved.text, staleNoticeHtml({ asOf, source: "lastgood", cause })), { cacheControl: "no-store", headers: { "X-Aziel-Stale": "lastgood; cause=" + cause + "; as-of=" + asOf } });
+      }
+      throw err;
+    }
+    if (!signed) {
+      const put = store(rendered);
+      if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(put);
+      else await put;
+    }
+    return pageHtml(rendered.html);
   }
   if (path === "/map" && read) {
     return pageHtml(page("Temporal Map", mapBody({ signed }), { signed, path: "/map", scripts: ["/map-client.js?v=2"], kind: "map" }));
@@ -724,9 +789,11 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     };
     const cacheUrl = htmlCacheUrl(request) + (bot ? ":bot-pills-ssot2" : ":full-pills-ssot2");
     if (!signed) {
-      const cached = await cacheMatchText(cacheUrl);
+      const aged = await cacheMatchTextAged(cacheUrl);
+      const cached = aged && aged.text;
       if (cached) {
-        if (ctx && typeof ctx.waitUntil === "function") {
+        // Re-render at most once per HTML_REVALIDATE_MS, not on every hit (CPU limit 1102).
+        if (needsRevalidate(aged) && ctx && typeof ctx.waitUntil === "function") {
           ctx.waitUntil((async () => {
             try {
               const fresh = await render({

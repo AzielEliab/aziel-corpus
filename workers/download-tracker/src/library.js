@@ -277,6 +277,17 @@ function collectTokens(values, cap) {
   return [...seen.values()];
 }
 
+/** Same facet shape as listFacets, from rows already in hand (packed shelf snapshot). No D1. */
+export function facetsFromRows(rows) {
+  const list = Array.isArray(rows) ? rows.slice(0, 400) : [];
+  return {
+    domains: collectTokens(list.map((r) => r.domain), 24),
+    subjects: collectTokens(list.map((r) => r.subjects), 24),
+    keywords: collectTokens(list.map((r) => r.keywords), 24),
+    authors: collectTokens(list.map((r) => r.author), 24),
+  };
+}
+
 export async function listFacets(env, { library } = {}) {
   const empty = { domains: [], subjects: [], keywords: [], authors: [] };
   if (!env || !env.DB) return empty;

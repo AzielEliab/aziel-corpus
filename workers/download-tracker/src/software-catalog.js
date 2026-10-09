@@ -49,6 +49,7 @@ import {
   collectStats,
 } from "./library-index.js";
 import { isSuiteHelpSlug, softwareFramingFields } from "./mesh-outlet.js";
+import { discardBody, mapLimit } from "./http-body.js";
 
 const UA = "Mozilla/5.0 AzielDigitalLibrary";
 
@@ -791,7 +792,7 @@ export async function fetchRuntimeJson(env, destPath, opts = {}) {
   for (const attempt of attempts) {
     try {
       const res = await attempt();
-      if (!res || !res.ok) continue;
+      if (!res || !res.ok) { await discardBody(res); continue; }
       const doc = await res.json();
       if (!doc || typeof doc !== "object") continue;
       if (opts.loose) return doc;
@@ -973,7 +974,7 @@ async function fetchCountDoc(url, opts = {}) {
       init.signal = AbortSignal.timeout(ms);
     }
     const res = await fetch(url, init);
-    if (!res.ok) return { downloads: null, views: null, uploads: null };
+    if (!res.ok) { await discardBody(res); return { downloads: null, views: null, uploads: null }; }
     return parseCountPayload(await res.json());
   } catch {
     return { downloads: null, views: null, uploads: null };
@@ -1045,7 +1046,7 @@ export async function loadSoftwareCatalog(env, stats, opts = {}) {
 
   const counts = light
     ? merged.map((p) => localCountForProduct(p, localStats))
-    : await Promise.all(merged.map((p) => fetchProductCount(p, localStats, opts)));
+    : await mapLimit(merged, 4, (p) => fetchProductCount(p, localStats, opts));
   let fetched = 0;
   const cards = merged.map((p, i) => {
     const slug = String(p.slug || "").toLowerCase();

@@ -5,6 +5,7 @@
  */
 import { corsHeaders } from "./runtime.js";
 import { HOST, RUNTIME_ORIGIN } from "./runtime-copy.js";
+import { discardBody } from "./http-body.js";
 
 export const RUNTIME_VIA = "azielcorpuslibrary.net";
 export const RUNTIME_USES_HOST = "www.azielcorpuslibrary.net";
@@ -135,7 +136,7 @@ async function fetchOriginUses(env) {
     } else {
       res = await fetch(dest, { headers });
     }
-    if (!res.ok) return null;
+    if (!res.ok) { await discardBody(res); return null; }
     const data = await res.json();
     return data && typeof data === "object" ? data : null;
   } catch {

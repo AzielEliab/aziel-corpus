@@ -16,7 +16,7 @@ import { readFileSync } from "node:fs";
 const HOST = "https://www.azielcorpuslibrary.net";
 const KV_PUT_LIMIT = "KV put() limit exceeded for the day.";
 const KV_GET_LIMIT = "KV get() limit exceeded for the day.";
-const D1_LIMIT = "D1_ERROR: Exceeded maximum daily rows read limit. Your account has exceeded D1's free tier.";
+const D1_LIMIT = "D1_ERROR: Your account has exceeded D1's free tier daily row read limit. Upgrade to a paid plan or wait until tomorrow (midnight UTC) to continue.";
 
 function memoryKv(seed = {}, { getError, putError } = {}) {
   const store = new Map(Object.entries(seed));
@@ -220,7 +220,7 @@ test("page and API requests do not start background walks", async () => {
   assert.equal(db.calls.prepare, 0, "GET /v1/health makes no D1 calls");
 });
 
-test("bot hits no longer write the unread bot bucket; human hits still count exactly", async () => {
+test("bot hits are not counted; human hits still count exactly; labelled bot_counting", async () => {
   const kv = memoryKv();
   const env = { DOWNLOADS: kv };
   const post = (ua) => worker.fetch(new Request(HOST + "/event", {
@@ -228,12 +228,21 @@ test("bot hits no longer write the unread bot bucket; human hits still count exa
     headers: { "User-Agent": ua, "Content-Type": "application/json" },
     body: JSON.stringify({ owner: "AzielEliab", repo: "aziel-corpus", branch: "main" }),
   }), env, {});
-  assert.equal((await post("Googlebot/2.1")).status, 200);
-  assert.equal(kv.store.get("aziel-corpus|__total__"), "1");
+  kv.store.set("aziel-corpus|__total__", "5");
+  const res = await post("Googlebot/2.1");
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.counted, false);
+  assert.equal(body.reason, "bot");
+  assert.equal(kv.store.get("aziel-corpus|__total__"), "5", "bots are not counted");
   assert.equal(kv.store.has("aziel-corpus|__downloads_bot__"), false);
+  await post("Mozilla/5.0");
+  assert.equal(kv.store.get("aziel-corpus|__total__"), "6", "humans still count exactly");
+  await refreshPackedIndex({ DOWNLOADS: kv, DB: d1({ rows: [{ record_id: "AZDOC-B1", title: "B1", library: "aziel" }] }) });
   const stats = await (await get(env, "/stats")).json();
-  assert.equal(stats.downloads_bot, 1, "bot = total - human");
-  assert.equal(stats.downloads_human, 0);
+  assert.equal(stats.downloads_bot, 5, "bot = frozen pre-change remainder (total - human)");
+  assert.equal(stats.downloads_human, 1);
+  assert.equal(stats.bot_counting.counted, false);
 });
 
 test("githubStats: 6 h cache, and a failed fetch keeps prior numbers without a KV put", async () => {

@@ -161,3 +161,7 @@ CREATE TABLE IF NOT EXISTS lattice_tips (
   ledger_entry_hash TEXT
 );
 ALTER TABLE records ADD COLUMN shelf_hidden INTEGER DEFAULT 0;
+
+-- Hit counters (Views, Downloads, human splits, per-repo download keys). One atomic upsert per hit.
+-- Exact count = legacy KV value + n. Created lazily by src/counters.js if missing.
+CREATE TABLE IF NOT EXISTS hit_counters (key TEXT PRIMARY KEY, n INTEGER NOT NULL DEFAULT 0, updated_utc TEXT);

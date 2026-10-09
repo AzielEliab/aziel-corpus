@@ -103,7 +103,29 @@ export function formatTagLabel(token) {
   return t.slice(0, TAG_LABEL_MAX - 1) + "…";
 }
 
+/**
+ * Shelf pages call this for domain/subject/keyword on every card (429+ cards).
+ * The regex-heavy filtering was a large share of the shelf render CPU, and most
+ * values repeat across cards, so memoize per isolate (bounded). Pure function of value.
+ */
+const TAG_MEMO = new Map();
+const TAG_MEMO_MAX = 4000;
+
 export function visibleTagEntries(value) {
+  const memoKey = typeof value === "string" ? value : null;
+  if (memoKey != null) {
+    const hit = TAG_MEMO.get(memoKey);
+    if (hit) return hit.map((x) => ({ ...x }));
+  }
+  const out = computeVisibleTagEntries(value);
+  if (memoKey != null) {
+    if (TAG_MEMO.size >= TAG_MEMO_MAX) TAG_MEMO.clear();
+    TAG_MEMO.set(memoKey, out.map((x) => ({ ...x })));
+  }
+  return out;
+}
+
+function computeVisibleTagEntries(value) {
   const seen = new Set();
   const out = [];
   for (const raw of splitRawTokens(value)) {

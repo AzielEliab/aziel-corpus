@@ -29,6 +29,7 @@ import {
 } from "./runtime-copy.js";
 import { readPackedIndex } from "./library-index.js";
 import { isReservedCounterKey } from "./stats-shape.js";
+import { discardBody } from "./http-body.js";
 
 export const OUTLET_SPEC = "MESH-OUTLET-1.0";
 export const INVENTORY_SPEC = "MESH-OUTLET-INVENTORY-1.0";
@@ -443,7 +444,7 @@ export async function pullSoftwareSot(previous, fetchImpl) {
       method: "GET",
       headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0 AzielDigitalLibrary" },
     });
-    if (!res || !res.ok) return unreachableCite(previous, "http");
+    if (!res || !res.ok) { await discardBody(res); return unreachableCite(previous, "http"); }
     const doc = await res.json();
     const accepted = citeFromSoftwareDoc(doc);
     if (!accepted.ok) {
@@ -565,7 +566,7 @@ async function syncRemotePeer(peer, fetchFn, lastKnown) {
       method: "GET",
       headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0 AzielDigitalLibrary" },
     });
-    if (!res || !res.ok) throw new Error("unreachable");
+    if (!res || !res.ok) { await discardBody(res); throw new Error("unreachable"); }
     const doc = await res.json();
     const parsed = inventoryRowsFromDoc(doc);
     if (!parsed.present) {

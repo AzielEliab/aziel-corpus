@@ -9,6 +9,7 @@ import { compactZsolverPublic, shelfScoreState, zsolverFromRow } from "./zsolver
 import { triadInputFromRow } from "./triad-input.js";
 import { conceptFromRow, mergeLockedPermalinks, permalinkPath, stampPermalinks } from "./paper-ux.js";
 import { rethrowIfQuota } from "./quota.js";
+import { listD1DimCounters, readCounters } from "./counters.js";
 
 export const LIBRARY_INDEX_KEY = "library:index:v1";
 /**
@@ -169,6 +170,32 @@ export async function cacheMatchText(url, cache) {
   }
 }
 
+/** Edge-cached HTML younger than this is served without a background re-render. */
+export const HTML_REVALIDATE_MS = 10 * 60 * 1000;
+
+/**
+ * Cached text plus its age. Shelf and /software pages used to re-render in
+ * waitUntil on EVERY cache hit; that CPU counts against the same invocation
+ * (Workers Free: 10 ms) and produced 1102 even when the page was cached.
+ */
+export async function cacheMatchTextAged(url, cache) {
+  const store = cache || (await defaultCache());
+  if (!store || typeof store.match !== "function") return null;
+  try {
+    const hit = await store.match(new Request(url, { method: "GET" }));
+    if (!hit) return null;
+    const at = Date.parse((hit.headers && hit.headers.get && hit.headers.get("X-Aziel-Cached-At")) || "");
+    const text = await hit.text();
+    return { text, ageMs: Number.isFinite(at) ? Math.max(0, Date.now() - at) : Infinity };
+  } catch {
+    return null;
+  }
+}
+
+export function needsRevalidate(aged, maxAgeMs = HTML_REVALIDATE_MS) {
+  return !aged || !(aged.ageMs < maxAgeMs);
+}
+
 export async function cachePutText(url, body, cache, { cacheControl = HTML_CACHE_CONTROL, contentType = "text/html; charset=utf-8" } = {}) {
   const store = cache || (await defaultCache());
   if (!store || typeof store.put !== "function") return false;
@@ -180,6 +207,7 @@ export async function cachePutText(url, body, cache, { cacheControl = HTML_CACHE
         headers: {
           "Content-Type": contentType,
           "Cache-Control": cacheControl,
+          "X-Aziel-Cached-At": new Date().toISOString(),
         },
       })
     );
@@ -209,12 +237,35 @@ export async function cachePutJson(url, doc, cache, { cacheControl = PUBLIC_CACH
   }
 }
 
+/**
+ * Read-side normalize. Fills defaults but does NOT re-hash: the index is ~700 KB and
+ * stableStringify + SHA-256 on every read cost ~10-25 ms CPU, over the Workers Free
+ * 10 ms limit (error 1102). index_sha256 is sealed once, at write time.
+ */
+export function normalizePackedIndex(doc) {
+  if (!doc || typeof doc !== "object") return emptyPackedIndex();
+  if (!doc.index_sha256) return sealPackedIndex(doc);
+  const next = Object.assign(emptyPackedIndex(), doc);
+  next.key = LIBRARY_INDEX_KEY;
+  next.version = 1;
+  next.author = AUTHOR;
+  next.kv_list_hot_path = false;
+  return next;
+}
+
+/** Per-isolate memo of the last parsed index. Same KV string → no second JSON.parse of ~700 KB. Readers do not mutate rows. */
+let LAST_INDEX = { raw: null, doc: null };
+
 function parseIndex(raw) {
   if (!raw) return null;
   try {
+    if (typeof raw === "string" && LAST_INDEX.raw === raw && LAST_INDEX.doc) {
+      return normalizePackedIndex(LAST_INDEX.doc);
+    }
     const doc = typeof raw === "string" ? JSON.parse(raw) : raw;
     if (!doc || typeof doc !== "object") return null;
-    return sealPackedIndex(doc);
+    if (typeof raw === "string") LAST_INDEX = { raw, doc };
+    return normalizePackedIndex(doc);
   } catch {
     return null;
   }
@@ -223,7 +274,7 @@ function parseIndex(raw) {
 /** Hot-path read. One KV get. Never list(). */
 export async function readPackedIndex(env, { cache, cacheTtl = KV_CACHE_TTL } = {}) {
   const cached = await cacheMatchJson(INDEX_CACHE_URL, cache);
-  if (cached && cached.key === LIBRARY_INDEX_KEY) return sealPackedIndex(cached);
+  if (cached && cached.key === LIBRARY_INDEX_KEY) return normalizePackedIndex(cached);
   const kv = downloadsKv(env);
   if (!kv) return emptyPackedIndex({ ts: new Date().toISOString() });
   let raw = null;
@@ -232,7 +283,9 @@ export async function readPackedIndex(env, { cache, cacheTtl = KV_CACHE_TTL } = 
   } catch {
     raw = await kv.get(LIBRARY_INDEX_KEY);
   }
-  const doc = parseIndex(raw) || emptyPackedIndex({ ts: new Date().toISOString() });
+  // A null/unparsable KV index is MISSING, not an empty shelf. Callers that render a
+  // shelf must check `missing` / zero records and treat it as unavailable.
+  const doc = parseIndex(raw) || emptyPackedIndex({ ts: new Date().toISOString(), missing: true });
   if (doc.index_sha256) await cachePutJson(INDEX_CACHE_URL, doc, cache);
   return doc;
 }
@@ -255,9 +308,9 @@ export function packedRecordCounts(doc) {
 }
 
 export function statsFromPacked(doc) {
-  const packed = sealPackedIndex(doc || {});
+  const packed = normalizePackedIndex(doc || {});
   const counts = packedRecordCounts(packed);
-  return {
+  const out = {
     project: PROJECT,
     views: Number(packed.views) || 0,
     downloads: Number(packed.downloads) || 0,
@@ -271,9 +324,20 @@ export function statsFromPacked(doc) {
     index_ts: packed.ts,
     kv_list_hot_path: false,
     ...counts,
+    counts_as_of: packed.ts,
+    counts_refresh_s: COUNTS_REFRESH_S,
+    counts_note: COUNTS_NOTE,
     note: "Forks identified by GitHub owner/repo. Packed key " + LIBRARY_INDEX_KEY + ". Views are separate from downloads. records_packed is the stored library file count (Aziel Library + Corpus). /v1 does not increment. Hot path does not KV.list().",
   };
+  if (packed.views_human != null) out.views_human = Number(packed.views_human) || 0;
+  if (packed.downloads_human != null) out.downloads_human = Number(packed.downloads_human) || 0;
+  return out;
 }
+
+/** Views/Downloads are exact but delayed: they are folded into the packed index by the 30-min cron. */
+export const COUNTS_REFRESH_S = 1800;
+export const COUNTS_NOTE =
+  "Views and Downloads are exact counts (legacy KV history + D1 hit_counters + the HitCounters Durable Object, which takes new hits), published as of counts_as_of. They refresh every 30 minutes, so they can lag live traffic by up to counts_refresh_s seconds. Not sampled.";
 
 /** Hot-path stats. Replaces KV.list() + per-key walk. */
 export async function collectStats(env, opts) {
@@ -456,6 +520,9 @@ function viewsKey() {
 function totalKey() {
   return PROJECT + "|__total__";
 }
+function humanKey(kind) {
+  return PROJECT + (kind === "views" ? "|__views_human__" : "|__downloads_human__");
+}
 function githubCacheKey() {
   return PROJECT + "|__github__";
 }
@@ -508,11 +575,13 @@ export async function writePackedIndex(env, doc, { cache, current } = {}) {
     err.code = "EMPTY_INDEX_GUARD";
     throw err;
   }
-  if (current && samePackedContent(current, doc)) {
+  if (current && !current.missing && samePackedContent(current, doc)) {
     // Nothing changed. Skip the KV put (free tier: 1,000 puts/day).
     return sealPackedIndex(current);
   }
-  const sealed = sealPackedIndex(Object.assign({}, doc, { ts: new Date().toISOString() }));
+  const clean = Object.assign({}, doc, { ts: new Date().toISOString() });
+  delete clean.missing; // read-side flag only; a written index is never "missing"
+  const sealed = sealPackedIndex(clean);
   if (kv && typeof kv.put === "function") {
     await kv.put(LIBRARY_INDEX_KEY, JSON.stringify(sealed));
   }
@@ -607,15 +676,29 @@ export async function refreshPackedIndex(env, { cache, github } = {}) {
   // Throws on D1 failure (never []), so a throttled read cannot wipe the shelf.
   const fresh = await loadShelfCards(env);
   const records = stampPermalinks(mergeLockedPermalinks(fresh, current.records));
-  const views = kv ? await readInt(kv, viewsKey()) : Number(current.views) || 0;
-  const downloads = kv ? await readInt(kv, totalKey()) : Number(current.downloads) || 0;
   const gh = github || (kv ? await readGithub(kv) : current.github);
   const next = Object.assign({}, current, {
     records,
-    views,
-    downloads,
     github: gh,
   });
+  if (kv || (env && env.DB)) {
+    // Exact counts = legacy KV + D1 hit_counters. A D1 quota error throws (never publish a low count).
+    const keys = [viewsKey(), totalKey(), humanKey("views"), humanKey("downloads")];
+    const c = await readCounters(env, keys);
+    next.views = Math.max(c[viewsKey()], 0);
+    next.downloads = Math.max(c[totalKey()], 0);
+    next.views_human = c[humanKey("views")];
+    next.downloads_human = c[humanKey("downloads")];
+    // Per-repo breakdown: was rewritten into the whole index on every download; now folded here.
+    let breakdown = { breakdown: current.breakdown, by_repo: current.by_repo, by_branch: current.by_branch, by_fork: current.by_fork };
+    for (const row of await listD1DimCounters(env, PROJECT)) {
+      const [, owner, repo, branch, fork] = row.key.split("|");
+      const base = kv ? await readInt(kv, row.key) : 0;
+      const total = base + Math.max(0, Number(row.n) || 0);
+      breakdown = upsertBreakdown(breakdown.breakdown, { owner, repo, branch, fork }, total);
+    }
+    Object.assign(next, breakdown);
+  }
   // Guard: an empty fresh shelf never replaces a non-empty one. Keep the current index.
   if (wouldWipeIndex(current, next)) return sealPackedIndex(current);
   return writePackedIndex(env, next, { cache, current });
