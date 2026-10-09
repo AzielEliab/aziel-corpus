@@ -47,6 +47,7 @@ import { peacelockCiteFields, peacelockLlmsBlock } from "./peacelock.js";
 import { tradesRuntimeCiteFields, tradesRuntimeLlmsBlock, tradesRuntimeMcpDiscovery } from "./trades-runtime.js";
 import { redlineCiteFields } from "./redline-cite.js";
 import { readPackedIndex, SHELF_INDEX_LIMIT } from "./library-index.js";
+import { isQuotaError, rethrowIfQuota } from "./quota.js";
 import {
   IDENTITY_ROUTES,
   identitySameAsLine,
@@ -563,7 +564,8 @@ async function d1SitemapRecords(env) {
       return (await env.DB.prepare(
         "SELECT record_id, created_utc, library FROM records ORDER BY CASE WHEN lower(library)='aziel' THEN 0 ELSE 1 END, created_utc DESC LIMIT ?"
       ).bind(RECORD_SITEMAP_CAP).all()).results || [];
-    } catch {
+    } catch (e) {
+      rethrowIfQuota(e, "sitemap-d1");
       return [];
     }
   }
@@ -572,15 +574,18 @@ async function d1SitemapRecords(env) {
 /** Packed index (one KV get) union the D1 shelf. Every index id is listed. No KV.list(). */
 export async function collectSitemapRecords(env) {
   const byId = new Map();
+  let quota = null;
   try {
     const packed = await readPackedIndex(env);
     const recs = packed && Array.isArray(packed.records) ? packed.records : [];
     for (const row of recs) rememberSitemapRecord(byId, row);
-  } catch { /* packed optional */ }
+  } catch (e) { if (isQuotaError(e)) quota = e; /* packed optional */ }
   try {
     const recs = await d1SitemapRecords(env);
     for (const row of recs) rememberSitemapRecord(byId, row);
-  } catch { /* empty set still valid */ }
+  } catch (e) { if (isQuotaError(e)) quota = quota || e; /* empty set still valid */ }
+  // Packed ids alone are a valid sitemap. Nothing at all because of a quota: 503, never an empty sitemap.
+  if (byId.size === 0 && quota) rethrowIfQuota(quota, "sitemap");
   return [...byId.values()].sort((a, b) => {
     const az = (row) => String(row.library || "").toLowerCase() === "aziel" ? 0 : 1;
     const shelf = az(a) - az(b);
@@ -723,7 +728,11 @@ export async function sitemapXml(env) {
   try {
     const recs = await collectSitemapRecords(env);
     for (const r of recs) pushRecordLocs(rows, r);
-  } catch (e) { /* sitemap still lists static routes */ }
+  } catch (e) {
+    // A quota-starved sitemap with no records would tell crawlers every record is gone. 503 instead.
+    rethrowIfQuota(e, "sitemap.xml");
+    /* sitemap still lists static routes */
+  }
   return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n"
     + rows.map((u) => sitemapUrl(u.loc, u.lastmod, u.hints)).join("\n")
     + "\n</urlset>\n";

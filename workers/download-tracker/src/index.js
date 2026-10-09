@@ -1,4 +1,5 @@
 import { handleRuntimeApi, corsHeaders, json, LIMITATION } from "./runtime.js";
+import { isQuotaError, quotaResponse } from "./quota.js";
 import { handleRuntimeRoot } from "./runtime-root.js";
 import { handleAuth, getSession } from "./auth.js";
 import { page, homeBody, homeSearchActive, streamLcpHtml } from "./ui.js";
@@ -21,7 +22,6 @@ import { continueVerifyGeo } from "./geo.js";
 import {
   collectStats,
   notePackedIncrement,
-  patchPackedStats,
   readPackedIndex,
   refreshPackedIndex,
   statsFromPacked,
@@ -77,7 +77,8 @@ export function isPageView(pathname) {
   return true;
 }
 
-/** Operator walk APIs must not share the isolate with background backfill/geo. Page views must not start those walks. Cron and GET /v1/recalibrate-all still remint. */
+/** Kept for tests and callers. fetch() no longer starts per-request walks at all (cron runs one per tick).
+ * Operator walk APIs must not share the isolate with background backfill/geo. Page views must not start those walks. Cron and GET /v1/recalibrate-all still remint. */
 export function shouldBackgroundWalk(pathname) {
   const path = barePath(pathname);
   if (isPageView(path)) return false;
@@ -205,10 +206,15 @@ async function bump(env, key) {
   return n;
 }
 
-async function incrementSplit(env, humanKey, botKey, request) {
+/**
+ * Only the human bucket is stored. The bot bucket is never read: every reader
+ * shows bot = total - human (stats-shape.js strategy b), so writing the bot key
+ * was a wasted KV put on every bot hit. Counts are unchanged and exact.
+ * botKey stays in the signature so callers read the same.
+ */
+async function incrementSplit(env, humanKey, botKey, request) { // eslint-disable-line no-unused-vars
   const cls = classifyRequest(request);
-  const splitKey = cls.bucket === "human" ? humanKey : botKey;
-  await bump(env, splitKey);
+  if (cls.bucket === "human") await bump(env, humanKey);
   return cls;
 }
 
@@ -268,12 +274,17 @@ async function incrementViews(env, request) {
   return n;
 }
 
-async function githubStats(env) {
+/** GitHub stars/forks/release counts change slowly. 6 h cache keeps KV puts to a few a day. */
+export const GITHUB_CACHE_MS = 6 * 60 * 60 * 1000;
+
+export async function githubStats(env, { nowMs = Date.now() } = {}) {
+  let prior = null;
   const cached = await env.DOWNLOADS.get(githubCacheKey());
   if (cached) {
     try {
       const obj = JSON.parse(cached);
-      if (obj && obj.fetched_at && Date.now() - obj.fetched_at < 5 * 60 * 1000) {
+      if (obj && typeof obj === "object") prior = obj;
+      if (obj && obj.fetched_at && nowMs - obj.fetched_at < GITHUB_CACHE_MS) {
         return obj;
       }
     } catch {
@@ -285,9 +296,11 @@ async function githubStats(env) {
   let forks = 0;
   let watchers = 0;
   let release_download_count = 0;
+  let fetched = false;
   try {
     const repoRes = await fetch("https://api.github.com/repos/AzielEliab/aziel-corpus", { headers });
     if (repoRes.ok) {
+      fetched = true;
       const repo = await repoRes.json();
       stars = Number(repo.stargazers_count) || 0;
       forks = Number(repo.forks_count) || 0;
@@ -298,26 +311,21 @@ async function githubStats(env) {
       const rel = await relRes.json();
       const assets = Array.isArray(rel.assets) ? rel.assets : [];
       release_download_count = assets.reduce((s, a) => s + (Number(a.download_count) || 0), 0);
+    } else if (prior) {
+      release_download_count = Number(prior.release_download_count) || 0;
     }
   } catch {
     /* public API; empty is fine */
   }
-  const out = { stars, forks, watchers, release_download_count, fetched_at: Date.now() };
+  // A failed GitHub fetch must not overwrite real numbers with zeros, and must not spend a KV put.
+  if (!fetched && prior) return prior;
+  const out = { stars, forks, watchers, release_download_count, fetched_at: nowMs };
   try {
     await env.DOWNLOADS.put(githubCacheKey(), JSON.stringify(out));
   } catch {
     /* ignore */
   }
   return out;
-}
-
-async function refreshGithubIntoIndex(env) {
-  try {
-    const github = await githubStats(env);
-    await patchPackedStats(env, { github });
-  } catch {
-    /* cron optional */
-  }
 }
 
 function installScript() {
@@ -448,35 +456,71 @@ ${LIMITATION}
 `;
 }
 
+// Cron cadence: wrangler.toml triggers every 30 min. Keep the two in step.
+export const CRON_INTERVAL_MS = 30 * 60 * 1000;
+
+/**
+ * Background walks. Cron runs at most ONE per tick, in rotation, so each walk
+ * runs every SCHEDULED_WALKS.length ticks (every 3 h at a 30 min cron).
+ * Page views and API requests never start walks (free-tier D1 read budget).
+ */
+export const SCHEDULED_WALKS = Object.freeze([
+  ["full-backfill", (env) => continueFullBackfill(env, { ms: 12000, all: false, background: true })],
+  // TRIAD remint: continueRecalibrateAll acquires the single-walker lock or returns RECALIBRATE_LOCKED (cursor untouched).
+  ["recalibrate-all", (env) => continueRecalibrateAll(env, { ms: 12000, all: false, background: true })],
+  ["metadata-backfill", (env) => continueMetadataBackfill(env, { ms: 8000, all: false })],
+  ["paper-backfill", (env) => continuePaperBackfill(env, { ms: 4000, all: false })],
+  ["content-hash", async (env) => {
+    await sampleContentHashIntegrity(env, { limit: 8 }).catch(() => null);
+    return continueContentHashRepair(env, { ms: 4000, apply: false, all: false });
+  }],
+  ["verify-geo", (env) => continueVerifyGeo(env, { ms: 12000, force: false })],
+]);
+
+export function scheduledWalkIndex(scheduledTime, intervalMs = CRON_INTERVAL_MS) {
+  const t = Number(scheduledTime);
+  const tick = Number.isFinite(t) && t > 0 ? Math.floor(t / intervalMs) : 0;
+  return ((tick % SCHEDULED_WALKS.length) + SCHEDULED_WALKS.length) % SCHEDULED_WALKS.length;
+}
+
+/** One cron tick: refresh the packed index once (GitHub stats folded in), then at most one walk. */
+export async function runScheduledTick(env, scheduledTime = Date.now(), { walks = SCHEDULED_WALKS } = {}) {
+  const out = { index: null, walk: null };
+  const github = await githubStats(env).catch(() => null);
+  try {
+    await refreshPackedIndex(env, github ? { github } : {});
+    out.index = "ok";
+  } catch (e) {
+    out.index = (e && e.code) || "error";
+  }
+  const [name, run] = walks[scheduledWalkIndex(scheduledTime) % walks.length];
+  out.walk = name;
+  await Promise.resolve().then(() => run(env)).catch(() => null);
+  return out;
+}
+
 export default {
   async scheduled(event, env, ctx) {
-    const walk = async () => {
-      await refreshPackedIndex(env).catch(() => null);
-      await refreshGithubIntoIndex(env).catch(() => null);
-      await continueFullBackfill(env, { ms: 12000, all: false, background: true }).catch(() => null);
-      // TRIAD remint: continueRecalibrateAll acquires the single-walker lock or returns RECALIBRATE_LOCKED (cursor untouched).
-      await continueRecalibrateAll(env, { ms: 12000, all: false, background: true }).catch(() => null);
-      await continueMetadataBackfill(env, { ms: 8000, all: false }).catch(() => null);
-      await continuePaperBackfill(env, { ms: 4000, all: false }).catch(() => null);
-      await sampleContentHashIntegrity(env, { limit: 8 }).catch(() => null);
-      await continueContentHashRepair(env, { ms: 4000, apply: false, all: false }).catch(() => null);
-      await continueVerifyGeo(env, { ms: 12000, force: false }).catch(() => null);
-    };
-    if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(walk());
-    else await walk();
+    const when = event && event.scheduledTime ? event.scheduledTime : Date.now();
+    const job = runScheduledTick(env, when);
+    if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(job);
+    else await job;
   },
   async fetch(request, env, ctx) {
+    try {
+      return await handleFetch(request, env, ctx);
+    } catch (err) {
+      // Daily D1/KV quota: 503 + Retry-After instead of an uncaught 1101.
+      if (isQuotaError(err)) return quotaResponse(err, { headers: corsHeaders() });
+      throw err;
+    }
+  },
+};
+
+async function handleFetch(request, env, ctx) {
     const url = new URL(request.url);
     const earlyPath = url.pathname.replace(/\/+$/, "") || "/";
-    if (ctx && typeof ctx.waitUntil === "function" && shouldBackgroundWalk(earlyPath)) {
-      ctx.waitUntil((async () => {
-        await continueFullBackfill(env, { ms: 8000, all: false, background: true }).catch(() => null);
-        await continueRecalibrateAll(env, { ms: 8000, all: false, background: true }).catch(() => null);
-        await continueMetadataBackfill(env, { ms: 6000, all: false }).catch(() => null);
-        await continuePaperBackfill(env, { ms: 3000, all: false }).catch(() => null);
-        await continueVerifyGeo(env, { ms: 8000, force: false }).catch(() => null);
-      })());
-    }
+    // Per-request background walks removed: cron runs one walk per tick (D1 read budget).
 
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeaders() });
@@ -753,5 +797,4 @@ export default {
       return json({ error: "login required" }, 401);
     }
     return json({ error: "not found" }, 404);
-  },
-};
+}

@@ -49,4 +49,6 @@ binding = "AI"
 # OPERATOR_TOKEN is a Wrangler secret — never commit it. No public IP allowlist.
 
 [triggers]
-crons = ["* * * * *"]
+# Every 30 min (was every minute). Free tier: 1,000 KV puts/day and 5M D1 rows read/day.
+# 48 ticks/day x <=1 index put = <=48 puts; one walk per tick in rotation (src/index.js SCHEDULED_WALKS).
+crons = ["*/30 * * * *"]

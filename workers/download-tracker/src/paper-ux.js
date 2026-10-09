@@ -7,6 +7,7 @@
 import { classifyRequest } from "./classify.js";
 import { extractReaderView, packagedKind, readerWantsBytes } from "./office-extract.js";
 import { isHumanTag, isMachineFileTag, visibleTagEntries } from "./visible-tags.js";
+import { rethrowIfQuota } from "./quota.js";
 
 export const PAPER_METRICS_KEY = "library:paper-metrics:v1";
 export const PAPER_UX_SPEC = "PAPER-UX-1.0";
@@ -1100,7 +1101,8 @@ export async function continuePaperBackfill(env, { ms = 8000, force = false, all
     await metaSet(env, CURSOR_KEY, "");
   }
   if (!indexDone || force || recordId) {
-    const fresh = await loadShelfCards(env);
+    let fresh = [];
+    try { fresh = await loadShelfCards(env); } catch (e) { rethrowIfQuota(e, "paper-index"); fresh = []; }
     const base = fresh.length ? fresh : (packed.records || []);
     const merged = mergeLockedPermalinks(base, packed.records || []);
     const stamped = stampPermalinks(merged.length ? merged : (packed.records || []));
