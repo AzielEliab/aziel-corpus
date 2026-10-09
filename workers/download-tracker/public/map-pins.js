@@ -24,7 +24,7 @@
   'use strict';
   var PIN_COLORS = {
     'news-event': { color: 'red', hex: '#e53935', label: 'News event location' },
-    'news-report': { color: 'blue', hex: '#1e88e5', label: 'News reporting location (dateline or cited origin)' },
+    'news-report': { color: 'blue', hex: '#1e88e5', label: 'News reporting location (dateline in the item text; outlet HQ only when labeled report_location_source: outlet_hq)' },
     'library-aziel-event': { color: 'purple', hex: '#8e24aa', label: 'Aziel Library document event location' },
     'library-aziel-report': { color: 'pink', hex: '#f06292', label: 'Aziel Library document origin/report location (cited in the document)' },
     'corpus-event': { color: 'lightgreen', hex: '#9ccc65', label: 'Other corpus event location' },

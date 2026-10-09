@@ -322,7 +322,7 @@ const MAP_EVENTS_BOOT = "<script>window.__mapEventsPromise=fetch(\"/api/events\"
 /** Pin color key (AZNEWS-PINS-1.0), shown at the bottom of /map. Same palette as public/map-pins.js. */
 export const MAP_PIN_KEY = Object.freeze([
   ["#e53935", "Red", "News event location"],
-  ["#1e88e5", "Blue", "News reporting location (dateline or cited origin)"],
+  ["#1e88e5", "Blue", "News reporting location (dateline in the item text; outlet HQ only when labeled report_location_source: outlet_hq)"],
   ["#8e24aa", "Purple", "Aziel Library document event location"],
   ["#f06292", "Pink", "Aziel Library document origin/report location, as cited in the document"],
   ["#9ccc65", "Light green", "Other corpus event location"],
