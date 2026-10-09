@@ -1195,8 +1195,9 @@ export async function importHistorical(env, { filename, bytes }) {
   return { layer_id: layerId, name: lname, features: feats.length, source_sha256: digest };
 }
 
-export async function corpusTree(env) {
+export async function corpusTree(env, { rows: given } = {}) {
   let rows = [];
+  if (Array.isArray(given)) return treeFromRows(given);
   try {
     rows = (await env.DB.prepare(
       "SELECT record_id,title,library,domain,subjects,author,filename,created_utc FROM records WHERE IFNULL(shelf_hidden,0)=0 ORDER BY library, IFNULL(domain,''), IFNULL(subjects,''), title LIMIT 800"
@@ -1206,6 +1207,11 @@ export async function corpusTree(env) {
       "SELECT record_id,title,library,domain,subjects,author,filename,created_utc FROM records ORDER BY library, IFNULL(domain,''), IFNULL(subjects,''), title LIMIT 800"
     ).all()).results || [];
   }
+  return treeFromRows(rows);
+}
+
+/** Tree from rows (D1 or the packed shelf snapshot). Pure. */
+export function treeFromRows(rows) {
   const libs = new Map();
   const standalone = [];
   const placed = new Set();

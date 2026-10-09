@@ -1,5 +1,9 @@
 import { handleRuntimeApi, corsHeaders, json, LIMITATION } from "./runtime.js";
-import { isQuotaError, quotaResponse } from "./quota.js";
+import { isQuotaError, isTransientOverload, quotaResponse } from "./quota.js";
+import { bumpCounters, readCounters } from "./counters.js";
+import { isCrawlerRequest } from "./crawler.js";
+// Durable Object class must be exported from the Worker entry (wrangler.toml HIT_COUNTERS).
+export { HitCounters } from "./hit-counters.js";
 import { handleRuntimeRoot } from "./runtime-root.js";
 import { handleAuth, getSession } from "./auth.js";
 import { page, homeBody, homeSearchActive, streamLcpHtml } from "./ui.js";
@@ -12,7 +16,7 @@ import { helpRouteBody } from "./help.js";
 import { bridgeDoc, productBySlug } from "./ai-surface.js";
 import { serveDesignPack } from "./design-pack.js";
 import { continueMetadataBackfill } from "./record-metadata.js";
-import { bumpPaperCount, continuePaperBackfill, permalinksForRows, readPaperMetrics, recordIdForContentHash, stampPermalinks, topPapers } from "./paper-ux.js";
+import { bumpPaperCount, refreshPaperMetrics, continuePaperBackfill, permalinksForRows, readPaperMetrics, recordIdForContentHash, stampPermalinks, topPapers } from "./paper-ux.js";
 import { continueContentHashRepair, sampleContentHashIntegrity } from "./content-hash-repair.js";
 import { identityRouteBody } from "./identity.js";
 import { fetchLiveSurvival, isSurvivalSeoPath, SURVIVAL_SEO_CACHE_CONTROL } from "./ban-survival.js";
@@ -21,7 +25,6 @@ import { continueFullBackfill, continueRecalibrateAll } from "./review-store.js"
 import { continueVerifyGeo } from "./geo.js";
 import {
   collectStats,
-  notePackedIncrement,
   readPackedIndex,
   refreshPackedIndex,
   statsFromPacked,
@@ -108,16 +111,22 @@ const KEYS = isolatedKeys(PROJECT);
 async function withHumanBotStats(env, request, stats) {
   const views = Number(stats && stats.views) || 0;
   const downloads = Number(stats && (stats.downloads != null ? stats.downloads : stats.total)) || 0;
-  const viewsHuman = parseInt((await env.DOWNLOADS.get(KEYS.views_human)) || "0", 10) || 0;
-  const downloadsHuman = parseInt((await env.DOWNLOADS.get(KEYS.downloads_human)) || "0", 10) || 0;
+  // Same snapshot as views/downloads (packed index, refreshed by cron) so human never runs ahead of total.
+  let viewsHuman = stats && stats.views_human;
+  let downloadsHuman = stats && stats.downloads_human;
+  if (viewsHuman == null || downloadsHuman == null) {
+    const live = await readCounters(env, [KEYS.views_human, KEYS.downloads_human]);
+    viewsHuman = live[KEYS.views_human];
+    downloadsHuman = live[KEYS.downloads_human];
+  }
   const split = shapeHumanBotFields({
     views,
     downloads,
-    views_human: viewsHuman,
-    downloads_human: downloadsHuman,
+    views_human: Number(viewsHuman) || 0,
+    downloads_human: Number(downloadsHuman) || 0,
     botManagementAvailable: readBotManagement(request).available,
   });
-  return { ...stats, ...split };
+  return { ...stats, ...split, bot_counting: BOT_COUNTING };
 }
 
 const VERSION = "2.7.0";
@@ -200,78 +209,59 @@ function githubCacheKey() {
 }
 
 
-async function bump(env, key) {
-  const n = parseInt((await env.DOWNLOADS.get(key)) || "0", 10) + 1;
-  await env.DOWNLOADS.put(key, String(n));
-  return n;
+/**
+ * Keys one hit counts on. Only the human bucket is stored: the bot bucket is never
+ * read (every reader shows bot = total - human, stats-shape.js strategy b).
+ */
+function hitKeys(totalKeyName, humanKey, request) {
+  // Bots are not counted at all (free-tier write budget). Totals still equal human + bot,
+  // where bot is the frozen pre-change remainder. Labelled on /stats as bot_counting.
+  if (!isHumanHit(request)) return [];
+  return [totalKeyName, humanKey];
 }
+
+function isHumanHit(request) {
+  return !!request && !isCrawlerRequest(request);
+}
+
+export const BOT_COUNTING = Object.freeze({
+  counted: false,
+  since: "2026-10-09",
+  note: "Bot and crawler views/downloads are no longer counted (since the Oct 9, 2026 quota change) to stay inside Cloudflare's free tier. views_bot and downloads_bot are the frozen remainder from before that date. Human counts are exact.",
+});
 
 /**
- * Only the human bucket is stored. The bot bucket is never read: every reader
- * shows bot = total - human (stats-shape.js strategy b), so writing the bot key
- * was a wasted KV put on every bot hit. Counts are unchanged and exact.
- * botKey stays in the signature so callers read the same.
+ * One counted download: one atomic D1 upsert per key (per-repo key, total, human).
+ * No KV put and no packed-index rewrite per download; the cron folds counts into
+ * library:index:v1 every 30 min (labelled on /stats as counts_refresh_s).
+ * Returns { counted, store }. Never throws: a file is never withheld for a counter.
  */
-async function incrementSplit(env, humanKey, botKey, request) { // eslint-disable-line no-unused-vars
-  const cls = classifyRequest(request);
-  if (cls.bucket === "human") await bump(env, humanKey);
-  return cls;
-}
-
-async function readHumanBotSplit(env, request) {
-  const views = parseInt((await env.DOWNLOADS.get(KEYS.views)) || "0", 10) || 0;
-  const downloadsRaw = await env.DOWNLOADS.get(KEYS.total);
-  let downloads = parseInt(downloadsRaw || "0", 10);
-  if (!Number.isFinite(downloads) || downloads < 0) downloads = 0;
-  const viewsHuman = parseInt((await env.DOWNLOADS.get(KEYS.views_human)) || "0", 10) || 0;
-  const downloadsHuman = parseInt((await env.DOWNLOADS.get(KEYS.downloads_human)) || "0", 10) || 0;
-  const botManagementAvailable = readBotManagement(request).available;
-  return shapeHumanBotFields({
-    views,
-    downloads,
-    views_human: viewsHuman,
-    downloads_human: downloadsHuman,
-    botManagementAvailable,
-  });
-}
-
-function enrichStatsWithHumanBot(stats, split) {
-  return {
-    ...stats,
-    views_human: split.views_human,
-    views_bot: split.views_bot,
-    downloads_human: split.downloads_human,
-    downloads_bot: split.downloads_bot,
-    human: split.human,
-    bot: split.bot,
-    classification: split.classification,
-  };
-}
-
 async function increment(env, dims, request) {
-  const key = kvKey(dims);
-  const n = parseInt((await env.DOWNLOADS.get(key)) || "0", 10) + 1;
-  await env.DOWNLOADS.put(key, String(n));
-  const tot = parseInt((await env.DOWNLOADS.get(totalKey())) || "0", 10) + 1;
-  await env.DOWNLOADS.put(totalKey(), String(tot));
-  try {
-    await notePackedIncrement(env, { downloads: tot, dims, count: n });
-  } catch {
-    /* packed index is standby; counters above still wrote */
-  }
-  if (request) await incrementSplit(env, KEYS.downloads_human, KEYS.downloads_bot, request);
+  if (!isHumanHit(request)) return { counted: false, store: "none", reason: "bot" };
+  const keys = [kvKey(dims), ...hitKeys(totalKey(), KEYS.downloads_human, request)];
+  const res = await bumpCounters(env, keys);
+  return { counted: res.store !== "none", store: res.store, quota: !!res.quota };
+}
 
-  return tot;
+/** Download count header: the file is served either way; say when the count was skipped. */
+function withCountStatus(res, counted) {
+  if (!res || !counted || counted.counted !== false) return res;
+  try {
+    const out = new Response(res.body, res);
+    out.headers.set("X-Aziel-Count", counted.reason === "bot" ? "not-counted-bot" : counted.quota ? "skipped-quota" : "skipped");
+    return out;
+  } catch {
+    return res;
+  }
 }
 
 async function incrementViews(env, request) {
-  if (!env || !env.DOWNLOADS || typeof env.DOWNLOADS.get !== "function") return 0;
-  const n = parseInt((await env.DOWNLOADS.get(viewsKey())) || "0", 10) + 1;
-  await env.DOWNLOADS.put(viewsKey(), String(n));
-  // Packed views refresh on cron. Do not rewrite library:index:v1 on every page view.
-  if (request) await incrementSplit(env, KEYS.views_human, KEYS.views_bot, request);
-
-  return n;
+  if (!env || ((!env.DOWNLOADS || typeof env.DOWNLOADS.get !== "function") && !env.DB)) return { counted: false, store: "none" };
+  // One upsert per key, humans only. Packed views refresh on cron; library:index:v1 is not rewritten per view.
+  const keys = hitKeys(viewsKey(), KEYS.views_human, request);
+  if (!keys.length) return { counted: false, store: "none", reason: "bot" };
+  const res = await bumpCounters(env, keys);
+  return { counted: res.store !== "none", store: res.store };
 }
 
 /** GitHub stars/forks/release counts change slowly. 6 h cache keeps KV puts to a few a day. */
@@ -493,6 +483,7 @@ export async function runScheduledTick(env, scheduledTime = Date.now(), { walks 
   } catch (e) {
     out.index = (e && e.code) || "error";
   }
+  try { await refreshPaperMetrics(env); } catch { /* trending lists stay as they were */ }
   const [name, run] = walks[scheduledWalkIndex(scheduledTime) % walks.length];
   out.walk = name;
   await Promise.resolve().then(() => run(env)).catch(() => null);
@@ -511,7 +502,7 @@ export default {
       return await handleFetch(request, env, ctx);
     } catch (err) {
       // Daily D1/KV quota: 503 + Retry-After instead of an uncaught 1101.
-      if (isQuotaError(err)) return quotaResponse(err, { headers: corsHeaders() });
+      if (isQuotaError(err) || isTransientOverload(err)) return quotaResponse(err, { headers: corsHeaders() });
       throw err;
     }
   },
@@ -666,9 +657,15 @@ async function handleFetch(request, env, ctx) {
         return json({ error: "JSON body required" }, 400);
       }
       const dims = parseDims(body || {});
-      const count = await increment(env, dims, request);
+      const counted = await increment(env, dims, request);
+      if (!counted.counted && counted.quota) return quotaResponse(new Error("counter stores over daily limit"), { headers: corsHeaders() });
+      let count = null;
+      try { count = (await readCounters(env, [totalKey()]))[totalKey()]; } catch { count = null; }
       return json({
-        ok: true,
+        ok: counted.counted || counted.reason === "bot",
+        counted: counted.counted,
+        reason: counted.reason || undefined,
+        store: counted.store,
         key: kvKey(dims),
         count,
         owner: dims.owner,
@@ -683,10 +680,12 @@ async function handleFetch(request, env, ctx) {
       const dims = parseDims(url.searchParams);
       const asset = dims.asset || DEFAULT_ASSET || SOFTWARE_DEFAULT_ASSET;
       dims.asset = asset;
-      return serveAsset(request, env, asset, {
+      let counted = null;
+      const served = await serveAsset(request, env, asset, {
         head: request.method === "HEAD",
-        onCounted: request.method === "GET" ? () => increment(env, dims, request) : null,
+        onCounted: request.method === "GET" ? async () => { counted = await increment(env, dims, request); } : null,
       });
+      return withCountStatus(served, counted);
     }
 
     if ((url.pathname === "/download" || url.pathname.startsWith("/download/")) && (request.method === "GET" || request.method === "HEAD")) {
@@ -694,18 +693,19 @@ async function handleFetch(request, env, ctx) {
       if (productSlug && productBySlug(productSlug)) {
         const dims = parseDims(url.searchParams);
         dims.asset = "product:" + productSlug;
-        if (request.method === "GET" && env && env.DOWNLOADS) await increment(env, dims, request);
-        return attachVid(await serveDesignPack(env, productSlug, { attachment: true, head: request.method === "HEAD" }));
+        const counted = request.method === "GET" && env && (env.DOWNLOADS || env.DB) ? await increment(env, dims, request) : null;
+        return withCountStatus(attachVid(await serveDesignPack(env, productSlug, { attachment: true, head: request.method === "HEAD" })), counted);
       }
       const recordId = (url.searchParams.get("record") || url.searchParams.get("record_id") || "").trim();
       if (recordId) {
         const dims = parseDims(url.searchParams);
         dims.asset = "record:" + recordId;
+        let counted = null;
         if (request.method === "GET") {
-          await increment(env, dims, request);
+          counted = await increment(env, dims, request);
           await bumpPaperCount(env, recordId, "downloads", request).catch(() => null);
         }
-        return serveFile(env, recordId);
+        return withCountStatus(await serveFile(env, recordId), counted);
       }
       const rawHash = (url.searchParams.get("hash") || url.searchParams.get("sha256") || url.searchParams.get("content_sha256") || "").trim();
       const pathTail = url.pathname.startsWith("/download/") ? decodeURIComponent(url.pathname.slice("/download/".length)) : "";
@@ -713,12 +713,13 @@ async function handleFetch(request, env, ctx) {
       if (hash) {
         const dims = parseDims(url.searchParams);
         dims.asset = "hash:" + hash;
+        let counted = null;
         if (request.method === "GET") {
-          await increment(env, dims, request);
-          const hashedId = await recordIdForContentHash(env, hash);
+          counted = await increment(env, dims, request);
+          const hashedId = await recordIdForContentHash(env, hash).catch(() => null);
           if (hashedId) await bumpPaperCount(env, hashedId, "downloads", request).catch(() => null);
         }
-        return serveFileByHash(env, hash);
+        return withCountStatus(await serveFileByHash(env, hash), counted);
       }
       const dims = parseDims(url.searchParams);
       if (!dims.asset && pathTail) {
@@ -726,10 +727,12 @@ async function handleFetch(request, env, ctx) {
       }
       const asset = dims.asset || DEFAULT_ASSET || SOFTWARE_DEFAULT_ASSET;
       dims.asset = asset;
-      return serveAsset(request, env, asset, {
+      let counted = null;
+      const served = await serveAsset(request, env, asset, {
         head: request.method === "HEAD",
-        onCounted: request.method === "GET" ? () => increment(env, dims, request) : null,
+        onCounted: request.method === "GET" ? async () => { counted = await increment(env, dims, request); } : null,
       });
+      return withCountStatus(served, counted);
     }
 
     // gitbaby-seo-routes

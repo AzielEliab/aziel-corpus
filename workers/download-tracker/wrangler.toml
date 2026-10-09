@@ -44,6 +44,17 @@ id = "9a28bcf0aa324e1a80716971adcb07b0"
 [ai]
 binding = "AI"
 
+# Per-hit counters (Views, Downloads, per-paper counts). SQLite-backed Durable Object with its
+# own storage limits, so the account's daily KV put / D1 row allowance cannot block counting.
+# Same pattern as aziel-runtime #231 (RuntimeKv). Reads add legacy KV + D1 hit_counters.
+[[durable_objects.bindings]]
+name = "HIT_COUNTERS"
+class_name = "HitCounters"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["HitCounters"]
+
 # Optional named cloudflared frontend (TUN-WP-0.1). When unset, this Worker is standby.
 # TUNNEL_ORIGIN = "https://library-front.example.internal"
 # OPERATOR_TOKEN is a Wrangler secret — never commit it. No public IP allowlist.

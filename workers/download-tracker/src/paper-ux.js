@@ -8,6 +8,8 @@ import { classifyRequest } from "./classify.js";
 import { extractReaderView, packagedKind, readerWantsBytes } from "./office-extract.js";
 import { isHumanTag, isMachineFileTag, visibleTagEntries } from "./visible-tags.js";
 import { rethrowIfQuota } from "./quota.js";
+import { bumpCounters, listD1PrefixCounters, readCounters } from "./counters.js";
+import { isCrawlerRequest } from "./crawler.js";
 
 export const PAPER_METRICS_KEY = "library:paper-metrics:v1";
 export const PAPER_UX_SPEC = "PAPER-UX-1.0";
@@ -839,10 +841,14 @@ export async function readPaperCounts(env, recordId) {
   const kv = kvOf(env);
   if (!id) return { record_id: "", views: null, downloads: null, available: false, invented: false, source: "absent" };
   if (!kv) return { record_id: id, views: null, downloads: null, available: false, invented: false, source: "no-kv" };
-  const views = await readInt(kv, paperCountKey(id, "views"));
-  const downloads = await readInt(kv, paperCountKey(id, "downloads"));
-  let viewsHuman = await readInt(kv, paperCountKey(id, "views_human"));
-  let downloadsHuman = await readInt(kv, paperCountKey(id, "downloads_human"));
+  // Exact: legacy KV + D1 hit_counters (per-hit writes moved off KV).
+  const keys = ["views", "downloads", "views_human", "downloads_human"].map((k) => paperCountKey(id, k));
+  let c;
+  try { c = await readCounters(env, keys); } catch (e) { rethrowIfQuota(e, "paper-counts"); c = {}; for (const k of keys) c[k] = await readInt(kv, k); }
+  const views = c[keys[0]] || 0;
+  const downloads = c[keys[1]] || 0;
+  let viewsHuman = c[keys[2]] || 0;
+  let downloadsHuman = c[keys[3]] || 0;
   if (viewsHuman > views) viewsHuman = views;
   if (downloadsHuman > downloads) downloadsHuman = downloads;
   return {
@@ -918,15 +924,56 @@ export async function bumpPaperCount(env, recordId, kind, request) {
   const id = String(recordId || "").trim();
   if (!kv || !id) return null;
   if (kind !== "views" && kind !== "downloads") return null;
-  const cls = request ? classifyRequest(request) : { bucket: "bot" };
-  const n = (await readInt(kv, paperCountKey(id, kind))) + 1;
-  await kv.put(paperCountKey(id, kind), String(n));
-  if (cls.bucket === "human") {
-    const human = (await readInt(kv, paperCountKey(id, kind + "_human"))) + 1;
-    await kv.put(paperCountKey(id, kind + "_human"), String(human));
+  // Bots and crawlers are not counted (free-tier write budget); see BOT_COUNTING in index.js.
+  if (!request || isCrawlerRequest(request)) return { record_id: id, kind, counted: false, reason: "bot", invented: false };
+  // One D1 upsert per key instead of 2-3 KV puts (count, human, metrics doc) per record view.
+  // The metrics doc (trending / most downloaded) is refreshed by cron: refreshPaperMetrics().
+  const keys = [paperCountKey(id, kind), paperCountKey(id, kind + "_human")];
+  const res = await bumpCounters(env, keys);
+  if (res.store === "kv") {
+    // Legacy KV fallback (no D1): keep the metrics doc in step the old way.
+    try { await patchPaperMetrics(env, id, kind, await readInt(kv, keys[0])); } catch { /* page key is the source of truth */ }
   }
-  try { await patchPaperMetrics(env, id, kind, n); } catch { /* page key is the source of truth */ }
-  return { record_id: id, [kind]: n, invented: false };
+  return { record_id: id, kind, counted: res.store !== "none", store: res.store, invented: false };
+}
+
+/**
+ * Cron: fold per-paper D1 counts into library:paper-metrics:v1 (one KV put, skipped
+ * when nothing changed). Trending / most-downloaded lists can lag by up to 30 min.
+ */
+export async function refreshPaperMetrics(env) {
+  const kv = kvOf(env);
+  if (!kv || typeof kv.put !== "function") return { changed: 0 };
+  const rows = await listD1PrefixCounters(env, COUNT_PREFIX);
+  const doc = await readMetrics(env);
+  const papers = { ...doc.papers };
+  let changed = 0;
+  for (const row of rows) {
+    const rest = String(row.key || "").slice(COUNT_PREFIX.length);
+    const cut = rest.lastIndexOf("|");
+    if (cut <= 0) continue;
+    const id = rest.slice(0, cut);
+    const kind = rest.slice(cut + 1);
+    if (kind !== "views" && kind !== "downloads") continue;
+    const total = (await readInt(kv, row.key)) + Math.max(0, Number(row.n) || 0);
+    const prev = papers[id] && typeof papers[id] === "object" ? papers[id] : { views: 0, downloads: 0 };
+    if ((Number(prev[kind]) || 0) === total) continue;
+    papers[id] = { views: Number(prev.views) || 0, downloads: Number(prev.downloads) || 0, [kind]: total };
+    changed += 1;
+  }
+  if (!changed) return { changed: 0 };
+  await kv.put(PAPER_METRICS_KEY, JSON.stringify({
+    version: 1,
+    key: PAPER_METRICS_KEY,
+    author: AUTHOR,
+    invented: false,
+    spec: PAPER_UX_SPEC,
+    papers,
+    ts: new Date().toISOString(),
+    refresh_s: 1800,
+    note: "Honest per-paper counters. A missing id is not ranked. Counts are not invented. Refreshed every 30 minutes from exact counters, so rankings can lag by up to refresh_s seconds.",
+  }));
+  return { changed };
 }
 
 /** Top papers that exist in the library and have a stored count above zero. */

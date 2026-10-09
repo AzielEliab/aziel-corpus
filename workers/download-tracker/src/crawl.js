@@ -47,7 +47,7 @@ import { peacelockCiteFields, peacelockLlmsBlock } from "./peacelock.js";
 import { tradesRuntimeCiteFields, tradesRuntimeLlmsBlock, tradesRuntimeMcpDiscovery } from "./trades-runtime.js";
 import { redlineCiteFields } from "./redline-cite.js";
 import { readPackedIndex, SHELF_INDEX_LIMIT } from "./library-index.js";
-import { isQuotaError, rethrowIfQuota } from "./quota.js";
+import { isQuotaError, isTransientOverload, rethrowIfQuota } from "./quota.js";
 import {
   IDENTITY_ROUTES,
   identitySameAsLine,
@@ -579,11 +579,11 @@ export async function collectSitemapRecords(env) {
     const packed = await readPackedIndex(env);
     const recs = packed && Array.isArray(packed.records) ? packed.records : [];
     for (const row of recs) rememberSitemapRecord(byId, row);
-  } catch (e) { if (isQuotaError(e)) quota = e; /* packed optional */ }
+  } catch (e) { if (isQuotaError(e) || isTransientOverload(e)) quota = e; /* packed optional */ }
   try {
     const recs = await d1SitemapRecords(env);
     for (const row of recs) rememberSitemapRecord(byId, row);
-  } catch (e) { if (isQuotaError(e)) quota = quota || e; /* empty set still valid */ }
+  } catch (e) { if (isQuotaError(e) || isTransientOverload(e)) quota = quota || e; /* empty set still valid */ }
   // Packed ids alone are a valid sitemap. Nothing at all because of a quota: 503, never an empty sitemap.
   if (byId.size === 0 && quota) rethrowIfQuota(quota, "sitemap");
   return [...byId.values()].sort((a, b) => {

@@ -2,9 +2,11 @@ import { scryptSync, randomBytes, timingSafeEqual } from "node:crypto";
 import { json, corsHeaders } from "./runtime.js";
 import { page, pwField, azielLibraryBody, corpusBody, homeBody, uploadBody, streamLcpHtml } from "./ui.js";
 import { LIBRARY_HUB_PATH } from "./film.js";
-import { isOperator, ingestRecord, searchRecords, listFacets, parseBrowseParams, asFile, guestSession } from "./library.js";
+import { isOperator, ingestRecord, searchRecords, listFacets, facetsFromRows, parseBrowseParams, asFile, guestSession } from "./library.js";
 import { extractEventsForRecord } from "./geo.js";
-import { attachPermalinks } from "./paper-ux.js";
+import { attachPermalinks, permalinksForRows } from "./paper-ux.js";
+import { isQuotaError, isTransientOverload } from "./quota.js";
+import { canonicalShelfCacheUrl, injectNotice, isCrawlerRequest, lastGoodUrl, LASTGOOD_CACHE_CONTROL, SHELF_EDGE_CACHE_CONTROL, SHELF_REVALIDATE_MS, staleNoticeHtml } from "./snapshot.js";
 import { ocrIngestHint } from "./ocr.js";
 import {
   collectStats,
@@ -13,7 +15,13 @@ import {
   HTML_EDGE_CACHE_CONTROL,
   htmlCacheUrl,
   cacheMatchText,
+  cacheMatchTextAged,
+  needsRevalidate,
   cachePutText,
+  readPackedIndex,
+  searchPackedRecords,
+  shelfOf,
+  statsFromPacked,
 } from "./library-index.js";
 
 function fileCountsFromStats(stats) {
@@ -150,33 +158,82 @@ async function renderShelfHtml(env, signed, browse, spec) {
   }), { signed, path: spec.path, kind: spec.kind });
 }
 
+/** Shelf from library:index:v1 only (no D1). Same filters, facets and counts; excerpts are not in the snapshot. */
+async function renderShelfFromPacked(env, signed, browse, spec, { notice } = {}) {
+  const packed = await readPackedIndex(env);
+  const records = Array.isArray(packed.records) ? packed.records : [];
+  const all = searchPackedRecords(packed, {
+    q: browse.q,
+    library: spec.library,
+    sort: browse.sort,
+    author: browse.author,
+    domain: browse.domain,
+    subject: browse.subject,
+    keyword: browse.keyword,
+    limit: 500,
+  });
+  const offset = Math.max(0, Number(browse.offset) || 0);
+  const rows = all.slice(offset, offset + (Number(browse.limit) || 48));
+  const shelf = records.filter((r) => spec.library !== "aziel" && spec.library !== "corpus" ? true : shelfOf(r) === spec.library);
+  const body = spec.render({
+    rows: permalinksForRows(rows, records),
+    facets: facetsFromRows(shelf),
+    ...browse,
+    lib: spec.library,
+    signed,
+    ...fileCountsFromStats(statsFromPacked(packed)),
+  });
+  const html = page(spec.title, body, { signed, path: spec.path, kind: spec.kind });
+  return { html: notice ? injectNotice(html, staleNoticeHtml({ asOf: packed.ts, source: "snapshot" })) : html, asOf: packed.ts };
+}
+
 async function serveShelfPage(request, url, env, ctx, signed, spec) {
   const browse = parseBrowseParams(url);
   if (request.method === "HEAD") {
     return html("", { signed, head: true });
   }
-  const cacheUrl = htmlCacheUrl(request);
+  const crawler = !signed && isCrawlerRequest(request);
+  const cacheUrl = canonicalShelfCacheUrl(spec.path, browse);
+  // Crawlers (Amazonbot, GPTBot, Applebot...) walk every facet combination. They get the
+  // packed snapshot, never a D1 render (that was ~800 D1 rows per uncached URL).
+  const renderFresh = async () => (crawler
+    ? (await renderShelfFromPacked(env, signed, browse, spec)).html
+    : await renderShelfHtml(env, signed, browse, spec));
+  const store = (body) => Promise.all([
+    cachePutText(cacheUrl, body, undefined, { cacheControl: SHELF_EDGE_CACHE_CONTROL }),
+    cachePutText(lastGoodUrl(cacheUrl), body, undefined, { cacheControl: LASTGOOD_CACHE_CONTROL }),
+  ]).catch(() => null);
   if (!signed) {
-    const cached = await cacheMatchText(cacheUrl);
-    if (cached) {
-      if (ctx && typeof ctx.waitUntil === "function") {
-        ctx.waitUntil((async () => {
-          try {
-            const fresh = await renderShelfHtml(env, signed, browse, spec);
-            await cachePutText(cacheUrl, fresh, undefined, { cacheControl: HTML_EDGE_CACHE_CONTROL });
-          } catch { /* optional */ }
-        })());
+    const aged = await cacheMatchTextAged(cacheUrl);
+    if (aged && aged.text) {
+      // Re-render at most once per SHELF_REVALIDATE_MS, never on every hit (CPU 1102, D1 reads).
+      if (needsRevalidate(aged, SHELF_REVALIDATE_MS) && ctx && typeof ctx.waitUntil === "function") {
+        ctx.waitUntil(renderFresh().then(store).catch(() => null));
       }
-      return html(streamLcpHtml(cached), { signed });
+      return html(streamLcpHtml(aged.text), { signed, extraHeaders: { "Cache-Control": HTML_CACHE_CONTROL } });
     }
   }
-  const body = await renderShelfHtml(env, signed, browse, spec);
-  if (!signed) {
-    if (ctx && typeof ctx.waitUntil === "function") {
-      ctx.waitUntil(cachePutText(cacheUrl, body, undefined, { cacheControl: HTML_EDGE_CACHE_CONTROL }));
-    } else {
-      await cachePutText(cacheUrl, body, undefined, { cacheControl: HTML_EDGE_CACHE_CONTROL });
+  let body;
+  try {
+    body = await renderFresh();
+  } catch (err) {
+    if (!isQuotaError(err) && !isTransientOverload(err)) throw err;
+    // D1 refused: packed snapshot with a stale label, then a last-good copy, then 503.
+    try {
+      const snap = await renderShelfFromPacked(env, signed, browse, spec, { notice: true });
+      return html(streamLcpHtml(snap.html), { signed, extraHeaders: { "Cache-Control": "no-store", "X-Aziel-Stale": "snapshot; as-of=" + (snap.asOf || "") } });
+    } catch { /* KV refused too */ }
+    const saved = await cacheMatchTextAged(lastGoodUrl(cacheUrl));
+    if (saved && saved.text) {
+      const asOf = Number.isFinite(saved.ageMs) ? new Date(Date.now() - saved.ageMs).toISOString() : "";
+      return html(streamLcpHtml(injectNotice(saved.text, staleNoticeHtml({ asOf, source: "lastgood" }))), { signed, extraHeaders: { "Cache-Control": "no-store", "X-Aziel-Stale": "lastgood; as-of=" + asOf } });
     }
+    throw err;
+  }
+  if (!signed) {
+    const put = store(body);
+    if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(put);
+    else await put;
   }
   return html(streamLcpHtml(body), { signed });
 }
