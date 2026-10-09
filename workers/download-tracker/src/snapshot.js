@@ -32,18 +32,63 @@ export function canonicalShelfCacheUrl(path, browse) {
   return HTML_CACHE_PREFIX + path + (parts.length ? "?" + parts.join("&") : "");
 }
 
+/**
+ * Last-good copies live under their own path, not "#lastgood": the Cloudflare cache
+ * key ignores URL fragments, so a fragment key would collide with the main entry.
+ * /__lastgood/ is never routed publicly (index.js answers 404 before any handler,
+ * and it is not in run_worker_first or the static assets).
+ */
+export const LASTGOOD_PREFIX = "https://azielcorpuslibrary.net/__lastgood";
+
 export function lastGoodUrl(cacheUrl) {
-  return cacheUrl + "#lastgood";
+  const raw = String(cacheUrl || "");
+  if (raw.startsWith(HTML_CACHE_PREFIX)) return LASTGOOD_PREFIX + (raw.slice(HTML_CACHE_PREFIX.length) || "/");
+  try {
+    const u = new URL(raw);
+    return LASTGOOD_PREFIX + u.pathname + u.search;
+  } catch {
+    return LASTGOOD_PREFIX + "/" + encodeURIComponent(raw);
+  }
+}
+
+/** Internal cache-key paths. Never served to the public. */
+export function isInternalCachePath(pathname) {
+  const p = String(pathname || "");
+  return p === "/__lastgood" || p.startsWith("/__lastgood/") || p === "/__cache" || p.startsWith("/__cache/");
+}
+
+/** The packed index is missing or empty: not a valid snapshot (never render or cache an empty shelf from it). */
+export function snapshotUnavailable(where = "") {
+  const e = new Error("packed shelf snapshot unavailable" + (where ? " (" + where + ")" : ""));
+  e.code = "SNAPSHOT_UNAVAILABLE";
+  return e;
+}
+
+export function isSnapshotUnavailable(err) {
+  return !!(err && err.code === "SNAPSHOT_UNAVAILABLE");
+}
+
+export function snapshotRecords(packed) {
+  const records = packed && Array.isArray(packed.records) ? packed.records : [];
+  if (!packed || packed.missing || records.length === 0) throw snapshotUnavailable();
+  return records;
 }
 
 function escHtml(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
-export function staleNoticeHtml({ asOf, source } = {}) {
+/**
+ * cause "daily": a real Cloudflare daily-limit error (resets 00:00 UTC).
+ * Anything else (overload, outage, missing data): short-lived wording, no midnight promise.
+ */
+export function staleNoticeHtml({ asOf, source, cause } = {}) {
   const when = asOf ? escHtml(String(asOf).replace("T", " ").slice(0, 16)) + " UTC" : "an earlier time";
   const what = source === "lastgood" ? "a saved copy of this page" : "the shelf snapshot";
-  return `<div class="card stale-notice" role="status" data-stale="true"><p><strong>Stale view.</strong> The live catalog is paused because the Cloudflare daily limit was reached. You are seeing ${what} from ${when}. It can be out of date. Search inside documents is unavailable until the limit resets at 00:00 UTC.</p></div>`;
+  const why = cause === "daily"
+    ? "The live catalog is paused because the Cloudflare daily limit was reached. Search inside documents is unavailable until the limit resets at 00:00 UTC."
+    : "The live catalog is not answering right now (a temporary overload or outage). Try again in a minute.";
+  return `<div class="card stale-notice" role="status" data-stale="true" data-stale-cause="${cause === "daily" ? "daily-limit" : "outage"}"><p><strong>Stale view.</strong> ${why} You are seeing ${what} from ${when}. It can be out of date.</p></div>`;
 }
 
 /** Put a notice at the top of <main> (or <body>). */

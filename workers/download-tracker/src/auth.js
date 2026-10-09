@@ -6,7 +6,7 @@ import { isOperator, ingestRecord, searchRecords, listFacets, facetsFromRows, pa
 import { extractEventsForRecord } from "./geo.js";
 import { attachPermalinks, permalinksForRows } from "./paper-ux.js";
 import { isQuotaError, isTransientOverload } from "./quota.js";
-import { canonicalShelfCacheUrl, injectNotice, isCrawlerRequest, lastGoodUrl, LASTGOOD_CACHE_CONTROL, SHELF_EDGE_CACHE_CONTROL, SHELF_REVALIDATE_MS, staleNoticeHtml } from "./snapshot.js";
+import { canonicalShelfCacheUrl, injectNotice, isCrawlerRequest, isSnapshotUnavailable, lastGoodUrl, LASTGOOD_CACHE_CONTROL, SHELF_EDGE_CACHE_CONTROL, SHELF_REVALIDATE_MS, snapshotRecords, staleNoticeHtml } from "./snapshot.js";
 import { ocrIngestHint } from "./ocr.js";
 import {
   collectStats,
@@ -148,7 +148,7 @@ async function renderShelfHtml(env, signed, browse, spec) {
     packedFileCounts(env),
   ]);
   const linked = await attachPermalinks(env, rows);
-  return page(spec.title, spec.render({
+  const out = page(spec.title, spec.render({
     rows: linked,
     facets,
     ...browse,
@@ -156,12 +156,14 @@ async function renderShelfHtml(env, signed, browse, spec) {
     signed,
     ...counts,
   }), { signed, path: spec.path, kind: spec.kind });
+  return { html: out, empty: !Array.isArray(rows) || rows.length === 0 };
 }
 
 /** Shelf from library:index:v1 only (no D1). Same filters, facets and counts; excerpts are not in the snapshot. */
-async function renderShelfFromPacked(env, signed, browse, spec, { notice } = {}) {
+async function renderShelfFromPacked(env, signed, browse, spec, { notice, cause } = {}) {
   const packed = await readPackedIndex(env);
-  const records = Array.isArray(packed.records) ? packed.records : [];
+  // Missing or zero-record index is unavailable, never an empty shelf.
+  const records = snapshotRecords(packed);
   const all = searchPackedRecords(packed, {
     q: browse.q,
     library: spec.library,
@@ -184,7 +186,7 @@ async function renderShelfFromPacked(env, signed, browse, spec, { notice } = {})
     ...fileCountsFromStats(statsFromPacked(packed)),
   });
   const html = page(spec.title, body, { signed, path: spec.path, kind: spec.kind });
-  return { html: notice ? injectNotice(html, staleNoticeHtml({ asOf: packed.ts, source: "snapshot" })) : html, asOf: packed.ts };
+  return { html: notice ? injectNotice(html, staleNoticeHtml({ asOf: packed.ts, source: "snapshot", cause })) : html, asOf: packed.ts, empty: rows.length === 0 };
 }
 
 async function serveShelfPage(request, url, env, ctx, signed, spec) {
@@ -197,11 +199,12 @@ async function serveShelfPage(request, url, env, ctx, signed, spec) {
   // Crawlers (Amazonbot, GPTBot, Applebot...) walk every facet combination. They get the
   // packed snapshot, never a D1 render (that was ~800 D1 rows per uncached URL).
   const renderFresh = async () => (crawler
-    ? (await renderShelfFromPacked(env, signed, browse, spec)).html
+    ? await renderShelfFromPacked(env, signed, browse, spec)
     : await renderShelfHtml(env, signed, browse, spec));
-  const store = (body) => Promise.all([
-    cachePutText(cacheUrl, body, undefined, { cacheControl: SHELF_EDGE_CACHE_CONTROL }),
-    cachePutText(lastGoodUrl(cacheUrl), body, undefined, { cacheControl: LASTGOOD_CACHE_CONTROL }),
+  // Never cache or last-good-write an empty render.
+  const store = (r) => (!r || r.empty || !r.html) ? Promise.resolve(null) : Promise.all([
+    cachePutText(cacheUrl, r.html, undefined, { cacheControl: SHELF_EDGE_CACHE_CONTROL }),
+    cachePutText(lastGoodUrl(cacheUrl), r.html, undefined, { cacheControl: LASTGOOD_CACHE_CONTROL }),
   ]).catch(() => null);
   if (!signed) {
     const aged = await cacheMatchTextAged(cacheUrl);
@@ -213,29 +216,33 @@ async function serveShelfPage(request, url, env, ctx, signed, spec) {
       return html(streamLcpHtml(aged.text), { signed, extraHeaders: { "Cache-Control": HTML_CACHE_CONTROL } });
     }
   }
-  let body;
+  let rendered;
   try {
-    body = await renderFresh();
+    rendered = await renderFresh();
   } catch (err) {
     if (!isQuotaError(err) && !isTransientOverload(err)) throw err;
-    // D1 refused: packed snapshot with a stale label, then a last-good copy, then 503.
-    try {
-      const snap = await renderShelfFromPacked(env, signed, browse, spec, { notice: true });
-      return html(streamLcpHtml(snap.html), { signed, extraHeaders: { "Cache-Control": "no-store", "X-Aziel-Stale": "snapshot; as-of=" + (snap.asOf || "") } });
-    } catch { /* KV refused too */ }
+    const cause = isQuotaError(err) ? "daily" : "outage";
+    // D1 refused: packed snapshot with a stale label (unless the snapshot is what failed),
+    // then a last-good copy, then 503 + Retry-After.
+    if (!isSnapshotUnavailable(err)) {
+      try {
+        const snap = await renderShelfFromPacked(env, signed, browse, spec, { notice: true, cause });
+        return html(streamLcpHtml(snap.html), { signed, extraHeaders: { "Cache-Control": "no-store", "X-Aziel-Stale": "snapshot; cause=" + cause + "; as-of=" + (snap.asOf || "") } });
+      } catch { /* KV refused or snapshot missing/empty */ }
+    }
     const saved = await cacheMatchTextAged(lastGoodUrl(cacheUrl));
     if (saved && saved.text) {
       const asOf = Number.isFinite(saved.ageMs) ? new Date(Date.now() - saved.ageMs).toISOString() : "";
-      return html(streamLcpHtml(injectNotice(saved.text, staleNoticeHtml({ asOf, source: "lastgood" }))), { signed, extraHeaders: { "Cache-Control": "no-store", "X-Aziel-Stale": "lastgood; as-of=" + asOf } });
+      return html(streamLcpHtml(injectNotice(saved.text, staleNoticeHtml({ asOf, source: "lastgood", cause }))), { signed, extraHeaders: { "Cache-Control": "no-store", "X-Aziel-Stale": "lastgood; cause=" + cause + "; as-of=" + asOf } });
     }
     throw err;
   }
   if (!signed) {
-    const put = store(body);
+    const put = store(rendered);
     if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(put);
     else await put;
   }
-  return html(streamLcpHtml(body), { signed });
+  return html(streamLcpHtml(rendered.html), { signed });
 }
 
 export async function handleAuth(request, url, env, ctx) {

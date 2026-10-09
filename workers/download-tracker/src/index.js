@@ -2,6 +2,7 @@ import { handleRuntimeApi, corsHeaders, json, LIMITATION } from "./runtime.js";
 import { isQuotaError, isTransientOverload, quotaResponse } from "./quota.js";
 import { bumpCounters, readCounters } from "./counters.js";
 import { isCrawlerRequest } from "./crawler.js";
+import { isInternalCachePath } from "./snapshot.js";
 // Durable Object class must be exported from the Worker entry (wrangler.toml HIT_COUNTERS).
 export { HitCounters } from "./hit-counters.js";
 import { handleRuntimeRoot } from "./runtime-root.js";
@@ -511,6 +512,8 @@ export default {
 async function handleFetch(request, env, ctx) {
     const url = new URL(request.url);
     const earlyPath = url.pathname.replace(/\/+$/, "") || "/";
+    // Internal Cache API key paths (/__lastgood/*, /__cache/*) are never served publicly.
+    if (isInternalCachePath(url.pathname)) return json({ error: "not found" }, 404);
     // Per-request background walks removed: cron runs one walk per tick (D1 read budget).
 
     if (request.method === "OPTIONS") {

@@ -31,6 +31,8 @@ export function isQuotaError(err) {
 /** Short-lived overload (rate limit, per-key write rate, D1 overloaded). Retry in seconds, not at midnight. */
 export function isTransientOverload(err) {
   if (!err || isQuotaError(err)) return false;
+  // Packed snapshot missing/empty while the page must not hit D1: short retry, not a midnight one.
+  if (err.code === "SNAPSHOT_UNAVAILABLE") return true;
   const msg = errMessage(err);
   return /too many requests|\b429\b|rate limit|overloaded|D1_ERROR:.*(timeout|timed out|reset|try again)|network connection lost/i.test(msg);
 }

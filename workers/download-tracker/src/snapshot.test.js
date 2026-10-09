@@ -124,7 +124,7 @@ test("/aziel-library and /corpus still answer 200 with a stale label when D1 is 
   for (const path of ["/aziel-library", "/corpus"]) {
     const res = await worker.fetch(new Request(HOST + path, { headers: human }), env, {});
     assert.equal(res.status, 200, path);
-    assert.match(res.headers.get("X-Aziel-Stale") || "", /^snapshot; as-of=/, path);
+    assert.match(res.headers.get("X-Aziel-Stale") || "", /^snapshot; cause=daily; as-of=/, path);
     assert.equal(res.headers.get("Cache-Control"), "no-store", path);
     const html = await res.text();
     assert.match(html, /data-stale="true"/, path);

@@ -283,7 +283,9 @@ export async function readPackedIndex(env, { cache, cacheTtl = KV_CACHE_TTL } = 
   } catch {
     raw = await kv.get(LIBRARY_INDEX_KEY);
   }
-  const doc = parseIndex(raw) || emptyPackedIndex({ ts: new Date().toISOString() });
+  // A null/unparsable KV index is MISSING, not an empty shelf. Callers that render a
+  // shelf must check `missing` / zero records and treat it as unavailable.
+  const doc = parseIndex(raw) || emptyPackedIndex({ ts: new Date().toISOString(), missing: true });
   if (doc.index_sha256) await cachePutJson(INDEX_CACHE_URL, doc, cache);
   return doc;
 }
@@ -335,7 +337,7 @@ export function statsFromPacked(doc) {
 /** Views/Downloads are exact but delayed: they are folded into the packed index by the 30-min cron. */
 export const COUNTS_REFRESH_S = 1800;
 export const COUNTS_NOTE =
-  "Views and Downloads are exact counts (legacy KV history + D1 hit_counters), published as of counts_as_of. They refresh every 30 minutes, so they can lag live traffic by up to counts_refresh_s seconds. Not sampled.";
+  "Views and Downloads are exact counts (legacy KV history + D1 hit_counters + the HitCounters Durable Object, which takes new hits), published as of counts_as_of. They refresh every 30 minutes, so they can lag live traffic by up to counts_refresh_s seconds. Not sampled.";
 
 /** Hot-path stats. Replaces KV.list() + per-key walk. */
 export async function collectStats(env, opts) {
@@ -573,11 +575,13 @@ export async function writePackedIndex(env, doc, { cache, current } = {}) {
     err.code = "EMPTY_INDEX_GUARD";
     throw err;
   }
-  if (current && samePackedContent(current, doc)) {
+  if (current && !current.missing && samePackedContent(current, doc)) {
     // Nothing changed. Skip the KV put (free tier: 1,000 puts/day).
     return sealPackedIndex(current);
   }
-  const sealed = sealPackedIndex(Object.assign({}, doc, { ts: new Date().toISOString() }));
+  const clean = Object.assign({}, doc, { ts: new Date().toISOString() });
+  delete clean.missing; // read-side flag only; a written index is never "missing"
+  const sealed = sealPackedIndex(clean);
   if (kv && typeof kv.put === "function") {
     await kv.put(LIBRARY_INDEX_KEY, JSON.stringify(sealed));
   }

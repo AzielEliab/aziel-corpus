@@ -844,7 +844,12 @@ export async function readPaperCounts(env, recordId) {
   // Exact: legacy KV + D1 hit_counters (per-hit writes moved off KV).
   const keys = ["views", "downloads", "views_human", "downloads_human"].map((k) => paperCountKey(id, k));
   let c;
-  try { c = await readCounters(env, keys); } catch (e) { rethrowIfQuota(e, "paper-counts"); c = {}; for (const k of keys) c[k] = await readInt(kv, k); }
+  try {
+    c = await readCounters(env, keys);
+  } catch (e) {
+    // Never fall back to KV-only totals: that would drop the DO/D1 part and make counts go backwards.
+    return { record_id: id, views: null, downloads: null, views_human: null, views_bot: null, downloads_human: null, downloads_bot: null, available: false, invented: false, source: "unavailable", reason: String((e && e.message) || e || "read failed").slice(0, 160) };
+  }
   const views = c[keys[0]] || 0;
   const downloads = c[keys[1]] || 0;
   let viewsHuman = c[keys[2]] || 0;
@@ -861,7 +866,7 @@ export async function readPaperCounts(env, recordId) {
     downloads_bot: downloads - downloadsHuman,
     available: true,
     invented: false,
-    source: "kv",
+    source: "kv+d1+do",
   };
 }
 
