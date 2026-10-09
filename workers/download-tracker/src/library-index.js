@@ -8,6 +8,7 @@ import { createHash } from "node:crypto";
 import { compactZsolverPublic, shelfScoreState, zsolverFromRow } from "./zsolver.js";
 import { triadInputFromRow } from "./triad-input.js";
 import { conceptFromRow, mergeLockedPermalinks, permalinkPath, stampPermalinks } from "./paper-ux.js";
+import { rethrowIfQuota } from "./quota.js";
 
 export const LIBRARY_INDEX_KEY = "library:index:v1";
 /**
@@ -378,23 +379,33 @@ export async function loadShelfCards(env, { limit = SHELF_INDEX_LIMIT } = {}) {
   const lim = Math.min(Math.max(Number(limit) || SHELF_INDEX_LIMIT, 1), SHELF_INDEX_LIMIT);
   const sql =
     "SELECT record_id, title, author, library, content_sha256, chain_tip, created_utc, domain, subjects, keywords, filename, triad_combined, json_extract(review_json, '$.triad.triad_input') AS triad_input, zsolver_score, zsolver_status, zsolver_json FROM records WHERE IFNULL(shelf_hidden,0) = 0 AND UPPER(IFNULL(quarantine_status,'CLEAR')) NOT IN ('POISON_SUSPECT','QUARANTINE') ORDER BY created_utc DESC LIMIT ?";
+  // Schema fallbacks only. A D1 quota/limit error is not a schema problem, so it is
+  // rethrown at once instead of burning two more reads.
   try {
     const rows = (await env.DB.prepare(sql).bind(lim).all()).results || [];
     return rows.map(cardFromRecord).filter(Boolean);
-  } catch {
+  } catch (e1) {
+    rethrowIfQuota(e1, "loadShelfCards");
     try {
       const fallback =
         "SELECT record_id, title, author, library, content_sha256, created_utc, domain, subjects, keywords, filename, triad_combined FROM records ORDER BY created_utc DESC LIMIT ?";
       const rows = (await env.DB.prepare(fallback).bind(lim).all()).results || [];
       return rows.map(cardFromRecord).filter(Boolean);
-    } catch {
+    } catch (e2) {
+      rethrowIfQuota(e2, "loadShelfCards");
       try {
         const fallback =
           "SELECT record_id, title, author, library, content_sha256, created_utc, domain, subjects, keywords, filename FROM records ORDER BY created_utc DESC LIMIT ?";
         const rows = (await env.DB.prepare(fallback).bind(lim).all()).results || [];
         return rows.map(cardFromRecord).filter(Boolean);
-      } catch {
-        return [];
+      } catch (e3) {
+        rethrowIfQuota(e3, "loadShelfCards");
+        // Never return [] on a D1 failure: callers would treat it as an empty shelf
+        // and could wipe library:index:v1.
+        const err = new Error("D1 shelf read failed: " + String((e3 && e3.message) || e3));
+        err.code = "D1_SHELF_UNAVAILABLE";
+        err.cause = e3;
+        throw err;
       }
     }
   }
@@ -473,8 +484,34 @@ async function readGithub(kv) {
   }
 }
 
-export async function writePackedIndex(env, doc, { cache } = {}) {
+/**
+ * Empty-index write guard. A fresh index with zero records must never replace a
+ * current index that has records (a failed or throttled D1 read looks empty).
+ */
+export function wouldWipeIndex(current, next) {
+  const had = Array.isArray(current && current.records) ? current.records.length : 0;
+  const has = Array.isArray(next && next.records) ? next.records.length : 0;
+  return had > 0 && has === 0;
+}
+
+/** Same content as current (ignoring ts)? Then the KV put can be skipped. */
+export function samePackedContent(current, next) {
+  if (!current || !current.index_sha256) return false;
+  const probe = sealPackedIndex(Object.assign({}, next, { ts: current.ts }));
+  return probe.index_sha256 === current.index_sha256;
+}
+
+export async function writePackedIndex(env, doc, { cache, current } = {}) {
   const kv = downloadsKv(env);
+  if (current && wouldWipeIndex(current, doc)) {
+    const err = new Error("refusing to write an empty " + LIBRARY_INDEX_KEY + " over " + current.records.length + " records");
+    err.code = "EMPTY_INDEX_GUARD";
+    throw err;
+  }
+  if (current && samePackedContent(current, doc)) {
+    // Nothing changed. Skip the KV put (free tier: 1,000 puts/day).
+    return sealPackedIndex(current);
+  }
   const sealed = sealPackedIndex(Object.assign({}, doc, { ts: new Date().toISOString() }));
   if (kv && typeof kv.put === "function") {
     await kv.put(LIBRARY_INDEX_KEY, JSON.stringify(sealed));
@@ -489,7 +526,7 @@ export async function patchPackedStats(env, patch, { cache } = {}) {
   if (patch && patch.github) next.github = Object.assign({}, current.github || {}, patch.github);
   if (patch && Array.isArray(patch.records)) next.records = patch.records;
   if (patch && patch.breakdown) next.breakdown = patch.breakdown;
-  return writePackedIndex(env, next, { cache });
+  return writePackedIndex(env, next, { cache, current });
 }
 
 function upsertBreakdown(list, dims, count) {
@@ -567,21 +604,21 @@ export async function noteIngestedRecord(env, row) {
 export async function refreshPackedIndex(env, { cache, github } = {}) {
   const kv = downloadsKv(env);
   const current = await readPackedIndex(env, { cache, cacheTtl: 60 });
+  // Throws on D1 failure (never []), so a throttled read cannot wipe the shelf.
   const fresh = await loadShelfCards(env);
   const records = stampPermalinks(mergeLockedPermalinks(fresh, current.records));
   const views = kv ? await readInt(kv, viewsKey()) : Number(current.views) || 0;
   const downloads = kv ? await readInt(kv, totalKey()) : Number(current.downloads) || 0;
   const gh = github || (kv ? await readGithub(kv) : current.github);
-  return writePackedIndex(
-    env,
-    Object.assign({}, current, {
-      records,
-      views,
-      downloads,
-      github: gh,
-    }),
-    { cache }
-  );
+  const next = Object.assign({}, current, {
+    records,
+    views,
+    downloads,
+    github: gh,
+  });
+  // Guard: an empty fresh shelf never replaces a non-empty one. Keep the current index.
+  if (wouldWipeIndex(current, next)) return sealPackedIndex(current);
+  return writePackedIndex(env, next, { cache, current });
 }
 
 export function libraryHealthFields(packed, env) {

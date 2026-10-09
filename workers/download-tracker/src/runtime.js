@@ -3,6 +3,7 @@
  * Packed library:index:v1 may be read (one get, never list) for health / failover.
  * Author: Aziel Eliab.
  */
+import { rethrowIfQuota } from "./quota.js";
 import { serveFileByHash, normalizeContentHash } from "./library.js";
 import { receiptForRecord, documentChain, isJsonDocumentId } from "./ledger.js";
 import { loadRecordReview, runReviewBundle, backfillReviews, continueFullBackfill, continueRecalibrateAll, recalibrateAllStatus, fullBackfillStatus, syncShelfScores, refreshPackedShelf, publicizeReview, SHELF_REBUILD_MS, RECALIBRATE_LOCKED } from "./review-store.js";
@@ -507,7 +508,9 @@ export async function handleRuntimeApi(request, url, env, ctx) {
     if (!Array.isArray(packed.records) || packed.records.length === 0) {
       try {
         packed = await refreshPackedIndex(env);
-      } catch {
+      } catch (e) {
+        // Empty shelf because D1/KV is over quota: 503 + Retry-After, not "no results".
+        rethrowIfQuota(e, "v1-search");
         /* stay empty; still no KV.list() */
       }
     }

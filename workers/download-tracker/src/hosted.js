@@ -2,6 +2,7 @@ import { page, patternBody, softwareBody, aboutBody, whoBody, howItsScoredBody, 
 import { recordDescription, ABOUT_PATH, ABOUT_NAV_LABEL, FORENSICS_PATH, WHO_PATH, aboutRedirectFrom, forensicsRedirectFrom } from "./seo.js";
 import { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, blockedAvBody } from "./hosted-pages.js";
 import { json, corsHeaders } from "./runtime.js";
+import { isQuotaError, rethrowIfQuota } from "./quota.js";
 import { receiptForRecord, sha256hex, isJsonDocumentId } from "./ledger.js";
 import { serveRecordMetadata, parseRecordMetadataPath, receiptForJsonMetadata } from "./record-metadata.js";
 import { serveRecordMachine, parseRecordMachinePath, loadRecordMachineContext, recordMachineLinkHeader } from "./record-llm.js";
@@ -135,12 +136,15 @@ export async function loadHostedRecordRow(env, recordId) {
   const id = decodeURIComponent(String(recordId || "").trim());
   if (!id) return null;
   let row = null;
-  try { row = await getRecordRow(env, id); } catch { row = null; }
+  let quota = null;
+  try { row = await getRecordRow(env, id); } catch (e) { row = null; if (isQuotaError(e)) quota = e; }
   if (row && row.record_id) return row;
   try {
     const ctx = await loadRecordMachineContext(env, id);
     if (ctx && ctx.row && ctx.row.record_id) return ctx.row;
-  } catch { /* packed catalog */ }
+  } catch (e) { if (isQuotaError(e)) quota = quota || e; /* packed catalog */ }
+  // D1 throttled and no packed card: 503 + Retry-After, not a false 404.
+  if (quota) rethrowIfQuota(quota, "loadHostedRecordRow");
   return null;
 }
 
@@ -672,7 +676,7 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
         }
       }
       card = hit && !hit.alias ? hit.row : findPaperBySlug(records, paperPath.shelf, paperPath.slug);
-    } catch { card = null; }
+    } catch (e) { rethrowIfQuota(e, "paper-permalink"); card = null; }
     if (!card) return pageHtml(page("Not found", recordBody({ row: null, events: [] }), { signed, path, kind: "record" }), { status: 404 });
     const row = await loadHostedRecordRow(env, card.record_id);
     return servePaperPage(request, env, ctx, signed, row, { permalink: card.permalink, pageNum: paperPath.page, path });
