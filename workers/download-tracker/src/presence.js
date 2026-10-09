@@ -46,6 +46,7 @@ const ASSET_PREFIXES = Object.freeze([
   "/favicon.ico",
   "/jeeves-kat-williams.gif",
   "/map-client.js",
+  "/map-pins.js",
   "/ocr-fallback.js",
   "/transcribe-client.js",
 ]);

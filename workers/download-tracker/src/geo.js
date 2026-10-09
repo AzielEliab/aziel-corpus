@@ -919,18 +919,34 @@ export async function reindexGeography(env) {
 }
 
 /** Stored pins for GET /api/events. GET /map does not call this. */
+/** /map pin colors for corpus event pins (AZNEWS-PINS-1.0). Shelf, never uploader. */
+export const MAP_EVENT_COLORS = Object.freeze({ "library-aziel-event": "purple", "corpus-event": "lightgreen" });
+export function mapPinTypeForLibrary(library) {
+  return String(library || "").toLowerCase() === "aziel" ? "library-aziel-event" : "corpus-event";
+}
+
 export async function listEvents(env, { minConfidence = 0 } = {}) {
   await ensureSchema(env);
   try {
-    const rows = (await env.DB.prepare(
-      "SELECT event_id,event_date,place_name,lat,lon,title,record_id,created_by,created_utc,confidence,source,status,historical_json FROM events WHERE IFNULL(confidence,1) >= ? ORDER BY event_date,place_name LIMIT 800"
-    ).bind(Number(minConfidence) || 0).all()).results || [];
+    let rows;
+    try {
+      // Read-only join: the record's shelf decides purple (Aziel Library) vs light green (Corpus).
+      rows = (await env.DB.prepare(
+        "SELECT e.event_id,e.event_date,e.place_name,e.lat,e.lon,e.title,e.record_id,e.created_by,e.created_utc,e.confidence,e.source,e.status,e.historical_json,(SELECT r.library FROM records r WHERE r.record_id=e.record_id) AS library FROM events e WHERE IFNULL(e.confidence,1) >= ? ORDER BY e.event_date,e.place_name LIMIT 800"
+      ).bind(Number(minConfidence) || 0).all()).results || [];
+    } catch {
+      rows = (await env.DB.prepare(
+        "SELECT event_id,event_date,place_name,lat,lon,title,record_id,created_by,created_utc,confidence,source,status,historical_json FROM events WHERE IFNULL(confidence,1) >= ? ORDER BY event_date,place_name LIMIT 800"
+      ).bind(Number(minConfidence) || 0).all()).results || [];
+    }
     return rows.map((e) => {
       let historical_context = [];
       if (e.historical_json) {
         try { historical_context = JSON.parse(e.historical_json); } catch { historical_context = []; }
       }
-      return { ...e, confidence: e.confidence == null ? 1 : Number(e.confidence), source: e.source || "", status: e.status || "", historical_context };
+      const library = e.library ? String(e.library) : null;
+      const pin_type = mapPinTypeForLibrary(library);
+      return { ...e, library, pin_type, pin_color: MAP_EVENT_COLORS[pin_type], confidence: e.confidence == null ? 1 : Number(e.confidence), source: e.source || "", status: e.status || "", historical_context };
     });
   } catch {
     const rows = (await env.DB.prepare("SELECT event_id,event_date,place_name,lat,lon,title,record_id,created_by,created_utc FROM events ORDER BY event_date LIMIT 800").all()).results || [];

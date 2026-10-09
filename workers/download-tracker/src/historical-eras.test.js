@@ -218,7 +218,10 @@ test("GET /map shell returns before D1 or ASSETS", async () => {
   assert.match(html, /window\.__mapEventsPromise=fetch\("\/api\/events"/);
   assert.match(html, /id="unresolvedList"/);
   assert.match(html, /Waiting until the basemap and event pins paint/);
-  assert.match(html, /src="\/map-client\.js\?v=2"/);
+  assert.match(html, /src="\/map-client\.js\?v=3"/);
+  assert.match(html, /src="\/map-pins\.js\?v=1"/);
+  assert.match(html, /id="last10"/);
+  assert.match(html, /id="colorKey"/);
   assert.match(html, /nearest bundled sheet \(1914, 1945, 1994, or 2010\)/);
   assert.doesNotMatch(html, /id="map-events"/);
   assert.doesNotMatch(html, /AZEVT-/);

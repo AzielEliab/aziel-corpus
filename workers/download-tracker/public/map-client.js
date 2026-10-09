@@ -19,6 +19,57 @@ for (var lat = -60; lat <= 60; lat += 30) { var y = xy(0, lat)[1]; grid.appendCh
 function ringPath(ring) { return ring.map(function(c,i){ var p = xy(c[0], c[1]); return (i ? 'L' : 'M') + p[0].toFixed(2) + ',' + p[1].toFixed(2); }).join(' ') + ' Z'; }
 function geomPath(g) { if (!g) return ''; if (g.type === 'Polygon') return g.coordinates.map(ringPath).join(' '); if (g.type === 'MultiPolygon') return g.coordinates.flatMap(function(p){ return p.map(ringPath); }).join(' '); return ''; }
 fetch('/assets/world_110m.geojson').then(function(r){ return r.json(); }).then(function(fc){ (fc.features||[]).forEach(function(f){ var d = geomPath(f.geometry); if (!d) return; land.appendChild(mk('path', {d:d, fill:'#dbe4e1', stroke:'#9dada9', 'stroke-width':0.6, 'fill-rule':'evenodd'})); }); }).catch(function(){ var el = document.getElementById('mapStatus'); if (el) el.textContent = 'Boundary basemap unavailable; coordinate grid and pins remain functional.'; });
+var AZ = window.AZMapPins || null;
+var RUNTIME = 'https://aziel-runtime.vibelock.workers.dev';
+var NEWS = [], CORR = [], VISIBLE = {}, NEWS_SHOWN = 0, NEWS_STATE = 'loading';
+function eraFilter(){ var on = document.getElementById('eraOn'); if (!on || !on.checked) return null; var v = elVal('eraYear', null); var lab = document.getElementById('eraLabel'); if (lab) lab.textContent = formatYearLabel(v) + ' ± 3 years'; return v; }
+function corpusPins(list){ return list.map(function(e){ var type = e.pin_type || (AZ ? AZ.corpusPinType(e, 'event') : 'corpus-event'); return { id:e.event_id, kind:'corpus', pin_type:type, date:e.event_date||null, lat:Number(e.lat), lon:Number(e.lon), place:e.place_name, title:e.title||'', added_at:e.created_utc||null, record_id:e.record_id||null, source:e.source||'', source_id:'corpus:'+(e.record_id||e.event_id) }; }); }
+function newsPins(rows){ return (rows||[]).filter(function(p){ return p && p.geo && Number.isFinite(Number(p.geo.lat)) && Number.isFinite(Number(p.geo.lon)); }).map(function(p){ return { id:p.pin_id, kind:'news', pin_type:p.pin_type, date:p.date||null, date_reason:p.date_reason||null, lat:Number(p.geo.lat), lon:Number(p.geo.lon), place:p.geo.name||'', title:p.event||'', added_at:p.added_at||null, link:RUNTIME + (p.permalink||'/aznews'), outlet:(p.source&&p.source.outlet)||'', source_id:'news:'+(p.report_seq||p.pin_id), exclude:(p.source&&p.source.outlet)||'' }; }); }
+function visibleNews(y1, y2, monthSel, era){
+  var out = NEWS.filter(function(p){ var y = parseEventYear(p.date); if (y == null) return false; if (y < y1 || y > y2) return false; if (monthSel > 0) { var mm = String(p.date).match(/^-?\d{1,6}-(\d{2})/); if (!mm || Number(mm[1]) !== monthSel) return false; } if (era != null && !(AZ && AZ.inEra(p.date, era))) return false; return true; });
+  NEWS_SHOWN = out.length;
+  var ids = {}; out.forEach(function(p){ ids[p.id] = 1; });
+  CORR.forEach(function(c){ c.visible = !!ids[c.b]; });
+  return out;
+}
+function allPins(){ return corpusPins(EVENTS.filter(function(e){ return Number.isFinite(Number(e.lat)) && Number.isFinite(Number(e.lon)); })).concat(NEWS).concat(CORR); }
+function findPin(id){ var all = allPins(); for (var i = 0; i < all.length; i++) if (String(all[i].id) === String(id)) return all[i]; return null; }
+function flyTo(pin){ var p = xy(pin.lon, pin.lat); scale = 4; tx = 600 - p[0]*scale; ty = 300 - p[1]*scale; transform(); }
+function openPin(id, push){
+  var pin = findPin(id);
+  var box = document.getElementById('pinDetail');
+  if (!pin) { if (box) box.innerHTML = '<p class="muted">Pin ' + esc(id) + ' is not loaded on this map.</p>'; return; }
+  flyTo(pin);
+  var col = (AZ && AZ.colorFor(pin.pin_type)) || { color:'', label:'' };
+  if (box) box.innerHTML = '<b>' + esc(pin.title || pin.place || pin.id) + '</b><br><span class="muted">' + esc(col.color) + ' · ' + esc(col.label) + '</span><br>Date: ' + esc(pin.date || ('undated' + (pin.date_reason ? ' (' + pin.date_reason + ')' : ''))) + '<br>Place: ' + esc(pin.place || '') + ' (' + Number(pin.lat).toFixed(3) + ', ' + Number(pin.lon).toFixed(3) + ')' + (pin.record_id ? '<br>Record: <a href="/record/' + encodeURIComponent(pin.record_id) + '">' + esc(pin.record_id) + '</a>' : '') + (pin.link ? '<br>AZNews pin: <a href="' + esc(pin.link) + '">' + esc(pin.id) + '</a>' + (pin.outlet ? ' · ' + esc(pin.outlet) : '') : '') + (pin.kind === 'corr' ? '<br>Rule: AZNEWS-MATCH-1.0 · shared ' + esc((pin.shared||[]).join(', ')) + ' · Jaccard ' + pin.jaccard + ' · ' + pin.km + ' km · ' + pin.years + ' y · <a href="?pin=' + encodeURIComponent(pin.a) + '">' + esc(pin.a) + '</a> ↔ <a href="?pin=' + encodeURIComponent(pin.b) + '">' + esc(pin.b) + '</a>' : '') + '<br><a href="?pin=' + encodeURIComponent(pin.id) + '">Permalink</a>';
+  if (push && window.history && window.history.pushState) window.history.pushState({ pin:pin.id }, '', '?pin=' + encodeURIComponent(pin.id));
+}
+function renderLast10(){
+  var el = document.getElementById('last10'); if (!el || !AZ) return;
+  var rows = AZ.lastAdded(allPins(), 10);
+  el.innerHTML = rows.length ? '<ol>' + rows.map(function(p){ var col = AZ.colorFor(p.pin_type) || { hex:'#999', color:'' }; return '<li><span style="display:inline-block;width:10px;height:10px;border-radius:50%;border:1px solid #333;background:' + col.hex + '"></span> <a href="?pin=' + encodeURIComponent(p.id) + '" data-pin="' + esc(p.id) + '">' + esc(p.title || p.place || p.id) + '</a> <span class="muted">' + esc(col.color) + ' · ' + esc(p.added_at || '') + '</span></li>'; }).join('') + '</ol>' : '<p class="muted">No pins loaded yet.</p>';
+  Array.prototype.forEach.call(el.querySelectorAll('a[data-pin]'), function(a){ a.addEventListener('click', function(ev){ ev.preventDefault(); openPin(a.getAttribute('data-pin'), true); }); });
+}
+function loadNews(){
+  var st = document.getElementById('newsStatus');
+  fetch(RUNTIME + '/v1/fraggate/call', { method:'POST', headers:{ 'content-type':'application/json' }, body: JSON.stringify({ slug:'4dmap', op:'news_pins', payload:{ limit:200, via:'corpus:/map' } }) })
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      var b = (j && j.result) || j || {};
+      if (!b.pins) throw new Error(b.code || b.message || 'no pins');
+      NEWS = newsPins(b.pins.filter(function(p){ return p.pin_type === 'news-event' || p.pin_type === 'news-report'; }));
+      var corpus = corpusPins(EVENTS.filter(function(e){ return Number.isFinite(Number(e.lat)); }));
+      var newsEvents = NEWS.filter(function(p){ return p.pin_type === 'news-event'; });
+      CORR = AZ ? AZ.correspondences(corpus, newsEvents, 200).map(function(c){ return { id:'corr-' + c.a + '-' + c.b, kind:'corr', pin_type:c.pin_type, lat:c.lat, lon:c.lon, date:null, title:(c.level === 'black' ? 'Corresponding: ' : 'Potential correspondence: ') + c.a + ' ↔ ' + c.b, place:'', added_at:null, a:c.a, b:c.b, shared:c.shared, jaccard:c.jaccard, km:c.km, years:c.years, visible:false }; }) : [];
+      NEWS_STATE = 'ok';
+      if (st) st.innerHTML = NEWS.length + ' AZNews pins via the runtime FragGate door (4dmap/news_pins). ' + CORR.length + ' correspondence(s) under AZNEWS-MATCH-1.0. <a href="' + RUNTIME + '/aznews">Open the AZNews globe</a> (real news, weather, sky).';
+      renderEvents();
+      openFromQuery();
+    })
+    .catch(function(err){ NEWS_STATE = 'error'; if (st) st.innerHTML = 'AZNews pins did not load (' + esc(err && err.message || 'error') + '). Corpus pins are unaffected. <a href="' + RUNTIME + '/aznews">AZNews globe</a>.'; openFromQuery(); });
+}
+var OPENED = false;
+function openFromQuery(){ if (OPENED) return; var q = new URLSearchParams(location.search).get('pin'); if (!q) return; if (findPin(q)) { OPENED = true; openPin(q, false); } else if (NEWS_STATE !== 'loading') { OPENED = true; openPin(q, false); } }
 function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[m] || m; }); }
 function elVal(id, fallback) {
   var n = document.getElementById(id);
@@ -71,19 +122,22 @@ function renderEvents() {
     }
     return true;
   });
-  show.forEach(function(e){
-    var p = xy(e.lon, e.lat); var g = mk('g', {class:'pin'});
-    var fill = e.source==='MANUAL' ? '#7a3fa0' : (e.source==='JEEVES_RESEARCHED' ? '#5c4a1f' : (e.source==='AUTO_PLACE' ? '#8a6a2f' : (e.status==='REVIEW' || e.status==='ESTIMATED' ? '#b07800' : '#1f596d')));
-    var c = mk('circle', {cx:p[0], cy:p[1], r:8, fill:fill, stroke:'#c9a227', 'stroke-width':2});
+  var era = eraFilter();
+  if (era != null) show = show.filter(function(e){ return AZ ? AZ.inEra(e.event_date, era) : true; });
+  var drawn = corpusPins(show).concat(visibleNews(y1, y2, monthSel, era)).concat(CORR.filter(function(c){ return c.visible; }));
+  VISIBLE = {};
+  var placed = drawn.map(function(pin){ var p = xy(pin.lon, pin.lat); return { x:p[0], y:p[1], pin:pin }; });
+  var fanned = AZ ? AZ.fanOut(placed, 9) : placed.map(function(q){ return { pin:q, dx:0, dy:0, cluster:1 }; });
+  fanned.forEach(function(f){
+    var q = f.pin, pin = q.pin; VISIBLE[pin.id] = pin;
+    var col = (AZ && AZ.colorFor(pin.pin_type)) || { hex:'#1f596d', color:'teal' };
+    var g = mk('g', {class:'pin', 'data-pin':pin.id, 'data-type':pin.pin_type});
+    if (f.cluster > 1) g.appendChild(mk('line', {x1:q.x, y1:q.y, x2:q.x+f.dx, y2:q.y+f.dy, stroke:'#555', 'stroke-width':1}));
+    var c = mk('circle', {cx:q.x+f.dx, cy:q.y+f.dy, r:pin.kind==='corr'?6:7, fill:col.hex, stroke:col.color==='white'||col.color==='gold'?'#333':'#c9a227', 'stroke-width':2});
     var t = mk('title', {});
-    var hc = (e.historical_context||[]).map(function(h){ return h.jurisdiction||h.name; }).join(' / ');
-    t.textContent = (e.event_date||'undated') + ' — ' + (e.place_name||'') + '\n' + (e.title||'') + '\nconfidence ' + Number(e.confidence||0).toFixed(2) + (e.record_id ? '\nsource ' + e.record_id : '') + (hc ? '\nhistorical: '+hc : '');
+    t.textContent = (pin.date||'undated') + ' — ' + (pin.place||'') + '\n' + (pin.title||'') + '\n' + col.color + ' · ' + pin.pin_type + (pin.record_id ? '\nsource ' + pin.record_id : '');
     c.appendChild(t); g.appendChild(c);
-    g.addEventListener('click', function(){
-      var h=(e.historical_context||[]).map(function(x){ return (x.layer_name||'')+': '+(x.jurisdiction||x.name||''); }).join(' · ');
-      var cite = e.record_id ? (' · source ' + e.record_id) : '';
-      document.getElementById('mapStatus').textContent=(e.event_date||'undated')+' · '+(e.place_name||'')+' · '+(e.title||'')+' · confidence '+Number(e.confidence||0).toFixed(2)+cite+(h?' · '+h:'');
-    });
+    g.addEventListener('click', function(){ openPin(pin.id, true); });
     pins.appendChild(g);
   });
   var list = document.getElementById('eventList');
@@ -91,7 +145,8 @@ function renderEvents() {
     var h=(e.historical_context||[]).map(function(x){ return esc(x.jurisdiction||x.name); }).join(' / ');
     return '<div class="event-row"><b>'+esc(e.event_date||'undated')+' — '+esc(e.place_name)+'</b><br>'+esc(e.title||'')+(h?'<br><span class="muted">Historical: '+h+'</span>':'')+'<br><span class="muted">'+esc(e.source||'')+' · '+Number(e.confidence||0).toFixed(2)+(e.record_id?' · <a href="/record/'+encodeURIComponent(e.record_id)+'">'+esc(e.record_id)+'</a>':'')+'</span></div>';
   }).join('') || '<p>No events in this temporal window.</p>';
-  var st = document.getElementById('mapStatus'); if (st) st.textContent = show.length + ' event pin(s) visible. Drag year/month sliders to filter; drag map to pan; pinch or wheel to zoom.';
+  renderLast10();
+  var st = document.getElementById('mapStatus'); if (st) st.textContent = show.length + ' corpus event pin(s), ' + NEWS_SHOWN + ' AZNews pin(s), ' + CORR.filter(function(c){ return c.visible; }).length + ' correspondence pin(s) visible. Drag year/month sliders to filter; drag map to pan; pinch or wheel to zoom.';
 }
 async function renderHistory(year) {
   var token = ++histToken; history.replaceChildren();
@@ -158,6 +213,8 @@ svg.addEventListener('touchend', function(){ lastDist = null; });
 var apply = document.getElementById('applyMap'); if (apply) apply.addEventListener('click', renderEvents);
 var reset = document.getElementById('resetMap'); if (reset) reset.addEventListener('click', function(){ scale=1; tx=0; ty=0; transform(); });
 var conf = document.getElementById('conf'); if (conf) conf.addEventListener('change', renderEvents);
+['eraOn','eraYear'].forEach(function(id){ var n = document.getElementById(id); if (n) { n.addEventListener('input', renderEvents); n.addEventListener('change', renderEvents); } });
+window.addEventListener('popstate', function(){ var q = new URLSearchParams(location.search).get('pin'); if (q) openPin(q, false); });
 ['yearFrom','yearTo','monthFilter'].forEach(function(id){
   var node = document.getElementById(id);
   if (!node) return;
@@ -175,6 +232,8 @@ function paintPinsThenLazy() {
 function takeEvents(list, failed) {
   EVENTS = Array.isArray(list) ? list : [];
   paintPinsThenLazy();
+  openFromQuery();
+  scheduleAfterPaint(loadNews);
   if (!failed) return;
   var st = document.getElementById('mapStatus');
   if (st) st.textContent = 'Event pins did not load. The basemap still pans. Historical layers load on their own.';
