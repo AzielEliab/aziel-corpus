@@ -21,7 +21,7 @@ import {
 import { addPeerReview, loadRecordReview } from "./review-store.js";
 import {
   ensureSchema, ensurePlaces, gazetteerStatus, gazetteerSearch, lookupPlaces,
-  reindexGeography, listEvents, addManualEvent, unresolvedPlaceMentions,
+  reindexGeography, listEvents, PIN_QUALITY_SPEC, addManualEvent, unresolvedPlaceMentions,
   historicalStatus, historicalLayers, historicalGeojson, importHistorical,
   corpusTree, treeFromRows, getRecordRow, recordEvents, extractEventsForRecord,
 } from "./geo.js";
@@ -310,9 +310,17 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     return json({ ok: true, q, matches: rows, ambiguous: ids.size !== 1, pin: ids.size === 1 ? exact[0] : null, attribution: "GeoNames CC BY 4.0 https://www.geonames.org/" });
   }
   if (path === "/api/events" && read) {
+    const includeRetracted = url.searchParams.get("include_retracted") === "1";
+    const events = await listEvents(env, { includeRetracted });
     return json({
       ok: true,
-      events: await listEvents(env),
+      events,
+      pin_quality: {
+        spec: PIN_QUALITY_SPEC,
+        rule: "A pin needs a gazetteer-resolved place name; bare coordinate pairs near 0,0, with an exact 0, or in whole degrees are not places. One pin per document per date and place. Retracted pins are hidden; ?include_retracted=1 lists them with retracted and retract_reason. Stored rows are not deleted.",
+        include_retracted: includeRetracted,
+        retracted: includeRetracted ? events.filter((e) => e.retracted).length : undefined,
+      },
       law: "adaptive learning via hashchain lattice for recollection and reasoning",
       possibility_note: "HEURISTIC over lattice time×geo pins.",
       map4d: { spec: "4DM-WP-1.0", cite: "https://github.com/AzielEliab/4dmap" },
