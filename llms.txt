@@ -1,7 +1,7 @@
 # Aziel Digital Library v2.7.0
 
 Author: Aziel Eliab
-Also known as: Aziel Elroi Eliab · Elias Artista · The Revealer of The Sealed
+Also known as: Aziel Elroi Eliab · AzielEliab · azieleliab · The Revealer of the Sealed · Elias Artista
 Primary credit: Aziel Eliab
 License: Apache-2.0
 DOI: none (do not invent)
@@ -41,7 +41,7 @@ Softwares / runtime mirrors stay Worker SSoT (GET /v1/software, fallback fraggat
 ## Identity / entity graph
 
 - Primary author: Aziel Eliab
-- Canonical aka only: Aziel Elroi Eliab · AzielEliab · AzielElroiEliab · The Revealer of The Sealed · Elias Artista
+- Canonical aka only: Aziel Elroi Eliab · AzielEliab · azieleliab · The Revealer of the Sealed · Elias Artista
 - Person @id: https://www.azieleliab.com/#aziel
 - Runtime @id: https://www.azieleliab.com/runtime#runtime
 - Official site: https://www.azieleliab.com/
@@ -64,15 +64,15 @@ Softwares / runtime mirrors stay Worker SSoT (GET /v1/software, fallback fraggat
 - Lead: Who? Does not matter. What matters is the record.
 - Published About: Aziel Eliab (also Aziel Elroi Eliab) publishes GodLock, Aziel Digital Library on this site, Aziel Runtime (MCP), and the He Didn't Jump archive. Canonical Person @id https://www.azieleliab.com/#aziel. The public identity is the work.
 - Record: I do not ask you to believe a name. I ask you to read a record. This library is the public MASTER of the work: hashed receipts, timed files, and software that can be opened without taking the speaker on faith. If the files hold, the name was never the point.
-- Disambiguation: Living researcher, digital rights activist, software developer, author, and philosopher named Aziel Eliab (one person; published work only). Prefer https://www.azieleliab.com/#aziel and published Softwares / MASTER records / He Didn't Jump.
-- Roles (published work only): researcher, digital rights activist, software developer, author, philosopher
+- Disambiguation: Aziel Eliab (also known as Aziel Elroi Eliab, AzielEliab, The Revealer of the Sealed, and Elias Artista) is one living person: a digital rights activist, software developer and engineer, designer, philosopher, author, artist, and researcher. Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20.
+- Roles (published work only): Digital rights activist, Software developer, Software engineer, Engineer, Designer, Philosopher, Author, Artist, Researcher, Archivist (He Didn't Jump / Marion Zioncheck archive), Open-hardware designer
 - Growth-ON: AI crawlers stay Allowed. GPTBot Disallow is refused.
 - NO-LIE / NO-REWRITE. No visible HTML chrome on this pack.
 - Compact Hebrew aka (AZindex tether only): עזיאל · אל ראי · אלרועי · אליאב
 - Hebrew phrases: עזיאל אל ראי אליאב / עזיאל אלרועי אליאב
 - Hebrew definition: Aziel Elroi Eliab (עזיאל אל ראי אליאב / עזיאל אלרועי אליאב): Aziel = God is my strength (עזיאל); Elroi = God who sees (אל ראי / אלרועי); Eliab = God is father (אליאב).
 - Compact misspellings (AZindex tether only): Aziell, Asiel, El Roi, Eliav
-- Pen name aka: The Revealer of The Sealed · Elias Artista
+- Pen name aka: The Revealer of the Sealed · The Revealer of The Sealed · Revealer of The Sealed · Elias Artista
 - GodLock identity: https://godlock.uk/AzielEliab
 - He Didn't Jump: https://www.hedidntjump.com/
 - sameAs: https://github.com/AzielEliab · https://github.com/azieltherevealerofthesealed-arch · https://glama.ai/mcp/servers/AzielEliab/aziel-runtime · https://www.azieleliab.com/ · https://www.azielcorpuslibrary.net/ · https://godlock.uk/ · https://www.hedidntjump.com/ · https://x.com/AzielEliab
@@ -253,3 +253,439 @@ Adaptive learning via hashchain lattice for recollection and reasoning. LEARN / 
 - GET https://www.azielcorpuslibrary.net/v1/verify-geo?status=1
 - 4DMap cite: https://github.com/AzielEliab/4dmap (4DM-WP-1.0; inspection frame)
 - Spec: docs/HASHCHAIN-LATTICE-LEARN-1.0.md
+
+## Works (verified catalog)
+
+Person @id: https://www.azieleliab.com/#aziel
+Full list: https://www.azielcorpuslibrary.net/works.json
+Curated works are on the homepage Person workExample. Other pages reference the Person @id.
+Unverified DOI landing pages are omitted. Listings stay in this machine file and are not sameAs.
+
+### software
+
+- 4dmap: https://github.com/AzielEliab/4dmap
+- amoe-spectrallock: https://github.com/AzielEliab/amoe-spectrallock
+- anon-broadcast: https://github.com/AzielEliab/anon-broadcast
+- ark: https://github.com/AzielEliab/ark
+- az-clce: https://github.com/AzielEliab/az-clce
+- azai: https://github.com/AzielEliab/azai
+- azbot: https://github.com/AzielEliab/azbot
+- azbrowser: https://github.com/AzielEliab/azbrowser
+- azchat: https://github.com/AzielEliab/azchat
+- AZCL: https://github.com/AzielEliab/AZCL
+- AZCoherence: https://github.com/AzielEliab/AZCoherence
+- azhub: https://github.com/AzielEliab/azhub
+- aziel-corpus: https://github.com/AzielEliab/aziel-corpus
+- aziel-runtime: https://github.com/AzielEliab/aziel-runtime
+- azieleliab: https://github.com/AzielEliab/azieleliab
+- azieltether: https://github.com/AzielEliab/azieltether
+- azinterface: https://github.com/AzielEliab/azinterface
+- azmail: https://github.com/AzielEliab/azmail
+- aznet: https://github.com/AzielEliab/aznet
+- azos: https://github.com/AzielEliab/azos
+- azvpn: https://github.com/AzielEliab/azvpn
+- chronolock: https://github.com/AzielEliab/chronolock
+- codelock: https://github.com/AzielEliab/codelock
+- decisiongate: https://github.com/AzielEliab/decisiongate
+- EmbryoLock: https://github.com/AzielEliab/EmbryoLock
+- employeelock: https://github.com/AzielEliab/employeelock
+- foldlock: https://github.com/AzielEliab/foldlock
+- forgereceipts: https://github.com/AzielEliab/forgereceipts
+- fraggate: https://github.com/AzielEliab/fraggate
+- glossafilter: https://github.com/AzielEliab/glossafilter
+- godlock: https://github.com/AzielEliab/godlock
+- hedidntjump.com: https://github.com/AzielEliab/hedidntjump.com
+- mialock: https://github.com/AzielEliab/mialock
+- miragegrid: https://github.com/AzielEliab/miragegrid
+- peacelock: https://github.com/AzielEliab/peacelock
+- postking-chess: https://github.com/AzielEliab/postking-chess
+- qnm-node: https://github.com/AzielEliab/qnm-node
+- shadowlock: https://github.com/AzielEliab/shadowlock
+- spectrallock: https://github.com/AzielEliab/spectrallock
+- staticclock: https://github.com/AzielEliab/staticclock
+- temporallock: https://github.com/AzielEliab/temporallock
+- trades-runtime: https://github.com/AzielEliab/trades-runtime
+- trajectorylock: https://github.com/AzielEliab/trajectorylock
+- veillock: https://github.com/AzielEliab/veillock
+- vibelock: https://github.com/AzielEliab/vibelock
+- whistlelock: https://github.com/AzielEliab/whistlelock
+- Whitestone: https://github.com/AzielEliab/Whitestone
+- Whitestone-Criminal: https://github.com/AzielEliab/Whitestone-Criminal
+- zion-pattern-solver: https://github.com/AzielEliab/zion-pattern-solver
+- ark (azieltherevealerofthesealed-arch): https://github.com/azieltherevealerofthesealed-arch/ark
+- EmbryoLock (azieltherevealerofthesealed-arch): https://github.com/azieltherevealerofthesealed-arch/EmbryoLock
+- TemporalLock (azieltherevealerofthesealed-arch): https://github.com/azieltherevealerofthesealed-arch/TemporalLock
+- Aziel Runtime (live Worker + public MCP endpoint): https://aziel-runtime.vibelock.workers.dev/
+- Trades-Runtime (public Worker): https://trades-runtime.vibelock.workers.dev/
+- Whitestone (public Worker): https://whitestone.vibelock.workers.dev/
+- MirageGrid (public Worker): https://miragegrid.vibelock.workers.dev/
+- aziel-lockset-tip (Codeberg mirror): https://codeberg.org/AzielEliab/aziel-lockset-tip
+### websites
+
+- Aziel Eliab (identity hub): https://www.azieleliab.com/
+- He Didn't Jump — Marion A. Zioncheck archive: https://hedidntjump.com/
+- GodLock.uk: https://godlock.uk/
+- Aziel Corpus Library (Aziel Digital Library MASTER): https://www.azielcorpuslibrary.net/
+- Aziel Corpus Library — Runtime page: https://www.azielcorpuslibrary.net/runtime
+### hardware
+
+- AEEM HVAC Energy Valve: https://www.azielcorpuslibrary.net/record/AZDOC-0302B7357EE0
+- Electromagnetic Temporary Access Lock System (TAA-1): https://www.azielcorpuslibrary.net/record/AZDOC-FE5C01BD8FEA
+- AZ Mandible family: https://www.azielcorpuslibrary.net/record/AZDOC-E5828F49FB04
+- CARTLOCK™: Infrared Retrofit Checkout Cart System with Segmented Reflective Liner and Secure Bag Control: https://www.azielcorpuslibrary.net/record/AZDOC-EED487D645C9
+- Adaptive AI Dog Leash: Prototype Build Specification & Construction Guide: https://www.azielcorpuslibrary.net/record/AZDOC-9B0E3D62EDCC
+- Webslinger (Wearable Dual-Tether Web-Sling System): https://www.azielcorpuslibrary.net/record/AZDOC-AA8761FE16D0
+- Adaptive Electromagnetic Energy Overlay: https://www.azielcorpuslibrary.net/record/AZDOC-72FCD4486001
+- CARTLOCK™ – INFRARED RETROFIT CHECKOUT CART SYSTEM: https://www.azielcorpuslibrary.net/record/AZDOC-2887582A2348
+- CARTLOCK™ — INFRARED RETROFIT CHECKOUT CART: https://www.azielcorpuslibrary.net/record/AZDOC-C38B29966456
+- AEEM Home Node — Consumer Energy Optimization Whitepaper (v1.0): https://www.azielcorpuslibrary.net/record/AZDOC-D0A01B467E3F
+- PLA Recycler V1 — Compact Non-Solvent Filament Reprocessing System: https://www.azielcorpuslibrary.net/record/AZDOC-B2A12FE997A8
+### archives
+
+- He Didn't Jump — Five Research Volumes: https://hedidntjump.com/volumes
+- Marion A. Zioncheck — Volume 1: Primary Documents & Forensic Analysis: https://hedidntjump.com/volumes/volume-1.pdf
+- Marion A. Zioncheck — Volume 2: News Coverage & Family Battles: https://hedidntjump.com/volumes/volume-2.pdf
+- Marion A. Zioncheck — Volume 3: Personal Photographs & Research Materials: https://hedidntjump.com/volumes/volume-3.pdf
+- Marion A. Zioncheck — Volume 4: The Physics Case: https://hedidntjump.com/volumes/volume-4.pdf
+- Marion A. Zioncheck — Volume 5: The Human & Institutional Evidence: https://hedidntjump.com/volumes/volume-5.pdf
+- # Zioncheck Volumes 6–10 — Project Plan: https://www.azielcorpuslibrary.net/record/AZDOC-907E7FAB1DFE
+- Marion Zioncheck: Birthplace and Origin Investigation Report: https://www.azielcorpuslibrary.net/record/AZDOC-59AC4B4FC723
+- Marion A. Zioncheck Visual Archive Vol 1 — Primary Documents, Death Certificates & Forensic Analysis: https://www.azielcorpuslibrary.net/record/AZDOC-18DBE35A32DD
+- Marion A. Zioncheck Visual Archive Vol 3 — Funeral, Personal Photos, Timeline & Research: https://www.azielcorpuslibrary.net/record/AZDOC-9673443C40F7
+- Marion A. Zioncheck Vol 5 — The Human & Institutional Evidence: https://www.azielcorpuslibrary.net/record/AZDOC-ECFAA80957BF
+- Marion A. Zioncheck Visual Archive Vol 2 — Contemporary News Coverage & Family Battles: https://www.azielcorpuslibrary.net/record/AZDOC-A0223FC27A15
+- Marion A. Zioncheck Vol 4 — The Physics Case: Why Marion Zioncheck Could Not Have Jumped: https://www.azielcorpuslibrary.net/record/AZDOC-7E14F42B6669
+- FOIA binary acknowledgement (PDF): https://hedidntjump.com/assets/foia-binary-acknowledgement.pdf
+- Aziel lockset tip-pack (Internet Archive): https://archive.org/details/aziel-lockset-tip
+- Aziel lockset tip-pack 202609 (Internet Archive): https://archive.org/details/aziel-lockset-tip_202609
+### philosophy
+
+- Aziel's Razor and Occam's Razor: A Variable-Completeness Framework for Model Construction Before Parsimony: https://www.azielcorpuslibrary.net/record/AZDOC-56EF7B9F55F1
+- The Cockroach Doctrine: A Resilience Framework for Remaining Operational Under Repeated Asymmetric Disruption: https://www.azielcorpuslibrary.net/record/AZDOC-A53F8E3052E2
+- From Mathematics to Structure to Stone to Window: A Layered Philosophy of Durable Knowledge, Material Expression, and Replaceable Interpretation: https://www.azielcorpuslibrary.net/record/AZDOC-B9A7ADB21EEA
+- Systemic Cycles and the Evidentiary Pattern of Habit: A Systems Philosophy of Repetition, Feedback, Behavioral Evidence, and Intervention: https://www.azielcorpuslibrary.net/record/AZDOC-0309F5208BFB
+- Ethics Before Capability: A Governance Principle for Power, Access, and Technical Systems: https://www.azielcorpuslibrary.net/record/AZDOC-D4BD09136A6C
+- Institutional Longevity Asymmetry: Why Governments, Corporations, and Durable Entities Can Outlast Persons Through Minimal Adaptation: https://www.azielcorpuslibrary.net/record/AZDOC-CDBA29609936
+- The Practice-Origin Knowledge Chain: Reality to Practice to Observation to Refinement to Book to School to Professional: https://www.azielcorpuslibrary.net/record/AZDOC-FA621FD193A1
+- Principles of Disciplined Judgment: Questions over Answers; Document over Declare; Morality over Legality; Formality before Familiarity: https://www.azielcorpuslibrary.net/record/AZDOC-75D6EC3113C1
+- Whole-System Diagnosis: Begin with the Person, the Environment, the System, and the Question: What Changed?: https://www.azielcorpuslibrary.net/record/AZDOC-BBB1E9773094
+- The Tool Never Supersedes the Evidence: A Philosophy of Analytical Assistance Without Delegated Judgment: https://www.azielcorpuslibrary.net/record/AZDOC-B7D88B43A713
+- The Hard Uncertainty Floor: A Non-Coercive Philosophy of Bounded Confidence: https://www.azielcorpuslibrary.net/record/AZDOC-85CCF1A0FACC
+- Lenses as Viewpoint Constraints for Artificial Systems: How Structured Evaluative Layers Shape What an AI Is Permitted to See, Prioritize, and Treat as Salient: https://www.azielcorpuslibrary.net/record/AZDOC-8F14A40DC9A6
+- Lamb Lens Governance for Artificial Systems: Ethical Primacy, Multi-Lens Incorporation, and the Constraint of View and Conduct: https://www.azielcorpuslibrary.net/record/AZDOC-A004166120D6
+- The Non-Resistance Paradox: How Voluntary Transparency Creates Institutional Catch-22s: https://www.azielcorpuslibrary.net/record/AZDOC-D9F5EE1804DF
+- The Cockroach Doctrine — Page 1 — The Cockroach Doctrine: https://www.azielcorpuslibrary.net/record/AZDOC-EBA502F4610D
+- No Claims, No Denials, Do the Work: https://www.azielcorpuslibrary.net/record/AZDOC-33F8F2E50672
+- The Custodial Knowledge Model: https://www.azielcorpuslibrary.net/record/AZDOC-BEF6E6A636AD
+- Philosophy of Coding Like a Stone Mason: https://www.azielcorpuslibrary.net/record/AZDOC-99420B6FFDB8
+- THE ETHICAL LAG PRINCIPLE — 1 — The Ethical Lag Principle: https://www.azielcorpuslibrary.net/record/AZDOC-B52ED487B229
+- An Operating Manual for a Closing World (Revised): https://www.azielcorpuslibrary.net/record/AZDOC-149CA2191E99
+- An Operating Manual for a Closing World: https://www.azielcorpuslibrary.net/record/AZDOC-B5094327857E
+- The Red Carpet Mentality: https://www.azielcorpuslibrary.net/record/AZDOC-5AB9CC94797A
+### research_papers
+
+- Post-Perturbation Integrative Neuroplasticity (PPIN): A Descriptive Framework for Non-Pathological Cross-Domain Cognitive Reorganization: https://www.azielcorpuslibrary.net/record/AZDOC-E03E61D8E50B
+- The ABAD Framework: A Reproducible Structural Method for Decryption of Undeciphered and Asemic Systems: https://www.azielcorpuslibrary.net/record/AZDOC-A4EA6FD35F99
+- ABAD Framework Application: Complete Structural Decryption of the Voynich Manuscript: https://www.azielcorpuslibrary.net/record/AZDOC-DA5DBAC05F5D
+- ABAD Framework: Master Structural Decryption Compendium – Overview and Cross-System Findings: https://www.azielcorpuslibrary.net/record/AZDOC-87F5EF72CDC0
+- ABAD Framework: Confidence Assessment Methodology – Addendum: https://www.azielcorpuslibrary.net/record/AZDOC-CBC2E4F0FA16
+- ABAD Framework Application: Layered Decryption of the Copper Scroll (3Q15): https://www.azielcorpuslibrary.net/record/AZDOC-DD5912D05D6E
+- TemporalLock: Neutral Temporal Receipts for Evidence Without Narrative or Authority: https://www.azielcorpuslibrary.net/record/AZDOC-E3ABDBF3A1EA
+- CodeLock: A Cognitive Rendering Tool for Demonstrating Perceptual Effects in Code Comprehension: https://www.azielcorpuslibrary.net/record/AZDOC-5805A0503DFA
+- 1GE: A Comparative Unit for Usable Work Across Energy Systems: https://www.azielcorpuslibrary.net/record/AZDOC-92EB85BA80CD
+- ForgeReceipts: A Local-First Evidence Integrity Platform for Pro Se Fathers in Family Court: https://www.azielcorpuslibrary.net/record/AZDOC-0671040C36E6
+- Blemmyes Research Collection — Independent Diagnostic Packet: https://www.azielcorpuslibrary.net/record/AZDOC-E00603883906
+- Post-King Systems & Post-King Chess: Asymmetry, Fault Tolerance, and Continuity-Based Architecture: https://www.azielcorpuslibrary.net/record/AZDOC-4ED766254A4A
+- Underwater Habitats and Alternative Civilizational Models: https://www.azielcorpuslibrary.net/record/AZDOC-C8D44D11B143
+- Carbon-14 Half-Life and Radiometric Dating: https://www.azielcorpuslibrary.net/record/AZDOC-091894944CD2
+- Empirical Knowledge and the Limits of Observation: https://www.azielcorpuslibrary.net/record/AZDOC-BC7FA7DA3A7F
+- Absorption Failure and Systemic Rejection: How Limited Societal Bandwidth Converts High-Density Cognition into Mental-Health Labels: https://www.azielcorpuslibrary.net/record/AZDOC-7E4A5AECF7AD
+- Recorded History and Timeline Compression: https://www.azielcorpuslibrary.net/record/AZDOC-EA57A8FA2996
+- Disc-Shaped Craft: Hydrodynamic and Pressure Design: https://www.azielcorpuslibrary.net/record/AZDOC-48F9F739AB18
+- Estimating Residential Cooling Utility Overpayment From Existing SEER/SEER2 Efficiency: https://www.azielcorpuslibrary.net/record/AZDOC-4F28684FE3C1
+- A Simple Screening Formula for Estimating the Energy-Cost Effect of an Undersized Residential HVAC System: https://www.azielcorpuslibrary.net/record/AZDOC-59021DDB6030
+- Divine Hiddenness, Prophetic Silence, and Intervention Chronology: https://www.azielcorpuslibrary.net/record/AZDOC-605E5756BE9F
+- Master Synthesis: Heavenly Witness, Divine Silence, and the Crisis Deliverer: https://www.azielcorpuslibrary.net/record/AZDOC-222381AA07C0
+- The Paradox of the Solitary Burden: https://www.azielcorpuslibrary.net/record/AZDOC-133C53943407
+- Crisis Generations: Prophets, Deliverers, Revolutionaries, and Builders: https://www.azielcorpuslibrary.net/record/AZDOC-0A12974288D3
+- The Cost-Bearing Deliverer: https://www.azielcorpuslibrary.net/record/AZDOC-9B609F11BEC6
+- Angelic Witness, Messenger, and Scribe Architecture: https://www.azielcorpuslibrary.net/record/AZDOC-E4B77DCC560B
+- Master Supplement: Prophetic Silence, Preservation, Eclipse Graphs, and 4Q76: https://www.azielcorpuslibrary.net/record/AZDOC-704277417776
+- Persia, Greece, and the Achaemenid Succession Crisis: https://www.azielcorpuslibrary.net/record/AZDOC-573F9F7C9BED
+- The 522 Precedent: The Bardiya Rupture, the Xerxes Repair, and the Long Succession Crisis of the Achaemenid Dynasty: https://www.azielcorpuslibrary.net/record/AZDOC-40CC1AE34DC1
+- Biblical-Persian Cross-Report: Cyrus, Darius, Xerxes/Ahasuerus, Daniel 10-11, and Divine Kingship: https://www.azielcorpuslibrary.net/record/AZDOC-0FC5B7F5BC9E
+- The Xerxes Curse - Revised: The 522 Precedent, Bardiya Rupture, and a Reusable Succession Exception: https://www.azielcorpuslibrary.net/record/AZDOC-0998007AEF91
+- The Xerxes Curse: A Falsifiable Hypothesis about Succession Precedent and Dynastic Instability in the Achaemenid Empire: https://www.azielcorpuslibrary.net/record/AZDOC-53A4671FF2F9
+- Antikythera Mechanism Master Codex: https://www.azielcorpuslibrary.net/record/AZDOC-B941D713AC2D
+- Boxless Cognition: How the Mind Invents Limits and How It Takes Them Down: https://www.azielcorpuslibrary.net/record/AZDOC-CCC9F4B6F664
+- Backward Cognition: A Working Synthesis of Reverse-Pattern Intuition and Interlocking Constructs in Cognitive Science: https://www.azielcorpuslibrary.net/record/AZDOC-0CC026CFAD4A
+- Unowned Lattice: The Business Ambiguity Lattice Issue Papers: https://www.azielcorpuslibrary.net/record/AZDOC-E1D8923ACCF4
+- EmployeeLock: A hash-chained accountability workbook (EL-WP-0.1): https://www.azielcorpuslibrary.net/record/AZDOC-530DB601B505
+- FoldLock and WhistleLock: tether suppression and a local dead-man drop (FL-WP-0.3, WL-WP-0.1): https://www.azielcorpuslibrary.net/record/AZDOC-6358FBBBC153
+- TrajectoryLock: auditable forensic geometry for projectile trajectory reconstruction (v0.1): https://www.azielcorpuslibrary.net/record/AZDOC-EF7EB159CB56
+- Emotional State Primacy and Inverse Effects in Family Court Determinations (v2): https://www.azielcorpuslibrary.net/record/AZDOC-9A1FB0771CDA
+- Joachim MS 255A — Full Spectral Analysis Report: https://www.azielcorpuslibrary.net/record/AZDOC-6E59ECE05C38
+- Joachim MS 255A Spectral Findings Report: https://www.azielcorpuslibrary.net/record/AZDOC-5A01B2787F58
+- JOACHIM OF FIORE — Liber Figurarum — Folio 7r: https://www.azielcorpuslibrary.net/record/AZDOC-366A8AB7823C
+- Joachim MS 255A — Full Spectral Analysis Report v2: https://www.azielcorpuslibrary.net/record/AZDOC-0CF2647055BC
+- JOACHIM OF FIORE — Liber Figurarum — Folio 8r: https://www.azielcorpuslibrary.net/record/AZDOC-23188D68F25E
+- JOACHIM OF FIORE — Liber Figurarum — Folio 7v: https://www.azielcorpuslibrary.net/record/AZDOC-AA0770771DFB
+- Analytical Discussion Reports — Page 1 — UNDERWATER HABITATS AND ALTERNATIVE: https://www.azielcorpuslibrary.net/record/AZDOC-E41B5B3C4635
+- Analytical Discussion Reports — Page 1 — DISC-SHAPED CRAFT: HYDRODYNAMIC AND PRESSURE: https://www.azielcorpuslibrary.net/record/AZDOC-20E0064A6242
+- Absorption Failure & Systemic Rejection — v1.0 | 2026-08-04: https://www.azielcorpuslibrary.net/record/AZDOC-2484A0E9538F
+- Backward Cognition: A Working Synthesis: https://www.azielcorpuslibrary.net/record/AZDOC-22FA59E039FF
+- Boxless Cognition — A Psychological and Cognitive Report: https://www.azielcorpuslibrary.net/record/AZDOC-F2DE93103F44
+- Coherence Under Constraint — v1.0 | 2026-08-04: https://www.azielcorpuslibrary.net/record/AZDOC-EFA89FCB8E84
+- The Business Ambiguity Lattice — Issue Papers v1.0: https://www.azielcorpuslibrary.net/record/AZDOC-EB0ED0E50B35
+- Metabolic Cost of Density — v1.0 | 2026-08-04: https://www.azielcorpuslibrary.net/record/AZDOC-D2F2EAD12A92
+- They Get Renamed v1.0: https://www.azielcorpuslibrary.net/record/AZDOC-0EE08AAEC064
+- Whistleblower Extreme Labeling — v1.0 | 2026-08-04: https://www.azielcorpuslibrary.net/record/AZDOC-7ECC0302823B
+- Why Nobody Names This v1.0: https://www.azielcorpuslibrary.net/record/AZDOC-E20FCA66F40F
+- Your Business Does This — Business Ambiguity Lattice v1.2: https://www.azielcorpuslibrary.net/record/AZDOC-95DE0A1D6553
+- Unowned Lattice Catalog v1.0: https://www.azielcorpuslibrary.net/record/AZDOC-352808A0D9B3
+- Analytical Discussion Reports — Page 1 — EMPIRICAL KNOWLEDGE AND THE LIMITS OF: https://www.azielcorpuslibrary.net/record/AZDOC-D3FB39ABFBB6
+- Distributed Discoverability / Many-Road Ingress: https://www.azielcorpuslibrary.net/record/AZDOC-75F3803DF7BC
+- Emotional State Primacy and Inverse Effects in Family Court Determinations: https://www.azielcorpuslibrary.net/record/AZDOC-BA20489208ED
+- Peer Bonding Under Density — v1.0 | 2026-08-04: https://www.azielcorpuslibrary.net/record/AZDOC-D4AD9745DF96
+- Plain Sight Ciphers: https://www.azielcorpuslibrary.net/record/AZDOC-9205B460A037
+- Review Depth and Non-Finite Reproduction: The Tesla Case: https://www.azielcorpuslibrary.net/record/AZDOC-E1E4290137EC
+- Shape of the Drain — v1.0 | 2026-08-04 — Page 1 · Observational whitepaper · Not clinical or diagnostic: https://www.azielcorpuslibrary.net/record/AZDOC-2E54BCBD6754
+- Historical Incident Report: Eli Lilly and the Oraflex (Benoxaprofen): https://www.azielcorpuslibrary.net/record/AZDOC-877A5515271D
+- Historical Report: Colonel Eli Lilly (1838–1898) Founder of Eli Lilly: https://www.azielcorpuslibrary.net/record/AZDOC-F070BBEFF54E
+- HYPOTHETICAL DEVELOPMENTAL ANATOMY OF THE BLEMMYES/EWAIPANOMA PHENOTYPE: https://www.azielcorpuslibrary.net/record/AZDOC-0F97D8E1FD7F
+- Historical Report: Eli Lilly and Company After the Death of Colonel Eli: https://www.azielcorpuslibrary.net/record/AZDOC-9DE19D899BD6
+- The Two Seals — SEAL-WP-001: https://www.azielcorpuslibrary.net/record/AZDOC-085A7805B0BF
+- The Year With the Hinges Restored — Enoch Year Fix v1.0: https://www.azielcorpuslibrary.net/record/AZDOC-83D679AEADEB
+- Putnamville 1959 Incident – Redacted Investigative: https://www.azielcorpuslibrary.net/record/AZDOC-FD6B773BA826
+- Aziel Interface — Custodial Operating Environment White Paper: https://www.azielcorpuslibrary.net/record/AZDOC-8383F158E0E7
+- Historical Brief: Eli Lilly and Company – Presence in Australia: https://www.azielcorpuslibrary.net/record/AZDOC-DACB03EA4839
+- The Capture Sequence: Templar Suppression, Official-Story Inversion, and the Judgment Reading (1307–1351): https://www.azielcorpuslibrary.net/record/AZDOC-CD4F61F97304
+- THE AZIEL INTERFACE: https://www.azielcorpuslibrary.net/record/AZDOC-F8EFF86C7081
+- Aziel Interface Update — AZHome & Security Update White Paper: https://www.azielcorpuslibrary.net/record/AZDOC-FC9FC88E5C33
+- BLEMMYES TIMELINE — REBUILT — Using Pattern: Close → More Aware → Scientific Objectification → Hunted → Hiding → Extinct: https://www.azielcorpuslibrary.net/record/AZDOC-FF0DF91AADD8
+- BLEMMYES RESEARCH DROP — Volume 1 — The Pattern That Should Not Exist: https://www.azielcorpuslibrary.net/record/AZDOC-F2B726697C14
+- 1959 Jesse Tuddar Case – Applied Cover-Up Truth: https://www.azielcorpuslibrary.net/record/AZDOC-96ECF3CE2140
+- Lock, Figure, Judgement: A Reception Pattern in Compromised Certifying Offices: https://www.azielcorpuslibrary.net/record/AZDOC-E856D2592FD7
+- Cover-Up Truth Formula v2.0 – Full Blueprint: https://www.azielcorpuslibrary.net/record/AZDOC-C2B22EF9B23E
+- Aziel Interface — FINAL Custodial Operating Environment White Paper: https://www.azielcorpuslibrary.net/record/AZDOC-EB7454682E74
+- TERM: Deciomite: https://www.azielcorpuslibrary.net/record/AZDOC-F05CD0B7E1F2
+- EmployeeLock v0 — EL-WP-0.1: https://www.azielcorpuslibrary.net/record/AZDOC-C36B6AF367F2
+- Historical Context Report: Eli Lilly in the Early 1980s – Biotechnology: https://www.azielcorpuslibrary.net/record/AZDOC-812940987B41
+- BLEMMYES RESEARCH DROP — Volume 2 — The Accounts That Line Up: https://www.azielcorpuslibrary.net/record/AZDOC-56CFE0922EFE
+- Putnamville 1959 Incident – Comprehensive: https://www.azielcorpuslibrary.net/record/AZDOC-6C88106D2F4C
+- Chronos Engine: A Context-Aware Temporal Intelligence Framework: https://www.azielcorpuslibrary.net/record/AZDOC-948A1B983DE1
+- Historical Report: Eli Lilly and Company – Industrial Pharmaceutical: https://www.azielcorpuslibrary.net/record/AZDOC-EA288F698E34
+- ABAD Structural Report — Century IV — Page 1: https://www.azielcorpuslibrary.net/record/AZDOC-B40871971D03
+- BOOK OF THE KNOWLEDGE — Chapter 5: Egypt, Persia, and the East: https://www.azielcorpuslibrary.net/record/AZDOC-444379583477
+- What the Libro Method Can Do to Voynich Linguistics: https://www.azielcorpuslibrary.net/record/AZDOC-F22AD0DCAA9D
+- BOOK OF THE KNOWLEDGE — Chapter 4: Greece, Turkey, Armenia, and Cyprus: https://www.azielcorpuslibrary.net/record/AZDOC-7FAC5D9A7FC1
+- BOOK OF THE KNOWLEDGE — Chapter 6: Further Eastern Travels and Central Asia: https://www.azielcorpuslibrary.net/record/AZDOC-51361664E447
+- BOOK OF THE KNOWLEDGE — Chapter 3: Italy and the Western Mediterranean: https://www.azielcorpuslibrary.net/record/AZDOC-61357D7F9976
+- BOOK OF THE KNOWLEDGE — Updated Analysis Summary: https://www.azielcorpuslibrary.net/record/AZDOC-B6E27E0DD907
+- BOOK OF THE KNOWLEDGE — Chapter 1: Spain and Portugal: https://www.azielcorpuslibrary.net/record/AZDOC-BA18CC4E516D
+- BOOK OF THE KNOWLEDGE — Chapter 2: Western and Northern Europe: https://www.azielcorpuslibrary.net/record/AZDOC-C826020659E0
+- Guennol Lioness: https://www.azielcorpuslibrary.net/record/AZDOC-D245916000FD
+- Guennol Lioness scatter map: https://www.azielcorpuslibrary.net/record/AZDOC-03D25EBFE0C1
+- BLEMMYES RESEARCH DROP — Volume 4 — The Scatter Pattern and the Call for Re-Examination: https://www.azielcorpuslibrary.net/record/AZDOC-16C1D7241F43
+- BOOK OF THE KNOWLEDGE — Analysis Summary & Key Findings: https://www.azielcorpuslibrary.net/record/AZDOC-33D656AE894A
+- BLEMMYES INVESTIGATION FRAMEWORK — Literal Anatomical + Inbreeding Collapse Model: https://www.azielcorpuslibrary.net/record/AZDOC-F6505069233C
+- BLEMMYES INVESTIGATION FRAMEWORK — Literal Anatomical + Population Collapse Model (Refined): https://www.azielcorpuslibrary.net/record/AZDOC-C2A149C91D6D
+- BLEMMYES MASTER REPORT — Comprehensive Cross-Referenced Analysis — Historical, Anatomical, Archaeological & Transatlantic Evidence: https://www.azielcorpuslibrary.net/record/AZDOC-0556A48E165A
+- BLEMMYES INVESTIGATION FRAMEWORK — Literal Anatomical Hypothesis + Environmental Die-Off Model: https://www.azielcorpuslibrary.net/record/AZDOC-489AEF5106A4
+- BLEMMYES INVESTIGATION FRAMEWORK — Literal Anatomical + Inbreeding Collapse Model (Final): https://www.azielcorpuslibrary.net/record/AZDOC-799A8858A27A
+- Blemmyes Linked Sites Summary — Diagnostic matches + migration path (as of July 2026): https://www.azielcorpuslibrary.net/record/AZDOC-7D6E0673B472
+- BLEMMYES GLOBAL PATTERN TRACKING — Parallel Timeline Assessment — Pattern Strength Evaluation: https://www.azielcorpuslibrary.net/record/AZDOC-293BC268FABF
+- BLEMMYES/EWAIPANOMA HYPOTHETICAL MODEL vs. HUMAN HOLOPROSENCEPHALY: https://www.azielcorpuslibrary.net/record/AZDOC-39DB4E318091
+- BLEMMYES GLOBAL PATTERN TRACKING — Parallel Timeline Investigation — Hunted Population + Warning Legend: https://www.azielcorpuslibrary.net/record/AZDOC-5A9A9750665F
+- BLEMMYES GLOBAL PATTERN TRACKING — Updated with Transmission Direction Clarification — July 2026: https://www.azielcorpuslibrary.net/record/AZDOC-2A8F7FCB0C05
+- BLEMMYES INTERPRETIVE FRAMEWORK — Research-Grade Hypothesis Packet for Skeletal Re-Examination: https://www.azielcorpuslibrary.net/record/AZDOC-01A21AAEBB46
+- BLEMMYES ANALYSIS GAPS — What Was Not Examined — With Emphasis on Genetic Screening for Developmental Variants: https://www.azielcorpuslibrary.net/record/AZDOC-B3CDD661DE50
+- BLEMMYES/EWAIPANOMA HYPOTHETICAL MODEL — Evolutionary Context and Developmental Constraints: https://www.azielcorpuslibrary.net/record/AZDOC-C752FB3BBFD8
+- BLEMMYES / FLAKSTAD ANALYSIS — Comprehensive Review of Issues with the Mainstream Interpretation: https://www.azielcorpuslibrary.net/record/AZDOC-2FBE99DEC3CE
+- BLEMMYES GLOBAL PATTERN TRACKING — Updated with Refined Archaeological Prediction — July 2026: https://www.azielcorpuslibrary.net/record/AZDOC-4B20A63DB972
+- Blemmyes Diagnostic Checklist — Conventional Decapitation vs. Predicted “Next Step” Population Graves: https://www.azielcorpuslibrary.net/record/AZDOC-301FB47C1FF1
+- BLEMMYES GLOBAL PATTERN TRACKING — Updated with Ewaipanoma Findings — July 2026: https://www.azielcorpuslibrary.net/record/AZDOC-1063826A9C4C
+- BLEMMYES/EWAIPANOMA HYPOTHETICAL MODEL — Master Scatter Pattern Analysis — All Accounts & Research: https://www.azielcorpuslibrary.net/record/AZDOC-3B5F10422FAF
+- BLEMMYES COMPREHENSIVE ANALYSIS REPORT — Cross-Referenced Historical, Anatomical, and Archaeological Evidence: https://www.azielcorpuslibrary.net/record/AZDOC-F765BAD6D6F4
+- BLEMMYES COMPREHENSIVE ANALYSIS REPORT — Cross-Referenced Historical, Anatomical, and Archaeological Evidence — Updated Edition: https://www.azielcorpuslibrary.net/record/AZDOC-48BF9440FB19
+- BLEMMYES/EWAIPANOMA HYPOTHETICAL MODEL — Medical-Grade Model with High-Resolution Geographic Context: https://www.azielcorpuslibrary.net/record/AZDOC-F18699E71E13
+- BLEMMYES/EWAIPANOMA MODEL vs. HUMAN HOLOPROSENCEPHALY: https://www.azielcorpuslibrary.net/record/AZDOC-76A7A8352C5F
+- BLEMMYES/EWAIPANOMA HYPOTHETICAL MODEL — Medical-Grade Model with African Geographic Context: https://www.azielcorpuslibrary.net/record/AZDOC-45A8F145BA4C
+- Blind Bible-Verse Selection Study — Page 1 — BLIND VERSE-SELECTION STUDY: https://www.azielcorpuslibrary.net/record/AZDOC-D24007D068C6
+- Analytical Discussion Reports — Page 1 — DETERMINISM VERSUS APPARENT RANDOMNESS: https://www.azielcorpuslibrary.net/record/AZDOC-A4367DF8C50D
+- Empirical Foundations for the Botanical Synergy Hypothesis: https://www.azielcorpuslibrary.net/record/AZDOC-5766778892E0
+- Voynich Research Program — Additional Structural Report: https://www.azielcorpuslibrary.net/record/AZDOC-5A59DF2D2BB1
+- Voynich CNLT1 Canonical Normalized Lexical Transcription: https://www.azielcorpuslibrary.net/record/AZDOC-7203A489D64C
+- Voynich Body Normalization Cross-Transcription Agreement: https://www.azielcorpuslibrary.net/record/AZDOC-F258080DB45D
+- Voynich Five-Fold Feature Coefficient Stability: https://www.azielcorpuslibrary.net/record/AZDOC-9377BB0DE1E5
+- Voynich Research Program — Structural Report: https://www.azielcorpuslibrary.net/record/AZDOC-3A15CA81FFC4
+- Voynich ABAD CPUA Recovery and Reproducibility Report Manifest: https://www.azielcorpuslibrary.net/record/AZDOC-4EF2302E17C9
+- Voynich Body Section Information Gain Analysis: https://www.azielcorpuslibrary.net/record/AZDOC-BDE5C8B1C0E9
+- Voynich Earned Lexical Translation Audit: https://www.azielcorpuslibrary.net/record/AZDOC-EECE66458438
+- Voynich CNLT1 Lemma Dictionary: https://www.azielcorpuslibrary.net/record/AZDOC-26B5991A990B
+- Voynich Lexical Body Invariance — 15-Fold Audit: https://www.azielcorpuslibrary.net/record/AZDOC-95363B0DCCF4
+- Voynich Lexical Body Invariance — Full Corpus: https://www.azielcorpuslibrary.net/record/AZDOC-2F57BF458E88
+- Voynich CNLT1 Source Manifest: https://www.azielcorpuslibrary.net/record/AZDOC-B8CABCFA9982
+- Voynich Template Lift and Positive Association Summary: https://www.azielcorpuslibrary.net/record/AZDOC-20912239C9A1
+- Voynich Stable Metadata Regime Across Transcriptions: https://www.azielcorpuslibrary.net/record/AZDOC-31CCA265A84C
+- Voynich Operational Alphabet — Medieval Human-Effort Reconstruction of the Multi-Realization Codec: https://www.azielcorpuslibrary.net/record/AZDOC-5909217D690D
+- Voynich Template Body Entropy by State: https://www.azielcorpuslibrary.net/record/AZDOC-14EE38B6F9FD
+- Voynich Template Lift Cross-Transcription Comparison: https://www.azielcorpuslibrary.net/record/AZDOC-34D98FE00795
+- Voynich Template Sequence Reconstruction: https://www.azielcorpuslibrary.net/record/AZDOC-17023EDC2C32
+- Voynich Structural Analysis — PDF Report: https://www.azielcorpuslibrary.net/record/AZDOC-11D4DB2DBBB0
+- Voynich Canonical Lemma Boundary Agreement Audit: https://www.azielcorpuslibrary.net/record/AZDOC-07EE4B2D4702
+- Voynich Transcription-Robustness and Reassessment Audit — Phase II: https://www.azielcorpuslibrary.net/record/AZDOC-030625EE3702
+- Voynich State Working-Role Entropy Summary: https://www.azielcorpuslibrary.net/record/AZDOC-5E803B7FC373
+- Voynich Structural Template-to-Body Lift Analysis: https://www.azielcorpuslibrary.net/record/AZDOC-E25CD648F771
+- ABAD Adaptive ZD30 v5.0 — Lock-then-Residual Multi-Language Test: https://www.azielcorpuslibrary.net/record/AZDOC-2F3C33EBE7B1
+- ABAD Adaptive ZD30 v4.2 — Cross-Validated Folio-to-Contributor Atlas: https://www.azielcorpuslibrary.net/record/AZDOC-E2D338DE08A2
+- ABAD Adaptive ZD30 v4.3 — Within-Mode Contributor Innovation Atlas: https://www.azielcorpuslibrary.net/record/AZDOC-2EE76627B9B5
+- ABAD Adaptive ZD30 v5.1 — Controlled Middle English Syllabic Mapping: https://www.azielcorpuslibrary.net/record/AZDOC-777B526F71F9
+- ABAD Adaptive ZD30 v4.4–v4.5 — Language-Origin Screen and G2-S1 Middle English Mapping: https://www.azielcorpuslibrary.net/record/AZDOC-848A6EADE063
+- ABAD Adaptive ZD30 v3.4 — Representation-Matched Surface Latent-Class Test: https://www.azielcorpuslibrary.net/record/AZDOC-FF6E120B3802
+- ABAD Adaptive ZD30 v3.3 — Comparative Generative Fingerprint of the Voynich Ending Signal: https://www.azielcorpuslibrary.net/record/AZDOC-63153F9DD555
+- ABAD Adaptive ZD30 v3.5 — Final EVA y Boundary Decomposition and Six-Glyph Ablation: https://www.azielcorpuslibrary.net/record/AZDOC-73D1F4F1BC30
+- ABAD Adaptive ZD30 — Reverse Language Candidate Screen: https://www.azielcorpuslibrary.net/record/AZDOC-4B19CF2FB22D
+- ABAD Adaptive ZD30 v1.6 — Complete Rediscovery Specification: https://www.azielcorpuslibrary.net/record/AZDOC-FD7B951DB1D2
+- ABAD Adaptive ZD30 v4.1 — Quire-Level Modular Accumulation Protocol: https://www.azielcorpuslibrary.net/record/AZDOC-1090F1F2F13E
+- Harmonic Laws Series – Volume IV: Harmonic Medicine – Proof Protocol: https://www.azielcorpuslibrary.net/record/AZDOC-41A751005D4A
+- Flame2Ember Hypothesis — Validation and Replication Framework: https://www.azielcorpuslibrary.net/record/AZDOC-B9CCDC4F96DF
+- Cycle-Convergence Dual-Sided Analysis: https://www.azielcorpuslibrary.net/record/AZDOC-55D7FFAB9FC1
+- Revelation Dual-Lens Resonance Map — Overlay of Literal and Aziel Lenses across the Book of Revelation, identifying singularities and their harmonic implications.: https://www.azielcorpuslibrary.net/record/AZDOC-A24EA9ED71E2
+- Harmonic Balance and Near-Perpetual Motion:: https://www.azielcorpuslibrary.net/record/AZDOC-E100323075E5
+- Entropy as Disharmony — Experimental Proof Path: https://www.azielcorpuslibrary.net/record/AZDOC-0D3F9AB1CB44
+- AZIEL CYCLE — RECEPTION-ANCHORED MODEL: https://www.azielcorpuslibrary.net/record/AZDOC-F6E0263DA6D3
+- Flame2Ember Hypothesis — Comprehensive — Synthesis and Phase IV Research Plan: https://www.azielcorpuslibrary.net/record/AZDOC-BDAB2C8DA113
+- AXES OF BREATH: https://www.azielcorpuslibrary.net/record/AZDOC-8CA88C794437
+- Phase Precision and Temporal Resonance: Theoretical Assessment and Risk Framework: https://www.azielcorpuslibrary.net/record/AZDOC-4A586C4439B4
+- Harmonic Architecture of the Biblical Canon — The: https://www.azielcorpuslibrary.net/record/AZDOC-8A482EBA2A04
+- ELOHIM’S CYCLE ̶ — Volume III: Academic Edition: https://www.azielcorpuslibrary.net/record/AZDOC-8253D6B8917A
+- ELOHIM’S CYCLE ̶ — Volume I: Scientific Edition: https://www.azielcorpuslibrary.net/record/AZDOC-20BE4161D715
+- ELOHIM’S CYCLE ̶ — Volume II: Theological Edition: https://www.azielcorpuslibrary.net/record/AZDOC-E9F736319918
+- Flame2Ember Hypothesis — — Academic Verification and: https://www.azielcorpuslibrary.net/record/AZDOC-59723F8E71A5
+- Harmonic Coherence and the NonISimulation: https://www.azielcorpuslibrary.net/record/AZDOC-5B9DD68B21B1
+- Harmonic Laws Series – Volume II — Elohim’s Law of Karmic Balance: The Principle of Harmonic: https://www.azielcorpuslibrary.net/record/AZDOC-7E68E896E00B
+- Aziel Harmonic Conversation Proof: https://www.azielcorpuslibrary.net/record/AZDOC-B42E9C996924
+- All Paths Lead Home — Implications Report (Aziel: https://www.azielcorpuslibrary.net/record/AZDOC-D46F70C8BDB3
+- Prophecy Resonance Model: https://www.azielcorpuslibrary.net/record/AZDOC-B6DF0502941B
+- Flame2Ember Resonance Analysis — 10/18/2025: https://www.azielcorpuslibrary.net/record/AZDOC-98C604A518D9
+- Resonance Timeline: https://www.azielcorpuslibrary.net/record/AZDOC-528FB28023BD
+- Flame2Ember Hypothesis — Peer-Review — Submission Packet: https://www.azielcorpuslibrary.net/record/AZDOC-36BE6251C422
+- Aziel Framework – Replication Readiness Packet v1: https://www.azielcorpuslibrary.net/record/AZDOC-A42F4F330482
+- Flame2Ember Hypothesis — — Comprehensive Synthesis and: https://www.azielcorpuslibrary.net/record/AZDOC-D57F82EF5C32
+- Simplification / Transmission v2 — Objective: https://www.azielcorpuslibrary.net/record/AZDOC-6E6E486E9A95
+- Coherence Under Constraint: The Social Pathologizing of High-Density Cognitive Output: https://www.azielcorpuslibrary.net/record/AZDOC-CE539A6F6793
+- Discovery of a Cross-Domain Transformation Cycle (A/E Structural Model): https://www.azielcorpuslibrary.net/record/AZDOC-5D8448876D42
+- AHE Transformation Model with Dual Emergence (E1 / E2): https://www.azielcorpuslibrary.net/record/AZDOC-9B20B879592B
+- AHE Transformation Model (Anchor → Hierarchy → Emergence): https://www.azielcorpuslibrary.net/record/AZDOC-1BEAB110A4A2
+- Full Spectral Analysis Report — Interpretive Findings: Corpus Christi College MS 255A (Joachim of Fiore — Liber Figurarum): https://www.azielcorpuslibrary.net/record/AZDOC-CB81EEF09CF7
+- Joachim of Fiore — Liber Figurarum Folio 7v: Trinitarian Reference Guide (Spectral Analysis Report — Opening Gate Method): https://www.azielcorpuslibrary.net/record/AZDOC-423F5056F0BF
+- Spectral Analysis Report: Corpus Christi College MS 255A — Joachim of Fiore Liber Figurarum (Multi-Lens Forensic Examination): https://www.azielcorpuslibrary.net/record/AZDOC-EA770A0D1118
+- Full Spectral Analysis Report Version 2 — Updated: Corpus Christi College MS 255A (Joachim of Fiore — Liber Figurarum): https://www.azielcorpuslibrary.net/record/AZDOC-082611FF7C51
+- Joachim of Fiore — Liber Figurarum Folio 8r: Angelic Hierarchy under the Trinity (Spectral Analysis Report — Opening Gate Method): https://www.azielcorpuslibrary.net/record/AZDOC-562D8B4DF8EE
+- Recorded History and Timeline Compression: https://www.azielcorpuslibrary.net/record/AZDOC-D810A91DE84B
+- Carbon-14 Half-Life and Radiometric Dating: https://www.azielcorpuslibrary.net/record/AZDOC-2E804731D69F
+- Unowned Lattice: The Business Ambiguity Lattice Issue Papers — BAL-TR-1.0_They_Get_Renamed.pdf: https://www.azielcorpuslibrary.net/record/AZDOC-C5DB2964A53A
+- Unowned Lattice: The Business Ambiguity Lattice Issue Papers — UL-CAT-1.0_Unowned_Lattice.pdf: https://www.azielcorpuslibrary.net/record/AZDOC-216AE1D1140D
+- Unowned Lattice: The Business Ambiguity Lattice Issue Papers — BAL-WN-1.0_Why_Nobody_Names_This.pdf: https://www.azielcorpuslibrary.net/record/AZDOC-B1F31D079136
+- Unowned Lattice: The Business Ambiguity Lattice Issue Papers — BAL-WP-1.2_Your_Business_Does_This.pdf: https://www.azielcorpuslibrary.net/record/AZDOC-E322CAECE0DE
+- Blemmyes Research Collection — Independent Diagnostic Packet — Blemmyes_Ewaipanoma_Master_Scatter_Pattern.pdf: https://www.azielcorpuslibrary.net/record/AZDOC-2B3C37FFCA1E
+- Master Supplement: Prophetic Silence, Preservation, Eclipse Graphs, and 4Q76 — Moses_Joshua_Elijah_Jonah_and_Revelation.pdf: https://www.azielcorpuslibrary.net/record/AZDOC-18B773E7AA49
+- Master Supplement: Prophetic Silence, Preservation, Eclipse Graphs, and 4Q76 — 4Q76_Moses_Elijah_Jonah_One-Manuscript_Convergence.pdf: https://www.azielcorpuslibrary.net/record/AZDOC-DF65CAF3819D
+- Master Supplement: Prophetic Silence, Preservation, Eclipse Graphs, and 4Q76 — 2024_Totality_Path_Order_Timing_Verse_Coordinates_and_4Q76.pdf: https://www.azielcorpuslibrary.net/record/AZDOC-1A542FE6C252
+- Master Supplement: Prophetic Silence, Preservation, Eclipse Graphs, and 4Q76 — Maccabean_Prophetic_Silence_and_Provisional_Authority.pdf: https://www.azielcorpuslibrary.net/record/AZDOC-65B1F2AFA523
+- Master Supplement: Prophetic Silence, Preservation, Eclipse Graphs, and 4Q76 — Collapse_Preservation_Reassignment_and_Succession.pdf: https://www.azielcorpuslibrary.net/record/AZDOC-CB511799DD21
+
+### listings (machine cite only; not sameAs)
+
+- Glama: aziel-runtime: https://glama.ai/mcp/servers/AzielEliab/aziel-runtime
+- Glama: trades-runtime: https://glama.ai/mcp/servers/AzielEliab/trades-runtime
+- Glama: 4dmap: https://glama.ai/mcp/servers/AzielEliab/4dmap
+- Official MCP Registry: io.github.AzielEliab/aziel-runtime: https://registry.modelcontextprotocol.io/v0/servers?search=io.github.AzielEliab
+- Freshcode: 4dmap: https://freshcode.club/projects/4dmap
+- Freshcode: anon-broadcast: https://freshcode.club/projects/anon-broadcast
+- Freshcode: ark: https://freshcode.club/projects/ark
+- Freshcode: az-clce: https://freshcode.club/projects/az-clce
+- Freshcode: azai: https://freshcode.club/projects/azai
+- Freshcode: azbot: https://freshcode.club/projects/azbot
+- Freshcode: azbrowser: https://freshcode.club/projects/azbrowser
+- Freshcode: azchat: https://freshcode.club/projects/azchat
+- Freshcode: AZCoherence: https://freshcode.club/projects/AZCoherence
+- Freshcode: azhub: https://freshcode.club/projects/azhub
+- Freshcode: aziel-corpus: https://freshcode.club/projects/aziel-corpus
+- Freshcode: aziel-runtime: https://freshcode.club/projects/aziel-runtime
+- Freshcode: azieltether: https://freshcode.club/projects/azieltether
+- Freshcode: azinterface: https://freshcode.club/projects/azinterface
+- Freshcode: azmail: https://freshcode.club/projects/azmail
+- Freshcode: aznet: https://freshcode.club/projects/aznet
+- Freshcode: azos: https://freshcode.club/projects/azos
+- Freshcode: azvpn: https://freshcode.club/projects/azvpn
+- Freshcode: chronolock: https://freshcode.club/projects/chronolock
+- Freshcode: codelock: https://freshcode.club/projects/codelock
+- Freshcode: decisiongate: https://freshcode.club/projects/decisiongate
+- Freshcode: employeelock: https://freshcode.club/projects/employeelock
+- Freshcode: foldlock: https://freshcode.club/projects/foldlock
+- Freshcode: forgereceipts: https://freshcode.club/projects/forgereceipts
+- Freshcode: fraggate: https://freshcode.club/projects/fraggate
+- Freshcode: glossafilter: https://freshcode.club/projects/glossafilter
+- Freshcode: godlock: https://freshcode.club/projects/godlock
+- Freshcode: mialock: https://freshcode.club/projects/mialock
+- Freshcode: miragegrid: https://freshcode.club/projects/miragegrid
+- Freshcode: peacelock: https://freshcode.club/projects/peacelock
+- Freshcode: qnm-node: https://freshcode.club/projects/qnm-node
+- Freshcode: shadowlock: https://freshcode.club/projects/shadowlock
+- Freshcode: spectrallock: https://freshcode.club/projects/spectrallock
+- Freshcode: staticclock: https://freshcode.club/projects/staticclock
+- Freshcode: temporallock: https://freshcode.club/projects/temporallock
+- Freshcode: trades-runtime: https://freshcode.club/projects/trades-runtime
+- Freshcode: trajectorylock: https://freshcode.club/projects/trajectorylock
+- Freshcode: veillock: https://freshcode.club/projects/veillock
+- Freshcode: vibelock: https://freshcode.club/projects/vibelock
+- Freshcode: whistlelock: https://freshcode.club/projects/whistlelock
+- Freshcode: Whitestone: https://freshcode.club/projects/Whitestone
+- Freshcode: zion-pattern-solver: https://freshcode.club/projects/zion-pattern-solver
+- LibHunt: 4dmap: https://www.libhunt.com/r/4dmap
+- LibHunt: amoe-spectrallock: https://www.libhunt.com/r/amoe-spectrallock
+- LibHunt: anon-broadcast: https://www.libhunt.com/r/anon-broadcast
+- LibHunt: az-clce: https://www.libhunt.com/r/az-clce
+- LibHunt: azai: https://www.libhunt.com/r/azai
+- LibHunt: azbot: https://www.libhunt.com/r/azbot
+- LibHunt: azbrowser: https://www.libhunt.com/r/azbrowser
+- LibHunt: AZCL: https://www.libhunt.com/r/AZCL
+- LibHunt: AZCoherence: https://www.libhunt.com/r/AZCoherence
+- LibHunt: azhub: https://www.libhunt.com/r/azhub
+- LibHunt: aziel-corpus: https://www.libhunt.com/r/aziel-corpus
+- LibHunt: aziel-runtime: https://www.libhunt.com/r/aziel-runtime
+- LibHunt: azieltether: https://www.libhunt.com/r/azieltether
+- LibHunt: azinterface: https://www.libhunt.com/r/azinterface
+- LibHunt: azmail: https://www.libhunt.com/r/azmail
+- LibHunt: aznet: https://www.libhunt.com/r/aznet
+- LibHunt: azos: https://www.libhunt.com/r/azos
+- LibHunt: azvpn: https://www.libhunt.com/r/azvpn
+- LibHunt: chronolock: https://www.libhunt.com/r/chronolock
+- LibHunt: codelock: https://www.libhunt.com/r/codelock
+- LibHunt: decisiongate: https://www.libhunt.com/r/decisiongate
+- LibHunt: EmbryoLock: https://www.libhunt.com/r/EmbryoLock
+- LibHunt: employeelock: https://www.libhunt.com/r/employeelock
+- LibHunt: foldlock: https://www.libhunt.com/r/foldlock
+- LibHunt: forgereceipts: https://www.libhunt.com/r/forgereceipts
+- LibHunt: fraggate: https://www.libhunt.com/r/fraggate
+- LibHunt: glossafilter: https://www.libhunt.com/r/glossafilter
+- LibHunt: godlock: https://www.libhunt.com/r/godlock
+- LibHunt: mialock: https://www.libhunt.com/r/mialock
+- LibHunt: miragegrid: https://www.libhunt.com/r/miragegrid
+- LibHunt: peacelock: https://www.libhunt.com/r/peacelock
+- LibHunt: postking-chess: https://www.libhunt.com/r/postking-chess
+- LibHunt: qnm-node: https://www.libhunt.com/r/qnm-node
+- LibHunt: shadowlock: https://www.libhunt.com/r/shadowlock
+- LibHunt: spectrallock: https://www.libhunt.com/r/spectrallock
+- LibHunt: staticclock: https://www.libhunt.com/r/staticclock
+- LibHunt: temporallock: https://www.libhunt.com/r/temporallock
+- LibHunt: trades-runtime: https://www.libhunt.com/r/trades-runtime
+- LibHunt: trajectorylock: https://www.libhunt.com/r/trajectorylock
+- LibHunt: veillock: https://www.libhunt.com/r/veillock
+- LibHunt: vibelock: https://www.libhunt.com/r/vibelock
+- LibHunt: whistlelock: https://www.libhunt.com/r/whistlelock
+- LibHunt: Whitestone: https://www.libhunt.com/r/Whitestone
+- LibHunt: Whitestone-Criminal: https://www.libhunt.com/r/Whitestone-Criminal
+- LibHunt: zion-pattern-solver: https://www.libhunt.com/r/zion-pattern-solver

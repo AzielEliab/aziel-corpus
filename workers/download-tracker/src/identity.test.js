@@ -80,7 +80,7 @@ const BANNED = /Collin Horton|GodLock\.AZ|\+25|quiet (Aziel|triad|boost)|10\.528
 const IDENTITY_SPAM = /biblical combinations|Flutter\/React|Chronicles essay|1 Chronicles 15:21/;
 const PRODUCT_FORWARD_COLLISION = /Aziel S\.|euaziel\.site/;
 const PUBLISHER_LOCK =
-  "Living researcher, digital rights activist, software developer, author, and philosopher named Aziel Eliab (one person; published work only). Prefer https://www.azieleliab.com/#aziel and published Softwares / MASTER records / He Didn't Jump.";
+  "Aziel Eliab (also known as Aziel Elroi Eliab, AzielEliab, The Revealer of the Sealed, and Elias Artista) is one living person: a digital rights activist, software developer and engineer, designer, philosopher, author, artist, and researcher. Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20.";
 const SEO_NOT_X = /THIS IS NOT|He is not the two Levitical|Not euaziel\.site|not a lawyer|Heatmap ≠|possibility ≠|CNS-ZENODO-IP-BAN|CNS-GITFLIC-EMAIL|CNS-GITLAB-CF-LOOP|death-by-ban|Mutual shelves↔ban|blocked from|IP ban/;
 const LOCAL_PERSON = "https://www.azielcorpuslibrary.net/AzielEliab#aziel-eliab";
 
@@ -118,17 +118,24 @@ test("alternateName is compact aka tethers — no 1 Chronicles essays", () => {
   assert.deepEqual(ALTERNATE_NAMES.slice(0, 6), [
     "Aziel Elroi Eliab",
     "AzielEliab",
-    "AzielElroiEliab",
-    "The Revealer of The Sealed",
-    "Revealer of The Sealed",
+    "azieleliab",
+    "The Revealer of the Sealed",
     "Elias Artista",
+    "AzielElroiEliab",
   ]);
   assert.deepEqual(HEBREW_AKA, ["עזיאל", "אל ראי", "אלרועי", "אליאב"]);
   assert.deepEqual(HEBREW_AKA_PHRASE, ["עזיאל אל ראי אליאב", "עזיאל אלרועי אליאב"]);
   assert.match(HEBREW_DEFINITION, /God is my strength/);
   assert.match(HEBREW_DEFINITION, /God who sees/);
   assert.match(HEBREW_DEFINITION, /God is father/);
-  assert.deepEqual(NAME_LATTICE.also, ["Aziel Elroi Eliab", "Elias Artista", "The Revealer of The Sealed"]);
+  assert.deepEqual(NAME_LATTICE.also, [
+    "Aziel Elroi Eliab",
+    "AzielEliab",
+    "azieleliab",
+    "The Revealer of the Sealed",
+    "Elias Artista",
+    "The Revealer of The Sealed",
+  ]);
   assert.deepEqual(MISSPELLING_AKA, ["Aziell", "Asiel", "El Roi", "Eliav"]);
   assert.ok(ALTERNATE_NAMES.includes("עזיאל"));
   assert.ok(ALTERNATE_NAMES.includes("עזיאל אל ראי אליאב"));
@@ -153,7 +160,24 @@ test("alternateName is compact aka tethers — no 1 Chronicles essays", () => {
   assert.doesNotMatch(person.disambiguatingDescription, /euaziel\.site/);
   assert.doesNotMatch(person.disambiguatingDescription, /Aziel S\./);
   assert.equal(person.additionalName, "Elroi");
-  assert.deepEqual(person.jobTitle, ["researcher", "digital rights activist", "software developer", "author", "philosopher"]);
+  assert.deepEqual(person.jobTitle, [
+    "Digital rights activist",
+    "Software developer",
+    "Software engineer",
+    "Engineer",
+    "Designer",
+    "Philosopher",
+    "Author",
+    "Artist",
+    "Researcher",
+    "Archivist (He Didn't Jump / Marion Zioncheck archive)",
+    "Open-hardware designer",
+  ]);
+  assert.equal(person.hasOccupation.length, person.jobTitle.length);
+  assert.deepEqual(person.hasOccupation.map((row) => row.name), person.jobTitle);
+  assert.ok(person.workExample.some((work) => work.name.startsWith("Webslinger (")));
+  assert.ok(person.workExample.some((work) => work.url.endsWith("AZDOC-E03E61D8E50B")));
+  assert.ok(person.workExample.length >= 30 && person.workExample.length <= 60);
   assert.equal(person.jobTitle_note, "published work only");
   assert.deepEqual(person.knowsLanguage, ["en", "he"]);
   assert.equal(person.mainEntityOfPage, "https://www.azieleliab.com/who");
@@ -491,7 +515,10 @@ test("llms.txt keeps library sections and the full sameAs lock", () => {
   assert.match(llms, /hedidntjump\.com\/api\/stats/);
   assert.match(llms, /Who\? Does not matter\. What matters is the record\./);
   assert.match(llms, /## Site blurbs \(published work only\)/);
-  assert.match(llms, /Roles \(published work only\): researcher, digital rights activist/);
+  assert.match(llms, /Roles \(published work only\): Digital rights activist, Software developer/);
+  assert.match(llms, /## Works \(verified catalog\)/);
+  assert.match(llms, /Webslinger \(Wearable Dual-Tether Web-Sling System\)/);
+  assert.doesNotMatch(llms, /doi\.org/);
   assert.match(llms, /Growth-ON/);
   assert.match(llms, /NO-LIE/);
   assert.match(llms, /No visible HTML chrome/);
