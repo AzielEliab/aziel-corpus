@@ -97,6 +97,7 @@ import {
   PEACELOCK_NOTE,
   PEACELOCK_CITE,
 } from "./identity.js";
+import { fullWorks, workListings, worksLlmsBlock } from "./works.js";
 
 const HOST = "https://www.azielcorpuslibrary.net";
 const CATALOG = "https://aziel-runtime.vibelock.workers.dev";
@@ -297,6 +298,7 @@ export function robotsTxt() {
     "Allow: /v1/",
     "Allow: /cite.json",
     "Allow: /person.jsonld",
+    "Allow: /works.json",
     "Allow: /identity.jsonld",
     "Allow: /graph.jsonld",
     "Allow: /who-is-aziel-eliab.txt",
@@ -424,6 +426,7 @@ const STATIC_SITEMAP = [
   "/v1/receipts",
   "/v1/receipts/verify",
   "/person.jsonld",
+  "/works.json",
   "/identity.jsonld",
   "/graph.jsonld",
   "/who-is-aziel-eliab.txt",
@@ -798,6 +801,9 @@ export function citeDoc(survival, outletCite) {
     pen_name_aka: PEN_NAME_AKA.slice(),
     misspelling_aka: MISSPELLING_AKA.slice(),
     disambiguatingDescription: DISAMBIGUATING_DESCRIPTION,
+    hasOccupation: PERSON_JOB_TITLE.map((name) => ({ "@type": "Occupation", name })),
+    works: fullWorks(),
+    listings: workListings(),
     about_lead: ABOUT_LEAD,
     about_stanza: ABOUT_STANZA,
     about_record: ABOUT_RECORD,
@@ -1039,6 +1045,7 @@ export function llmsDoc(limitation, survival) {
     + "- Softwares live catalog: " + HOST + "/v1/software\n"
     + "- cite.json: " + HOST + "/cite.json\n"
     + "- person.jsonld: " + HOST + "/person.jsonld\n"
+    + "- works.json: " + HOST + "/works.json\n"
     + "- who-is-aziel-eliab.txt: " + HOST + "/who-is-aziel-eliab.txt\n"
     + "- lockset.json: " + HOST + "/lockset.json\n"
     + "- Cold multi-shelf registry: " + HOST + "/shelves · " + HOST + "/cold-copy\n"
@@ -1069,7 +1076,7 @@ export function llmsDoc(limitation, survival) {
     + "- Roles (published work only): " + PERSON_JOB_TITLE.join(", ") + "\n"
     + "- Growth-ON: AI crawlers stay Allowed. GPTBot Disallow is refused.\n"
     + "- NO-LIE / NO-REWRITE. No visible HTML chrome on this pack.\n"
-    + "- Canonical aka: Aziel Elroi Eliab · AzielEliab · AzielElroiEliab · The Revealer of The Sealed · Elias Artista\n"
+    + "- Canonical aka: " + ALTERNATE_NAMES.slice(0, 5).join(" · ") + "\n"
     + "- Pen name aka: " + PEN_NAME_AKA.join(" · ") + "\n"
     + "- Compact Hebrew aka (AZindex tether only): " + HEBREW_AKA.join(" · ") + "\n"
     + "- Hebrew phrases: " + HEBREW_AKA_PHRASE.join(" / ") + "\n"
@@ -1263,7 +1270,8 @@ export function llmsDoc(limitation, survival) {
     + "- Package: " + HOST + "/download?asset=" + DEFAULT_ASSET + "\n"
     + "- Record: " + HOST + "/file/{record_id} or " + HOST + "/download?record=AZDOC-… (HTTP 200; quarantined still downloadable)\n"
     + "- By content hash: " + HOST + "/download?hash=SHA-256 or " + HOST + "/v1/docs/{hash}/download\n"
-    + "- Install: curl -fsSL " + HOST + "/install.sh | bash\n";
+    + "- Install: curl -fsSL " + HOST + "/install.sh | bash\n\n"
+    + worksLlmsBlock();
 }
 
 export function aiTxt(limitation, survival) {
@@ -1306,6 +1314,7 @@ export function aiTxt(limitation, survival) {
     "Allow: /corpus",
     "Allow: /upload",
     "Allow: /cite.json",
+    "Allow: /works.json",
     "Allow: /lockset.json",
     "Allow: /shelves",
     "Allow: /cold-copy",
@@ -1411,6 +1420,7 @@ export function aiTxt(limitation, survival) {
     + "- Corpus: " + HOST + "/corpus\n"
     + "- cite.json: " + HOST + "/cite.json\n"
     + "- person.jsonld: " + HOST + "/person.jsonld\n"
+    + "- works.json: " + HOST + "/works.json\n"
     + "- who-is-aziel-eliab.txt: " + HOST + "/who-is-aziel-eliab.txt\n"
     + "- lockset.json: " + HOST + "/lockset.json\n"
     + "- Cold multi-shelf registry: " + HOST + "/shelves · " + HOST + "/cold-copy\n"
@@ -1440,7 +1450,7 @@ export function humansTxt() {
   return [
     "/* TEAM */",
     "Author: " + AUTHOR,
-    "Also known as: " + AKA + " · Elias Artista · The Revealer of The Sealed",
+    "Also known as: " + ALTERNATE_NAMES.slice(0, 5).join(" · "),
     "Primary credit: " + AUTHOR,
     "Person @id: " + HUB_PERSON_ID,
     "Runtime @id: " + HUB_RUNTIME_ID,

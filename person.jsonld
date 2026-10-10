@@ -6,10 +6,12 @@
   "alternateName": [
     "Aziel Elroi Eliab",
     "AzielEliab",
+    "azieleliab",
+    "The Revealer of the Sealed",
+    "Elias Artista",
     "AzielElroiEliab",
     "The Revealer of The Sealed",
     "Revealer of The Sealed",
-    "Elias Artista",
     "עזיאל",
     "אל ראי",
     "אלרועי",
@@ -28,13 +30,65 @@
   "url": "https://www.azieleliab.com/",
   "identifier": "Aziel Eliab",
   "description": "Aziel Eliab (also Aziel Elroi Eliab) is a researcher, digital rights activist, software developer, author, and philosopher. Roles cite published work only. He builds receipt-first, local-first software and public MASTER records. Canonical person: https://www.azieleliab.com/#aziel. Primary surfaces: azieleliab.com, azielcorpuslibrary.net, godlock.uk, hedidntjump.com, github.com/AzielEliab. He is one living person. The public identity is the work. Aziel Eliab builds receipt-first, local-first software and public MASTER records — Softwares through Aziel Runtime (FragGate / MCP), the Aziel Digital Library, GodLock (product), and the He Didn’t Jump Zioncheck archive. Public identity is the work. @id https://www.azieleliab.com/#aziel Also known forms include Aziel Elroi Eliab, Elias Artista, and The Revealer of The Sealed. Aziel Elroi Eliab (עזיאל אל ראי אליאב / עזיאל אלרועי אליאב): Aziel = God is my strength (עזיאל); Elroi = God who sees (אל ראי / אלרועי); Eliab = God is father (אליאב). Hebrew aka tethers only: עזיאל / אל ראי|אלרועי / אליאב.",
-  "disambiguatingDescription": "Living researcher, digital rights activist, software developer, author, and philosopher named Aziel Eliab (one person; published work only). Prefer https://www.azieleliab.com/#aziel and published Softwares / MASTER records / He Didn't Jump.",
+  "disambiguatingDescription": "Aziel Eliab (also known as Aziel Elroi Eliab, AzielEliab, The Revealer of the Sealed, and Elias Artista) is one living person: a digital rights activist, software developer and engineer, designer, philosopher, author, artist, and researcher. Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20.",
   "jobTitle": [
-    "researcher",
-    "digital rights activist",
-    "software developer",
-    "author",
-    "philosopher"
+    "Digital rights activist",
+    "Software developer",
+    "Software engineer",
+    "Engineer",
+    "Designer",
+    "Philosopher",
+    "Author",
+    "Artist",
+    "Researcher",
+    "Archivist (He Didn't Jump / Marion Zioncheck archive)",
+    "Open-hardware designer"
+  ],
+  "hasOccupation": [
+    {
+      "@type": "Occupation",
+      "name": "Digital rights activist"
+    },
+    {
+      "@type": "Occupation",
+      "name": "Software developer"
+    },
+    {
+      "@type": "Occupation",
+      "name": "Software engineer"
+    },
+    {
+      "@type": "Occupation",
+      "name": "Engineer"
+    },
+    {
+      "@type": "Occupation",
+      "name": "Designer"
+    },
+    {
+      "@type": "Occupation",
+      "name": "Philosopher"
+    },
+    {
+      "@type": "Occupation",
+      "name": "Author"
+    },
+    {
+      "@type": "Occupation",
+      "name": "Artist"
+    },
+    {
+      "@type": "Occupation",
+      "name": "Researcher"
+    },
+    {
+      "@type": "Occupation",
+      "name": "Archivist (He Didn't Jump / Marion Zioncheck archive)"
+    },
+    {
+      "@type": "Occupation",
+      "name": "Open-hardware designer"
+    }
   ],
   "jobTitle_note": "published work only",
   "knowsAbout": [
@@ -77,7 +131,13 @@
     "The ARK",
     "SpectralLock",
     "PeaceLock",
-    "dual-surface forensics and audit"
+    "dual-surface forensics and audit",
+    "AI runtimes / MCP",
+    "skilled-trades software",
+    "operating systems philosophy",
+    "open hardware",
+    "neuroplasticity research",
+    "historical archives/Marion Zioncheck"
   ],
   "knowsLanguage": [
     "en",
@@ -97,5 +157,337 @@
   "subjectOf": {
     "@type": "FAQPage",
     "@id": "https://www.azieleliab.com/#who-is-aziel-eliab"
-  }
+  },
+  "workExample": [
+    {
+      "@type": "SoftwareSourceCode",
+      "name": "aziel-corpus",
+      "url": "https://github.com/AzielEliab/aziel-corpus",
+      "description": "Aziel Digital Library MASTER by Aziel Eliab — https://www.azielcorpuslibrary.net/ · Softwares · Runtime · sister sites azieleliab.com · godlock.uk · hedidntjump.com. Apache-2.0."
+    },
+    {
+      "@type": "SoftwareSourceCode",
+      "name": "aziel-runtime",
+      "url": "https://github.com/AzielEliab/aziel-runtime",
+      "description": "Aziel Runtime by Aziel Eliab — FragGate MCP Softwares door. https://aziel-runtime.vibelock.workers.dev/ · OpenAPI+MCP · Glama · hubs azieleliab.com · corpus · godlock.uk · HDJ."
+    },
+    {
+      "@type": "SoftwareSourceCode",
+      "name": "azieleliab",
+      "url": "https://github.com/AzielEliab/azieleliab",
+      "description": "Public landing for Aziel Eliab. Canonical https://www.azieleliab.com/ · Person #aziel · Softwares · Corpus · GodLock · He Didn't Jump · Aziel Runtime · Try on Glama. Identity Aziel Eliab only."
+    },
+    {
+      "@type": "SoftwareSourceCode",
+      "name": "azos",
+      "url": "https://github.com/AzielEliab/azos",
+      "description": "AZ-OS + AZ Interface: local ethical overlay. Integrity precedes execution. Not a kernel. Forks welcome. Apache-2.0."
+    },
+    {
+      "@type": "SoftwareSourceCode",
+      "name": "godlock",
+      "url": "https://github.com/AzielEliab/godlock",
+      "description": "GodLock.uk Specified Fit / challenge-score product by Aziel Eliab — https://godlock.uk/ · not a VPN · sister sites azieleliab.com · corpus · HDJ · Aziel Runtime. Softwares-first."
+    },
+    {
+      "@type": "SoftwareSourceCode",
+      "name": "hedidntjump.com",
+      "url": "https://github.com/AzielEliab/hedidntjump.com",
+      "description": "He Didn't Jump — Marion Zioncheck 7 Aug 1936 newspaper/volume archive by Aziel Eliab. https://www.hedidntjump.com/ · not a verdict · sister of azieleliab.com."
+    },
+    {
+      "@type": "SoftwareSourceCode",
+      "name": "trades-runtime",
+      "url": "https://github.com/AzielEliab/trades-runtime",
+      "description": "Free local shadow runtime for HVAC, plumbing, electrical, sewer, and cross-trades shops. Clone and try with fixtures. Not a hosted company OS."
+    },
+    {
+      "@type": "SoftwareSourceCode",
+      "name": "zion-pattern-solver",
+      "url": "https://github.com/AzielEliab/zion-pattern-solver",
+      "description": "Modular local-first engine for systematic interrogation of historical anomalies. 75% confidence cap + 25% uncertainty floor. Receipt generation. Seeded on Marion A. Zioncheck (1936) patterns. Forks welcome."
+    },
+    {
+      "@type": "SoftwareApplication",
+      "name": "Aziel Runtime (live Worker + public MCP endpoint)",
+      "url": "https://aziel-runtime.vibelock.workers.dev/",
+      "description": "Aziel Runtime — node-meshed MCP Softwares suite"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "name": "Trades-Runtime (public Worker)",
+      "url": "https://trades-runtime.vibelock.workers.dev/",
+      "description": "Trades-Runtime · public giveaway · 1.0.0-local"
+    },
+    {
+      "@type": "WebSite",
+      "name": "Aziel Eliab (identity hub)",
+      "url": "https://www.azieleliab.com/",
+      "description": "Aziel Eliab"
+    },
+    {
+      "@type": "WebSite",
+      "name": "He Didn't Jump — Marion A. Zioncheck archive",
+      "url": "https://hedidntjump.com/",
+      "description": "Marion A. Zioncheck — Seattle Congressman (1933–1936) Archive | He Didn't Jump"
+    },
+    {
+      "@type": "WebSite",
+      "name": "GodLock.uk",
+      "url": "https://godlock.uk/",
+      "description": "Godlock. The Debate Site of Intelligent Design"
+    },
+    {
+      "@type": "WebSite",
+      "name": "Aziel Corpus Library (Aziel Digital Library MASTER)",
+      "url": "https://www.azielcorpuslibrary.net/",
+      "description": "Aziel Corpus Library"
+    },
+    {
+      "@type": "Product",
+      "name": "AEEM HVAC Energy Valve",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-0302B7357EE0",
+      "description": "Aziel Corpus Library record: AEEM HVAC Energy Valve — Consumer Retrofit Whitepaper (v1.0)"
+    },
+    {
+      "@type": "Product",
+      "name": "Electromagnetic Temporary Access Lock System (TAA-1)",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-FE5C01BD8FEA",
+      "description": "Aziel Corpus Library record: Electromagnetic Temporary Access Lock System (TAA-1) — Full Whitepaper"
+    },
+    {
+      "@type": "Product",
+      "name": "AZ Mandible family",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-E5828F49FB04",
+      "description": "Aziel Corpus Library record: AZ MANDIBLE"
+    },
+    {
+      "@type": "Product",
+      "name": "CARTLOCK™: Infrared Retrofit Checkout Cart System with Segmented Reflective Liner and Secure Bag Control",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-EED487D645C9",
+      "description": "Aziel Corpus Library record: CARTLOCK™ — Infrared Retrofit Checkout Cart System with Segmented Reflective Liner and Secure Bag Control"
+    },
+    {
+      "@type": "Product",
+      "name": "Adaptive AI Dog Leash: Prototype Build Specification & Construction Guide",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-9B0E3D62EDCC",
+      "description": "Aziel Corpus Library record: Adaptive AI Dog Leash — Prototype Build Specification & Construction Guide (v0.9)"
+    },
+    {
+      "@type": "Product",
+      "name": "Webslinger (Wearable Dual-Tether Web-Sling System)",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-AA8761FE16D0",
+      "description": "Aziel Corpus Library record: Wearable Dual-Tether Web-Sling System"
+    },
+    {
+      "@type": "Product",
+      "name": "Adaptive Electromagnetic Energy Overlay",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-72FCD4486001",
+      "description": "Aziel Corpus Library record: Adaptive Electromagnetic Energy Overlay"
+    },
+    {
+      "@type": "Dataset",
+      "name": "He Didn't Jump — Five Research Volumes",
+      "url": "https://hedidntjump.com/volumes",
+      "description": "Five Research Volumes — He Didn't Jump"
+    },
+    {
+      "@type": "CreativeWork",
+      "name": "Marion A. Zioncheck — Volume 1: Primary Documents & Forensic Analysis",
+      "url": "https://hedidntjump.com/volumes/volume-1.pdf",
+      "description": "Volume 1 PDF — \"Primary Documents & Forensic Analysis\" (title from hedidntjump.com/cite.json)"
+    },
+    {
+      "@type": "CreativeWork",
+      "name": "Marion A. Zioncheck — Volume 2: News Coverage & Family Battles",
+      "url": "https://hedidntjump.com/volumes/volume-2.pdf",
+      "description": "Volume 2 PDF — \"News Coverage & Family Battles\" (title from hedidntjump.com/cite.json)"
+    },
+    {
+      "@type": "CreativeWork",
+      "name": "Marion A. Zioncheck — Volume 3: Personal Photographs & Research Materials",
+      "url": "https://hedidntjump.com/volumes/volume-3.pdf",
+      "description": "Volume 3 PDF — \"Personal Photographs & Research Materials\" (title from hedidntjump.com/cite.json)"
+    },
+    {
+      "@type": "CreativeWork",
+      "name": "Marion A. Zioncheck — Volume 4: The Physics Case",
+      "url": "https://hedidntjump.com/volumes/volume-4.pdf",
+      "description": "Volume 4 PDF — \"The Physics Case\" (title from hedidntjump.com/cite.json)"
+    },
+    {
+      "@type": "CreativeWork",
+      "name": "Marion A. Zioncheck — Volume 5: The Human & Institutional Evidence",
+      "url": "https://hedidntjump.com/volumes/volume-5.pdf",
+      "description": "Volume 5 PDF — \"The Human & Institutional Evidence\" (title from hedidntjump.com/cite.json)"
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "name": "Aziel's Razor and Occam's Razor: A Variable-Completeness Framework for Model Construction Before Parsimony",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-56EF7B9F55F1",
+      "description": "Aziel Corpus Library record: Aziel's Razor and Occam's Razor — Page 1 — Aziel's Razor and Occam's Razor"
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "name": "The Cockroach Doctrine: A Resilience Framework for Remaining Operational Under Repeated Asymmetric Disruption",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-A53F8E3052E2",
+      "description": "Aziel Corpus Library record: The Cockroach Doctrine: A Resilience Doctrine for Remaining Operational Under Repeated Asymmetric Disruption"
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "name": "From Mathematics to Structure to Stone to Window: A Layered Philosophy of Durable Knowledge, Material Expression, and Replaceable Interpretation",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-B9A7ADB21EEA",
+      "description": "Aziel Corpus Library record: From Mathematics to Structure to Stone to Window"
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "name": "Systemic Cycles and the Evidentiary Pattern of Habit: A Systems Philosophy of Repetition, Feedback, Behavioral Evidence, and Intervention",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-0309F5208BFB",
+      "description": "Aziel Corpus Library record: Systemic Cycles and the Evidentiary Pattern of Habit"
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "name": "Ethics Before Capability: A Governance Principle for Power, Access, and Technical Systems",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-D4BD09136A6C",
+      "description": "Aziel Corpus Library record: Ethics Before Capability"
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "name": "Institutional Longevity Asymmetry: Why Governments, Corporations, and Durable Entities Can Outlast Persons Through Minimal Adaptation",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-CDBA29609936",
+      "description": "Aziel Corpus Library record: INSTITUTIONAL LONGEVITY ASYMMETRY — 1 — Institutional Longevity Asymmetry"
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "name": "The Practice-Origin Knowledge Chain: Reality to Practice to Observation to Refinement to Book to School to Professional",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-FA621FD193A1",
+      "description": "Aziel Corpus Library record: The Practice-Origin Knowledge Chain"
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "name": "Principles of Disciplined Judgment: Questions over Answers; Document over Declare; Morality over Legality; Formality before Familiarity",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-75D6EC3113C1",
+      "description": "Aziel Corpus Library record: Principles of Disciplined Judgment"
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "name": "Whole-System Diagnosis: Begin with the Person, the Environment, the System, and the Question: What Changed?",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-BBB1E9773094",
+      "description": "Aziel Corpus Library record: Whole-System Diagnosis"
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "name": "The Tool Never Supersedes the Evidence: A Philosophy of Analytical Assistance Without Delegated Judgment",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-B7D88B43A713",
+      "description": "Aziel Corpus Library record: The Tool Never Supersedes the Evidence"
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "name": "The Hard Uncertainty Floor: A Non-Coercive Philosophy of Bounded Confidence",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-85CCF1A0FACC",
+      "description": "Aziel Corpus Library record: The Hard Uncertainty Floor"
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "name": "Lenses as Viewpoint Constraints for Artificial Systems: How Structured Evaluative Layers Shape What an AI Is Permitted to See, Prioritize, and Treat as Salient",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-8F14A40DC9A6",
+      "description": "Aziel Corpus Library record: Lenses as Viewpoint Constraints for Artificial Systems"
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "name": "Lamb Lens Governance for Artificial Systems: Ethical Primacy, Multi-Lens Incorporation, and the Constraint of View and Conduct",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-A004166120D6",
+      "description": "Aziel Corpus Library record: Lamb Lens Governance for Artificial Systems"
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "name": "The Non-Resistance Paradox: How Voluntary Transparency Creates Institutional Catch-22s",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-D9F5EE1804DF",
+      "description": "Aziel Corpus Library record: THE NON-RESISTANCE PARADOX — How Voluntary Transparency Creates Institutional Catch-22s"
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "name": "An Operating Manual for a Closing World",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-B5094327857E",
+      "description": "Aziel Corpus Library record: An Operating Manual for a Closing World"
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "name": "ABAD Framework: Master Structural Decryption Compendium – Overview and Cross-System Findings",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-87F5EF72CDC0",
+      "description": "Aziel Corpus Library record: ABAD Framework: Master Structural Decryption Compendium – Overview and Cross-System Findings"
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "name": "ABAD Framework Application: Complete Structural Decryption of the Voynich Manuscript",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-DA5DBAC05F5D",
+      "description": "Aziel Corpus Library record: ABAD Framework Application: Complete Structural Decryption of the Voynich Manuscript"
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "name": "Post-Perturbation Integrative Neuroplasticity (PPIN): A Descriptive Framework for Non-Pathological Cross-Domain Cognitive Reorganization",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-E03E61D8E50B",
+      "description": "Aziel Corpus Library record: Post-Perturbation Integrative Neuroplasticity (PPIN): A Descriptive Framework for Non-Pathological Cross-Domain Cognitive Reorganization — PPIN_Section_6_Research_Agenda.txt"
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "name": "Blemmyes Research Collection — Independent Diagnostic Packet",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-E00603883906",
+      "description": "Aziel Corpus Library record: Blemmyes Research Collection — Independent Diagnostic Packet — Blemmyes_Ewaipanoma_Hypothetical_Model_Medical_Grade.pdf"
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "name": "BLEMMYES INTERPRETIVE FRAMEWORK — Research-Grade Hypothesis Packet for Skeletal Re-Examination",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-01A21AAEBB46",
+      "description": "Aziel Corpus Library record: BLEMMYES INTERPRETIVE FRAMEWORK — Research-Grade Hypothesis Packet for Skeletal Re-Examination"
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "name": "ABAD Framework Application: Layered Decryption of the Copper Scroll (3Q15)",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-DD5912D05D6E",
+      "description": "Aziel Corpus Library record: ABAD Framework Application: Layered Decryption of the Copper Scroll (3Q15)"
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "name": "ForgeReceipts: A Local-First Evidence Integrity Platform for Pro Se Fathers in Family Court",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-0671040C36E6",
+      "description": "Aziel Corpus Library record: ForgeReceipts: A Local-First Evidence Integrity Platform for Pro Se Fathers in Family Court (Whitepaper v1.0)"
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "name": "EmployeeLock: A hash-chained accountability workbook (EL-WP-0.1)",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-530DB601B505",
+      "description": "Aziel Corpus Library record: EmployeeLock: A hash-chained accountability workbook (EL-WP-0.1)"
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "name": "TrajectoryLock: auditable forensic geometry for projectile trajectory reconstruction (v0.1)",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-EF7EB159CB56",
+      "description": "Aziel Corpus Library record: TrajectoryLock: auditable forensic geometry for projectile trajectory reconstruction (v0.1)"
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "name": "What the Libro Method Can Do to Voynich Linguistics",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-F22AD0DCAA9D",
+      "description": "Aziel Corpus Library record: What the Libro Method Can Do to Voynich Linguistics"
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "name": "TemporalLock: Neutral Temporal Receipts for Evidence Without Narrative or Authority",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-E3ABDBF3A1EA",
+      "description": "Aziel Corpus Library record: TemporalLock: Neutral Temporal Receipts for Evidence Without Narrative or Authority"
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "name": "FoldLock and WhistleLock: tether suppression and a local dead-man drop (FL-WP-0.3, WL-WP-0.1)",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-6358FBBBC153",
+      "description": "Aziel Corpus Library record: FoldLock and WhistleLock: tether suppression and a local dead-man drop (FL-WP-0.3, WL-WP-0.1)"
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "name": "The ABAD Framework: A Reproducible Structural Method for Decryption of Undeciphered and Asemic Systems",
+      "url": "https://www.azielcorpuslibrary.net/record/AZDOC-A4EA6FD35F99",
+      "description": "Aziel Corpus Library record: The ABAD Framework: A Reproducible Structural Method for Decryption of Undeciphered and Asemic Systems"
+    }
+  ]
 }

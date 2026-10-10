@@ -167,6 +167,7 @@ export function websiteNode() {
     url: CANON_HOST + "/",
     description: SITE_DESCRIPTION,
     author: personRef(),
+    creator: personRef(),
     publisher: personRef(),
     sameAs: [GITHUB_REPO, HEDIDNTJUMP_HOME],
     potentialAction: {
@@ -301,7 +302,8 @@ function breadcrumbNode(items) {
 
 function jsonLd(title, path, kind, description, work, runtimeVersion) {
   const who = personRef();
-  const person = personNode();
+  const withWorks = kind === "about" || path === ABOUT_PATH;
+  const person = withWorks ? lockedPersonNode({ works: true }) : personNode();
   const org = organizationNode();
   const website = websiteNode();
   const software = {

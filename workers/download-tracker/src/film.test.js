@@ -32,12 +32,33 @@ test("film theater document is the front door only", () => {
   assert.match(html, new RegExp(FILM_GRAIN_PATH.replace(/\//g, "\\/")));
   assert.match(html, new RegExp(FILM_OG_PATH.replace(/\//g, "\\/")));
   assert.match(html, /https:\/\/www\.azieleliab\.com\/#aziel/);
+  const head = html.slice(0, html.indexOf("</head>"));
+  const body = html.slice(html.indexOf("<body>"), html.lastIndexOf("</body>"));
+  const ld = JSON.parse(head.match(/<script type="application\/ld\+json">([^<]+)<\/script>/)[1]);
+  const person = ld["@graph"].find((node) => node["@type"] === "Person");
+  const site = ld["@graph"].find((node) => node["@type"] === "WebSite");
+  assert.equal(person["@id"], "https://www.azieleliab.com/#aziel");
+  assert.equal(person.name, "Aziel Eliab");
+  assert.deepEqual(person.alternateName.slice(0, 5), [
+    "Aziel Elroi Eliab",
+    "AzielEliab",
+    "azieleliab",
+    "The Revealer of the Sealed",
+    "Elias Artista",
+  ]);
+  assert.equal(person.jobTitle[0], "Digital rights activist");
+  assert.equal(person.hasOccupation[0].name, "Digital rights activist");
+  assert.match(person.disambiguatingDescription, /one living person/);
+  assert.ok(person.workExample.some((work) => work.name.startsWith("Webslinger (")));
+  assert.deepEqual(site.author, { "@id": "https://www.azieleliab.com/#aziel" });
+  assert.deepEqual(site.creator, { "@id": "https://www.azieleliab.com/#aziel" });
+  assert.doesNotMatch(body, /workExample|Digital rights activist|Webslinger/);
   assert.doesNotMatch(html, /class="brandrow"/);
   assert.doesNotMatch(html, /class="wrap"/);
   assert.doesNotMatch(html, /sigilNav/);
   assert.doesNotMatch(html, /Search the libraries/);
   assert.doesNotMatch(html, /class="soft-card"/);
-  assert.doesNotMatch(html, /Softwares/);
+  assert.doesNotMatch(body, /Softwares/);
   assert.doesNotMatch(html, BANNED);
   assert.equal(html.split("<main").length - 1, 1);
 });
