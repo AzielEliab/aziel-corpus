@@ -85,7 +85,8 @@ test("JSON-LD types the author as Person with alternateName", () => {
   assert.match(person.description, /God is my strength/);
   assert.ok(person.alternateName.includes("Aziell"));
   assert.equal(person.disambiguatingDescription, DISAMBIGUATING_DESCRIPTION);
-  assert.match(person.disambiguatingDescription, /one person; published work only/);
+  assert.match(person.disambiguatingDescription, /one living person/);
+  assert.match(person.disambiguatingDescription, /1 Chronicles 15:20/);
   assert.doesNotMatch(person.disambiguatingDescription, /He is not the two Levitical/);
   assert.doesNotMatch(person.disambiguatingDescription, /euaziel\.site/);
   assert.doesNotMatch(person.disambiguatingDescription, /Aziel S\./);

@@ -185,9 +185,14 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.ok(cite.name_lattice.also.includes("Elias Artista"));
   assert.ok(cite.pen_name_aka.includes("Elias Artista"));
   assert.ok(cite.misspelling_aka.includes("Aziell"));
+  assert.ok(cite.works.some((work) => work.name.startsWith("Webslinger (")));
+  assert.ok(cite.works.some((work) => work.url.includes("AZDOC-E03E61D8E50B")));
+  assert.ok(cite.works.length > cite.alternateName.length);
+  assert.ok(cite.listings.some((item) => item.url.includes("glama.ai")));
+  assert.equal(JSON.stringify(cite.works).includes("doi.org"), false);
   assert.equal(
     cite.disambiguatingDescription,
-    "Living researcher, digital rights activist, software developer, author, and philosopher named Aziel Eliab (one person; published work only). Prefer https://www.azieleliab.com/#aziel and published Softwares / MASTER records / He Didn't Jump.",
+    "Aziel Eliab (also known as Aziel Elroi Eliab, AzielEliab, The Revealer of the Sealed, and Elias Artista) is one living person: a digital rights activist, software developer and engineer, designer, philosopher, author, artist, and researcher. Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20.",
   );
   assert.ok(cite.significant_links.includes("https://www.azielcorpuslibrary.net/.well-known/person.jsonld"));
   assert.doesNotMatch(cite.azcoherence.dual_surface, /Flutter/);
@@ -280,7 +285,8 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(cite.who_is, /one living person/);
   assert.doesNotMatch(cite.who_is, /He is not the two Levitical/);
   assert.doesNotMatch(cite.who_is, /scripture concordance/);
-  assert.match(cite.disambiguatingDescription, /one person; published work only/);
+  assert.match(cite.disambiguatingDescription, /one living person/);
+  assert.match(cite.disambiguatingDescription, /1 Chronicles 15:20/);
   assert.doesNotMatch(cite.disambiguatingDescription, /He is not the two Levitical/);
   assert.doesNotMatch(cite.disambiguatingDescription, /euaziel\.site/);
   assert.ok(cite.significant_links.includes("https://www.azielcorpuslibrary.net/person.jsonld"));

@@ -4,7 +4,8 @@
  * Enter navigates to the library hub at /search. The hub is not mounted under this page.
  * Author: Aziel Eliab.
  */
-import { CANON_HOST, HUB_PERSON_ID } from "./seo.js";
+import { CANON_HOST, HUB_PERSON_ID, websiteNode } from "./seo.js";
+import { personNode } from "./identity.js";
 
 export const LIBRARY_HUB_PATH = "/search";
 export const FILM_MP4_PATH = "/film/aziel-corpus-the-record.mp4";
@@ -150,13 +151,20 @@ function theaterHashScript() {
 function filmJsonLd() {
   return {
     "@context": "https://schema.org",
-    "@type": "VideoObject",
-    name: "What matters is the record.",
-    description: FILM_DESCRIPTION,
-    thumbnailUrl: CANON_HOST + FILM_POSTER_PATH,
-    contentUrl: CANON_HOST + FILM_MP4_PATH,
-    embedUrl: CANON_HOST + "/",
-    author: { "@id": HUB_PERSON_ID },
+    "@graph": [
+      personNode({ works: true }),
+      websiteNode(),
+      {
+        "@type": "VideoObject",
+        name: "What matters is the record.",
+        description: FILM_DESCRIPTION,
+        thumbnailUrl: CANON_HOST + FILM_POSTER_PATH,
+        contentUrl: CANON_HOST + FILM_MP4_PATH,
+        embedUrl: CANON_HOST + "/",
+        author: { "@id": HUB_PERSON_ID },
+        creator: { "@id": HUB_PERSON_ID },
+      },
+    ],
   };
 }
 

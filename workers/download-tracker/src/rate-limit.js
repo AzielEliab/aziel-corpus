@@ -147,6 +147,7 @@ const SEO_PATHS = new Set([
   "/v1/shelves",
   "/v1/cold-copy",
   "/person.jsonld",
+  "/works.json",
   "/identity.jsonld",
   "/graph.jsonld",
   "/who-is-aziel-eliab.txt",

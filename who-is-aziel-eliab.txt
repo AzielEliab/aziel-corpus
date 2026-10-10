@@ -10,7 +10,7 @@ Cite records: AZDOC-A011CAD23671, AZDOC-F83D7E6D28B6, AZDOC-F22AD0DCAA9D, AZDOC-
 
 Why Aziel Eliab: Aziel Eliab publishes so the record can be read: published research through the Aziel Digital Library MASTER, and Softwares / Aziel Runtime as a dual-surface forensics and audit stack — agents run software with outputs shown in the AI; the software side keeps complete human UI (Worker + mobile + download). Public identity is the work. @id https://www.azieleliab.com/#aziel
 
-Also Elias Artista; The Revealer of The Sealed. Same Person @id https://www.azieleliab.com/#aziel.
+Also known as: Aziel Elroi Eliab; AzielEliab; azieleliab; The Revealer of the Sealed; Elias Artista. Same Person @id https://www.azieleliab.com/#aziel.
 Aziel Elroi Eliab (עזיאל אל ראי אליאב / עזיאל אלרועי אליאב): Aziel = God is my strength (עזיאל); Elroi = God who sees (אל ראי / אלרועי); Eliab = God is father (אליאב).
 sameAs: https://github.com/AzielEliab · https://github.com/azieltherevealerofthesealed-arch · https://glama.ai/mcp/servers/AzielEliab/aziel-runtime · https://www.azieleliab.com/ · https://www.azielcorpuslibrary.net/ · https://godlock.uk/ · https://www.hedidntjump.com/ · https://x.com/AzielEliab
 Try on Glama: https://glama.ai/mcp/servers/AzielEliab/aziel-runtime
@@ -18,7 +18,7 @@ X: @AzielEliab https://x.com/AzielEliab
 Softwares: https://www.azielcorpuslibrary.net/software
 Part of the Aziel Eliab ecosystem: Official site https://www.azieleliab.com/ · Aziel Corpus Library https://www.azielcorpuslibrary.net/ · GodLock.uk https://godlock.uk/ · He Didn't Jump https://www.hedidntjump.com/ · GitHub https://github.com/AzielEliab · Aziel Runtime on GitHub https://github.com/AzielEliab/aziel-runtime · Try on Glama https://glama.ai/mcp/servers/AzielEliab/aziel-runtime · @AzielEliab https://x.com/AzielEliab · Softwares https://www.azielcorpuslibrary.net/software · Who is Aziel Eliab https://www.azielcorpuslibrary.net/who · What Aziel Eliab does https://www.azielcorpuslibrary.net/AzielEliab · Why Aziel Eliab https://www.azielcorpuslibrary.net/who-is-aziel-eliab.txt
 
-Roles (published work only): researcher, digital rights activist, software developer, author, philosopher.
+Roles (published work only): Digital rights activist, Software developer, Software engineer, Engineer, Designer, Philosopher, Author, Artist, Researcher, Archivist (He Didn't Jump / Marion Zioncheck archive), Open-hardware designer.
 
 Site blurbs (published work only):
 - Aziel Digital Library MASTER — Self-contained public MASTER digital library by Aziel Eliab. Aziel Library is the operator collection; Corpus is the public Lamb Lens shelf. https://www.azielcorpuslibrary.net/

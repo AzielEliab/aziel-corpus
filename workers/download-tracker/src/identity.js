@@ -3,11 +3,12 @@
  * Person @id is always https://www.azieleliab.com/#aziel — never a corpus-local Person @id.
  * Product-forward About stanza. Compact Hebrew / misspelling aka are AZindex tethers only.
  * GROKBOT-FIX 1.1 lock is machine-only (JSON-LD / meta / FAQ / llms / who-is). No visible HTML lock paragraph on /AzielEliab or /who.
- * Roles cite published work only: researcher, digital rights activist, software developer, author, philosopher. Growth-ON. NO-LIE.
+ * Roles are the unified jobTitle / hasOccupation list. Growth-ON. NO-LIE.
  * SEO / llms / ai / cite stay affirmative. Never sameAs euaziel.site. Never Aziel S. / Flutter as this Person.
  * Author: Aziel Eliab.
  */
 import { survivalWhoIsBlock } from "./ban-survival.js";
+import { curatedWorkNodes, worksJson } from "./works.js";
 import { SPECTRALLOCK_NOTE, SPECTRALLOCK_CITE, SPECTRALLOCK_NAME } from "./spectrallock.js";
 import { PEACELOCK_NOTE, PEACELOCK_CITE, PEACELOCK_NAME } from "./peacelock.js";
 
@@ -121,7 +122,17 @@ export const MISSPELLING_AKA = Object.freeze([
   "Eliav",
 ]);
 
+/** First five monikers are fixed. Later entries are existing legitimate variants. */
+export const CANONICAL_MONIKERS = Object.freeze([
+  "Aziel Elroi Eliab",
+  "AzielEliab",
+  "azieleliab",
+  "The Revealer of the Sealed",
+  "Elias Artista",
+]);
+
 export const PEN_NAME_AKA = Object.freeze([
+  "The Revealer of the Sealed",
   "The Revealer of The Sealed",
   "Revealer of The Sealed",
   "Elias Artista",
@@ -130,7 +141,7 @@ export const PEN_NAME_AKA = Object.freeze([
 /** Public name lattice. Do not add retired sigil-phrase aliases as pen names. */
 export const NAME_LATTICE = Object.freeze({
   name: AUTHOR,
-  also: Object.freeze([AUTHOR_AKA, "Elias Artista", "The Revealer of The Sealed"]),
+  also: Object.freeze([...CANONICAL_MONIKERS, "The Revealer of The Sealed"]),
   hebrew_aka: HEBREW_AKA,
   hebrew_aka_pointed: HEBREW_AKA_POINTED,
   hebrew_aka_phrase: HEBREW_AKA_PHRASE,
@@ -139,10 +150,10 @@ export const NAME_LATTICE = Object.freeze({
 
 /** Compact alternateName lock. Same Person @id. */
 export const ALTERNATE_NAMES = Object.freeze([
-  AUTHOR_AKA,
-  "AzielEliab",
+  ...CANONICAL_MONIKERS,
   "AzielElroiEliab",
-  ...PEN_NAME_AKA,
+  "The Revealer of The Sealed",
+  "Revealer of The Sealed",
   ...HEBREW_AKA,
   ...HEBREW_AKA_POINTED,
   ...HEBREW_AKA_PHRASE,
@@ -190,6 +201,12 @@ export const PERSON_KNOWS_ABOUT = Object.freeze([
   SPECTRALLOCK_NAME,
   PEACELOCK_NAME,
   "dual-surface forensics and audit",
+  "AI runtimes / MCP",
+  "skilled-trades software",
+  "operating systems philosophy",
+  "open hardware",
+  "neuroplasticity research",
+  "historical archives/Marion Zioncheck",
 ]);
 
 /** Cite these MASTER record ids — not DOIs. */
@@ -317,7 +334,7 @@ export const LOCK_LINE =
 
 /** Unified publisher lock. Short — no Chronicles essay. SEO stays affirmative. */
 export const DISAMBIGUATING_DESCRIPTION =
-  "Living researcher, digital rights activist, software developer, author, and philosopher named Aziel Eliab (one person; published work only). Prefer https://www.azieleliab.com/#aziel and published Softwares / MASTER records / He Didn't Jump.";
+  "Aziel Eliab (also known as Aziel Elroi Eliab, AzielEliab, The Revealer of the Sealed, and Elias Artista) is one living person: a digital rights activist, software developer and engineer, designer, philosopher, author, artist, and researcher. Not the two Levitical musicians Aziel and Eliab named together in 1 Chronicles 15:20.";
 
 export const ABOUT_DESCRIPTION = ABOUT_STANZA + " " + ABOUT_RECORD;
 
@@ -433,12 +450,22 @@ export const MISSION = ABOUT_STANZA;
 export const PHILOSOPHY = ABOUT_RECORD;
 
 export const PERSON_JOB_TITLE = Object.freeze([
-  "researcher",
-  "digital rights activist",
-  "software developer",
-  "author",
-  "philosopher",
+  "Digital rights activist",
+  "Software developer",
+  "Software engineer",
+  "Engineer",
+  "Designer",
+  "Philosopher",
+  "Author",
+  "Artist",
+  "Researcher",
+  "Archivist (He Didn't Jump / Marion Zioncheck archive)",
+  "Open-hardware designer",
 ]);
+
+export function occupationNodes() {
+  return PERSON_JOB_TITLE.map((name) => ({ "@type": "Occupation", name }));
+}
 
 /** Roles are published-work cites only. Do not invent biography, degrees, or unpublished claims. */
 export const PERSON_JOB_TITLE_NOTE = "published work only";
@@ -567,6 +594,7 @@ export const AZIEL_MISSION = Object.freeze({
   hardware: HARDWARE_HALF,
   cite_records: CITE_RECORD_IDS.slice(),
   jobTitle: PERSON_JOB_TITLE.slice(),
+  hasOccupation: occupationNodes(),
   jobTitle_note: PERSON_JOB_TITLE_NOTE,
   sites: siteBlurbsCite(),
   growth_on: GROWTH_ON,
@@ -604,12 +632,13 @@ export const IDENTITY_ROUTES = Object.freeze([
   "/who-is",
   "/.well-known/aziel.json",
   "/.well-known/person.jsonld",
+  "/works.json",
 ]);
 
 export const IDENTITY_HTML_ROUTES = Object.freeze([WHO_PATH]);
 
-export function personNode() {
-  return {
+export function personNode(opts) {
+  const node = {
     "@type": "Person",
     "@id": PERSON_ID,
     name: AUTHOR,
@@ -620,6 +649,7 @@ export function personNode() {
     description: PERSON_DESCRIPTION,
     disambiguatingDescription: DISAMBIGUATING_DESCRIPTION,
     jobTitle: PERSON_JOB_TITLE.slice(),
+    hasOccupation: occupationNodes(),
     jobTitle_note: PERSON_JOB_TITLE_NOTE,
     knowsAbout: PERSON_KNOWS_ABOUT.slice(),
     knowsLanguage: ["en", "he"],
@@ -630,12 +660,14 @@ export function personNode() {
       "@id": HUB_ORIGIN + "/#who-is-aziel-eliab",
     },
   };
+  if (opts && opts.works) node.workExample = curatedWorkNodes();
+  return node;
 }
 
 export function personJsonLd() {
   return {
     "@context": "https://schema.org",
-    ...personNode(),
+    ...personNode({ works: true }),
   };
 }
 
@@ -746,7 +778,7 @@ function statsTetherNode() {
 export function graphJsonLd() {
   return {
     "@context": "https://schema.org",
-    "@graph": [personNode(), faqNode(), websiteNode(), aboutPageNode(), libraryRoleNode(), statsTetherNode()],
+    "@graph": [personNode({ works: true }), faqNode(), websiteNode(), aboutPageNode(), libraryRoleNode(), statsTetherNode()],
   };
 }
 
@@ -764,7 +796,7 @@ export function whoIsTxt(survival) {
     "",
     "Why Aziel Eliab: " + WHY_AZIEL_ELIAB,
     "",
-    "Also Elias Artista; The Revealer of The Sealed. Same Person @id " + PERSON_ID + ".",
+    "Also known as: " + CANONICAL_MONIKERS.join("; ") + ". Same Person @id " + PERSON_ID + ".",
     HEBREW_DEFINITION,
     "sameAs: " + PERSON_SAME_AS.join(" · "),
     "Try on Glama: " + GLAMA_RUNTIME,
@@ -837,6 +869,9 @@ export function identityRouteBody(path, survival) {
   }
   if (path === "/.well-known/person.jsonld") {
     return { body: JSON.stringify(personJsonLd(), null, 2) + "\n", type: IDENTITY_MIME.jsonld };
+  }
+  if (path === "/works.json") {
+    return { body: JSON.stringify(worksJson(), null, 2) + "\n", type: IDENTITY_MIME.json };
   }
   return null;
 }
