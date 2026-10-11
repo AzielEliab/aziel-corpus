@@ -399,7 +399,7 @@ export function poisonScan({ title = "", body = "", filename = "", library = "co
         : status === "FLAGGED"
           ? "Yellow: operator evidence file — watch for poison words, but keep the file."
           : "Red: this looks like a poison story. It is locked in a quarantine box. It is not deleted.",
-    immutable: true,
+    append_only: true,
     never_delete: true,
     limitation: POISON_LIMITATION,
   };

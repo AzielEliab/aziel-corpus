@@ -262,7 +262,7 @@ export async function receiptForRecord(env, recordId) {
     content_sha256: row.content_sha256 || null,
     created_by: row.created_by,
     created_utc: row.created_utc,
-    immutable: true,
+    append_only: true,
     document_chain: chain,
     ledger: entries,
     ...extra,
