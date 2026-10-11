@@ -152,7 +152,7 @@ function filmJsonLd() {
   return {
     "@context": "https://schema.org",
     "@graph": [
-      personNode({ works: true }),
+      personNode({ works: true, triad: true }),
       websiteNode(),
       {
         "@type": "VideoObject",

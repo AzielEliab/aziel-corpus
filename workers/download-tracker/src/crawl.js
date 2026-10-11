@@ -97,7 +97,7 @@ import {
   PEACELOCK_NOTE,
   PEACELOCK_CITE,
 } from "./identity.js";
-import { fullWorks, workListings, worksLlmsBlock } from "./works.js";
+import { azTriadNode, fullWorks, workListings, worksLlmsBlock } from "./works.js";
 
 const HOST = "https://www.azielcorpuslibrary.net";
 const CATALOG = "https://aziel-runtime.vibelock.workers.dev";
@@ -803,6 +803,7 @@ export function citeDoc(survival, outletCite) {
     disambiguatingDescription: DISAMBIGUATING_DESCRIPTION,
     hasOccupation: PERSON_JOB_TITLE.map((name) => ({ "@type": "Occupation", name })),
     works: fullWorks(),
+    az_triad: azTriadNode(),
     listings: workListings(),
     about_lead: ABOUT_LEAD,
     about_stanza: ABOUT_STANZA,

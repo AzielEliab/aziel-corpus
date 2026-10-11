@@ -178,6 +178,16 @@ test("alternateName is compact aka tethers — no 1 Chronicles essays", () => {
   assert.ok(person.workExample.some((work) => work.name.startsWith("Webslinger (")));
   assert.ok(person.workExample.some((work) => work.url.endsWith("AZDOC-E03E61D8E50B")));
   assert.ok(person.workExample.length >= 30 && person.workExample.length <= 60);
+  const triad = person.workExample.find((work) => work["@id"] === "https://www.azieleliab.com/#az-triad");
+  assert.equal(triad.name, "AZ triad: AZ-OS, Aziel Runtime, The AZInterface");
+  assert.equal(triad.hasPart.length, 3);
+  assert.deepEqual(triad.author, { "@id": "https://www.azieleliab.com/#aziel" });
+  assert.deepEqual(triad.creator, { "@id": "https://www.azieleliab.com/#aziel" });
+  assert.match(triad.description, /One system with three sides/);
+  assert.doesNotMatch(JSON.stringify(triad), /mesh-node|one-click|\blive\b/i);
+  const azos = person.workExample.find((work) => work.url === "https://github.com/AzielEliab/azos");
+  assert.deepEqual(azos.isPartOf, { "@id": "https://www.azieleliab.com/#az-triad" });
+  assert.match(azos.description, /not a kernel/);
   assert.equal(person.jobTitle_note, "published work only");
   assert.deepEqual(person.knowsLanguage, ["en", "he"]);
   assert.equal(person.mainEntityOfPage, "https://www.azieleliab.com/who");
