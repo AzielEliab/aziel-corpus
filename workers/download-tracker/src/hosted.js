@@ -309,6 +309,32 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     const ids = new Set(exact.map((r) => r.geonameid));
     return json({ ok: true, q, matches: rows, ambiguous: ids.size !== 1, pin: ids.size === 1 ? exact[0] : null, attribution: "GeoNames CC BY 4.0 https://www.geonames.org/" });
   }
+  if (path === "/api/origins" && read) {
+    // CITED-ORIGIN-1.0: bounded page of records (by record_id cursor), origin from the document text only. Read-only.
+    const { citedOriginForRecord, ORIGIN_SPEC } = await import("./cited-origin.js");
+    const { derivedTextForRecord } = await import("./geo.js");
+    const after = String(url.searchParams.get("after") || "");
+    const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 10, 1), 20);
+    const rows = (await env.DB.prepare("SELECT record_id, title, substr(body,1,12000) AS body, library FROM records WHERE record_id > ? ORDER BY record_id LIMIT ?").bind(after, limit).all()).results || [];
+    const origins = [];
+    const none = [];
+    for (const row of rows) {
+      const derived = await derivedTextForRecord(env, row.record_id, { loadObjects: false });
+      const out = await citedOriginForRecord(env, row, [row.body || "", derived].join("\n\n"));
+      if (out.origin === null) none.push(out); else origins.push(out);
+    }
+    return json({
+      ok: true,
+      spec: ORIGIN_SPEC,
+      basis: "Document text only (dateline, place written, author-stated location, cited place of origin). Never the uploader.",
+      origins,
+      no_origin: none,
+      scanned: rows.length,
+      next_after: rows.length ? rows[rows.length - 1].record_id : after,
+      done: rows.length < limit,
+      colors: { "library-aziel-report": "pink", "corpus-report": "darkgreen" },
+    });
+  }
   if (path === "/api/events" && read) {
     const includeRetracted = url.searchParams.get("include_retracted") === "1";
     const events = await listEvents(env, { includeRetracted });
