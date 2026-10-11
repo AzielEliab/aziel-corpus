@@ -3,6 +3,7 @@
  * Packed library:index:v1 may be read (one get, never list) for health / failover.
  * Author: Aziel Eliab.
  */
+import { buildStamp } from "./build-stamp.js";
 import { rethrowIfQuota } from "./quota.js";
 import { serveFileByHash, normalizeContentHash } from "./library.js";
 import { receiptForRecord, documentChain, isJsonDocumentId } from "./ledger.js";
@@ -455,6 +456,7 @@ export async function handleRuntimeApi(request, url, env, ctx) {
       catalog: CATALOG,
       runtime_root: HOST + "/runtime",
       protocol: PROTOCOL,
+      ...buildStamp(env),
       ...tun,
       review: {
         spre: "Source Provenance Reliability Engine (no guilt verdict)",

@@ -282,7 +282,7 @@ def poison_scan(title="",body="",filename="",library="corpus"):
     suspected=bool(markers)
     status="QUARANTINE" if suspected and lib=="corpus" else "FLAGGED" if suspected else "CLEAR"
     kid="Green: this does not look like a poison shell." if status=="CLEAR" else "Yellow: operator evidence file — watch for poison words, but keep the file." if status=="FLAGGED" else "Red: this looks like a poison story. It is locked in a quarantine box. It is not deleted."
-    return {"engine":"POISON","suspected":suspected,"status":status,"markers":markers,"library":lib,"kid_plain":kid,"immutable":True,"never_delete":True,"limitation":POISON_LIMITATION}
+    return {"engine":"POISON","suspected":suspected,"status":status,"markers":markers,"library":lib,"kid_plain":kid,"append_only":True,"never_delete":True,"limitation":POISON_LIMITATION}
 
 def truth_formula_score(*, title="", body="", filename="", sha256="", structure_ok=False, mode="subset"):
     """Cover-Up Truth Formula v1/v2. Full mode for archival/cover-up papers; subset for ordinary filings."""
