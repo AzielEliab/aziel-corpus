@@ -261,6 +261,11 @@ Full list: https://www.azielcorpuslibrary.net/works.json
 Curated works are on the homepage Person workExample. Other pages reference the Person @id.
 Unverified DOI landing pages are omitted. Listings stay in this machine file and are not sameAs.
 
+AZ triad (https://www.azieleliab.com/#az-triad): one system with three sides. Design relationship only.
+- Operating-system side: AZ-OS https://github.com/AzielEliab/azos — local ethical overlay, not a kernel.
+- MCP side: Aziel Runtime https://github.com/AzielEliab/aziel-runtime — public endpoint https://aziel-runtime.vibelock.workers.dev/ — Glama https://glama.ai/mcp/servers/AzielEliab/aziel-runtime
+- UI-software side: The AZInterface https://github.com/AzielEliab/azinterface — white paper https://www.azielcorpuslibrary.net/record/AZDOC-EB7454682E74
+
 ### software
 
 - 4dmap: https://github.com/AzielEliab/4dmap
@@ -276,13 +281,13 @@ Unverified DOI landing pages are omitted. Listings stay in this machine file and
 - AZCoherence: https://github.com/AzielEliab/AZCoherence
 - azhub: https://github.com/AzielEliab/azhub
 - aziel-corpus: https://github.com/AzielEliab/aziel-corpus
-- aziel-runtime: https://github.com/AzielEliab/aziel-runtime
+- aziel-runtime: https://github.com/AzielEliab/aziel-runtime — AZ triad MCP side: Aziel Runtime.
 - azieleliab: https://github.com/AzielEliab/azieleliab
 - azieltether: https://github.com/AzielEliab/azieltether
-- azinterface: https://github.com/AzielEliab/azinterface
+- azinterface: https://github.com/AzielEliab/azinterface — AZ triad UI-software side: The AZInterface. White paper https://www.azielcorpuslibrary.net/record/AZDOC-EB7454682E74.
 - azmail: https://github.com/AzielEliab/azmail
 - aznet: https://github.com/AzielEliab/aznet
-- azos: https://github.com/AzielEliab/azos
+- azos: https://github.com/AzielEliab/azos — AZ triad operating-system side: AZ-OS, a local ethical overlay, not a kernel.
 - azvpn: https://github.com/AzielEliab/azvpn
 - chronolock: https://github.com/AzielEliab/chronolock
 - codelock: https://github.com/AzielEliab/codelock
@@ -315,7 +320,7 @@ Unverified DOI landing pages are omitted. Listings stay in this machine file and
 - ark (azieltherevealerofthesealed-arch): https://github.com/azieltherevealerofthesealed-arch/ark
 - EmbryoLock (azieltherevealerofthesealed-arch): https://github.com/azieltherevealerofthesealed-arch/EmbryoLock
 - TemporalLock (azieltherevealerofthesealed-arch): https://github.com/azieltherevealerofthesealed-arch/TemporalLock
-- Aziel Runtime (live Worker + public MCP endpoint): https://aziel-runtime.vibelock.workers.dev/
+- Aziel Runtime (live Worker + public MCP endpoint): https://aziel-runtime.vibelock.workers.dev/ — AZ triad MCP side: Aziel Runtime public endpoint.
 - Trades-Runtime (public Worker): https://trades-runtime.vibelock.workers.dev/
 - Whitestone (public Worker): https://whitestone.vibelock.workers.dev/
 - MirageGrid (public Worker): https://miragegrid.vibelock.workers.dev/
@@ -467,7 +472,7 @@ Unverified DOI landing pages are omitted. Listings stay in this machine file and
 - 1959 Jesse Tuddar Case – Applied Cover-Up Truth: https://www.azielcorpuslibrary.net/record/AZDOC-96ECF3CE2140
 - Lock, Figure, Judgement: A Reception Pattern in Compromised Certifying Offices: https://www.azielcorpuslibrary.net/record/AZDOC-E856D2592FD7
 - Cover-Up Truth Formula v2.0 – Full Blueprint: https://www.azielcorpuslibrary.net/record/AZDOC-C2B22EF9B23E
-- Aziel Interface — FINAL Custodial Operating Environment White Paper: https://www.azielcorpuslibrary.net/record/AZDOC-EB7454682E74
+- Aziel Interface — FINAL Custodial Operating Environment White Paper: https://www.azielcorpuslibrary.net/record/AZDOC-EB7454682E74 — AZ triad UI-software side: The AZInterface white paper.
 - TERM: Deciomite: https://www.azielcorpuslibrary.net/record/AZDOC-F05CD0B7E1F2
 - EmployeeLock v0 — EL-WP-0.1: https://www.azielcorpuslibrary.net/record/AZDOC-C36B6AF367F2
 - Historical Context Report: Eli Lilly in the Early 1980s – Biotechnology: https://www.azielcorpuslibrary.net/record/AZDOC-812940987B41

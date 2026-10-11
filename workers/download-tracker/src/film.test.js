@@ -50,6 +50,9 @@ test("film theater document is the front door only", () => {
   assert.equal(person.hasOccupation[0].name, "Digital rights activist");
   assert.match(person.disambiguatingDescription, /one living person/);
   assert.ok(person.workExample.some((work) => work.name.startsWith("Webslinger (")));
+  const triad = person.workExample.find((work) => work["@id"] === "https://www.azieleliab.com/#az-triad");
+  assert.equal(triad.hasPart.length, 3);
+  assert.deepEqual(triad.creator, { "@id": "https://www.azieleliab.com/#aziel" });
   assert.deepEqual(site.author, { "@id": "https://www.azieleliab.com/#aziel" });
   assert.deepEqual(site.creator, { "@id": "https://www.azieleliab.com/#aziel" });
   assert.doesNotMatch(body, /workExample|Digital rights activist|Webslinger/);

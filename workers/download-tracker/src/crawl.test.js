@@ -186,6 +186,14 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.ok(cite.pen_name_aka.includes("Elias Artista"));
   assert.ok(cite.misspelling_aka.includes("Aziell"));
   assert.ok(cite.works.some((work) => work.name.startsWith("Webslinger (")));
+  assert.equal(cite.az_triad["@id"], "https://www.azieleliab.com/#az-triad");
+  assert.equal(cite.az_triad.hasPart.length, 3);
+  assert.equal(
+    cite.works.find((work) => work.url === "https://github.com/AzielEliab/azinterface").isPartOf,
+    "https://www.azieleliab.com/#az-triad",
+  );
+  assert.match(llmsDoc(), /AZ triad \(https:\/\/www\.azieleliab\.com\/#az-triad\)/);
+  assert.doesNotMatch(cite.az_triad.description, /mesh-node|one-click|\blive\b/i);
   assert.ok(cite.works.some((work) => work.url.includes("AZDOC-E03E61D8E50B")));
   assert.ok(cite.works.length > cite.alternateName.length);
   assert.ok(cite.listings.some((item) => item.url.includes("glama.ai")));

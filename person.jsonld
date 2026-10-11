@@ -169,7 +169,10 @@
       "@type": "SoftwareSourceCode",
       "name": "aziel-runtime",
       "url": "https://github.com/AzielEliab/aziel-runtime",
-      "description": "Aziel Runtime by Aziel Eliab — FragGate MCP Softwares door. https://aziel-runtime.vibelock.workers.dev/ · OpenAPI+MCP · Glama · hubs azieleliab.com · corpus · godlock.uk · HDJ."
+      "description": "Aziel Runtime by Aziel Eliab — FragGate MCP Softwares door. https://aziel-runtime.vibelock.workers.dev/ · OpenAPI+MCP · Glama · hubs azieleliab.com · corpus · godlock.uk · HDJ. AZ triad MCP side: Aziel Runtime.",
+      "isPartOf": {
+        "@id": "https://www.azieleliab.com/#az-triad"
+      }
     },
     {
       "@type": "SoftwareSourceCode",
@@ -181,7 +184,10 @@
       "@type": "SoftwareSourceCode",
       "name": "azos",
       "url": "https://github.com/AzielEliab/azos",
-      "description": "AZ-OS + AZ Interface: local ethical overlay. Integrity precedes execution. Not a kernel. Forks welcome. Apache-2.0."
+      "description": "AZ-OS + AZ Interface: local ethical overlay. Integrity precedes execution. Not a kernel. Forks welcome. Apache-2.0. AZ triad operating-system side: AZ-OS, a local ethical overlay, not a kernel.",
+      "isPartOf": {
+        "@id": "https://www.azieleliab.com/#az-triad"
+      }
     },
     {
       "@type": "SoftwareSourceCode",
@@ -211,7 +217,10 @@
       "@type": "SoftwareApplication",
       "name": "Aziel Runtime (live Worker + public MCP endpoint)",
       "url": "https://aziel-runtime.vibelock.workers.dev/",
-      "description": "Aziel Runtime — node-meshed MCP Softwares suite"
+      "description": "Aziel Runtime — node-meshed MCP Softwares suite AZ triad MCP side: Aziel Runtime public endpoint.",
+      "isPartOf": {
+        "@id": "https://www.azieleliab.com/#az-triad"
+      }
     },
     {
       "@type": "SoftwareApplication",
@@ -488,6 +497,41 @@
       "name": "The ABAD Framework: A Reproducible Structural Method for Decryption of Undeciphered and Asemic Systems",
       "url": "https://www.azielcorpuslibrary.net/record/AZDOC-A4EA6FD35F99",
       "description": "Aziel Corpus Library record: The ABAD Framework: A Reproducible Structural Method for Decryption of Undeciphered and Asemic Systems"
+    },
+    {
+      "@type": "CreativeWork",
+      "@id": "https://www.azieleliab.com/#az-triad",
+      "name": "AZ triad: AZ-OS, Aziel Runtime, The AZInterface",
+      "description": "One system with three sides: the operating-system layer (AZ-OS), the MCP runtime (Aziel Runtime), and the UI software (The AZInterface). Design relationship only.",
+      "author": {
+        "@id": "https://www.azieleliab.com/#aziel"
+      },
+      "creator": {
+        "@id": "https://www.azieleliab.com/#aziel"
+      },
+      "hasPart": [
+        {
+          "@type": "SoftwareSourceCode",
+          "name": "AZ-OS",
+          "url": "https://github.com/AzielEliab/azos",
+          "applicationCategory": "operating-system side",
+          "description": "Operating-system side of the AZ triad. Local ethical overlay. Not a kernel."
+        },
+        {
+          "@type": "SoftwareSourceCode",
+          "name": "Aziel Runtime",
+          "url": "https://github.com/AzielEliab/aziel-runtime",
+          "applicationCategory": "MCP side",
+          "description": "MCP side of the AZ triad. https://github.com/AzielEliab/aziel-runtime. Public endpoint https://aziel-runtime.vibelock.workers.dev/. Glama https://glama.ai/mcp/servers/AzielEliab/aziel-runtime."
+        },
+        {
+          "@type": "SoftwareSourceCode",
+          "name": "The AZInterface",
+          "url": "https://github.com/AzielEliab/azinterface",
+          "applicationCategory": "UI-software side",
+          "description": "UI-software side of the AZ triad. White paper https://www.azielcorpuslibrary.net/record/AZDOC-EB7454682E74."
+        }
+      ]
     }
   ]
 }

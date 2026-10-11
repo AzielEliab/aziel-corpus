@@ -660,14 +660,14 @@ export function personNode(opts) {
       "@id": HUB_ORIGIN + "/#who-is-aziel-eliab",
     },
   };
-  if (opts && opts.works) node.workExample = curatedWorkNodes();
+  if (opts && opts.works) node.workExample = curatedWorkNodes({ triad: !!opts.triad });
   return node;
 }
 
 export function personJsonLd() {
   return {
     "@context": "https://schema.org",
-    ...personNode({ works: true }),
+    ...personNode({ works: true, triad: true }),
   };
 }
 
@@ -778,7 +778,7 @@ function statsTetherNode() {
 export function graphJsonLd() {
   return {
     "@context": "https://schema.org",
-    "@graph": [personNode({ works: true }), faqNode(), websiteNode(), aboutPageNode(), libraryRoleNode(), statsTetherNode()],
+    "@graph": [personNode({ works: true, triad: true }), faqNode(), websiteNode(), aboutPageNode(), libraryRoleNode(), statsTetherNode()],
   };
 }
 
