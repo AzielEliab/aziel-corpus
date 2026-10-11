@@ -2,7 +2,7 @@
  * Hosted Whisper transcription, VibeLock advisory, and media lattice ledger.
  * Author: Aziel Eliab.
  *
- * Every OCR run and every transcript run appends an immutable hash-chained
+ * Every OCR run and every transcript run appends an append-only hash-chained
  * lattice entry (even when the user does not upload to the library).
  * VibeLock is advisory only — not courtroom proof.
  */
@@ -618,7 +618,7 @@ export async function receiptForMediaRun(env, runId) {
     record_id: row.record_id,
     error: row.error,
     created_utc: row.created_utc,
-    immutable: true,
+    append_only: true,
     receipt_url: "/receipt/" + row.run_id,
     ledger_url: "/ledger/" + row.run_id,
     media_url: row.error === "AV_BLOCKED" ? null : (row.content_sha256 ? "/media/" + row.content_sha256 : null),

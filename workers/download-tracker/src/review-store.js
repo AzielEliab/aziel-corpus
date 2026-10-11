@@ -289,7 +289,8 @@ export async function persistReview(env, { recordId, library, sha256, title, cre
       sha256,
       status: qStatus,
       markers: review.poison && review.poison.markers,
-      immutable: true,
+      // New entries only: older POISON_QUARANTINE entries keep their original "immutable" field inside their hashed payload (not rewritten).
+      append_only: true,
       never_delete: true,
     });
     try {

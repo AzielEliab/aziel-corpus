@@ -324,7 +324,7 @@ export function receiptsDataset(tip) {
     "@type": "Dataset",
     name: "ACT-RECEIPT-1.0 public action receipts",
     url: CANON_HOST + RECEIPTS_PATH,
-    description: "Immutable public action receipts on Aziel Digital Library. Four fields only. Author Aziel Eliab.",
+    description: "Hash-linked, append-only public action receipts on Aziel Digital Library. Four fields only. Author Aziel Eliab.",
     creator: { "@id": HUB_PERSON_ID },
     author: { "@id": HUB_PERSON_ID },
     license: "https://www.apache.org/licenses/LICENSE-2.0",

@@ -594,7 +594,7 @@ export async function receiptForJsonMetadata(env, anyId) {
     content_sha256: row.content_sha256 || null,
     metadata_sha256: (meta && meta.metadata_sha256) || null,
     created_utc: row.created_utc,
-    immutable: true,
+    append_only: true,
     lattice_tip: tip,
     paper_chain_tip: row.chain_tip || null,
     paper_chain_sequence: row.chain_sequence != null ? row.chain_sequence : null,

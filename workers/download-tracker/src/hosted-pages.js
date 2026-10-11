@@ -450,7 +450,7 @@ export function receiptBody(payload) {
   const textHtml = text
     ? "<div class=\"card\"><h3>Transcript / extracted text</h3><pre class=\"verify\">" + esc(text) + "</pre></div>"
     : "";
-  return "<section class=\"hero\"><h1>Lattice receipt</h1><p class=\"muted\">Immutable hash-chained entry. JSON also at <a href=\"/receipt/" + esc(id) + "\">/receipt/" + esc(id) + "</a> and <a href=\"/ledger/" + esc(id) + "\">/ledger/" + esc(id) + "</a>.</p></section>"
+  return "<section class=\"hero\"><h1>Lattice receipt</h1><p class=\"muted\">Hash-linked, append-only entry. JSON also at <a href=\"/receipt/" + esc(id) + "\">/receipt/" + esc(id) + "</a> and <a href=\"/ledger/" + esc(id) + "\">/ledger/" + esc(id) + "</a>.</p></section>"
     + "<div class=\"card\"><p><b>Kind</b> " + esc(kind) + "</p><p><b>Id</b> " + esc(id) + "</p>"
     + (sha ? "<p class=\"meta\">SHA-256 " + esc(sha) + "</p>" : "")
     + (r.entry_hash ? "<p class=\"meta\">Entry " + esc(r.entry_hash) + "</p>" : "")
