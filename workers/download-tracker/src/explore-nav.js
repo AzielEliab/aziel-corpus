@@ -20,6 +20,7 @@ export const EXPLORE_LINKS = Object.freeze([
   Object.freeze({ href: "/historical", label: "Historical" }),
   Object.freeze({ href: "/forensics", label: "Forensics" }),
   Object.freeze({ href: "/receipts", label: "Receipts" }),
+  Object.freeze({ href: "/witness", label: "Witness" }),
 ]);
 
 export function exploreRowHtml(current = "") {
