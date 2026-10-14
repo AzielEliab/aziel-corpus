@@ -36,6 +36,7 @@ import {
 import { enforceRateLimit, rememberCatalog, isSeoBot } from "./rate-limit.js";
 import { handleDonate, DONATE_PATH } from "./donate.js";
 import { handleDonateQr, isDonateQrPath } from "./donate-qr.js";
+import { handleWitness, isWitnessPath } from "./witness.js";
 import { handleReceipts, isReceiptsPath } from "./action-receipts.js";
 import { locksetFile } from "./ingest-receipt.js";
 import { isShelvesPath, shelvesDoc } from "./cold-shelf.js";
@@ -525,6 +526,9 @@ async function handleFetch(request, env, ctx) {
     }
     if (earlyPath === DONATE_PATH && isReadMethod(request.method)) {
       return handleDonate(request);
+    }
+    if (isWitnessPath(earlyPath) && isReadMethod(request.method)) {
+      return handleWitness(request, env, ctx);
     }
     if (isReceiptsPath(earlyPath) && (isReadMethod(request.method) || request.method === "POST")) {
       return handleReceipts(request, env);
