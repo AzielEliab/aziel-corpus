@@ -100,3 +100,29 @@ test("ET time, routes, nav chip", () => {
   assert.ok(isWitnessPath("/witness") && isWitnessPath("/witness.json") && !isWitnessPath("/witnesses"));
   assert.ok(EXPLORE_LINKS.some((l) => l.href === "/witness" && l.label === "Witness"));
 });
+
+test("endless stream is cancelled at the byte cap", async () => {
+  let pulled = 0, cancelled = false;
+  const chunk = new Uint8Array(64 * 1024).fill(0x61);
+  const body = new ReadableStream({ pull(c) { pulled++; c.enqueue(chunk); }, cancel() { cancelled = true; } });
+  await assert.rejects(loadLog({ fetchImpl: async () => new Response(body, { status: 200 }), cache: null }), (e) => e.kind === "unreadable");
+  assert.equal(cancelled, true);
+  assert.ok(pulled * chunk.byteLength <= 4 * 1024 * 1024 + 3 * chunk.byteLength);
+});
+
+test("cap counts bytes, not characters", async () => {
+  const { readCapped } = await import("./witness.js");
+  const text = "\u00e9".repeat(600); // 600 chars, 1200 bytes
+  await assert.rejects(readCapped(new Response(text), 1000), (e) => e.kind === "unreadable");
+  assert.equal(await readCapped(new Response(text), 1200), text);
+});
+
+test("Sigstore link only on passed records; tail limit stated", async () => {
+  const L = lines(); const row = JSON.parse(L[0]); row.sig = row.sig.slice(0, -2) + "AA"; L[0] = JSON.stringify(row);
+  const r = await checkLog(L.join("\n"));
+  const html = witnessBody(r, { fetched_at: new Date().toISOString() });
+  const n1 = html.slice(html.indexOf('id="n1"'));
+  assert.doesNotMatch(n1, /search\.sigstore\.dev/);
+  assert.match(html.slice(html.indexOf('id="n2"'), html.indexOf('id="n1"')), /search\.sigstore\.dev/);
+  assert.match(html, /cannot tell/);
+});

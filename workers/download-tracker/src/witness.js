@@ -128,16 +128,13 @@ export async function loadLog({ fetchImpl = fetch, cache = (typeof caches !== "u
   }
   let res;
   try {
-    res = await fetchImpl(WITNESS_LOG_URL, { headers: { "user-agent": "aziel-corpus-witness-tab" }, redirect: "manual", cf: { cacheTtl: CACHE_TTL_S } });
+    res = await fetchImpl(WITNESS_LOG_URL, { headers: { "user-agent": "aziel-corpus-witness-tab" }, redirect: "manual" });
   } catch (e) {
     throw Object.assign(new Error("log fetch failed: " + (e && e.message)), { kind: "unreadable" });
   }
   if (res.status === 429 || res.status === 403) throw Object.assign(new Error("log host limit " + res.status), { kind: "limit", retryAfter: Number(res.headers.get("retry-after")) || 300 });
   if (res.status !== 200) throw Object.assign(new Error("log host answered " + res.status), { kind: "unreadable" });
-  const len = Number(res.headers.get("content-length") || 0);
-  if (len > MAX_LOG_BYTES) throw Object.assign(new Error("log too large"), { kind: "unreadable" });
-  const text = await res.text();
-  if (text.length > MAX_LOG_BYTES) throw Object.assign(new Error("log too large"), { kind: "unreadable" });
+  const text = await readCapped(res, MAX_LOG_BYTES);
   const fetched_at = new Date().toISOString();
   if (cache) {
     const put = cache.put(CACHE_KEY, new Response(text, { headers: { "cache-control": `public, max-age=${CACHE_TTL_S}`, "x-fetched-at": fetched_at } })).catch(() => {});
@@ -145,6 +142,35 @@ export async function loadLog({ fetchImpl = fetch, cache = (typeof caches !== "u
   }
   return { text, fetched_at, cached: false };
 }
+
+/** Stream the body, counting bytes; cancel and fail closed once it passes max. */
+export async function readCapped(res, max = MAX_LOG_BYTES) {
+  const len = Number(res.headers.get("content-length") || 0);
+  if (len > max) {
+    try { if (res.body) await res.body.cancel(); } catch {}
+    throw Object.assign(new Error("log too large"), { kind: "unreadable" });
+  }
+  if (!res.body) return "";
+  const reader = res.body.getReader();
+  const chunks = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > max) {
+      try { await reader.cancel(); } catch {}
+      throw Object.assign(new Error("log too large"), { kind: "unreadable" });
+    }
+    chunks.push(value);
+  }
+  const all = new Uint8Array(total);
+  let off = 0;
+  for (const c of chunks) { all.set(c, off); off += c.byteLength; }
+  return new TextDecoder("utf-8", { fatal: true }).decode(all);
+}
+
+const TAIL_LIMIT = "Limit: if the newest records were cut off the end of the log, this page cannot tell. Spotting that needs an outside record of the newest head.";
 
 function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -159,7 +185,7 @@ export function etTime(iso) {
 const ONE_WITNESS = "Only one witness exists. A second witness is not set up, so nothing here is confirmed by two witnesses.";
 
 export function witnessBody(result, { fetched_at, error } = {}) {
-  const head = `<h1>Witness</h1><p class="lede">An outside log in <a href="${WITNESS_REPO_URL}">aziel-anchors</a> records the runtime's chain heads every so often and signs each record. This page reads that log and re-checks every signature here. New records show up within about a minute.</p><p><strong>${ONE_WITNESS}</strong></p>`;
+  const head = `<h1>Witness</h1><p class="lede">An outside log in <a href="${WITNESS_REPO_URL}">aziel-anchors</a> records the runtime's chain heads every so often and signs each record. This page reads that log and re-checks every signature here. New records show up within about a minute.</p><p><strong>${ONE_WITNESS}</strong></p><p>${TAIL_LIMIT}</p>`;
   if (error) {
     const msg = error.kind === "limit" ? "The log host is busy. Try again later." : "The witness log could not be read right now, so nothing here is checked. Try again later.";
     return `${head}<div class="card"><p><strong>${esc(msg)}</strong></p></div>`;
@@ -176,7 +202,7 @@ export function witnessBody(result, { fetched_at, error } = {}) {
 <p><strong>${e.ok ? "Passed every check." : "Failed: " + esc(e.problem)}</strong> ${esc(sig)}</p>
 <ul>${heads || "<li>No chain heads.</li>"}</ul>
 <p>Record hash <code>${esc(e.statement_hash)}</code><br>Previous <code>${esc(e.prev)}</code></p>
-${e.rekor ? `<p><a href="${esc(e.rekor)}">Public log entry (Sigstore)</a></p>` : ""}</div>`;
+${e.ok && e.rekor ? `<p><a href="${esc(e.rekor)}">Public log entry (Sigstore)</a></p>` : ""}</div>`;
   }).join("\n");
   const poll = `<script>(function(){var c=${Number(result.count)};setInterval(function(){fetch("${WITNESS_JSON_PATH}").then(function(r){return r.ok?r.json():null}).then(function(j){if(j&&typeof j.count==="number"&&j.count!==c)location.reload()}).catch(function(){})},60000)})();</script>`;
   return `${head}<div class="card"><p><strong>${esc(status)}</strong></p><p>Log read ${esc(etTime(fetched_at))}. Newest first.</p></div>\n${rows}${poll}`;
