@@ -51,6 +51,29 @@ export const TRADES_RUNTIME_ONE_LINE =
   + "Operators bring their own ServiceTitan + ProBooks. Human authority wins. "
   + "live_backends: false.";
 
+/**
+ * Local package capabilities (trades-runtime main, PRs #46-#54). All local; not tested against a live tenant.
+ * Mirrors workers/giveaway/src/local-catalog.ts in the trades-runtime repo.
+ */
+export const TRADES_RUNTIME_LIVE_PULL_PLATFORMS = Object.freeze([
+  "Jobber", "Housecall Pro", "Square", "QuickBooks Online", "Service Fusion", "Workiz",
+  "ServiceTrade", "FieldPulse", "Kickserv", "ServiceM8", "Simpro", "Commusoft",
+]);
+export const TRADES_RUNTIME_FILE_DROP_PLATFORMS = Object.freeze(["FieldEdge", "Successware", "BuildOps", "mHelpDesk", "Wintac"]);
+export const TRADES_RUNTIME_MODULES = Object.freeze([
+  "refrigerant-log", "permits-board", "agreements-board", "warranty-claims", "truck-stock-tomorrow", "callback-root-cause",
+]);
+export const TRADES_RUNTIME_CAPABILITIES =
+  "Local package (runs on the shop's machine, not on the Worker): "
+  + (TRADES_RUNTIME_LIVE_PULL_PLATFORMS.length + TRADES_RUNTIME_FILE_DROP_PLATFORMS.length) + " platform inbound connectors besides ServiceTitan and ProBooks. "
+  + TRADES_RUNTIME_LIVE_PULL_PLATFORMS.length + " offer file drop plus an optional read-only live pull from the vendor's documented API with the shop's own token (" + TRADES_RUNTIME_LIVE_PULL_PLATFORMS.join(", ") + "); "
+  + TRADES_RUNTIME_FILE_DROP_PLATFORMS.length + " are file drop only (" + TRADES_RUNTIME_FILE_DROP_PLATFORMS.join(", ") + "). "
+  + "Each connector carries a mapping confidence (documented, partial, or guessed). "
+  + "Six local modules: " + TRADES_RUNTIME_MODULES.join(", ") + ". "
+  + "Shop exports are user-supplied: each shop drops its own CSV or JSON export, checks it with npm run mapping:check, and can add a local, gitignored mapping override; guessed mappings are confirmed by the shop's own export. "
+  + "Writes go through an approval gate that is off by default with a yes/no on every call; with no backend configured they return no-backend-configured. "
+  + "Not tested against a live tenant. live_backends false.";
+
 export const TRADES_RUNTIME_DUAL_SURFACE =
   "Dual surface: agent chat has no technical UI chrome; Worker / local install / counted download stay complete human software.";
 
@@ -60,6 +83,7 @@ export const TRADES_RUNTIME_NOTE =
   + "Library MCP stays corpus-search; this product hosts its own read-only MCP (health, stats, cite, skill). "
   + "GitHub Pages stay off. Humans use the giveaway Worker UI on the VibeLock host (browser / PWA) without downloading first. Agents use OpenAPI and MCP. The optional counted pack is GET /download (trades-runtime-" + TRADES_RUNTIME_VERSION + ".tgz). "
   + "Local CLI common commands: help, softwares, version, health. "
+  + TRADES_RUNTIME_CAPABILITIES + " "
   + "Honesty locks: live_backends false; pilot_started false; field_claim false; hosted_company_os false. "
   + "Public Glama MCP listing stays ~0.3.4 / Latest pre-0.4.4 parked. "
   + "FragGate door none. software_tab false. fraggate_call does not execute trades-runtime. "
@@ -119,6 +143,7 @@ export const TRADES_RUNTIME_SOFTWARE_EXTRA = Object.freeze({
   pages: "off",
   product_label: TRADES_RUNTIME_PRODUCT_LABEL,
   one_line: TRADES_RUNTIME_ONE_LINE,
+  capabilities: TRADES_RUNTIME_CAPABILITIES,
 });
 
 export const TRADES_RUNTIME = Object.freeze({
@@ -169,6 +194,15 @@ export const TRADES_RUNTIME = Object.freeze({
   author: AUTHOR,
   identity: AUTHOR,
   note: TRADES_RUNTIME_NOTE,
+  capabilities: TRADES_RUNTIME_CAPABILITIES,
+  platform_connectors: Object.freeze({
+    live_pull_and_file_drop: TRADES_RUNTIME_LIVE_PULL_PLATFORMS.slice(),
+    file_drop_only: TRADES_RUNTIME_FILE_DROP_PLATFORMS.slice(),
+  }),
+  modules: TRADES_RUNTIME_MODULES.slice(),
+  user_supplied_exports: true,
+  writes: "approval-gated, default off; no-backend-configured when no backend exists",
+  live_tenant_tested: false,
   how_to_cite:
     "Eliab, Aziel. (2026). Trades-Runtime " + TRADES_RUNTIME_VERSION + " [Software]. Apache-2.0. "
     + TRADES_RUNTIME_GITHUB + " · " + TRADES_RUNTIME_WORKER_HOME,
@@ -182,6 +216,7 @@ export function tradesRuntimeLlmsBlock(host = HOST) {
     TRADES_RUNTIME_ONE_LINE,
     TRADES_RUNTIME_DUAL_SURFACE,
     "GitHub Pages off. Humans use the giveaway Worker UI on the VibeLock host (browser / PWA) without downloading first. Agents use OpenAPI and MCP. The optional counted pack is GET /download (trades-runtime-" + TRADES_RUNTIME_VERSION + ".tgz). Local CLI common commands: help, softwares, version, health. Counters live at /v1/stats.",
+    TRADES_RUNTIME_CAPABILITIES,
     "Honesty locks: live_backends false; pilot_started false; field_claim false; hosted_company_os false.",
     "Public Glama MCP listing stays ~0.3.4 / Latest pre-0.4.4 parked.",
     "FragGate door none. software_tab false. fraggate_call does not execute trades-runtime.",
@@ -215,6 +250,9 @@ export function tradesRuntimeCiteFields(host = HOST) {
       version: TRADES_RUNTIME_VERSION,
       product_label: TRADES_RUNTIME_PRODUCT_LABEL,
       description: TRADES_RUNTIME_ONE_LINE,
+      capabilities: TRADES_RUNTIME_CAPABILITIES,
+      modules: TRADES_RUNTIME_MODULES.slice(),
+      live_tenant_tested: false,
       github: TRADES_RUNTIME_GITHUB,
       download: TRADES_RUNTIME_DOWNLOAD,
       mcp: TRADES_RUNTIME_MCP,
