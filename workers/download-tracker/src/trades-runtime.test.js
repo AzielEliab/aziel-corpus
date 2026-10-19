@@ -355,3 +355,20 @@ test("library MCP cites the trades-runtime host and does not add ST write tools"
     "aziel-corpus_receipt",
   ]);
 });
+
+test("Trades-Runtime cite describes local connectors, modules, user exports, and gated writes honestly", async () => {
+  const { TRADES_RUNTIME_CAPABILITIES, TRADES_RUNTIME_LIVE_PULL_PLATFORMS, TRADES_RUNTIME_FILE_DROP_PLATFORMS, TRADES_RUNTIME_MODULES } = await import("./trades-runtime.js");
+  assert.equal(TRADES_RUNTIME_LIVE_PULL_PLATFORMS.length + TRADES_RUNTIME_FILE_DROP_PLATFORMS.length, 17);
+  assert.equal(TRADES_RUNTIME_MODULES.length, 6);
+  assert.match(TRADES_RUNTIME_CAPABILITIES, /not on the Worker/);
+  assert.match(TRADES_RUNTIME_CAPABILITIES, /Not tested against a live tenant\. live_backends false\./);
+  assert.match(TRADES_RUNTIME_CAPABILITIES, /approval gate that is off by default/);
+  assert.match(TRADES_RUNTIME_CAPABILITIES, /user-supplied/);
+  assert.match(TRADES_RUNTIME.note, /mapping:check/);
+  assert.equal(TRADES_RUNTIME.live_backends, false);
+  assert.equal(TRADES_RUNTIME.live_tenant_tested, false);
+  assert.equal(TRADES_RUNTIME_SOFTWARE_EXTRA.capabilities, TRADES_RUNTIME_CAPABILITIES);
+  assert.match(tradesRuntimeLlmsBlock(HOST), /12 offer file drop plus an optional read-only live pull/);
+  assert.equal(tradesRuntimeCiteFields(HOST).products_trades_runtime.live_tenant_tested, false);
+  assert.doesNotMatch(TRADES_RUNTIME_CAPABILITIES, /pilot started|accuracy|hosted OS|one-click/i);
+});
