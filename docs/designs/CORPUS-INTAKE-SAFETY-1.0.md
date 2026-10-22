@@ -162,7 +162,7 @@ Everything is off by default or fails closed.
 - `INTAKE_SALT`: **required** Worker secret (`wrangler secret put INTAKE_SALT`), at least 16 random characters. There is no fallback. The old public default is rejected. Without a usable salt every intake is refused `INTAKE-NOT-READY` (503), because a public salt would make IP hashes reversible.
 - `INTAKE_RATE_*`: optional overrides.
 - `INTAKE_MEDIA_SCAN_GATE`: inert while the code lock is false.
-- Screening budget (`src/intake-budget.js`, constants, no env override): a file over `MAX_SCREEN_BYTES` = **6 MiB**, or typed fields (title + body + texts, UTF-8) over 6 MiB, refuse in `readable`; more than `MAX_SCREEN_CHARS` = **2 Mi characters** of text to screen (fields plus all text taken out of the file) refuses in `text`, before any view is built. Both refuse `INTAKE-TOO-LARGE` (413). The 25 MiB transport ceiling (`INTAKE-UNREADABLE`, 413) is unchanged. See "Screening budget" below.
+- Screening budget (`src/intake-budget.js`, constants, no env override): a file over `MAX_SCREEN_BYTES` = **6 MiB**, or typed fields (title + body + texts, UTF-8) over 6 MiB, refuse in `readable`; more than `MAX_SCREEN_CHARS` = **2 Mi characters** of text to screen (fields plus all text taken out of the file) refuses in `text`. For a PDF the budget is enforced while the file is read, before the next view or regex is built (see "Screening budget" below). Both refuse `INTAKE-TOO-LARGE` (413). The 25 MiB transport ceiling (`INTAKE-UNREADABLE`, 413) is unchanged. See "Screening budget" below.
 - Future: `PHOTODNA_SUBSCRIPTION_KEY`, `CLASSIFIER_PROVIDER` plus key, an `AI` binding (second opinion only), `FRAME_EXTRACTOR_URL`.
 
 ### Screening budget
@@ -189,7 +189,16 @@ With the budget:
 | 3 MiB body field (under 6 MiB, over 2 Mi chars) | `INTAKE-TOO-LARGE` 413 (`text`) | 1.1 s (media floor runs first) |
 | small PDF holding 3 Mi characters of text | `INTAKE-TOO-LARGE` 413 (`text`) | 0.4 s (inflate + extract only) |
 
-The worst case under the budget is about 7.5 s, a quarter of the CPU limit. A normal 6 MiB paper passes: in a text-first corpus most of a large PDF is fonts and structure, not text. A paper with more than 2 Mi characters of text (about 350,000 words) is refused, not screened in part. Raising the budget needs memory work in the text checks first (fewer whole-text copies), not just a larger `cpu_ms` (open item 13).
+How the char budget is counted and enforced:
+
+- Typed fields are counted first; a PDF is then read with what is left (`fileTexts(file, { maxChars })`).
+- PDF: each literal or `<hex>` string is charged as it is decoded; one bigger than what is left refuses before it is decoded or tokenized. The glued TJ view and the CID/ToUnicode "shown" view are charged too, because each is screened in full: counting the source once let a 2 Mi TJ-array PDF (spaced + glued about 4 Mi) run a 128 MB heap out of memory. Inflate output is capped at the char budget (it was 32 MiB): text-bearing streams share it, a font program may use the whole budget on its own, and an inflate overflow (`pdfDecodeStream(..., info)` sets `info.tooLarge`) refuses `INTAKE-TOO-LARGE`, not `INTAKE-UNDECODABLE`. Real papers checked here inflate at most 0.67 MiB of text-bearing streams.
+- Text and Office/XML parts are counted as stored, markup included, because the raw XML is screened. So the effective docx limit is the XML size, not the visible text: a Word document.xml has several times its visible text in markup. Counting only visible text is not safe yet: a 6 MB document.xml (about 0.6 Mi visible chars) ran a 128 MB heap out of memory. That needs the memory work below.
+- Fail-closed caps (PR "fail-closed caps"): no decoded-run cap (every base64/hex run is decoded), and the PDF parser caps (20,000 literals, 40,000 hex strings, 2,000,000 content tokens, 200,000 objects) refuse `INTAKE-UNDECODABLE` when reached, never truncate.
+
+Bombs (small PDFs that inflate to 31 MiB), full gate at a 128 MB heap: one 31 MiB `(ab ...) Tj`, 31 streams of 1 MiB, `(a) Tj` × 31 MiB and 31 MiB of prose all refuse `INTAKE-TOO-LARGE` in about 0.6 s, no OOM (before: a RangeError in the content tokenizer, or a pass after 96 s for the 31-stream file).
+
+Worst case under the budget (AZBot, review box, full gate, just under 2 Mi chars): 7.8-8.8 s wall and 9.5-10.6 s CPU; runs out of memory at a 64 MB heap and passes at 96 MB. By shape, wall/CPU s: `ab` 8.2/9.9, `ab` in the body field 8.8/10.6, space-separated hex 8.4/10.3, percent-encoding 7.8/9.5. PDFs just under the budget measured here at 128 MB: one `(ab ...)` literal 8.3/9.9 (9.2/11.0 at 96 MB, OOM at 64 MB), unfiltered 8.2/9.7, prose 4.9/5.7. That is about a third of the CPU limit. A normal 6 MiB paper passes: in a text-first corpus most of a large PDF is fonts and structure, not text. A paper with more than 2 Mi characters of text (about 350,000 words) is refused, not screened in part. Raising the budget needs memory work in the text checks first (fewer whole-text copies), not just a larger `cpu_ms` (open item 13).
 
 ## 9. Tests
 

@@ -657,7 +657,7 @@ function pdfStreams(u8) {
  * both layers read the same bytes.
  */
 const PDF_FILTERS = new Set(["/FlateDecode", "/Fl", "/ASCII85Decode", "/A85", "/ASCIIHexDecode", "/AHx"]);
-export function pdfDecodeStream(st, maxInflate = 32 * 1024 * 1024) {
+export function pdfDecodeStream(st, maxInflate = 32 * 1024 * 1024, info = null) {
   if (!st || !st.bytes) return null;
   const filterOf = (d) => (pdfStripComments(pdfDecodeNames(d)).match(/\/Filter[\s\0]*(\[[^\]]*\]|\/[^\s\0/\[\]<>()%]+)/) || [])[1] || "";
   const filters = filterOf(st.dict);
@@ -696,9 +696,11 @@ export function pdfDecodeStream(st, maxInflate = 32 * 1024 * 1024) {
         const out = inflateSync(raw, { maxOutputLength: maxInflate });
         data = out instanceof Uint8Array ? out : new Uint8Array(out);
       }
-      if (data.length > maxInflate) return null;
+      if (data.length > maxInflate) { if (info) info.tooLarge = true; return null; }
     }
-  } catch {
+  } catch (e) {
+    // info.tooLarge: the stream inflates past maxInflate (the caller may refuse as too large).
+    if (info && e && e.code === "ERR_BUFFER_TOO_LARGE") info.tooLarge = true;
     return null;
   }
   return data;

@@ -394,7 +394,7 @@ const XML_PART = /\.(xml|rels|opf|ncx|vml|xsl|xslt)$/i;
  * { undecodable: true } when bytes that must be text cannot be decoded confidently
  * (UTF-16 is decoded as UTF-16, never as UTF-8) — the caller refuses (fail closed).
  */
-export async function fileTexts(file) {
+export async function fileTexts(file, { maxChars = MAX_SCREEN_CHARS } = {}) {
   if (!file || !(file.bytes instanceof Uint8Array)) return { parts: [] };
   const u8 = file.bytes;
   const head = sniffMagic(u8);
@@ -403,7 +403,7 @@ export async function fileTexts(file) {
     if (!d.ok) return { parts: [], undecodable: true };
     return { parts: [{ text: d.text, kind: XML_PART.test(String(file.name || "")) ? "xml" : "html" }] };
   }
-  if (head.kind === "pdf") return pdfTexts(u8);
+  if (head.kind === "pdf") return pdfTexts(u8, maxChars);
   if (head.kind === "zip") {
     const listed = listZipEntries(u8);
     if (!listed.ok) return { parts: [], undecodable: true };
@@ -517,6 +517,9 @@ export const PDF_CAPS = Object.freeze({ LITERALS: 20000, STRINGS: 40000, TOKENS:
 export class PdfCapError extends Error {
   constructor(cap) { super("pdf cap " + cap); this.cap = cap; }
 }
+// The screening char budget, enforced while the PDF is read (AZBot review of #192):
+// over it -> INTAKE-TOO-LARGE, before the next view or regex is built.
+class PdfBudgetError extends Error {}
 /**
  * Text shown by content streams, decoded through each font's ToUnicode CMap.
  * objects: Map(objnum -> { dict, data? }) for plain and object-stream objects.
@@ -581,7 +584,7 @@ function pdfShownText(objects, contents) {
 }
 
 /** Literal strings with nesting and escapes, as { at, end, text }. */
-function pdfLiterals(latin, cap) {
+function pdfLiterals(latin, cap, charge = null) {
   const out = [];
   let i = latin.indexOf("(");
   while (i >= 0) {
@@ -595,7 +598,10 @@ function pdfLiterals(latin, cap) {
       else if (ch === ")") depth--;
     }
     if (depth) break;
-    out.push({ at: i, end: j, text: pdfStringText(pdfLiteralBytes(latin.slice(i + 1, j - 1))) });
+    if (charge) charge.check(j - i - 2); // a literal bigger than the budget: refuse before decoding it
+    const text = pdfStringText(pdfLiteralBytes(latin.slice(i + 1, j - 1)));
+    if (charge) charge(text.length);
+    out.push({ at: i, end: j, text });
     i = latin.indexOf("(", j);
   }
   return out;
@@ -605,16 +611,19 @@ function pdfLiterals(latin, cap) {
  * joined by spaces, and TJ arrays glued (small kerning gaps join, large ones are a
  * space) so "[(ig) -20 (nore)] TJ" reads as "ignore".
  */
-function pdfStringsOf(latin) {
-  const lits = pdfLiterals(latin, PDF_CAPS.LITERALS);
+function pdfStringsOf(latin, charge = null) {
+  const lits = pdfLiterals(latin, PDF_CAPS.LITERALS, charge);
   const spaced = lits.map((l) => l.text);
   const hx = /<([0-9a-fA-F\s]+)>/g; // was {4,} (stack overflow on a huge run); the run is maximal, so filter
   let m;
   while ((m = hx.exec(latin))) {
     if (m[1].length < 4) continue;
     if (spaced.length >= PDF_CAPS.STRINGS) throw new PdfCapError("STRINGS");
+    if (charge) charge.check(m[1].length >> 1);
     const h = m[1].replace(/\s+/g, "");
-    spaced.push(pdfStringText(Buffer.from(h.slice(0, h.length - (h.length % 2)), "hex")));
+    const t = pdfStringText(Buffer.from(h.slice(0, h.length - (h.length % 2)), "hex"));
+    if (charge) charge(t.length);
+    spaced.push(t);
   }
   const glued = [];
   const litAt = new Map(lits.map((l, idx) => [l.at, idx]));
@@ -641,27 +650,43 @@ function pdfStringsOf(latin) {
 const FONT_PROGRAM = /\/(FontFile[23]?|Length1|Length2|Length3)\b|\/Subtype\s*\/(Type1C|CIDFontType0C|OpenType)\b/;
 const pdfNames = (d) => String(d || "").replace(/#([0-9A-Fa-f]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16))).replace(/%[^\r\n]*/g, " ");
 const SHOWS_TEXT = /\bBT\b[\s\S]{0,4096}?(\bT[jJ]\b|\)\s*['"])/;
-function pdfTexts(u8) {
-  try { return pdfTextsCapped(u8); } catch (e) {
+function pdfTexts(u8, maxChars = MAX_SCREEN_CHARS) {
+  try { return pdfTextsCapped(u8, maxChars); } catch (e) {
     if (e instanceof PdfCapError) return { parts: [], undecodable: true, cap: e.cap };
+    if (e instanceof PdfBudgetError) return { parts: [], tooLarge: true };
     throw e;
   }
 }
-function pdfTextsCapped(u8) {
+/**
+ * The char budget is charged as the PDF is read: each string as it is decoded (the
+ * spaced view), then the glued and shown views, so it refuses before the next view or
+ * regex is built. The views are charged too because every one is screened: counting
+ * the source once let a 2 Mi TJ-array PDF (spaced + glued ~4 Mi) exhaust a 128 MB heap.
+ * Inflate output is capped at the char budget too (it was 32 MiB: a 32 KB PDF could
+ * inflate to 31 MiB and exhaust the heap before any count).
+ */
+function pdfTextsCapped(u8, maxChars) {
   const { text, streams } = pdfStreams(u8);
   const parts = [];
   const objects = new Map();
   const decoded = [];
+  let chars = 0;
+  const charge = (n) => { chars += n; if (chars > maxChars) throw new PdfBudgetError(); };
+  charge.check = (n) => { if (n > maxChars - chars) throw new PdfBudgetError(); };
   const add = (latin) => {
-    const { spaced, glued } = pdfStringsOf(latin);
+    const { spaced, glued } = pdfStringsOf(latin, charge);
     if (spaced.trim()) parts.push({ text: spaced, kind: "pdf" });
-    if (glued && glued.trim()) parts.push({ text: glued, kind: "pdf" });
+    if (glued && glued.trim()) { charge(glued.length); parts.push({ text: glued, kind: "pdf" }); }
   };
   add(text);
-  let budget = 32 * 1024 * 1024;
+  let inflated = 0;
   for (const st of streams) {
-    if (budget <= 0) return { parts, undecodable: true };
-    const data = pdfDecodeStream(st, budget);
+    const info = {};
+    const font = FONT_PROGRAM.test(pdfNames(st.dict));
+    // Text-bearing streams share the char budget; a font program (not text) may use
+    // the whole budget on its own.
+    const data = pdfDecodeStream(st, font ? maxChars : Math.max(0, maxChars - inflated), info);
+    if (!data && info.tooLarge) throw new PdfBudgetError();
     // The media floor refuses unreadable streams first; refuse here too (fail closed).
     if (!data) return { parts, undecodable: true };
     decoded.push({ st, data });
@@ -669,8 +694,9 @@ function pdfTextsCapped(u8) {
     // Font programs are glyph outlines, not text a reader sees (the media floor still
     // scans them); their bytes would read as garbage "strings" and score as spam. A
     // stream that shows text (BT ... Tj/TJ) is read whatever its dict claims.
-    if (FONT_PROGRAM.test(pdfNames(st.dict)) && !SHOWS_TEXT.test(Buffer.from(data).toString("latin1"))) continue;
-    budget -= data.length;
+    if (font && !SHOWS_TEXT.test(Buffer.from(data).toString("latin1"))) continue;
+    inflated += data.length;
+    if (inflated > maxChars) throw new PdfBudgetError();
     add(Buffer.from(data).toString("latin1"));
   }
   // Objects (plain and inside object streams), so fonts can be tied to ToUnicode maps.
@@ -699,8 +725,8 @@ function pdfTextsCapped(u8) {
   }
   const contents = decoded.filter(({ data }) => data.length && !looksBinaryish(data)).map(({ data }) => Buffer.from(data).toString("latin1")).filter((c) => /\bTf\b/.test(c) && /\bBT\b/.test(c));
   const shown = pdfShownText(objects, contents);
-  if (shown.trim()) parts.push({ text: shown, kind: "pdf" });
-  return { parts };
+  if (shown.trim()) { charge(shown.length); parts.push({ text: shown, kind: "pdf" }); }
+  return { parts, screenedChars: chars };
 }
 function looksBinaryish(d) {
   const n = Math.min(d.length, 512);
@@ -733,14 +759,20 @@ function compactInjectionHit(text) { return COMPACT_INJECTION.test(normalizeForM
 export const textChecks = {
   name: "text",
   async run(ctx) {
-    const fx = await fileTexts(ctx.file);
-    if (fx.undecodable) return { code: TEXT_REASONS.UNDECODABLE };
     const fields = [ctx.title, ctx.body, ...(ctx.texts || [])].filter((t) => t && String(t).length).map((t) => ({ text: String(t), kind: "html" }));
-    const parts = [...fields, ...fx.parts.filter((p) => p.text && p.text.length)];
     // Screening budget: extracted text can be larger than the file (PDF/docx inflate).
     // Too much to screen inside the Worker limits -> refused before any view is built.
+    // Counted as screened: the fields, each text/XML part as stored (markup included:
+    // the raw XML is screened), and a PDF's views (charged while the PDF is read).
     let chars = 0;
-    for (const p of parts) chars += p.text.length;
+    for (const f of fields) chars += f.text.length;
+    if (chars > MAX_SCREEN_CHARS) return { code: TOO_LARGE_CODE, status: 413 };
+    const fx = await fileTexts(ctx.file, { maxChars: MAX_SCREEN_CHARS - chars });
+    if (fx.tooLarge) return { code: TOO_LARGE_CODE, status: 413 };
+    if (fx.undecodable) return { code: TEXT_REASONS.UNDECODABLE };
+    const parts = [...fields, ...fx.parts.filter((p) => p.text && p.text.length)];
+    if (fx.screenedChars !== undefined) chars += fx.screenedChars;
+    else for (const p of fx.parts) chars += p.text.length;
     if (chars > MAX_SCREEN_CHARS) return { code: TOO_LARGE_CODE, status: 413 };
     const raws = parts.map((p) => p.text);
     // What a reader sees: tags removed (as words and as joined runs), entities decoded.

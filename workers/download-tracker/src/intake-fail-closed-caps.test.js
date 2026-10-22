@@ -116,10 +116,14 @@ test("caps: PDF hex strings — 40,000 decoy <hex> strings then the payload refu
 test("caps: PDF content tokens — 2,000,000 decoy tokens then shown text refuses", async () => {
   assert.equal(PDF_CAPS.TOKENS, 2000000);
   assert.deepEqual(await run({ name: "a.pdf", bytes: cidPdf(INJ) }), { code: TEXT_REASONS.INJECTION }, "baseline: CID text is read");
-  const fx = await fileTexts({ name: "a.pdf", bytes: cidPdf(INJ, { pre: "BT ET\n" + "ET ".repeat(PDF_CAPS.TOKENS) }) });
+  const flood = cidPdf(INJ, { pre: "BT ET\n" + "ET ".repeat(PDF_CAPS.TOKENS) });
+  // 2M tokens are ~6 Mi chars, past the screening char budget (#192), so the gate now
+  // refuses them earlier as INTAKE-TOO-LARGE; the token cap itself is exercised with a
+  // larger budget passed to fileTexts.
+  const fx = await fileTexts({ name: "a.pdf", bytes: flood }, { maxChars: 64 * 1024 * 1024 });
   assert.equal(fx.undecodable, true, "token cap refuses");
   assert.equal(fx.cap, "TOKENS");
-  assert.deepEqual(await run({ name: "a.pdf", bytes: cidPdf(INJ, { pre: "BT ET\n" + "ET ".repeat(PDF_CAPS.TOKENS) }) }), UNDECODABLE);
+  assert.deepEqual(await run({ name: "a.pdf", bytes: flood }), { code: "INTAKE-TOO-LARGE", status: 413 });
 });
 
 test("caps: PDF objects — 200,000 decoy objects before the font refuse", async () => {
