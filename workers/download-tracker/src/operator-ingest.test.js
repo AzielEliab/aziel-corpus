@@ -46,6 +46,7 @@ function stubEnv(extra = {}) {
   const store = { records: extra.records ? extra.records.slice() : [] };
   const files = new Map();
   return {
+    INTAKE_SALT: "test-only-intake-salt-0123456789", // the intake gate refuses without a real secret
     OPERATOR_TOKEN: TOKEN,
     DB: {
       prepare(sql) {
