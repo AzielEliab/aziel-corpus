@@ -10,6 +10,7 @@ import {
   HUB_RUNTIME_ID,
   WEBSITE_ID,
   WEBSITE_NAME,
+  canonicalPath,
 } from "./seo.js";
 import {
   RUNTIME_VERSION,
@@ -230,7 +231,7 @@ function isoDay(value, fallback) {
 /** Real per-path lastmod from source-file git dates (ISO day). Fallback SITE_LASTMOD. */
 const PATH_LASTMOD = Object.freeze({
   "/": "2026-10-10",
-  "/software": "2026-10-10",
+  "/software": "2026-10-08",
   "/AzielEliab": "2026-10-10",
   "/who": "2026-10-10",
   "/who-is": "2026-10-10",
@@ -246,10 +247,37 @@ const PATH_LASTMOD = Object.freeze({
   "/help/how-to-read-scores.txt": "2026-09-29",
   "/help/how-to-cite.txt": "2026-09-29",
   "/help/uploads.txt": "2026-09-29",
-  "/runtime": "2026-09-25",
-  "/runtime/": "2026-09-25",
+  "/runtime": "2026-09-21",
   "/how-its-scored": "2026-10-03",
 });
+
+/**
+ * Source files behind each PATH_LASTMOD entry (repo-root relative). Each date must equal the
+ * newest git commit date (%cs) across its sources; scripts/check-lastmod.mjs and crawl.test.js verify.
+ */
+export const PATH_LASTMOD_SOURCES = Object.freeze({
+  "/": ["workers/download-tracker/src/ui.js", "workers/download-tracker/src/identity.js"],
+  "/software": ["workers/download-tracker/src/software-catalog.js", "workers/download-tracker/src/ui.js"],
+  "/AzielEliab": ["workers/download-tracker/src/identity.js"],
+  "/who": ["workers/download-tracker/src/identity.js"],
+  "/who-is": ["workers/download-tracker/src/identity.js"],
+  "/who-is-aziel-eliab.txt": ["who-is-aziel-eliab.txt", "workers/download-tracker/src/identity.js"],
+  "/person.jsonld": ["person.jsonld", "workers/download-tracker/src/identity.js"],
+  "/identity.jsonld": ["workers/download-tracker/src/identity.js"],
+  "/graph.jsonld": ["workers/download-tracker/src/identity.js"],
+  "/.well-known/aziel.json": ["workers/download-tracker/src/identity.js"],
+  "/.well-known/person.jsonld": ["workers/download-tracker/src/identity.js"],
+  "/donate": ["workers/download-tracker/src/donate.js"],
+  "/help.txt": ["workers/download-tracker/src/help.js"],
+  "/addendum.txt": ["workers/download-tracker/src/help.js"],
+  "/help/how-to-read-scores.txt": ["workers/download-tracker/src/help.js"],
+  "/help/how-to-cite.txt": ["workers/download-tracker/src/help.js"],
+  "/help/uploads.txt": ["workers/download-tracker/src/help.js"],
+  "/runtime": ["workers/download-tracker/src/runtime-root.js"],
+  "/how-its-scored": ["workers/download-tracker/src/ui.js"],
+});
+
+export { PATH_LASTMOD };
 
 /** Paths excluded from sitemaps: auth, upload door, search hub (canonical content only). */
 const SITEMAP_EXCLUDED = new Set(["/search", "/login", "/signup", "/upload"]);
@@ -429,7 +457,6 @@ const STATIC_SITEMAP = [
   "/v1/design-pack/azcorpus",
   "/v1/design-pack/azlibrary",
   "/runtime",
-  "/runtime/",
   "/runtime/v1/health",
   "/runtime/v1/uses",
   "/runtime/v1/fraggate",
@@ -571,7 +598,6 @@ export function softwareRelatedPaths() {
     "/v1/software",
     "/v1/update/check",
     "/runtime",
-    "/runtime/",
     "/runtime/v1/software",
     "/runtime/v1/catalog.json",
     "/runtime/v1/fraggate",
@@ -768,8 +794,12 @@ export function mcpDiscovery() {
 
 export async function sitemapXml(env) {
   const rows = [];
-  for (const path of STATIC_SITEMAP) {
-    if (!isSitemapPath(path)) continue;
+  const seen = new Set();
+  for (const raw of STATIC_SITEMAP) {
+    // Emit only the canonical form (seo.canonicalPath strips trailing slash/query/fragment), once.
+    const path = canonicalPath(raw);
+    if (!isSitemapPath(path) || seen.has(path)) continue;
+    seen.add(path);
     rows.push({ loc: HOST + path, lastmod: pathLastmod(path), hints: SITEMAP_HINTS[path] });
   }
   rows.push({ loc: GITHUB_REPO, lastmod: SITE_LASTMOD });

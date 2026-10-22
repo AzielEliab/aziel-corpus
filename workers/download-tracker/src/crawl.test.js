@@ -142,7 +142,7 @@ test("sitemap.xml lists key routes and uses XML mime helper", async () => {
   };
   const xml = await sitemapXml(env);
   assert.match(xml, /<\?xml version="1.0"/);
-  for (const path of ["/", "/AzielEliab", "/software", "/donate", "/v1/software", "/v1/download", "/v1/library-index", "/v1/stats", "/v1/update/check", "/sitemap-index.xml", "/sitemap-records.xml", "/mcp.json", "/.well-known/mcp.json", "/mcp", "/bridge.json", "/v1/products", "/v1/design-pack", "/v1/design-pack/azcorpus", "/v1/design-pack/azlibrary", "/runtime", "/runtime/", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/software", "/runtime/v1/uses", "/survival", "/v1/survival", "/runtime/survival", "/runtime/v1/survival", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/help.txt", "/addendum.txt", "/help/how-to-read-scores.txt", "/help/how-to-cite.txt", "/help/uploads.txt", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/forensics", "/aziel-library", "/corpus", "/cite.json", "/lockset.json", "/shelves", "/cold-copy", "/receipts", "/receipts/verify", "/v1/receipts", "/v1/receipts/verify", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/.well-known/aziel.json", "/.well-known/person.jsonld", "/llms.txt", "/ai.txt"]) {
+  for (const path of ["/", "/AzielEliab", "/software", "/donate", "/v1/software", "/v1/download", "/v1/library-index", "/v1/stats", "/v1/update/check", "/sitemap-index.xml", "/sitemap-records.xml", "/mcp.json", "/.well-known/mcp.json", "/mcp", "/bridge.json", "/v1/products", "/v1/design-pack", "/v1/design-pack/azcorpus", "/v1/design-pack/azlibrary", "/runtime", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/software", "/runtime/v1/uses", "/survival", "/v1/survival", "/runtime/survival", "/runtime/v1/survival", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/help.txt", "/addendum.txt", "/help/how-to-read-scores.txt", "/help/how-to-cite.txt", "/help/uploads.txt", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/forensics", "/aziel-library", "/corpus", "/cite.json", "/lockset.json", "/shelves", "/cold-copy", "/receipts", "/receipts/verify", "/v1/receipts", "/v1/receipts/verify", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/.well-known/aziel.json", "/.well-known/person.jsonld", "/llms.txt", "/ai.txt"]) {
     assert.match(xml, new RegExp("<loc>https://www\\.azielcorpuslibrary\\.net" + path.replace("/", "\\/") + "</loc>"));
   }
   for (const dropped of ["/search", "/login", "/signup", "/upload"]) {
@@ -819,3 +819,21 @@ test("IndexNow key file equals the key, robots allow it, and host sitemap lastmo
   }
 });
 
+
+test("sitemap emits only canonical paths, each once (no trailing-slash twins)", async () => {
+  const { canonicalPath } = await import("./seo.js");
+  const xml = await sitemapXml({});
+  const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+  const own = locs.filter((u) => u.startsWith("https://www.azielcorpuslibrary.net")).map((u) => u.slice("https://www.azielcorpuslibrary.net".length) || "/");
+  assert.ok(own.includes("/runtime"));
+  assert.ok(!own.includes("/runtime/"));
+  for (const p of own) assert.equal(canonicalPath(p), p, "non-canonical sitemap path " + p);
+  assert.equal(new Set(locs).size, locs.length, "duplicate sitemap loc");
+});
+
+test("PATH_LASTMOD dates match git log of their source files", async (t) => {
+  const { checkLastmod } = await import("../scripts/check-lastmod.mjs");
+  const r = checkLastmod();
+  if (!r.available) return t.skip("git history unavailable: " + r.problems.join("; "));
+  assert.deepEqual(r.problems, []);
+});
