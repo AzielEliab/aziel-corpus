@@ -7,6 +7,7 @@ import { patchTipZsolver, scoreZsolverForRecord } from "./zsolver.js";
 import { applyAutoClassification } from "./domain-classify.js";
 import { isHumanTag, normalizeTag } from "./visible-tags.js";
 import { fileOpensInline, redactIdentityCluster } from "./paper-ux.js";
+import { screenIntake } from "./intake-gate.js";
 
 const MAX_BYTES = 25 * 1024 * 1024;
 const TEXT_CAP = 200000;
@@ -519,6 +520,18 @@ export async function ingestRecord(env, args) {
     err.status = 400;
     throw err;
   }
+  // CORPUS-INTAKE-SAFETY-1.0: screen BEFORE any write, store or chain. Throws on refusal.
+  const intake = (args && args.intake) || {};
+  await screenIntake(env, {
+    door: intake.door || "ingestRecord",
+    ip: intake.ip || null,
+    signed,
+    operator: isOperator(signed),
+    title,
+    body,
+    file: asFile(file),
+    texts: [author, domain, subjects, keywords].map((v) => (Array.isArray(v) ? v.join(", ") : v)),
+  });
   await ensureLedger(env);
   try { await ensureReviewSchema(env); } catch { /* schema */ }
   let ocrHint = null;

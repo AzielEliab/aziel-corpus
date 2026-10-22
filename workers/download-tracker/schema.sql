@@ -165,3 +165,17 @@ ALTER TABLE records ADD COLUMN shelf_hidden INTEGER DEFAULT 0;
 -- Hit counters (Views, Downloads, human splits, per-repo download keys). One atomic upsert per hit.
 -- Exact count = legacy KV value + n. Created lazily by src/counters.js if missing.
 CREATE TABLE IF NOT EXISTS hit_counters (key TEXT PRIMARY KEY, n INTEGER NOT NULL DEFAULT 0, updated_utc TEXT);
+
+-- CORPUS-INTAKE-SAFETY-1.0: append-only refusal receipts. Hashes + reason code only; never content.
+-- Separate from the corpus hash chain: a refused item is never chained.
+CREATE TABLE IF NOT EXISTS intake_refusals(
+  receipt_id TEXT PRIMARY KEY,
+  created_utc TEXT NOT NULL,
+  door TEXT,
+  reason_code TEXT NOT NULL,
+  content_sha256 TEXT,
+  title_sha256 TEXT,
+  body_sha256 TEXT,
+  submitter_key TEXT,
+  ip_key TEXT
+);

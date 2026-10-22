@@ -8,6 +8,7 @@ import { isOperatorRequest } from "./rate-limit.js";
 import { isOperator, operatorSession, normalizeContentHash } from "./library.js";
 import { jeevesUpload } from "./jeeves.js";
 import { operatorLibraryIngest } from "./operator-ingest.js";
+import { intakeMeta, intakeRefusalBody } from "./intake-gate.js";
 import {
   AUTHOR,
   AI_PATH_NOTE,
@@ -141,6 +142,7 @@ export async function libraryIngest(env, { signed, request, file, title, body, a
     };
   }
   const out = await jeevesUpload(env, {
+    intake: intakeMeta(request, "v1-ingest"),
     signed: who,
     file,
     title,
@@ -179,6 +181,7 @@ export async function handleLibraryIngestApi(request, url, env, signed) {
   try {
     return json(await libraryIngest(env, { signed: who, request, ...fields }));
   } catch (err) {
+    if (err && err.intake_refused) return json(intakeRefusalBody(err), err.status || 422);
     if (err && err.payload) return json(err.payload, err.status || 401);
     return json({ error: err && err.message ? err.message : "ingest failed", honesty: HONESTY }, err && err.status ? err.status : 400);
   }

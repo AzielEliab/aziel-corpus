@@ -8,6 +8,7 @@ import { receiptForRecord, sha256hex, isJsonDocumentId } from "./ledger.js";
 import { serveRecordMetadata, parseRecordMetadataPath, receiptForJsonMetadata } from "./record-metadata.js";
 import { serveRecordMachine, parseRecordMachinePath, loadRecordMachineContext, recordMachineLinkHeader } from "./record-llm.js";
 import { isHelpPath } from "./help.js";
+import { intakeMeta } from "./intake-gate.js";
 import { isOperator, asFile, getObject, putObject, objectExists, ingestRecord, safeFilename, serveDerived, patternClusters, loadServedFileBytes } from "./library.js";
 import {
   persistOcrRun, persistMediaRun, receiptForMediaRun, isMediaRunId, truthy, bytesAsFile,
@@ -486,6 +487,7 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
       } else {
         try {
           ingest = await ingestRecord(env, {
+            intake: intakeMeta(request, "transcribe"),
             signed,
             title: name || "Transcript",
             body: libraryNotes(whisper.text, run, vibe),
@@ -549,6 +551,7 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
         : file;
       try {
         record = await ingestRecord(env, {
+          intake: intakeMeta(request, "ocr"),
           signed,
           title: file.name || "OCR extract",
           body: result.text,
@@ -560,6 +563,7 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
         });
       } catch {
         record = await ingestRecord(env, {
+          intake: intakeMeta(request, "ocr"),
           signed,
           title: file.name || "OCR extract",
           body: result.text,

@@ -13,6 +13,7 @@ import {
   isOperator,
   operatorSession,
 } from "./library.js";
+import { intakeMeta, intakeRefusalBody } from "./intake-gate.js";
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body, null, 2), {
@@ -129,6 +130,7 @@ export async function operatorLibraryIngest(env, { signed, request, file, title,
     keywords,
     supersedes: pred,
     superseded_by,
+    intake: intakeMeta(request, "operator-library-ingest"),
   });
   if (record.library !== "aziel") {
     const err = new Error("operator ingest must write Aziel Library");
@@ -218,6 +220,7 @@ export async function handleOperatorIngestApi(request, url, env, signed) {
   try {
     return json(await operatorLibraryIngest(env, { signed, request, ...fields }));
   } catch (err) {
+    if (err && err.intake_refused) return json(intakeRefusalBody(err), err.status || 422);
     return json({ error: err && err.message ? err.message : "ingest failed" }, err && err.status ? err.status : 400);
   }
 }
