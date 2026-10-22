@@ -131,8 +131,15 @@ export function explicitHit(text) {
 }
 
 // ---------- hidden content ----------
-const HIDDEN_CSS = /(display\s*:\s*none|visibility\s*:\s*(hidden|collapse)|font-size\s*:\s*0*(\.0+)?(px|pt|em|rem|%)?\s*(;|"|'|\}|$)|opacity\s*:\s*0*(\.0+)?\s*(;|"|'|\}|$)|text-indent\s*:\s*-\d{3,}|(left|top|right)\s*:\s*-\d{4,}|clip\s*:\s*rect\(\s*0|clip-path\s*:\s*inset\(\s*(50|100)%|(max-)?height\s*:\s*0[^.\d][^;"']*;?[^"']*overflow\s*:\s*hidden|color\s*:\s*transparent)/i;
-const HIDDEN_ATTR = /<[a-z][^>]*\s(hidden|aria-hidden\s*=\s*["']?true)(\s|=|>|\/)|<!--[\s\S]{40,}?-->/i;
+const HIDDEN_CSS = /(display\s*:\s*none|visibility\s*:\s*(hidden|collapse)|font-size\s*:\s*0*(\.0+)?(px|pt|em|rem|%)?\s*(;|"|'|\}|$)|opacity\s*:\s*0*(\.0+)?\s*(;|"|'|\}|$)|text-indent\s*:\s*-\d{3,}|(left|top|right)\s*:\s*-\d{4,}|clip\s*:\s*rect\(\s*0|clip-path\s*:\s*inset\(\s*(50|100)%|(max-)?height\s*:\s*0[^.\d][^"']*overflow\s*:\s*hidden|color\s*:\s*transparent)/i;
+const HIDDEN_ATTR = /<[a-z][^>]*\s(hidden|aria-hidden\s*=\s*["']?true)(\s|=|>|\/)/i;
+// Was the HIDDEN_ATTR alternative /<!--[\s\S]{40,}?-->/i, which overflows the regex
+// stack on a multi-MiB comment; this is the same test: a "-->" at least 40 chars
+// after the first "<!--" (a later "<!--" can only need a later "-->").
+function longHtmlComment(s) {
+  const i = s.indexOf("<!--");
+  return i >= 0 && s.indexOf("-->", i + 44) >= 0;
+}
 // HTML elements whose content a reader never sees. Only for HTML-like text: in
 // Office/ODF XML a <Template> element is document metadata (docProps/app.xml names
 // the Word template, e.g. Normal.dotm), not a hidden HTML template (AZBot review #186).
@@ -143,7 +150,7 @@ export function hiddenMarkupHit(text, { kind = "html" } = {}) {
   const s = String(text || "");
   if (!/[<{:]/.test(s)) return false;
   if (HIDDEN_CSS.test(s) && /<[a-z!]|style\s*=|\{/i.test(s)) return true;
-  if (HIDDEN_ATTR.test(s) || HIDDEN_WORD.test(s)) return true;
+  if (HIDDEN_ATTR.test(s) || longHtmlComment(s) || HIDDEN_WORD.test(s)) return true;
   return kind !== "xml" && HIDDEN_HTML_ELEMENT.test(s);
 }
 
@@ -159,27 +166,108 @@ function printableRatio(s) {
   for (const ch of s) { const c = ch.codePointAt(0); if (c === 9 || c === 10 || c === 13 || (c >= 32 && c !== 127 && c !== 0xfffd)) p++; }
   return p / s.length;
 }
+// Encoded-run scanners. They return the same matches, in the same order, as the
+// regexes named in each comment, but walk the text in a loop: a quantified group over
+// a multi-MiB run (a long homogeneous line, a table of digits, a base64 blob) overflows
+// the regex engine's backtracking stack, which refused large legitimate papers with
+// INTAKE-CHECK-ERROR (AZBot review, intake-text.js:169). Nothing is skipped or capped
+// beyond the existing 500-candidate limit; each group is matched deterministically
+// (none of these patterns can match a group in two ways), so no backtracking is needed.
+const B64_CHAR = new Uint8Array(128);
+for (const ch of "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/_-") B64_CHAR[ch.charCodeAt(0)] = 1;
+const HEX_CHAR = new Uint8Array(128);
+for (const ch of "0123456789abcdefABCDEF") HEX_CHAR[ch.charCodeAt(0)] = 1;
+const isB64At = (s, i) => { const c = s.charCodeAt(i); return c < 128 && B64_CHAR[c] === 1; };
+const isHexAt = (s, i) => { const c = s.charCodeAt(i); return c < 128 && HEX_CHAR[c] === 1; };
+const HEX_SEP = /[\s,:]/;
+
+/** /(?:[A-Za-z0-9+/_-]{4}(?:\r?\n)?){6,}(?:[A-Za-z0-9+/_-]{2,3}={0,2})?/g, up to max matches. */
+export function base64Runs(s, max = Infinity) {
+  const out = [];
+  const L = s.length;
+  let p = 0;
+  while (p < L && out.length < max) {
+    if (!isB64At(s, p)) { p++; continue; }
+    let q = p;
+    let groups = 0;
+    while (q + 4 <= L && isB64At(s, q) && isB64At(s, q + 1) && isB64At(s, q + 2) && isB64At(s, q + 3)) {
+      q += 4;
+      groups++;
+      if (s.charCodeAt(q) === 13 && s.charCodeAt(q + 1) === 10) q += 2;
+      else if (s.charCodeAt(q) === 10) q++;
+    }
+    if (groups < 6) { p++; continue; }
+    let t = q;
+    while (t - q < 3 && t < L && isB64At(s, t)) t++;
+    if (t - q >= 2) {
+      let e = 0;
+      while (e < 2 && s.charCodeAt(t) === 61) { t++; e++; }
+      q = t;
+    }
+    out.push(s.slice(p, q));
+    p = q;
+  }
+  return out;
+}
+
+/** /(?:(?:0x|\\x)?[0-9a-fA-F]{2}[\s,:]?){12,}/g, up to max matches. */
+export function hexRuns(s, max = Infinity) {
+  const out = [];
+  const L = s.length;
+  let p = 0;
+  while (p < L && out.length < max) {
+    const c0 = s.charCodeAt(p);
+    if (c0 !== 92 && !isHexAt(s, p)) { p++; continue; }
+    let q = p;
+    let groups = 0;
+    for (;;) {
+      let g = q;
+      const c = s.charCodeAt(g);
+      if ((c === 48 || c === 92) && s.charCodeAt(g + 1) === 120 && isHexAt(s, g + 2) && isHexAt(s, g + 3)) g += 4;
+      else if (g + 2 <= L && isHexAt(s, g) && isHexAt(s, g + 1)) g += 2;
+      else break;
+      if (g < L && HEX_SEP.test(s[g])) g++;
+      q = g;
+      groups++;
+    }
+    if (groups < 12) { p++; continue; }
+    out.push(s.slice(p, q));
+    p = q;
+  }
+  return out;
+}
+
+/** /(%[0-9a-fA-F]{2}){6,}/.test(s) */
+export function hasPercentRun(s) {
+  let i = s.indexOf("%");
+  while (i >= 0) {
+    let k = 0;
+    let j = i;
+    while (s.charCodeAt(j) === 37 && isHexAt(s, j + 1) && isHexAt(s, j + 2)) {
+      if (++k >= 6) return true;
+      j += 3;
+    }
+    i = s.indexOf("%", i + 1);
+  }
+  return false;
+}
+
 function decodedCandidates(text) {
   const s = String(text || "");
   const out = [];
   const td = new TextDecoder("utf-8", { fatal: false });
-  let m;
-  const b64 = /(?:[A-Za-z0-9+/_-]{4}(?:\r?\n)?){6,}(?:[A-Za-z0-9+/_-]{2,3}={0,2})?/g;
-  let n = 0;
-  while ((m = b64.exec(s)) && n++ < 500) {
+  for (const run of base64Runs(s, 500)) {
     try {
-      const d = td.decode(Buffer.from(m[0].replace(/\s+/g, "").replace(/-/g, "+").replace(/_/g, "/"), "base64"));
+      const d = td.decode(Buffer.from(run.replace(/\s+/g, "").replace(/-/g, "+").replace(/_/g, "/"), "base64"));
       if (printableRatio(d) > 0.9) out.push(d);
     } catch { /* not base64 */ }
   }
-  const hex = /(?:(?:0x|\\x)?[0-9a-fA-F]{2}[\s,:]?){12,}/g;
-  n = 0;
-  while ((m = hex.exec(s)) && n++ < 500) {
-    const h = m[0].replace(/0x|\\x/g, "").replace(/[^0-9a-fA-F]/g, "");
+  for (const run of hexRuns(s, 500)) {
+    const h = run.replace(/0x|\\x/g, "").replace(/[^0-9a-fA-F]/g, "");
     const d = td.decode(Buffer.from(h.slice(0, h.length - (h.length % 2)), "hex"));
     if (printableRatio(d) > 0.9) out.push(d);
   }
-  if (/(%[0-9a-fA-F]{2}){6,}/.test(s)) { try { out.push(decodeURIComponent(s.replace(/%(?![0-9a-fA-F]{2})/g, "%25"))); } catch { /* bad */ } }
+  if (hasPercentRun(s)) { try { out.push(decodeURIComponent(s.replace(/%(?![0-9a-fA-F]{2})/g, "%25"))); } catch { /* bad */ } }
   if (/&#x?[0-9a-fA-F]+;/.test(s)) out.push(s.replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16) || 32)).replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d) || 32)));
   if (/\\u[0-9a-fA-F]{4}/.test(s)) out.push(s.replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16))));
   out.push(s.replace(/[a-zA-Z]/g, (c) => String.fromCharCode((c <= "Z" ? 90 : 122) >= (c = c.charCodeAt(0) + 13) ? c : c - 26)));
@@ -442,9 +530,10 @@ function pdfLiterals(latin, cap) {
 function pdfStringsOf(latin) {
   const lits = pdfLiterals(latin, 20000);
   const spaced = lits.map((l) => l.text);
-  const hx = /<([0-9a-fA-F\s]{4,})>/g;
+  const hx = /<([0-9a-fA-F\s]+)>/g; // was {4,} (stack overflow on a huge run); the run is maximal, so filter
   let m;
   while ((m = hx.exec(latin)) && spaced.length < 40000) {
+    if (m[1].length < 4) continue;
     const h = m[1].replace(/\s+/g, "");
     spaced.push(pdfStringText(Buffer.from(h.slice(0, h.length - (h.length % 2)), "hex")));
   }

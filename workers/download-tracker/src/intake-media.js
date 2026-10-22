@@ -398,6 +398,82 @@ function ascii85Bytes(chars, strict) {
   }
   return new Uint8Array(out);
 }
+// Encoded-run scanners for encodedMediaReason. Each returns the same matches, in the
+// same order, as the regex in its comment, but walks the text in a loop: the counted
+// regex overflows the engine's backtracking stack on a multi-MiB run (a long line of
+// one letter, a digits table), which refused large legitimate text with
+// INTAKE-CHECK-ERROR (AZBot review, intake-text.js:169). Nothing is skipped or capped.
+const M_HEX = new Uint8Array(128);
+for (const ch of "0123456789abcdefABCDEF") M_HEX[ch.charCodeAt(0)] = 1;
+const mHexAt = (s, i) => { const c = s.charCodeAt(i); return c < 128 && M_HEX[c] === 1; };
+const M_HEX_SEP = /[\s,:;-]/;
+
+/** /(?:(?:0x|\\x)?[0-9A-Fa-f]{2}[\s,:;-]*){16,}/g — each group is matched in exactly one way. */
+export function mediaHexRuns(s) {
+  const out = [];
+  const L = s.length;
+  let p = 0;
+  while (p < L) {
+    const c0 = s.charCodeAt(p);
+    if (c0 !== 92 && !mHexAt(s, p)) { p++; continue; }
+    let q = p;
+    let groups = 0;
+    for (;;) {
+      let g = q;
+      const c = s.charCodeAt(g);
+      if ((c === 48 || c === 92) && s.charCodeAt(g + 1) === 120 && mHexAt(s, g + 2) && mHexAt(s, g + 3)) g += 4;
+      else if (g + 2 <= L && mHexAt(s, g) && mHexAt(s, g + 1)) g += 2;
+      else break;
+      while (g < L && M_HEX_SEP.test(s[g])) g++;
+      q = g;
+      groups++;
+    }
+    if (groups < 16) { p++; continue; }
+    out.push(s.slice(p, q));
+    p = q;
+  }
+  return out;
+}
+
+const isA85At = (s, i) => { const c = s.charCodeAt(i); return (c >= 33 && c <= 117) || c === 122; };
+/**
+ * /(?:[!-uz]{20,}\r?\n?){2,}|[!-uz]{40,}/g. A match is a chain of maximal alphabet
+ * runs of 20+ joined by \r\n, \r or \n (a run of 40+ splits into two groups on its
+ * own), plus the separator after the last run. A start that fails fails for every
+ * later start in the same run, so the scan resumes after that run.
+ */
+export function ascii85Runs(s) {
+  const out = [];
+  const L = s.length;
+  let p = 0;
+  const sepEnd = (i) => {
+    if (s.charCodeAt(i) === 13) return s.charCodeAt(i + 1) === 10 ? i + 2 : i + 1;
+    if (s.charCodeAt(i) === 10) return i + 1;
+    return i;
+  };
+  while (p < L) {
+    if (!isA85At(s, p)) { p++; continue; }
+    let e = p;
+    while (e < L && isA85At(s, e)) e++;
+    if (e - p < 20) { p = e; continue; }
+    let groups = e - p >= 40 ? 2 : 1;
+    let q = sepEnd(e);
+    for (;;) {
+      if (q === e) break;
+      let f = q;
+      while (f < L && isA85At(s, f)) f++;
+      if (f - q < 20) break;
+      groups++;
+      e = f;
+      q = sepEnd(f);
+    }
+    if (groups < 2) { p = e; continue; }
+    out.push(s.slice(p, q));
+    p = q;
+  }
+  return out;
+}
+
 const ENCODED_BUDGET = 64 * 1024 * 1024; // chars; above MAX_INTAKE_BYTES, so a real upload never hits it
 /**
  * Encoded media in text: base64 / url-safe base64 (any whitespace or line breaks
@@ -411,9 +487,12 @@ export function encodedMediaReason(text) {
   let budget = ENCODED_BUDGET;
   // base64: alphabet + whitespace; '=' ends one payload (padding).
   for (const seg of s.split(/=+/)) {
-    const re = /[A-Za-z0-9+/_\-\s]{32,}/g;
+    // Same runs as /[A-Za-z0-9+/_\-\s]{32,}/g (a maximal single-class run), filtered by
+    // length: the counted form overflows the regex stack on a multi-MiB run.
+    const re = /[A-Za-z0-9+/_\-\s]+/g;
     let m;
     while ((m = re.exec(seg))) {
+      if (m[0].length < 32) continue;
       const chars = m[0].replace(/\s+/g, "");
       if (chars.length < 24) continue;
       budget -= chars.length;
@@ -424,10 +503,8 @@ export function encodedMediaReason(text) {
     }
   }
   // hex: digits with optional 0x / \x prefixes and whitespace , : ; - separators.
-  const hre = /(?:(?:0x|\\x)?[0-9A-Fa-f]{2}[\s,:;-]*){16,}/g;
-  let h;
-  while ((h = hre.exec(s))) {
-    const chars = h[0].replace(/0x|\\x/gi, "").replace(/[^0-9A-Fa-f]/g, "");
+  for (const run of mediaHexRuns(s)) {
+    const chars = run.replace(/0x|\\x/gi, "").replace(/[^0-9A-Fa-f]/g, "");
     budget -= chars.length;
     if (budget < 0) return MEDIA_REASONS.ENCODED;
     for (let shift = 0; shift < 2; shift++) {
@@ -447,10 +524,8 @@ export function encodedMediaReason(text) {
     if (decodedIsBinaryMedia(bytes)) return MEDIA_REASONS.ENCODED;
   }
   // Ascii85, bare: long runs of the alphabet with no spaces.
-  const bre = /(?:[!-uz]{20,}\r?\n?){2,}|[!-uz]{40,}/g;
-  let b;
-  while ((b = bre.exec(s))) {
-    const chars = b[0].replace(/\s+/g, "");
+  for (const run of ascii85Runs(s)) {
+    const chars = run.replace(/\s+/g, "");
     budget -= chars.length;
     if (budget < 0) return MEDIA_REASONS.ENCODED;
     for (let shift = 0; shift < 5; shift++) {
