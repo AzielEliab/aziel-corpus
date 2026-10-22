@@ -65,6 +65,33 @@ test("#185 PDF: a text-only PDF still passes", () => {
   assert.equal(fileMediaReason({ name: "a.pdf", bytes: ok }), null);
 });
 
+// ReportLab writes content streams as [/ASCII85Decode /FlateDecode]; these lossless
+// text filters are decoded and checked, never skipped.
+function a85(u8) {
+  let out = "";
+  for (let i = 0; i < u8.length; i += 4) {
+    const chunk = [u8[i], u8[i + 1] ?? 0, u8[i + 2] ?? 0, u8[i + 3] ?? 0];
+    const n = Math.min(4, u8.length - i);
+    let v = ((chunk[0] << 24) >>> 0) + (chunk[1] << 16) + (chunk[2] << 8) + chunk[3];
+    if (v === 0 && n === 4) { out += "z"; continue; }
+    const d = [];
+    for (let j = 0; j < 5; j++) { d.unshift(String.fromCharCode((v % 85) + 33)); v = Math.floor(v / 85); }
+    out += d.join("").slice(0, n + 1);
+  }
+  return out + "~>";
+}
+const pdfWith = (filter, body) => cat("%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n2 0 obj\n<< /Filter ", filter, " /Length ", String(body.length), " >>\nstream\n", body, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
+
+test("#185 PDF: ReportLab-style [/ASCII85Decode /FlateDecode] text passes; the same filters around an image refuse", () => {
+  const txt = a85(new Uint8Array(deflateSync(Buffer.from("BT /F1 12 Tf 72 712 Td (Plain words) Tj ET"))));
+  assert.equal(fileMediaReason({ name: "a.pdf", bytes: pdfWith("[ /ASCII85Decode /FlateDecode ]", txt) }), null);
+  const hidden = a85(new Uint8Array(deflateSync(cat("q ", PNG, " Q"))));
+  assert.equal(fileMediaReason({ name: "a.pdf", bytes: pdfWith("[ /ASCII85Decode /FlateDecode ]", hidden) }), MEDIA_REASONS.EMBEDDED);
+  assert.equal(fileMediaReason({ name: "a.pdf", bytes: pdfWith("/AHx", Buffer.from(cat("q ", TIF, " Q")).toString("hex") + ">") }), MEDIA_REASONS.EMBEDDED);
+  assert.equal(fileMediaReason({ name: "a.pdf", bytes: pdfWith("/ASCII85Decode", "not{valid|a85~>") }), MEDIA_REASONS.UNREADABLE_DOC);
+  assert.equal(fileMediaReason({ name: "a.pdf", bytes: pdfWith("/LZWDecode", "anything") }), MEDIA_REASONS.UNREADABLE_DOC);
+});
+
 // ---------- magic at any offset ----------
 
 test("#185 magic anywhere: TIFF, BMP, ICO and JPEG (DHT-first and other variants) after a text prefix are refused", () => {
