@@ -704,6 +704,10 @@ test("sitemap lists every packed index id, including rows the old 400-cap D1 win
   assert.equal((recordsXml.match(/\/llms\.txt/g) || []).length, 429);
   assert.equal((recordsXml.match(/\/cite\.json/g) || []).length, 429);
   assert.equal((xml.match(/\/record\/AZDOC-[0-9A-F]+\/llms\.txt/g) || []).length, 429);
+  // Every packed paper's slug page is listed too (AZBot: 0 of 429 before the permalink was kept).
+  const slugLocs = (body) => (body.match(/<loc>https:\/\/www\.azielcorpuslibrary\.net\/(?:aziellibrary|azielcorpus\/usersubmitted)\/[a-z0-9-]+<\/loc>/g) || []);
+  assert.equal(new Set(slugLocs(recordsXml)).size, 429);
+  assert.equal(new Set(slugLocs(xml)).size, 429);
 });
 
 const OTHER_HOST_INDEXNOW_KEYS = [
@@ -876,4 +880,38 @@ test("sitemap.xml: runtime JSON API mirror (/runtime/v1/*, /v1/runtime.json) is 
   assert.equal(isSitemapApiPath("/runtime"), false);
   assert.equal(isSitemapApiPath("/runtime/llms.txt"), false);
   assert.equal(isSitemapApiPath("/v1/runtime.json"), true);
+});
+
+test("sitemap lists the slug URL for every record with a permalink; slugless D1 rows keep /record/<id>", async () => {
+  const packed = [
+    { record_id: "AZDOC-A53F8E3052E2", title: "The Cockroach Doctrine", library: "aziel", created_utc: "2026-09-01T00:00:00Z", permalink_locked: true, permalink_slug: "cockroachdoctrine" },
+    { record_id: "AZDOC-00000000C0DE", title: "User Paper On Soil", library: "corpus", created_utc: "2026-08-02T00:00:00Z" },
+  ];
+  const d1Only = { record_id: "AZDOC-0000000D1000", created_utc: "2026-07-03T00:00:00Z", library: "aziel" };
+  const env = {
+    DB: { prepare() { return { bind() { return this; }, async all() { return { results: [d1Only] }; } }; } },
+    DOWNLOADS: {
+      async get() { return JSON.stringify({ key: LIBRARY_INDEX_KEY, version: 1, records: packed }); },
+      async put() {},
+      async list() { throw new Error("KV.list is not allowed"); },
+    },
+  };
+  const H = "https://www.azielcorpuslibrary.net";
+  const rows = await collectSitemapRecords(env);
+  const byId = Object.fromEntries(rows.map((r) => [r.record_id, r]));
+  assert.equal(byId["AZDOC-A53F8E3052E2"].permalink, "/aziellibrary/cockroachdoctrine");
+  assert.equal(byId["AZDOC-00000000C0DE"].permalink, "/azielcorpus/usersubmitted/user-paper-on-soil");
+  assert.equal(byId["AZDOC-0000000D1000"].permalink, "");
+  for (const xml of [await sitemapXml(env), await sitemapRecordsXml(env)]) {
+    assert.match(xml, new RegExp("<loc>" + H + "/aziellibrary/cockroachdoctrine</loc><lastmod>2026-09-01</lastmod>"));
+    assert.match(xml, new RegExp("<loc>" + H + "/azielcorpus/usersubmitted/user-paper-on-soil</loc><lastmod>2026-08-02</lastmod>"));
+    // Existing /record/<id> entries stay listed for every row.
+    for (const id of ["AZDOC-A53F8E3052E2", "AZDOC-00000000C0DE", "AZDOC-0000000D1000"]) {
+      assert.match(xml, new RegExp("<loc>" + H + "/record/" + id + "</loc>"));
+      assert.match(xml, new RegExp("<loc>" + H + "/record/" + id + "/llms\\.txt</loc>"));
+    }
+    const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+    assert.equal(new Set(locs).size, locs.length, "no duplicate locs");
+    assert.equal(locs.some((u) => u.endsWith("/")) && locs.filter((u) => u.endsWith("/")).some((u) => u !== H + "/"), false, "no trailing-slash twins");
+  }
 });

@@ -247,3 +247,58 @@ test("HEAD /about is a permanent redirect and HEAD /AzielEliab is HTML without a
   assert.match(page.headers.get("content-type") || "", /text\/html/);
   assert.equal(await page.text(), "");
 });
+
+test("slug page is the canonical: Link header and HTML canonical agree on both the slug page and /record/<id>", async () => {
+  const slug = "/aziellibrary/the-cockroach-doctrine-a-resilience-doctrine-for-remaining-operational-u";
+  const records = [
+    {
+      record_id: "AZDOC-A53F8E3052E2",
+      title: "The Cockroach Doctrine: A Resilience Doctrine for Remaining Operational Under Repeated Asymmetric Disruption",
+      library: "aziel",
+      author: "Aziel Eliab",
+      created_utc: "2026-09-01T00:00:00Z",
+      permalink_locked: true,
+      permalink_slug: "the-cockroach-doctrine-a-resilience-doctrine-for-remaining-operational-u",
+    },
+  ];
+  const env = stubEnv();
+  env.DOWNLOADS = {
+    async get(key) {
+      if (key === "library:index:v1") return JSON.stringify({ version: 1, key, records });
+      return null;
+    },
+    async put() {},
+  };
+  const htmlCanon = (body) => {
+    const m = body.match(/<link rel="canonical" href="([^"]+)"/);
+    return m ? m[1] : "";
+  };
+  const linkCanon = (res) => {
+    const m = (res.headers.get("Link") || "").match(/<([^>]+)>; rel="canonical"/);
+    return m ? m[1] : "";
+  };
+  for (const path of [slug, "/record/AZDOC-A53F8E3052E2"]) {
+    const res = await handleHosted(req(path), new URL(HOST + path), env, { waitUntil() {} }, null, null);
+    assert.equal(res.status, 200, path);
+    const header = linkCanon(res);
+    const page = htmlCanon(await res.text());
+    assert.equal(header, slug, path + " Link canonical");
+    assert.equal(page, HOST + slug, path + " HTML canonical");
+    assert.equal(HOST + header, page, path + " header and HTML agree");
+    assert.match(res.headers.get("Link") || "", /\/record\/AZDOC-A53F8E3052E2\/llms\.txt>; rel="alternate"/);
+  }
+  const { serveRecordMachine } = await import("./record-llm.js");
+  for (const alias of ["llms.txt", "cite.json"]) {
+    const res = await serveRecordMachine(env, "/record/AZDOC-A53F8E3052E2/" + alias);
+    assert.equal(res.status, 200, alias);
+    assert.equal(linkCanon(res), slug, alias + " Link canonical");
+  }
+});
+
+test("record with no slug keeps /record/<id> as the canonical in the Link header", async () => {
+  const { recordMachineLinkHeader, recordSlugPath } = await import("./record-llm.js");
+  assert.match(recordMachineLinkHeader("AZDOC-000000000001", "html"), /^<\/record\/AZDOC-000000000001>; rel="canonical"/);
+  assert.match(recordMachineLinkHeader("AZDOC-000000000001", "html", "/record/AZDOC-000000000001"), /^<\/record\/AZDOC-000000000001>; rel="canonical"/);
+  assert.match(recordMachineLinkHeader("AZDOC-000000000001", "html", "https://evil.example/aziellibrary/x"), /^<\/record\/AZDOC-000000000001>; rel="canonical"/);
+  assert.equal(recordSlugPath(HOST + "/azielcorpus/usersubmitted/some-paper/"), "/azielcorpus/usersubmitted/some-paper");
+});
