@@ -474,11 +474,16 @@ export function parseToUnicode(cmapText) {
   let len = 0;
   const sec = /begin(bfchar|bfrange)([\s\S]*?)end\1/g;
   let m;
-  while ((m = sec.exec(cmapText)) && map.size < 70000) {
+  // A map past the cap refuses (fail closed); it was silently cut at 70000 entries.
+  const put = (k, v) => {
+    if (map.size >= PDF_CAPS.TOUNICODE && !map.has(k)) throw new PdfCapError("TOUNICODE");
+    map.set(k, v);
+  };
+  while ((m = sec.exec(cmapText))) {
     if (m[1] === "bfchar") {
       const re = /<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]*)>/g;
       let c;
-      while ((c = re.exec(m[2]))) { len = len || c[1].length / 2; map.set(parseInt(c[1], 16), utf16beHex(c[2])); }
+      while ((c = re.exec(m[2]))) { len = len || c[1].length / 2; put(parseInt(c[1], 16), utf16beHex(c[2])); }
     } else {
       const re = /<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]+)>\s*(<([0-9a-fA-F]+)>|\[([^\]]*)\])/g;
       let c;
@@ -489,10 +494,10 @@ export function parseToUnicode(cmapText) {
         if (c[4] !== undefined) {
           const base = utf16beHex(c[4]);
           const last = base.charCodeAt(base.length - 1);
-          for (let k = lo; k <= hi && map.size < 70000; k++) map.set(k, base.slice(0, -1) + String.fromCharCode(last + (k - lo)));
+          for (let k = lo; k <= hi; k++) put(k, base.slice(0, -1) + String.fromCharCode(last + (k - lo)));
         } else {
           const list = c[5].match(/<([0-9a-fA-F]*)>/g) || [];
-          list.forEach((x, i) => { if (lo + i <= hi) map.set(lo + i, utf16beHex(x.slice(1, -1))); });
+          list.forEach((x, i) => { if (lo + i <= hi) put(lo + i, utf16beHex(x.slice(1, -1))); });
         }
       }
     }
@@ -512,7 +517,7 @@ function mapCodes(bytes, cmap) {
  * PDF parse caps. Hitting one refuses INTAKE-UNDECODABLE (fail closed); it never
  * truncates, so decoys cannot push a payload past a cap (AZBot review of #192).
  */
-export const PDF_CAPS = Object.freeze({ LITERALS: 20000, STRINGS: 40000, TOKENS: 2000000, OBJECTS: 200000 });
+export const PDF_CAPS = Object.freeze({ LITERALS: 20000, STRINGS: 40000, TOKENS: 2000000, OBJECTS: 200000, TOUNICODE: 70000 });
 export class PdfCapError extends Error {
   constructor(cap) { super("pdf cap " + cap); this.cap = cap; }
 }
@@ -579,6 +584,17 @@ function pdfShownText(objects, contents) {
   return out.join("\n");
 }
 
+/** The text after an unterminated "(" (decoded as a literal body, and raw) holds a marker. */
+function unterminatedHit(rest) {
+  const b = pdfLiteralBytes(rest);
+  const views = [pdfStringText(b)];
+  // Decoded as UTF-16 / UTF-8 or as glyph codes, the raw bytes may read differently.
+  if (looksGlyphCodes(b) || (b[0] === 0xfe && b[1] === 0xff) || (b[0] === 0xff && b[1] === 0xfe) || (b[0] === 0xef && b[1] === 0xbb)) views.push(rest);
+  return views.some((t) => {
+    const n = normalizeForMatch(t); // once; the screens' own normalizing of it is idempotent
+    return !!n && (injectionHit(n) || csamIndicator(n) || explicitHit(n));
+  });
+}
 /** Literal strings with nesting and escapes, as { at, end, text }. */
 function pdfLiterals(latin, cap) {
   const out = [];
@@ -593,7 +609,13 @@ function pdfLiterals(latin, cap) {
       else if (ch === "(") depth++;
       else if (ch === ")") depth--;
     }
-    if (depth) break;
+    // An unterminated "(" runs to the end of the text and was dropped unread. Binary
+    // bytes (images, fonts, ICC profiles, xref tables) often hold a stray "(", so it is
+    // not refused by itself: the rest is screened, and a marker there refuses (fail closed).
+    if (depth) {
+      if (unterminatedHit(latin.slice(i + 1))) throw new PdfCapError("UNTERMINATED");
+      break;
+    }
     out.push({ at: i, end: j, text: pdfStringText(pdfLiteralBytes(latin.slice(i + 1, j - 1))) });
     i = latin.indexOf("(", j);
   }
