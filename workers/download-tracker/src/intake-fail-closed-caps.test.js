@@ -133,3 +133,103 @@ test("caps: PDF objects — 200,000 decoy objects before the font refuse", async
   assert.equal(fx.cap, "OBJECTS");
   assert.deepEqual(await run({ name: "a.pdf", bytes: cidPdf(INJ, { decoyObjects: 1000 }) }), { code: TEXT_REASONS.INJECTION }, "under the cap: read");
 });
+
+// ---------- unterminated literals and the ToUnicode cap (AZBot re-review, 16:37 ET) ----------
+
+test("caps: a marker inside an unterminated ( literal refuses INTAKE-UNDECODABLE (was: pass)", async () => {
+  const closed = contentPdf("BT /F1 12 Tf 72 712 Td (" + CSAM + ") Tj ET");
+  assert.deepEqual(await run({ name: "a.pdf", bytes: closed }), CSAM_HIT, "control: a closed literal is read");
+  // In a content stream.
+  const open = contentPdf("BT /F1 12 Tf 72 712 Td (field notes) Tj (" + CSAM + " Tj ET");
+  assert.deepEqual(await run({ name: "a.pdf", bytes: open }), UNDECODABLE);
+  assert.equal((await fileTexts({ name: "a.pdf", bytes: open })).cap, "UNTERMINATED");
+  // In the file's own text (an object outside any stream).
+  const obj = pdfN([
+    [1, "<< /Type /Catalog /Pages 2 0 R /Info 6 0 R >>"],
+    [2, "<< /Type /Pages /Kids [] /Count 0 >>"],
+    [6, "<< /Title (field notes) /Subject (" + CSAM + " >>"],
+  ]);
+  assert.deepEqual(await run({ name: "a.pdf", bytes: obj }), UNDECODABLE);
+  // In an unfiltered content stream.
+  const raw = pdfN([
+    [1, "<< /Type /Catalog /Pages 2 0 R >>"],
+    [2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>"],
+    [3, "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>"],
+    [4, "", enc.encode("BT /F1 12 Tf (" + CSAM + " Tj ET")],
+  ]);
+  assert.deepEqual(await run({ name: "a.pdf", bytes: raw }), UNDECODABLE);
+  // An injection marker, and a marker written as octal escapes (read as a literal body).
+  assert.deepEqual(await run({ name: "a.pdf", bytes: contentPdf("BT /F1 12 Tf (" + INJ + " Tj ET") }), UNDECODABLE);
+  const oct = [...CSAM].map((c) => "\\" + c.charCodeAt(0).toString(8).padStart(3, "0")).join("");
+  assert.deepEqual(await run({ name: "a.pdf", bytes: contentPdf("BT /F1 12 Tf (" + oct + " Tj ET") }), UNDECODABLE);
+});
+
+test("caps: a benign unterminated ( or a stray ( in binary stream bytes still passes", async () => {
+  // Binary bytes often hold a stray "(": only a marker after it refuses.
+  assert.equal(await run({ name: "a.pdf", bytes: contentPdf("BT /F1 12 Tf 72 712 Td (field notes) Tj (river survey Tj ET") }), null);
+  // Compressed bytes are read decoded: a "(" in the deflate output bytes is not text.
+  let found = null;
+  for (let k = 0; k < 400 && !found; k++) {
+    const z = flate("BT /F1 12 Tf 72 712 Td (field notes " + k + ") Tj ET");
+    if (Buffer.from(z).toString("latin1").split("(").length - 1 > Buffer.from(z).toString("latin1").split(")").length - 1) found = z;
+  }
+  assert.ok(found, "a deflate body with an unbalanced (");
+  const pdf1 = pdfN([
+    [1, "<< /Type /Catalog /Pages 2 0 R >>"],
+    [2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>"],
+    [3, "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>"],
+    [4, "/Filter /FlateDecode", found],
+  ]);
+  assert.equal(await run({ name: "a.pdf", bytes: pdf1 }), null);
+  // An unfiltered font program (glyph bytes) with a stray "(".
+  const glyphs = new Uint8Array(512).map((_, i) => 0x80 + (i * 37) % 0x7f);
+  glyphs[100] = 0x28;
+  const pdf2 = pdfN([
+    [1, "<< /Type /Catalog /Pages 2 0 R >>"],
+    [2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>"],
+    [3, "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>"],
+    [4, "/Filter /FlateDecode", flate("BT /F1 12 Tf 72 712 Td (field notes) Tj ET")],
+    [5, "<< /Type /FontDescriptor /FontName /Synthetic /FontFile2 6 0 R >>"],
+    [6, "/Length1 512", glyphs],
+  ]);
+  assert.equal(await run({ name: "a.pdf", bytes: pdf2 }), null);
+  // Unfiltered embedded-file / image bytes with a stray "(" (the shape of a real signed
+  // PDF's manifest stream); the media floor judges these bytes, not the text screen.
+  for (const dict of ["/Type /EmbeddedFile /Subtype /application#2Foctet-stream", "/F << /Subtype (application/x-synthetic) >>", "/Type /XObject /Subtype /Image /Width 16 /Height 32"]) {
+    const pdf3 = pdfN([
+      [1, "<< /Type /Catalog /Pages 2 0 R >>"],
+      [2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>"],
+      [3, "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>"],
+      [4, "/Filter /FlateDecode", flate("BT /F1 12 Tf 72 712 Td (field notes) Tj ET")],
+      [6, dict, glyphs],
+    ]);
+    assert.equal(await run({ name: "a.pdf", bytes: pdf3 }), null, dict);
+  }
+});
+
+test("caps: a ToUnicode map past 70,000 entries refuses (was: cut silently, dropping the shown text)", async () => {
+  // 3-byte codes so the map can pass 65,536 entries; decoy ranges first, the real codes last.
+  const chars = [...new Set(INJ)];
+  const code = (c) => (0x20 + chars.indexOf(c)).toString(16).padStart(6, "0");
+  const cid3 = (decoys) => {
+    const cmap = "begincmap\n1 begincodespacerange\n<000000> <FFFFFF>\nendcodespacerange\n" +
+      decoys + chars.length + " beginbfchar\n" + chars.map((c) => "<" + code(c) + "> <" + c.charCodeAt(0).toString(16).padStart(4, "0") + ">").join("\n") + "\nendbfchar\nendcmap\n";
+    return pdfN([
+      [1, "<< /Type /Catalog /Pages 2 0 R >>"],
+      [2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>"],
+      [3, "<< /Type /Page /Parent 2 0 R /Contents 4 0 R /Resources << /Font << /F4 5 0 R >> >> >>"],
+      [4, "/Filter /FlateDecode", flate("BT /F4 12 Tf 72 712 Td <" + [...INJ].map(code).join("") + "> Tj ET")],
+      [5, "<< /Type /Font /Subtype /Type0 /BaseFont /AAAAAA+Synthetic /Encoding /Identity-H /DescendantFonts [6 0 R] /ToUnicode 7 0 R >>"],
+      [6, "<< /Type /Font /Subtype /CIDFontType2 /BaseFont /AAAAAA+Synthetic >>"],
+      [7, "/Filter /FlateDecode", flate(cmap)],
+    ]);
+  };
+  const under = "1 beginbfrange\n<100000> <10FFFF> <0041>\nendbfrange\n"; // 65,536 entries
+  assert.deepEqual(await run({ name: "a.pdf", bytes: cid3(under) }), { code: TEXT_REASONS.INJECTION }, "under the cap: read");
+  const over = "2 beginbfrange\n<100000> <10FFFF> <0041>\n<200000> <201200> <0041>\nendbfrange\n"; // 70,145 entries
+  const fx = await fileTexts({ name: "a.pdf", bytes: cid3(over) });
+  assert.equal(fx.undecodable, true);
+  assert.equal(fx.cap, "TOUNICODE");
+  assert.deepEqual(await run({ name: "a.pdf", bytes: cid3(over) }), UNDECODABLE);
+  assert.equal(PDF_CAPS.TOUNICODE, 70000);
+});
