@@ -423,4 +423,4 @@ export const mediaFloorCheck = {
   },
 };
 
-export { MEDIA_EXT, ARCHIVE_EXT, OFFICE_EXT, inflateRawSync };
+export { MEDIA_EXT, ARCHIVE_EXT, OFFICE_EXT, inflateRawSync, pdfStreams };

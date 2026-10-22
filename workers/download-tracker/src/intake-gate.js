@@ -20,6 +20,7 @@
  */
 import { createHash, randomBytes } from "node:crypto";
 import { mediaFloorCheck } from "./intake-media.js";
+import { textChecks } from "./intake-text.js";
 
 export const INTAKE_SPEC = "CORPUS-INTAKE-SAFETY-1.0";
 
@@ -75,6 +76,9 @@ export const INTAKE_CHECKS = [
   },
   // Hard floor: no image, video or audio, in any wrapper, from any caller.
   mediaFloorCheck,
+  // Text: hidden/invisible content, encoded payloads, child-safety and explicit
+  // content (hard, everyone); injection phrasing and spam (heuristic, operator exempt).
+  textChecks,
 ];
 
 async function readFileForIntake(file) {
