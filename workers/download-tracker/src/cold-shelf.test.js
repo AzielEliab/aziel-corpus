@@ -594,13 +594,13 @@ test("public /shelves JSON cites CNS + NO-LIE; no 15:20 chrome; Growth-ON intact
   const ai = aiTxt("LIMIT");
   assert.doesNotMatch(ai, CRAWL_NO_TIP_DOI);
   assert.match(ai, /COLD-MULTI-SHELF-1\.0/);
-  assert.match(ai, /User-agent: GPTBot\nAllow: \//);
+  assert.match(ai, /User-agent: GPTBot\n(?:User-agent: [^\n]+\n)*Allow: \/\n/);
   assert.match(ai, /Allow: \/shelves/);
 
   const robots = robotsTxt();
   assert.match(robots, /Allow: \/shelves/);
   assert.match(robots, /Allow: \/cold-copy/);
-  assert.match(robots, /User-agent: GPTBot\nAllow: \//);
+  assert.match(robots, /User-agent: GPTBot\n(?:User-agent: [^\n]+\n)*Allow: \/\n/);
   assert.match(robots, /ai-input=yes, ai-train=yes/);
 
   const xml = await sitemapXml({});

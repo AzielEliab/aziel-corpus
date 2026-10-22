@@ -1302,7 +1302,8 @@ test("OpenAPI, MCP, llms, cite, robots, sitemap cite mesh paths", async () => {
 
   const xml = await sitemapXml({});
   assert.match(xml, /\/v1\/mesh</);
-  assert.match(xml, /\/runtime\/v1\/mesh</);
+  // AZBot audit 2026-10-22: the runtime JSON mirror stays crawlable (robots Allow) but is not a sitemap page.
+  assert.doesNotMatch(xml, /\/runtime\/v1\/mesh</);
   assert.doesNotMatch(JSON.stringify(spec) + JSON.stringify(mcp) + llms, BANNED);
 });
 

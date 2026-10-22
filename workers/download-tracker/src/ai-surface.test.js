@@ -42,10 +42,10 @@ function req(path, init) {
 test("AZindex Growth-ON: robots and ai.txt Allow GPTBot; no Disallow GPTBot", () => {
   const robots = robotsTxt();
   const ai = aiTxt("LIMIT");
-  assert.match(robots, /User-agent: GPTBot\nAllow: \//);
-  assert.match(ai, /User-agent: GPTBot\nAllow: \//);
-  assert.doesNotMatch(robots, /User-agent: GPTBot\nDisallow:/);
-  assert.doesNotMatch(ai, /Disallow: \/.*GPTBot|User-agent: GPTBot\nDisallow/);
+  assert.match(robots, /User-agent: GPTBot\n(?:User-agent: [^\n]+\n)*Allow: \/\n/);
+  assert.match(ai, /User-agent: GPTBot\n(?:User-agent: [^\n]+\n)*Allow: \/\n/);
+  assert.doesNotMatch(robots, /User-agent: GPTBot\n(?:User-agent: [^\n]+\n)*Disallow:/);
+  assert.doesNotMatch(ai, /Disallow: \/.*GPTBot|User-agent: GPTBot\n(?:User-agent: [^\n]+\n)*Disallow/);
   assert.match(robots, /Allow: \/bridge\.json/);
   assert.match(ai, /Allow: \/bridge\.json/);
   assert.match(robots, /Content-Signal: search=yes, ai-input=yes, ai-train=yes/);
