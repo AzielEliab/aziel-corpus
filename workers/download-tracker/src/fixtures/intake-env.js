@@ -43,8 +43,9 @@ export function intakeStubEnv(extra = {}) {
 /** True when any corpus content write happened (record row, ledger append, object put). */
 export function contentWritten(env) {
   const w = env.writes;
-  if (w.puts.length) return true;
-  return w.sql.some((s) => /INSERT INTO (records|ledger|document_ledger|derived_artifacts)/i.test(s));
+  if (w.puts.length || w.kv.length) return true;
+  // Any row write other than the hash-only refusal receipt counts as content written.
+  return w.sql.some((s) => /\b(INSERT|REPLACE|UPDATE)\b/i.test(s) && !/intake_refusals/i.test(s));
 }
 
 /** True when any captured write (SQL binds, object keys, KV keys) contains the marker. */
