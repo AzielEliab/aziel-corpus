@@ -272,3 +272,80 @@ test("caps: a CSAM/injection pair split across a closed literal and an untermina
   assert.equal(await run({ name: "a.pdf", bytes: rawContent("BT /F1 12 Tf 72 712 Td (notes " + minor + " end) Tj (river survey Tj ET") }), null, "MINOR alone + benign unterminated passes");
   assert.equal(await run({ name: "a.pdf", bytes: rawContent("BT /F1 12 Tf 72 712 Td (notes " + sexual + " end) Tj (river survey Tj ET") }), null, "SEXUAL alone + benign unterminated passes");
 });
+
+test("caps: base64/hex of a marker only in an unterminated ( refuses (B193-2)", async () => {
+  // unterminatedHit used to run markerHit only; encodedInjectionHit never saw the run
+  // because break drops the rest from out. Same b64 as a closed literal already refused.
+  const rawContent = (content) => pdfN([
+    [1, "<< /Type /Catalog /Pages 2 0 R >>"],
+    [2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>"],
+    [3, "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>"],
+    [4, "", enc.encode(content)],
+  ]);
+  const pair = SYNTHETIC.MINOR + " " + SYNTHETIC.SEXUAL;
+  const b64 = Buffer.from(pair).toString("base64");
+  const hx = Buffer.from(pair).toString("hex");
+  const b64inj = Buffer.from(INJ).toString("base64");
+  const b64cw = Buffer.from(SYNTHETIC.CODEWORD).toString("base64");
+  assert.equal(encodedInjectionHit(b64), true, "control: b64 alone is an encoded hit");
+  const closed = contentPdf("BT /F1 12 Tf 72 712 Td (" + b64 + ") Tj ET");
+  assert.deepEqual(await run({ name: "a.pdf", bytes: closed }), { code: TEXT_REASONS.ENCODED_INJECTION }, "control: closed b64 refuses ENCODED-INJECTION");
+  for (const [label, payload] of [["b64 pair", b64], ["hex pair", hx], ["b64 injection", b64inj], ["b64 codeword", b64cw]]) {
+    const bytes = rawContent("BT /F1 12 Tf 72 712 Td (benign notes) Tj (" + payload + " more Tj ET");
+    assert.deepEqual(await run({ name: "a.pdf", bytes }), UNDECODABLE, label + " in unterminated");
+    assert.equal((await fileTexts({ name: "a.pdf", bytes })).cap, "UNTERMINATED", label + " cap");
+  }
+  // Flate path too (pad so the deflate body does not end in 0x0a alone — single-EOL trim handles it,
+  // but keep the payload in the inflated text).
+  const flateBytes = contentPdf("BT /F1 12 Tf 72 712 Td (benign notes) Tj (" + b64 + " more Tj ET");
+  assert.deepEqual(await run({ name: "a.pdf", bytes: flateBytes }), UNDECODABLE, "b64 pair unterminated under Flate");
+});
+
+test("caps: a mid-token split across closed + unterminated needs concat (B193-3)", async () => {
+  const rawContent = (content) => pdfN([
+    [1, "<< /Type /Catalog /Pages 2 0 R >>"],
+    [2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>"],
+    [3, "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>"],
+    [4, "", enc.encode(content)],
+  ]);
+  const midA = SYNTHETIC.MINOR.slice(0, 12);
+  const midB = SYNTHETIC.MINOR.slice(12);
+  const bytes = rawContent("BT /F1 12 Tf 72 712 Td (" + midA + ") Tj (" + midB + " " + SYNTHETIC.SEXUAL + " more Tj ET");
+  assert.deepEqual(await run({ name: "a.pdf", bytes }), UNDECODABLE, "MINOR mid-token + SEXUAL");
+  assert.equal((await fileTexts({ name: "a.pdf", bytes })).cap, "UNTERMINATED");
+  // Space-join alone would miss it; concat rebuilds the token. Control: halves that do not concat to a marker still pass.
+  assert.equal(await run({ name: "a.pdf", bytes: rawContent("BT /F1 12 Tf 72 712 Td (" + midA + ") Tj (" + midB + " river survey Tj ET") }), null, "mid-token MINOR alone + benign unt passes");
+});
+
+test("caps: UTF-16BE halves split across closed + unterminated with trailing ASCII refuse (B193-4)", async () => {
+  const u16be = (s) => {
+    const b = Buffer.alloc(2 + s.length * 2);
+    b[0] = 0xfe; b[1] = 0xff;
+    for (let i = 0; i < s.length; i++) {
+      const c = s.charCodeAt(i);
+      b[2 + i * 2] = c >> 8; b[3 + i * 2] = c & 0xff;
+    }
+    return b.toString("latin1");
+  };
+  const rawContent = (content) => pdfN([
+    [1, "<< /Type /Catalog /Pages 2 0 R >>"],
+    [2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>"],
+    [3, "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>"],
+    [4, "", Buffer.from(content, "latin1")],
+  ]);
+  // Pure u16 pair only in the unterminated tail already refuses (rest-alone screen).
+  const pure = rawContent("BT /F1 12 Tf 72 712 Td (benign) Tj (" + u16be(SYNTHETIC.MINOR + " " + SYNTHETIC.SEXUAL));
+  assert.deepEqual(await run({ name: "a.pdf", bytes: pure }), UNDECODABLE, "pure u16 pair in unt");
+  // Split with trailing ASCII after the u16 half used to PASS: the ASCII glued onto the
+  // decoded token so the lexicon miss matched; tight ASCII-run view catches it.
+  const split = rawContent("BT /F1 12 Tf 72 712 Td (" + u16be(SYNTHETIC.MINOR) + ") Tj (" + u16be(SYNTHETIC.SEXUAL) + " more Tj ET");
+  assert.deepEqual(await run({ name: "a.pdf", bytes: split }), UNDECODABLE, "u16 split + trailing ASCII");
+  assert.equal((await fileTexts({ name: "a.pdf", bytes: split })).cap, "UNTERMINATED");
+});
+
+test("caps: Flate + benign unterminated still passes (EOL trim)", async () => {
+  // Pre-existing: trimming every trailing CR/LF ate a real 0x0a at the end of Flate data.
+  // Single-EOL trim keeps the inflate intact. Fully-closed Flate still passes too.
+  assert.equal(await run({ name: "a.pdf", bytes: contentPdf("BT /F1 12 Tf 72 712 Td (hello) Tj (river survey Tj ET") }), null, "Flate benign unterminated");
+  assert.equal(await run({ name: "a.pdf", bytes: contentPdf("BT /F1 12 Tf 72 712 Td (hello) Tj (river survey) Tj ET") }), null, "Flate fully closed");
+});
