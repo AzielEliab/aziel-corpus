@@ -289,8 +289,22 @@ function pathLastmod(path) {
   return SITE_LASTMOD;
 }
 
+/**
+ * Runtime JSON API mirror (application/json / markdown machine endpoints, not HTML documents). They stay
+ * crawlable (robots Allow, llms.txt, cite.json, mcp.json still point at them); they are only kept out of
+ * the sitemap, which lists canonical pages. AZBot audit 2026-10-22.
+ */
+export const SITEMAP_API_PREFIXES = Object.freeze(["/runtime/v1/"]);
+export const SITEMAP_API_EXACT = Object.freeze(new Set(["/v1/runtime.json"]));
+export function isSitemapApiPath(path) {
+  const p = String(path || "");
+  if (SITEMAP_API_EXACT.has(p)) return true;
+  return SITEMAP_API_PREFIXES.some((pre) => p.startsWith(pre) || p + "/" === pre);
+}
+
 function isSitemapPath(path) {
   if (SITEMAP_EXCLUDED.has(path)) return false;
+  if (isSitemapApiPath(path)) return false;
   if (path.includes("?")) return false;
   return true;
 }
@@ -307,11 +321,21 @@ export function crawlResponse(request, body, contentType, extraHeaders) {
   return new Response(body, { status: 200, headers });
 }
 
-function botAllows() {
+/**
+ * One RFC 9309 group naming every AI_BOTS agent, with a single "Allow: /". Same effect per bot as the
+ * former one-group-per-bot layout (each named bot still matches a group whose only rule is Allow: /),
+ * without ~78 repeated "Allow: /" lines. Each agent is named exactly once.
+ */
+export function botAllows() {
+  const seen = new Set();
   const lines = [];
   for (const bot of AI_BOTS) {
-    lines.push("User-agent: " + bot, "Allow: /", "");
+    const key = bot.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    lines.push("User-agent: " + bot);
   }
+  if (lines.length) lines.push("Allow: /", "");
   return lines;
 }
 
@@ -1452,9 +1476,7 @@ export function aiTxt(limitation, survival) {
     "Content-Signal: search=yes, ai-input=yes, ai-train=yes",
     "",
   ];
-  for (const bot of AI_BOTS) {
-    policy.push("User-agent: " + bot, "Allow: /", "");
-  }
+  policy.push(...botAllows());
   return policy.join("\n")
     + "Sitemap: " + HOST + "/sitemap.xml\n"
     + "Sitemap: " + HOST + "/sitemap-index.xml\n"

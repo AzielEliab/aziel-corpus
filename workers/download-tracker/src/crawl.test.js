@@ -117,7 +117,7 @@ test("robots.txt allows research surfaces and major AI bots", () => {
   assert.equal(new Set(AI_BOTS).size, AI_BOTS.length);
   for (const bot of AI_BOTS) {
     const escaped = bot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    assert.match(txt, new RegExp("User-agent: " + escaped + "\\nAllow: /"));
+    assert.match(txt, new RegExp("User-agent: " + escaped + "\\n(?:User-agent: [^\\n]+\\n)*Allow: /\\n"));
     assert.equal((txt.match(new RegExp("User-agent: " + escaped + "\\n", "g")) || []).length, 1);
   }
 });
@@ -142,7 +142,7 @@ test("sitemap.xml lists key routes and uses XML mime helper", async () => {
   };
   const xml = await sitemapXml(env);
   assert.match(xml, /<\?xml version="1.0"/);
-  for (const path of ["/", "/AzielEliab", "/software", "/donate", "/v1/software", "/v1/download", "/v1/library-index", "/v1/stats", "/v1/update/check", "/sitemap-index.xml", "/sitemap-records.xml", "/mcp.json", "/.well-known/mcp.json", "/mcp", "/bridge.json", "/v1/products", "/v1/design-pack", "/v1/design-pack/azcorpus", "/v1/design-pack/azlibrary", "/runtime", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/software", "/runtime/v1/uses", "/survival", "/v1/survival", "/runtime/survival", "/runtime/v1/survival", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/help.txt", "/addendum.txt", "/help/how-to-read-scores.txt", "/help/how-to-cite.txt", "/help/uploads.txt", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/forensics", "/aziel-library", "/corpus", "/cite.json", "/lockset.json", "/shelves", "/cold-copy", "/receipts", "/receipts/verify", "/v1/receipts", "/v1/receipts/verify", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/.well-known/aziel.json", "/.well-known/person.jsonld", "/llms.txt", "/ai.txt"]) {
+  for (const path of ["/", "/AzielEliab", "/software", "/donate", "/v1/software", "/v1/download", "/v1/library-index", "/v1/stats", "/v1/update/check", "/sitemap-index.xml", "/sitemap-records.xml", "/mcp.json", "/.well-known/mcp.json", "/mcp", "/bridge.json", "/v1/products", "/v1/design-pack", "/v1/design-pack/azcorpus", "/v1/design-pack/azlibrary", "/runtime", "/survival", "/v1/survival", "/runtime/survival", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/help.txt", "/addendum.txt", "/help/how-to-read-scores.txt", "/help/how-to-cite.txt", "/help/uploads.txt", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/forensics", "/aziel-library", "/corpus", "/cite.json", "/lockset.json", "/shelves", "/cold-copy", "/receipts", "/receipts/verify", "/v1/receipts", "/v1/receipts/verify", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/.well-known/aziel.json", "/.well-known/person.jsonld", "/llms.txt", "/ai.txt"]) {
     assert.match(xml, new RegExp("<loc>https://www\\.azielcorpuslibrary\\.net" + path.replace("/", "\\/") + "</loc>"));
   }
   for (const dropped of ["/search", "/login", "/signup", "/upload"]) {
@@ -515,7 +515,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   }
   for (const bot of AI_BOTS) {
     const escaped = bot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    assert.match(ai, new RegExp("User-agent: " + escaped + "\\nAllow: /"));
+    assert.match(ai, new RegExp("User-agent: " + escaped + "\\n(?:User-agent: [^\\n]+\\n)*Allow: /\\n"));
     assert.equal((ai.match(new RegExp("User-agent: " + escaped + "\\n", "g")) || []).length, 1);
   }
   assert.match(ai, /Allow: \/how-its-scored/);
@@ -836,4 +836,44 @@ test("PATH_LASTMOD dates match git log of their source files", async (t) => {
   const r = checkLastmod();
   if (!r.available) return t.skip("git history unavailable: " + r.problems.join("; "));
   assert.deepEqual(r.problems, []);
+});
+
+const HOST_FOR_TEST = "https://www.azielcorpuslibrary.net";
+
+test("robots.txt and ai.txt: every AI bot named once in one group; no repeated Allow: / lines (audit 2026-10-22)", async () => {
+  const { robotsTxt, aiTxt, botAllows } = await import("./crawl.js");
+  for (const [name, txt] of [["robots", robotsTxt()], ["ai", aiTxt("limitation", null)]]) {
+    const allowRoot = txt.split("\n").filter((l) => l === "Allow: /").length;
+    assert.equal(allowRoot, 2, name + ": one Allow: / for *, one for the named-bot group");
+    let run = 0;
+    for (const l of txt.split("\n")) { run = l === "Allow: /" ? run + 1 : 0; assert.ok(run < 2, name + ": consecutive duplicate Allow: /"); }
+    for (const bot of AI_BOTS) {
+      const esc = bot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      assert.equal((txt.match(new RegExp("^User-agent: " + esc + "$", "gm")) || []).length, 1, name + " " + bot);
+    }
+    // groups: no rule line repeats inside a group
+    for (const group of txt.split(/\n\s*\n/)) {
+      const rules = group.split("\n").filter((l) => /^(Allow|Disallow):/.test(l));
+      assert.equal(new Set(rules).size, rules.length, name + ": duplicate rule in group");
+    }
+  }
+  const g = botAllows();
+  assert.equal(g.filter((l) => l === "Allow: /").length, 1);
+  assert.equal(g.filter((l) => l.startsWith("User-agent: ")).length, new Set(AI_BOTS.map((b) => b.toLowerCase())).size);
+});
+
+test("sitemap.xml: runtime JSON API mirror (/runtime/v1/*, /v1/runtime.json) is not listed; pages stay (audit 2026-10-22)", async () => {
+  const { sitemapXml, isSitemapApiPath } = await import("./crawl.js");
+  const xml = await sitemapXml({});
+  const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+  assert.equal(locs.filter((u) => /\/runtime\/v1\//.test(u)).length, 0, "no /runtime/v1/ URLs");
+  assert.equal(locs.filter((u) => u.endsWith("/v1/runtime.json")).length, 0);
+  for (const keep of ["/", "/software", "/runtime", "/runtime/llms.txt", "/llms.txt", "/who"]) {
+    assert.ok(locs.includes(HOST_FOR_TEST + (keep === "/" ? "/" : keep)), "kept " + keep);
+  }
+  assert.equal(isSitemapApiPath("/runtime/v1/health"), true);
+  assert.equal(isSitemapApiPath("/runtime/v1"), true);
+  assert.equal(isSitemapApiPath("/runtime"), false);
+  assert.equal(isSitemapApiPath("/runtime/llms.txt"), false);
+  assert.equal(isSitemapApiPath("/v1/runtime.json"), true);
 });

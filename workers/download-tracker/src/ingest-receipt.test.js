@@ -218,10 +218,10 @@ test("cite.json, llms.txt, ai.txt, robots, sitemap carry the tip and keep crawle
   assert.match(ai, /CROSS-NETWORK-SURVIVAL/);
   assert.match(ai, /NO-LIE \/ NO-REWRITE/);
   assert.match(ai, /GPTBot/);
-  assert.match(ai, /User-agent: GPTBot\nAllow: \//);
+  assert.match(ai, /User-agent: GPTBot\n(?:User-agent: [^\n]+\n)*Allow: \/\n/);
 
   const robots = robotsTxt();
-  assert.match(robots, /User-agent: GPTBot\nAllow: \//);
+  assert.match(robots, /User-agent: GPTBot\n(?:User-agent: [^\n]+\n)*Allow: \/\n/);
   assert.match(robots, /Allow: \/lockset\.json/);
   assert.match(robots, /Allow: \/shelves/);
   assert.match(robots, /Allow: \/cold-copy/);
