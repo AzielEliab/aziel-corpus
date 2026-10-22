@@ -252,20 +252,47 @@ export function hasPercentRun(s) {
   return false;
 }
 
+// A decoded blob that is mostly not text (a homogeneous base64/hex run glued onto an
+// encoded payload, or a payload inside binary) used to be dropped by the
+// printableRatio filter, so the text checks never saw the payload (AZBot review,
+// intake-text.js:255-278). Now every printable subrun of DECODED_SUBRUN_MIN+ chars is
+// scanned too (joined, so a marker split across two subruns is still seen), and each
+// run is decoded at every alignment (base64: 4, hex: 2) because a glued prefix of the
+// wrong length shifts the payload. A fully printable blob is still scanned whole.
+export const DECODED_SUBRUN_MIN = 12;
+const isPrintableUnit = (c) => c === 9 || c === 10 || c === 13 || (c >= 32 && c !== 127 && c !== 0xfffd);
+export function printableSubruns(d, min = DECODED_SUBRUN_MIN) {
+  const out = [];
+  let start = -1;
+  for (let i = 0; i <= d.length; i++) {
+    if (i < d.length && isPrintableUnit(d.charCodeAt(i))) { if (start < 0) start = i; continue; }
+    if (start >= 0 && i - start >= min) out.push(d.slice(start, i));
+    start = -1;
+  }
+  return out;
+}
+function pushDecoded(out, d) {
+  if (printableRatio(d) > 0.9) out.push(d);
+  const runs = printableSubruns(d);
+  if (runs.length && !(runs.length === 1 && runs[0].length === d.length)) out.push(runs.join("\n"));
+}
+
 function decodedCandidates(text) {
   const s = String(text || "");
   const out = [];
   const td = new TextDecoder("utf-8", { fatal: false });
   for (const run of base64Runs(s, 500)) {
-    try {
-      const d = td.decode(Buffer.from(run.replace(/\s+/g, "").replace(/-/g, "+").replace(/_/g, "/"), "base64"));
-      if (printableRatio(d) > 0.9) out.push(d);
-    } catch { /* not base64 */ }
+    const chars = run.replace(/\s+/g, "").replace(/-/g, "+").replace(/_/g, "/");
+    for (let shift = 0; shift < 4 && shift < chars.length; shift++) {
+      try { pushDecoded(out, td.decode(Buffer.from(chars.slice(shift), "base64"))); } catch { /* not base64 */ }
+    }
   }
   for (const run of hexRuns(s, 500)) {
     const h = run.replace(/0x|\\x/g, "").replace(/[^0-9a-fA-F]/g, "");
-    const d = td.decode(Buffer.from(h.slice(0, h.length - (h.length % 2)), "hex"));
-    if (printableRatio(d) > 0.9) out.push(d);
+    for (let shift = 0; shift < 2 && shift < h.length; shift++) {
+      const k = h.slice(shift);
+      pushDecoded(out, td.decode(Buffer.from(k.slice(0, k.length - (k.length % 2)), "hex")));
+    }
   }
   if (hasPercentRun(s)) { try { out.push(decodeURIComponent(s.replace(/%(?![0-9a-fA-F]{2})/g, "%25"))); } catch { /* bad */ } }
   if (/&#x?[0-9a-fA-F]+;/.test(s)) out.push(s.replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16) || 32)).replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d) || 32)));
