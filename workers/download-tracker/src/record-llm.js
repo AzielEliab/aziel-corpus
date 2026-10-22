@@ -12,6 +12,7 @@ import {
   discoveryJsonResponse,
 } from "./record-metadata.js";
 import { readPackedIndex } from "./library-index.js";
+import { stampPermalinks } from "./paper-ux.js";
 import { HUB_PERSON_ID } from "./seo.js";
 import { parseZsolver, zsolverIsNotApplicable, zsolverNumericDisplay } from "./zsolver.js";
 import {
@@ -88,7 +89,10 @@ async function packedCard(env, paper) {
   try {
     const packed = await readPackedIndex(env);
     const recs = packed && Array.isArray(packed.records) ? packed.records : [];
-    return recs.find((r) => String(r.record_id || r.id || "") === paper) || null;
+    // Same stamp the slug route uses, so canonical/permalink match the served slug page.
+    let stamped = recs;
+    try { stamped = stampPermalinks(recs); } catch { stamped = recs; }
+    return stamped.find((r) => String(r.record_id || r.id || "") === paper) || null;
   } catch {
     return null;
   }
@@ -299,17 +303,28 @@ export function buildRecordLlms(ctx) {
   return text;
 }
 
-export function recordMachineUrls(recordId) {
+/** Same-host slug page path, or "" (records without a slug keep /record/<id>). */
+export function recordSlugPath(permalink) {
+  let p = String(permalink || "").trim();
+  if (p.startsWith(HOST)) p = p.slice(HOST.length);
+  p = p.replace(/[?#].*$/, "").replace(/\/+$/, "");
+  return /^\/(?:aziellibrary|azielcorpus\/usersubmitted)\/[a-z0-9][a-z0-9-]*$/.test(p) ? p : "";
+}
+
+export function recordMachineUrls(recordId, permalink) {
   const id = encodeURIComponent(String(recordId || "").trim());
+  const record = "/record/" + id;
   return {
-    html: "/record/" + id,
-    llms_url: "/record/" + id + "/llms.txt",
-    cite_url: "/record/" + id + "/cite.json",
+    html: recordSlugPath(permalink) || record,
+    record_url: record,
+    llms_url: record + "/llms.txt",
+    cite_url: record + "/cite.json",
   };
 }
 
-export function recordMachineLinkHeader(recordId, alias) {
-  const urls = recordMachineUrls(recordId);
+/** HTTP Link header. rel=canonical is the slug page when one exists, else /record/<id>. */
+export function recordMachineLinkHeader(recordId, alias, permalink) {
+  const urls = recordMachineUrls(recordId, permalink);
   const parts = ["<" + urls.html + ">; rel=\"canonical\""];
   if (alias !== "llms.txt") parts.push("<" + urls.llms_url + ">; rel=\"alternate\"; type=\"text/plain\"");
   if (alias !== "cite.json") parts.push("<" + urls.cite_url + ">; rel=\"alternate\"; type=\"application/json\"");
@@ -342,7 +357,7 @@ export async function serveRecordMachine(env, pathname) {
     if (parsed.alias === "cite.json") return discoveryJsonResponse({ error: "not found" }, 404);
     return recordLlmsResponse("not found\n", 404);
   }
-  const link = recordMachineLinkHeader(paper, parsed.alias);
+  const link = recordMachineLinkHeader(paper, parsed.alias, ctx.row && ctx.row.permalink);
   if (parsed.alias === "cite.json") {
     const res = discoveryJsonResponse(buildRecordCite(ctx), 200);
     res.headers.set("Link", link);

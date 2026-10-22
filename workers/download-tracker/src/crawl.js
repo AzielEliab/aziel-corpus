@@ -48,6 +48,7 @@ import { peacelockCiteFields, peacelockLlmsBlock } from "./peacelock.js";
 import { tradesRuntimeCiteFields, tradesRuntimeLlmsBlock, tradesRuntimeMcpDiscovery } from "./trades-runtime.js";
 import { redlineCiteFields } from "./redline-cite.js";
 import { readPackedIndex, SHELF_INDEX_LIMIT } from "./library-index.js";
+import { stampPermalinks } from "./paper-ux.js";
 import { isQuotaError, isTransientOverload, rethrowIfQuota } from "./quota.js";
 import {
   IDENTITY_ROUTES,
@@ -609,19 +610,44 @@ export function softwareRelatedPaths() {
   ];
 }
 
+function slugPermalink(value) {
+  const p = String(value || "").trim();
+  // Only a same-host slug path: /aziellibrary/<slug> or /azielcorpus/usersubmitted/<slug>.
+  if (!/^\/(?:aziellibrary|azielcorpus\/usersubmitted)\/[a-z0-9][a-z0-9-]*$/.test(p)) return "";
+  return canonicalPath(p);
+}
+
 function rememberSitemapRecord(byId, row) {
   if (!row) return;
   const id = String(row.record_id || row.id || "").trim();
   if (!id) return;
   const created = row.created_utc || row.updated || row.ts || "";
   const library = row.library || row.shelf || "";
+  const permalink = slugPermalink(row.permalink);
   const prev = byId.get(id);
   if (!prev) {
-    byId.set(id, { record_id: id, created_utc: created, library });
+    byId.set(id, { record_id: id, created_utc: created, library, permalink });
     return;
   }
   if (!prev.created_utc && created) prev.created_utc = created;
   if (!prev.library && library) prev.library = library;
+  if (!prev.permalink && permalink) prev.permalink = permalink;
+}
+
+/**
+ * Slug paths exactly as the slug route resolves them: stampPermalinks over the packed cards
+ * (hosted.js findPaperBySlug / servePaperPage use the same stamp). Rows the packed index
+ * does not carry have no slug page and keep /record/<id> only.
+ */
+function packedSlugPaths(recs) {
+  const out = new Map();
+  try {
+    for (const row of stampPermalinks(recs || [])) {
+      const p = slugPermalink(row.permalink);
+      if (row.record_id && p) out.set(String(row.record_id), p);
+    }
+  } catch { /* stamp is best-effort; /record/<id> rows still list */ }
+  return out;
 }
 
 async function d1SitemapRecords(env) {
@@ -646,10 +672,12 @@ async function d1SitemapRecords(env) {
 export async function collectSitemapRecords(env) {
   const byId = new Map();
   let quota = null;
+  let slugs = new Map();
   try {
     const packed = await readPackedIndex(env);
     const recs = packed && Array.isArray(packed.records) ? packed.records : [];
     for (const row of recs) rememberSitemapRecord(byId, row);
+    slugs = packedSlugPaths(recs);
   } catch (e) { if (isQuotaError(e) || isTransientOverload(e)) quota = e; /* packed optional */ }
   try {
     const recs = await d1SitemapRecords(env);
@@ -657,6 +685,11 @@ export async function collectSitemapRecords(env) {
   } catch (e) { if (isQuotaError(e) || isTransientOverload(e)) quota = quota || e; /* empty set still valid */ }
   // Packed ids alone are a valid sitemap. Nothing at all because of a quota: 503, never an empty sitemap.
   if (byId.size === 0 && quota) rethrowIfQuota(quota, "sitemap");
+  // The stamped slug is the one the route serves; it wins over a stale stored permalink.
+  for (const [id, rec] of byId) {
+    const p = slugs.get(id);
+    if (p) rec.permalink = p;
+  }
   return [...byId.values()].sort((a, b) => {
     const az = (row) => String(row.library || "").toLowerCase() === "aziel" ? 0 : 1;
     const shelf = az(a) - az(b);
@@ -669,9 +702,8 @@ function pushRecordLocs(rows, rec, { aliasJson = false } = {}) {
   const lastmod = isoDay(rec.created_utc, SITE_LASTMOD);
   const id = encodeURIComponent(rec.record_id);
   rows.push({ loc: HOST + "/record/" + id, lastmod });
-  if (rec.permalink && String(rec.permalink).startsWith("/")) {
-    rows.push({ loc: HOST + rec.permalink, lastmod });
-  }
+  const slug = slugPermalink(rec.permalink);
+  if (slug) rows.push({ loc: HOST + slug, lastmod });
   rows.push({ loc: HOST + "/record/" + id + "/metadata.json", lastmod });
   if (aliasJson) rows.push({ loc: HOST + "/record/" + id + ".json", lastmod });
   rows.push({ loc: HOST + "/record/" + id + "/llms.txt", lastmod });

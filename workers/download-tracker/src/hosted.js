@@ -252,7 +252,7 @@ async function servePaperPage(request, env, ctx, signed, row, { permalink = "", 
       content: String(loaded.text || row.snippet || row.body || "").replace(/\s+/g, " ").trim().slice(0, 400),
     },
   }), {
-    headers: { Link: recordMachineLinkHeader(row.record_id, "html") },
+    headers: { Link: recordMachineLinkHeader(row.record_id, "html", link) },
   });
 }
 
