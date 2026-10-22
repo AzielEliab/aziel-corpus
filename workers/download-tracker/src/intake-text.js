@@ -593,19 +593,52 @@ function markerHit(t) {
   const n = normalizeForMatch(t); // once; the screens' own normalizing of it is idempotent
   return !!n && (injectionHit(n) || csamIndicator(n) || explicitHit(n));
 }
+/** Screen plaintext markers and encoded (base64/hex/…) payloads in one view. */
+function viewHit(t) {
+  return markerHit(t) || encodedInjectionHit(t);
+}
+/**
+ * Leading UTF-16BE/LE (BOM) run of ASCII code units, stopping before trailing latin1
+ * that would otherwise glue onto the last token (B193-4).
+ */
+function utf16AsciiPrefix(b) {
+  let i = 0, le = false;
+  if (b[0] === 0xfe && b[1] === 0xff) i = 2;
+  else if (b[0] === 0xff && b[1] === 0xfe) { i = 2; le = true; }
+  else return "";
+  let s = "";
+  for (; i + 1 < b.length; i += 2) {
+    const hi = le ? b[i + 1] : b[i];
+    const lo = le ? b[i] : b[i + 1];
+    if (hi !== 0) break;
+    if (lo < 0x09 || (lo > 0x0d && lo < 0x20)) break;
+    s += String.fromCharCode(lo);
+  }
+  return s;
+}
 /**
  * The text after an unterminated "(" (decoded as a literal body, and raw) holds a
  * marker, alone or joined with already-closed literal texts. A CSAM / injection pair
  * split across a closed `()` and the unterminated tail must not pass: break drops the
  * rest from `out`, so the usual spaced/glued join never sees both halves (B193-1).
+ * Also: encoded payloads in the tail (B193-2), mid-token concat without a space (B193-3),
+ * and a UTF-16 half with trailing ASCII that would glue onto the token (B193-4).
  */
 function unterminatedHit(rest, closedTexts = []) {
   const b = pdfLiteralBytes(rest);
   const views = [pdfStringText(b)];
   // Decoded as UTF-16 / UTF-8 or as glyph codes, the raw bytes may read differently.
   if (looksGlyphCodes(b) || (b[0] === 0xfe && b[1] === 0xff) || (b[0] === 0xff && b[1] === 0xfe) || (b[0] === 0xef && b[1] === 0xbb)) views.push(rest);
-  const prefix = closedTexts.length ? closedTexts.join(" ") + " " : "";
-  return views.some((t) => markerHit(t) || (prefix !== "" && markerHit(prefix + t)));
+  const u16 = utf16AsciiPrefix(b);
+  if (u16 && !views.includes(u16)) views.push(u16);
+  const spaced = closedTexts.length ? closedTexts.join(" ") + " " : "";
+  const glued = closedTexts.length ? closedTexts.join("") : "";
+  return views.some((t) => {
+    if (viewHit(t)) return true;
+    if (spaced && viewHit(spaced + t)) return true;
+    if (glued && viewHit(glued + t)) return true; // mid-token split (B193-3)
+    return false;
+  });
 }
 /** Literal strings with nesting and escapes, as { at, end, text }. */
 function pdfLiterals(latin, cap, charge = null) {

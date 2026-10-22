@@ -674,18 +674,26 @@ export function pdfDecodeStream(st, maxInflate = 32 * 1024 * 1024, info = null) 
   try {
     for (const n of names) {
       let raw = data;
-      // trim trailing EOL before endstream
-      while (raw.length && (raw[raw.length - 1] === 0x0a || raw[raw.length - 1] === 0x0d)) raw = raw.subarray(0, raw.length - 1);
+      // PDF: an EOL may precede endstream. Prefer inflate/decode as-is; only peel one
+      // trailing EOL on failure. Blind CRLF trim ate a real trailing 0x0d when the
+      // extractor had already left the structural LF (B193 LOW / EOL class).
+      const peelEol = (b) => {
+        if (b.length >= 2 && b[b.length - 2] === 0x0d && b[b.length - 1] === 0x0a) return b.subarray(0, b.length - 2);
+        if (b.length && (b[b.length - 1] === 0x0a || b[b.length - 1] === 0x0d)) return b.subarray(0, b.length - 1);
+        return b;
+      };
       if (n === "/ASCII85Decode" || n === "/A85") {
         let t = latin1(raw).replace(/[\0\t\n\f\r ]+/g, "");
         if (t.startsWith("<~")) t = t.slice(2);
-        const end = t.indexOf("~>");
+        let end = t.indexOf("~>");
+        if (end < 0) { t = latin1(peelEol(raw)).replace(/[\0\t\n\f\r ]+/g, ""); if (t.startsWith("<~")) t = t.slice(2); end = t.indexOf("~>"); }
         if (end < 0) return null;
         data = ascii85Bytes(t.slice(0, end), true);
         if (!data) return null;
       } else if (n === "/ASCIIHexDecode" || n === "/AHx") {
         let t = latin1(raw).replace(/[\0\t\n\f\r ]+/g, "");
-        const end = t.indexOf(">");
+        let end = t.indexOf(">");
+        if (end < 0) { t = latin1(peelEol(raw)).replace(/[\0\t\n\f\r ]+/g, ""); end = t.indexOf(">"); }
         if (end < 0) return null;
         t = t.slice(0, end);
         if (/[^0-9a-fA-F]/.test(t)) return null;
@@ -693,7 +701,14 @@ export function pdfDecodeStream(st, maxInflate = 32 * 1024 * 1024, info = null) 
         data = new Uint8Array(t.length / 2);
         for (let i = 0; i < data.length; i++) data[i] = parseInt(t.substr(i * 2, 2), 16);
       } else {
-        const out = inflateSync(raw, { maxOutputLength: maxInflate });
+        let out;
+        try {
+          out = inflateSync(raw, { maxOutputLength: maxInflate });
+        } catch {
+          const peeled = peelEol(raw);
+          if (peeled === raw) throw new Error("inflate");
+          out = inflateSync(peeled, { maxOutputLength: maxInflate });
+        }
         data = out instanceof Uint8Array ? out : new Uint8Array(out);
       }
       if (data.length > maxInflate) { if (info) info.tooLarge = true; return null; }
