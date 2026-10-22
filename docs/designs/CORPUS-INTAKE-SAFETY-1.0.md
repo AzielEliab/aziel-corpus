@@ -23,9 +23,10 @@ The hard floor is **child sexual abuse material can never get in**. Everything e
 | `ingestRecord` (fallback) | library.js `ingestRecord`, the single write pipeline, calls `screenIntake` before `ensureLedger` / `putObject` |
 
 Checks run in a fixed order and the first refusal wins: `readable` → `media-floor` → `text` → `flood`. Fail-closed rules:
+- No usable `INTAKE_SALT` secret refuses every item, operator included (`INTAKE-NOT-READY`, 503). See §8.
 - A check that throws refuses (`INTAKE-CHECK-ERROR`).
-- Unreadable bytes refuse.
-- An unavailable flood store refuses non-operators (`INTAKE-STORE-UNAVAILABLE`).
+- Unreadable bytes refuse (`INTAKE-UNREADABLE`, `INTAKE-DOC-UNREADABLE`). File bytes that cannot be decoded as text with confidence refuse (`INTAKE-UNDECODABLE`).
+- An unavailable flood store refuses non-operators (`INTAKE-FLOOD-STORE-UNAVAILABLE`, 503).
 
 There is no "skip" flag.
 
@@ -41,7 +42,7 @@ AZOS and azinterface only proxy `news_ingest` to aziel-runtime through FragGate.
 A refusal writes one `intake_refusals` row:
 - `refusal_id`, `created_utc`, `door`, `reason_code`, `spec`
 - `file_sha256` / `body_sha256` / `title_sha256`
-- `submitter_key` / `ip_key`: salted HMAC-style hashes keyed by `INTAKE_SALT`, never the raw id or IP
+- `submitter_key` / `ip_key`: salted hashes keyed by the `INTAKE_SALT` secret, never the raw id or IP. The IP key is per IPv4 address, or per IPv6 /64 (see §5)
 
 It never holds the content, the filename, an excerpt, or the matched term. Refused bytes are dropped in memory before the error leaves the gate. Nothing refused is logged (`console.*` is asserted clean in tests). The receipt is **not** a ledger entry and is not chained.
 
@@ -53,10 +54,11 @@ Image, video and audio are refused 415 for **every caller, operator included**. 
 - magic bytes at offset 0
 - media signatures anywhere (polyglots, appended blobs)
 - declared media MIME or extension
-- PDFs opened: image XObjects, inline images, embedded files and rich media; Flate streams inflated, and an unreadable stream refuses
+- PDFs opened: image XObjects, inline images, embedded files and rich media. Streams are decoded through `/FlateDecode`, `/ASCII85Decode` and `/ASCIIHexDecode` (short names `/Fl`, `/A85`, `/AHx`; chained filters too). Any other filter (LZW, RunLength, Crypt, image codecs, …) cannot be read here, so the stream refuses as unreadable. A stream's dictionary is read from its own object only; if its `/Filter` is ambiguous the document refuses
 - Office/ODF/EPUB zips opened, and any media part refuses
 - other archives refused outright
-- text scanned for `data:` URIs, `<img>`/`<video>`/`<svg>`, CSS `url()`, markdown image embeds, and base64/hex runs that decode to media
+- text scanned for `data:` URIs, `<img>`/`<video>`/`<svg>`, CSS `url()`, markdown image embeds, and base64 / hex / Ascii85 runs (whole run, zlib/gzip-wrapped included) that decode to media
+- file bytes decoded as text only with confidence (UTF-8, UTF-16 with or without BOM, control-free single-byte); otherwise `INTAKE-UNDECODABLE`
 
 **A document with an embedded image is refused, not stripped.** The OCR spectral-overlay artifact (a derived image) is a no-op while `MEDIA_SCAN_GATE_VERIFIED` is false.
 
@@ -107,40 +109,56 @@ Text is normalised first: NFKC, invisibles stripped, homoglyph and leetspeak fol
 - injection phrases such as "ignore previous instructions"
 - spam score ≥ 3
 
-PDF text (including Flate streams) and Office XML are read too.
+What text is read:
+- text files decoded as UTF-8, UTF-16 LE/BE (with or without BOM) or Latin-1; otherwise `INTAKE-UNDECODABLE`
+- every part of docx/odt/xlsx/pptx zips, with Word runs joined as a reader sees them (package XML is not scored as spam or hidden HTML)
+- PDF literal and hex strings (octal escapes, UTF-16 BOMs), `TJ` arrays, and CID fonts through their `ToUnicode` CMaps, after Flate / ASCII85 / ASCIIHex decoding (other filters refuse at the media floor)
+
+What is **not** read: PDF text in a font with no `ToUnicode` and a custom encoding, text drawn as vector paths or images, encrypted PDFs, and encodings outside those listed. Text that is not read is not checked. No scanner is perfect; this is a floor, not a guarantee.
 
 ## 5. Floods and rate limits (PR D, #187)
 
 - Exact duplicate within 30 days: 409.
-- Near-duplicate: MinHash similarity ≥ 0.75 within 24 h, more than 2 from the same submitter or more than 3 globally, for texts of at least 20 tokens.
+- Near-duplicate: MinHash similarity ≥ 0.75 within 24 h, for texts of at least 20 tokens. A third near-copy from the same submitter or IP is refused, and so is a fourth from anyone.
 - Rate limits: 10/h and 50/day per user; 20/h and 100/day per IP. Overridable with `INTAKE_RATE_*`. Refusals count toward the limit.
+- The IP key is the IPv4 address, or the IPv6 **/64** (one subscriber is usually given a whole /64, so rotating the low 64 bits does not mint new buckets). IPv4-mapped IPv6 counts as the IPv4 address.
+- One request, one submission. A door that screens, does work (OCR, transcription) and then calls `ingestRecord` passes the earlier pass as `followup`. The follow-up screen runs every content check again, but it adds no rate count and no second `intake_seen` row, and the earlier pass's own row is not treated as its duplicate. Other copies still count. Only a pass returned by `screenIntake` in the same isolate is honoured; a plain object is ignored. Limit: if the follow-up text differs from the first pass (e.g. OCR output), only the first pass's hash is recorded.
 - The operator is exempt but still recorded.
 
 ## 6. What is reliable and what is heuristic
 
+No scanner is perfect, and this gate is no exception. Each check is one layer. Where the gate can see that it cannot read something, it refuses.
+
 | check | kind | notes |
 |---|---|---|
 | media magic bytes, MIME/extension, archive refusal | **reliable** for what it covers | fail closed on unknown structure |
-| PDF/Office embedded media | **reliable** for parsable files; unreadable means refuse | exotic encodings (e.g. JBIG2 in odd filters) refuse rather than pass |
-| media signatures inside text/base64/hex | reliable for standard encodings | custom encodings can evade; a separate media floor at storage would be needed for full certainty |
+| PDF/Office embedded media | **reliable** for parsable files; unreadable means refuse | PDF streams are read through Flate, ASCII85 and ASCIIHex only; any other filter refuses rather than passes. Encrypted PDFs are not opened |
+| media signatures inside text/base64/hex | reliable for base64, hex and Ascii85 runs (zlib/gzip-wrapped included) | Z85 and other base85 alphabets, raw deflate without a header, XOR or encryption, custom alphabets, steganography and media split across fields can evade. A separate media floor at storage would be needed for full certainty |
+| text decoding (UTF-8/UTF-16/Latin-1) | reliable for those encodings | anything else refuses `INTAKE-UNDECODABLE` |
+| PDF text extraction | reliable for strings and `ToUnicode` fonts | custom-encoded fonts without `ToUnicode`, vector or image text are not read, so not checked |
 | invisible/bidi chars, hidden markup | reliable detection, some false positives | legit RTL text with stray controls is refused |
 | CSAM indicator, explicit, injection, spam | **heuristic** | word lists and proximity. They miss paraphrase and misfire on prevention research and survivor writing. Refuse-on-doubt is deliberate |
 | exact duplicate | reliable | |
 | near-duplicate (MinHash) | heuristic, tunable | |
-| rate limits | reliable counting; IP keys are coarse (NAT, CGNAT, VPN) | |
+| rate limits | reliable counting; IP keys are coarse (NAT, CGNAT, VPN; IPv6 per /64) | |
 | hash matching (future) | reliable for **known** material only | |
 | classifiers (future) | heuristic | |
 
-## 7. Known gap found during this work (not fixed here)
+## 7. Known gap found during this work (fixed in PR A, #184)
 
 In `library.js` `ingestRecord` on `main`, the learned-poison preflight (`preflightIngest`, `POISON_LEARNED`) runs **after** `putObject` has written the file or text body to R2. The thrown message says "body not stored", but the R2 object already exists. A preflight that throws also sets `preflight = null` and continues, which fails open.
 
-The intake gate now runs before both, so the floor, text and flood checks are unaffected. The poison preflight itself should still be moved ahead of `putObject` and made fail-closed, so the code matches its own claim. Proposed as a follow-up PR on Aziel's go-ahead. It changes existing behaviour, so it is not bundled here.
+After review this is fixed in PR A (#184) rather than left for later, so the code matches its own claim ("body not stored"):
+- the preflight runs **before** any `putObject`, in strict mode
+- if it throws or returns nothing, the item is refused 503 with receipt `refuse: "PREFLIGHT_UNAVAILABLE"` (`stored: false`, `chained: false`, `body_retained: false`), and nothing reaches R2
+- `POISON_LEARNED` refusals are unchanged, except that the body is now truly not stored
+
+This changes existing behaviour: an outage of the preflight now refuses instead of letting the item through. It ships only with Aziel's go-ahead on #184 (open item 12).
 
 ## 8. Defaults and configuration
 
 Everything is off by default or fails closed.
-- `INTAKE_SALT`: secret recommended; a default exists so hashing never fails open.
+- `INTAKE_SALT`: **required** Worker secret (`wrangler secret put INTAKE_SALT`), at least 16 random characters. There is no fallback. The old public default is rejected. Without a usable salt every intake is refused `INTAKE-NOT-READY` (503), because a public salt would make IP hashes reversible.
 - `INTAKE_RATE_*`: optional overrides.
 - `INTAKE_MEDIA_SCAN_GATE`: inert while the code lock is false.
 - Future: `PHOTODNA_SUBSCRIPTION_KEY`, `CLASSIFIER_PROVIDER` plus key, an `AI` binding (second opinion only), `FRAME_EXTRACTOR_URL`.
@@ -159,7 +177,7 @@ All test media are synthetic header bytes with marker strings, never real images
 6. Existing AZNews rows holding small image base64 (≤4096 bytes) from before the runtime floor. Rule: nothing removed. Decide whether they stay, or whether future reads stop serving them.
 7. Operator exemption from heuristic text checks: keep?
 8. `/transcribe` now refuses audio uploads under the floor. Confirm.
-9. False positives of the CSAM indicator on prevention research and survivor accounts: accept refusals, or a reviewed operator path?
-10. Set `INTAKE_SALT` as a Worker secret.
-11. IP rate-limit coarseness (shared NAT).
-12. Approve the §7 poison-ordering follow-up.
+9. False positives of the CSAM indicator on prevention research and survivor accounts: accept refusals, or a reviewed operator path? Found in testing: a technical design document using "explicit" and "children" (tree nodes) a few words apart is refused. The proximity rule is unchanged here; whether "explicit" should count as a sexual term for it is Aziel's call.
+10. Set `INTAKE_SALT` as a Worker secret **before** deploying #184. Without it, all intake refuses.
+11. IP rate-limit coarseness (shared NAT and CGNAT; IPv6 grouped per /64).
+12. Approve the §7 poison-ordering fix in #184 (fail-closed `PREFLIGHT_UNAVAILABLE`).
