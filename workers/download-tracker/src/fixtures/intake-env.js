@@ -9,8 +9,8 @@ export function intakeStubEnv(extra = {}) {
   const whereRows = (sql, binds) => {
     const t = intakeTable(sql);
     const m = sql.match(/WHERE\s+(.+?)(?:\s+ORDER\s+BY|\s+LIMIT|$)/i);
-    const conds = m ? m[1].split(/\s+AND\s+/i).map((c) => c.match(/(\w+)\s*(>=|=)\s*\?/)) : [];
-    return tables[t].filter((r) => conds.every((c, i) => (c[2] === "=" ? r[c[1]] === binds[i] : String(r[c[1]]) >= String(binds[i]))));
+    const conds = m ? m[1].split(/\s+AND\s+/i).map((c) => c.match(/(\w+)\s*(>=|!=|=)\s*\?/)) : [];
+    return tables[t].filter((r) => conds.every((c, i) => (c[2] === "=" ? r[c[1]] === binds[i] : c[2] === "!=" ? r[c[1]] !== binds[i] : String(r[c[1]]) >= String(binds[i]))));
   };
   const env = {
     DB: {

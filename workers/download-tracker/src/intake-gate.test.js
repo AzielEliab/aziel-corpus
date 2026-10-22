@@ -134,7 +134,7 @@ test("salt: operator uploads also refuse until INTAKE_SALT is set (no silent def
 
 test("followup token: a forged object is ignored; only a genuine pass is honoured", async () => {
   const env = intakeStubEnv();
-  const forged = await screenIntake(env, { door: "upload", title: "a", body: "plain", followup: { door: "x", forged: true } });
+  const forged = await screenIntake(env, { door: "upload", title: "a", body: "plain forged", followup: { door: "x", forged: true } });
   assert.equal(forged.followup, null);
   assert.equal(isIntakePass({ door: "upload" }), false);
   const first = await screenIntake(env, { door: "ocr", title: "a", body: "plain" });
