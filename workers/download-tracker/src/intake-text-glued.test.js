@@ -7,7 +7,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { TEXT_REASONS, SYNTHETIC, textChecks, encodedInjectionHit, printableSubruns, DECODED_SUBRUN_MIN } from "./intake-text.js";
+import { TEXT_REASONS, SYNTHETIC, textChecks, encodedInjectionHit, printableSubruns, DECODED_SUBRUN_MIN, gapJoinedSegments, DECODED_GAP_MAX } from "./intake-text.js";
 import { screenIntake } from "./intake-gate.js";
 import { MAX_SCREEN_CHARS } from "./intake-budget.js";
 import { intakeStubEnv } from "./fixtures/intake-env.js";
@@ -79,4 +79,42 @@ test("printableSubruns: maximal printable runs of the minimum length", () => {
   assert.deepEqual(printableSubruns("\ufffdabc\ufffd" + "x".repeat(12) + "\u0001" + "y".repeat(11)), ["x".repeat(12)]);
   assert.deepEqual(printableSubruns("hello world, plain"), ["hello world, plain"]);
   assert.deepEqual(printableSubruns(""), []);
+});
+
+// ---------- short non-printable gaps (AZBot review of #191, intake-text.js:263-279) ----------
+const chop = (s, every, gap) => s.replace(new RegExp(".{1," + every + "}", "g"), (m) => m + gap);
+test("gaps: words split by single control bytes inside binary are still text-checked", () => {
+  for (const g of ["\u0001", "\u0000", "\u0002\u0003", "\u0000\u0000\u0000"]) {
+    const inj = Buffer.concat([Buffer.from(pseudoBytes(2 * KiB, 5)), Buffer.from(INJ.split(" ").join(g)), Buffer.from(pseudoBytes(KiB, 6))]);
+    assert.equal(encodedInjectionHit(inj.toString("base64")), true, "injection words split by " + JSON.stringify(g));
+    assert.equal(encodedInjectionHit(inj.toString("hex")), true, "hex, split by " + JSON.stringify(g));
+  }
+  // After a homogeneous run too.
+  assert.equal(encodedInjectionHit("a".repeat(16 * KiB + 1) + b64(INJ.split(" ").join("\u0001"))), true, "glued + control-split");
+});
+
+test("gaps: a NUL every 11 chars or fewer (inside words) is still text-checked", () => {
+  for (const every of [11, 8, 5, 3, 1]) {
+    for (const g of ["\u0000", "\u0001\u0001", "\u0000\u0000\u0000"]) {
+      const pay = Buffer.concat([Buffer.from(pseudoBytes(2 * KiB, every)), Buffer.from(chop(CSAM, every, g)), Buffer.from(pseudoBytes(KiB, 3))]);
+      assert.equal(encodedInjectionHit(pay.toString("base64")), true, "CSAM marker, gap " + JSON.stringify(g) + " every " + every);
+      assert.equal(encodedInjectionHit(Buffer.from(chop(INJ, every, g)).toString("hex")), true, "INJ hex every " + every);
+    }
+  }
+});
+
+test("gaps: a gap longer than DECODED_GAP_MAX ends a segment; benign binary and benign split text still pass", async () => {
+  assert.equal(DECODED_GAP_MAX, 3);
+  assert.deepEqual(gapJoinedSegments("ab\u0001cd\u0001efghijkl\u0000\u0000\u0000\u0000zz\u0001yyyyyyyyyyyy\u0001"), ["ab cd efghijkl", "zz yyyyyyyyyyyy"]);
+  assert.deepEqual(gapJoinedSegments("ab\u0001cd\u0001efghijkl", { sep: "" }), ["abcdefghijkl"]);
+  assert.deepEqual(gapJoinedSegments("ab\u0001cd\u0001efghijk", { sep: "" }), []);
+  assert.deepEqual(gapJoinedSegments("abcd\u0000efgh\u0000ijkl\u0000mnop", { sep: "" }), ["abcdefghijklmnop"]);
+  assert.deepEqual(gapJoinedSegments("short\u0001one"), []);
+  assert.deepEqual(gapJoinedSegments(""), []);
+  for (let seed = 1; seed <= 8; seed++) {
+    assert.equal(encodedInjectionHit(Buffer.from(pseudoBytes(256 * KiB, seed)).toString("base64")), false, "random binary seed " + seed);
+  }
+  const note = Buffer.from(chop("A short benign field note about river levels in spring.", 6, "\u0000"));
+  assert.equal(encodedInjectionHit(Buffer.concat([Buffer.from(pseudoBytes(KiB, 4)), note]).toString("base64")), false, "benign split text");
+  assert.equal(await run("Appendix\n" + Buffer.from(pseudoBytes(128 * KiB, 77)).toString("base64").replace(/.{76}/g, "$&\n") + "\nEnd.\n"), null, "paper with a binary appendix");
 });
