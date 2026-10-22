@@ -39,8 +39,14 @@ test("robots.txt allows research surfaces and major AI bots", () => {
   assert.match(txt, /Content-Signal: search=yes, ai-input=yes, ai-train=yes/);
   assert.match(txt, /Disallow: \/signup/);
   assert.match(txt, /Disallow: \/logout/);
+  assert.match(txt, /Disallow: \/login/);
+  assert.match(txt, /Disallow: \/search\?/);
+  assert.match(txt, /Disallow: \/\*\?q=/);
+  assert.match(txt, /Disallow: \/\*\?query=/);
+  assert.match(txt, /Disallow: \/\*&q=/);
   assert.match(txt, /Disallow: \/api\//);
   assert.match(txt, /Disallow: \/admin\//);
+  assert.doesNotMatch(txt, /Allow: \/login/);
   assert.match(txt, /Allow: \/v1\//);
   assert.doesNotMatch(txt, /Disallow: \/v1/);
   assert.match(txt, /Sitemap: https:\/\/www\.azielcorpuslibrary\.net\/sitemap\.xml/);
@@ -136,8 +142,11 @@ test("sitemap.xml lists key routes and uses XML mime helper", async () => {
   };
   const xml = await sitemapXml(env);
   assert.match(xml, /<\?xml version="1.0"/);
-  for (const path of ["/", "/search", "/login", "/signup", "/AzielEliab", "/software", "/donate", "/v1/software", "/v1/download", "/v1/library-index", "/v1/stats", "/v1/update/check", "/sitemap-index.xml", "/sitemap-records.xml", "/mcp.json", "/.well-known/mcp.json", "/mcp", "/bridge.json", "/v1/products", "/v1/design-pack", "/v1/design-pack/azcorpus", "/v1/design-pack/azlibrary", "/runtime", "/runtime/", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/software", "/runtime/v1/uses", "/survival", "/v1/survival", "/runtime/survival", "/runtime/v1/survival", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/help.txt", "/addendum.txt", "/help/how-to-read-scores.txt", "/help/how-to-cite.txt", "/help/uploads.txt", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/forensics", "/aziel-library", "/corpus", "/upload", "/cite.json", "/lockset.json", "/shelves", "/cold-copy", "/receipts", "/receipts/verify", "/v1/receipts", "/v1/receipts/verify", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/.well-known/aziel.json", "/.well-known/person.jsonld", "/llms.txt", "/ai.txt"]) {
+  for (const path of ["/", "/AzielEliab", "/software", "/donate", "/v1/software", "/v1/download", "/v1/library-index", "/v1/stats", "/v1/update/check", "/sitemap-index.xml", "/sitemap-records.xml", "/mcp.json", "/.well-known/mcp.json", "/mcp", "/bridge.json", "/v1/products", "/v1/design-pack", "/v1/design-pack/azcorpus", "/v1/design-pack/azlibrary", "/runtime", "/runtime/", "/runtime/v1/fraggate", "/runtime/v1/fraggate/list", "/runtime/v1/software", "/runtime/v1/uses", "/survival", "/v1/survival", "/runtime/survival", "/runtime/v1/survival", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/help.txt", "/addendum.txt", "/help/how-to-read-scores.txt", "/help/how-to-cite.txt", "/help/uploads.txt", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/forensics", "/aziel-library", "/corpus", "/cite.json", "/lockset.json", "/shelves", "/cold-copy", "/receipts", "/receipts/verify", "/v1/receipts", "/v1/receipts/verify", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/.well-known/aziel.json", "/.well-known/person.jsonld", "/llms.txt", "/ai.txt"]) {
     assert.match(xml, new RegExp("<loc>https://www\\.azielcorpuslibrary\\.net" + path.replace("/", "\\/") + "</loc>"));
+  }
+  for (const dropped of ["/search", "/login", "/signup", "/upload"]) {
+    assert.doesNotMatch(xml, new RegExp("<loc>https://www\\.azielcorpuslibrary\\.net" + dropped.replace("/", "\\/") + "</loc>"));
   }
   assert.doesNotMatch(xml, /azielcorpuslibrary\.net\/about</);
   assert.match(xml, /\/record\/AZDOC-AZIEL1/);
@@ -548,6 +557,11 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.doesNotMatch(ai, /Researcher\. Builder/);
   assert.match(ai, /Disallow: \/signup/);
   assert.match(ai, /Disallow: \/logout/);
+  assert.match(ai, /Disallow: \/login/);
+  assert.match(ai, /Disallow: \/search\?/);
+  assert.match(ai, /Disallow: \/\*\?q=/);
+  assert.match(ai, /Disallow: \/\*\?query=/);
+  assert.match(ai, /Disallow: \/\*&q=/);
   assert.match(ai, /Disallow: \/api\//);
   assert.match(ai, /Disallow: \/admin\//);
   assert.doesNotMatch(ai, /Disallow: \/v1/);
@@ -697,6 +711,7 @@ const OTHER_HOST_INDEXNOW_KEYS = [
   "4241818f-5799-488c-9457-da724a30831c",
 ];
 const HOST_SITEMAP_LASTMOD = "2026-10-04";
+const SEO_PASS_LASTMOD = "2026-10-22";
 const FOREIGN_SITEMAP_LASTMOD = "2026-09-20";
 
 function sitemapLocs(xml) {
@@ -706,8 +721,8 @@ function sitemapLocs(xml) {
   }));
 }
 
-test("IndexNow key file equals the key, robots allow it, and this host's sitemap lastmod left 2026-09-20", async () => {
-  assert.match(INDEXNOW_KEY, /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+test("IndexNow key file equals the key, robots allow it, and host sitemap lastmods are real ISO days", async () => {
+  assert.match(INDEXNOW_KEY, /^[0-9a-f]{32}$/);
   assert.equal(OTHER_HOST_INDEXNOW_KEYS.includes(INDEXNOW_KEY), false);
   assert.equal(indexNowKeyBody(), INDEXNOW_KEY);
   assert.equal(citeDoc().person_id, "https://www.azieleliab.com/#aziel");
@@ -717,6 +732,8 @@ test("IndexNow key file equals the key, robots allow it, and this host's sitemap
   assert.match(robots, /Content-Signal: search=yes, ai-input=yes, ai-train=yes/);
   assert.match(robots, /Disallow: \/logout/);
   assert.match(robots, /Disallow: \/signup/);
+  assert.match(robots, /Disallow: \/login/);
+  assert.match(robots, /Disallow: \/search\?/);
   assert.match(robots, /Disallow: \/api\//);
   assert.match(robots, /Disallow: \/admin\//);
   assert.match(robots, new RegExp("Allow: " + INDEXNOW_KEY_PATH.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
@@ -745,13 +762,19 @@ test("IndexNow key file equals the key, robots allow it, and this host's sitemap
   const xml = await sitemapXml({});
   const hostPages = sitemapLocs(xml).filter((row) => row.loc.startsWith("https://www.azielcorpuslibrary.net"));
   assert.ok(hostPages.length > 10);
+  for (const dropped of ["/search", "/login", "/signup", "/upload"]) {
+    assert.equal(hostPages.some((row) => row.loc === "https://www.azielcorpuslibrary.net" + dropped), false, dropped);
+  }
+  const lastmods = new Set();
   for (const row of hostPages) {
     assert.notEqual(row.lastmod, "2026-09-20", row.loc);
-    assert.equal(row.lastmod, HOST_SITEMAP_LASTMOD, row.loc);
+    assert.match(row.lastmod, /^\d{4}-\d{2}-\d{2}$/, row.loc);
+    lastmods.add(row.lastmod);
   }
+  assert.ok(lastmods.size >= 2, "static lastmods must not be a single build date");
   for (const path of [INDEXNOW_KEY_PATH, INDEXNOW_WELL_KNOWN_PATH, "/sitemap.xml", "/sitemap-index.xml", "/sitemap-records.xml"]) {
     const loc = "https://www.azielcorpuslibrary.net" + path;
-    assert.equal(hostPages.some((row) => row.loc === loc && row.lastmod === HOST_SITEMAP_LASTMOD), true, loc);
+    assert.equal(hostPages.some((row) => row.loc === loc && row.lastmod === SEO_PASS_LASTMOD), true, loc);
   }
 
   const undated = await sitemapRecordsXml({
@@ -781,7 +804,7 @@ test("IndexNow key file equals the key, robots allow it, and this host's sitemap
     "https://www.azielcorpuslibrary.net/sitemap.xml",
     "https://www.azielcorpuslibrary.net/sitemap-records.xml",
   ]);
-  for (const row of own) assert.equal(row.lastmod, HOST_SITEMAP_LASTMOD, row.loc);
+  for (const row of own) assert.equal(row.lastmod, SEO_PASS_LASTMOD, row.loc);
   assert.ok(foreign.length >= 6);
   for (const row of foreign) assert.equal(row.lastmod, FOREIGN_SITEMAP_LASTMOD, row.loc);
   for (const loc of [
@@ -795,3 +818,4 @@ test("IndexNow key file equals the key, robots allow it, and this host's sitemap
     assert.equal(foreign.some((row) => row.loc === loc && row.lastmod === FOREIGN_SITEMAP_LASTMOD), true, loc);
   }
 });
+

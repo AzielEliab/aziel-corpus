@@ -100,6 +100,14 @@ export function forensicsRedirectFrom(path) {
 }
 const Q = String.fromCharCode(34);
 
+/** Absolute canonical path: query strings and fragments stripped. */
+export function canonicalPath(path) {
+  let p = String(path || "/").split("?")[0].split("#")[0];
+  if (!p.startsWith("/")) p = "/" + p;
+  if (p.length > 1) p = p.replace(/\/+$/, "");
+  return p || "/";
+}
+
 function esc(s) {
   const map = { "&": "&amp;", "<": "&lt;", ">": "&gt;" };
   map[Q] = "&quot;";
@@ -476,7 +484,7 @@ export function headMeta(opts) {
   const runtimeVersion = opts.runtimeVersion;
   const description = opts.description || defaultDescription(kind, runtimeVersion);
   const seoTitle = documentTitle(kind, title);
-  const url = CANON_HOST + path;
+  const url = CANON_HOST + canonicalPath(path);
   const image = opts.image || SHARE_IMAGE;
   const imageAlt = SITE + " rose-star brand mark. Author " + AUTHOR + ".";
   const tags = [

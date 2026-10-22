@@ -107,10 +107,12 @@ const DEFAULT_ASSET = "aziel-digital-library-2.7.0.zip";
 const VERSION = "2.7.0";
 /** This host's urlset and its own sitemap documents. Current date so reindex leaves 2026-09-20. */
 const SITE_LASTMOD = "2026-10-04";
+/** Paths whose sitemap composition or IndexNow key changed in the machine-facing SEO pass. */
+const SEO_PASS_LASTMOD = "2026-10-22";
 /** godlock, azieleliab, hedidntjump, and workers.dev sitemap documents keep their prior stamp. */
 const FOREIGN_SITEMAP_LASTMOD = "2026-09-20";
 /** IndexNow key for www.azielcorpuslibrary.net only. Not the azieleliab.com or hedidntjump.com keys. */
-export const INDEXNOW_KEY = "520f37f4-c12f-4555-982b-f834dc8cb56b";
+export const INDEXNOW_KEY = "6dad9cd7ce966f7798cb9c5914da96ea";
 export const INDEXNOW_KEY_PATH = "/" + INDEXNOW_KEY + ".txt";
 export const INDEXNOW_WELL_KNOWN_PATH = "/.well-known/indexnow-key.txt";
 const AUTHOR = "Aziel Eliab";
@@ -223,6 +225,46 @@ function isoDay(value, fallback) {
   const s = String(value || "").trim().slice(0, 10);
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
   return fallback || SITE_LASTMOD;
+}
+
+/** Real per-path lastmod from source-file git dates (ISO day). Fallback SITE_LASTMOD. */
+const PATH_LASTMOD = Object.freeze({
+  "/": "2026-10-10",
+  "/software": "2026-10-10",
+  "/AzielEliab": "2026-10-10",
+  "/who": "2026-10-10",
+  "/who-is": "2026-10-10",
+  "/who-is-aziel-eliab.txt": "2026-10-10",
+  "/person.jsonld": "2026-10-10",
+  "/identity.jsonld": "2026-10-10",
+  "/graph.jsonld": "2026-10-10",
+  "/.well-known/aziel.json": "2026-10-10",
+  "/.well-known/person.jsonld": "2026-10-10",
+  "/donate": "2026-09-10",
+  "/help.txt": "2026-09-29",
+  "/addendum.txt": "2026-09-29",
+  "/help/how-to-read-scores.txt": "2026-09-29",
+  "/help/how-to-cite.txt": "2026-09-29",
+  "/help/uploads.txt": "2026-09-29",
+  "/runtime": "2026-09-25",
+  "/runtime/": "2026-09-25",
+  "/how-its-scored": "2026-10-03",
+});
+
+/** Paths excluded from sitemaps: auth, upload door, search hub (canonical content only). */
+const SITEMAP_EXCLUDED = new Set(["/search", "/login", "/signup", "/upload"]);
+
+function pathLastmod(path) {
+  if (path === INDEXNOW_KEY_PATH || path === INDEXNOW_WELL_KNOWN_PATH) return SEO_PASS_LASTMOD;
+  if (path === "/sitemap.xml" || path === "/sitemap-index.xml" || path === "/sitemap-records.xml") return SEO_PASS_LASTMOD;
+  if (Object.prototype.hasOwnProperty.call(PATH_LASTMOD, path)) return PATH_LASTMOD[path];
+  return SITE_LASTMOD;
+}
+
+function isSitemapPath(path) {
+  if (SITEMAP_EXCLUDED.has(path)) return false;
+  if (path.includes("?")) return false;
+  return true;
 }
 
 export function isReadMethod(method) {
@@ -339,9 +381,13 @@ export function robotsTxt() {
     "Allow: /runtime/v1/software",
     "Allow: /assets",
     "Allow: /assets/",
-    "Allow: /login",
     "Disallow: /logout",
+    "Disallow: /login",
     "Disallow: /signup",
+    "Disallow: /search?",
+    "Disallow: /*?q=",
+    "Disallow: /*?query=",
+    "Disallow: /*&q=",
     "Disallow: /api/",
     "Disallow: /admin/",
     "",
@@ -357,9 +403,6 @@ export function robotsTxt() {
 
 const STATIC_SITEMAP = [
   "/",
-  "/search",
-  "/login",
-  "/signup",
   ABOUT_PATH,
   "/software",
   "/donate",
@@ -414,7 +457,6 @@ const STATIC_SITEMAP = [
   "/forensics",
   "/aziel-library",
   "/corpus",
-  "/upload",
   "/cite.json",
   "/lockset.json",
   "/shelves",
@@ -641,8 +683,10 @@ export function sitemapIndexXml() {
     HEDIDNTJUMP_HOME.replace(/\/+$/, "") + "/sitemap.xml",
     HUB_ORIGIN + "/sitemap.xml",
   ];
-  const entries = own.map((loc) => ({ loc, lastmod: SITE_LASTMOD }))
-    .concat(foreign.map((loc) => ({ loc, lastmod: FOREIGN_SITEMAP_LASTMOD })));
+  const entries = own.map((loc) => {
+      const path = loc.slice(HOST.length) || "/";
+      return { loc, lastmod: pathLastmod(path) };
+    }).concat(foreign.map((loc) => ({ loc, lastmod: FOREIGN_SITEMAP_LASTMOD })));
   return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n"
     + entries.map((u) => "  <sitemap><loc>" + u.loc + "</loc><lastmod>" + u.lastmod + "</lastmod></sitemap>").join("\n")
     + "\n</sitemapindex>\n";
@@ -725,7 +769,8 @@ export function mcpDiscovery() {
 export async function sitemapXml(env) {
   const rows = [];
   for (const path of STATIC_SITEMAP) {
-    rows.push({ loc: HOST + path, lastmod: SITE_LASTMOD, hints: SITEMAP_HINTS[path] });
+    if (!isSitemapPath(path)) continue;
+    rows.push({ loc: HOST + path, lastmod: pathLastmod(path), hints: SITEMAP_HINTS[path] });
   }
   rows.push({ loc: GITHUB_REPO, lastmod: SITE_LASTMOD });
   try {
@@ -1366,6 +1411,11 @@ export function aiTxt(limitation, survival) {
     "Allow: /runtime/v1/software",
     "Disallow: /signup",
     "Disallow: /logout",
+    "Disallow: /login",
+    "Disallow: /search?",
+    "Disallow: /*?q=",
+    "Disallow: /*?query=",
+    "Disallow: /*&q=",
     "Disallow: /api/",
     "Disallow: /admin/",
     "",

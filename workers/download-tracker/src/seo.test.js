@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   headMeta,
+  canonicalPath,
   defaultDescription,
   documentTitle,
   recordDescription,
@@ -483,3 +484,13 @@ test("OpenAPI identity URLs include /AzielEliab and GodLock", async () => {
   assert.ok(spec.paths["/.well-known/mcp.json"]);
   assert.doesNotMatch(JSON.stringify(spec), BANNED);
 });
+
+test("canonicalPath strips query strings and fragments", () => {
+  assert.equal(canonicalPath("/record/AZDOC-1?q=x"), "/record/AZDOC-1");
+  assert.equal(canonicalPath("/software?query=foo#bar"), "/software");
+  assert.equal(canonicalPath("/"), "/");
+  const html = headMeta({ title: "Software", path: "/software?q=1", kind: "software" });
+  assert.match(html, /rel="canonical" href="https:\/\/www\.azielcorpuslibrary\.net\/software"/);
+  assert.doesNotMatch(html, /rel="canonical"[^>]*\?q=/);
+});
+
