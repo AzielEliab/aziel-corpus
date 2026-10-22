@@ -75,7 +75,10 @@ npx wrangler whoami
 npx wrangler deploy
 ```
 
-Secrets stay in Wrangler (`OPERATOR_TOKEN` / `GATE_TOKEN` / `LIBRARY_OPERATOR_TOKEN`). Do not commit tokens. After deploy, confirm machine surfaces only:
+Secrets stay in Wrangler (`OPERATOR_TOKEN` / `GATE_TOKEN` / `LIBRARY_OPERATOR_TOKEN`). Do not commit tokens.
+
+**Required secret: `INTAKE_SALT`** (CORPUS-INTAKE-SAFETY-1.0). Set it before deploying the intake gate: `npx wrangler secret put INTAKE_SALT` with a random value of 16+ characters (for example `openssl rand -hex 32`). It keys the hash-only refusal receipts and flood counters (submitter and IP keys). There is no public default: when it is missing, shorter than 16 characters, or equal to the old public default, every intake door (upload, ingest, OCR, peer review, map event) refuses with `INTAKE-NOT-READY` (503), operator included, and nothing is stored or chained. Never commit it or print it.
+ After deploy, confirm machine surfaces only:
 
 - `GET https://www.azielcorpuslibrary.net/v1/software` includes `trades-runtime` with github + download + mcp
 - `GET https://www.azielcorpuslibrary.net/cite.json` has `trades_runtime` / `github_trades_runtime`

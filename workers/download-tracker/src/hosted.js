@@ -8,7 +8,7 @@ import { receiptForRecord, sha256hex, isJsonDocumentId } from "./ledger.js";
 import { serveRecordMetadata, parseRecordMetadataPath, receiptForJsonMetadata } from "./record-metadata.js";
 import { serveRecordMachine, parseRecordMachinePath, loadRecordMachineContext, recordMachineLinkHeader } from "./record-llm.js";
 import { isHelpPath } from "./help.js";
-import { intakeMeta } from "./intake-gate.js";
+import { intakeMeta, intakeRefusalBody, isIntakeRefusal } from "./intake-gate.js";
 import { isOperator, asFile, getObject, putObject, objectExists, ingestRecord, safeFilename, serveDerived, patternClusters, loadServedFileBytes } from "./library.js";
 import {
   persistOcrRun, persistMediaRun, receiptForMediaRun, isMediaRunId, truthy, bytesAsFile,
@@ -372,6 +372,7 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     const form = await request.formData();
     try {
       const id = await addManualEvent(env, {
+        intake: intakeMeta(request, "map-event"),
         signed,
         date: form.get("date"),
         place: form.get("place"),
@@ -383,6 +384,7 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
       if ((request.headers.get("Accept") || "").includes("json")) return json({ ok: true, event_id: id });
       return new Response(null, { status: 303, headers: { Location: "/map" } });
     } catch (err) {
+      if (isIntakeRefusal(err)) return json(intakeRefusalBody(err), err.status || 422);
       return json({ error: err && err.message ? err.message : "event failed" }, err && err.status ? err.status : 400);
     }
   }
@@ -561,7 +563,15 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
           file: upload,
           skipOcrHint: true,
         });
-      } catch {
+      } catch (err) {
+        // A refusal is final: one gate pass, one receipt. Only a non-intake failure
+        // (e.g. storage) retries text-only.
+        if (isIntakeRefusal(err)) {
+          if (wantsHtml(request)) {
+            return pageHtml(page("OCR", ocrPageBody({ ...ocrPayload, error: "Refused at intake (" + err.code + "). Nothing was stored or chained." }), { signed, path: "/ocr", scripts: intelScripts(), kind: "ocr" }), { status: err.status || 422 });
+          }
+          return json(intakeRefusalBody(err), err.status || 422);
+        }
         record = await ingestRecord(env, {
           intake: intakeMeta(request, "ocr"),
           signed,
@@ -800,12 +810,14 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     const form = await request.formData();
     try {
       await addPeerReview(env, {
+        intake: intakeMeta(request, "peer-review"),
         recordId,
         stance: form.get("stance"),
         body: form.get("body") || form.get("note"),
         signed,
       });
     } catch (err) {
+      if (isIntakeRefusal(err)) return json(intakeRefusalBody(err), err.status || 422);
       return json({ error: err && err.message ? err.message : "review failed" }, err && err.status ? err.status : 400);
     }
     if ((request.headers.get("Accept") || "").includes("json")) return json({ ok: true, record_id: recordId });
