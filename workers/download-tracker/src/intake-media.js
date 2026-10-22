@@ -568,6 +568,55 @@ function pdfStreams(u8) {
   return { text: s, streams: out, orphan };
 }
 
+/**
+ * Decoded bytes of one parsed PDF stream (Flate / ASCII85 / ASCIIHex, names normalised, chained
+ * filters applied), or null when it cannot be read. Shared with the text checks so
+ * both layers read the same bytes.
+ */
+const PDF_FILTERS = new Set(["/FlateDecode", "/Fl", "/ASCII85Decode", "/A85", "/ASCIIHexDecode", "/AHx"]);
+export function pdfDecodeStream(st, maxInflate = 32 * 1024 * 1024) {
+  if (!st || !st.bytes) return null;
+  const dict = pdfStripComments(pdfDecodeNames(st.dict));
+  const filters = (dict.match(/\/Filter[\s\0]*(\[[^\]]*\]|\/[^\s\0/\[\]<>()%]+)/) || [])[1] || "";
+  const names = filters.match(/\/[^\s\0/\[\]<>()%]+/g) || [];
+  let data = st.bytes;
+  if (!names.length) return data;
+  // Flate, plus the two lossless text filters (ReportLab writes [/ASCII85Decode
+  // /FlateDecode]). Any other filter cannot be read here: null, the caller refuses.
+  if (names.some((n) => !PDF_FILTERS.has(n))) return null;
+  try {
+    for (const n of names) {
+      let raw = data;
+      // trim trailing EOL before endstream
+      while (raw.length && (raw[raw.length - 1] === 0x0a || raw[raw.length - 1] === 0x0d)) raw = raw.subarray(0, raw.length - 1);
+      if (n === "/ASCII85Decode" || n === "/A85") {
+        let t = latin1(raw).replace(/[\0\t\n\f\r ]+/g, "");
+        if (t.startsWith("<~")) t = t.slice(2);
+        const end = t.indexOf("~>");
+        if (end < 0) return null;
+        data = ascii85Bytes(t.slice(0, end), true);
+        if (!data) return null;
+      } else if (n === "/ASCIIHexDecode" || n === "/AHx") {
+        let t = latin1(raw).replace(/[\0\t\n\f\r ]+/g, "");
+        const end = t.indexOf(">");
+        if (end < 0) return null;
+        t = t.slice(0, end);
+        if (/[^0-9a-fA-F]/.test(t)) return null;
+        if (t.length % 2) t += "0";
+        data = new Uint8Array(t.length / 2);
+        for (let i = 0; i < data.length; i++) data[i] = parseInt(t.substr(i * 2, 2), 16);
+      } else {
+        const out = inflateSync(raw, { maxOutputLength: maxInflate });
+        data = out instanceof Uint8Array ? out : new Uint8Array(out);
+      }
+      if (data.length > maxInflate) return null;
+    }
+  } catch {
+    return null;
+  }
+  return data;
+}
+
 /** PDF: refuse any image, inline image, embedded file or rich media; refuse what we cannot read. */
 export function pdfMediaReason(input, { maxInflate = 32 * 1024 * 1024 } = {}) {
   const u8 = u8of(input);
@@ -579,25 +628,8 @@ export function pdfMediaReason(input, { maxInflate = 32 * 1024 * 1024 } = {}) {
   if (orphan) return MEDIA_REASONS.UNREADABLE_DOC;
   let total = 0;
   for (const st of streams) {
-    if (!st.bytes) return MEDIA_REASONS.UNREADABLE_DOC;
-    const dict = pdfStripComments(pdfDecodeNames(st.dict));
-    const filters = (dict.match(/\/Filter[\s\0]*(\[[^\]]*\]|\/[^\s\0/\[\]<>()%]+)/) || [])[1] || "";
-    const names = filters.match(/\/[^\s\0/\[\]<>()%]+/g) || [];
-    let data = st.bytes;
-    if (names.length) {
-      if (names.some((n) => n !== "/FlateDecode" && n !== "/Fl")) return MEDIA_REASONS.UNREADABLE_DOC;
-      try {
-        for (let i = 0; i < names.length; i++) {
-          let raw = data;
-          // trim trailing EOL before endstream
-          while (raw.length && (raw[raw.length - 1] === 0x0a || raw[raw.length - 1] === 0x0d)) raw = raw.subarray(0, raw.length - 1);
-          const out = inflateSync(raw, { maxOutputLength: maxInflate });
-          data = out instanceof Uint8Array ? out : new Uint8Array(out);
-        }
-      } catch {
-        return MEDIA_REASONS.UNREADABLE_DOC;
-      }
-    }
+    const data = pdfDecodeStream(st, maxInflate);
+    if (!data) return MEDIA_REASONS.UNREADABLE_DOC;
     total += data.length;
     if (total > maxInflate) return MEDIA_REASONS.UNREADABLE_DOC;
     const body = latin1(data);
