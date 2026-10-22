@@ -1534,7 +1534,8 @@ export async function jeevesUpload(env, { signed, file, title, body, author, dom
     keywords,
     supersedes,
     superseded_by,
-    intake: intake || { door: "jeeves-upload" },
+    // Gate keys rate limits on the real signed caller, not the shared Lamb Lens identity.
+    intake: { ...(intake || { door: "jeeves-upload" }), submitter: signed.user_id || signed.username || null },
   });
   const lib = record.library === "aziel" ? "aziel" : "corpus";
   if (!isOperator(signed) && lib !== "corpus") {

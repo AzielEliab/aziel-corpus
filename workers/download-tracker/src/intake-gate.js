@@ -21,6 +21,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { mediaFloorCheck } from "./intake-media.js";
 import { textChecks } from "./intake-text.js";
+import { floodChecks } from "./intake-flood.js";
 
 export const INTAKE_SPEC = "CORPUS-INTAKE-SAFETY-1.0";
 
@@ -79,6 +80,9 @@ export const INTAKE_CHECKS = [
   // Text: hidden/invisible content, encoded payloads, child-safety and explicit
   // content (hard, everyone); injection phrasing and spam (heuristic, operator exempt).
   textChecks,
+  // Last: duplicate floods (exact hash, simhash) and per-submitter / per-IP rate limits.
+  // Hash-only bookkeeping; refuses when its counters cannot be read. Operator exempt.
+  floodChecks,
 ];
 
 async function readFileForIntake(file) {
@@ -164,7 +168,9 @@ export async function screenIntake(env, input, opts = {}) {
     body: String((input && input.body) || ""),
     texts: Array.isArray(input && input.texts) ? input.texts.map((t) => String(t == null ? "" : t)) : [],
     file: null,
-    submitter_key: submitterKey(env, "user", input && input.signed && (input.signed.user_id || input.signed.username)),
+    // The real caller id when a door re-signs the write (Jeeves files as "jeeves-public"),
+    // so rate limits stay per submitter instead of one shared bucket.
+    submitter_key: submitterKey(env, "user", (input && input.submitter) || (input && input.signed && (input.signed.user_id || input.signed.username))),
     ip_key: submitterKey(env, "ip", input && input.ip),
     now: opts.now || Date.now(),
   };

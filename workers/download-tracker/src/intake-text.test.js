@@ -196,5 +196,5 @@ test("POST /v1/ingest: injection in JSON markdown refused (422) with a hash-only
 test("clean paper passes the whole gate (no refusal receipt written)", async () => {
   const env = intakeStubEnv();
   await screenIntake(env, { door: "upload", signed: GUEST, title: "Orbital decay", body: PAPER, file: file(M.pdfWithText(PAPER), "p.pdf", "application/pdf") });
-  assert.equal(env.writes.sql.length, 0);
+  assert.equal(env.writes.sql.some((q) => /intake_refusals/.test(q)), false, "no refusal receipt");
 });

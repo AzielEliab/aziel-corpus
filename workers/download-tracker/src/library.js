@@ -525,6 +525,7 @@ export async function ingestRecord(env, args) {
   await screenIntake(env, {
     door: intake.door || "ingestRecord",
     ip: intake.ip || null,
+    submitter: intake.submitter || null,
     signed,
     operator: isOperator(signed),
     title,
