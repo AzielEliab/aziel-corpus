@@ -18,8 +18,21 @@
  *     opened and any media part refuses the whole document;
  *   - other archives (zip/tar/gz/7z/rar/bz2/xz/zstd) are refused outright;
  *   - text (title, body, metadata, text files) is checked for data: URIs, HTML/SVG
- *     media tags, CSS url(), markdown image embeds, and base64/hex runs whose decoded
- *     bytes are media or archives.
+ *     media tags, CSS url(), markdown image embeds, and base64 / hex / Ascii85 runs
+ *     (whole run decoded, whitespace and padding tolerated, zlib/gzip inflated) whose
+ *     bytes are media or archives;
+ *   - PDF names are checked raw and with #xx escapes decoded and %-comments removed;
+ *     JPEG (every FFD8FF variant), TIFF, BMP and ICO are found at any offset when the
+ *     header that follows is structurally valid;
+ *   - file bytes are decoded as text confidently (UTF-8, UTF-16 with or without BOM,
+ *     control-free single-byte) or refused INTAKE-UNDECODABLE;
+ *   - Office zips must be exactly entries + central directory + end record: appended,
+ *     leading or in-between bytes refuse; every part is checked as text, and a binary
+ *     part that is not a font refuses.
+ * Limits, stated honestly: no scanner is perfect. Encodings beyond these (custom
+ * alphabets, encryption, steganography, raw deflate without a header, media split
+ * across fields) are not guaranteed to be caught; the floor fails closed where it can
+ * see it cannot decode, and is one layer, not a guarantee.
  * Embedded images are never stripped: stripping is not reliable, so the document
  * is refused instead. Author: Aziel Eliab.
  */
@@ -39,6 +52,9 @@ export const MEDIA_REASONS = Object.freeze({
   MARKUP: "INTAKE-MEDIA-MARKUP",
   ARCHIVE: "INTAKE-ARCHIVE-REFUSED",
   UNREADABLE_DOC: "INTAKE-DOC-UNREADABLE",
+  // Bytes that do not decode confidently as text (UTF-8, UTF-16 or plain single-byte
+  // text without control bytes) and are not a recognised document: refused.
+  UNDECODABLE: "INTAKE-UNDECODABLE",
 });
 
 const MEDIA_EXT = /\.(png|apng|jpe?g|jfif|pjpeg|pjp|gif|webp|bmp|dib|tiff?|ico|cur|heic|heif|avif|jxl|jp2|j2k|jpx|psd|svgz?|raw|cr2|nef|arw|dng|orf|rw2|mp4|m4v|mov|qt|avi|wmv|asf|flv|f4v|mkv|webm|mpe?g|mpg|m2ts|mts|ts|3gp|3g2|ogv|vob|mp3|m4a|aac|wav|flac|ogg|oga|opus|wma|aiff?|amr|mid|midi)$/i;
@@ -93,7 +109,7 @@ export function sniffMagic(input) {
   if (u8.length >= 565 && u8[0] === 0x47 && u8[188] === 0x47 && u8[376] === 0x47 && u8[564] === 0x47 && !looksText(u8)) return { kind: "video", format: "mpeg-ts" };
   if (at(u8, 0, ascii("OggS"))) return { kind: "video", format: "ogg" };
   if (at(u8, 0, ascii("fLaC"))) return { kind: "audio", format: "flac" };
-  if ((at(u8, 0, ascii("ID3")) && u8[3] < 0x10) || (u8[0] === 0xff && (u8[1] & 0xe0) === 0xe0)) return { kind: "audio", format: "mpeg-audio" };
+  if ((at(u8, 0, ascii("ID3")) && u8[3] < 0x10) || (u8[0] === 0xff && (u8[1] & 0xe0) === 0xe0 && !(u8[1] === 0xfe && decodeTextBytes(u8).ok))) return { kind: "audio", format: "mpeg-audio" }; // FF FE + clean UTF-16 text is a BOM, not an MPEG frame
   if (at(u8, 0, ascii("FORM")) && (at(u8, 8, ascii("AIFF")) || at(u8, 8, ascii("AIFC")))) return { kind: "audio", format: "aiff" };
   // documents and archives
   if (at(u8, 0, ascii("%PDF-"))) return { kind: "pdf", format: "pdf" };
@@ -117,6 +133,8 @@ const ANYWHERE = [
   { sig: [0xff, 0xd8, 0xff, 0xe1], kind: "image", format: "jpeg" },
   { sig: [0xff, 0xd8, 0xff, 0xdb], kind: "image", format: "jpeg" },
   { sig: [0xff, 0xd8, 0xff, 0xee], kind: "image", format: "jpeg" },
+  // Every other FFD8FF variant (DHT, SOF, DQT-first, APPn, COM ...), TIFF, BMP and
+  // ICO/CUR are found at any offset by the structural validators below.
   { sig: ascii("JFIF\0"), kind: "image", format: "jpeg" },
   { sig: ascii("Exif\0\0"), kind: "image", format: "jpeg" },
   { sig: ascii("WEBPVP8"), kind: "image", format: "webp" },
@@ -155,6 +173,290 @@ export function findEmbeddedMedia(input) {
     const i = indexOfSig(u8, row.sig);
     if (i >= 0) return { kind: row.kind, format: row.format, offset: i };
   }
+  return findStructuredImage(u8);
+}
+
+// ---------- structural validators (image headers at ANY offset) ----------
+// Short magics (JPEG FFD8FF, TIFF II*\0 / MM\0*, BMP "BM", ICO 00000100) occur by
+// chance in compressed data, so at a non-zero offset a hit only counts when the
+// header that follows is internally consistent. This keeps clean PDFs/DOCX passing
+// while text-prefixed or mid-part images are refused.
+const u16le = (u8, o) => u8[o] | (u8[o + 1] << 8);
+const u16be = (u8, o) => (u8[o] << 8) | u8[o + 1];
+const u32le = (u8, o) => (u8[o] | (u8[o + 1] << 8) | (u8[o + 2] << 16) | (u8[o + 3] << 24)) >>> 0;
+const u32be = (u8, o) => ((u8[o] << 24) | (u8[o + 1] << 16) | (u8[o + 2] << 8) | u8[o + 3]) >>> 0;
+
+function jpegMarker(m) {
+  return m >= 0xc0 && m <= 0xfe && m !== 0xd8 && m !== 0xd9 && !(m >= 0xd0 && m <= 0xd7);
+}
+/** FFD8FF + any segment marker, with a well-formed first segment followed by another marker. */
+function validJpegAt(u8, i) {
+  if (u8[i] !== 0xff || u8[i + 1] !== 0xd8 || u8[i + 2] !== 0xff) return false;
+  let p = i + 2;
+  while (u8[p + 1] === 0xff) p += 1; // fill bytes
+  if (!jpegMarker(u8[p + 1])) return false;
+  if (p + 4 > u8.length) return false;
+  const len = u16be(u8, p + 2);
+  if (len < 2) return false;
+  const next = p + 2 + len;
+  if (next === u8.length) return true; // header-only tail still counts
+  if (next + 1 >= u8.length) return false;
+  return u8[next] === 0xff && (jpegMarker(u8[next + 1]) || u8[next + 1] === 0xd9 || u8[next + 1] === 0xff);
+}
+function validTiffAt(u8, i) {
+  const le = u8[i] === 0x49 && u8[i + 1] === 0x49 && u8[i + 2] === 0x2a && u8[i + 3] === 0x00;
+  const be = u8[i] === 0x4d && u8[i + 1] === 0x4d && u8[i + 2] === 0x00 && u8[i + 3] === 0x2a;
+  if (!le && !be) return false;
+  if (i + 8 > u8.length) return false;
+  const ifd = le ? u32le(u8, i + 4) : u32be(u8, i + 4);
+  if (ifd < 8 || i + ifd + 2 + 12 > u8.length) return false;
+  const count = le ? u16le(u8, i + ifd) : u16be(u8, i + ifd);
+  if (count < 1 || count > 512) return false;
+  const tag = le ? u16le(u8, i + ifd + 2) : u16be(u8, i + ifd + 2);
+  const type = le ? u16le(u8, i + ifd + 4) : u16be(u8, i + ifd + 4);
+  return tag >= 0xfe && type >= 1 && type <= 18;
+}
+const BMP_DIB = new Set([12, 16, 40, 52, 56, 64, 108, 124]);
+function validBmpAt(u8, i) {
+  if (u8[i] !== 0x42 || u8[i + 1] !== 0x4d || i + 30 > u8.length) return false;
+  if (u32le(u8, i + 6) !== 0) return false; // reserved
+  const off = u32le(u8, i + 10);
+  const dib = u32le(u8, i + 14);
+  if (!BMP_DIB.has(dib) || off < 14 + dib || off > (1 << 26)) return false;
+  if (dib === 12) return u16le(u8, i + 22) === 1;
+  const planes = u16le(u8, i + 26);
+  const bpp = u16le(u8, i + 28);
+  return planes === 1 && [1, 2, 4, 8, 16, 24, 32, 48, 64].includes(bpp) && u32le(u8, i + 18) !== 0;
+}
+function validIcoAt(u8, i) {
+  if (u8[i] !== 0 || u8[i + 1] !== 0 || (u8[i + 2] !== 1 && u8[i + 2] !== 2) || u8[i + 3] !== 0) return false;
+  const count = u16le(u8, i + 4);
+  if (count < 1 || count > 256 || i + 6 + 16 * count > u8.length) return false;
+  const e = i + 6;
+  if (u8[e + 3] !== 0) return false; // reserved
+  const size = u32le(u8, e + 8);
+  const off = u32le(u8, e + 12);
+  if (size < 8 || size > (1 << 26) || off < 6 + 16 * count) return false;
+  // The first image's data must be there and be a DIB (BITMAPINFOHEADER, 40) or PNG.
+  const d = i + off;
+  if (d + 8 > u8.length) return false;
+  const dibOrPng = u32le(u8, d) === 40 || (u8[d] === 0x89 && u8[d + 1] === 0x50 && u8[d + 2] === 0x4e && u8[d + 3] === 0x47);
+  if (!dibOrPng) return false;
+  if (u8[i + 2] === 1) {
+    const planes = u16le(u8, e + 4);
+    const bpp = u16le(u8, e + 6);
+    if (planes > 1 || ![0, 1, 2, 4, 8, 16, 24, 32].includes(bpp)) return false;
+  }
+  return true;
+}
+/** Structural image search at any offset (JPEG all variants, TIFF, BMP, ICO/CUR). */
+export function findStructuredImage(input) {
+  const u8 = u8of(input);
+  for (let i = u8.indexOf(0xff); i >= 0; i = u8.indexOf(0xff, i + 1)) {
+    if (u8[i + 1] === 0xd8 && u8[i + 2] === 0xff && validJpegAt(u8, i)) return { kind: "image", format: "jpeg", offset: i };
+  }
+  for (const first of [0x49, 0x4d]) {
+    for (let i = u8.indexOf(first); i >= 0; i = u8.indexOf(first, i + 1)) {
+      if (validTiffAt(u8, i)) return { kind: "image", format: "tiff", offset: i };
+    }
+  }
+  for (let i = u8.indexOf(0x42); i >= 0; i = u8.indexOf(0x42, i + 1)) {
+    if (u8[i + 1] === 0x4d && validBmpAt(u8, i)) return { kind: "image", format: "bmp", offset: i };
+  }
+  for (let i = u8.indexOf(0); i >= 0 && i + 22 <= u8.length; i = u8.indexOf(0, i + 1)) {
+    if (u8[i + 1] === 0 && validIcoAt(u8, i)) return { kind: "image", format: "ico", offset: i };
+  }
+  return null;
+}
+
+// ---------- text decoding (fail closed) ----------
+const C0_BAD = /[\u0000-\u0008\u000e-\u001a\u001c-\u001f\u007f]/;
+function nullShare(u8, parity) {
+  const n = Math.min(u8.length, 4096);
+  let pairs = 0;
+  let hits = 0;
+  for (let i = parity; i < n; i += 2) { pairs += 1; if (u8[i] === 0) hits += 1; }
+  return pairs ? hits / pairs : 0;
+}
+function decodeUtf16(u8, bigEndian) {
+  const even = u8.length - (u8.length % 2);
+  const b = new Uint8Array(even);
+  if (bigEndian) for (let i = 0; i < even; i += 2) { b[i] = u8[i + 1]; b[i + 1] = u8[i]; }
+  else b.set(u8.subarray(0, even));
+  return new TextDecoder("utf-16le", { fatal: true }).decode(b);
+}
+/**
+ * Decode bytes as text, confidently or not at all.
+ * UTF-8 (BOM optional), UTF-16 LE/BE (BOM, or interleaved NULs without one), or
+ * single-byte text with no control bytes. Anything else -> { ok:false }.
+ * A decoded text that still holds NUL or C0 control bytes is binary -> { ok:false }.
+ */
+export function decodeTextBytes(input) {
+  const u8 = u8of(input);
+  if (!u8.length) return { ok: true, text: "", encoding: "empty" };
+  let text = null;
+  let encoding = null;
+  try {
+    if (u8[0] === 0xff && u8[1] === 0xfe) { text = decodeUtf16(u8.subarray(2), false); encoding = "utf-16le"; }
+    else if (u8[0] === 0xfe && u8[1] === 0xff) { text = decodeUtf16(u8.subarray(2), true); encoding = "utf-16be"; }
+    else if (u8.length >= 4 && nullShare(u8, 1) >= 0.3 && nullShare(u8, 0) < 0.1) { text = decodeUtf16(u8, false); encoding = "utf-16le"; }
+    else if (u8.length >= 4 && nullShare(u8, 0) >= 0.3 && nullShare(u8, 1) < 0.1) { text = decodeUtf16(u8, true); encoding = "utf-16be"; }
+  } catch {
+    return { ok: false, text: "", encoding: "utf-16-undecodable" };
+  }
+  if (text == null) {
+    try {
+      const start = u8[0] === 0xef && u8[1] === 0xbb && u8[2] === 0xbf ? 3 : 0;
+      text = new TextDecoder("utf-8", { fatal: true }).decode(u8.subarray(start));
+      encoding = "utf-8";
+    } catch {
+      // Not UTF-8. Accept legacy single-byte text only when it carries no control bytes.
+      text = latin1(u8);
+      encoding = "latin1";
+    }
+  }
+  if (C0_BAD.test(text)) return { ok: false, text: "", encoding: encoding + "-binary" };
+  return { ok: true, text, encoding };
+}
+
+// ---------- encoded payloads ----------
+const ZLIB_SECOND = new Set([0x01, 0x5e, 0x9c, 0xda]);
+/** Decoded bytes: media at offset 0 or anywhere, or zlib/gzip that inflates to media. */
+function decodedIsBinaryMedia(u8, depth = 0) {
+  if (!u8 || u8.length < 4) return null;
+  const m = sniffMagic(u8);
+  if (m && m.kind !== "ole" && !WEAK_FORMATS.has(m.format)) return m;
+  const e = findEmbeddedMedia(u8);
+  if (e) return e;
+  if (depth >= 2) return null;
+  let tries = 0;
+  for (let i = 0; i + 2 < u8.length && tries < 64; i++) {
+    const zlib = u8[i] === 0x78 && ZLIB_SECOND.has(u8[i + 1]);
+    const gz = u8[i] === 0x1f && u8[i + 1] === 0x8b && u8[i + 2] === 0x08;
+    if (!zlib && !gz) continue;
+    tries += 1;
+    let out = null;
+    try {
+      out = zlib ? inflateSync(u8.subarray(i), { maxOutputLength: 16 * 1024 * 1024, finishFlush: 2 }) : gunzipSync(u8.subarray(i), { maxOutputLength: 16 * 1024 * 1024, finishFlush: 2 });
+    } catch { out = null; }
+    if (out && out.length) {
+      const hit = decodedIsBinaryMedia(new Uint8Array(out), depth + 1);
+      if (hit) return hit;
+    }
+  }
+  return null;
+}
+
+const B64_VALUE = (() => {
+  const t = new Int16Array(128).fill(-1);
+  const a = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  for (let i = 0; i < a.length; i++) t[a.charCodeAt(i)] = i;
+  t[43] = 62; t[45] = 62; t[47] = 63; t[95] = 63; // + - / _
+  return t;
+})();
+function base64Bytes(chars) {
+  const n = chars.length - (chars.length % 4);
+  const out = new Uint8Array((n / 4) * 3);
+  let o = 0;
+  for (let i = 0; i < n; i += 4) {
+    const a = B64_VALUE[chars.charCodeAt(i)], b = B64_VALUE[chars.charCodeAt(i + 1)];
+    const c = B64_VALUE[chars.charCodeAt(i + 2)], d = B64_VALUE[chars.charCodeAt(i + 3)];
+    const v = (a << 18) | (b << 12) | (c << 6) | d;
+    out[o++] = (v >> 16) & 255; out[o++] = (v >> 8) & 255; out[o++] = v & 255;
+  }
+  return out;
+}
+function hexBytes(chars) {
+  const out = new Uint8Array(Math.floor(chars.length / 2));
+  for (let i = 0; i < out.length; i++) out[i] = parseInt(chars.substr(i * 2, 2), 16);
+  return out;
+}
+/** Ascii85 (btoa / Adobe). strict: any invalid char or misplaced 'z' -> null. */
+function ascii85Bytes(chars, strict) {
+  const out = [];
+  let group = [];
+  for (let i = 0; i < chars.length; i++) {
+    const c = chars.charCodeAt(i);
+    if (c === 0x7a && group.length === 0) { out.push(0, 0, 0, 0); continue; }
+    if (c < 33 || c > 117) { if (strict) return null; group = []; continue; }
+    group.push(c - 33);
+    if (group.length === 5) {
+      let v = 0;
+      for (const g of group) v = v * 85 + g;
+      if (v > 0xffffffff) { if (strict) return null; group = []; continue; }
+      out.push((v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255);
+      group = [];
+    }
+  }
+  if (group.length === 1) { if (strict) return null; }
+  else if (group.length > 1) {
+    const k = group.length;
+    while (group.length < 5) group.push(84);
+    let v = 0;
+    for (const g of group) v = v * 85 + g;
+    for (let j = 0; j < k - 1; j++) out.push((v >>> (24 - 8 * j)) & 255);
+  }
+  return new Uint8Array(out);
+}
+const ENCODED_BUDGET = 64 * 1024 * 1024; // chars; above MAX_INTAKE_BYTES, so a real upload never hits it
+/**
+ * Encoded media in text: base64 / url-safe base64 (any whitespace or line breaks
+ * inside, any amount of padding before the payload), hex (with or without 0x / \x /
+ * separators), Ascii85 (<~ ~> delimited, or bare). The WHOLE run is decoded (not a
+ * prefix) and searched at every offset, including zlib/gzip-compressed payloads.
+ * A delimited Ascii85 block that does not decode is refused (cannot be checked).
+ */
+export function encodedMediaReason(text) {
+  const s = String(text || "");
+  let budget = ENCODED_BUDGET;
+  // base64: alphabet + whitespace; '=' ends one payload (padding).
+  for (const seg of s.split(/=+/)) {
+    const re = /[A-Za-z0-9+/_\-\s]{32,}/g;
+    let m;
+    while ((m = re.exec(seg))) {
+      const chars = m[0].replace(/\s+/g, "");
+      if (chars.length < 24) continue;
+      budget -= chars.length;
+      if (budget < 0) return MEDIA_REASONS.ENCODED; // too much to check: refuse, do not skip
+      for (let shift = 0; shift < 4; shift++) {
+        if (decodedIsBinaryMedia(base64Bytes(chars.slice(shift)))) return MEDIA_REASONS.ENCODED;
+      }
+    }
+  }
+  // hex: digits with optional 0x / \x prefixes and whitespace , : ; - separators.
+  const hre = /(?:(?:0x|\\x)?[0-9A-Fa-f]{2}[\s,:;-]*){16,}/g;
+  let h;
+  while ((h = hre.exec(s))) {
+    const chars = h[0].replace(/0x|\\x/gi, "").replace(/[^0-9A-Fa-f]/g, "");
+    budget -= chars.length;
+    if (budget < 0) return MEDIA_REASONS.ENCODED;
+    for (let shift = 0; shift < 2; shift++) {
+      if (decodedIsBinaryMedia(hexBytes(chars.slice(shift)))) return MEDIA_REASONS.ENCODED;
+    }
+  }
+  // Ascii85, delimited: must decode strictly or the text is refused.
+  const are = /<~([\s\S]*?)~>/g;
+  let a;
+  while ((a = are.exec(s))) {
+    const body = a[1].replace(/\s+/g, "");
+    if (body.length < 20) continue;
+    const inAlpha = (body.match(/[!-uz]/g) || []).length;
+    if (inAlpha / body.length < 0.9) continue; // prose/code using "<~" and "~>" as operators
+    const bytes = ascii85Bytes(body, true);
+    if (!bytes) return MEDIA_REASONS.ENCODED;
+    if (decodedIsBinaryMedia(bytes)) return MEDIA_REASONS.ENCODED;
+  }
+  // Ascii85, bare: long runs of the alphabet with no spaces.
+  const bre = /(?:[!-uz]{20,}\r?\n?){2,}|[!-uz]{40,}/g;
+  let b;
+  while ((b = bre.exec(s))) {
+    const chars = b[0].replace(/\s+/g, "");
+    budget -= chars.length;
+    if (budget < 0) return MEDIA_REASONS.ENCODED;
+    for (let shift = 0; shift < 5; shift++) {
+      if (decodedIsBinaryMedia(ascii85Bytes(chars.slice(shift), false))) return MEDIA_REASONS.ENCODED;
+    }
+  }
   return null;
 }
 
@@ -179,59 +481,35 @@ const CSS_MEDIA = /(?:url\s*\(|image-set\s*\(|-webkit-image-set\s*\(|background(
 const MD_IMAGE = /!\[[^\]]{0,500}\]\s*\(|!\[[^\]]{0,500}\]\s*\[[^\]]*\]|^\s*\[[^\]]+\]:\s*\S+\.(?:png|jpe?g|gif|webp|svg|mp4|webm|mov)\b/im;
 const ENTITY_TAG = /&(?:lt|#0*60|#x0*3c);(?:img|svg|video|iframe|object|embed)\b/i;
 
-function decodeBase64Prefix(run, bytes = 96) {
-  const clean = run.replace(/\s+/g, "").replace(/-/g, "+").replace(/_/g, "/");
-  const take = clean.slice(0, Math.ceil(bytes / 3) * 4);
-  try {
-    return new Uint8Array(Buffer.from(take, "base64"));
-  } catch {
-    return null;
-  }
-}
-function decodeHexPrefix(run, bytes = 96) {
-  const clean = run.replace(/[^0-9a-fA-F]/g, "").slice(0, bytes * 2);
-  const out = new Uint8Array(Math.floor(clean.length / 2));
-  for (let i = 0; i < out.length; i++) out[i] = parseInt(clean.slice(i * 2, i * 2 + 2), 16);
-  return out;
-}
 // Short / weak magics (2-3 bytes, or byte patterns common in random data) are not
 // trusted on decoded text runs; only multi-byte signatures count there.
 const WEAK_FORMATS = new Set(["mpeg-audio", "ico", "mpeg-ts", "jxl", "bmp"]);
-function decodedIsBinaryMedia(u8) {
-  if (!u8 || u8.length < 4) return null;
-  const m = sniffMagic(u8);
-  if (m && m.kind !== "ole" && !WEAK_FORMATS.has(m.format)) return m;
-  const e = findEmbeddedMedia(u8);
-  return e || null;
-}
 
 /** Screen one piece of text for media. Returns a reason code or null. */
 export function textMediaReason(text) {
   const s = String(text || "");
   if (!s) return null;
+  // UTF-16 that arrived as a string with interleaved NULs (or any NUL padding):
+  // check the de-NULed form as well as the original.
+  if (s.includes("\u0000")) {
+    const r = textMediaReason1(s.replace(/\u0000/g, ""));
+    if (r) return r;
+  }
+  return textMediaReason1(s);
+}
+
+function textMediaReason1(s) {
   const folded = s.normalize("NFKC");
   if (DATA_URI.test(folded) || DATA_URI_ANY_B64.test(folded)) return MEDIA_REASONS.DATA_URI;
   if (MEDIA_TAGS.test(folded) || ENTITY_TAG.test(folded)) return MEDIA_REASONS.MARKUP;
   if (/<\s*style\b|style\s*=/i.test(folded) && CSS_MEDIA.test(folded)) return MEDIA_REASONS.MARKUP;
   if (MD_IMAGE.test(folded)) return MEDIA_REASONS.MARKUP;
-  // base64 runs (also wrapped at 76 chars) and url-safe base64
-  const b64 = /(?:[A-Za-z0-9+/_-]{4}(?:\r?\n)?){10,}[A-Za-z0-9+/_=-]{0,4}/g;
-  let m;
-  let n = 0;
-  while ((m = b64.exec(folded)) && n++ < 2000) {
-    const hit = decodedIsBinaryMedia(decodeBase64Prefix(m[0]));
-    if (hit) return MEDIA_REASONS.ENCODED;
-    // Every 4-char alignment, so a run that starts mid-quad still decodes.
-    for (let shift = 1; shift < 4; shift++) {
-      const h2 = decodedIsBinaryMedia(decodeBase64Prefix(m[0].slice(shift)));
-      if (h2) return MEDIA_REASONS.ENCODED;
-    }
-  }
-  const hex = /(?:(?:0x|\\x)?[0-9a-fA-F]{2}[\s,:]?){24,}/g;
-  n = 0;
-  while ((m = hex.exec(folded)) && n++ < 2000) {
-    const hit = decodedIsBinaryMedia(decodeHexPrefix(m[0].replace(/0x|\\x/g, "")));
-    if (hit) return MEDIA_REASONS.ENCODED;
+  // base64 / hex / Ascii85 runs, whole-run decode at every offset (see encodedMediaReason).
+  const enc = encodedMediaReason(folded);
+  if (enc) return enc;
+  if (folded !== s) {
+    const raw = encodedMediaReason(s);
+    if (raw) return raw;
   }
   // percent-encoded magic, e.g. %89PNG
   if (/%89%50%4e%47|%ff%d8%ff|%1a%45%df%a3|ftyp(?:isom|mp4|qt)%/i.test(folded)) return MEDIA_REASONS.ENCODED;
@@ -242,21 +520,113 @@ export function textMediaReason(text) {
 const PDF_MEDIA = /\/Subtype\s*\/Image\b|\/(?:DCTDecode|JPXDecode|JBIG2Decode|CCITTFaxDecode|DCT|CCF)\b|\/(?:RichMedia|Movie|Sound|Screen|3D|EmbeddedFile|EmbeddedFiles|FileAttachment)\b|\/Type\s*\/XObject[\s\S]{0,200}\/Subtype\s*\/Image/;
 const PDF_INLINE_IMAGE = /(?:^|[\s\]>)])BI\s+[\s\S]{0,4000}?\sID[\s\r\n]/m;
 
+// PDF names may hide letters as #xx ("/Im#61ge") and a comment may sit between
+// tokens ("/Subtype %c\n/Image"); NUL and form feed are PDF whitespace. Every check
+// runs on the raw text AND on each normalised view; a hit on any view refuses.
+function pdfDecodeNames(t) { return t.replace(/#([0-9A-Fa-f]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16))); }
+function pdfStripComments(t) { return t.replace(/%[^\r\n]*/g, " "); }
+function pdfViews(t) {
+  const ws = (x) => x.replace(/[\0\f]/g, " ");
+  const d = pdfDecodeNames(t);
+  const c = pdfStripComments(t);
+  return [ws(t), ws(d), ws(c), ws(pdfDecodeNames(c)), ws(pdfStripComments(d))];
+}
+function pdfHasMedia(t) {
+  return pdfViews(t).some((v) => PDF_MEDIA.test(v) || PDF_INLINE_IMAGE.test(v));
+}
+function pdfDictHasMedia(t) {
+  return pdfViews(t).some((v) => PDF_MEDIA.test(v));
+}
+
+const PDF_STREAM_KW = /stream(?:\r\n|\r|\n)/g;
 function pdfStreams(u8) {
   const s = latin1(u8);
   const out = [];
-  const re = /<<([\s\S]{0,4000}?)>>\s*stream\r?\n/g;
+  const covered = [];
+  const re = /<<([\s\S]{0,8000}?)>>[\s\0]*stream(?:\r\n|\r|\n)/g;
   let m;
   while ((m = re.exec(s))) {
-    const dict = m[1];
+    // The lazy match starts at the first "<<" after the previous stream, which can be an
+    // earlier object: keep only this stream's own object (after its last "N G obj").
+    let dict = m[1];
+    const objs = dict.match(/\d+[\s\0]+\d+[\s\0]+obj\b/g);
+    if (objs) {
+      const cut = dict.lastIndexOf(objs[objs.length - 1]) + objs[objs.length - 1].length;
+      const own = dict.indexOf("<<", cut);
+      dict = own >= 0 ? dict.slice(own + 2) : dict.slice(cut);
+    }
     const start = re.lastIndex;
     const end = s.indexOf("endstream", start);
-    if (end < 0) { out.push({ dict, bytes: null }); break; }
-    out.push({ dict, bytes: u8.subarray(start, end) });
+    if (end < 0) { out.push({ dict, span: m[1], bytes: null }); break; }
+    out.push({ dict, span: m[1], bytes: u8.subarray(start, end) });
+    covered.push([m.index, end + 9]);
     re.lastIndex = end + 9;
-    if (out.length > 5000) break;
+    if (out.length > 5000) { out.push({ dict: "", bytes: null }); break; }
   }
-  return { text: s, streams: out };
+  // A "stream" keyword we did not parse (outside every parsed stream) is a stream we
+  // could not read: report it so the caller refuses rather than skipping it.
+  let orphan = false;
+  PDF_STREAM_KW.lastIndex = 0;
+  let k;
+  while ((k = PDF_STREAM_KW.exec(s))) {
+    const pos = k.index;
+    if (pos > 2 && s.slice(pos - 3, pos) === "end") continue;
+    if (!covered.some(([a, b]) => pos >= a && pos < b)) { orphan = true; break; }
+  }
+  return { text: s, streams: out, orphan };
+}
+
+/**
+ * Decoded bytes of one parsed PDF stream (Flate / ASCII85 / ASCIIHex, names normalised, chained
+ * filters applied), or null when it cannot be read. Shared with the text checks so
+ * both layers read the same bytes.
+ */
+const PDF_FILTERS = new Set(["/FlateDecode", "/Fl", "/ASCII85Decode", "/A85", "/ASCIIHexDecode", "/AHx"]);
+export function pdfDecodeStream(st, maxInflate = 32 * 1024 * 1024) {
+  if (!st || !st.bytes) return null;
+  const filterOf = (d) => (pdfStripComments(pdfDecodeNames(d)).match(/\/Filter[\s\0]*(\[[^\]]*\]|\/[^\s\0/\[\]<>()%]+)/) || [])[1] || "";
+  const filters = filterOf(st.dict);
+  // The object cut in pdfStreams must not change which filter applies: if the raw span
+  // reads differently (say an "N 0 obj" inside a string hid the real /Filter), the
+  // stream is ambiguous and cannot be read (null: the caller refuses).
+  if (st.span !== undefined && st.span !== st.dict && filterOf(st.span) !== filters) return null;
+  const names = filters.match(/\/[^\s\0/\[\]<>()%]+/g) || [];
+  let data = st.bytes;
+  if (!names.length) return data;
+  // Flate, plus the two lossless text filters (ReportLab writes [/ASCII85Decode
+  // /FlateDecode]). Any other filter cannot be read here: null, the caller refuses.
+  if (names.some((n) => !PDF_FILTERS.has(n))) return null;
+  try {
+    for (const n of names) {
+      let raw = data;
+      // trim trailing EOL before endstream
+      while (raw.length && (raw[raw.length - 1] === 0x0a || raw[raw.length - 1] === 0x0d)) raw = raw.subarray(0, raw.length - 1);
+      if (n === "/ASCII85Decode" || n === "/A85") {
+        let t = latin1(raw).replace(/[\0\t\n\f\r ]+/g, "");
+        if (t.startsWith("<~")) t = t.slice(2);
+        const end = t.indexOf("~>");
+        if (end < 0) return null;
+        data = ascii85Bytes(t.slice(0, end), true);
+        if (!data) return null;
+      } else if (n === "/ASCIIHexDecode" || n === "/AHx") {
+        let t = latin1(raw).replace(/[\0\t\n\f\r ]+/g, "");
+        const end = t.indexOf(">");
+        if (end < 0) return null;
+        t = t.slice(0, end);
+        if (/[^0-9a-fA-F]/.test(t)) return null;
+        if (t.length % 2) t += "0";
+        data = new Uint8Array(t.length / 2);
+        for (let i = 0; i < data.length; i++) data[i] = parseInt(t.substr(i * 2, 2), 16);
+      } else {
+        const out = inflateSync(raw, { maxOutputLength: maxInflate });
+        data = out instanceof Uint8Array ? out : new Uint8Array(out);
+      }
+      if (data.length > maxInflate) return null;
+    }
+  } catch {
+    return null;
+  }
+  return data;
 }
 
 /** PDF: refuse any image, inline image, embedded file or rich media; refuse what we cannot read. */
@@ -264,33 +634,18 @@ export function pdfMediaReason(input, { maxInflate = 32 * 1024 * 1024 } = {}) {
   const u8 = u8of(input);
   // Media appended after %%EOF or hidden between objects (polyglot) refuses too.
   if (findEmbeddedMedia(u8)) return MEDIA_REASONS.POLYGLOT;
-  const { text, streams } = pdfStreams(u8);
-  if (/\/Encrypt\b/.test(text)) return MEDIA_REASONS.UNREADABLE_DOC;
-  if (PDF_MEDIA.test(text)) return MEDIA_REASONS.EMBEDDED;
+  const { text, streams, orphan } = pdfStreams(u8);
+  if (pdfViews(text).some((v) => /\/Encrypt\b/.test(v))) return MEDIA_REASONS.UNREADABLE_DOC;
+  if (pdfDictHasMedia(text)) return MEDIA_REASONS.EMBEDDED;
+  if (orphan) return MEDIA_REASONS.UNREADABLE_DOC;
   let total = 0;
   for (const st of streams) {
-    if (!st.bytes) return MEDIA_REASONS.UNREADABLE_DOC;
-    const filters = (st.dict.match(/\/Filter\s*(\[[^\]]*\]|\/\w+)/) || [])[1] || "";
-    const names = filters.match(/\/\w+/g) || [];
-    let data = st.bytes;
-    if (names.length) {
-      if (names.some((n) => n !== "/FlateDecode" && n !== "/Fl")) return MEDIA_REASONS.UNREADABLE_DOC;
-      try {
-        for (let i = 0; i < names.length; i++) {
-          let raw = data;
-          // trim trailing EOL before endstream
-          while (raw.length && (raw[raw.length - 1] === 0x0a || raw[raw.length - 1] === 0x0d)) raw = raw.subarray(0, raw.length - 1);
-          const out = inflateSync(raw, { maxOutputLength: maxInflate });
-          data = out instanceof Uint8Array ? out : new Uint8Array(out);
-        }
-      } catch {
-        return MEDIA_REASONS.UNREADABLE_DOC;
-      }
-    }
+    const data = pdfDecodeStream(st, maxInflate);
+    if (!data) return MEDIA_REASONS.UNREADABLE_DOC;
     total += data.length;
     if (total > maxInflate) return MEDIA_REASONS.UNREADABLE_DOC;
     const body = latin1(data);
-    if (PDF_MEDIA.test(body) || PDF_INLINE_IMAGE.test(body)) return MEDIA_REASONS.EMBEDDED;
+    if (pdfHasMedia(body)) return MEDIA_REASONS.EMBEDDED;
     const hit = sniffMagic(data);
     if (hit && (hit.kind === "image" || hit.kind === "video" || hit.kind === "audio")) return MEDIA_REASONS.EMBEDDED;
     if (findEmbeddedMedia(data)) return MEDIA_REASONS.EMBEDDED;
@@ -300,6 +655,52 @@ export function pdfMediaReason(input, { maxInflate = 32 * 1024 * 1024 } = {}) {
 
 // ---------- ZIP-based documents ----------
 const OFFICE_MEDIA_PART = /(^|\/)(media|Pictures|embeddings|ObjectReplacements|Thumbnails|images?)\//i;
+
+// Every byte of an Office zip must belong to a local entry, its data descriptor, the
+// central directory or the end record. Bytes appended after the end record, before
+// the first entry, or between entries are where polyglot payloads hide: refuse.
+function zipLayoutReason(u8, entries) {
+  let eocd = -1;
+  for (let i = u8.length - 22; i >= Math.max(0, u8.length - 22 - 65535); i--) {
+    if (u8[i] === 0x50 && u8[i + 1] === 0x4b && u8[i + 2] === 0x05 && u8[i + 3] === 0x06) { eocd = i; break; }
+  }
+  if (eocd < 0) return MEDIA_REASONS.UNREADABLE_DOC;
+  const commentLen = u16le(u8, eocd + 20);
+  const end = eocd + 22 + commentLen;
+  if (end !== u8.length) return MEDIA_REASONS.POLYGLOT; // trailing bytes after the zip
+  if (commentLen) {
+    const comment = u8.subarray(eocd + 22, end);
+    const dec = decodeTextBytes(comment);
+    if (!dec.ok || findEmbeddedMedia(comment) || textMediaReason(dec.text)) return MEDIA_REASONS.POLYGLOT;
+  }
+  const cdSize = u32le(u8, eocd + 12);
+  const cdOff = u32le(u8, eocd + 16);
+  if (cdOff === 0xffffffff || cdSize === 0xffffffff) return MEDIA_REASONS.UNREADABLE_DOC; // zip64: not opened
+  if (cdOff + cdSize !== eocd) return MEDIA_REASONS.POLYGLOT;
+  const spans = [];
+  for (const e of entries) {
+    const lo = e.localOff;
+    if (lo == null || lo + 30 > u8.length || u32le(u8, lo) !== 0x04034b50) return MEDIA_REASONS.UNREADABLE_DOC;
+    const flags = u16le(u8, lo + 6);
+    let stop = lo + 30 + u16le(u8, lo + 26) + u16le(u8, lo + 28) + (e.compressed || 0);
+    if (flags & 0x08) {
+      if (u32le(u8, stop) === 0x08074b50) stop += 4;
+      stop += 12;
+    }
+    spans.push([lo, stop]);
+  }
+  spans.sort((a, b) => a[0] - b[0]);
+  let pos = 0;
+  for (const [a, b] of spans) {
+    if (a !== pos) return MEDIA_REASONS.POLYGLOT; // gap or overlap
+    pos = b;
+  }
+  if (pos !== cdOff) return MEDIA_REASONS.POLYGLOT;
+  return null;
+}
+
+const OFFICE_TEXT_PART = /\.(xml|rels|html?|xhtml|svg|css|opf|ncx|txt|json|vml|md)$|(^|\/)mimetype$|(^|\/)\[Content_Types\]\.xml$/i;
+const OFFICE_FONT_PART = /\.(odttf|ttf|otf|fntdata|woff2?)$/i;
 
 /** Office/ODF/EPUB: open the container; any media part, embedding, macro or nested archive refuses. */
 export function officeMediaReason(input, { depth = 0 } = {}) {
@@ -314,21 +715,27 @@ export function officeMediaReason(input, { depth = 0 } = {}) {
     names.push(e.name);
   }
   if (names.length > 4000) return MEDIA_REASONS.UNREADABLE_DOC;
+  const layout = zipLayoutReason(u8, listed.entries);
+  if (layout) return layout;
+  // Stored (uncompressed) media anywhere in the raw container.
+  if (findEmbeddedMedia(u8)) return MEDIA_REASONS.POLYGLOT;
   const read = readZipFiles(u8, names);
   if (!read.ok) return MEDIA_REASONS.UNREADABLE_DOC;
   for (const [name, bytes] of Object.entries(read.files)) {
     const m = sniffMagic(bytes);
-    if (m && m.kind !== "ole") {
-      if (m.kind === "zip" || m.kind === "archive" || m.kind === "pdf") return MEDIA_REASONS.EMBEDDED;
-      return MEDIA_REASONS.EMBEDDED;
-    }
+    if (m && m.kind !== "ole") return MEDIA_REASONS.EMBEDDED;
     if (findEmbeddedMedia(bytes)) return MEDIA_REASONS.EMBEDDED;
-    if (/\.(xml|rels|html?|xhtml|svg|css|opf|ncx|txt)$/i.test(name)) {
-      const t = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
-      if (/<\s*(?:svg|img|image|video|audio|object|embed)\b|<(?:a:)?blip\b|<v:imagedata\b|<pic:pic\b|<draw:image\b|r:embed\s*=/.test(t)) return MEDIA_REASONS.EMBEDDED;
-      const tr = textMediaReason(t);
-      if (tr) return MEDIA_REASONS.EMBEDDED;
+    // Every part is checked as text, whatever its extension (customXml/item1.dat,
+    // UTF-16 xml, ...). A part that is not text is only allowed when it is a font;
+    // any other binary part cannot be checked and refuses.
+    const dec = decodeTextBytes(bytes);
+    if (!dec.ok) {
+      if (OFFICE_FONT_PART.test(name)) continue;
+      return OFFICE_TEXT_PART.test(name) ? MEDIA_REASONS.UNREADABLE_DOC : MEDIA_REASONS.EMBEDDED;
     }
+    const t = dec.text;
+    if (/<\s*(?:svg|img|image|video|audio|object|embed)\b|<(?:a:)?blip\b|<v:imagedata\b|<pic:pic\b|<draw:image\b|r:embed\s*=/.test(t)) return MEDIA_REASONS.EMBEDDED;
+    if (textMediaReason(t)) return MEDIA_REASONS.EMBEDDED;
   }
   return null;
 }
@@ -339,9 +746,10 @@ export function archiveMediaReason(input, { depth = 0, maxDepth = 2 } = {}) {
   const head = sniffMagic(u8);
   if (!head) {
     if (findEmbeddedMedia(u8)) return MEDIA_REASONS.POLYGLOT;
-    const t = new TextDecoder("utf-8", { fatal: false }).decode(u8.subarray(0, 8 * 1024 * 1024));
-    if (/<svg[\s>]/i.test(t)) return MEDIA_REASONS.SVG;
-    return textMediaReason(t);
+    const dec = decodeTextBytes(u8);
+    if (!dec.ok) return MEDIA_REASONS.UNDECODABLE;
+    if (/<svg[\s>]/i.test(dec.text)) return MEDIA_REASONS.SVG;
+    return textMediaReason(dec.text);
   }
   if (head.kind === "image" || head.kind === "video" || head.kind === "audio") return codeForKind(head.kind);
   if (head.kind === "pdf") return pdfMediaReason(u8);
@@ -367,8 +775,8 @@ export function archiveMediaReason(input, { depth = 0, maxDepth = 2 } = {}) {
     for (const bytes of Object.values(read.files)) {
       const r = archiveMediaReason(bytes, { depth: depth + 1, maxDepth });
       if (r) return r === MEDIA_REASONS.IMAGE || r === MEDIA_REASONS.VIDEO || r === MEDIA_REASONS.AUDIO ? MEDIA_REASONS.EMBEDDED : r;
-      const t = new TextDecoder("utf-8", { fatal: false }).decode(bytes.subarray(0, 2 * 1024 * 1024));
-      if (textMediaReason(t)) return MEDIA_REASONS.EMBEDDED;
+      const dec = decodeTextBytes(bytes);
+      if (dec.ok && textMediaReason(dec.text)) return MEDIA_REASONS.EMBEDDED;
     }
     return null;
   }
@@ -399,9 +807,13 @@ export function fileMediaReason({ name = "", type = "", bytes } = {}) {
   if (ARCHIVE_EXT.test(fname) || /zip|x-tar|gzip|x-7z|x-rar|x-bzip|x-xz|zstd/.test(ct)) return MEDIA_REASONS.ARCHIVE;
   const anywhere = findEmbeddedMedia(u8);
   if (anywhere) return MEDIA_REASONS.POLYGLOT;
-  // Treat the rest as text; SVG is an image even when it arrives as text/xml.
-  const t = new TextDecoder("utf-8", { fatal: false }).decode(u8.subarray(0, 8 * 1024 * 1024));
-  if (/<svg[\s>]/i.test(t) || /\.svgz?$/i.test(fname) || ct === "image/svg+xml") return MEDIA_REASONS.SVG;
+  // Treat the rest as text, decoded confidently (UTF-8, UTF-16 with or without BOM,
+  // or control-free single-byte text) or refused. SVG is an image even as text/xml.
+  if (/\.svgz?$/i.test(fname) || ct === "image/svg+xml") return MEDIA_REASONS.SVG;
+  const dec = decodeTextBytes(u8);
+  if (!dec.ok) return MEDIA_REASONS.UNDECODABLE;
+  const t = dec.text;
+  if (/<svg[\s>]/i.test(t) || /<svg[\s>]/i.test(t.normalize("NFKC")) || /\.svgz?$/i.test(fname) || ct === "image/svg+xml") return MEDIA_REASONS.SVG;
   return textMediaReason(t);
 }
 

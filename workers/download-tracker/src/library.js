@@ -526,6 +526,8 @@ export async function ingestRecord(env, args) {
     door: intake.door || "ingestRecord",
     ip: intake.ip || null,
     submitter: intake.submitter || null,
+    // Same request, already screened once (e.g. OCR pre-screen): still fully checked, counted once.
+    followup: intake.followup || null,
     signed,
     operator: isOperator(signed),
     title,
@@ -618,11 +620,7 @@ export async function ingestRecord(env, args) {
         existing = null;
       }
     }
-    if (!objectKey) {
-      objectKey = library + "/" + id + "/" + filename;
-      await putObject(env, objectKey, fileBytes, contentType);
-      await verifyStoredObject(env, objectKey, contentSha);
-    }
+    // The R2 put happens only after the poison preflight below (CORPUS-INTAKE-SAFETY-1.0 §7).
     if (!args.skipOcrHint && String(contentType).toLowerCase().startsWith("image/")) {
       ocrHint = { bytes, contentType };
     }
@@ -701,12 +699,10 @@ export async function ingestRecord(env, args) {
         } catch { /* store a new copy */ }
       }
     }
-    if (env && env.FILES) {
-      objectKey = library + "/" + id + "/" + filename;
-      await putObject(env, objectKey, textBytes, contentType);
-      await verifyStoredObject(env, objectKey, contentSha);
-    }
   }
+  // CORPUS-INTAKE-SAFETY-1.0 §7: the poison preflight runs BEFORE any R2 put and
+  // fails closed. If it cannot run, nothing is stored and the item is refused, so a
+  // POISON_LEARNED refusal's body_retained:false is literally true.
   let preflight = null;
   try {
     preflight = await preflightIngest(env, {
@@ -716,8 +712,19 @@ export async function ingestRecord(env, args) {
       sha256: contentSha,
       library,
       bytes: fileBytes,
-    });
-  } catch { preflight = null; }
+    }, { strict: true });
+  } catch {
+    const err = new Error("ingest preflight unavailable; nothing was stored or chained");
+    err.status = 503;
+    err.receipt = { ok: false, refuse: "PREFLIGHT_UNAVAILABLE", content_sha256: contentSha, stored: false, chained: false, body_retained: false };
+    throw err;
+  }
+  if (!preflight || typeof preflight !== "object") {
+    const err = new Error("ingest preflight returned nothing; nothing was stored or chained");
+    err.status = 503;
+    err.receipt = { ok: false, refuse: "PREFLIGHT_UNAVAILABLE", content_sha256: contentSha, stored: false, chained: false, body_retained: false };
+    throw err;
+  }
   if (preflight && preflight.refuse === "POISON_LEARNED") {
     let receipt = null;
     try {
@@ -740,6 +747,16 @@ export async function ingestRecord(env, args) {
       law: "adaptive learning via hashchain lattice for recollection and reasoning",
     };
     throw err;
+  }
+  // Preflight passed: only now does anything reach R2.
+  if (f && !objectKey) {
+    objectKey = library + "/" + id + "/" + filename;
+    await putObject(env, objectKey, fileBytes, contentType);
+    await verifyStoredObject(env, objectKey, contentSha);
+  } else if (!f && env && env.FILES) {
+    objectKey = library + "/" + id + "/" + filename;
+    await putObject(env, objectKey, fileBytes, contentType);
+    await verifyStoredObject(env, objectKey, contentSha);
   }
   const servedBytes = f
     ? asUint8(fileBytes)

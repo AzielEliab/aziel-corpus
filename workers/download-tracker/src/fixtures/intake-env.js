@@ -9,8 +9,8 @@ export function intakeStubEnv(extra = {}) {
   const whereRows = (sql, binds) => {
     const t = intakeTable(sql);
     const m = sql.match(/WHERE\s+(.+?)(?:\s+ORDER\s+BY|\s+LIMIT|$)/i);
-    const conds = m ? m[1].split(/\s+AND\s+/i).map((c) => c.match(/(\w+)\s*(>=|=)\s*\?/)) : [];
-    return tables[t].filter((r) => conds.every((c, i) => (c[2] === "=" ? r[c[1]] === binds[i] : String(r[c[1]]) >= String(binds[i]))));
+    const conds = m ? m[1].split(/\s+AND\s+/i).map((c) => c.match(/(\w+)\s*(>=|!=|=)\s*\?/)) : [];
+    return tables[t].filter((r) => conds.every((c, i) => (c[2] === "=" ? r[c[1]] === binds[i] : c[2] === "!=" ? r[c[1]] !== binds[i] : String(r[c[1]]) >= String(binds[i]))));
   };
   const env = {
     DB: {
@@ -38,6 +38,10 @@ export function intakeStubEnv(extra = {}) {
           },
           async all() {
             if (extra.failFlood && /intake_seen/.test(sql)) throw new Error("flood store down");
+            if (typeof extra.all === "function") {
+              const r = await extra.all(sql, st.binds);
+              if (r) return r;
+            }
             if (intakeTable(sql)) {
               const lim = Number((sql.match(/LIMIT\s+(\d+)/i) || [])[1] || 1e9);
               return { results: whereRows(sql, st.binds).slice().reverse().slice(0, lim) };
@@ -60,6 +64,8 @@ export function intakeStubEnv(extra = {}) {
     },
     writes,
     tables,
+    // Test-only salt (the gate refuses INTAKE-NOT-READY without a real secret).
+    INTAKE_SALT: "test-only-intake-salt-0123456789",
     ...extra,
   };
   return env;

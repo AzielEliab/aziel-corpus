@@ -11,6 +11,10 @@
  *   INTAKE-RATE-LIMITED (429)     per-submitter or per-IP counts (accepted + refused attempts) over limit
  *   INTAKE-FLOOD-STORE-UNAVAILABLE (503)  we cannot read the counters, so we refuse (fail closed)
  *
+ * A follow-up screen of the same request (ctx.followup: a pass returned by screenIntake
+ * earlier in this request, e.g. OCR then ingestRecord) is one submission: no second rate
+ * count, no second intake_seen row, and the earlier pass's own row is not its duplicate.
+ *
  * The operator is exempt from this check (one trusted filer; re-filing is allowed).
  * Exact hashes are reliable; MinHash near-duplicate is heuristic (paraphrase evades it,
  * and two short, formulaic notes can collide). Author: Aziel Eliab.
@@ -112,9 +116,18 @@ async function attempts(env, col, value, sinceIso) {
 }
 
 async function recordSeen(env, ctx, chash, sh) {
+  const id = "AZSEEN-" + randomBytes(6).toString("hex");
   await env.DB.prepare("INSERT INTO intake_seen(seen_id,created_utc,door,content_sha256,minhash,submitter_key,ip_key) VALUES(?,?,?,?,?,?,?)")
-    .bind("AZSEEN-" + randomBytes(6).toString("hex"), new Date(ctx.now).toISOString(), String(ctx.door).slice(0, 64), chash, sh, ctx.submitter_key || null, ctx.ip_key || null)
+    .bind(id, new Date(ctx.now).toISOString(), String(ctx.door).slice(0, 64), chash, sh, ctx.submitter_key || null, ctx.ip_key || null)
     .run();
+  // Kept on the pass so a follow-up screen of the same request can exclude its own row.
+  ctx.seen_id = id;
+}
+/** The intake_seen row written for the earlier pass of this same request (or null). */
+function priorSeenId(ctx) {
+  let p = ctx.followup;
+  for (let i = 0; p && i < 8; i++, p = p.followup) if (p.seen_id) return p.seen_id;
+  return null;
 }
 
 export const floodChecks = {
@@ -124,8 +137,10 @@ export const floodChecks = {
     const L = limits(env);
     const chash = contentHash(ctx);
     const sh = shingleSignature([ctx.body, ...(ctx.texts || [])].join("\n"), L.MIN_SHINGLE_TOKENS);
+    const prior = priorSeenId(ctx);
     if (ctx.operator) {
       // Exempt, but still leave the hash so a guest re-flooding the operator's text is caught.
+      if (ctx.followup) return null; // same request: its row is already written
       try { if (env && env.DB) { await ensureFloodSchema(env); await recordSeen(env, ctx, chash, sh); } } catch { /* operator path never blocks on counters */ }
       return null;
     }
@@ -134,25 +149,35 @@ export const floodChecks = {
       if (!env || !env.DB) throw new Error("no store");
       await ensureFloodSchema(env);
       // Rate limits first: they count refused attempts too, so hammering with refused content also trips them.
-      for (const [col, key, hour, day] of [["submitter_key", ctx.submitter_key, L.USER_PER_HOUR, L.USER_PER_DAY], ["ip_key", ctx.ip_key, L.IP_PER_HOUR, L.IP_PER_DAY]]) {
+      // A follow-up of an already-counted request is not a second attempt.
+      for (const [col, key, hour, day] of ctx.followup ? [] : [["submitter_key", ctx.submitter_key, L.USER_PER_HOUR, L.USER_PER_DAY], ["ip_key", ctx.ip_key, L.IP_PER_HOUR, L.IP_PER_DAY]]) {
         if (!key) continue;
         if ((await attempts(env, col, key, iso(3600e3))) >= hour) return { code: FLOOD_REASONS.RATE_LIMITED, status: 429 };
         if ((await attempts(env, col, key, iso(24 * 3600e3))) >= day) return { code: FLOOD_REASONS.RATE_LIMITED, status: 429 };
       }
-      if (chash && (await count(env, "intake_seen", "content_sha256", chash, iso(L.DUP_WINDOW_MS))) > 0) return { code: FLOOD_REASONS.DUPLICATE, status: 409 };
+      if (chash) {
+        const dup = prior
+          ? await env.DB.prepare("SELECT COUNT(*) AS n FROM intake_seen WHERE content_sha256 = ? AND created_utc >= ? AND seen_id != ?").bind(chash, iso(L.DUP_WINDOW_MS), prior).first()
+          : { n: await count(env, "intake_seen", "content_sha256", chash, iso(L.DUP_WINDOW_MS)) };
+        const n = Number(dup && dup.n);
+        if (!Number.isFinite(n)) throw new Error("count unavailable");
+        if (n > 0) return { code: FLOOD_REASONS.DUPLICATE, status: 409 };
+      }
       if (sh) {
-        const res = await env.DB.prepare("SELECT minhash, submitter_key, ip_key FROM intake_seen WHERE created_utc >= ? ORDER BY created_utc DESC LIMIT 5000").bind(iso(L.NEAR_WINDOW_MS)).all();
+        const res = await env.DB.prepare("SELECT seen_id, minhash, submitter_key, ip_key FROM intake_seen WHERE created_utc >= ? ORDER BY created_utc DESC LIMIT 5000").bind(iso(L.NEAR_WINDOW_MS)).all();
         if (!res || !Array.isArray(res.results)) throw new Error("scan unavailable");
         let same = 0;
         let global = 0;
         for (const r of res.results) {
+          if (prior && r.seen_id === prior) continue;
           if (similarity(sh, r.minhash) < L.NEAR_SIMILARITY) continue;
           global++;
           if ((ctx.submitter_key && r.submitter_key === ctx.submitter_key) || (ctx.ip_key && r.ip_key === ctx.ip_key)) same++;
         }
         if (same >= L.NEAR_SAME_KEY_MAX || global >= L.NEAR_GLOBAL_MAX) return { code: FLOOD_REASONS.NEAR_DUPLICATE, status: 409 };
       }
-      await recordSeen(env, ctx, chash, sh);
+      if (!ctx.followup) await recordSeen(env, ctx, chash, sh);
+      else ctx.seen_id = prior;
       return null;
     } catch {
       return { code: FLOOD_REASONS.STORE_UNAVAILABLE, status: 503 };

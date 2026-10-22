@@ -58,6 +58,8 @@ new_sqlite_classes = ["HitCounters"]
 # Optional named cloudflared frontend (TUN-WP-0.1). When unset, this Worker is standby.
 # TUNNEL_ORIGIN = "https://library-front.example.internal"
 # OPERATOR_TOKEN is a Wrangler secret — never commit it. No public IP allowlist.
+# INTAKE_SALT is a REQUIRED Wrangler secret (CORPUS-INTAKE-SAFETY-1.0): random, 16+ chars,
+# never committed. Without it every intake door refuses INTAKE-NOT-READY (503), operator included.
 
 [triggers]
 # Every 30 min (was every minute). Free tier: 1,000 KV puts/day and 5M D1 rows read/day.

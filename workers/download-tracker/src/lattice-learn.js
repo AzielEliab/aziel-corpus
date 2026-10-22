@@ -416,12 +416,16 @@ export function preflightStructureAndPoison({ title, body, filename, sha256, lib
   return { structure, poison, features, learnedHit, refuse };
 }
 
-export async function preflightIngest(env, args) {
+export async function preflightIngest(env, args, opts = {}) {
   let learned = [];
   try {
     const mem = await loadPoisonLearnMemory(env);
     if (mem.ok) learned = mem.features;
-  } catch {
+    // strict: a broken poison-memory chain cannot be checked, so the item is refused.
+    else if (opts && opts.strict) throw new Error("poison memory unavailable: " + (mem.refuse || "unknown"));
+  } catch (err) {
+    // strict (ingest path): a learned-memory read that throws refuses the item (fail closed).
+    if (opts && opts.strict) throw err;
     learned = [];
   }
   return preflightStructureAndPoison({ ...args, learned });

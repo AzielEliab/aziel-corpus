@@ -29,7 +29,30 @@ export const INTAKE_SPEC = "CORPUS-INTAKE-SAFETY-1.0";
 export const INTAKE_REASONS = Object.freeze({
   CHECK_ERROR: "INTAKE-CHECK-ERROR",
   UNREADABLE: "INTAKE-UNREADABLE",
+  // INTAKE_SALT secret missing, too short, or the old public default: the gate
+  // cannot key submitters without leaking them, so it refuses everything (fail closed).
+  NOT_READY: "INTAKE-NOT-READY",
 });
+
+/** The old public default. Never accepted as a salt (it is in the public repo). */
+const PUBLIC_DEFAULT_SALT = "aziel-corpus-intake";
+export const MIN_SALT_LENGTH = 16;
+
+/**
+ * The INTAKE_SALT secret, or null when it is not a usable secret. Required:
+ * set it with `wrangler secret put INTAKE_SALT` (>= 16 chars, random). With no
+ * usable salt every intake is refused INTAKE-NOT-READY; there is no fallback salt.
+ */
+export function intakeSalt(env) {
+  const s = env && typeof env.INTAKE_SALT === "string" ? env.INTAKE_SALT : "";
+  if (s.length < MIN_SALT_LENGTH || s === PUBLIC_DEFAULT_SALT) return null;
+  return s;
+}
+
+/** True when the gate has everything it needs to screen (today: the salt secret). */
+export function intakeReady(env) {
+  return intakeSalt(env) != null;
+}
 
 const MAX_INTAKE_BYTES = 25 * 1024 * 1024;
 
@@ -42,10 +65,47 @@ function sha256hex(input) {
 }
 
 /** Salted, one-way submitter key. Never the clear name or IP. */
+/**
+ * The per-IP bucket. IPv4 is the address; IPv6 is its /64 (one subscriber / LAN is
+ * usually handed a whole /64, so rotating the low 64 bits must not mint new buckets).
+ * IPv4-mapped IPv6 (::ffff:a.b.c.d) is the IPv4 address. Unparseable -> the raw text.
+ */
+export function ipBucket(value) {
+  let v = String(value == null ? "" : value).trim().toLowerCase();
+  if (!v) return "";
+  if (v.startsWith("[")) v = v.slice(1, v.indexOf("]") > 0 ? v.indexOf("]") : undefined);
+  v = v.replace(/%.*$/, ""); // zone id
+  if (!v.includes(":")) return v;
+  const mapped = v.match(/^(?:0{0,4}:){0,5}(?:0{0,4}:)?ffff:(\d{1,3}(?:\.\d{1,3}){3})$/) || v.match(/^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/);
+  if (mapped) return mapped[1];
+  let head = v;
+  let tail4 = null;
+  const dotted = v.match(/^(.*:)(\d{1,3}(?:\.\d{1,3}){3})$/);
+  if (dotted) {
+    const o = dotted[2].split(".").map(Number);
+    if (o.some((n) => n > 255)) return v;
+    tail4 = [((o[0] << 8) | o[1]).toString(16), ((o[2] << 8) | o[3]).toString(16)];
+    head = dotted[1] + "0:0"; // placeholder hextets, replaced below
+  }
+  const halves = head.split("::");
+  if (halves.length > 2) return v;
+  const part = (s) => (s ? s.split(":") : []);
+  const left = part(halves[0]);
+  const right = halves.length === 2 ? part(halves[1]) : [];
+  const fill = halves.length === 2 ? 8 - left.length - right.length : 0;
+  if (fill < 0 || (halves.length === 1 && left.length !== 8)) return v;
+  const groups = [...left, ...Array(fill).fill("0"), ...right];
+  if (tail4) groups.splice(6, 2, ...tail4);
+  if (groups.length !== 8 || groups.some((g) => !/^[0-9a-f]{1,4}$/.test(g))) return v;
+  return "v6/64:" + groups.slice(0, 4).map((g) => parseInt(g, 16).toString(16)).join(":");
+}
+
 export function submitterKey(env, kind, value) {
-  const v = String(value == null ? "" : value).trim().toLowerCase();
+  const v = kind === "ip" ? ipBucket(value) : String(value == null ? "" : value).trim().toLowerCase();
   if (!v) return null;
-  const salt = String((env && env.INTAKE_SALT) || "aziel-corpus-intake");
+  // No usable secret salt -> no key at all (a public salt would be reversible for IPs).
+  const salt = intakeSalt(env);
+  if (!salt) return null;
   return sha256hex(salt + "|" + kind + "|" + v);
 }
 
@@ -150,10 +210,27 @@ export async function writeRefusalReceipt(env, receipt) {
 }
 
 /**
+ * Contexts that passed screenIntake in this isolate. A door that pre-screens and
+ * then calls ingestRecord for the same request passes the earlier pass as
+ * `followup`, so the follow-up screen still runs every content check but is not
+ * a second submission (one rate count, no second flood row). A plain object
+ * that did not come from screenIntake is ignored (cannot be forged by callers).
+ */
+const PASSES = new WeakSet();
+export function isIntakePass(ctx) {
+  return !!ctx && typeof ctx === "object" && PASSES.has(ctx);
+}
+
+/** True when err is a refusal thrown by the gate. */
+export function isIntakeRefusal(err) {
+  return !!(err && err.intake_refused === true && err instanceof IntakeRefusal);
+}
+
+/**
  * Screen one intake item. Resolves to the screened context on pass.
  * Throws IntakeRefusal on any refusal or error. Never logs content.
  *
- * input: { door, signed, operator, title, body, file (File|Blob|null), texts[], ip }
+ * input: { door, signed, operator, title, body, file (File|Blob|null), texts[], ip, followup? }
  */
 export async function screenIntake(env, input, opts = {}) {
   const checks = Array.isArray(opts.checks) ? opts.checks : INTAKE_CHECKS;
@@ -172,13 +249,18 @@ export async function screenIntake(env, input, opts = {}) {
     // so rate limits stay per submitter instead of one shared bucket.
     submitter_key: submitterKey(env, "user", (input && input.submitter) || (input && input.signed && (input.signed.user_id || input.signed.username))),
     ip_key: submitterKey(env, "ip", input && input.ip),
+    followup: isIntakePass(input && input.followup) ? input.followup : null,
     now: opts.now || Date.now(),
   };
   let code = null;
   let status = 422;
   try {
+    if (!intakeReady(env)) {
+      code = INTAKE_REASONS.NOT_READY;
+      status = 503;
+    }
     ctx.file = await readFileForIntake(input && input.file);
-    for (const check of checks) {
+    for (const check of code ? [] : checks) {
       const res = await check.run(ctx);
       if (res && res.code) {
         code = String(res.code);
@@ -190,7 +272,10 @@ export async function screenIntake(env, input, opts = {}) {
     code = INTAKE_REASONS.CHECK_ERROR;
     status = 422;
   }
-  if (!code) return ctx;
+  if (!code) {
+    PASSES.add(ctx);
+    return ctx;
+  }
   const receipt = refusalReceipt(env, ctx, code);
   receipt.receipt_stored = await writeRefusalReceipt(env, receipt);
   // Drop every reference to the content before the error leaves this function.
@@ -198,6 +283,7 @@ export async function screenIntake(env, input, opts = {}) {
   ctx.body = "";
   ctx.title = "";
   ctx.texts = [];
+  ctx.followup = null;
   throw new IntakeRefusal(code, receipt, status);
 }
 
