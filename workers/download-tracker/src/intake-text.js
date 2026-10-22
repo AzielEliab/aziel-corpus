@@ -30,6 +30,7 @@
 import { inflateSync } from "node:zlib";
 import { sniffMagic, pdfStreams, pdfDecodeStream, decodeTextBytes } from "./intake-media.js";
 import { listZipEntries, readZipFiles } from "./zip.js";
+import { TOO_LARGE_CODE, MAX_SCREEN_CHARS } from "./intake-budget.js";
 
 export const TEXT_REASONS = Object.freeze({
   INVISIBLE: "INTAKE-TEXT-INVISIBLE",
@@ -678,6 +679,11 @@ export const textChecks = {
     if (fx.undecodable) return { code: TEXT_REASONS.UNDECODABLE };
     const fields = [ctx.title, ctx.body, ...(ctx.texts || [])].filter((t) => t && String(t).length).map((t) => ({ text: String(t), kind: "html" }));
     const parts = [...fields, ...fx.parts.filter((p) => p.text && p.text.length)];
+    // Screening budget: extracted text can be larger than the file (PDF/docx inflate).
+    // Too much to screen inside the Worker limits -> refused before any view is built.
+    let chars = 0;
+    for (const p of parts) chars += p.text.length;
+    if (chars > MAX_SCREEN_CHARS) return { code: TOO_LARGE_CODE, status: 413 };
     const raws = parts.map((p) => p.text);
     // What a reader sees: tags removed (as words and as joined runs), entities decoded.
     const seen = parts.map((p) => (p.kind === "pdf" ? p.text : visibleText(p.text)));

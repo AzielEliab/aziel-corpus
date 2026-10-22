@@ -161,6 +161,19 @@ export const pdfWithText = (s) => pdf([
   { text: "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>" },
   { dict: "/Filter /FlateDecode", stream: flate("BT /F1 12 Tf 72 712 Td (" + pdfEsc(s) + ") Tj ET") },
 ]);
+/**
+ * A text-only paper: page text plus an embedded font program. Pass benign bytes in
+ * 0x80-0xFE (no ASCII, so no PDF name or media signature can occur by chance).
+ */
+export const pdfPaper = (text, fontBytes) => pdf([
+  { text: "<< /Type /Catalog /Pages 2 0 R >>" },
+  { text: "<< /Type /Pages /Kids [3 0 R] /Count 1 >>" },
+  { text: "<< /Type /Page /Parent 2 0 R /Contents 4 0 R /Resources << /Font << /F1 6 0 R >> >> >>" },
+  { dict: "/Filter /FlateDecode", stream: flate("BT /F1 12 Tf 72 712 Td (" + pdfEsc(text) + ") Tj ET") },
+  { dict: "/Length1 " + fontBytes.length, stream: fontBytes },
+  { text: "<< /Type /Font /Subtype /TrueType /BaseFont /Synthetic /FontDescriptor 7 0 R >>" },
+  { text: "<< /Type /FontDescriptor /FontName /Synthetic /FontFile2 5 0 R >>" },
+]);
 export const docxWithXml = (bodyXml) => zip({
   "[Content_Types].xml": '<?xml version="1.0"?><Types/>',
   "word/document.xml": '<?xml version="1.0"?><w:document><w:body>' + bodyXml + "</w:body></w:document>",

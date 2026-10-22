@@ -27,6 +27,7 @@ Checks run in a fixed order and the first refusal wins: `readable` → `media-fl
 - A check that throws refuses (`INTAKE-CHECK-ERROR`).
 - Unreadable bytes refuse (`INTAKE-UNREADABLE`, `INTAKE-DOC-UNREADABLE`). File bytes that cannot be decoded as text with confidence refuse (`INTAKE-UNDECODABLE`).
 - An unavailable flood store refuses non-operators (`INTAKE-FLOOD-STORE-UNAVAILABLE`, 503).
+- An item too large to screen inside the Worker CPU and memory limits refuses (`INTAKE-TOO-LARGE`, 413), operator included, before the text checks run. It is never passed unscreened and never cut down to a prefix. See §8.
 
 There is no "skip" flag.
 
@@ -161,7 +162,34 @@ Everything is off by default or fails closed.
 - `INTAKE_SALT`: **required** Worker secret (`wrangler secret put INTAKE_SALT`), at least 16 random characters. There is no fallback. The old public default is rejected. Without a usable salt every intake is refused `INTAKE-NOT-READY` (503), because a public salt would make IP hashes reversible.
 - `INTAKE_RATE_*`: optional overrides.
 - `INTAKE_MEDIA_SCAN_GATE`: inert while the code lock is false.
+- Screening budget (`src/intake-budget.js`, constants, no env override): a file over `MAX_SCREEN_BYTES` = **6 MiB**, or typed fields (title + body + texts, UTF-8) over 6 MiB, refuse in `readable`; more than `MAX_SCREEN_CHARS` = **2 Mi characters** of text to screen (fields plus all text taken out of the file) refuses in `text`, before any view is built. Both refuse `INTAKE-TOO-LARGE` (413). The 25 MiB transport ceiling (`INTAKE-UNREADABLE`, 413) is unchanged. See "Screening budget" below.
 - Future: `PHOTODNA_SUBSCRIPTION_KEY`, `CLASSIFIER_PROVIDER` plus key, an `AI` binding (second opinion only), `FRAME_EXTRACTOR_URL`.
+
+### Screening budget
+
+The text checks are linear (no regex stack overflow), but cost and memory still grow with size. The Worker limits are 30 s CPU per request (paid default; `wrangler.toml` sets no `[limits] cpu_ms`) and 128 MB of memory per isolate. The budget is a size budget, not a clock: `Date.now()` does not advance while synchronous code runs in a Worker, so a time check cannot stop a long scan.
+
+Measured with `screenIntake` at the `upload` door: process CPU on the review box (Node), plain-text files, before the budget. "Heap" is the largest size that finished under `--max-old-space-size`:
+
+| shape | 1 MiB | 4 MiB | 6 MiB | 8 MiB | heap 100 MB | heap 128 MB |
+|---|---|---|---|---|---|---|
+| `a` × N (one homogeneous run) | 1.2 s | 3.3 s | 5.1 s | 6.9 s | 3 MiB | 4 MiB |
+| English prose | 2.0 s | 8.9 s | 13.6 s | 19.1 s | 3 MiB | 4 MiB |
+| `ab ` × N (many short hex-alphabet tokens; worst found) | 3.3 s | 14.3 s | 21.5 s | 28.3 s | 2 MiB | 2 MiB |
+
+Memory binds first: no shape fit 128 MB of heap at 5 MiB of screened text, and the worst shape failed at 3 MiB. GC was 46-60% of the CPU profile. The work cannot be predicted from size alone: every shape sends the same ~15.7× its size through `normalizeForMatch`, but the cost per character depends on the content. So the budget caps the screened text at 2 Mi characters, the largest size every measured shape finished inside a 100 MB heap, and caps the bytes read at 6 MiB.
+
+With the budget:
+
+| item | result | CPU |
+|---|---|---|
+| 1.99 MiB plain text: `a` / prose / `ab ` | screened, pass | 2.3 s / 5.4 s / 7.5 s (all fit 100 MB) |
+| 6 MiB text-only PDF (1.9 MiB of text, embedded font program) | screened, pass | 5.0 s (fits 100 MB) |
+| file of 6 MiB + 1 byte, or 24 MiB | `INTAKE-TOO-LARGE` 413 (`readable`) | ≤ 60 ms |
+| 3 MiB body field (under 6 MiB, over 2 Mi chars) | `INTAKE-TOO-LARGE` 413 (`text`) | 1.1 s (media floor runs first) |
+| small PDF holding 3 Mi characters of text | `INTAKE-TOO-LARGE` 413 (`text`) | 0.4 s (inflate + extract only) |
+
+The worst case under the budget is about 7.5 s, a quarter of the CPU limit. A normal 6 MiB paper passes: in a text-first corpus most of a large PDF is fonts and structure, not text. A paper with more than 2 Mi characters of text (about 350,000 words) is refused, not screened in part. Raising the budget needs memory work in the text checks first (fewer whole-text copies), not just a larger `cpu_ms` (open item 13).
 
 ## 9. Tests
 
@@ -181,3 +209,5 @@ All test media are synthetic header bytes with marker strings, never real images
 10. Set `INTAKE_SALT` as a Worker secret **before** deploying #184. Without it, all intake refuses.
 11. IP rate-limit coarseness (shared NAT and CGNAT; IPv6 grouped per /64).
 12. Approve the §7 poison-ordering fix in #184 (fail-closed `PREFLIGHT_UNAVAILABLE`).
+13. Screening budget (§8): 6 MiB per file and 2 Mi characters of screened text. Texts longer than about 350,000 words are refused `INTAKE-TOO-LARGE`. Raising it means cutting the text checks' memory use first. Setting `[limits] cpu_ms` alone does not help, because memory runs out first. The budget also applies to operator kits (`historical-import`, `install-package`, `expect: "package"`): a kit over 6 MiB is now refused. Confirm, or split large kits.
+14. Found while measuring: the PDF media floor's `/3D` name test can match by chance inside an uncompressed binary stream (pseudo-random bytes in a font program refused `INTAKE-MEDIA-EMBEDDED`). This fails closed, so it is safe, but it is a possible false positive on real papers with embedded fonts. It is unchanged here.
