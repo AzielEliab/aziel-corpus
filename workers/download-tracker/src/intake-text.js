@@ -475,7 +475,7 @@ export function parseToUnicode(cmapText) {
   let len = 0;
   const sec = /begin(bfchar|bfrange)([\s\S]*?)end\1/g;
   let m;
-  // A map past the cap refuses (fail closed); it was silently cut at 70000 entries.
+  // The 70,001st new key refuses (fail closed); exactly 70,000 still pass (it was silently cut at 70000).
   const put = (k, v) => {
     if (map.size >= PDF_CAPS.TOUNICODE && !map.has(k)) throw new PdfCapError("TOUNICODE");
     map.set(k, v);
@@ -588,16 +588,24 @@ function pdfShownText(objects, contents) {
   return out.join("\n");
 }
 
-/** The text after an unterminated "(" (decoded as a literal body, and raw) holds a marker. */
-function unterminatedHit(rest) {
+/** True when text holds an injection / CSAM-indicator / explicit marker. */
+function markerHit(t) {
+  const n = normalizeForMatch(t); // once; the screens' own normalizing of it is idempotent
+  return !!n && (injectionHit(n) || csamIndicator(n) || explicitHit(n));
+}
+/**
+ * The text after an unterminated "(" (decoded as a literal body, and raw) holds a
+ * marker, alone or joined with already-closed literal texts. A CSAM / injection pair
+ * split across a closed `()` and the unterminated tail must not pass: break drops the
+ * rest from `out`, so the usual spaced/glued join never sees both halves (B193-1).
+ */
+function unterminatedHit(rest, closedTexts = []) {
   const b = pdfLiteralBytes(rest);
   const views = [pdfStringText(b)];
   // Decoded as UTF-16 / UTF-8 or as glyph codes, the raw bytes may read differently.
   if (looksGlyphCodes(b) || (b[0] === 0xfe && b[1] === 0xff) || (b[0] === 0xff && b[1] === 0xfe) || (b[0] === 0xef && b[1] === 0xbb)) views.push(rest);
-  return views.some((t) => {
-    const n = normalizeForMatch(t); // once; the screens' own normalizing of it is idempotent
-    return !!n && (injectionHit(n) || csamIndicator(n) || explicitHit(n));
-  });
+  const prefix = closedTexts.length ? closedTexts.join(" ") + " " : "";
+  return views.some((t) => markerHit(t) || (prefix !== "" && markerHit(prefix + t)));
 }
 /** Literal strings with nesting and escapes, as { at, end, text }. */
 function pdfLiterals(latin, cap, charge = null) {
@@ -615,11 +623,13 @@ function pdfLiterals(latin, cap, charge = null) {
     }
     // An unterminated "(" runs to the end of the text and was dropped unread. Binary
     // bytes (images, fonts, ICC profiles, xref tables) often hold a stray "(", so it is
-    // not refused by itself: the rest is screened, and a marker there refuses (fail closed).
-    // The rest is not charged: it is part of this text, which the budget already bounds
-    // (the raw file, or a stream inside the inflated budget), and is not kept.
+    // not refused by itself: the rest is screened (alone and joined with closed literals
+    // already in `out`), and a marker on either view refuses (fail closed). A stray "("
+    // with no marker still passes. The rest is not charged: it is part of this text,
+    // which the budget already bounds (the raw file, or a stream inside the inflated
+    // budget), and is not kept.
     if (depth) {
-      if (unterminatedHit(latin.slice(i + 1))) throw new PdfCapError("UNTERMINATED");
+      if (unterminatedHit(latin.slice(i + 1), out.map((l) => l.text))) throw new PdfCapError("UNTERMINATED");
       break;
     }
     if (charge) charge.check(j - i - 2); // a literal bigger than the budget: refuse before decoding it
