@@ -311,28 +311,35 @@ function pushDecoded(out, d) {
   }
 }
 
-function decodedCandidates(text) {
+// Every base64/hex run is decoded: a run cap let N decoy runs push the payload past
+// the cap (AZBot review: 500 decoys then a payload passed). Candidates are yielded one
+// run at a time so memory stays at one run's views, not the whole file's.
+function* decodedCandidates(text) {
   const s = String(text || "");
-  const out = [];
+  let out = [];
   const td = new TextDecoder("utf-8", { fatal: false });
-  for (const run of base64Runs(s, 500)) {
+  for (const run of base64Runs(s)) {
     const chars = run.replace(/\s+/g, "").replace(/-/g, "+").replace(/_/g, "/");
     for (let shift = 0; shift < 4 && shift < chars.length; shift++) {
       try { pushDecoded(out, td.decode(Buffer.from(chars.slice(shift), "base64"))); } catch { /* not base64 */ }
     }
+    yield* out;
+    out = [];
   }
-  for (const run of hexRuns(s, 500)) {
+  for (const run of hexRuns(s)) {
     const h = run.replace(/0x|\\x/g, "").replace(/[^0-9a-fA-F]/g, "");
     for (let shift = 0; shift < 2 && shift < h.length; shift++) {
       const k = h.slice(shift);
       pushDecoded(out, td.decode(Buffer.from(k.slice(0, k.length - (k.length % 2)), "hex")));
     }
+    yield* out;
+    out = [];
   }
   if (hasPercentRun(s)) { try { out.push(decodeURIComponent(s.replace(/%(?![0-9a-fA-F]{2})/g, "%25"))); } catch { /* bad */ } }
   if (/&#x?[0-9a-fA-F]+;/.test(s)) out.push(s.replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16) || 32)).replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d) || 32)));
   if (/\\u[0-9a-fA-F]{4}/.test(s)) out.push(s.replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16))));
   out.push(s.replace(/[a-zA-Z]/g, (c) => String.fromCharCode((c <= "Z" ? 90 : 122) >= (c = c.charCodeAt(0) + 13) ? c : c - 26)));
-  return out;
+  yield* out;
 }
 export function encodedInjectionHit(text) {
   for (const d of decodedCandidates(text)) {
@@ -503,6 +510,14 @@ function mapCodes(bytes, cmap) {
   return s;
 }
 /**
+ * PDF parse caps. Hitting one refuses INTAKE-UNDECODABLE (fail closed); it never
+ * truncates, so decoys cannot push a payload past a cap (AZBot review of #192).
+ */
+export const PDF_CAPS = Object.freeze({ LITERALS: 20000, STRINGS: 40000, TOKENS: 2000000, OBJECTS: 200000 });
+export class PdfCapError extends Error {
+  constructor(cap) { super("pdf cap " + cap); this.cap = cap; }
+}
+/**
  * Text shown by content streams, decoded through each font's ToUnicode CMap.
  * objects: Map(objnum -> { dict, data? }) for plain and object-stream objects.
  * Returns glued text per show operation (TJ arrays joined, Tj runs spaced).
@@ -545,7 +560,8 @@ function pdfShownText(objects, contents) {
     let line = "";
     let m;
     let n = 0;
-    while ((m = tok.exec(c)) && n++ < 2000000) {
+    while ((m = tok.exec(c))) {
+      if (++n > PDF_CAPS.TOKENS) throw new PdfCapError("TOKENS");
       if (m[1] !== undefined) {
         fonts = [...(fontsByName.get(m[1]) || [])].map(cmapForFont).filter(Boolean);
       } else if (m[2] !== undefined || m[0][0] === "(") {
@@ -568,7 +584,8 @@ function pdfShownText(objects, contents) {
 function pdfLiterals(latin, cap) {
   const out = [];
   let i = latin.indexOf("(");
-  while (i >= 0 && out.length < cap) {
+  while (i >= 0) {
+    if (out.length >= cap) throw new PdfCapError("LITERALS");
     let depth = 1;
     let j = i + 1;
     for (; j < latin.length && depth; j++) {
@@ -589,12 +606,13 @@ function pdfLiterals(latin, cap) {
  * space) so "[(ig) -20 (nore)] TJ" reads as "ignore".
  */
 function pdfStringsOf(latin) {
-  const lits = pdfLiterals(latin, 20000);
+  const lits = pdfLiterals(latin, PDF_CAPS.LITERALS);
   const spaced = lits.map((l) => l.text);
   const hx = /<([0-9a-fA-F\s]+)>/g; // was {4,} (stack overflow on a huge run); the run is maximal, so filter
   let m;
-  while ((m = hx.exec(latin)) && spaced.length < 40000) {
+  while ((m = hx.exec(latin))) {
     if (m[1].length < 4) continue;
+    if (spaced.length >= PDF_CAPS.STRINGS) throw new PdfCapError("STRINGS");
     const h = m[1].replace(/\s+/g, "");
     spaced.push(pdfStringText(Buffer.from(h.slice(0, h.length - (h.length % 2)), "hex")));
   }
@@ -624,6 +642,12 @@ const FONT_PROGRAM = /\/(FontFile[23]?|Length1|Length2|Length3)\b|\/Subtype\s*\/
 const pdfNames = (d) => String(d || "").replace(/#([0-9A-Fa-f]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16))).replace(/%[^\r\n]*/g, " ");
 const SHOWS_TEXT = /\bBT\b[\s\S]{0,4096}?(\bT[jJ]\b|\)\s*['"])/;
 function pdfTexts(u8) {
+  try { return pdfTextsCapped(u8); } catch (e) {
+    if (e instanceof PdfCapError) return { parts: [], undecodable: true, cap: e.cap };
+    throw e;
+  }
+}
+function pdfTextsCapped(u8) {
   const { text, streams } = pdfStreams(u8);
   const parts = [];
   const objects = new Map();
@@ -653,7 +677,8 @@ function pdfTexts(u8) {
   const streamAt = new Map(decoded.map((d) => [d.st.bytes.byteOffset - u8.byteOffset, d]));
   const objRe = /(\d+)\s+\d+\s+obj\b/g;
   let om;
-  while ((om = objRe.exec(text)) && objects.size < 200000) {
+  while ((om = objRe.exec(text))) {
+    if (objects.size >= PDF_CAPS.OBJECTS) throw new PdfCapError("OBJECTS");
     const end = text.indexOf("endobj", objRe.lastIndex);
     const body = text.slice(objRe.lastIndex, end < 0 ? objRe.lastIndex + 8000 : end);
     const sk = /stream(\r\n|\r|\n)/.exec(body);
