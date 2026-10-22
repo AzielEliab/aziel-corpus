@@ -546,11 +546,19 @@ function pdfStreams(u8) {
   const re = /<<([\s\S]{0,8000}?)>>[\s\0]*stream(?:\r\n|\r|\n)/g;
   let m;
   while ((m = re.exec(s))) {
-    const dict = m[1];
+    // The lazy match starts at the first "<<" after the previous stream, which can be an
+    // earlier object: keep only this stream's own object (after its last "N G obj").
+    let dict = m[1];
+    const objs = dict.match(/\d+[\s\0]+\d+[\s\0]+obj\b/g);
+    if (objs) {
+      const cut = dict.lastIndexOf(objs[objs.length - 1]) + objs[objs.length - 1].length;
+      const own = dict.indexOf("<<", cut);
+      dict = own >= 0 ? dict.slice(own + 2) : dict.slice(cut);
+    }
     const start = re.lastIndex;
     const end = s.indexOf("endstream", start);
-    if (end < 0) { out.push({ dict, bytes: null }); break; }
-    out.push({ dict, bytes: u8.subarray(start, end) });
+    if (end < 0) { out.push({ dict, span: m[1], bytes: null }); break; }
+    out.push({ dict, span: m[1], bytes: u8.subarray(start, end) });
     covered.push([m.index, end + 9]);
     re.lastIndex = end + 9;
     if (out.length > 5000) { out.push({ dict: "", bytes: null }); break; }
@@ -576,8 +584,12 @@ function pdfStreams(u8) {
 const PDF_FILTERS = new Set(["/FlateDecode", "/Fl", "/ASCII85Decode", "/A85", "/ASCIIHexDecode", "/AHx"]);
 export function pdfDecodeStream(st, maxInflate = 32 * 1024 * 1024) {
   if (!st || !st.bytes) return null;
-  const dict = pdfStripComments(pdfDecodeNames(st.dict));
-  const filters = (dict.match(/\/Filter[\s\0]*(\[[^\]]*\]|\/[^\s\0/\[\]<>()%]+)/) || [])[1] || "";
+  const filterOf = (d) => (pdfStripComments(pdfDecodeNames(d)).match(/\/Filter[\s\0]*(\[[^\]]*\]|\/[^\s\0/\[\]<>()%]+)/) || [])[1] || "";
+  const filters = filterOf(st.dict);
+  // The object cut in pdfStreams must not change which filter applies: if the raw span
+  // reads differently (say an "N 0 obj" inside a string hid the real /Filter), the
+  // stream is ambiguous and cannot be read (null: the caller refuses).
+  if (st.span !== undefined && st.span !== st.dict && filterOf(st.span) !== filters) return null;
   const names = filters.match(/\/[^\s\0/\[\]<>()%]+/g) || [];
   let data = st.bytes;
   if (!names.length) return data;

@@ -7,7 +7,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { deflateSync } from "node:zlib";
-import { fileMediaReason, textMediaReason, decodeTextBytes, findEmbeddedMedia, MEDIA_REASONS } from "./intake-media.js";
+import { fileMediaReason, textMediaReason, decodeTextBytes, findEmbeddedMedia, MEDIA_REASONS, pdfStreams } from "./intake-media.js";
 import { screenIntake, isIntakeRefusal } from "./intake-gate.js";
 import { addPeerReview } from "./review-store.js";
 import { readZipFiles, listZipEntries } from "./zip.js";
@@ -90,6 +90,19 @@ test("#185 PDF: ReportLab-style [/ASCII85Decode /FlateDecode] text passes; the s
   assert.equal(fileMediaReason({ name: "a.pdf", bytes: pdfWith("/AHx", Buffer.from(cat("q ", TIF, " Q")).toString("hex") + ">") }), MEDIA_REASONS.EMBEDDED);
   assert.equal(fileMediaReason({ name: "a.pdf", bytes: pdfWith("/ASCII85Decode", "not{valid|a85~>") }), MEDIA_REASONS.UNREADABLE_DOC);
   assert.equal(fileMediaReason({ name: "a.pdf", bytes: pdfWith("/LZWDecode", "anything") }), MEDIA_REASONS.UNREADABLE_DOC);
+});
+
+test("#185 PDF: a stream's dictionary is its own object, not an earlier one; an ambiguous /Filter refuses", () => {
+  const z = new Uint8Array(deflateSync(cat("q ", PNG, " Q")));
+  const two = (pre, own) => cat("%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n5 0 obj\n", pre, "\nendobj\n6 0 obj\n<< /Length ", String(z.length), own, " >>\nstream\n", z, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
+  // An earlier non-stream object (a font descriptor) must not leak into the stream's dict.
+  const { streams } = pdfStreams(two("<< /Type /FontDescriptor /FontFile2 9 0 R >>", " /Filter /FlateDecode"));
+  assert.equal(streams.length, 1);
+  assert.doesNotMatch(streams[0].dict, /FontDescriptor|FontFile2/);
+  assert.match(streams[0].dict, /FlateDecode/);
+  assert.equal(fileMediaReason({ name: "a.pdf", bytes: two("<< /Type /X >>", " /Filter /FlateDecode") }), MEDIA_REASONS.EMBEDDED);
+  // "N 0 obj" inside a string hiding the real /Filter: cannot tell which applies, refuse.
+  assert.equal(fileMediaReason({ name: "a.pdf", bytes: two("<< /Type /X >>", " /Filter /FlateDecode /Title (9 0 obj <<)") }), MEDIA_REASONS.UNREADABLE_DOC);
 });
 
 // ---------- magic at any offset ----------
