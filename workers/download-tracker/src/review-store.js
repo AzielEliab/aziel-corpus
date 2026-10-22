@@ -3,6 +3,8 @@
  * Author: Aziel Eliab.
  */
 import { randomBytes } from "node:crypto";
+import { screenIntake } from "./intake-gate.js";
+import { isOperator } from "./library.js";
 import { appendLedger, appendDocumentLedger, ensureLedger, hashPayload, isDocumentId } from "./ledger.js";
 import { reviewDocument, TRIAD_SCHEMA, publicizeReview, isTriadFrozen, assertTriadV3, unavailableReview } from "./review.js";
 import { classifyTriadInput, isPdfDocument } from "./triad-input.js";
@@ -410,7 +412,9 @@ export async function loadRecordReview(env, row) {
   return { review, peers, tip, succession, zsolver, quarantine_status: (row && row.quarantine_status) || (review && review.quarantine_status) || "CLEAR" };
 }
 
-export async function addPeerReview(env, { recordId, stance, body, signed }) {
+export const PEER_REVIEW_MAX_CHARS = 4000;
+
+export async function addPeerReview(env, { recordId, stance, body, signed, intake }) {
   if (!signed) {
     const err = new Error("login required");
     err.status = 401;
@@ -428,6 +432,24 @@ export async function addPeerReview(env, { recordId, stance, body, signed }) {
     err.status = 400;
     throw err;
   }
+  if (note.length > PEER_REVIEW_MAX_CHARS) {
+    const err = new Error("review note too long (" + PEER_REVIEW_MAX_CHARS + " characters max)");
+    err.status = 413;
+    throw err;
+  }
+  // CORPUS-INTAKE-SAFETY-1.0: PEER_REVIEW goes onto the global chain, so the exact
+  // text that would be chained is screened first. Throws IntakeRefusal (fail closed);
+  // nothing below (schema, D1 row, ledger) runs on a refusal.
+  const gate = intake || {};
+  await screenIntake(env, {
+    door: gate.door || "peer-review",
+    ip: gate.ip || null,
+    signed,
+    operator: isOperator(signed),
+    title: "",
+    body: note,
+    texts: [st, String(recordId || "").slice(0, 80)],
+  });
   await ensureReviewSchema(env);
   const row = await env.DB.prepare("SELECT record_id, library, content_sha256 FROM records WHERE record_id=?").bind(recordId).first();
   if (!row) {
@@ -443,14 +465,14 @@ export async function addPeerReview(env, { recordId, stance, body, signed }) {
     sha256: row.content_sha256 || null,
     review_id: id,
     stance: st,
-    body: note.slice(0, 4000),
+    body: note,
     created_by: who,
   };
   const entry = await appendLedger(env, "PEER_REVIEW", payload);
   if (isDocumentId(recordId)) await appendDocumentLedger(env, recordId, "PEER_REVIEW", payload);
   await env.DB.prepare(
     "INSERT INTO peer_reviews(review_id,record_id,stance,body,created_by,created_utc,entry_hash) VALUES(?,?,?,?,?,?,?)"
-  ).bind(id, recordId, st, note.slice(0, 4000), who, entry.timestamp_utc, entry.entry_hash).run();
+  ).bind(id, recordId, st, note, who, entry.timestamp_utc, entry.entry_hash).run();
   return { review_id: id, record_id: recordId, stance: st, entry_hash: entry.entry_hash, created_utc: entry.timestamp_utc };
 }
 

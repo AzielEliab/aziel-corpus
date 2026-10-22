@@ -38,6 +38,10 @@ export function intakeStubEnv(extra = {}) {
           },
           async all() {
             if (extra.failFlood && /intake_seen/.test(sql)) throw new Error("flood store down");
+            if (typeof extra.all === "function") {
+              const r = await extra.all(sql, st.binds);
+              if (r) return r;
+            }
             if (intakeTable(sql)) {
               const lim = Number((sql.match(/LIMIT\s+(\d+)/i) || [])[1] || 1e9);
               return { results: whereRows(sql, st.binds).slice().reverse().slice(0, lim) };
@@ -60,6 +64,8 @@ export function intakeStubEnv(extra = {}) {
     },
     writes,
     tables,
+    // Test-only salt (the gate refuses INTAKE-NOT-READY without a real secret).
+    INTAKE_SALT: "test-only-intake-salt-0123456789",
     ...extra,
   };
   return env;
