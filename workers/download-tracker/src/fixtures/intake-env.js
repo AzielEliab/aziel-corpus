@@ -19,7 +19,13 @@ export function intakeStubEnv(extra = {}) {
             if (typeof extra.first === "function") return extra.first(sql, st.binds);
             return null;
           },
-          async all() { return { results: [] }; },
+          async all() {
+            if (typeof extra.all === "function") {
+              const r = await extra.all(sql, st.binds);
+              if (r) return r;
+            }
+            return { results: [] };
+          },
         };
         return st;
       },
@@ -35,6 +41,8 @@ export function intakeStubEnv(extra = {}) {
       async put(key, value) { writes.kv.push(key); kv.set(key, String(value)); },
     },
     writes,
+    // Test-only salt (the gate refuses INTAKE-NOT-READY without a real secret).
+    INTAKE_SALT: "test-only-intake-salt-0123456789",
     ...extra,
   };
   return env;

@@ -8,7 +8,7 @@ import { receiptForRecord, sha256hex, isJsonDocumentId } from "./ledger.js";
 import { serveRecordMetadata, parseRecordMetadataPath, receiptForJsonMetadata } from "./record-metadata.js";
 import { serveRecordMachine, parseRecordMachinePath, loadRecordMachineContext, recordMachineLinkHeader } from "./record-llm.js";
 import { isHelpPath } from "./help.js";
-import { intakeMeta, screenIntake, intakeRefusalBody } from "./intake-gate.js";
+import { intakeMeta, screenIntake, intakeRefusalBody, isIntakeRefusal } from "./intake-gate.js";
 import { isOperator, asFile, getObject, putObject, objectExists, ingestRecord, safeFilename, serveDerived, patternClusters, loadServedFileBytes } from "./library.js";
 import {
   persistOcrRun, persistMediaRun, receiptForMediaRun, isMediaRunId, truthy, bytesAsFile,
@@ -372,6 +372,7 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     const form = await request.formData();
     try {
       const id = await addManualEvent(env, {
+        intake: intakeMeta(request, "map-event"),
         signed,
         date: form.get("date"),
         place: form.get("place"),
@@ -383,6 +384,7 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
       if ((request.headers.get("Accept") || "").includes("json")) return json({ ok: true, event_id: id });
       return new Response(null, { status: 303, headers: { Location: "/map" } });
     } catch (err) {
+      if (isIntakeRefusal(err)) return json(intakeRefusalBody(err), err.status || 422);
       return json({ error: err && err.message ? err.message : "event failed" }, err && err.status ? err.status : 400);
     }
   }
@@ -425,8 +427,9 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     if (!file) return json({ error: "audio or video file required" }, 400);
     // Media floor (CORPUS-INTAKE-SAFETY-1.0): audio and video are refused at this door
     // before Whisper, R2 or the lattice ledger see a byte. Receipt = hashes + code.
+    let transcribePass = null;
     try {
-      await screenIntake(env, { ...intakeMeta(request, "transcribe"), signed, operator: isOperator(signed), file });
+      transcribePass = await screenIntake(env, { ...intakeMeta(request, "transcribe"), signed, operator: isOperator(signed), file });
     } catch (err) {
       if (err && err.intake_refused) return json(intakeRefusalBody(err), err.status || 415);
       throw err;
@@ -497,7 +500,8 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
       } else {
         try {
           ingest = await ingestRecord(env, {
-            intake: intakeMeta(request, "transcribe"),
+            // Same request as the pre-screen above: fully re-checked, counted once (one rate count).
+            intake: { ...intakeMeta(request, "transcribe"), followup: transcribePass },
             signed,
             title: name || "Transcript",
             body: libraryNotes(whisper.text, run, vibe),
@@ -554,8 +558,9 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     }
     // Media floor: image input is refused before OCR, R2 or the ledger. PDFs pass only
     // when they carry no embedded image. OCR on images returns with the scan gate.
+    let ocrPass = null;
     try {
-      await screenIntake(env, { ...intakeMeta(request, "ocr"), signed, operator, file, title: file.name || "" });
+      ocrPass = await screenIntake(env, { ...intakeMeta(request, "ocr"), signed, operator, file, title: file.name || "" });
     } catch (err) {
       if (!(err && err.intake_refused)) throw err;
       if (wantsHtml(request)) {
@@ -572,7 +577,8 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
         : file;
       try {
         record = await ingestRecord(env, {
-          intake: intakeMeta(request, "ocr"),
+          // Same request as the OCR pre-screen: fully re-checked, counted once, no self-duplicate.
+          intake: { ...intakeMeta(request, "ocr"), followup: ocrPass },
           signed,
           title: file.name || "OCR extract",
           body: result.text,
@@ -582,9 +588,18 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
           file: upload,
           skipOcrHint: true,
         });
-      } catch {
+      } catch (err) {
+        // A refusal is final: one gate pass, one receipt. Only a non-intake failure
+        // (e.g. storage) retries text-only.
+        if (isIntakeRefusal(err)) {
+          if (wantsHtml(request)) {
+            return pageHtml(page("OCR", ocrPageBody({ ...ocrPayload, error: "Refused at intake (" + err.code + "). Nothing was stored or chained." }), { signed, path: "/ocr", scripts: intelScripts(), kind: "ocr" }), { status: err.status || 422 });
+          }
+          return json(intakeRefusalBody(err), err.status || 422);
+        }
         record = await ingestRecord(env, {
-          intake: intakeMeta(request, "ocr"),
+          // Same request as the OCR pre-screen: fully re-checked, counted once, no self-duplicate.
+          intake: { ...intakeMeta(request, "ocr"), followup: ocrPass },
           signed,
           title: file.name || "OCR extract",
           body: result.text,
@@ -824,12 +839,14 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     const form = await request.formData();
     try {
       await addPeerReview(env, {
+        intake: intakeMeta(request, "peer-review"),
         recordId,
         stance: form.get("stance"),
         body: form.get("body") || form.get("note"),
         signed,
       });
     } catch (err) {
+      if (isIntakeRefusal(err)) return json(intakeRefusalBody(err), err.status || 422);
       return json({ error: err && err.message ? err.message : "review failed" }, err && err.status ? err.status : 400);
     }
     if ((request.headers.get("Accept") || "").includes("json")) return json({ ok: true, record_id: recordId });
