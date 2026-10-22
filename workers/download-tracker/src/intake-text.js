@@ -271,10 +271,43 @@ export function printableSubruns(d, min = DECODED_SUBRUN_MIN) {
   }
   return out;
 }
+// Words split by short non-printable gaps (one control byte, a NUL every few chars)
+// leave every subrun under DECODED_SUBRUN_MIN (AZBot review of #191,
+// intake-text.js:263-279). These views turn each gap of DECODED_GAP_MAX or fewer
+// non-printable units into one space (a gap between words), and into nothing (a gap
+// inside a word), and keep the joined segments of DECODED_SUBRUN_MIN+ chars; longer
+// gaps end a segment.
+export const DECODED_GAP_MAX = 3;
+export function gapJoinedSegments(d, { sep = " ", gap = DECODED_GAP_MAX, min = DECODED_SUBRUN_MIN } = {}) {
+  const out = [];
+  let seg = "";
+  let start = -1;
+  const flush = () => { if (seg.length >= min) out.push(seg); seg = ""; };
+  for (let i = 0; i <= d.length; i++) {
+    if (i < d.length && isPrintableUnit(d.charCodeAt(i))) { if (start < 0) start = i; continue; }
+    if (start >= 0) { seg += d.slice(start, i); start = -1; }
+    if (i === d.length) break;
+    let j = i;
+    while (j < d.length && !isPrintableUnit(d.charCodeAt(j))) j++;
+    if (j < d.length && j - i <= gap && seg.length) seg += sep;
+    else flush();
+    i = j - 1;
+  }
+  flush();
+  return out;
+}
 function pushDecoded(out, d) {
   if (printableRatio(d) > 0.9) out.push(d);
   const runs = printableSubruns(d);
-  if (runs.length && !(runs.length === 1 && runs[0].length === d.length)) out.push(runs.join("\n"));
+  const whole = runs.length === 1 && runs[0].length === d.length;
+  const joined = runs.join("\n");
+  if (runs.length && !whole) out.push(joined);
+  if (!whole) {
+    for (const sep of [" ", ""]) {
+      const gapped = gapJoinedSegments(d, { sep }).join("\n");
+      if (gapped && gapped !== joined) out.push(gapped);
+    }
+  }
 }
 
 function decodedCandidates(text) {
