@@ -9,6 +9,7 @@ import { mergeKitPlaces, sha256hex, utcNow, newId, ensureSchema } from "./geo.js
 import { BUNDLED_YEARS } from "./historical-eras.js";
 import { isOperator, libraryFor, ingestRecord, asFile, safeFilename, objectExists, putObject } from "./library.js";
 import { persistOcrRun, ensureMediaSchema } from "./media.js";
+import { MEDIA_SCAN_GATE_VERIFIED } from "./intake-scan-gate.js";
 import { enhancePngBytes, normalizeLenses, LIMITATION as SPECTRAL_LIMITATION, VERSION as SPECTRAL_VERSION } from "./spectral.js";
 
 const VISION_MODELS = [
@@ -176,8 +177,7 @@ export async function recordOcrTextArtifact(env, recordId, extraText, extra = {}
   return { derived_id: derivedId, content_sha256: textSha, object_key: objectKey };
 }
 
-// Media stays refused until a scan gate is built AND verified (see intake-scan-gate, OFF).
-const MEDIA_SCAN_GATE_VERIFIED = false;
+// Media stays refused until the scan gate is built AND verified. One lock, owned by intake-scan-gate.js.
 export async function recordSpectralOverlayArtifact(env, recordId, overlayBytes, extra = {}) {
   // CORPUS-INTAKE-SAFETY-1.0 media floor: derived images are never stored or chained.
   // Kept as a no-op so callers are unchanged; returns with the media scan gate.
