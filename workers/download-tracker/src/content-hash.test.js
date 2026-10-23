@@ -140,6 +140,7 @@ function hashEnv(seedRows = [], { tamperPut = false } = {}) {
   }
 
   return {
+    INTAKE_SALT: "test-only-intake-salt-0123456789", // the intake gate refuses without a real secret
     OPERATOR_TOKEN: TOKEN,
     DB: {
       prepare(sql) { return stmt(sql); },

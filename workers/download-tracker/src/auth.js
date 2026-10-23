@@ -2,6 +2,7 @@ import { scryptSync, randomBytes, timingSafeEqual } from "node:crypto";
 import { json, corsHeaders } from "./runtime.js";
 import { page, pwField, azielLibraryBody, corpusBody, homeBody, uploadBody, streamLcpHtml } from "./ui.js";
 import { LIBRARY_HUB_PATH } from "./film.js";
+import { intakeMeta } from "./intake-gate.js";
 import { isOperator, ingestRecord, searchRecords, listFacets, facetsFromRows, parseBrowseParams, asFile, guestSession } from "./library.js";
 import { extractEventsForRecord } from "./geo.js";
 import { attachPermalinks, permalinksForRows } from "./paper-ux.js";
@@ -330,7 +331,7 @@ export async function handleAuth(request, url, env, ctx) {
       return html(page("Aziel Library", azielLibraryBody({ rows, error: "A file is required.", signed }), { signed }), { status: 400, signed });
     }
     try {
-      const rec = await ingestRecord(env, { signed, title, body: notes, file, ...meta });
+      const rec = await ingestRecord(env, { signed, title, body: notes, file, ...meta, intake: intakeMeta(request, "aziel-library") });
       await afterIngest(env, rec, ctx);
     } catch (err) {
       const rows = await searchRecords(env, { library: "aziel", limit: 300 });
@@ -362,7 +363,7 @@ export async function handleAuth(request, url, env, ctx) {
     if (isOperator(signed)) {
       if (!file) return renderUpload(signed, { error: "A file is required.", status: 400 });
       try {
-        const rec = await ingestRecord(env, { signed, title, body, file, ...meta });
+        const rec = await ingestRecord(env, { signed, title, body, file, ...meta, intake: intakeMeta(request, "upload") });
         await afterIngest(env, rec, ctx);
       } catch (err) {
         return renderUpload(signed, { error: err && err.message ? err.message : "Upload failed.", status: err && err.status ? err.status : 400 });
@@ -372,7 +373,7 @@ export async function handleAuth(request, url, env, ctx) {
     const who = signed || guestSession();
     if (!title) return renderUpload(signed, { error: "Title is required.", status: 400 });
     try {
-      const rec = await ingestRecord(env, { signed: who, title, body, file, ...meta });
+      const rec = await ingestRecord(env, { signed: who, title, body, file, ...meta, intake: intakeMeta(request, "upload") });
       await afterIngest(env, rec, ctx);
       const held = rec && rec.quarantine_status && String(rec.quarantine_status).toUpperCase() !== "CLEAR";
       return new Response(null, { status: 303, headers: { Location: held ? "/upload?received=held" : "/record/" + rec.id } });
@@ -402,7 +403,7 @@ export async function handleAuth(request, url, env, ctx) {
       return html(page("Corpus library", corpusBody({ signed, rows, error: "Title is required." }), { signed }), { status: 400, signed });
     }
     try {
-      const rec = await ingestRecord(env, { signed: who, title, body, file, ...meta });
+      const rec = await ingestRecord(env, { signed: who, title, body, file, ...meta, intake: intakeMeta(request, "ingest") });
       await afterIngest(env, rec, ctx);
       if (fromHome) {
         const held = rec && rec.quarantine_status && String(rec.quarantine_status).toUpperCase() !== "CLEAR";

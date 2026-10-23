@@ -6,6 +6,7 @@ import { createHash, randomBytes } from "node:crypto";
 import CITIES from "./cities-lite.js";
 import { unzipEntries, zipText } from "./zip.js";
 import { isOperator, getObject } from "./library.js";
+import { screenIntake } from "./intake-gate.js";
 import { appendLedger, ensureLedger } from "./ledger.js";
 import { ensureReviewSchema } from "./review-store.js";
 import { expandTreePaths } from "./domain-classify.js";
@@ -1021,8 +1022,11 @@ async function listStoredEvents(env, { minConfidence = 0 } = {}) {
   }
 }
 
-export async function addManualEvent(env, { signed, date, place, lat, lon, title, record_id }) {
-  await ensureSchema(env);
+export const MANUAL_EVENT_PLACE_MAX = 200;
+export const MANUAL_EVENT_TITLE_MAX = 240;
+export const MANUAL_EVENT_RECORD_ID_MAX = 80;
+
+export async function addManualEvent(env, { signed, date, place, lat, lon, title, record_id, intake }) {
   lat = Number(lat); lon = Number(lon);
   if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
     const err = new Error("coordinates out of range");
@@ -1036,16 +1040,46 @@ export async function addManualEvent(env, { signed, date, place, lat, lon, title
     err.status = 400;
     throw err;
   }
+  // Caps: the place name goes onto the global chain (EVENT_ADD), so it is bounded.
+  if (placeName.length > MANUAL_EVENT_PLACE_MAX) {
+    const err = new Error("place name too long (" + MANUAL_EVENT_PLACE_MAX + " characters max)");
+    err.status = 413;
+    throw err;
+  }
+  const titleIn = String(title || "").trim();
+  if (titleIn.length > MANUAL_EVENT_TITLE_MAX) {
+    const err = new Error("title too long (" + MANUAL_EVENT_TITLE_MAX + " characters max)");
+    err.status = 413;
+    throw err;
+  }
+  const recordIdIn = String(record_id || "").trim();
+  if (recordIdIn.length > MANUAL_EVENT_RECORD_ID_MAX) {
+    const err = new Error("record_id too long");
+    err.status = 400;
+    throw err;
+  }
+  // CORPUS-INTAKE-SAFETY-1.0: screen what would reach D1 and the chain, before any write.
+  const gate = intake || {};
+  await screenIntake(env, {
+    door: gate.door || "map-event",
+    ip: gate.ip || null,
+    signed,
+    operator: isOperator(signed),
+    title: titleIn,
+    body: placeName,
+    texts: [String(eventDate || ""), recordIdIn],
+  });
+  await ensureSchema(env);
   const who = isOperator(signed) ? "operator" : (signed && signed.username) || "user";
-  const key = [eventDate, placeName, String(lat), String(lon), title || "", record_id || "", who].join("|");
+  const key = [eventDate, placeName, String(lat), String(lon), titleIn, recordIdIn, who].join("|");
   const eid = "AZEVT-" + sha256hex(key).slice(0, 12).toUpperCase();
   try {
     await env.DB.prepare(
       "INSERT INTO events(event_id,event_date,place_name,lat,lon,title,record_id,created_by,created_utc,confidence,source,status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)"
-    ).bind(eid, eventDate, placeName, lat, lon, String(title || eventDate + " — " + placeName).slice(0, 240), String(record_id || "").slice(0, 80), who, utcNow(), 1, "MANUAL", "CONFIRMED").run();
+    ).bind(eid, eventDate, placeName, lat, lon, String(titleIn || eventDate + " — " + placeName).slice(0, 240), recordIdIn, who, utcNow(), 1, "MANUAL", "CONFIRMED").run();
   } catch { /* identical event already stored */ }
   try {
-    await appendLedger(env, "EVENT_ADD", { event_id: eid, record_id: String(record_id || ""), place: placeName, date: eventDate });
+    await appendLedger(env, "EVENT_ADD", { event_id: eid, record_id: recordIdIn, place: placeName, date: eventDate });
   } catch { /* ledger */ }
   return eid;
 }

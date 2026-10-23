@@ -7,6 +7,7 @@ import { patchTipZsolver, scoreZsolverForRecord } from "./zsolver.js";
 import { applyAutoClassification } from "./domain-classify.js";
 import { isHumanTag, normalizeTag } from "./visible-tags.js";
 import { fileOpensInline, redactIdentityCluster } from "./paper-ux.js";
+import { screenIntake } from "./intake-gate.js";
 
 const MAX_BYTES = 25 * 1024 * 1024;
 const TEXT_CAP = 200000;
@@ -519,6 +520,20 @@ export async function ingestRecord(env, args) {
     err.status = 400;
     throw err;
   }
+  // CORPUS-INTAKE-SAFETY-1.0: screen BEFORE any write, store or chain. Throws on refusal.
+  const intake = (args && args.intake) || {};
+  await screenIntake(env, {
+    door: intake.door || "ingestRecord",
+    ip: intake.ip || null,
+    // Same request, already screened once (e.g. OCR pre-screen): still fully checked, counted once.
+    followup: intake.followup || null,
+    signed,
+    operator: isOperator(signed),
+    title,
+    body,
+    file: asFile(file),
+    texts: [author, domain, subjects, keywords].map((v) => (Array.isArray(v) ? v.join(", ") : v)),
+  });
   await ensureLedger(env);
   try { await ensureReviewSchema(env); } catch { /* schema */ }
   let ocrHint = null;
@@ -604,11 +619,7 @@ export async function ingestRecord(env, args) {
         existing = null;
       }
     }
-    if (!objectKey) {
-      objectKey = library + "/" + id + "/" + filename;
-      await putObject(env, objectKey, fileBytes, contentType);
-      await verifyStoredObject(env, objectKey, contentSha);
-    }
+    // The R2 put happens only after the poison preflight below (CORPUS-INTAKE-SAFETY-1.0 §7).
     if (!args.skipOcrHint && String(contentType).toLowerCase().startsWith("image/")) {
       ocrHint = { bytes, contentType };
     }
@@ -687,12 +698,10 @@ export async function ingestRecord(env, args) {
         } catch { /* store a new copy */ }
       }
     }
-    if (env && env.FILES) {
-      objectKey = library + "/" + id + "/" + filename;
-      await putObject(env, objectKey, textBytes, contentType);
-      await verifyStoredObject(env, objectKey, contentSha);
-    }
   }
+  // CORPUS-INTAKE-SAFETY-1.0 §7: the poison preflight runs BEFORE any R2 put and
+  // fails closed. If it cannot run, nothing is stored and the item is refused, so a
+  // POISON_LEARNED refusal's body_retained:false is literally true.
   let preflight = null;
   try {
     preflight = await preflightIngest(env, {
@@ -702,8 +711,19 @@ export async function ingestRecord(env, args) {
       sha256: contentSha,
       library,
       bytes: fileBytes,
-    });
-  } catch { preflight = null; }
+    }, { strict: true });
+  } catch {
+    const err = new Error("ingest preflight unavailable; nothing was stored or chained");
+    err.status = 503;
+    err.receipt = { ok: false, refuse: "PREFLIGHT_UNAVAILABLE", content_sha256: contentSha, stored: false, chained: false, body_retained: false };
+    throw err;
+  }
+  if (!preflight || typeof preflight !== "object") {
+    const err = new Error("ingest preflight returned nothing; nothing was stored or chained");
+    err.status = 503;
+    err.receipt = { ok: false, refuse: "PREFLIGHT_UNAVAILABLE", content_sha256: contentSha, stored: false, chained: false, body_retained: false };
+    throw err;
+  }
   if (preflight && preflight.refuse === "POISON_LEARNED") {
     let receipt = null;
     try {
@@ -726,6 +746,16 @@ export async function ingestRecord(env, args) {
       law: "adaptive learning via hashchain lattice for recollection and reasoning",
     };
     throw err;
+  }
+  // Preflight passed: only now does anything reach R2.
+  if (f && !objectKey) {
+    objectKey = library + "/" + id + "/" + filename;
+    await putObject(env, objectKey, fileBytes, contentType);
+    await verifyStoredObject(env, objectKey, contentSha);
+  } else if (!f && env && env.FILES) {
+    objectKey = library + "/" + id + "/" + filename;
+    await putObject(env, objectKey, fileBytes, contentType);
+    await verifyStoredObject(env, objectKey, contentSha);
   }
   const servedBytes = f
     ? asUint8(fileBytes)

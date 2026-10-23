@@ -4,6 +4,7 @@
  *
  * Not sovereign. Not operator. Cannot change scores. Corpus-only Add.
  */
+import { intakeMeta } from "./intake-gate.js";
 import { searchRecords, ingestRecord, asFile, isOperator, operatorSession } from "./library.js";
 import { JEEVES_SUITE_HELP } from "./runtime-copy.js";
 import { isOperatorRequest } from "./rate-limit.js";
@@ -1504,7 +1505,7 @@ export async function jeevesChat(env, { question, signed, previous, last_q, last
   };
 }
 
-export async function jeevesUpload(env, { signed, file, title, body, author, domain, subjects, keywords, supersedes, superseded_by }) {
+export async function jeevesUpload(env, { signed, file, title, body, author, domain, subjects, keywords, supersedes, superseded_by, intake }) {
   if (!signed) {
     const err = new Error("sign in to add a file");
     err.status = 401;
@@ -1533,6 +1534,7 @@ export async function jeevesUpload(env, { signed, file, title, body, author, dom
     keywords,
     supersedes,
     superseded_by,
+    intake: intake || { door: "jeeves-upload" },
   });
   const lib = record.library === "aziel" ? "aziel" : "corpus";
   if (!isOperator(signed) && lib !== "corpus") {
@@ -1650,6 +1652,7 @@ export async function handleJeevesApi(request, url, env, signed) {
     try {
       return json(
         await jeevesUpload(env, {
+          intake: intakeMeta(request, "jeeves-upload"),
           signed: who,
           file,
           title,
