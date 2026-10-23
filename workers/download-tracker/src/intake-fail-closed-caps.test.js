@@ -482,3 +482,164 @@ test("caps: benign closed pad beside a mid-token MINOR split still refuses (B193
   // Benign: pad + rebuilt MINOR alone + unt filler still passes
   assert.equal(await run({ name: "a.pdf", bytes: rawContent("BT /F1 12 Tf 72 712 Td (hello) Tj (" + b64pre + ") Tj (" + mid + ") Tj (river survey Tj ET") }), null, "pad + MINOR alone + benign unt");
 });
+
+test("caps: pad BETWEEN mid-token halves still refuses (B193-9)", async () => {
+  // Contiguous windows cannot skip a pad BETWEEN pieces: (pre)|(hello)|(mid) left the
+  // rebuilt MINOR unreachable on fb73f5b0. Drop multi-letter pads / pair joins /
+  // mode-dense single-char pads before windowing.
+  const rawContent = (content) => pdfN([
+    [1, "<< /Type /Catalog /Pages 2 0 R >>"],
+    [2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>"],
+    [3, "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>"],
+    [4, "", enc.encode(content)],
+  ]);
+  const minor = SYNTHETIC.MINOR;
+  const sexual = SYNTHETIC.SEXUAL;
+  const pre = minor.slice(0, 8);
+  const mid = minor.slice(8);
+  const b64pre = Buffer.from(pre).toString("base64");
+  const b64mid = Buffer.from(mid).toString("base64");
+  const cases = [
+    ["plain pre | hello | mid + SEX", `(${pre}) Tj (hello) Tj (${mid}) Tj (${sexual} more`],
+    ["b64(pre) | hello | mid + SEX", `(${b64pre}) Tj (hello) Tj (${mid}) Tj (${sexual} more`],
+    ["b64(pre) | hello | b64(mid) + SEX", `(${b64pre}) Tj (hello) Tj (${b64mid}) Tj (${sexual} more`],
+    ["b64(pre) | a | b | mid + SEX", `(${b64pre}) Tj (a) Tj (b) Tj (${mid}) Tj (${sexual} more`],
+  ];
+  for (const [label, body] of cases) {
+    const bytes = rawContent("BT /F1 12 Tf 72 712 Td " + body + " Tj ET");
+    assert.deepEqual(await run({ name: "a.pdf", bytes }), UNDECODABLE, label);
+    assert.equal((await fileTexts({ name: "a.pdf", bytes })).cap, "UNTERMINATED", label + " cap");
+  }
+  // Tiny single-char pad between every MINOR character
+  {
+    const parts = [];
+    for (let i = 0; i < minor.length; i++) {
+      parts.push(`(${minor[i]}) Tj`);
+      if (i < minor.length - 1) parts.push("(x) Tj");
+    }
+    const bytes = rawContent("BT /F1 12 Tf 72 712 Td " + parts.join(" ") + ` (${sexual} more Tj ET`);
+    assert.deepEqual(await run({ name: "a.pdf", bytes }), UNDECODABLE, "tiny x between chars");
+  }
+  // Flate between-pad
+  {
+    const body = `BT /F1 12 Tf 72 712 Td (${b64pre}) Tj (hello) Tj (${mid}) Tj (${sexual} more Tj ET`;
+    assert.deepEqual(await run({ name: "a.pdf", bytes: contentPdf(body) }), UNDECODABLE, "flate between-pad");
+  }
+  // Control: intentional multi-word non-contiguous skip (foo/bar) remains a known residual
+  // only if still PASS; document either way. Prefer refuse when pairs catch it.
+  const skip = rawContent("BT /F1 12 Tf 72 712 Td (" + b64pre + ") Tj (foo) Tj (bar) Tj (" + mid + ") Tj (" + sexual + " more Tj ET");
+  const skipGot = await run({ name: "a.pdf", bytes: skip });
+  // foo/bar are multi-letter pads → dropped → pre|mid rebuilds. Expect refuse.
+  assert.deepEqual(skipGot, UNDECODABLE, "foo/bar between: multi-letter pads dropped");
+});
+
+test("caps: N=100 short-b64 closed pads refuse without Abort at 128MB (B193-10)", async () => {
+  // Window cartesian over many short-b64 closed pads OOM'd at --max-old-space-size=128
+  // (N≥~100 Abort on fb73f5b0). Fail-closed LEFT_JOIN_CLOSED_CAP before leftJoinVariants.
+  const { spawnSync } = await import("node:child_process");
+  const { fileURLToPath } = await import("node:url");
+  const tip = fileURLToPath(new URL("./intake-text.js", import.meta.url));
+  const script = `
+import { textChecks, SYNTHETIC, TEXT_REASONS } from ${JSON.stringify(tip)};
+const N = 100;
+const MIN = SYNTHETIC.MINOR, SEX = SYNTHETIC.SEXUAL;
+const b64 = (s) => Buffer.from(s).toString("base64");
+const enc = new TextEncoder();
+function rawBin(content) {
+  const parts = [enc.encode("%PDF-1.7\\n")];
+  const objects = [
+    [1, "<< /Type /Catalog /Pages 2 0 R >>"],
+    [2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>"],
+    [3, "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>"],
+    [4, "", Buffer.from(content, "latin1")],
+  ];
+  for (const [num, a, stream] of objects) {
+    if (stream !== undefined) {
+      parts.push(enc.encode(num + " 0 obj\\n<< " + a + " /Length " + stream.length + " >>\\nstream\\n"), stream, enc.encode("\\nendstream\\nendobj\\n"));
+    } else parts.push(enc.encode(num + " 0 obj\\n" + a + "\\nendobj\\n"));
+  }
+  parts.push(enc.encode("trailer\\n<< /Root 1 0 R >>\\n%%EOF\\n"));
+  return Buffer.concat(parts.map((p) => Buffer.from(p)));
+}
+const pads = Array.from({ length: N }, (_, i) => "(" + b64("p" + i) + ") Tj").join(" ");
+const pre = MIN.slice(0, 8), mid = MIN.slice(8);
+const body = "BT /F1 12 Tf " + pads + " (" + b64(pre) + ") Tj (" + mid + ") Tj (" + SEX + " more";
+const r = await textChecks.run({ operator: false, file: { name: "a.pdf", bytes: new Uint8Array(rawBin(body)) } });
+const code = r == null ? "PASS" : r.code;
+if (code !== TEXT_REASONS.UNDECODABLE && code !== "INTAKE-UNDECODABLE") {
+  console.error("expected UNDECODABLE got", code);
+  process.exit(2);
+}
+console.log(JSON.stringify({ N, code, ok: true }));
+`;
+  const r = spawnSync(process.execPath, ["--max-old-space-size=128", "--input-type=module", "-e", script], {
+    encoding: "utf8",
+    timeout: 120000,
+    maxBuffer: 4 * 1024 * 1024,
+  });
+  assert.equal(r.signal, null, "must not Abort/signal: " + r.signal + " stderr=" + (r.stderr || "").slice(0, 500));
+  assert.equal(r.status, 0, "exit " + r.status + " stderr=" + (r.stderr || "").slice(0, 800) + " stdout=" + (r.stdout || "").slice(0, 400));
+  assert.doesNotMatch(r.stderr || "", /heap out of memory|FATAL ERROR|Allocation failed/i);
+  assert.match(r.stdout || "", /"ok":true/);
+  // Same-process: LEFT_JOIN cap surfaces as undecodable (cap name LEFT_JOIN or UNTERMINATED)
+  const N = 100;
+  const minor = SYNTHETIC.MINOR;
+  const sexual = SYNTHETIC.SEXUAL;
+  const b64 = (s) => Buffer.from(s).toString("base64");
+  const pads = Array.from({ length: N }, (_, i) => `(${b64("p" + i)}) Tj`).join(" ");
+  const pre = minor.slice(0, 8), mid = minor.slice(8);
+  const body = `BT /F1 12 Tf ${pads} (${b64(pre)}) Tj (${mid}) Tj (${sexual} more`;
+  const bytes = pdfN([
+    [1, "<< /Type /Catalog /Pages 2 0 R >>"],
+    [2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>"],
+    [3, "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>"],
+    [4, "", enc.encode(body)],
+  ]);
+  assert.deepEqual(await run({ name: "a.pdf", bytes }), UNDECODABLE, "N=100 same-process");
+  const ft = await fileTexts({ name: "a.pdf", bytes });
+  assert.equal(ft.undecodable, true);
+  assert.ok(ft.cap === "LEFT_JOIN" || ft.cap === "UNTERMINATED", "cap=" + ft.cap);
+  // Plain pads (no short-b64) at N=500 still OK path-wise when under LITERALS — but with
+  // unterminated after many closed, CLOSED_CAP also refuses. N=20 plain under cap still scans.
+  const plain20 = Array.from({ length: 20 }, (_, i) => `(p${i}) Tj`).join(" ");
+  const pbytes = pdfN([
+    [1, "<< /Type /Catalog /Pages 2 0 R >>"],
+    [2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>"],
+    [3, "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>"],
+    [4, "", enc.encode(`BT /F1 12 Tf ${plain20} (${pre}) Tj (${mid}) Tj (${sexual} more`)],
+  ]);
+  assert.deepEqual(await run({ name: "a.pdf", bytes: pbytes }), UNDECODABLE, "N=20 plain under cap still hits");
+});
+
+test("caps: K covers 9 contiguous short-b64 MINOR pieces (B193-11)", async () => {
+  // K=8: 9 short-b64 pieces PASS'd on fb73f5b0; 8 b64 OK; 9 plain OK via full-list glued.
+  const rawContent = (content) => pdfN([
+    [1, "<< /Type /Catalog /Pages 2 0 R >>"],
+    [2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>"],
+    [3, "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>"],
+    [4, "", enc.encode(content)],
+  ]);
+  const minor = SYNTHETIC.MINOR;
+  const sexual = SYNTHETIC.SEXUAL;
+  const splitN = (s, n) => {
+    const out = [];
+    let i = 0;
+    for (let k = 0; k < n; k++) {
+      const rem = n - k;
+      const len = Math.ceil((s.length - i) / rem);
+      out.push(s.slice(i, i + len));
+      i += len;
+    }
+    return out;
+  };
+  const nine = splitN(minor, 9);
+  const eight = splitN(minor, 8);
+  const b64 = (s) => Buffer.from(s).toString("base64");
+  const tj9b64 = nine.map((p) => `(${b64(p)}) Tj`).join(" ");
+  const tj8b64 = eight.map((p) => `(${b64(p)}) Tj`).join(" ");
+  const tj9plain = nine.map((p) => `(${p}) Tj`).join(" ");
+  assert.deepEqual(await run({ name: "a.pdf", bytes: rawContent("BT /F1 12 Tf 72 712 Td " + tj9b64 + ` (${sexual} more Tj ET`) }), UNDECODABLE, "9 short-b64 + SEX");
+  assert.deepEqual(await run({ name: "a.pdf", bytes: rawContent("BT /F1 12 Tf 72 712 Td " + tj8b64 + ` (${sexual} more Tj ET`) }), UNDECODABLE, "8 short-b64 + SEX");
+  assert.deepEqual(await run({ name: "a.pdf", bytes: rawContent("BT /F1 12 Tf 72 712 Td " + tj9plain + ` (${sexual} more Tj ET`) }), UNDECODABLE, "9 plain + SEX");
+  assert.deepEqual(await run({ name: "a.pdf", bytes: rawContent("BT /F1 12 Tf 72 712 Td (hello) Tj " + tj9b64 + ` (${sexual} more Tj ET`) }), UNDECODABLE, "pad + 9 short-b64 + SEX");
+});
