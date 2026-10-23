@@ -181,7 +181,7 @@ const isB64At = (s, i) => { const c = s.charCodeAt(i); return c < 128 && B64_CHA
 const isHexAt = (s, i) => { const c = s.charCodeAt(i); return c < 128 && HEX_CHAR[c] === 1; };
 const HEX_SEP = /[\s,:]/;
 
-/** /(?:[A-Za-z0-9+/_-]{4}(?:\r?\n)?){6,}(?:[A-Za-z0-9+/_-]{2,3}={0,2})?/g, up to max matches. */
+/** /(?:[A-Za-z0-9+/_-]{4}(?:\r?\n| )?){6,}(?:[A-Za-z0-9+/_-]{2,3}={0,2})?/g — LF/CRLF or space between groups (B193-7). */
 export function base64Runs(s, max = Infinity) {
   const out = [];
   const L = s.length;
@@ -193,8 +193,10 @@ export function base64Runs(s, max = Infinity) {
     while (q + 4 <= L && isB64At(s, q) && isB64At(s, q + 1) && isB64At(s, q + 2) && isB64At(s, q + 3)) {
       q += 4;
       groups++;
+      // MIME wraps with LF/CRLF; also allow ASCII space between groups (B193-7).
+      // Hex already accepts HEX_SEP; without this, space-every-4 base64 never decoded.
       if (s.charCodeAt(q) === 13 && s.charCodeAt(q + 1) === 10) q += 2;
-      else if (s.charCodeAt(q) === 10) q++;
+      else if (s.charCodeAt(q) === 10 || s.charCodeAt(q) === 32) q++;
     }
     if (groups < 6) { p++; continue; }
     let t = q;
@@ -310,28 +312,35 @@ function pushDecoded(out, d) {
   }
 }
 
-function decodedCandidates(text) {
+// Every base64/hex run is decoded: a run cap let N decoy runs push the payload past
+// the cap (AZBot review: 500 decoys then a payload passed). Candidates are yielded one
+// run at a time so memory stays at one run's views, not the whole file's.
+function* decodedCandidates(text) {
   const s = String(text || "");
-  const out = [];
+  let out = [];
   const td = new TextDecoder("utf-8", { fatal: false });
-  for (const run of base64Runs(s, 500)) {
+  for (const run of base64Runs(s)) {
     const chars = run.replace(/\s+/g, "").replace(/-/g, "+").replace(/_/g, "/");
     for (let shift = 0; shift < 4 && shift < chars.length; shift++) {
       try { pushDecoded(out, td.decode(Buffer.from(chars.slice(shift), "base64"))); } catch { /* not base64 */ }
     }
+    yield* out;
+    out = [];
   }
-  for (const run of hexRuns(s, 500)) {
+  for (const run of hexRuns(s)) {
     const h = run.replace(/0x|\\x/g, "").replace(/[^0-9a-fA-F]/g, "");
     for (let shift = 0; shift < 2 && shift < h.length; shift++) {
       const k = h.slice(shift);
       pushDecoded(out, td.decode(Buffer.from(k.slice(0, k.length - (k.length % 2)), "hex")));
     }
+    yield* out;
+    out = [];
   }
   if (hasPercentRun(s)) { try { out.push(decodeURIComponent(s.replace(/%(?![0-9a-fA-F]{2})/g, "%25"))); } catch { /* bad */ } }
   if (/&#x?[0-9a-fA-F]+;/.test(s)) out.push(s.replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16) || 32)).replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d) || 32)));
   if (/\\u[0-9a-fA-F]{4}/.test(s)) out.push(s.replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16))));
   out.push(s.replace(/[a-zA-Z]/g, (c) => String.fromCharCode((c <= "Z" ? 90 : 122) >= (c = c.charCodeAt(0) + 13) ? c : c - 26)));
-  return out;
+  yield* out;
 }
 export function encodedInjectionHit(text) {
   for (const d of decodedCandidates(text)) {
@@ -467,11 +476,16 @@ export function parseToUnicode(cmapText) {
   let len = 0;
   const sec = /begin(bfchar|bfrange)([\s\S]*?)end\1/g;
   let m;
-  while ((m = sec.exec(cmapText)) && map.size < 70000) {
+  // The 70,001st new key refuses (fail closed); exactly 70,000 still pass (it was silently cut at 70000).
+  const put = (k, v) => {
+    if (map.size >= PDF_CAPS.TOUNICODE && !map.has(k)) throw new PdfCapError("TOUNICODE");
+    map.set(k, v);
+  };
+  while ((m = sec.exec(cmapText))) {
     if (m[1] === "bfchar") {
       const re = /<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]*)>/g;
       let c;
-      while ((c = re.exec(m[2]))) { len = len || c[1].length / 2; map.set(parseInt(c[1], 16), utf16beHex(c[2])); }
+      while ((c = re.exec(m[2]))) { len = len || c[1].length / 2; put(parseInt(c[1], 16), utf16beHex(c[2])); }
     } else {
       const re = /<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]+)>\s*(<([0-9a-fA-F]+)>|\[([^\]]*)\])/g;
       let c;
@@ -482,10 +496,10 @@ export function parseToUnicode(cmapText) {
         if (c[4] !== undefined) {
           const base = utf16beHex(c[4]);
           const last = base.charCodeAt(base.length - 1);
-          for (let k = lo; k <= hi && map.size < 70000; k++) map.set(k, base.slice(0, -1) + String.fromCharCode(last + (k - lo)));
+          for (let k = lo; k <= hi; k++) put(k, base.slice(0, -1) + String.fromCharCode(last + (k - lo)));
         } else {
           const list = c[5].match(/<([0-9a-fA-F]*)>/g) || [];
-          list.forEach((x, i) => { if (lo + i <= hi) map.set(lo + i, utf16beHex(x.slice(1, -1))); });
+          list.forEach((x, i) => { if (lo + i <= hi) put(lo + i, utf16beHex(x.slice(1, -1))); });
         }
       }
     }
@@ -500,6 +514,14 @@ function mapCodes(bytes, cmap) {
     s += cmap.map.get(code) ?? " ";
   }
   return s;
+}
+/**
+ * PDF parse caps. Hitting one refuses INTAKE-UNDECODABLE (fail closed); it never
+ * truncates, so decoys cannot push a payload past a cap (AZBot review of #192).
+ */
+export const PDF_CAPS = Object.freeze({ LITERALS: 20000, STRINGS: 40000, TOKENS: 2000000, OBJECTS: 200000, TOUNICODE: 70000 });
+export class PdfCapError extends Error {
+  constructor(cap) { super("pdf cap " + cap); this.cap = cap; }
 }
 /**
  * Text shown by content streams, decoded through each font's ToUnicode CMap.
@@ -544,7 +566,8 @@ function pdfShownText(objects, contents) {
     let line = "";
     let m;
     let n = 0;
-    while ((m = tok.exec(c)) && n++ < 2000000) {
+    while ((m = tok.exec(c))) {
+      if (++n > PDF_CAPS.TOKENS) throw new PdfCapError("TOKENS");
       if (m[1] !== undefined) {
         fonts = [...(fontsByName.get(m[1]) || [])].map(cmapForFont).filter(Boolean);
       } else if (m[2] !== undefined || m[0][0] === "(") {
@@ -563,11 +586,385 @@ function pdfShownText(objects, contents) {
   return out.join("\n");
 }
 
+/** True when text holds an injection / CSAM-indicator / explicit marker. */
+function markerHit(t) {
+  const n = normalizeForMatch(t); // once; the screens' own normalizing of it is idempotent
+  return !!n && (injectionHit(n) || csamIndicator(n) || explicitHit(n));
+}
+/** Screen plaintext markers and encoded (base64/hex/…) payloads in one view. */
+function viewHit(t) {
+  return markerHit(t) || encodedInjectionHit(t);
+}
+/**
+ * Leading UTF-16BE/LE (BOM) run of ASCII code units, stopping before trailing latin1
+ * that would otherwise glue onto the last token (B193-4).
+ */
+function utf16AsciiPrefix(b) {
+  let i = 0, le = false;
+  if (b[0] === 0xfe && b[1] === 0xff) i = 2;
+  else if (b[0] === 0xff && b[1] === 0xfe) { i = 2; le = true; }
+  else return "";
+  let s = "";
+  for (; i + 1 < b.length; i += 2) {
+    const hi = le ? b[i + 1] : b[i];
+    const lo = le ? b[i] : b[i + 1];
+    if (hi !== 0) break;
+    if (lo < 0x09 || (lo > 0x0d && lo < 0x20)) break;
+    s += String.fromCharCode(lo);
+  }
+  return s;
+}
+/**
+ * Whole-string base64/hex decode for short fragments. base64Runs needs ≥6 groups
+ * (24 chars), so a mid-token piece like b64(MINOR[0:8]) never appears in
+ * decodedCandidates; without this, B193-6 cartesian joins stay encoded.
+ */
+function shortCodecPlain(text) {
+  const out = [];
+  const td = new TextDecoder("utf-8", { fatal: false });
+  const compact = String(text || "").replace(/\s+/g, "");
+  if (compact.length >= 4 && /^[A-Za-z0-9+/_-]+={0,2}$/.test(compact)) {
+    const chars = compact.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = chars + "=".repeat((4 - (chars.length % 4)) % 4);
+    for (const c of chars === padded ? [chars] : [chars, padded]) {
+      if (c.length % 4) continue;
+      try {
+        const d = td.decode(Buffer.from(c, "base64"));
+        if (d && printableRatio(d) > 0.9) out.push(d);
+      } catch { /* not base64 */ }
+    }
+  }
+  const h = compact.replace(/^(?:0x|\\x)/i, "");
+  if (h.length >= 2 && !(h.length % 2) && /^[0-9a-fA-F]+$/.test(h)) {
+    try {
+      const d = td.decode(Buffer.from(h, "hex"));
+      if (d && printableRatio(d) > 0.9) out.push(d);
+    } catch { /* not hex */ }
+  }
+  return out;
+}
+/**
+ * Plaintext forms of t: itself plus every decodedCandidates view (b64/hex/…), so a
+ * half encoded on one side of an unterminated split can still join with the other
+ * half for markerHit (B193-5). Also whole-string short b64/hex (B193-6 mid-token
+ * pieces under the base64Runs floor). Double-encoding of a full pair is not
+ * recursed (known residual; encodedInjectionHit is non-recursive everywhere).
+ */
+function plaintextVariants(t) {
+  const s = new Set();
+  const raw = String(t || "");
+  if (raw) s.add(raw);
+  for (const d of decodedCandidates(raw)) {
+    if (d) s.add(d);
+  }
+  for (const d of shortCodecPlain(raw)) {
+    if (d) s.add(d);
+  }
+  return s;
+}
+/**
+ * Max contiguous closed literals to decode-then-join as one left token (B193-8/11).
+ * Full-list joins alone let a benign pad glue onto a rebuilt MINOR
+ * (`hello__az_synthetic_minor__` is not a lexicon term). Windows of length 2..K
+ * rebuild the mid-token without the pad. K=16 covers a 9-piece short-b64 split of the
+ * synthetic markers (B193-11); paired with LEFT_JOIN_CLOSED_CAP so a long prefix cannot
+ * cartesian-blow memory (B193-10).
+ */
+const LEFT_JOIN_WINDOW = 16;
+/**
+ * Fail-closed: refuse before materializing join variants when the closed-literal
+ * count would make window/pair cartesian exceed a safe heap at --max-old-space-size=128
+ * (B193-10). N≈100 short-b64 pads previously Aborted; N≤CAP still scans. Real PDFs with
+ * a stray unterminated "(" after many closed Tj strings are rare and refuse undecodable.
+ */
+const LEFT_JOIN_CLOSED_CAP = 32;
+/** Per-window product before falling back to single-pos / adjacent-pair only. */
+const LEFT_JOIN_WINDOW_PROD = 1024;
+/**
+ * Marker-half shaped underscore token (B193-14): leading/trailing `_` or `__`
+ * (e.g. `__az_s`, `ic_minor__`). Plain `hello_world`-style identifiers are not.
+ */
+function isMarkerHalfShaped(s) {
+  return /^_|_$|__/.test(s);
+}
+/**
+ * Clear join-pad (always drop, free): digits, punct, CJK, space, mixed alnum,
+ * underscore-only, and plain underscore separators like `hello_world` (B193-14).
+ * Never codec; never marker-half shaped.
+ */
+function isClearJoinPad(t) {
+  const s = String(t || "");
+  if (!s) return true;
+  if (shortCodecPlain(s).some((d) => d && d !== s)) return false;
+  if (/^_+$/.test(s)) return true;
+  if (/_/.test(s)) return !isMarkerHalfShaped(s); // hello_world optional; __az_s kept
+  if (/^[0-9]+$/.test(s)) return true;
+  if (/^\s+$/.test(s)) return true;
+  if (/^[\p{P}\p{S}]+$/u.test(s)) return true;
+  if (/^[\u3000-\u9FFF\uF900-\uFAFF]+$/.test(s)) return true;
+  // UTF-8 CJK/etc. stored in a PDF `()` is scanned as latin1 high bytes (e.g. 垫 →
+  // "å\x9e«"); treat non-ASCII bodies without underscore as clear pads (B193-12).
+  if (/[^\t\n\r\x20-\x7E]/.test(s)) return true;
+  // Short mixed alnum without underscore (x9z); longer codec-like kept above.
+  if (/^[A-Za-z0-9]+$/.test(s) && /[0-9]/.test(s) && s.length <= 12) return true;
+  return false;
+}
+/**
+ * Ambiguous join-pad (B193-9/12): pure Latin that might be payload (`ynthet`) or
+ * filler (`hello`). Take-or-skip under LEFT_JOIN_MAX_PAD_SKIPS. Never codec /
+ * marker-half / clear separator.
+ */
+function isAmbiguousJoinPad(t) {
+  const s = String(t || "");
+  if (!s || isClearJoinPad(s)) return false;
+  if (shortCodecPlain(s).some((d) => d && d !== s)) return false;
+  if (/_/.test(s)) return false;
+  if (/^[A-Za-z]{1,24}$/.test(s)) return true;
+  if (s.length === 1) return true;
+  return false;
+}
+/** Optional = clear (always drop) ∪ ambiguous (take-or-skip). */
+function isOptionalJoinPad(t) {
+  return isClearJoinPad(t) || isAmbiguousJoinPad(t);
+}
+/**
+ * Max ambiguous pads for take-or-skip (B193-13). Past this, fail-closed LEFT_JOIN
+ * before 2^skips expansion (also bounds pad-skip OOM — B193-15). Clear pads are
+ * stripped for free and do not count. 8 still rebuilds; 9 / 5+5 refuse.
+ */
+const LEFT_JOIN_MAX_PAD_SKIPS = 8;
+/** Cap on |left| during pad-skip emit; fail-closed before heap death (B193-15). */
+const LEFT_JOIN_VARIANT_CAP = 8192;
+/**
+ * Cartesian spaced/glued joins over one contiguous window of per-literal variant
+ * sets. Per-window product cap LEFT_JOIN_WINDOW_PROD; over cap, single-position and
+ * adjacent-pair substitutions only (B193-6 / B193-8).
+ */
+function addWindowJoins(windowSets, left) {
+  const addJoins = (picks) => {
+    left.add(picks.join(" "));
+    left.add(picks.join(""));
+  };
+  let prod = 1;
+  for (const set of windowSets) {
+    prod *= set.length;
+    if (prod > LEFT_JOIN_WINDOW_PROD) { prod = Infinity; break; }
+  }
+  if (prod <= LEFT_JOIN_WINDOW_PROD) {
+    const rec = (i, picks) => {
+      if (i === windowSets.length) { addJoins(picks); return; }
+      for (const v of windowSets[i]) rec(i + 1, picks.concat(v));
+    };
+    rec(0, []);
+    return;
+  }
+  const raw = windowSets.map((set) => set[0] || "");
+  for (let i = 0; i < windowSets.length; i++) {
+    for (const v of windowSets[i]) {
+      const picks = raw.slice();
+      picks[i] = v;
+      addJoins(picks);
+    }
+  }
+  for (let i = 0; i + 1 < windowSets.length; i++) {
+    for (const a of windowSets[i]) {
+      for (const b of windowSets[i + 1]) {
+        const picks = raw.slice();
+        picks[i] = a;
+        picks[i + 1] = b;
+        addJoins(picks);
+      }
+    }
+  }
+}
+/** Contiguous windows of length 1..K over sets into left. */
+function addContiguousWindows(sets, left) {
+  const n = sets.length;
+  const kMax = Math.min(LEFT_JOIN_WINDOW, n);
+  for (let len = 1; len <= kMax; len++) {
+    for (let start = 0; start + len <= n; start++) {
+      addWindowJoins(sets.slice(start, start + len), left);
+    }
+  }
+}
+/**
+ * Non-contiguous pair joins: every (i,j) decode-then-join (B193-9 between-pad when
+ * halves are not adjacent). Bounded by LEFT_JOIN_CLOSED_CAP. Triple+ with pads uses
+ * addPadSkippingJoins (B193-12).
+ */
+function addPairJoins(sets, left) {
+  const n = sets.length;
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      for (const a of sets[i]) {
+        for (const b of sets[j]) {
+          left.add(a + b);
+          left.add(a + " " + b);
+        }
+      }
+    }
+  }
+}
+/**
+ * Pad-skipping k-windows (B193-12/14/15): walk takes codec-prefer values; ambiguous
+ * pads may be taken or skipped (budget LEFT_JOIN_MAX_PAD_SKIPS). Clear pads should
+ * already be stripped by the caller. Non-pads (codec, marker-half shaped) always
+ * taken. Emit respects LEFT_JOIN_VARIANT_CAP (fail-closed before OOM).
+ */
+function addPadSkippingJoins(closedTexts, left) {
+  const n = closedTexts.length;
+  if (n < 2) return;
+  const prefs = closedTexts.map((t) => codecPreferVariants(t)[0] || "");
+  const pads = closedTexts.map(isAmbiguousJoinPad);
+  const emit = (parts) => {
+    if (parts.length < 1) return;
+    if (left.size >= LEFT_JOIN_VARIANT_CAP) throw new PdfCapError("LEFT_JOIN");
+    left.add(parts.join(""));
+    if (left.size >= LEFT_JOIN_VARIANT_CAP) throw new PdfCapError("LEFT_JOIN");
+    left.add(parts.join(" "));
+  };
+  const walk = (j, parts, skips) => {
+    emit(parts);
+    if (j >= n || parts.length >= LEFT_JOIN_WINDOW) return;
+    walk(j + 1, parts.concat(prefs[j]), skips);
+    if (pads[j] && skips < LEFT_JOIN_MAX_PAD_SKIPS) walk(j + 1, parts, skips + 1);
+  };
+  for (let start = 0; start < n; start++) {
+    walk(start + 1, [prefs[start]], 0);
+  }
+}
+/**
+ * Tiny single-char pad between every mid-token character: the most frequent
+ * single-char closed literal (freq≥3) is treated as a separator and dropped, then
+ * the dense remainder is glued and windowed (B193-9 tiny-x-between-chars).
+ */
+function addModeDenseJoins(closedTexts, left) {
+  const freq = new Map();
+  for (const t of closedTexts) {
+    const s = String(t || "");
+    if (s.length === 1) freq.set(s, (freq.get(s) || 0) + 1);
+  }
+  let mode = null, modeN = 0;
+  for (const [c, n] of freq) if (n > modeN) { mode = c; modeN = n; }
+  if (!mode || modeN < 3) return;
+  const dense = closedTexts.filter((t) => String(t) !== mode);
+  if (dense.length < 2) return;
+  for (const v of plaintextVariants(dense.join(""))) left.add(v);
+  for (const v of plaintextVariants(dense.join(" "))) left.add(v);
+  const sets = dense.map((c) => {
+    const a = [...plaintextVariants(c)];
+    return a.length ? a : [String(c || "")];
+  });
+  addContiguousWindows(sets, left);
+}
+/**
+ * Prefer a short b64/hex decode when present so a codec-only window of K pieces has
+ * product ≈1 instead of (raw×rot13×decode)^K, which tripped the per-window product
+ * cap and left 9 short-b64 MINOR pieces unrebuilt (B193-11).
+ */
+function codecPreferVariants(c) {
+  const raw = String(c || "");
+  const shorts = shortCodecPlain(raw).filter((d) => d && d !== raw);
+  if (shorts.length) return [...new Set(shorts)];
+  return raw ? [raw] : [""];
+}
+/**
+ * Left-side views for an unterminated screen: each closed literal's plaintextVariants,
+ * variants of the raw full spaced/glued joins, decode-then-join over contiguous
+ * windows of length 1..LEFT_JOIN_WINDOW (B193-6/8/11), a codec-prefer dense path
+ * (B193-11), pair joins (B193-9), clear-pad strip + pad-skipping k-windows
+ * (B193-12/14), and a mode-dense path for repeated single-char pads. CLOSED_CAP
+ * refuses N>32 (B193-10). Ambiguous-pad count > MAX_PAD_SKIPS refuses before
+ * pad-skip expansion (B193-13/15). VARIANT_CAP bounds |left| during pad-skip.
+ */
+function leftJoinVariants(closedTexts) {
+  const left = new Set();
+  if (!closedTexts.length) return left;
+  if (closedTexts.length > LEFT_JOIN_CLOSED_CAP) throw new PdfCapError("LEFT_JOIN");
+  // B193-13/15: ambiguous letter pads drive 2^skips; past budget fail-closed before
+  // heap death. Clear pads (hello_world, digits, …) do not count — stripped below.
+  let ambPads = 0;
+  for (const t of closedTexts) if (isAmbiguousJoinPad(t)) ambPads++;
+  if (ambPads > LEFT_JOIN_MAX_PAD_SKIPS) throw new PdfCapError("LEFT_JOIN");
+  const sets = closedTexts.map((c) => {
+    const a = [...plaintextVariants(c)];
+    return a.length ? a : [String(c || "")];
+  });
+  for (const set of sets) for (const v of set) if (v) left.add(v);
+  // Raw full-list joins (plain mid-token with no pad; encoded full-list still tried).
+  for (const v of plaintextVariants(closedTexts.join(" "))) left.add(v);
+  for (const v of plaintextVariants(closedTexts.join(""))) left.add(v);
+  addContiguousWindows(sets, left);
+  addPairJoins(sets, left);
+  // Codec-prefer windows/pairs: product stays small across K short-b64 pieces (B193-11).
+  const codecSets = closedTexts.map(codecPreferVariants);
+  for (const v of plaintextVariants(codecSets.map((s) => s[0] || "").join(""))) left.add(v);
+  for (const v of plaintextVariants(codecSets.map((s) => s[0] || "").join(" "))) left.add(v);
+  addContiguousWindows(codecSets, left);
+  addPairJoins(codecSets, left);
+  // Always-drop clear pads (B193-14 hello_world), then pad-skip ambiguous on remainder.
+  const noClear = closedTexts.filter((t) => !isClearJoinPad(t));
+  if (noClear.length >= 2 && noClear.length < closedTexts.length) {
+    const denseSets = noClear.map((c) => {
+      const a = [...plaintextVariants(c)];
+      return a.length ? a : [String(c || "")];
+    });
+    addContiguousWindows(denseSets, left);
+    addPairJoins(denseSets, left);
+    const denseCodec = noClear.map(codecPreferVariants);
+    for (const v of plaintextVariants(denseCodec.map((s) => s[0] || "").join(""))) left.add(v);
+    for (const v of plaintextVariants(denseCodec.map((s) => s[0] || "").join(" "))) left.add(v);
+    addContiguousWindows(denseCodec, left);
+    addPairJoins(denseCodec, left);
+  }
+  addPadSkippingJoins(noClear.length ? noClear : closedTexts, left);
+  addModeDenseJoins(closedTexts, left);
+  return left;
+}
+/**
+ * The text after an unterminated "(" (decoded as a literal body, and raw) holds a
+ * marker, alone or joined with already-closed literal texts. A CSAM / injection pair
+ * split across a closed `()` and the unterminated tail must not pass: break drops the
+ * rest from `out`, so the usual spaced/glued join never sees both halves (B193-1).
+ * Also: encoded payloads in the tail (B193-2), mid-token concat without a space (B193-3),
+ * a UTF-16 half with trailing ASCII that would glue onto the token (B193-4), and
+ * halves under different encodings across the split (B193-5), and a mid-token split
+ * across two+ closed literals with one piece b64/hex (B193-6), including when a
+ * benign closed pad sits beside (B193-8) or between (B193-9/12) the pieces, with K raised
+ * for short-b64 multi-piece (B193-11) and a closed-literal cap before joins (B193-10).
+ */
+function unterminatedHit(rest, closedTexts = []) {
+  const b = pdfLiteralBytes(rest);
+  const views = [pdfStringText(b)];
+  // Decoded as UTF-16 / UTF-8 or as glyph codes, the raw bytes may read differently.
+  if (looksGlyphCodes(b) || (b[0] === 0xfe && b[1] === 0xff) || (b[0] === 0xff && b[1] === 0xfe) || (b[0] === 0xef && b[1] === 0xbb)) views.push(rest);
+  const u16 = utf16AsciiPrefix(b);
+  if (u16 && !views.includes(u16)) views.push(u16);
+  const spaced = closedTexts.length ? closedTexts.join(" ") + " " : "";
+  const glued = closedTexts.length ? closedTexts.join("") : "";
+  // Left-side plaintext variants: each closed literal, raw spaced/glued joins, and
+  // decode-then-join (cartesian of per-literal plaintextVariants) so a mid-token
+  // MINOR split across two+ closed literals with one piece b64/hex still rebuilds (B193-6).
+  const left = leftJoinVariants(closedTexts);
+  for (const t of views) {
+    if (viewHit(t)) return true;
+    if (spaced && viewHit(spaced + t)) return true;
+    if (glued && viewHit(glued + t)) return true; // mid-token split (B193-3)
+    for (const rv of plaintextVariants(t)) {
+      if (markerHit(rv)) return true;
+      for (const lv of left) {
+        if (markerHit(lv + " " + rv) || markerHit(lv + rv)) return true;
+      }
+    }
+  }
+  return false;
+}
 /** Literal strings with nesting and escapes, as { at, end, text }. */
 function pdfLiterals(latin, cap) {
   const out = [];
   let i = latin.indexOf("(");
-  while (i >= 0 && out.length < cap) {
+  while (i >= 0) {
+    if (out.length >= cap) throw new PdfCapError("LITERALS");
     let depth = 1;
     let j = i + 1;
     for (; j < latin.length && depth; j++) {
@@ -576,7 +973,15 @@ function pdfLiterals(latin, cap) {
       else if (ch === "(") depth++;
       else if (ch === ")") depth--;
     }
-    if (depth) break;
+    // An unterminated "(" runs to the end of the text and was dropped unread. Binary
+    // bytes (images, fonts, ICC profiles, xref tables) often hold a stray "(", so it is
+    // not refused by itself: the rest is screened (alone and joined with closed literals
+    // already in `out`), and a marker on either view refuses (fail closed). A stray "("
+    // with no marker still passes.
+    if (depth) {
+      if (unterminatedHit(latin.slice(i + 1), out.map((l) => l.text))) throw new PdfCapError("UNTERMINATED");
+      break;
+    }
     out.push({ at: i, end: j, text: pdfStringText(pdfLiteralBytes(latin.slice(i + 1, j - 1))) });
     i = latin.indexOf("(", j);
   }
@@ -588,12 +993,13 @@ function pdfLiterals(latin, cap) {
  * space) so "[(ig) -20 (nore)] TJ" reads as "ignore".
  */
 function pdfStringsOf(latin) {
-  const lits = pdfLiterals(latin, 20000);
+  const lits = pdfLiterals(latin, PDF_CAPS.LITERALS);
   const spaced = lits.map((l) => l.text);
   const hx = /<([0-9a-fA-F\s]+)>/g; // was {4,} (stack overflow on a huge run); the run is maximal, so filter
   let m;
-  while ((m = hx.exec(latin)) && spaced.length < 40000) {
+  while ((m = hx.exec(latin))) {
     if (m[1].length < 4) continue;
+    if (spaced.length >= PDF_CAPS.STRINGS) throw new PdfCapError("STRINGS");
     const h = m[1].replace(/\s+/g, "");
     spaced.push(pdfStringText(Buffer.from(h.slice(0, h.length - (h.length % 2)), "hex")));
   }
@@ -623,6 +1029,12 @@ const FONT_PROGRAM = /\/(FontFile[23]?|Length1|Length2|Length3)\b|\/Subtype\s*\/
 const pdfNames = (d) => String(d || "").replace(/#([0-9A-Fa-f]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16))).replace(/%[^\r\n]*/g, " ");
 const SHOWS_TEXT = /\bBT\b[\s\S]{0,4096}?(\bT[jJ]\b|\)\s*['"])/;
 function pdfTexts(u8) {
+  try { return pdfTextsCapped(u8); } catch (e) {
+    if (e instanceof PdfCapError) return { parts: [], undecodable: true, cap: e.cap };
+    throw e;
+  }
+}
+function pdfTextsCapped(u8) {
   const { text, streams } = pdfStreams(u8);
   const parts = [];
   const objects = new Map();
@@ -652,7 +1064,8 @@ function pdfTexts(u8) {
   const streamAt = new Map(decoded.map((d) => [d.st.bytes.byteOffset - u8.byteOffset, d]));
   const objRe = /(\d+)\s+\d+\s+obj\b/g;
   let om;
-  while ((om = objRe.exec(text)) && objects.size < 200000) {
+  while ((om = objRe.exec(text))) {
+    if (objects.size >= PDF_CAPS.OBJECTS) throw new PdfCapError("OBJECTS");
     const end = text.indexOf("endobj", objRe.lastIndex);
     const body = text.slice(objRe.lastIndex, end < 0 ? objRe.lastIndex + 8000 : end);
     const sk = /stream(\r\n|\r|\n)/.exec(body);

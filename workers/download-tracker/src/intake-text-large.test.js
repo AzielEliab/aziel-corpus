@@ -81,7 +81,7 @@ test("large text: an encoded payload contiguous with a 6 MiB base64 run is still
 });
 
 // ---------- the scanners match the regexes they replace ----------
-const RB64 = /(?:[A-Za-z0-9+/_-]{4}(?:\r?\n)?){6,}(?:[A-Za-z0-9+/_-]{2,3}={0,2})?/g;
+const RB64 = /(?:[A-Za-z0-9+/_-]{4}(?:\r?\n| )?){6,}(?:[A-Za-z0-9+/_-]{2,3}={0,2})?/g;
 const RHEX = /(?:(?:0x|\\x)?[0-9a-fA-F]{2}[\s,:]?){12,}/g;
 const RPCT = /(%[0-9a-fA-F]{2}){6,}/;
 test("scanners: identical matches to the base64 / hex / %xx regexes on 20k pseudo-random strings", () => {
@@ -97,7 +97,7 @@ test("scanners: identical matches to the base64 / hex / %xx regexes on 20k pseud
     assert.equal(hasPercentRun(s), RPCT.test(s), JSON.stringify(s));
   }
   assert.equal(base64Runs("QUJD".repeat(600), 500).length, 1, "one long run is one match");
-  assert.equal(base64Runs(Array.from({ length: 600 }, () => "QUJDQUJDQUJDQUJDQUJDQUJD").join(" "), 500).length, 500, "500-candidate limit kept");
+  assert.equal(base64Runs(Array.from({ length: 600 }, () => "QUJDQUJDQUJDQUJDQUJDQUJD").join(";"), 500).length, 500, "500-candidate limit kept");
 });
 
 const RMHEX = /(?:(?:0x|\\x)?[0-9A-Fa-f]{2}[\s,:;-]*){16,}/g;
