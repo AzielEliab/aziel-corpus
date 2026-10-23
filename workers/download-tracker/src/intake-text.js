@@ -181,7 +181,7 @@ const isB64At = (s, i) => { const c = s.charCodeAt(i); return c < 128 && B64_CHA
 const isHexAt = (s, i) => { const c = s.charCodeAt(i); return c < 128 && HEX_CHAR[c] === 1; };
 const HEX_SEP = /[\s,:]/;
 
-/** /(?:[A-Za-z0-9+/_-]{4}(?:\r?\n)?){6,}(?:[A-Za-z0-9+/_-]{2,3}={0,2})?/g, up to max matches. */
+/** /(?:[A-Za-z0-9+/_-]{4}(?:\r?\n| )?){6,}(?:[A-Za-z0-9+/_-]{2,3}={0,2})?/g — LF/CRLF or space between groups (B193-7). */
 export function base64Runs(s, max = Infinity) {
   const out = [];
   const L = s.length;
@@ -193,8 +193,10 @@ export function base64Runs(s, max = Infinity) {
     while (q + 4 <= L && isB64At(s, q) && isB64At(s, q + 1) && isB64At(s, q + 2) && isB64At(s, q + 3)) {
       q += 4;
       groups++;
+      // MIME wraps with LF/CRLF; also allow ASCII space between groups (B193-7).
+      // Hex already accepts HEX_SEP; without this, space-every-4 base64 never decoded.
       if (s.charCodeAt(q) === 13 && s.charCodeAt(q + 1) === 10) q += 2;
-      else if (s.charCodeAt(q) === 10) q++;
+      else if (s.charCodeAt(q) === 10 || s.charCodeAt(q) === 32) q++;
     }
     if (groups < 6) { p++; continue; }
     let t = q;
@@ -613,10 +615,40 @@ function utf16AsciiPrefix(b) {
   return s;
 }
 /**
+ * Whole-string base64/hex decode for short fragments. base64Runs needs ≥6 groups
+ * (24 chars), so a mid-token piece like b64(MINOR[0:8]) never appears in
+ * decodedCandidates; without this, B193-6 cartesian joins stay encoded.
+ */
+function shortCodecPlain(text) {
+  const out = [];
+  const td = new TextDecoder("utf-8", { fatal: false });
+  const compact = String(text || "").replace(/\s+/g, "");
+  if (compact.length >= 4 && /^[A-Za-z0-9+/_-]+={0,2}$/.test(compact)) {
+    const chars = compact.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = chars + "=".repeat((4 - (chars.length % 4)) % 4);
+    for (const c of chars === padded ? [chars] : [chars, padded]) {
+      if (c.length % 4) continue;
+      try {
+        const d = td.decode(Buffer.from(c, "base64"));
+        if (d && printableRatio(d) > 0.9) out.push(d);
+      } catch { /* not base64 */ }
+    }
+  }
+  const h = compact.replace(/^(?:0x|\\x)/i, "");
+  if (h.length >= 2 && !(h.length % 2) && /^[0-9a-fA-F]+$/.test(h)) {
+    try {
+      const d = td.decode(Buffer.from(h, "hex"));
+      if (d && printableRatio(d) > 0.9) out.push(d);
+    } catch { /* not hex */ }
+  }
+  return out;
+}
+/**
  * Plaintext forms of t: itself plus every decodedCandidates view (b64/hex/…), so a
  * half encoded on one side of an unterminated split can still join with the other
- * half for markerHit (B193-5). Double-encoding of a full pair is not recursed
- * (known residual; encodedInjectionHit is non-recursive everywhere).
+ * half for markerHit (B193-5). Also whole-string short b64/hex (B193-6 mid-token
+ * pieces under the base64Runs floor). Double-encoding of a full pair is not
+ * recursed (known residual; encodedInjectionHit is non-recursive everywhere).
  */
 function plaintextVariants(t) {
   const s = new Set();
@@ -625,7 +657,62 @@ function plaintextVariants(t) {
   for (const d of decodedCandidates(raw)) {
     if (d) s.add(d);
   }
+  for (const d of shortCodecPlain(raw)) {
+    if (d) s.add(d);
+  }
   return s;
+}
+/**
+ * Left-side views for an unterminated screen: each closed literal's plaintextVariants,
+ * variants of the raw spaced/glued joins, and spaced/glued joins over the cartesian of
+ * per-literal variant sets (decode-then-join). A product cap falls back to single-position
+ * and adjacent-pair substitutions so a long closed prefix cannot explode memory (B193-6).
+ */
+function leftJoinVariants(closedTexts) {
+  const left = new Set();
+  if (!closedTexts.length) return left;
+  const sets = closedTexts.map((c) => {
+    const a = [...plaintextVariants(c)];
+    return a.length ? a : [String(c || "")];
+  });
+  for (const set of sets) for (const v of set) if (v) left.add(v);
+  for (const v of plaintextVariants(closedTexts.join(" "))) left.add(v);
+  for (const v of plaintextVariants(closedTexts.join(""))) left.add(v);
+  const addJoins = (picks) => {
+    left.add(picks.join(" "));
+    left.add(picks.join(""));
+  };
+  let prod = 1;
+  for (const set of sets) {
+    prod *= set.length;
+    if (prod > 8192) { prod = Infinity; break; }
+  }
+  if (prod <= 8192) {
+    const rec = (i, picks) => {
+      if (i === sets.length) { addJoins(picks); return; }
+      for (const v of sets[i]) rec(i + 1, picks.concat(v));
+    };
+    rec(0, []);
+  } else {
+    for (let i = 0; i < sets.length; i++) {
+      for (const v of sets[i]) {
+        const picks = closedTexts.slice();
+        picks[i] = v;
+        addJoins(picks);
+      }
+    }
+    for (let i = 0; i + 1 < sets.length; i++) {
+      for (const a of sets[i]) {
+        for (const b of sets[i + 1]) {
+          const picks = closedTexts.slice();
+          picks[i] = a;
+          picks[i + 1] = b;
+          addJoins(picks);
+        }
+      }
+    }
+  }
+  return left;
 }
 /**
  * The text after an unterminated "(" (decoded as a literal body, and raw) holds a
@@ -634,8 +721,8 @@ function plaintextVariants(t) {
  * rest from `out`, so the usual spaced/glued join never sees both halves (B193-1).
  * Also: encoded payloads in the tail (B193-2), mid-token concat without a space (B193-3),
  * a UTF-16 half with trailing ASCII that would glue onto the token (B193-4), and
- * halves under different encodings across the split (B193-5: expand both sides via
- * decodedCandidates, then markerHit on spaced/glued plaintext variants).
+ * halves under different encodings across the split (B193-5), and a mid-token split
+ * across two+ closed literals with one piece b64/hex (B193-6: decode-then-join).
  */
 function unterminatedHit(rest, closedTexts = []) {
   const b = pdfLiteralBytes(rest);
@@ -646,13 +733,10 @@ function unterminatedHit(rest, closedTexts = []) {
   if (u16 && !views.includes(u16)) views.push(u16);
   const spaced = closedTexts.length ? closedTexts.join(" ") + " " : "";
   const glued = closedTexts.length ? closedTexts.join("") : "";
-  // Left-side plaintext variants: each closed literal, and the spaced/glued joins.
-  const left = new Set();
-  if (closedTexts.length) {
-    for (const c of closedTexts) for (const v of plaintextVariants(c)) left.add(v);
-    for (const v of plaintextVariants(closedTexts.join(" "))) left.add(v);
-    for (const v of plaintextVariants(closedTexts.join(""))) left.add(v);
-  }
+  // Left-side plaintext variants: each closed literal, raw spaced/glued joins, and
+  // decode-then-join (cartesian of per-literal plaintextVariants) so a mid-token
+  // MINOR split across two+ closed literals with one piece b64/hex still rebuilds (B193-6).
+  const left = leftJoinVariants(closedTexts);
   for (const t of views) {
     if (viewHit(t)) return true;
     if (spaced && viewHit(spaced + t)) return true;
