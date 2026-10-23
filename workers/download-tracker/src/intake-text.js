@@ -667,17 +667,35 @@ function plaintextVariants(t) {
   return s;
 }
 /**
- * Max contiguous closed literals to decode-then-join as one left token (B193-8).
+ * Max contiguous closed literals to decode-then-join as one left token (B193-8/11).
  * Full-list joins alone let a benign pad glue onto a rebuilt MINOR
  * (`hello__az_synthetic_minor__` is not a lexicon term). Windows of length 2..K
- * rebuild the mid-token without the pad. K=8 covers multi-piece splits of the
- * synthetic markers without a combinatorial blow-up on long closed prefixes.
+ * rebuild the mid-token without the pad. K=16 covers a 9-piece short-b64 split of the
+ * synthetic markers (B193-11); paired with LEFT_JOIN_CLOSED_CAP so a long prefix cannot
+ * cartesian-blow memory (B193-10).
  */
-const LEFT_JOIN_WINDOW = 8;
+const LEFT_JOIN_WINDOW = 16;
+/**
+ * Fail-closed: refuse before materializing join variants when the closed-literal
+ * count would make window/pair cartesian exceed a safe heap at --max-old-space-size=128
+ * (B193-10). N≈100 short-b64 pads previously Aborted; N≤CAP still scans. Real PDFs with
+ * a stray unterminated "(" after many closed Tj strings are rare and refuse undecodable.
+ */
+const LEFT_JOIN_CLOSED_CAP = 32;
+/** Per-window product before falling back to single-pos / adjacent-pair only. */
+const LEFT_JOIN_WINDOW_PROD = 1024;
+/**
+ * Benign multi-letter pad (no underscore): drop before windowing so a pad BETWEEN
+ * mid-token halves does not sit inside every contiguous window (B193-9). Single-char
+ * pads use the mode-frequency dense path instead (tiny-x-between-chars).
+ */
+function isMultiLetterPad(t) {
+  return /^[A-Za-z]{2,24}$/.test(String(t || ""));
+}
 /**
  * Cartesian spaced/glued joins over one contiguous window of per-literal variant
- * sets. Per-window product cap 8192; over cap, single-position and adjacent-pair
- * substitutions only (B193-6 / B193-8).
+ * sets. Per-window product cap LEFT_JOIN_WINDOW_PROD; over cap, single-position and
+ * adjacent-pair substitutions only (B193-6 / B193-8).
  */
 function addWindowJoins(windowSets, left) {
   const addJoins = (picks) => {
@@ -687,9 +705,9 @@ function addWindowJoins(windowSets, left) {
   let prod = 1;
   for (const set of windowSets) {
     prod *= set.length;
-    if (prod > 8192) { prod = Infinity; break; }
+    if (prod > LEFT_JOIN_WINDOW_PROD) { prod = Infinity; break; }
   }
-  if (prod <= 8192) {
+  if (prod <= LEFT_JOIN_WINDOW_PROD) {
     const rec = (i, picks) => {
       if (i === windowSets.length) { addJoins(picks); return; }
       for (const v of windowSets[i]) rec(i + 1, picks.concat(v));
@@ -716,15 +734,81 @@ function addWindowJoins(windowSets, left) {
     }
   }
 }
+/** Contiguous windows of length 1..K over sets into left. */
+function addContiguousWindows(sets, left) {
+  const n = sets.length;
+  const kMax = Math.min(LEFT_JOIN_WINDOW, n);
+  for (let len = 1; len <= kMax; len++) {
+    for (let start = 0; start + len <= n; start++) {
+      addWindowJoins(sets.slice(start, start + len), left);
+    }
+  }
+}
+/**
+ * Non-contiguous pair joins: every (i,j) decode-then-join (B193-9 between-pad when
+ * halves are not adjacent after a multi-letter pad is dropped, or when only pairs
+ * skip one intervening pad). Bounded by LEFT_JOIN_CLOSED_CAP.
+ */
+function addPairJoins(sets, left) {
+  const n = sets.length;
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      for (const a of sets[i]) {
+        for (const b of sets[j]) {
+          left.add(a + b);
+          left.add(a + " " + b);
+        }
+      }
+    }
+  }
+}
+/**
+ * Tiny single-char pad between every mid-token character: the most frequent
+ * single-char closed literal (freq≥3) is treated as a separator and dropped, then
+ * the dense remainder is glued and windowed (B193-9 tiny-x-between-chars).
+ */
+function addModeDenseJoins(closedTexts, left) {
+  const freq = new Map();
+  for (const t of closedTexts) {
+    const s = String(t || "");
+    if (s.length === 1) freq.set(s, (freq.get(s) || 0) + 1);
+  }
+  let mode = null, modeN = 0;
+  for (const [c, n] of freq) if (n > modeN) { mode = c; modeN = n; }
+  if (!mode || modeN < 3) return;
+  const dense = closedTexts.filter((t) => String(t) !== mode);
+  if (dense.length < 2) return;
+  for (const v of plaintextVariants(dense.join(""))) left.add(v);
+  for (const v of plaintextVariants(dense.join(" "))) left.add(v);
+  const sets = dense.map((c) => {
+    const a = [...plaintextVariants(c)];
+    return a.length ? a : [String(c || "")];
+  });
+  addContiguousWindows(sets, left);
+}
+/**
+ * Prefer a short b64/hex decode when present so a codec-only window of K pieces has
+ * product ≈1 instead of (raw×rot13×decode)^K, which tripped the per-window product
+ * cap and left 9 short-b64 MINOR pieces unrebuilt (B193-11).
+ */
+function codecPreferVariants(c) {
+  const raw = String(c || "");
+  const shorts = shortCodecPlain(raw).filter((d) => d && d !== raw);
+  if (shorts.length) return [...new Set(shorts)];
+  return raw ? [raw] : [""];
+}
 /**
  * Left-side views for an unterminated screen: each closed literal's plaintextVariants,
- * variants of the raw full spaced/glued joins, and decode-then-join over every
- * contiguous window of length 1..LEFT_JOIN_WINDOW (B193-6 no-pad; B193-8 padded).
- * A per-window product cap keeps a long closed prefix from exploding memory.
+ * variants of the raw full spaced/glued joins, decode-then-join over contiguous
+ * windows of length 1..LEFT_JOIN_WINDOW (B193-6/8/11), a codec-prefer dense path
+ * (B193-11), pair joins and multi-letter pad drops (B193-9), and a mode-dense path
+ * for repeated single-char pads. CLOSED_CAP refuses before any of that when the
+ * product would blow memory (B193-10).
  */
 function leftJoinVariants(closedTexts) {
   const left = new Set();
   if (!closedTexts.length) return left;
+  if (closedTexts.length > LEFT_JOIN_CLOSED_CAP) throw new PdfCapError("LEFT_JOIN");
   const sets = closedTexts.map((c) => {
     const a = [...plaintextVariants(c)];
     return a.length ? a : [String(c || "")];
@@ -733,13 +817,31 @@ function leftJoinVariants(closedTexts) {
   // Raw full-list joins (plain mid-token with no pad; encoded full-list still tried).
   for (const v of plaintextVariants(closedTexts.join(" "))) left.add(v);
   for (const v of plaintextVariants(closedTexts.join(""))) left.add(v);
-  const n = sets.length;
-  const kMax = Math.min(LEFT_JOIN_WINDOW, n);
-  for (let len = 1; len <= kMax; len++) {
-    for (let start = 0; start + len <= n; start++) {
-      addWindowJoins(sets.slice(start, start + len), left);
-    }
+  addContiguousWindows(sets, left);
+  addPairJoins(sets, left);
+  // Codec-prefer windows/pairs: product stays small across K short-b64 pieces (B193-11).
+  const codecSets = closedTexts.map(codecPreferVariants);
+  for (const v of plaintextVariants(codecSets.map((s) => s[0] || "").join(""))) left.add(v);
+  for (const v of plaintextVariants(codecSets.map((s) => s[0] || "").join(" "))) left.add(v);
+  addContiguousWindows(codecSets, left);
+  addPairJoins(codecSets, left);
+  // Drop multi-letter benign pads, then window/pair the dense list (B193-9 between hello).
+  const kept = closedTexts.filter((t) => !isMultiLetterPad(t));
+  if (kept.length && kept.length < closedTexts.length) {
+    const denseSets = kept.map((c) => {
+      const a = [...plaintextVariants(c)];
+      return a.length ? a : [String(c || "")];
+    });
+    const denseCodec = kept.map(codecPreferVariants);
+    for (const v of plaintextVariants(kept.join(""))) left.add(v);
+    for (const v of plaintextVariants(kept.join(" "))) left.add(v);
+    for (const v of plaintextVariants(denseCodec.map((s) => s[0] || "").join(""))) left.add(v);
+    addContiguousWindows(denseSets, left);
+    addPairJoins(denseSets, left);
+    addContiguousWindows(denseCodec, left);
+    addPairJoins(denseCodec, left);
   }
+  addModeDenseJoins(closedTexts, left);
   return left;
 }
 /**
@@ -751,7 +853,8 @@ function leftJoinVariants(closedTexts) {
  * a UTF-16 half with trailing ASCII that would glue onto the token (B193-4), and
  * halves under different encodings across the split (B193-5), and a mid-token split
  * across two+ closed literals with one piece b64/hex (B193-6), including when a
- * benign closed pad sits beside the pieces (B193-8: contiguous windows of length 2..K).
+ * benign closed pad sits beside (B193-8) or between (B193-9) the pieces, with K raised
+ * for short-b64 multi-piece (B193-11) and a closed-literal cap before joins (B193-10).
  */
 function unterminatedHit(rest, closedTexts = []) {
   const b = pdfLiteralBytes(rest);
