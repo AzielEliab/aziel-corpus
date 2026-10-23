@@ -643,3 +643,46 @@ test("caps: K covers 9 contiguous short-b64 MINOR pieces (B193-11)", async () =>
   assert.deepEqual(await run({ name: "a.pdf", bytes: rawContent("BT /F1 12 Tf 72 712 Td " + tj9plain + ` (${sexual} more Tj ET`) }), UNDECODABLE, "9 plain + SEX");
   assert.deepEqual(await run({ name: "a.pdf", bytes: rawContent("BT /F1 12 Tf 72 712 Td (hello) Tj " + tj9b64 + ` (${sexual} more Tj ET`) }), UNDECODABLE, "pad + 9 short-b64 + SEX");
 });
+
+test("caps: ≥3 mid-token pieces with intervening pads still refuse (B193-12)", async () => {
+  // Pair joins only rebuild 2 pieces; isMultiLetterPad dropped pure-letter payload
+  // pieces (ynthet) whenever any pad triggered the dense path, so
+  // (a)(hello)(b)(c)+SEX PASSed on 44ae09c. Pad-skipping k-windows take-or-skip
+  // optional pads without dropping codec/underscore marker halves.
+  const rawContent = (content) => pdfN([
+    [1, "<< /Type /Catalog /Pages 2 0 R >>"],
+    [2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>"],
+    [3, "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>"],
+    [4, "", enc.encode(content)],
+  ]);
+  const minor = SYNTHETIC.MINOR;
+  const sexual = SYNTHETIC.SEXUAL;
+  const a = minor.slice(0, 6); // __az_s (underscore — not an optional pad)
+  const b = minor.slice(6, 12); // ynthet (pure letters — optional, take-or-skip)
+  const c = minor.slice(12); // ic_minor__
+  assert.equal(a + b + c, minor, "3-way split covers MINOR");
+  const pads = [
+    ["letter hello", "hello"],
+    ["digits", "12345"],
+    ["punct", "***"],
+    ["CJK", "垫"],
+    ["space", " "],
+    ["alnum", "x9z"],
+    ["underscore run", "___"],
+  ];
+  for (const [label, p] of pads) {
+    const body = `(${a}) Tj (${p}) Tj (${b}) Tj (${p}) Tj (${c}) Tj (${sexual} more`;
+    const bytes = rawContent("BT /F1 12 Tf 72 712 Td " + body + " Tj ET");
+    assert.deepEqual(await run({ name: "a.pdf", bytes }), UNDECODABLE, "3pc+" + label);
+  }
+  // Critical: letter pad between 3 pieces must refuse WITHOUT destroying ynthet
+  {
+    const bytes = rawContent(`BT /F1 12 Tf 72 712 Td (${a}) Tj (hello) Tj (${b}) Tj (${c}) Tj (${sexual} more Tj ET`);
+    assert.deepEqual(await run({ name: "a.pdf", bytes }), UNDECODABLE, "(a)(hello)(b)(c)+SEX keeps ynthet");
+    assert.equal((await fileTexts({ name: "a.pdf", bytes })).cap, "UNTERMINATED");
+  }
+  // Controls: nopad 3-piece still refuses; 2-piece+hello still refuses; benign passes
+  assert.deepEqual(await run({ name: "a.pdf", bytes: rawContent(`BT /F1 12 Tf 72 712 Td (${a}) Tj (${b}) Tj (${c}) Tj (${sexual} more Tj ET`) }), UNDECODABLE, "nopad 3-piece");
+  assert.deepEqual(await run({ name: "a.pdf", bytes: rawContent(`BT /F1 12 Tf 72 712 Td (${minor.slice(0, 8)}) Tj (hello) Tj (${minor.slice(8)}) Tj (${sexual} more Tj ET`) }), UNDECODABLE, "2-piece+hello");
+  assert.equal(await run({ name: "a.pdf", bytes: rawContent("BT /F1 12 Tf 72 712 Td (hello) Tj (world survey Tj ET") }), null, "benign stray");
+});
