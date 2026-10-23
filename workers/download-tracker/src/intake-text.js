@@ -613,12 +613,29 @@ function utf16AsciiPrefix(b) {
   return s;
 }
 /**
+ * Plaintext forms of t: itself plus every decodedCandidates view (b64/hex/…), so a
+ * half encoded on one side of an unterminated split can still join with the other
+ * half for markerHit (B193-5). Double-encoding of a full pair is not recursed
+ * (known residual; encodedInjectionHit is non-recursive everywhere).
+ */
+function plaintextVariants(t) {
+  const s = new Set();
+  const raw = String(t || "");
+  if (raw) s.add(raw);
+  for (const d of decodedCandidates(raw)) {
+    if (d) s.add(d);
+  }
+  return s;
+}
+/**
  * The text after an unterminated "(" (decoded as a literal body, and raw) holds a
  * marker, alone or joined with already-closed literal texts. A CSAM / injection pair
  * split across a closed `()` and the unterminated tail must not pass: break drops the
  * rest from `out`, so the usual spaced/glued join never sees both halves (B193-1).
  * Also: encoded payloads in the tail (B193-2), mid-token concat without a space (B193-3),
- * and a UTF-16 half with trailing ASCII that would glue onto the token (B193-4).
+ * a UTF-16 half with trailing ASCII that would glue onto the token (B193-4), and
+ * halves under different encodings across the split (B193-5: expand both sides via
+ * decodedCandidates, then markerHit on spaced/glued plaintext variants).
  */
 function unterminatedHit(rest, closedTexts = []) {
   const b = pdfLiteralBytes(rest);
@@ -629,12 +646,25 @@ function unterminatedHit(rest, closedTexts = []) {
   if (u16 && !views.includes(u16)) views.push(u16);
   const spaced = closedTexts.length ? closedTexts.join(" ") + " " : "";
   const glued = closedTexts.length ? closedTexts.join("") : "";
-  return views.some((t) => {
+  // Left-side plaintext variants: each closed literal, and the spaced/glued joins.
+  const left = new Set();
+  if (closedTexts.length) {
+    for (const c of closedTexts) for (const v of plaintextVariants(c)) left.add(v);
+    for (const v of plaintextVariants(closedTexts.join(" "))) left.add(v);
+    for (const v of plaintextVariants(closedTexts.join(""))) left.add(v);
+  }
+  for (const t of views) {
     if (viewHit(t)) return true;
     if (spaced && viewHit(spaced + t)) return true;
     if (glued && viewHit(glued + t)) return true; // mid-token split (B193-3)
-    return false;
-  });
+    for (const rv of plaintextVariants(t)) {
+      if (markerHit(rv)) return true;
+      for (const lv of left) {
+        if (markerHit(lv + " " + rv) || markerHit(lv + rv)) return true;
+      }
+    }
+  }
+  return false;
 }
 /** Literal strings with nesting and escapes, as { at, end, text }. */
 function pdfLiterals(latin, cap) {

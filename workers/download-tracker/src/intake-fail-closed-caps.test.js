@@ -349,3 +349,40 @@ test("caps: Flate + benign unterminated still passes (EOL trim)", async () => {
   assert.equal(await run({ name: "a.pdf", bytes: contentPdf("BT /F1 12 Tf 72 712 Td (hello) Tj (river survey Tj ET") }), null, "Flate benign unterminated");
   assert.equal(await run({ name: "a.pdf", bytes: contentPdf("BT /F1 12 Tf 72 712 Td (hello) Tj (river survey) Tj ET") }), null, "Flate fully closed");
 });
+
+test("caps: CSAM halves under different encodings across closed + unterminated refuse (B193-5)", async () => {
+  // Joint spaced/glued used to feed encodedInjectionHit one string; each half decoded
+  // in isolation, so csamIndicator never saw both plaintext tokens (93d4c114 PASS).
+  const rawContent = (content) => pdfN([
+    [1, "<< /Type /Catalog /Pages 2 0 R >>"],
+    [2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>"],
+    [3, "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>"],
+    [4, "", enc.encode(content)],
+  ]);
+  const minor = SYNTHETIC.MINOR;
+  const sexual = SYNTHETIC.SEXUAL;
+  const b64m = Buffer.from(minor).toString("base64");
+  const b64s = Buffer.from(sexual).toString("base64");
+  const hxs = Buffer.from(sexual).toString("hex");
+  const cases = [
+    ["b64(MINOR) closed + plain SEXUAL unt", `(${b64m}) Tj (${sexual} more`],
+    ["plain MINOR closed + b64(SEXUAL) unt", `(${minor}) Tj (${b64s} more`],
+    ["plain MINOR closed + hex(SEXUAL) unt", `(${minor}) Tj (${hxs} more`],
+    ["b64(MINOR) closed + b64(SEXUAL) unt", `(${b64m}) Tj (${b64s} more`],
+  ];
+  for (const [label, body] of cases) {
+    const bytes = rawContent("BT /F1 12 Tf 72 712 Td " + body + " Tj ET");
+    assert.deepEqual(await run({ name: "a.pdf", bytes }), UNDECODABLE, label);
+    assert.equal((await fileTexts({ name: "a.pdf", bytes })).cap, "UNTERMINATED", label + " cap");
+  }
+  // B193-2 still holds: full-pair b64 only in the unterminated tail refuses.
+  const full = Buffer.from(minor + " " + sexual).toString("base64");
+  assert.deepEqual(await run({ name: "a.pdf", bytes: rawContent("BT /F1 12 Tf 72 712 Td (benign) Tj (" + full + " more Tj ET") }), UNDECODABLE, "full-pair b64 in unt");
+  // Known residual (INFO): double-base64 of a full pair is not recursed — same as every
+  // other encodedInjectionHit path. Documented so a future recursive decode can close it.
+  const dbl = Buffer.from(full).toString("base64");
+  assert.equal(await run({ name: "a.pdf", bytes: rawContent("BT /F1 12 Tf 72 712 Td (benign) Tj (" + dbl + " more Tj ET") }), null, "double-b64 full pair: known residual PASS");
+  // Control: one encoded half alone + benign unt still passes
+  assert.equal(await run({ name: "a.pdf", bytes: rawContent("BT /F1 12 Tf 72 712 Td (" + b64m + ") Tj (river survey Tj ET") }), null, "b64(MINOR) alone + benign unt");
+  assert.equal(await run({ name: "a.pdf", bytes: rawContent("BT /F1 12 Tf 72 712 Td (" + minor + ") Tj (" + b64s.replace(/=+$/, "") + "xxxx more Tj ET") }), null, "broken b64 half does not false-hit");
+});
