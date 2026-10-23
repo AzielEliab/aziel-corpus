@@ -445,3 +445,40 @@ test("caps: base64 with spaces between 4-char groups still decodes (B193-7)", as
   // MIME newlines still refuse (pre-existing path)
   assert.deepEqual(await run({ name: "a.pdf", bytes: rawContent("BT /F1 12 Tf 72 712 Td (benign) Tj (" + mime(pair) + " more Tj ET") }), UNDECODABLE, "mime-nl full pair in unt");
 });
+
+test("caps: benign closed pad beside a mid-token MINOR split still refuses (B193-8)", async () => {
+  // leftJoinVariants used to decode-join the FULL closedTexts list, so a pad glued
+  // onto the rebuilt MINOR (`hello__az_synthetic_minor__`) and csamIndicator missed
+  // the whole-token match (eb9e1b03 PASS). Contiguous windows of length 2..K rebuild
+  // without the pad.
+  const rawContent = (content) => pdfN([
+    [1, "<< /Type /Catalog /Pages 2 0 R >>"],
+    [2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>"],
+    [3, "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>"],
+    [4, "", enc.encode(content)],
+  ]);
+  const minor = SYNTHETIC.MINOR;
+  const sexual = SYNTHETIC.SEXUAL;
+  const pre = minor.slice(0, 8);
+  const mid = minor.slice(8);
+  const b64pre = Buffer.from(pre).toString("base64");
+  const a5 = minor.slice(0, 5);
+  const b5 = minor.slice(5, 10);
+  const cR = minor.slice(10);
+  const cases = [
+    ["pad + b64(pre) + mid + SEX", `(hello) Tj (${b64pre}) Tj (${mid}) Tj (${sexual} more`],
+    ["pad + plain pre + mid + SEX", `(hello) Tj (${pre}) Tj (${mid}) Tj (${sexual} more`],
+    ["b64(pre) + mid + tail + SEX", `(${b64pre}) Tj (${mid}) Tj (tail) Tj (${sexual} more`],
+    ["pad + 3-closed mixed + SEX", `(pad) Tj (${Buffer.from(a5).toString("base64")}) Tj (${b5}) Tj (${cR}) Tj (${sexual} more`],
+  ];
+  for (const [label, body] of cases) {
+    const bytes = rawContent("BT /F1 12 Tf 72 712 Td " + body + " Tj ET");
+    assert.deepEqual(await run({ name: "a.pdf", bytes }), UNDECODABLE, label);
+    assert.equal((await fileTexts({ name: "a.pdf", bytes })).cap, "UNTERMINATED", label + " cap");
+  }
+  // Controls: no-pad B193-6 still refuses; pad + single b64(MIN) + SEX still refuses
+  assert.deepEqual(await run({ name: "a.pdf", bytes: rawContent("BT /F1 12 Tf 72 712 Td (" + b64pre + ") Tj (" + mid + ") Tj (" + sexual + " more Tj ET") }), UNDECODABLE, "nopad B193-6");
+  assert.deepEqual(await run({ name: "a.pdf", bytes: rawContent("BT /F1 12 Tf 72 712 Td (hello) Tj (" + Buffer.from(minor).toString("base64") + ") Tj (" + sexual + " more Tj ET") }), UNDECODABLE, "pad + full b64(MIN) + SEX");
+  // Benign: pad + rebuilt MINOR alone + unt filler still passes
+  assert.equal(await run({ name: "a.pdf", bytes: rawContent("BT /F1 12 Tf 72 712 Td (hello) Tj (" + b64pre + ") Tj (" + mid + ") Tj (river survey Tj ET") }), null, "pad + MINOR alone + benign unt");
+});
