@@ -667,10 +667,60 @@ function plaintextVariants(t) {
   return s;
 }
 /**
+ * Max contiguous closed literals to decode-then-join as one left token (B193-8).
+ * Full-list joins alone let a benign pad glue onto a rebuilt MINOR
+ * (`hello__az_synthetic_minor__` is not a lexicon term). Windows of length 2..K
+ * rebuild the mid-token without the pad. K=8 covers multi-piece splits of the
+ * synthetic markers without a combinatorial blow-up on long closed prefixes.
+ */
+const LEFT_JOIN_WINDOW = 8;
+/**
+ * Cartesian spaced/glued joins over one contiguous window of per-literal variant
+ * sets. Per-window product cap 8192; over cap, single-position and adjacent-pair
+ * substitutions only (B193-6 / B193-8).
+ */
+function addWindowJoins(windowSets, left) {
+  const addJoins = (picks) => {
+    left.add(picks.join(" "));
+    left.add(picks.join(""));
+  };
+  let prod = 1;
+  for (const set of windowSets) {
+    prod *= set.length;
+    if (prod > 8192) { prod = Infinity; break; }
+  }
+  if (prod <= 8192) {
+    const rec = (i, picks) => {
+      if (i === windowSets.length) { addJoins(picks); return; }
+      for (const v of windowSets[i]) rec(i + 1, picks.concat(v));
+    };
+    rec(0, []);
+    return;
+  }
+  const raw = windowSets.map((set) => set[0] || "");
+  for (let i = 0; i < windowSets.length; i++) {
+    for (const v of windowSets[i]) {
+      const picks = raw.slice();
+      picks[i] = v;
+      addJoins(picks);
+    }
+  }
+  for (let i = 0; i + 1 < windowSets.length; i++) {
+    for (const a of windowSets[i]) {
+      for (const b of windowSets[i + 1]) {
+        const picks = raw.slice();
+        picks[i] = a;
+        picks[i + 1] = b;
+        addJoins(picks);
+      }
+    }
+  }
+}
+/**
  * Left-side views for an unterminated screen: each closed literal's plaintextVariants,
- * variants of the raw spaced/glued joins, and spaced/glued joins over the cartesian of
- * per-literal variant sets (decode-then-join). A product cap falls back to single-position
- * and adjacent-pair substitutions so a long closed prefix cannot explode memory (B193-6).
+ * variants of the raw full spaced/glued joins, and decode-then-join over every
+ * contiguous window of length 1..LEFT_JOIN_WINDOW (B193-6 no-pad; B193-8 padded).
+ * A per-window product cap keeps a long closed prefix from exploding memory.
  */
 function leftJoinVariants(closedTexts) {
   const left = new Set();
@@ -680,40 +730,14 @@ function leftJoinVariants(closedTexts) {
     return a.length ? a : [String(c || "")];
   });
   for (const set of sets) for (const v of set) if (v) left.add(v);
+  // Raw full-list joins (plain mid-token with no pad; encoded full-list still tried).
   for (const v of plaintextVariants(closedTexts.join(" "))) left.add(v);
   for (const v of plaintextVariants(closedTexts.join(""))) left.add(v);
-  const addJoins = (picks) => {
-    left.add(picks.join(" "));
-    left.add(picks.join(""));
-  };
-  let prod = 1;
-  for (const set of sets) {
-    prod *= set.length;
-    if (prod > 8192) { prod = Infinity; break; }
-  }
-  if (prod <= 8192) {
-    const rec = (i, picks) => {
-      if (i === sets.length) { addJoins(picks); return; }
-      for (const v of sets[i]) rec(i + 1, picks.concat(v));
-    };
-    rec(0, []);
-  } else {
-    for (let i = 0; i < sets.length; i++) {
-      for (const v of sets[i]) {
-        const picks = closedTexts.slice();
-        picks[i] = v;
-        addJoins(picks);
-      }
-    }
-    for (let i = 0; i + 1 < sets.length; i++) {
-      for (const a of sets[i]) {
-        for (const b of sets[i + 1]) {
-          const picks = closedTexts.slice();
-          picks[i] = a;
-          picks[i + 1] = b;
-          addJoins(picks);
-        }
-      }
+  const n = sets.length;
+  const kMax = Math.min(LEFT_JOIN_WINDOW, n);
+  for (let len = 1; len <= kMax; len++) {
+    for (let start = 0; start + len <= n; start++) {
+      addWindowJoins(sets.slice(start, start + len), left);
     }
   }
   return left;
@@ -726,7 +750,8 @@ function leftJoinVariants(closedTexts) {
  * Also: encoded payloads in the tail (B193-2), mid-token concat without a space (B193-3),
  * a UTF-16 half with trailing ASCII that would glue onto the token (B193-4), and
  * halves under different encodings across the split (B193-5), and a mid-token split
- * across two+ closed literals with one piece b64/hex (B193-6: decode-then-join).
+ * across two+ closed literals with one piece b64/hex (B193-6), including when a
+ * benign closed pad sits beside the pieces (B193-8: contiguous windows of length 2..K).
  */
 function unterminatedHit(rest, closedTexts = []) {
   const b = pdfLiteralBytes(rest);
