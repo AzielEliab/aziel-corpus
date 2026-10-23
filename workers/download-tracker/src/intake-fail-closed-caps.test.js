@@ -390,3 +390,62 @@ test("caps: CSAM halves under different encodings across closed + unterminated r
   assert.equal(await run({ name: "a.pdf", bytes: rawContent("BT /F1 12 Tf 72 712 Td (" + b64m + ") Tj (river survey Tj ET") }), null, "b64(MINOR) alone + benign unt");
   assert.equal(await run({ name: "a.pdf", bytes: rawContent("BT /F1 12 Tf 72 712 Td (" + minor + ") Tj (" + b64s.replace(/=+$/, "") + "xxxx more Tj ET") }), null, "broken b64 half does not false-hit");
 });
+
+test("caps: MINOR split across two+ closed literals with one piece b64/hex + SEXUAL unt refuses (B193-6)", async () => {
+  // leftJoinVariants used to only expand raw spaced/glued joins; an encoded piece in
+  // the middle never decoded before join, so MINOR did not rebuild (48435be2 PASS).
+  const rawContent = (content) => pdfN([
+    [1, "<< /Type /Catalog /Pages 2 0 R >>"],
+    [2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>"],
+    [3, "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>"],
+    [4, "", enc.encode(content)],
+  ]);
+  const minor = SYNTHETIC.MINOR;
+  const sexual = SYNTHETIC.SEXUAL;
+  const pre = minor.slice(0, 8);
+  const mid = minor.slice(8);
+  const b64pre = Buffer.from(pre).toString("base64");
+  const b64mid = Buffer.from(mid).toString("base64");
+  const hexpre = Buffer.from(pre).toString("hex");
+  const cases = [
+    ["b64 prefix + plain mid", `(${b64pre}) Tj (${mid}) Tj (${sexual} more`],
+    ["hex prefix + plain mid", `(${hexpre}) Tj (${mid}) Tj (${sexual} more`],
+    ["plain prefix + b64 mid", `(${pre}) Tj (${b64mid}) Tj (${sexual} more`],
+    ["b64 prefix + b64 mid", `(${b64pre}) Tj (${b64mid}) Tj (${sexual} more`],
+  ];
+  for (const [label, body] of cases) {
+    const bytes = rawContent("BT /F1 12 Tf 72 712 Td " + body + " Tj ET");
+    assert.deepEqual(await run({ name: "a.pdf", bytes }), UNDECODABLE, label);
+    assert.equal((await fileTexts({ name: "a.pdf", bytes })).cap, "UNTERMINATED", label + " cap");
+  }
+  // Control: two plain closed still refuse (raw glued rebuild)
+  const plain = rawContent("BT /F1 12 Tf 72 712 Td (" + pre + ") Tj (" + mid + ") Tj (" + sexual + " more Tj ET");
+  assert.deepEqual(await run({ name: "a.pdf", bytes: plain }), UNDECODABLE, "two plain closed + SEXUAL");
+  // Control: encoded prefix alone + benign unt still passes
+  assert.equal(await run({ name: "a.pdf", bytes: rawContent("BT /F1 12 Tf 72 712 Td (" + b64pre + ") Tj (" + mid + ") Tj (river survey Tj ET") }), null, "rebuilt MINOR alone + benign unt");
+});
+
+test("caps: base64 with spaces between 4-char groups still decodes (B193-7)", async () => {
+  // base64Runs only accepted LF/CRLF between groups; space-every-4 never became a run.
+  const rawContent = (content) => pdfN([
+    [1, "<< /Type /Catalog /Pages 2 0 R >>"],
+    [2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>"],
+    [3, "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>"],
+    [4, "", enc.encode(content)],
+  ]);
+  const minor = SYNTHETIC.MINOR;
+  const sexual = SYNTHETIC.SEXUAL;
+  const pair = minor + " " + sexual;
+  const sp4 = (s) => Buffer.from(s).toString("base64").match(/.{1,4}/g).join(" ");
+  const mime = (s) => Buffer.from(s).toString("base64").match(/.{1,76}/g).join("\n");
+  assert.equal(encodedInjectionHit(sp4(pair)), true, "control: space-4 full pair is an encoded hit");
+  assert.equal(encodedInjectionHit(mime(pair)), true, "control: mime-nl full pair still hits");
+  // full-pair space-4 only in the unterminated tail
+  const unt = rawContent("BT /F1 12 Tf 72 712 Td (benign) Tj (" + sp4(pair) + " more Tj ET");
+  assert.deepEqual(await run({ name: "a.pdf", bytes: unt }), UNDECODABLE, "full-pair space-4 in unt");
+  // spaced-b64 half + plain SEXUAL
+  const half = rawContent("BT /F1 12 Tf 72 712 Td (" + sp4(minor) + ") Tj (" + sexual + " more Tj ET");
+  assert.deepEqual(await run({ name: "a.pdf", bytes: half }), UNDECODABLE, "space-4 b64(MINOR) + plain SEXUAL");
+  // MIME newlines still refuse (pre-existing path)
+  assert.deepEqual(await run({ name: "a.pdf", bytes: rawContent("BT /F1 12 Tf 72 712 Td (benign) Tj (" + mime(pair) + " more Tj ET") }), UNDECODABLE, "mime-nl full pair in unt");
+});
