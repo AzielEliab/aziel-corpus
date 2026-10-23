@@ -1,0 +1,1 @@
+<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script><image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGP8//8/AwMDEwMDAwMDAwAkBgMB/DXemwAAAABJRU5ErkJggg=="/></svg>

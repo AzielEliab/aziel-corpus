@@ -19,6 +19,7 @@
  * pre-chain screen inside the existing ingest pipeline. Author: Aziel Eliab.
  */
 import { createHash, randomBytes } from "node:crypto";
+import { mediaFloorCheck } from "./intake-media.js";
 
 export const INTAKE_SPEC = "CORPUS-INTAKE-SAFETY-1.0";
 
@@ -97,6 +98,8 @@ export const INTAKE_CHECKS = [
       return null;
     },
   },
+  // Hard floor: no image, video or audio, in any wrapper, from any caller.
+  mediaFloorCheck,
 ];
 
 async function readFileForIntake(file) {
@@ -192,6 +195,8 @@ export async function screenIntake(env, input, opts = {}) {
     spec: INTAKE_SPEC,
     env,
     door: String((input && input.door) || "unknown"),
+    // "document" (default) or "package" (operator zip kits: opened and scanned, never trusted).
+    expect: input && input.expect === "package" ? "package" : "document",
     operator: !!(input && input.operator),
     title: String((input && input.title) || ""),
     body: String((input && input.body) || ""),

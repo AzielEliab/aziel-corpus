@@ -176,7 +176,12 @@ export async function recordOcrTextArtifact(env, recordId, extraText, extra = {}
   return { derived_id: derivedId, content_sha256: textSha, object_key: objectKey };
 }
 
+// Media stays refused until a scan gate is built AND verified (see intake-scan-gate, OFF).
+const MEDIA_SCAN_GATE_VERIFIED = false;
 export async function recordSpectralOverlayArtifact(env, recordId, overlayBytes, extra = {}) {
+  // CORPUS-INTAKE-SAFETY-1.0 media floor: derived images are never stored or chained.
+  // Kept as a no-op so callers are unchanged; returns with the media scan gate.
+  if (!MEDIA_SCAN_GATE_VERIFIED) return null;
   if (!overlayBytes || !env || !env.DB) return null;
   await ensureLedger(env);
   const bytes = overlayBytes instanceof Uint8Array ? overlayBytes : new Uint8Array(overlayBytes);

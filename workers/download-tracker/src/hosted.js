@@ -8,7 +8,7 @@ import { receiptForRecord, sha256hex, isJsonDocumentId } from "./ledger.js";
 import { serveRecordMetadata, parseRecordMetadataPath, receiptForJsonMetadata } from "./record-metadata.js";
 import { serveRecordMachine, parseRecordMachinePath, loadRecordMachineContext, recordMachineLinkHeader } from "./record-llm.js";
 import { isHelpPath } from "./help.js";
-import { intakeMeta, intakeRefusalBody, isIntakeRefusal } from "./intake-gate.js";
+import { intakeMeta, screenIntake, intakeRefusalBody, isIntakeRefusal } from "./intake-gate.js";
 import { isOperator, asFile, getObject, putObject, objectExists, ingestRecord, safeFilename, serveDerived, patternClusters, loadServedFileBytes } from "./library.js";
 import {
   persistOcrRun, persistMediaRun, receiptForMediaRun, isMediaRunId, truthy, bytesAsFile,
@@ -403,6 +403,8 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
       return pageHtml(page("Historical Geography", historicalBody({ status: st, layers, signed, error: "A layer file is required." }), { signed, path: "/historical" }), { status: 400 });
     }
     try {
+      // Media floor: kits are opened and every entry is sniffed before import.
+      await screenIntake(env, { ...intakeMeta(request, "historical-import"), signed, operator: isOperator(signed), file, expect: "package" });
       await importHistorical(env, { filename: file.name, bytes: await file.arrayBuffer() });
     } catch (err) {
       const st = await historicalStatus(env);
@@ -423,6 +425,15 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     if (!whisperBound(env)) return json({ error: "Workers AI not bound — Whisper is not available on this Worker." }, 503);
     const file = asFile(form.get("file") || form.get("media") || form.get("audio") || form.get("video"));
     if (!file) return json({ error: "audio or video file required" }, 400);
+    // Media floor (CORPUS-INTAKE-SAFETY-1.0): audio and video are refused at this door
+    // before Whisper, R2 or the lattice ledger see a byte. Receipt = hashes + code.
+    let transcribePass = null;
+    try {
+      transcribePass = await screenIntake(env, { ...intakeMeta(request, "transcribe"), signed, operator: isOperator(signed), file });
+    } catch (err) {
+      if (err && err.intake_refused) return json(intakeRefusalBody(err), err.status || 415);
+      throw err;
+    }
     if (file.size > MEDIA_MAX_BYTES) return json({ error: "file too large for hosted Whisper", max_bytes: MEDIA_MAX_BYTES }, 413);
     const name = safeFilename(file.name);
     const mime = guessMediaMime(name, file.type);
@@ -489,7 +500,8 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
       } else {
         try {
           ingest = await ingestRecord(env, {
-            intake: intakeMeta(request, "transcribe"),
+            // Same request as the pre-screen above: fully re-checked, counted once (one rate count).
+            intake: { ...intakeMeta(request, "transcribe"), followup: transcribePass },
             signed,
             title: name || "Transcript",
             body: libraryNotes(whisper.text, run, vibe),
@@ -544,6 +556,18 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     if (saveWanted && !signed && !wantsHtml(request)) {
       return json({ error: "login required to upload to library" }, 401);
     }
+    // Media floor: image input is refused before OCR, R2 or the ledger. PDFs pass only
+    // when they carry no embedded image. OCR on images returns with the scan gate.
+    let ocrPass = null;
+    try {
+      ocrPass = await screenIntake(env, { ...intakeMeta(request, "ocr"), signed, operator, file, title: file.name || "" });
+    } catch (err) {
+      if (!(err && err.intake_refused)) throw err;
+      if (wantsHtml(request)) {
+        return pageHtml(page("OCR", ocrPageBody({ ...ocrPayload, error: "Refused at intake (" + err.code + "). Images and video are not accepted; nothing was stored." }), { signed, path: "/ocr", scripts: intelScripts(), kind: "ocr" }), { status: err.status || 415 });
+      }
+      return json(intakeRefusalBody(err), err.status || 415);
+    }
     const result = await ocrFile(env, file, { lenses });
     let record = null;
     if (saveWanted && signed && result.text) {
@@ -553,7 +577,8 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
         : file;
       try {
         record = await ingestRecord(env, {
-          intake: intakeMeta(request, "ocr"),
+          // Same request as the OCR pre-screen: fully re-checked, counted once, no self-duplicate.
+          intake: { ...intakeMeta(request, "ocr"), followup: ocrPass },
           signed,
           title: file.name || "OCR extract",
           body: result.text,
@@ -573,7 +598,8 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
           return json(intakeRefusalBody(err), err.status || 422);
         }
         record = await ingestRecord(env, {
-          intake: intakeMeta(request, "ocr"),
+          // Same request as the OCR pre-screen: fully re-checked, counted once, no self-duplicate.
+          intake: { ...intakeMeta(request, "ocr"), followup: ocrPass },
           signed,
           title: file.name || "OCR extract",
           body: result.text,
@@ -648,7 +674,10 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
     if (!signed) return json({ error: "login required" }, 401);
     const form = await request.formData();
     try {
-      await installPackage(env, { signed, file: form.get("package") || form.get("file") });
+      const pkg = asFile(form.get("package") || form.get("file"));
+      // Media floor: packages are opened and every entry is sniffed before install.
+      if (pkg) await screenIntake(env, { ...intakeMeta(request, "install-package"), signed, operator: isOperator(signed), file: pkg, expect: "package" });
+      await installPackage(env, { signed, file: pkg });
     } catch (err) {
       const packages = await listPackages(env);
       return pageHtml(page("Forensics", intelligenceBody({ packages, aiReady: aiBound(env), lastTest: await lastOcrSelftest(env), pending: await pendingOcrCount(env), signed, operator: isOperator(signed), error: err && err.message ? err.message : "install failed" }), { signed, path: FORENSICS_PATH, scripts: intelScripts() }), { status: err && err.status ? err.status : 400 });
