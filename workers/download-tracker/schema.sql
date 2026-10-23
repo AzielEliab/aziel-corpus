@@ -179,3 +179,19 @@ CREATE TABLE IF NOT EXISTS intake_refusals(
   submitter_key TEXT,
   ip_key TEXT
 );
+
+-- CORPUS-INTAKE-SAFETY-1.0 (d): hash-only flood / rate bookkeeping. No content, no raw IP.
+CREATE TABLE IF NOT EXISTS intake_seen(
+  seen_id TEXT PRIMARY KEY,
+  created_utc TEXT NOT NULL,
+  door TEXT,
+  content_sha256 TEXT,
+  minhash TEXT,
+  submitter_key TEXT,
+  ip_key TEXT
+);
+CREATE INDEX IF NOT EXISTS intake_seen_content ON intake_seen(content_sha256, created_utc);
+CREATE INDEX IF NOT EXISTS intake_seen_submitter ON intake_seen(submitter_key, created_utc);
+CREATE INDEX IF NOT EXISTS intake_seen_ip ON intake_seen(ip_key, created_utc);
+CREATE INDEX IF NOT EXISTS intake_refusals_submitter ON intake_refusals(submitter_key, created_utc);
+CREATE INDEX IF NOT EXISTS intake_refusals_ip ON intake_refusals(ip_key, created_utc);

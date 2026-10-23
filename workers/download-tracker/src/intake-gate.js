@@ -21,6 +21,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { mediaFloorCheck } from "./intake-media.js";
 import { textChecks } from "./intake-text.js";
+import { floodChecks } from "./intake-flood.js";
 
 export const INTAKE_SPEC = "CORPUS-INTAKE-SAFETY-1.0";
 
@@ -64,8 +65,43 @@ function sha256hex(input) {
 }
 
 /** Salted, one-way submitter key. Never the clear name or IP. */
+/**
+ * The per-IP bucket. IPv4 is the address; IPv6 is its /64 (one subscriber / LAN is
+ * usually handed a whole /64, so rotating the low 64 bits must not mint new buckets).
+ * IPv4-mapped IPv6 (::ffff:a.b.c.d) is the IPv4 address. Unparseable -> the raw text.
+ */
+export function ipBucket(value) {
+  let v = String(value == null ? "" : value).trim().toLowerCase();
+  if (!v) return "";
+  if (v.startsWith("[")) v = v.slice(1, v.indexOf("]") > 0 ? v.indexOf("]") : undefined);
+  v = v.replace(/%.*$/, ""); // zone id
+  if (!v.includes(":")) return v;
+  const mapped = v.match(/^(?:0{0,4}:){0,5}(?:0{0,4}:)?ffff:(\d{1,3}(?:\.\d{1,3}){3})$/) || v.match(/^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/);
+  if (mapped) return mapped[1];
+  let head = v;
+  let tail4 = null;
+  const dotted = v.match(/^(.*:)(\d{1,3}(?:\.\d{1,3}){3})$/);
+  if (dotted) {
+    const o = dotted[2].split(".").map(Number);
+    if (o.some((n) => n > 255)) return v;
+    tail4 = [((o[0] << 8) | o[1]).toString(16), ((o[2] << 8) | o[3]).toString(16)];
+    head = dotted[1] + "0:0"; // placeholder hextets, replaced below
+  }
+  const halves = head.split("::");
+  if (halves.length > 2) return v;
+  const part = (s) => (s ? s.split(":") : []);
+  const left = part(halves[0]);
+  const right = halves.length === 2 ? part(halves[1]) : [];
+  const fill = halves.length === 2 ? 8 - left.length - right.length : 0;
+  if (fill < 0 || (halves.length === 1 && left.length !== 8)) return v;
+  const groups = [...left, ...Array(fill).fill("0"), ...right];
+  if (tail4) groups.splice(6, 2, ...tail4);
+  if (groups.length !== 8 || groups.some((g) => !/^[0-9a-f]{1,4}$/.test(g))) return v;
+  return "v6/64:" + groups.slice(0, 4).map((g) => parseInt(g, 16).toString(16)).join(":");
+}
+
 export function submitterKey(env, kind, value) {
-  const v = String(value == null ? "" : value).trim().toLowerCase();
+  const v = kind === "ip" ? ipBucket(value) : String(value == null ? "" : value).trim().toLowerCase();
   if (!v) return null;
   // No usable secret salt -> no key at all (a public salt would be reversible for IPs).
   const salt = intakeSalt(env);
@@ -104,6 +140,9 @@ export const INTAKE_CHECKS = [
   // Text: hidden/invisible content, encoded payloads, child-safety and explicit
   // content (hard, everyone); injection phrasing and spam (heuristic, operator exempt).
   textChecks,
+  // Last: duplicate floods (exact hash, simhash) and per-submitter / per-IP rate limits.
+  // Hash-only bookkeeping; refuses when its counters cannot be read. Operator exempt.
+  floodChecks,
 ];
 
 async function readFileForIntake(file) {
@@ -206,7 +245,9 @@ export async function screenIntake(env, input, opts = {}) {
     body: String((input && input.body) || ""),
     texts: Array.isArray(input && input.texts) ? input.texts.map((t) => String(t == null ? "" : t)) : [],
     file: null,
-    submitter_key: submitterKey(env, "user", input && input.signed && (input.signed.user_id || input.signed.username)),
+    // The real caller id when a door re-signs the write (Jeeves files as "jeeves-public"),
+    // so rate limits stay per submitter instead of one shared bucket.
+    submitter_key: submitterKey(env, "user", (input && input.submitter) || (input && input.signed && (input.signed.user_id || input.signed.username))),
     ip_key: submitterKey(env, "ip", input && input.ip),
     followup: isIntakePass(input && input.followup) ? input.followup : null,
     now: opts.now || Date.now(),

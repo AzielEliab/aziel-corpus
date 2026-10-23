@@ -187,7 +187,7 @@ test("screenIntake: clean text PDF and clean docx pass", async () => {
   const env = intakeStubEnv();
   await screenIntake(env, { door: "upload", signed: GUEST, title: "t", file: file(M.pdfText(), "p.pdf", "application/pdf") });
   await screenIntake(env, { door: "upload", signed: GUEST, title: "t", file: file(M.docx(false), "d.docx") });
-  assert.equal(env.writes.sql.length, 0);
+  assert.equal(env.writes.sql.some((q) => /intake_refusals/.test(q)), false, "no refusal receipt");
 });
 
 const DOORS = ["upload", "ingest", "aziel-library", "v1-ingest", "jeeves-upload", "operator-library-ingest", "transcribe", "ocr"];

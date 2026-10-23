@@ -525,6 +525,7 @@ export async function ingestRecord(env, args) {
   await screenIntake(env, {
     door: intake.door || "ingestRecord",
     ip: intake.ip || null,
+    submitter: intake.submitter || null,
     // Same request, already screened once (e.g. OCR pre-screen): still fully checked, counted once.
     followup: intake.followup || null,
     signed,
