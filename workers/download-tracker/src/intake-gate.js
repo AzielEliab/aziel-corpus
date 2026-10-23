@@ -22,6 +22,9 @@ import { createHash, randomBytes } from "node:crypto";
 import { mediaFloorCheck } from "./intake-media.js";
 import { textChecks } from "./intake-text.js";
 import { floodChecks } from "./intake-flood.js";
+import { TOO_LARGE_CODE, MAX_SCREEN_BYTES, MAX_SCREEN_CHARS, overScreenBytes } from "./intake-budget.js";
+
+export { MAX_SCREEN_BYTES, MAX_SCREEN_CHARS };
 
 export const INTAKE_SPEC = "CORPUS-INTAKE-SAFETY-1.0";
 
@@ -32,6 +35,9 @@ export const INTAKE_REASONS = Object.freeze({
   // INTAKE_SALT secret missing, too short, or the old public default: the gate
   // cannot key submitters without leaking them, so it refuses everything (fail closed).
   NOT_READY: "INTAKE-NOT-READY",
+  // Larger than the screening budget (intake-budget.js): refused before the text
+  // checks run, so the scan always finishes well inside the Worker CPU and memory limits.
+  TOO_LARGE: TOO_LARGE_CODE,
 });
 
 /** The old public default. Never accepted as a salt (it is in the public repo). */
@@ -54,6 +60,7 @@ export function intakeReady(env) {
   return intakeSalt(env) != null;
 }
 
+/** Transport ceiling: bytes we will not even treat as a readable upload. */
 const MAX_INTAKE_BYTES = 25 * 1024 * 1024;
 
 function sha256hex(input) {
@@ -132,6 +139,8 @@ export const INTAKE_CHECKS = [
     run(ctx) {
       if (ctx.file && !(ctx.file.bytes instanceof Uint8Array)) return { code: INTAKE_REASONS.UNREADABLE, status: 400 };
       if (ctx.file && ctx.file.bytes.byteLength > MAX_INTAKE_BYTES) return { code: INTAKE_REASONS.UNREADABLE, status: 413 };
+      // Screening budget: too large to screen inside the Worker limits -> refused, never passed unscreened.
+      if (overScreenBytes(ctx)) return { code: INTAKE_REASONS.TOO_LARGE, status: 413 };
       return null;
     },
   },

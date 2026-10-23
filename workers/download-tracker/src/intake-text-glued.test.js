@@ -9,6 +9,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { TEXT_REASONS, SYNTHETIC, textChecks, encodedInjectionHit, printableSubruns, DECODED_SUBRUN_MIN, gapJoinedSegments, DECODED_GAP_MAX } from "./intake-text.js";
 import { screenIntake } from "./intake-gate.js";
+import { MAX_SCREEN_CHARS } from "./intake-budget.js";
 import { intakeStubEnv } from "./fixtures/intake-env.js";
 import * as M from "./fixtures/synthetic-media.js";
 
@@ -51,8 +52,11 @@ test("glued: payload buried inside base64 binary, and misaligned behind a printa
   for (let k = 1; k < 4; k++) assert.equal(encodedInjectionHit("QUJD".repeat(8 * KiB) + "Q".repeat(k) + b64(CSAM)), true, "shift " + k);
 });
 
-test("glued: 6 MiB homogeneous run + encoded CSAM marker is refused (public and operator) and at the door", async () => {
-  const body = "a".repeat(6 * MiB + 1) + b64(CSAM) + "\n";
+test("glued: a long homogeneous run + encoded CSAM marker is refused (public and operator) and at the door", async () => {
+  // 6 MiB at the scanner level.
+  assert.equal(encodedInjectionHit("a".repeat(6 * MiB + 1) + b64(CSAM) + "\n"), true, "6 MiB scanner");
+  // At the gate's budget (larger items are refused INTAKE-TOO-LARGE, intake-size-budget.test.js).
+  const body = "a".repeat(MAX_SCREEN_CHARS - 4097) + b64(CSAM) + "\n";
   assert.deepEqual(await run(body), { code: TEXT_REASONS.ENCODED_INJECTION }, "public");
   assert.deepEqual(await run(body, true), { code: TEXT_REASONS.ENCODED_INJECTION }, "operator");
   await assert.rejects(

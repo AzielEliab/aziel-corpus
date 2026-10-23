@@ -27,6 +27,7 @@ Checks run in a fixed order and the first refusal wins: `readable` → `media-fl
 - A check that throws refuses (`INTAKE-CHECK-ERROR`).
 - Unreadable bytes refuse (`INTAKE-UNREADABLE`, `INTAKE-DOC-UNREADABLE`). File bytes that cannot be decoded as text with confidence refuse (`INTAKE-UNDECODABLE`).
 - An unavailable flood store refuses non-operators (`INTAKE-FLOOD-STORE-UNAVAILABLE`, 503).
+- An item too large to screen inside the Worker CPU and memory limits refuses (`INTAKE-TOO-LARGE`, 413), operator included, before the text checks run. It is never passed unscreened and never cut down to a prefix. See §8.
 
 There is no "skip" flag.
 
@@ -161,7 +162,43 @@ Everything is off by default or fails closed.
 - `INTAKE_SALT`: **required** Worker secret (`wrangler secret put INTAKE_SALT`), at least 16 random characters. There is no fallback. The old public default is rejected. Without a usable salt every intake is refused `INTAKE-NOT-READY` (503), because a public salt would make IP hashes reversible.
 - `INTAKE_RATE_*`: optional overrides.
 - `INTAKE_MEDIA_SCAN_GATE`: inert while the code lock is false.
+- Screening budget (`src/intake-budget.js`, constants, no env override): a file over `MAX_SCREEN_BYTES` = **6 MiB**, or typed fields (title + body + texts, UTF-8) over 6 MiB, refuse in `readable`; more than `MAX_SCREEN_CHARS` = **2 Mi characters** of text to screen (fields plus all text taken out of the file) refuses in `text`. For a PDF the budget is enforced while the file is read, before the next view or regex is built (see "Screening budget" below). Both refuse `INTAKE-TOO-LARGE` (413). The 25 MiB transport ceiling (`INTAKE-UNREADABLE`, 413) is unchanged. See "Screening budget" below.
 - Future: `PHOTODNA_SUBSCRIPTION_KEY`, `CLASSIFIER_PROVIDER` plus key, an `AI` binding (second opinion only), `FRAME_EXTRACTOR_URL`.
+
+### Screening budget
+
+The text checks are linear (no regex stack overflow), but cost and memory still grow with size. The Worker limits are 30 s CPU per request (paid default; `wrangler.toml` sets no `[limits] cpu_ms`) and 128 MB of memory per isolate. The budget is a size budget, not a clock: `Date.now()` does not advance while synchronous code runs in a Worker, so a time check cannot stop a long scan.
+
+Measured with `screenIntake` at the `upload` door: process CPU on the review box (Node), plain-text files, before the budget. "Heap" is the largest size that finished under `--max-old-space-size`:
+
+| shape | 1 MiB | 4 MiB | 6 MiB | 8 MiB | heap 100 MB | heap 128 MB |
+|---|---|---|---|---|---|---|
+| `a` × N (one homogeneous run) | 1.2 s | 3.3 s | 5.1 s | 6.9 s | 3 MiB | 4 MiB |
+| English prose | 2.0 s | 8.9 s | 13.6 s | 19.1 s | 3 MiB | 4 MiB |
+| `ab ` × N (many short hex-alphabet tokens; worst found) | 3.3 s | 14.3 s | 21.5 s | 28.3 s | 2 MiB | 2 MiB |
+
+Memory binds first: no shape fit 128 MB of heap at 5 MiB of screened text, and the worst shape failed at 3 MiB. GC was 46-60% of the CPU profile. The work cannot be predicted from size alone: every shape sends the same ~15.7× its size through `normalizeForMatch`, but the cost per character depends on the content. So the budget caps the screened text at 2 Mi characters, the largest size every measured shape finished inside a 100 MB heap, and caps the bytes read at 6 MiB.
+
+With the budget:
+
+| item | result | CPU |
+|---|---|---|
+| 1.99 MiB plain text: `a` / prose / `ab ` | screened, pass | 2.3 s / 5.4 s / 7.5 s (all fit 100 MB) |
+| 6 MiB text-only PDF (1.9 MiB of text, embedded font program) | screened, pass | 5.0 s (fits 100 MB) |
+| file of 6 MiB + 1 byte, or 24 MiB | `INTAKE-TOO-LARGE` 413 (`readable`) | ≤ 60 ms |
+| 3 MiB body field (under 6 MiB, over 2 Mi chars) | `INTAKE-TOO-LARGE` 413 (`text`) | 1.1 s (media floor runs first) |
+| small PDF holding 3 Mi characters of text | `INTAKE-TOO-LARGE` 413 (`text`) | 0.4 s (inflate + extract only) |
+
+How the char budget is counted and enforced:
+
+- Typed fields are counted first; a PDF is then read with what is left (`fileTexts(file, { maxChars })`).
+- PDF: each literal or `<hex>` string is charged as it is decoded; one bigger than what is left refuses before it is decoded or tokenized. The glued TJ view and the CID/ToUnicode "shown" view are charged too, because each is screened in full: counting the source once let a 2 Mi TJ-array PDF (spaced + glued about 4 Mi) run a 128 MB heap out of memory. Inflate output is capped at the char budget (it was 32 MiB): text-bearing streams share it, a font program may use the whole budget on its own, and an inflate overflow (`pdfDecodeStream(..., info)` sets `info.tooLarge`) refuses `INTAKE-TOO-LARGE`, not `INTAKE-UNDECODABLE`. Real papers checked here inflate at most 0.67 MiB of text-bearing streams.
+- Text and Office/XML parts are counted as stored, markup included, because the raw XML is screened. So the effective docx limit is the XML size, not the visible text: a Word document.xml has several times its visible text in markup. Counting only visible text is not safe yet: a 6 MB document.xml (about 0.6 Mi visible chars) ran a 128 MB heap out of memory. That needs the memory work below.
+- Fail-closed caps (PR "fail-closed caps"): no decoded-run cap (every base64/hex run is decoded), and the PDF parser caps (20,000 literals, 40,000 hex strings, 2,000,000 content tokens, 200,000 objects) refuse `INTAKE-UNDECODABLE` when reached, never truncate. A `ToUnicode` map past 70,000 entries refuses the same way (exactly 70,000 PASS; the 70,001st new key refuses; it was cut silently). An unterminated `(` literal, whose text used to be dropped unread, has the rest of its text screened (as a literal body, and raw when it reads as UTF-16/UTF-8 or glyph codes), alone and joined with already-closed literals so a CSAM/injection pair split across a closed `()` and the unterminated tail cannot pass (B193-1): a marker on either view refuses `INTAKE-UNDECODABLE`. The same rest views also run `encodedInjectionHit` (base64/hex of a marker only in the unterminated tail; B193-2), screen the no-space concat of closed+rest (mid-token split; B193-3), and add a tight UTF-16 ASCII-run view so a UTF-16BE half in the closed literal + half in the unt with trailing ASCII cannot glue past the lexicon (B193-4). Halves under different encodings across the split (b64/hex on one side, plain or encoded on the other) are expanded through `decodedCandidates` into plaintext variants and `markerHit` on spaced/glued joins (B193-5). Double-base64 of a full pair remains a known residual (`encodedInjectionHit` is non-recursive on every path). A mid-token split across two or more closed literals with one piece b64/hex is rebuilt by decode-then-join (cartesian of per-literal plaintext variants, plus whole-string short b64/hex under the `base64Runs` floor; B193-6). Joins run over contiguous windows of length 2..16 (`LEFT_JOIN_WINDOW`), not only the full closed list, so a benign pad beside the pieces cannot glue onto the rebuilt token (B193-8). A pad *between* mid-token halves is handled by pad-skipping k-windows (optional pads take-or-skip; codec hits and underscore-bearing marker halves are never dropped), non-contiguous pair joins, and a mode-dense path that drops a repeated single-char separator (B193-9/12). Pure-letter payload pieces such as `ynthet` are no longer eaten by a dense multi-letter filter. Before any join materialization, more than `LEFT_JOIN_CLOSED_CAP` (32) closed literals refuses `INTAKE-UNDECODABLE` with cap `LEFT_JOIN` so a storm of short-b64 pads cannot OOM at a 128 MB heap (B193-10). A codec-prefer dense path (short b64/hex decode only) keeps the per-window product small across nine short-b64 pieces so K=16 actually rebuilds them (B193-11). Ambiguous pure-letter pads past `LEFT_JOIN_MAX_PAD_SKIPS` (8) refuse `LEFT_JOIN` before pad-skip expansion, so nine intervening pads or five+five across two gaps cannot PASS under budget (B193-13); clear pads (digits, punct, CJK, space, mixed alnum, underscore-only, and plain `hello_world`-style separators) are stripped for free and do not count — only marker-half shaped underscore tokens (`/^_|_$|__/`) or codec hits stay non-optional (B193-14). Pad-skip emit also respects `LEFT_JOIN_VARIANT_CAP` (8192) so N≤32 optional-pad PDFs (fp20, n32atk) refuse at a 128 MB heap without Abort instead of growing `|left|` until OOM (B193-15). `base64Runs` accepts an ASCII space between 4-char groups, matching MIME newlines and hex's `HEX_SEP` (B193-7). FlateDecode tries inflate as-is then peels one trailing EOL before `endstream` (blind multi-byte EOL trim ate a real trailing `0x0d`/`0x0a` and made benign unterminated streams `INTAKE-UNDECODABLE`). A stray `(` with nothing after it still passes, because binary stream bytes in real PDFs (images, ICC profiles, xref, C2PA, fonts) hold them: refusing every one refused about 50 of 730 real files checked. That rest is not charged to the char budget; it is part of text the budget already bounds and is not kept.
+
+Bombs (small PDFs that inflate to 31 MiB), full gate at a 128 MB heap: one 31 MiB `(ab ...) Tj`, 31 streams of 1 MiB, `(a) Tj` × 31 MiB and 31 MiB of prose all refuse `INTAKE-TOO-LARGE` in about 0.6 s, no OOM (before: a RangeError in the content tokenizer, or a pass after 96 s for the 31-stream file).
+
+Worst case under the budget (AZBot, review box, full gate, just under 2 Mi chars): 7.8-8.8 s wall and 9.5-10.6 s CPU; runs out of memory at a 64 MB heap and passes at 96 MB. By shape, wall/CPU s: `ab` 8.2/9.9, `ab` in the body field 8.8/10.6, space-separated hex 8.4/10.3, percent-encoding 7.8/9.5. PDFs just under the budget measured here at 128 MB: one `(ab ...)` literal 8.3/9.9 (9.2/11.0 at 96 MB, OOM at 64 MB), unfiltered 8.2/9.7, prose 4.9/5.7. That is about a third of the CPU limit. A normal 6 MiB paper passes: in a text-first corpus most of a large PDF is fonts and structure, not text. A paper with more than 2 Mi characters of text (about 350,000 words) is refused, not screened in part. Raising the budget needs memory work in the text checks first (fewer whole-text copies), not just a larger `cpu_ms` (open item 13).
 
 ## 9. Tests
 
@@ -181,3 +218,5 @@ All test media are synthetic header bytes with marker strings, never real images
 10. Set `INTAKE_SALT` as a Worker secret **before** deploying #184. Without it, all intake refuses.
 11. IP rate-limit coarseness (shared NAT and CGNAT; IPv6 grouped per /64).
 12. Approve the §7 poison-ordering fix in #184 (fail-closed `PREFLIGHT_UNAVAILABLE`).
+13. Screening budget (§8): 6 MiB per file and 2 Mi characters of screened text. Texts longer than about 350,000 words are refused `INTAKE-TOO-LARGE`. Raising it means cutting the text checks' memory use first. Setting `[limits] cpu_ms` alone does not help, because memory runs out first. The budget also applies to operator kits (`historical-import`, `install-package`, `expect: "package"`): a kit over 6 MiB is now refused. Confirm, or split large kits.
+14. Found while measuring: the PDF media floor's `/3D` name test can match by chance inside an uncompressed binary stream (pseudo-random bytes in a font program refused `INTAKE-MEDIA-EMBEDDED`). This fails closed, so it is safe, but it is a possible false positive on real papers with embedded fonts. It is unchanged here.
