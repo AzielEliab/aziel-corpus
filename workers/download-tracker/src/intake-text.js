@@ -685,13 +685,34 @@ const LEFT_JOIN_CLOSED_CAP = 32;
 /** Per-window product before falling back to single-pos / adjacent-pair only. */
 const LEFT_JOIN_WINDOW_PROD = 1024;
 /**
- * Benign multi-letter pad (no underscore): drop before windowing so a pad BETWEEN
- * mid-token halves does not sit inside every contiguous window (B193-9). Single-char
- * pads use the mode-frequency dense path instead (tiny-x-between-chars).
+ * Optional join-pad (B193-9/12): may be skipped by pad-skipping k-windows. Never
+ * classify a shortCodecPlain hit or an underscore-bearing fragment (marker halves
+ * like `__az_s` / `ic_minor__`) as a pad — dropping those ate pure-letter payload
+ * pieces such as `ynthet` whenever any other pad triggered a dense filter (B193-12).
+ * Pure `_` runs, multi-letter Latin fillers, digits, punct, CJK, space, and short
+ * mixed alnum are optional skips.
  */
-function isMultiLetterPad(t) {
-  return /^[A-Za-z]{2,24}$/.test(String(t || ""));
+function isOptionalJoinPad(t) {
+  const s = String(t || "");
+  if (!s) return true;
+  if (shortCodecPlain(s).some((d) => d && d !== s)) return false;
+  if (/^_+$/.test(s)) return true; // underscore-only separator
+  if (/_/.test(s)) return false; // marker-half / identifier fragment
+  if (/^[A-Za-z]{2,24}$/.test(s)) return true; // hello, pad, ynthet (take-or-skip)
+  if (/^[0-9]+$/.test(s)) return true;
+  if (/^\s+$/.test(s)) return true;
+  if (/^[\p{P}\p{S}]+$/u.test(s)) return true;
+  if (/^[\u3000-\u9FFF\uF900-\uFAFF]+$/.test(s)) return true;
+  // UTF-8 CJK/etc. stored in a PDF `()` is scanned as latin1 high bytes (e.g. 垫 →
+  // "å\x9e«"); treat non-ASCII bodies without underscore as optional pads (B193-12).
+  if (/[^\t\n\r\x20-\x7E]/.test(s)) return true;
+  if (s.length === 1) return true;
+  // Short mixed alnum without underscore (x9z); longer codec-like kept above.
+  if (/^[A-Za-z0-9]+$/.test(s) && s.length <= 12) return true;
+  return false;
 }
+/** Max optional pads skipped inside one pad-skipping window (bounds 2^skips). */
+const LEFT_JOIN_MAX_PAD_SKIPS = 8;
 /**
  * Cartesian spaced/glued joins over one contiguous window of per-literal variant
  * sets. Per-window product cap LEFT_JOIN_WINDOW_PROD; over cap, single-position and
@@ -746,8 +767,8 @@ function addContiguousWindows(sets, left) {
 }
 /**
  * Non-contiguous pair joins: every (i,j) decode-then-join (B193-9 between-pad when
- * halves are not adjacent after a multi-letter pad is dropped, or when only pairs
- * skip one intervening pad). Bounded by LEFT_JOIN_CLOSED_CAP.
+ * halves are not adjacent). Bounded by LEFT_JOIN_CLOSED_CAP. Triple+ with pads uses
+ * addPadSkippingJoins (B193-12).
  */
 function addPairJoins(sets, left) {
   const n = sets.length;
@@ -760,6 +781,36 @@ function addPairJoins(sets, left) {
         }
       }
     }
+  }
+}
+/**
+ * Pad-skipping k-windows (B193-12): from each start index, walk forward taking the
+ * codec-prefer value; optional pads may be taken or skipped (budget
+ * LEFT_JOIN_MAX_PAD_SKIPS). Non-pads (codec hits, underscore-bearing marker halves)
+ * are always taken. Rebuilds ≥3 mid-token pieces with intervening letter/digit/punct/
+ * CJK/space/alnum/_ pads without the old dense filter dropping pure-letter payload
+ * pieces like `ynthet`.
+ */
+function addPadSkippingJoins(closedTexts, left) {
+  const n = closedTexts.length;
+  if (n < 2) return;
+  const prefs = closedTexts.map((t) => codecPreferVariants(t)[0] || "");
+  const pads = closedTexts.map(isOptionalJoinPad);
+  const emit = (parts) => {
+    if (parts.length < 1) return;
+    left.add(parts.join(""));
+    left.add(parts.join(" "));
+  };
+  const walk = (j, parts, skips) => {
+    emit(parts);
+    if (j >= n || parts.length >= LEFT_JOIN_WINDOW) return;
+    // Always allowed to take.
+    walk(j + 1, parts.concat(prefs[j]), skips);
+    // Optional pad: also try skipping (bounded).
+    if (pads[j] && skips < LEFT_JOIN_MAX_PAD_SKIPS) walk(j + 1, parts, skips + 1);
+  };
+  for (let start = 0; start < n; start++) {
+    walk(start + 1, [prefs[start]], 0);
   }
 }
 /**
@@ -801,8 +852,8 @@ function codecPreferVariants(c) {
  * Left-side views for an unterminated screen: each closed literal's plaintextVariants,
  * variants of the raw full spaced/glued joins, decode-then-join over contiguous
  * windows of length 1..LEFT_JOIN_WINDOW (B193-6/8/11), a codec-prefer dense path
- * (B193-11), pair joins and multi-letter pad drops (B193-9), and a mode-dense path
- * for repeated single-char pads. CLOSED_CAP refuses before any of that when the
+ * (B193-11), pair joins (B193-9), pad-skipping k-windows (B193-12), and a mode-dense
+ * path for repeated single-char pads. CLOSED_CAP refuses before any of that when the
  * product would blow memory (B193-10).
  */
 function leftJoinVariants(closedTexts) {
@@ -825,22 +876,10 @@ function leftJoinVariants(closedTexts) {
   for (const v of plaintextVariants(codecSets.map((s) => s[0] || "").join(" "))) left.add(v);
   addContiguousWindows(codecSets, left);
   addPairJoins(codecSets, left);
-  // Drop multi-letter benign pads, then window/pair the dense list (B193-9 between hello).
-  const kept = closedTexts.filter((t) => !isMultiLetterPad(t));
-  if (kept.length && kept.length < closedTexts.length) {
-    const denseSets = kept.map((c) => {
-      const a = [...plaintextVariants(c)];
-      return a.length ? a : [String(c || "")];
-    });
-    const denseCodec = kept.map(codecPreferVariants);
-    for (const v of plaintextVariants(kept.join(""))) left.add(v);
-    for (const v of plaintextVariants(kept.join(" "))) left.add(v);
-    for (const v of plaintextVariants(denseCodec.map((s) => s[0] || "").join(""))) left.add(v);
-    addContiguousWindows(denseSets, left);
-    addPairJoins(denseSets, left);
-    addContiguousWindows(denseCodec, left);
-    addPairJoins(denseCodec, left);
-  }
+  // Pad-skipping k-windows: take-or-skip optional pads so ≥3 pieces with intervening
+  // letter/digit/punct/CJK/space/alnum/_ still rebuild; codec/underscore halves never
+  // classed as pads (B193-9/12).
+  addPadSkippingJoins(closedTexts, left);
   addModeDenseJoins(closedTexts, left);
   return left;
 }
@@ -853,7 +892,7 @@ function leftJoinVariants(closedTexts) {
  * a UTF-16 half with trailing ASCII that would glue onto the token (B193-4), and
  * halves under different encodings across the split (B193-5), and a mid-token split
  * across two+ closed literals with one piece b64/hex (B193-6), including when a
- * benign closed pad sits beside (B193-8) or between (B193-9) the pieces, with K raised
+ * benign closed pad sits beside (B193-8) or between (B193-9/12) the pieces, with K raised
  * for short-b64 multi-piece (B193-11) and a closed-literal cap before joins (B193-10).
  */
 function unterminatedHit(rest, closedTexts = []) {
