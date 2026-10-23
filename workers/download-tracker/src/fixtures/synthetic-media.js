@@ -151,3 +151,17 @@ export const b64 = (u8, wrap = 0) => {
   return wrap ? s.match(new RegExp(".{1," + wrap + "}", "g")).join("\n") : s;
 };
 export const hex = (u8) => Buffer.from(u8).toString("hex");
+
+// ---- text-carrier builders for CORPUS-INTAKE-SAFETY (c) ----
+export const TEXT_MARK = "__AZ_SYNTHETIC_TEXT_MARKER__";
+const pdfEsc = (s) => String(s).replace(/[\\()]/g, (c) => "\\" + c);
+export const pdfWithText = (s) => pdf([
+  { text: "<< /Type /Catalog /Pages 2 0 R >>" },
+  { text: "<< /Type /Pages /Kids [3 0 R] /Count 1 >>" },
+  { text: "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>" },
+  { dict: "/Filter /FlateDecode", stream: flate("BT /F1 12 Tf 72 712 Td (" + pdfEsc(s) + ") Tj ET") },
+]);
+export const docxWithXml = (bodyXml) => zip({
+  "[Content_Types].xml": '<?xml version="1.0"?><Types/>',
+  "word/document.xml": '<?xml version="1.0"?><w:document><w:body>' + bodyXml + "</w:body></w:document>",
+});
