@@ -681,34 +681,60 @@ const LEFT_JOIN_CLOSED_CAP = 32;
 /** Per-window product before falling back to single-pos / adjacent-pair only. */
 const LEFT_JOIN_WINDOW_PROD = 1024;
 /**
- * Optional join-pad (B193-9/12): may be skipped by pad-skipping k-windows. Never
- * classify a shortCodecPlain hit or an underscore-bearing fragment (marker halves
- * like `__az_s` / `ic_minor__`) as a pad — dropping those ate pure-letter payload
- * pieces such as `ynthet` whenever any other pad triggered a dense filter (B193-12).
- * Pure `_` runs, multi-letter Latin fillers, digits, punct, CJK, space, and short
- * mixed alnum are optional skips.
+ * Marker-half shaped underscore token (B193-14): leading/trailing `_` or `__`
+ * (e.g. `__az_s`, `ic_minor__`). Plain `hello_world`-style identifiers are not.
  */
-function isOptionalJoinPad(t) {
+function isMarkerHalfShaped(s) {
+  return /^_|_$|__/.test(s);
+}
+/**
+ * Clear join-pad (always drop, free): digits, punct, CJK, space, mixed alnum,
+ * underscore-only, and plain underscore separators like `hello_world` (B193-14).
+ * Never codec; never marker-half shaped.
+ */
+function isClearJoinPad(t) {
   const s = String(t || "");
   if (!s) return true;
   if (shortCodecPlain(s).some((d) => d && d !== s)) return false;
-  if (/^_+$/.test(s)) return true; // underscore-only separator
-  if (/_/.test(s)) return false; // marker-half / identifier fragment
-  if (/^[A-Za-z]{2,24}$/.test(s)) return true; // hello, pad, ynthet (take-or-skip)
+  if (/^_+$/.test(s)) return true;
+  if (/_/.test(s)) return !isMarkerHalfShaped(s); // hello_world optional; __az_s kept
   if (/^[0-9]+$/.test(s)) return true;
   if (/^\s+$/.test(s)) return true;
   if (/^[\p{P}\p{S}]+$/u.test(s)) return true;
   if (/^[\u3000-\u9FFF\uF900-\uFAFF]+$/.test(s)) return true;
   // UTF-8 CJK/etc. stored in a PDF `()` is scanned as latin1 high bytes (e.g. 垫 →
-  // "å\x9e«"); treat non-ASCII bodies without underscore as optional pads (B193-12).
+  // "å\x9e«"); treat non-ASCII bodies without underscore as clear pads (B193-12).
   if (/[^\t\n\r\x20-\x7E]/.test(s)) return true;
-  if (s.length === 1) return true;
   // Short mixed alnum without underscore (x9z); longer codec-like kept above.
-  if (/^[A-Za-z0-9]+$/.test(s) && s.length <= 12) return true;
+  if (/^[A-Za-z0-9]+$/.test(s) && /[0-9]/.test(s) && s.length <= 12) return true;
   return false;
 }
-/** Max optional pads skipped inside one pad-skipping window (bounds 2^skips). */
+/**
+ * Ambiguous join-pad (B193-9/12): pure Latin that might be payload (`ynthet`) or
+ * filler (`hello`). Take-or-skip under LEFT_JOIN_MAX_PAD_SKIPS. Never codec /
+ * marker-half / clear separator.
+ */
+function isAmbiguousJoinPad(t) {
+  const s = String(t || "");
+  if (!s || isClearJoinPad(s)) return false;
+  if (shortCodecPlain(s).some((d) => d && d !== s)) return false;
+  if (/_/.test(s)) return false;
+  if (/^[A-Za-z]{1,24}$/.test(s)) return true;
+  if (s.length === 1) return true;
+  return false;
+}
+/** Optional = clear (always drop) ∪ ambiguous (take-or-skip). */
+function isOptionalJoinPad(t) {
+  return isClearJoinPad(t) || isAmbiguousJoinPad(t);
+}
+/**
+ * Max ambiguous pads for take-or-skip (B193-13). Past this, fail-closed LEFT_JOIN
+ * before 2^skips expansion (also bounds pad-skip OOM — B193-15). Clear pads are
+ * stripped for free and do not count. 8 still rebuilds; 9 / 5+5 refuse.
+ */
 const LEFT_JOIN_MAX_PAD_SKIPS = 8;
+/** Cap on |left| during pad-skip emit; fail-closed before heap death (B193-15). */
+const LEFT_JOIN_VARIANT_CAP = 8192;
 /**
  * Cartesian spaced/glued joins over one contiguous window of per-literal variant
  * sets. Per-window product cap LEFT_JOIN_WINDOW_PROD; over cap, single-position and
@@ -780,29 +806,27 @@ function addPairJoins(sets, left) {
   }
 }
 /**
- * Pad-skipping k-windows (B193-12): from each start index, walk forward taking the
- * codec-prefer value; optional pads may be taken or skipped (budget
- * LEFT_JOIN_MAX_PAD_SKIPS). Non-pads (codec hits, underscore-bearing marker halves)
- * are always taken. Rebuilds ≥3 mid-token pieces with intervening letter/digit/punct/
- * CJK/space/alnum/_ pads without the old dense filter dropping pure-letter payload
- * pieces like `ynthet`.
+ * Pad-skipping k-windows (B193-12/14/15): walk takes codec-prefer values; ambiguous
+ * pads may be taken or skipped (budget LEFT_JOIN_MAX_PAD_SKIPS). Clear pads should
+ * already be stripped by the caller. Non-pads (codec, marker-half shaped) always
+ * taken. Emit respects LEFT_JOIN_VARIANT_CAP (fail-closed before OOM).
  */
 function addPadSkippingJoins(closedTexts, left) {
   const n = closedTexts.length;
   if (n < 2) return;
   const prefs = closedTexts.map((t) => codecPreferVariants(t)[0] || "");
-  const pads = closedTexts.map(isOptionalJoinPad);
+  const pads = closedTexts.map(isAmbiguousJoinPad);
   const emit = (parts) => {
     if (parts.length < 1) return;
+    if (left.size >= LEFT_JOIN_VARIANT_CAP) throw new PdfCapError("LEFT_JOIN");
     left.add(parts.join(""));
+    if (left.size >= LEFT_JOIN_VARIANT_CAP) throw new PdfCapError("LEFT_JOIN");
     left.add(parts.join(" "));
   };
   const walk = (j, parts, skips) => {
     emit(parts);
     if (j >= n || parts.length >= LEFT_JOIN_WINDOW) return;
-    // Always allowed to take.
     walk(j + 1, parts.concat(prefs[j]), skips);
-    // Optional pad: also try skipping (bounded).
     if (pads[j] && skips < LEFT_JOIN_MAX_PAD_SKIPS) walk(j + 1, parts, skips + 1);
   };
   for (let start = 0; start < n; start++) {
@@ -848,14 +872,20 @@ function codecPreferVariants(c) {
  * Left-side views for an unterminated screen: each closed literal's plaintextVariants,
  * variants of the raw full spaced/glued joins, decode-then-join over contiguous
  * windows of length 1..LEFT_JOIN_WINDOW (B193-6/8/11), a codec-prefer dense path
- * (B193-11), pair joins (B193-9), pad-skipping k-windows (B193-12), and a mode-dense
- * path for repeated single-char pads. CLOSED_CAP refuses before any of that when the
- * product would blow memory (B193-10).
+ * (B193-11), pair joins (B193-9), clear-pad strip + pad-skipping k-windows
+ * (B193-12/14), and a mode-dense path for repeated single-char pads. CLOSED_CAP
+ * refuses N>32 (B193-10). Ambiguous-pad count > MAX_PAD_SKIPS refuses before
+ * pad-skip expansion (B193-13/15). VARIANT_CAP bounds |left| during pad-skip.
  */
 function leftJoinVariants(closedTexts) {
   const left = new Set();
   if (!closedTexts.length) return left;
   if (closedTexts.length > LEFT_JOIN_CLOSED_CAP) throw new PdfCapError("LEFT_JOIN");
+  // B193-13/15: ambiguous letter pads drive 2^skips; past budget fail-closed before
+  // heap death. Clear pads (hello_world, digits, …) do not count — stripped below.
+  let ambPads = 0;
+  for (const t of closedTexts) if (isAmbiguousJoinPad(t)) ambPads++;
+  if (ambPads > LEFT_JOIN_MAX_PAD_SKIPS) throw new PdfCapError("LEFT_JOIN");
   const sets = closedTexts.map((c) => {
     const a = [...plaintextVariants(c)];
     return a.length ? a : [String(c || "")];
@@ -872,10 +902,22 @@ function leftJoinVariants(closedTexts) {
   for (const v of plaintextVariants(codecSets.map((s) => s[0] || "").join(" "))) left.add(v);
   addContiguousWindows(codecSets, left);
   addPairJoins(codecSets, left);
-  // Pad-skipping k-windows: take-or-skip optional pads so ≥3 pieces with intervening
-  // letter/digit/punct/CJK/space/alnum/_ still rebuild; codec/underscore halves never
-  // classed as pads (B193-9/12).
-  addPadSkippingJoins(closedTexts, left);
+  // Always-drop clear pads (B193-14 hello_world), then pad-skip ambiguous on remainder.
+  const noClear = closedTexts.filter((t) => !isClearJoinPad(t));
+  if (noClear.length >= 2 && noClear.length < closedTexts.length) {
+    const denseSets = noClear.map((c) => {
+      const a = [...plaintextVariants(c)];
+      return a.length ? a : [String(c || "")];
+    });
+    addContiguousWindows(denseSets, left);
+    addPairJoins(denseSets, left);
+    const denseCodec = noClear.map(codecPreferVariants);
+    for (const v of plaintextVariants(denseCodec.map((s) => s[0] || "").join(""))) left.add(v);
+    for (const v of plaintextVariants(denseCodec.map((s) => s[0] || "").join(" "))) left.add(v);
+    addContiguousWindows(denseCodec, left);
+    addPairJoins(denseCodec, left);
+  }
+  addPadSkippingJoins(noClear.length ? noClear : closedTexts, left);
   addModeDenseJoins(closedTexts, left);
   return left;
 }
