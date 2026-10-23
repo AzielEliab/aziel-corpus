@@ -690,3 +690,112 @@ test("caps: ≥3 mid-token pieces with intervening pads still refuse (B193-12)",
   assert.deepEqual(await run({ name: "a.pdf", bytes: rawContent(`BT /F1 12 Tf 72 712 Td (${minor.slice(0, 8)}) Tj (hello) Tj (${minor.slice(8)}) Tj (${sexual} more Tj ET`) }), UNDECODABLE, "2-piece+hello");
   assert.equal(await run({ name: "a.pdf", bytes: rawContent("BT /F1 12 Tf 72 712 Td (hello) Tj (world survey Tj ET") }), null, "benign stray");
 });
+
+test("caps: skip budget fails closed past 8 ambiguous pads (B193-13)", async () => {
+  // LEFT_JOIN_MAX_PAD_SKIPS=8: nine intervening letter pads PASSed on 7225436;
+  // five+five across two gaps also PASSed. Eight / four+four still refused.
+  // Fail-closed when ambiguous pad count > budget (clear pads do not count).
+  const rawContent = (content) => pdfN([
+    [1, "<< /Type /Catalog /Pages 2 0 R >>"],
+    [2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>"],
+    [3, "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>"],
+    [4, "", enc.encode(content)],
+  ]);
+  const minor = SYNTHETIC.MINOR;
+  const sexual = SYNTHETIC.SEXUAL;
+  const a = minor.slice(0, 6), b = minor.slice(6, 12), c = minor.slice(12);
+  const nine = Array.from({ length: 9 }, (_, i) => `(pad${i}) Tj`).join(" ");
+  const five = Array.from({ length: 5 }, (_, i) => `(p${i}) Tj`).join(" ");
+  const eight = Array.from({ length: 8 }, (_, i) => `(pad${i}) Tj`).join(" ");
+  const four = Array.from({ length: 4 }, (_, i) => `(q${i}) Tj`).join(" ");
+  {
+    const bytes = rawContent(`BT /F1 12 Tf 72 712 Td (${a}) Tj ${nine} (${b}) Tj (${c}) Tj (${sexual} more Tj ET`);
+    assert.deepEqual(await run({ name: "a.pdf", bytes }), UNDECODABLE, "9 intervening pads");
+    assert.equal((await fileTexts({ name: "a.pdf", bytes })).cap, "LEFT_JOIN");
+  }
+  {
+    const bytes = rawContent(`BT /F1 12 Tf 72 712 Td (${a}) Tj ${five} (${b}) Tj ${five} (${c}) Tj (${sexual} more Tj ET`);
+    assert.deepEqual(await run({ name: "a.pdf", bytes }), UNDECODABLE, "5+5 across two gaps");
+    assert.equal((await fileTexts({ name: "a.pdf", bytes })).cap, "LEFT_JOIN");
+  }
+  // Controls: 8 and 4+4 still refuse (budget edge / under).
+  assert.deepEqual(await run({ name: "a.pdf", bytes: rawContent(`BT /F1 12 Tf 72 712 Td (${a}) Tj ${eight} (${b}) Tj (${c}) Tj (${sexual} more Tj ET`) }), UNDECODABLE, "8 pads still refuse");
+  assert.deepEqual(await run({ name: "a.pdf", bytes: rawContent(`BT /F1 12 Tf 72 712 Td (${a}) Tj ${four} (${b}) Tj ${four} (${c}) Tj (${sexual} more Tj ET`) }), UNDECODABLE, "4+4 still refuse");
+});
+
+test("caps: underscore-bearing hello_world separator is optional (B193-14)", async () => {
+  // On 7225436 isOptionalJoinPad returned false for any `_`, so (hello_world)
+  // was always taken and polluted joins → PASS. Only marker-half shaped
+  // (`/^_|_$|__/`) or codec underscore tokens stay non-optional.
+  const rawContent = (content) => pdfN([
+    [1, "<< /Type /Catalog /Pages 2 0 R >>"],
+    [2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>"],
+    [3, "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>"],
+    [4, "", enc.encode(content)],
+  ]);
+  const minor = SYNTHETIC.MINOR;
+  const sexual = SYNTHETIC.SEXUAL;
+  const a = minor.slice(0, 6), b = minor.slice(6, 12), c = minor.slice(12);
+  {
+    const bytes = rawContent(`BT /F1 12 Tf 72 712 Td (${a}) Tj (hello_world) Tj (${b}) Tj (${c}) Tj (${sexual} more Tj ET`);
+    assert.deepEqual(await run({ name: "a.pdf", bytes }), UNDECODABLE, "hello_world separator");
+    assert.equal((await fileTexts({ name: "a.pdf", bytes })).cap, "UNTERMINATED");
+  }
+  // Marker halves with underscores must still be kept (not dropped as pads).
+  assert.deepEqual(await run({ name: "a.pdf", bytes: rawContent(`BT /F1 12 Tf 72 712 Td (${a}) Tj (hello) Tj (${b}) Tj (${c}) Tj (${sexual} more Tj ET`) }), UNDECODABLE, "letter pad still keeps ynthet");
+  assert.deepEqual(await run({ name: "a.pdf", bytes: rawContent(`BT /F1 12 Tf 72 712 Td (${a}) Tj (${b}) Tj (${c}) Tj (${sexual} more Tj ET`) }), UNDECODABLE, "nopad 3-piece");
+});
+
+test("caps: pad-skip OOM bounded — fp20 and n32atk refuse at 128MB (B193-15)", async () => {
+  // CLOSED_CAP still catches N>32, but N≤32 optional letter pads blew the heap in
+  // addPadSkippingJoins on 7225436 (fp20 / n32atk Abort at --max-old-space-size=128).
+  // Ambiguous-pad budget + VARIANT_CAP fail-closed before expansion.
+  const { spawnSync } = await import("node:child_process");
+  const { fileURLToPath } = await import("node:url");
+  const tip = fileURLToPath(new URL("./intake-text.js", import.meta.url));
+  const script = `
+import { textChecks, SYNTHETIC, TEXT_REASONS } from ${JSON.stringify(tip)};
+const enc = new TextEncoder();
+const MIN = SYNTHETIC.MINOR, SEX = SYNTHETIC.SEXUAL;
+const a = MIN.slice(0, 6), b = MIN.slice(6, 12), c = MIN.slice(12);
+function rawBin(content) {
+  const parts = [enc.encode("%PDF-1.7\\n")];
+  const objects = [
+    [1, "<< /Type /Catalog /Pages 2 0 R >>"],
+    [2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>"],
+    [3, "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>"],
+    [4, "", Buffer.from(content, "latin1")],
+  ];
+  for (const [num, x, stream] of objects) {
+    if (stream !== undefined) {
+      parts.push(enc.encode(num + " 0 obj\\n<< " + x + " /Length " + stream.length + " >>\\nstream\\n"), stream, enc.encode("\\nendstream\\nendobj\\n"));
+    } else parts.push(enc.encode(num + " 0 obj\\n" + x + "\\nendobj\\n"));
+  }
+  parts.push(enc.encode("trailer\\n<< /Root 1 0 R >>\\n%%EOF\\n"));
+  return Buffer.concat(parts.map((p) => Buffer.from(p)));
+}
+async function one(label, body) {
+  const r = await textChecks.run({ operator: false, file: { name: "a.pdf", bytes: new Uint8Array(rawBin("BT /F1 12 Tf " + body)) } });
+  const code = r == null ? "PASS" : r.code;
+  if (code !== TEXT_REASONS.UNDECODABLE && code !== "INTAKE-UNDECODABLE") {
+    console.error(label, "expected UNDECODABLE got", code);
+    process.exit(2);
+  }
+  return code;
+}
+const fp20 = Array.from({ length: 20 }, (_, i) => "(word" + i + ") Tj").join(" ");
+await one("fp20", fp20 + " (survey more");
+const pads = Array.from({ length: 29 }, (_, i) => "(pad" + i + ") Tj").join(" ");
+await one("n32atk", pads + " (" + a + ") Tj (" + b + ") Tj (" + c + ") Tj (" + SEX + " more");
+console.log(JSON.stringify({ ok: true, fp20: true, n32atk: true }));
+`;
+  const r = spawnSync(process.execPath, ["--max-old-space-size=128", "--input-type=module", "-e", script], {
+    encoding: "utf8",
+    timeout: 120000,
+    maxBuffer: 4 * 1024 * 1024,
+  });
+  assert.equal(r.signal, null, "must not Abort/signal: " + r.signal + " stderr=" + (r.stderr || "").slice(0, 500));
+  assert.equal(r.status, 0, "exit " + r.status + " stderr=" + (r.stderr || "").slice(0, 800) + " stdout=" + (r.stdout || "").slice(0, 400));
+  assert.doesNotMatch(r.stderr || "", /heap out of memory|FATAL ERROR|Allocation failed/i);
+  assert.match(r.stdout || "", /"ok":true/);
+});
