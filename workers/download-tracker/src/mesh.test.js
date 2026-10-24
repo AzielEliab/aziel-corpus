@@ -59,6 +59,8 @@ import {
   dualNodesLabel,
   meshIncludesSiteViewers,
   peekMeshDualCounts,
+  readMeshDualLastGood,
+  resetMeshDualLastGood,
   publicLiveNodes,
   scalarCount,
   statbarClockScript,
@@ -626,6 +628,142 @@ test("peekMeshDualCounts reads human plane and never Softwares roster", async ()
     },
   };
   assert.deepEqual(await peekMeshDualCounts(slowLocal, { timeoutMs: 0 }), { nodes: 11, liveNodes: 8 });
+  const withSite = {
+    AZIEL_RUNTIME: {
+      async fetch() {
+        return new Response(JSON.stringify({
+          human_mesh_users: 1,
+          human_uses: 10,
+          nodes: 11,
+          live_nodes: 1,
+          software_nodes: 41,
+          live_nodes_plane: "human-mesh-users",
+        }), { headers: { "Content-Type": "application/json" } });
+      },
+    },
+    DOWNLOADS: {
+      async get(key) {
+        if (key !== "presence|page-viewers:v1") return null;
+        const soon = Date.now() + 60_000;
+        return JSON.stringify({ viewers: { a: soon, b: soon, c: soon }, count: 3 });
+      },
+      async put() {},
+      async list() { throw new Error("KV.list forbidden"); },
+    },
+  };
+  assert.deepEqual(await peekMeshDualCounts(withSite, { timeoutMs: 0 }), { nodes: 11, liveNodes: 4 });
+});
+
+function meshDualMemCache() {
+  const map = new Map();
+  return {
+    async match(req) {
+      const url = typeof req === "string" ? req : req.url;
+      const body = map.get(url);
+      if (body == null) return null;
+      return new Response(body, { status: 200, headers: { "Content-Type": "application/json" } });
+    },
+    async put(req, res) {
+      const url = typeof req === "string" ? req : req.url;
+      map.set(url, await res.clone().text());
+    },
+  };
+}
+
+test("search SSR peek timeout is an em dash, then last-good, never a fake 0", async () => {
+  resetMeshDualLastGood();
+  const honest = await peekMeshDualCounts({
+    AZIEL_RUNTIME: {
+      async fetch() {
+        return new Response(JSON.stringify({
+          human_mesh_users: 0,
+          human_uses: 0,
+          nodes: 0,
+          live_nodes: 0,
+          includes_site_viewers: true,
+          live_nodes_plane: "human-mesh-users-site-viewers",
+          software_nodes: 41,
+        }), { headers: { "Content-Type": "application/json" } });
+      },
+    },
+  }, { timeoutMs: 0 });
+  assert.deepEqual(honest, { nodes: 0, liveNodes: 0 });
+  resetMeshDualLastGood();
+
+  const cache = meshDualMemCache();
+  let release = () => {};
+  const gate = new Promise((resolve) => { release = resolve; });
+  const env = {
+    AZIEL_RUNTIME: {
+      async fetch() {
+        await gate;
+        return new Response(JSON.stringify({
+          human_mesh_users: 4,
+          human_uses: 102689,
+          nodes: 102693,
+          live_nodes: 98,
+          includes_site_viewers: true,
+          site_live_viewers: 94,
+          live_nodes_plane: "human-mesh-users-site-viewers",
+          software_nodes: 41,
+        }), { headers: { "Content-Type": "application/json" } });
+      },
+    },
+  };
+  const first = await peekMeshDualCounts(env, { timeoutMs: 30, cache });
+  assert.equal(first.unknown, true);
+  assert.equal(first.timed_out, true);
+  assert.equal(first.nodes, null);
+  assert.equal(first.liveNodes, null);
+  assert.notEqual(first.liveNodes, 0);
+  const unknownHtml = page("Corpus Search", "<p>shelf</p>", {
+    path: "/search",
+    kind: "search",
+    views: 3,
+    downloads: 1,
+    nodesUnknown: true,
+  });
+  assert.match(unknownHtml, /id="Nodes">\u2014</);
+  assert.match(unknownHtml, /id="LiveNodes">\u2014</);
+  assert.doesNotMatch(unknownHtml, /id="Nodes">0</);
+  assert.doesNotMatch(unknownHtml, /id="LiveNodes">0</);
+
+  release();
+  await new Promise((resolve) => setTimeout(resolve, 40));
+  resetMeshDualLastGood();
+  const saved = await readMeshDualLastGood(cache);
+  assert.equal(saved.nodes, 102693);
+  assert.equal(saved.liveNodes, 98);
+  assert.notEqual(saved.liveNodes, 102693);
+  assert.notEqual(saved.liveNodes, 41);
+
+  resetMeshDualLastGood();
+  let releaseLate = () => {};
+  const gateLate = new Promise((resolve) => { releaseLate = resolve; });
+  const slowAgain = {
+    AZIEL_RUNTIME: {
+      async fetch() {
+        await gateLate;
+        return new Response(JSON.stringify({
+          human_mesh_users: 4,
+          human_uses: 102689,
+          nodes: 102693,
+          live_nodes: 98,
+          includes_site_viewers: true,
+          live_nodes_plane: "human-mesh-users-site-viewers",
+        }), { headers: { "Content-Type": "application/json" } });
+      },
+    },
+  };
+  const second = await peekMeshDualCounts(slowAgain, { timeoutMs: 30, cache });
+  assert.equal(second.source, "last-good");
+  assert.equal(second.unknown, false);
+  assert.equal(second.timed_out, true);
+  assert.equal(second.nodes, 102693);
+  assert.equal(second.liveNodes, 98);
+  releaseLate();
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  resetMeshDualLastGood();
 });
 
 test("public Live Nodes paints fleet live_nodes and never a library-only recount", () => {
@@ -667,13 +805,28 @@ test("public Live Nodes paints fleet live_nodes and never a library-only recount
   };
   assert.equal(meshIncludesSiteViewers(localOnly), false);
   assert.equal(publicLiveNodes(localOnly), 2);
-  assert.equal(livePresenceCount(localOnly, { page_viewers: 9 }), 2);
+  assert.equal(livePresenceCount(localOnly, { page_viewers: 9 }), 11);
+  assert.notEqual(livePresenceCount(localOnly, { page_viewers: 9 }), 20);
+  assert.equal(livePresenceCount({ human_mesh_users: 2, human_uses: 10, nodes: 12, software_nodes: 41 }, { page_viewers: 9 }), 11);
   assert.notEqual(publicLiveNodes(localOnly), 9);
   assert.notEqual(publicLiveNodes(localOnly), 11);
 
   const usesSum = { human_mesh_users: 0, human_uses: 28032, live_nodes: 28032, nodes: 28032, software_nodes: 41 };
   assert.equal(publicLiveNodes(usesSum), 0);
   assert.equal(nodesCount(usesSum), 28032);
+  const mcpUses = { nodes: 102693, human_mesh_users: 0, human_uses: 102693, live_nodes: 102693, software_nodes: 41 };
+  assert.equal(nodesCount(mcpUses), 102693);
+  assert.equal(publicLiveNodes(mcpUses), 0);
+  assert.equal(livePresenceCount(mcpUses), 0);
+  assert.notEqual(livePresenceCount(mcpUses), mcpUses.human_uses);
+  const flaggedUses = {
+    ...mcpUses,
+    includes_site_viewers: true,
+    live_nodes_plane: "human-mesh-users-site-viewers",
+  };
+  assert.equal(publicLiveNodes(flaggedUses), 0);
+  assert.equal(livePresenceCount(flaggedUses, { page_viewers: 3 }), 3);
+  assert.notEqual(livePresenceCount(flaggedUses, { page_viewers: 3 }), flaggedUses.human_uses);
 
   assert.match(LIVE_NODES_NOTE, /hedidntjump\.com is excluded/);
   assert.match(LIVE_NODES_NOTE, /godlock\.uk, azieleliab\.com, and azielcorpuslibrary\.net/);
@@ -734,6 +887,7 @@ test("LIVE Worker: live_nodes is presence; Nodes is users + uses; viewers add wi
   assert.match(meshStatusHtml(decorated), /Nodes · 27147/);
   const withViewers = decorateMeshDoc(live, { page_viewers: { page_viewers: 2, count: 2, source: "library-presence" } });
   assert.equal(withViewers.live_nodes, 2);
+  assert.equal(withViewers.live_nodes_align, "mesh+site");
   assert.equal(withViewers.page_viewers, 2);
   assert.equal(withViewers.nodes_count, 27147);
   assert.equal(withViewers.page_viewers_source, "library-presence");
@@ -747,6 +901,7 @@ test("LIVE Worker: live_nodes is presence; Nodes is users + uses; viewers add wi
     live_nodes_components: { human_mesh_users: 0, page_viewers: 4, software_nodes_excluded: true },
   }, { page_viewers: { page_viewers: 9, count: 9 } });
   assert.equal(runtimeAgg.live_nodes, 4);
+  assert.equal(runtimeAgg.live_nodes_align, "mesh");
   assert.equal(runtimeAgg.page_viewers, 4);
 });
 
@@ -1324,8 +1479,8 @@ test("runtime skill and manifest cite mesh; GET mesh does not increment uses", (
 
 test("human chrome shows Nodes#/LiveNodes# dual pair without mesh-off copy", () => {
   const html = page("Search", "<div class=\"card\">shelf</div>", { path: "/", kind: "search", nodes: 12, liveNodes: 2 });
-  assert.match(html, /id="nodes">12</);
-  assert.match(html, /id="livenodes">2</);
+  assert.match(html, /id="Nodes">12</);
+  assert.match(html, /id="LiveNodes">2</);
   assert.match(html, /stat-lbl">Nodes \/ Live Nodes</);
   assert.doesNotMatch(html, /stat-lbl">Nodes</);
   assert.match(html, /class="stat-slash"/);
@@ -1367,8 +1522,10 @@ test("human chrome shows Nodes#/LiveNodes# dual pair without mesh-off copy", () 
   assert.doesNotMatch(statbarClockScript(), /Promise\.all/);
   assert.doesNotMatch(statbarClockScript(), /users\+\(viewers/);
   assert.doesNotMatch(statbarClockScript(), /requestIdleCallback/);
-  assert.match(statbarClockScript(), /set\("nodes"/);
-  assert.match(statbarClockScript(), /set\("livenodes"/);
+  assert.match(statbarClockScript(), /set\("Nodes"/);
+  assert.match(statbarClockScript(), /set\("LiveNodes"/);
+  assert.match(statbarClockScript(), /live_nodes_align/);
+  assert.match(statbarClockScript(), /page_viewers_source/);
   assert.match(statbarClockScript(), /set\("views"/);
   assert.match(statbarClockScript(), /getElementById\(id\)/);
   assert.doesNotMatch(statbarClockScript(), /nodes&&d.nodes.length/);
@@ -1378,7 +1535,7 @@ test("human chrome shows Nodes#/LiveNodes# dual pair without mesh-off copy", () 
   const src = statbarClockScript();
   const start = src.indexOf("function scalar");
   const end = src.indexOf("function fmt");
-  const dual = new Function(src.slice(start, end) + "\nreturn {dual:dual,includesSite:includesSite};")();
+  const dual = new Function(src.slice(start, end) + "\nreturn {dual:dual,includesSite:includesSite,paintable:paintable};")();
   const fleet = {
     human_mesh_users: 1,
     human_uses: 100,
@@ -1405,9 +1562,26 @@ test("human chrome shows Nodes#/LiveNodes# dual pair without mesh-off copy", () 
     software_nodes: 41,
   };
   assert.equal(dual.includesSite(localOnly), false);
-  assert.deepEqual(dual.dual(localOnly), { nodes: 12, live: 2 });
+  assert.deepEqual(dual.dual(localOnly), { nodes: 12, live: 11 });
+  assert.notEqual(dual.dual(localOnly).live, 20);
+  assert.equal(dual.dual({
+    nodes: 12,
+    human_mesh_users: 2,
+    human_uses: 10,
+    live_nodes: 5,
+    live_nodes_align: "mesh+site",
+    page_viewers: 3,
+    software_nodes: 41,
+  }).live, 5);
   assert.deepEqual(dual.dual({ nodes: 41, software_nodes: 41, live_nodes: 41 }), { nodes: 0, live: 0 });
   assert.equal(dual.dual({ human_mesh_users: 0, human_uses: 28032, live_nodes: 28032, nodes: 28032 }).live, 0);
+  assert.equal(dual.paintable({}), false);
+  assert.equal(dual.paintable({ error: "not found" }), false);
+  const usesAsPeople = { nodes: 102693, human_mesh_users: 0, human_uses: 102693, live_nodes: 102693, software_nodes: 41 };
+  assert.equal(dual.dual(usesAsPeople).nodes, 102693);
+  assert.equal(dual.dual(usesAsPeople).live, 0);
+  assert.notEqual(dual.dual(usesAsPeople).live, usesAsPeople.human_uses);
+  assert.equal(dual.dual({ ...usesAsPeople, includes_site_viewers: true, live_nodes_plane: "human-mesh-users-site-viewers" }).live, 0);
   const passThrough = {
     nodes: 28203,
     live_nodes: 4,

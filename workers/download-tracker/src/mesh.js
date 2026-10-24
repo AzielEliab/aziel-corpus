@@ -1096,26 +1096,73 @@ export function publicLiveNodes(doc) {
   const software = scalarCount(doc.software_nodes);
   const users = scalarCount(doc.human_mesh_users);
   const softwareLive = software != null && live != null && live === software && software > 0;
-  if (meshIncludesSiteViewers(doc) && live != null && !softwareLive) return live;
+  if (meshIncludesSiteViewers(doc) && live != null && !softwareLive && !liveNodesIsUsesSum(doc, live)) return live;
   if (users != null) return users;
   return 0;
 }
 
-/** Same pair the homepage statbar paints. local is ignored — not a fleet count. */
+/** Non-negative page-viewer count. Objects and rosters are not a number. */
+function localViewerCount(local) {
+  if (local == null || local === "") return 0;
+  if (typeof local === "number") return Number.isFinite(local) && local > 0 ? Math.floor(local) : 0;
+  if (typeof local !== "object" || Array.isArray(local)) return 0;
+  const n = scalarCount(local.page_viewers != null ? local.page_viewers : local.count);
+  return n != null && n > 0 ? Math.floor(n) : 0;
+}
+
+/**
+ * True when live_nodes is the cited-uses sum (Nodes), not presence.
+ * Painting that number as Live Nodes would count uses twice.
+ */
+function liveNodesIsUsesSum(doc, live) {
+  if (!doc || live == null) return false;
+  const users = scalarCount(doc.human_mesh_users);
+  const uses = scalarCount(doc.human_uses);
+  if (uses == null || uses <= 0) return false;
+  const sum = (users || 0) + uses;
+  if (live === sum) return true;
+  const named = scalarCount(doc.nodes);
+  return named != null && live === named && named === sum;
+}
+
+/**
+ * Homepage Live Nodes (LiveNodes#).
+ * Fleet live_nodes when the mesh document already includes site viewers
+ * (godlock.uk + azieleliab.com + azielcorpuslibrary.net). Do not add this
+ * site again. Otherwise human_mesh_users + this origin's concurrent human
+ * page viewers. A library-presence / mesh+site live_nodes is that sum
+ * already. Never software_nodes. Never human_uses. hedidntjump.com is not
+ * a viewer source on this Worker. A bare live_nodes with no human plane
+ * and no site-viewer envelope stays 0.
+ */
+export function homepageLiveCount(doc, local) {
+  if (!doc || typeof doc !== "object") return localViewerCount(local);
+  if (softwareCoupledLiveNodes(doc)) return 0;
+  if (meshIncludesSiteViewers(doc)) {
+    const fleetLive = scalarCount(doc.live_nodes);
+    if (fleetLive != null && !liveNodesIsUsesSum(doc, fleetLive)) return publicLiveNodes(doc);
+  }
+  const live = scalarCount(doc.live_nodes);
+  const merged = doc.page_viewers_source === "library-presence" || doc.live_nodes_align === "mesh+site";
+  if (merged && live != null && !liveNodesIsUsesSum(doc, live)) return live;
+  if (doc.live_nodes_align === "mesh" && live != null && !liveNodesIsUsesSum(doc, live)) return live;
+  const users = scalarCount(doc.human_mesh_users) || 0;
+  return users + localViewerCount(local);
+}
+
+/** Same pair the homepage statbar paints. */
 export function chromeDualCounts(doc, local) {
-  void local;
-  if (!doc || typeof doc !== "object") return { nodes: 0, live: 0 };
-  return { nodes: nodesCount(doc), live: publicLiveNodes(doc) };
+  if (!doc || typeof doc !== "object") return { nodes: 0, live: localViewerCount(local) };
+  return { nodes: nodesCount(doc), live: homepageLiveCount(doc, local) };
 }
 
 /**
  * Live Nodes for the homepage SSR pair.
  * Fleet live_nodes when the mesh doc includes site viewers.
- * Never a local-only viewer count.
+ * Otherwise human mesh users plus this site's page viewers, once.
  */
 export function livePresenceCount(doc, local) {
-  void local;
-  return publicLiveNodes(doc);
+  return homepageLiveCount(doc, local);
 }
 
 /** Compact Nodes#/LiveNodes# pair. Softwares never enter either side. */
@@ -1129,37 +1176,179 @@ export function dualNodesLabel(doc) {
   return pair.nodes + "/" + pair.liveNodes;
 }
 
-/** Short-timeout mesh peek for homepage SSR. Fleet live_nodes only — does not read library viewers. Client clock still refreshes. */
-export async function peekMeshDualCounts(env, { timeoutMs = 400 } = {}) {
-  const empty = { nodes: 0, liveNodes: 0 };
+/** Private Cache API key. /__lastgood/ is not a public route. */
+export const MESH_DUAL_LASTGOOD_URL = "https://azielcorpuslibrary.net/__lastgood/mesh-dual-counts-v1";
+
+/** Same-isolate copy so a 400ms miss can still paint the previous real read. */
+let memoryMeshDual = null;
+
+export function resetMeshDualLastGood() {
+  memoryMeshDual = null;
+}
+
+function finiteDualPair(pair) {
+  if (!pair || typeof pair !== "object") return null;
+  const nodes = scalarCount(pair.nodes);
+  const live = scalarCount(pair.liveNodes != null ? pair.liveNodes : pair.live);
+  if (nodes == null || live == null || nodes < 0 || live < 0) return null;
+  return { nodes: Math.floor(nodes), liveNodes: Math.floor(live) };
+}
+
+function rememberMeshDual(pair) {
+  const clean = finiteDualPair(pair);
+  if (!clean) return null;
+  memoryMeshDual = { ...clean, at: new Date().toISOString() };
+  return memoryMeshDual;
+}
+
+async function meshDualCacheStore(cache) {
+  if (cache && typeof cache.match === "function") return cache;
+  try {
+    if (typeof caches !== "undefined" && caches && caches.default) return caches.default;
+  } catch {
+    /* node tests have no Cache API */
+  }
+  return null;
+}
+
+/** Last successful homepage pair. Memory first, then the Cache API. Never invents 0. */
+export async function readMeshDualLastGood(cache) {
+  if (memoryMeshDual) {
+    return { nodes: memoryMeshDual.nodes, liveNodes: memoryMeshDual.liveNodes, source: "last-good", unknown: false };
+  }
+  const store = await meshDualCacheStore(cache);
+  if (!store) return null;
+  try {
+    const hit = await store.match(new Request(MESH_DUAL_LASTGOOD_URL, { method: "GET" }));
+    if (!hit) return null;
+    const doc = await hit.json();
+    const clean = rememberMeshDual(doc);
+    if (!clean) return null;
+    return { nodes: clean.nodes, liveNodes: clean.liveNodes, source: "last-good", unknown: false };
+  } catch {
+    return null;
+  }
+}
+
+async function writeMeshDualLastGood(pair, cache) {
+  const clean = rememberMeshDual(pair);
+  if (!clean) return false;
+  const store = await meshDualCacheStore(cache);
+  if (!store || typeof store.put !== "function") return true;
+  try {
+    await store.put(
+      new Request(MESH_DUAL_LASTGOOD_URL, { method: "GET" }),
+      new Response(JSON.stringify({
+        nodes: clean.nodes,
+        liveNodes: clean.liveNodes,
+        at: clean.at,
+        author: AUTHOR,
+      }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          "Cache-Control": "public, max-age=604800",
+        },
+      })
+    );
+    return true;
+  } catch {
+    return true;
+  }
+}
+
+const MESH_DUAL_UNKNOWN = Object.freeze({
+  nodes: null,
+  liveNodes: null,
+  unknown: true,
+  timed_out: false,
+  source: "unavailable",
+});
+
+/**
+ * Short-timeout mesh peek for /search SSR.
+ * Runtime often needs longer than 400ms. A miss must not paint 0/0.
+ * Last-good (this isolate, then Cache API) is the previous real pair.
+ * No last-good: unknown, which the stat bar renders as an em dash.
+ * When the runtime envelope already includes site viewers, do not read
+ * library presence. Otherwise add this site's human page viewers once.
+ * The client clock still refreshes. GET / (the film) does not call this.
+ */
+export async function peekMeshDualCounts(env, { timeoutMs = 400, ctx, cache } = {}) {
   const work = (async () => {
     const fake = new Request(HOST + "/v1/mesh", {
       method: "GET",
       headers: { Accept: "application/json", "User-Agent": UA },
     });
     const res = await fetchRuntimeMesh(fake, "/v1/mesh", env, null);
-    if (!res) return empty;
+    if (!res) return { miss: true };
     let doc = null;
     try {
       doc = await res.json();
     } catch {
-      return empty;
+      return { miss: true };
     }
-    if (!doc || typeof doc !== "object") return empty;
-    return dualNodesCounts(doc);
+    if (!doc || typeof doc !== "object" || Array.isArray(doc)) return { miss: true };
+    let local = null;
+    if (!meshIncludesSiteViewers(doc)) {
+      try {
+        local = await readPageViewers(env);
+      } catch {
+        local = null;
+      }
+    }
+    const pair = dualNodesCounts(doc, local);
+    await writeMeshDualLastGood(pair, cache);
+    return { nodes: pair.nodes, liveNodes: pair.liveNodes };
   })();
+
   const ms = Number(timeoutMs);
   if (!Number.isFinite(ms) || ms <= 0) {
     try {
-      return await work;
+      const got = await work;
+      if (got && got.miss) return await unknownMeshDual(cache, { timed_out: false, source: "unavailable" });
+      return { nodes: got.nodes, liveNodes: got.liveNodes };
     } catch {
-      return empty;
+      return await unknownMeshDual(cache, { timed_out: false, source: "unavailable" });
     }
   }
-  return Promise.race([
-    work.catch(() => empty),
-    new Promise((resolve) => setTimeout(() => resolve(empty), ms)),
+
+  let timer;
+  const raced = await Promise.race([
+    work.then((v) => ({ done: true, v })).catch(() => ({ done: true, v: { miss: true } })),
+    new Promise((resolve) => {
+      timer = setTimeout(() => resolve({ done: false, timedOut: true }), ms);
+    }),
   ]);
+  if (timer) clearTimeout(timer);
+
+  if (raced.done && raced.v && !raced.v.miss) {
+    return { nodes: raced.v.nodes, liveNodes: raced.v.liveNodes };
+  }
+
+  const late = work.then(() => null).catch(() => null);
+  if (ctx && typeof ctx.waitUntil === "function") {
+    try { ctx.waitUntil(late); } catch { /* the promise still runs in this isolate */ }
+  }
+
+  return unknownMeshDual(cache, {
+    timed_out: raced.timedOut === true,
+    source: raced.timedOut ? "timeout" : "unavailable",
+  });
+}
+
+async function unknownMeshDual(cache, { timed_out, source }) {
+  const saved = await readMeshDualLastGood(cache);
+  if (saved) {
+    return {
+      nodes: saved.nodes,
+      liveNodes: saved.liveNodes,
+      unknown: false,
+      timed_out: timed_out === true,
+      source: "last-good",
+    };
+  }
+  return { ...MESH_DUAL_UNKNOWN, timed_out: timed_out === true, source: source || "unavailable" };
 }
 
 /** Worker SoT after aziel-runtime#151 — live_nodes_plane or human_* fields. */
@@ -1267,6 +1456,10 @@ export function humanLiveNodesFields(doc = {}, local) {
     page_viewers: viewers,
     human_page_viewers: viewers,
     page_viewers_source: aggregated ? (src.page_viewers_source || "runtime") : "library-presence",
+    // mesh = fleet live_nodes already includes site viewers. mesh+site = this
+    // response's live_nodes is human_mesh_users plus this site's viewers.
+    // Homepage chrome paints that number and does not add viewers again.
+    live_nodes_align: aggregated ? "mesh" : "mesh+site",
     page_viewers_spec: PRESENCE_SPEC,
     page_viewers_plane: PAGE_VIEWERS_PLANE,
     live_nodes_components: components,
@@ -1643,11 +1836,24 @@ export function statbarClockScript() {
       nodes=(users||0)+(uses||0);
     }
     var softwareLive=software!=null&&live!=null&&live===software&&software>0;
+    var sum=(users==null&&uses==null)?null:(users||0)+(uses||0);
+    var usesAsLive=uses!=null&&uses>0&&sum!=null&&live!=null&&live===sum;
+    var merged=j.live_nodes_align==="mesh"||j.live_nodes_align==="mesh+site"||j.page_viewers_source==="library-presence";
     var presence;
-    if(includesSite(j)&&live!=null&&!softwareLive)presence=live;
+    if(softwareLive||usesAsLive)presence=usesAsLive&&users!=null?users:0;
+    else if(includesSite(j)&&live!=null)presence=live;
+    else if(merged&&live!=null)presence=live;
     else if(users!=null)presence=users;
     else presence=0;
     return {nodes:nodes,live:presence};
+  }
+  function paintable(mesh){
+    if(!mesh||typeof mesh!=="object")return false;
+    if(scalar(mesh.nodes)!=null)return true;
+    if(scalar(mesh.live_nodes)!=null)return true;
+    if(scalar(mesh.human_mesh_users)!=null)return true;
+    if(scalar(mesh.human_uses)!=null)return true;
+    return false;
   }
   function fmt(n){var x=Number(n);return isFinite(x)?x.toLocaleString("en-US"):String(n);}
   function set(id,n){var el=document.getElementById(id);if(el)el.textContent=fmt(n);}
@@ -1661,20 +1867,20 @@ export function statbarClockScript() {
     });
   }
   function beat(){
-    if(document.visibilityState&&document.visibilityState==="hidden")return;
-    fetch("/v1/presence",{method:"POST",credentials:"same-origin",headers:{"Accept":"application/json","Content-Type":"application/json"},body:"{}",keepalive:true}).catch(function(){});
+    if(document.visibilityState&&document.visibilityState==="hidden")return Promise.resolve();
+    return fetch("/v1/presence",{method:"POST",credentials:"same-origin",headers:{"Accept":"application/json","Content-Type":"application/json"},body:"{}",keepalive:true}).catch(function(){});
   }
   function paintMesh(){
     return meshDoc().then(function(mesh){
+      if(!paintable(mesh))return;
       var d=dual(mesh);
-      set("nodes",d.nodes);
-      set("livenodes",d.live);
+      set("Nodes",d.nodes);
+      set("LiveNodes",d.live);
     });
   }
   function run(){
-    if(!document.getElementById("views")&&!document.getElementById("nodes"))return;
-    beat();
-    paintMesh().catch(function(){setTimeout(function(){paintMesh().catch(function(){});},1200);});
+    if(!document.getElementById("views")&&!document.getElementById("Nodes"))return;
+    beat().then(function(){return paintMesh();}).catch(function(){setTimeout(function(){paintMesh().catch(function(){});},1200);});
     fetch("/v1/stats",{headers:{"Accept":"application/json","User-Agent":"Mozilla/5.0"}}).then(function(r){return r.json();}).then(function(s){
       if(!s)return;
       if(s.views!=null)set("views",s.views);
