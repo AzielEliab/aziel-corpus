@@ -19,6 +19,9 @@ const BANNED = /Collin Horton|legalName|homeLocation|familyName|grok\.me|__grok/
 test("film theater document is the front door only", () => {
   const html = filmTheaterHtml();
   assert.match(html, /<main class="theater">/);
+  assert.doesNotMatch(html, /id="Nodes"/);
+  assert.doesNotMatch(html, /id="LiveNodes"/);
+  assert.doesNotMatch(html, /class="statbar"/);
   assert.match(html, /What matters is the record\./);
   assert.match(html, /Not the name\./);
   assert.match(html, /I do not ask you to believe a name\./);
@@ -113,6 +116,9 @@ test("GET / is the film and GET /search keeps the library hub", async () => {
   assert.match(theater, /<main class="theater">/);
   assert.match(theater, /class="enter" href="\/search"/);
   assert.doesNotMatch(theater, /class="brandrow"/);
+  assert.doesNotMatch(theater, /id="Nodes"/);
+  assert.doesNotMatch(theater, /id="LiveNodes"/);
+  assert.doesNotMatch(theater, /class="statbar"/);
   assert.doesNotMatch(theater, /Search the libraries/);
   assert.doesNotMatch(theater, /class="soft-card"/);
   assert.ok(views >= 1);
@@ -144,6 +150,10 @@ test("GET / is the film and GET /search keeps the library hub", async () => {
   assert.match(hub, /class="brandrow nav1"/);
   assert.match(hub, /href="\/search">Search</);
   assert.match(hub, /action="\/search"/);
+  assert.match(hub, /id="Nodes">\u2014</);
+  assert.match(hub, /id="LiveNodes">\u2014</);
+  assert.doesNotMatch(hub, /id="Nodes">0</);
+  assert.doesNotMatch(hub, /id="LiveNodes">0</);
   assert.doesNotMatch(hub, /<main class="theater">/);
   assert.doesNotMatch(hub, /class="enter"/);
 });

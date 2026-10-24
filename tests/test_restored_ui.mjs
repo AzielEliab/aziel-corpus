@@ -157,8 +157,8 @@ test("homepage brandrow is Aziel Corpus Library with Upload, Login, and Sign up"
   const bar = html.match(/<div class="statbar"[^>]*>[\s\S]*?<\/div>/)[0];
   assert.match(bar, /id="views">380,386</);
   assert.match(bar, /id="downloads">2,199</);
-  assert.match(bar, /id="nodes">28,032</);
-  assert.match(bar, /id="livenodes">0</);
+  assert.match(bar, /id="Nodes">28,032</);
+  assert.match(bar, /id="LiveNodes">0</);
   assert.match(bar, />Views</);
   assert.match(bar, />Downloads</);
   assert.match(bar, />Nodes \/ Live Nodes</);
@@ -192,8 +192,8 @@ test("homepage views/downloads counter is a display, not a button", () => {
   assert.match(pills, /aria-label="Library views, downloads, and Nodes\/Live Nodes"/);
   assert.match(pills, /id="views">380,386</);
   assert.match(pills, /id="downloads">2,199</);
-  assert.match(pills, /id="nodes">28,032</);
-  assert.match(pills, /id="livenodes">0</);
+  assert.match(pills, /id="Nodes">28,032</);
+  assert.match(pills, /id="LiveNodes">0</);
   assert.match(pills, /Views/);
   assert.match(pills, /Downloads/);
   assert.match(pills, /Nodes \/ Live Nodes/);
@@ -206,8 +206,13 @@ test("homepage views/downloads counter is a display, not a button", () => {
   assert.doesNotMatch(pills, /software_nodes/);
   assert.equal(brandCountPills({}), "");
   assert.match(brandCountPills({ views: 0, downloads: 0 }), /id="views">0</);
-  assert.match(brandCountPills({ views: 0, downloads: 0 }), /id="nodes">0</);
-  assert.match(brandCountPills({ views: 0, downloads: 0 }), /id="livenodes">0</);
+  assert.match(brandCountPills({ views: 0, downloads: 0 }), /id="Nodes">0</);
+  assert.match(brandCountPills({ views: 0, downloads: 0 }), /id="LiveNodes">0</);
+  const unknown = brandCountPills({ views: 1, downloads: 1, nodesUnknown: true });
+  assert.match(unknown, /id="Nodes">\u2014</);
+  assert.match(unknown, /id="LiveNodes">\u2014</);
+  assert.doesNotMatch(unknown, /id="Nodes">0</);
+  assert.doesNotMatch(unknown, /id="LiveNodes">0</);
   const other = page("Software", softwareBody({
     products: [{ name: "aziel-runtime", version: "catalog", root: true, blurb: "Root source", links: [{ href: "/runtime", label: "Site front door", primary: true }] }],
   }), { path: "/software", kind: "software", views: 9, downloads: 2 });
@@ -267,8 +272,8 @@ test("homepage LCP fold keeps hero first and leaves entity-graph plus doors inta
   assert.match(html, /fetchpriority="high"/);
   assert.match(html, /id="views">12</);
   assert.match(html, /id="downloads">3</);
-  assert.match(html, /id="nodes">0</);
-  assert.match(html, /id="livenodes">0</);
+  assert.match(html, /id="Nodes">0</);
+  assert.match(html, /id="LiveNodes">0</);
   assert.match(html, /class="statbar"/);
   assert.match(html, /fetch\("\/v1\/mesh"/);
   assert.match(html, /fetch\("\/v1\/stats"/);

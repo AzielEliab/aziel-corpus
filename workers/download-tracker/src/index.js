@@ -386,12 +386,12 @@ function withRateCookie(res, limited) {
 
 function workCardsHtml() { return ""; }
 
-async function indexHtml(env, request, signed) {
+async function indexHtml(env, request, signed, ctx) {
   const url = new URL(request.url);
   const browse = parseBrowseParams(url);
   const searching = homeSearchActive(browse);
   const held = String(url.searchParams.get("received") || "") === "held";
-  const meshP = peekMeshDualCounts(env);
+  const meshP = peekMeshDualCounts(env, { ctx });
   const rowsP = searching
     ? searchRecords(env, { q: browse.q, library: browse.lib, sort: browse.sort, author: browse.author, domain: browse.domain, subject: browse.subject, keyword: browse.keyword, limit: 300 })
     : Promise.resolve([]);
@@ -417,7 +417,7 @@ async function indexHtml(env, request, signed) {
     trending: topPapers(metrics, catalog, "views", 5),
     downloaded: topPapers(metrics, catalog, "downloads", 5),
     host: HOST,
-  }), { signed: session, path: LIBRARY_HUB_PATH, kind: "search", views: stats.views || 0, downloads: stats.downloads || 0, nodes: mesh.nodes, liveNodes: mesh.liveNodes, donateStrip: false, ecosystem: false });
+  }), { signed: session, path: LIBRARY_HUB_PATH, kind: "search", views: stats.views || 0, downloads: stats.downloads || 0, nodes: mesh.unknown ? null : mesh.nodes, liveNodes: mesh.unknown ? null : mesh.liveNodes, nodesUnknown: mesh.unknown === true, donateStrip: false, ecosystem: false });
 }
 
 function llmsTxt() {
@@ -600,7 +600,7 @@ async function handleFetch(request, env, ctx) {
       if (request.method === "HEAD") {
         return crawlResponse(request, "", "text/html; charset=utf-8", htmlHeaders);
       }
-      const html = await indexHtml(env, request, signedEarly);
+      const html = await indexHtml(env, request, signedEarly, ctx);
       return attachVid(crawlResponse(request, streamLcpHtml(html), "text/html; charset=utf-8", htmlHeaders));
     }
 

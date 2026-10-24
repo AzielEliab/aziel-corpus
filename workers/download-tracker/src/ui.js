@@ -515,8 +515,13 @@ function formatStatCount(n) {
   return String(n);
 }
 
+/** Em dash: the mesh peek missed and there is no last-good pair. Not a count of zero. */
+export const NODES_UNKNOWN = "\u2014";
+
+const NODES_LIVE_TITLE = "Nodes = human mesh users + cited human uses. Uses count interactions, including /mcp, and are not a count of people. Live Nodes = human mesh users + current human page viewers on azielcorpuslibrary.net, unless runtime GET /v1/mesh already includes site viewers on godlock.uk, azieleliab.com, and azielcorpuslibrary.net — then that fleet total is shown and this site is not added again. An em dash means this paint did not get a mesh read and has no saved pair. Zero is a real count. Not hedidntjump.com. Not Softwares. Not downloads.";
+
 /** Compact homepage Views · Downloads · Nodes#/LiveNodes# counter. Display-only — not a button. */
-export function brandCountPills({ views, downloads, nodes, liveNodes } = {}) {
+export function brandCountPills({ views, downloads, nodes, liveNodes, nodesUnknown = false } = {}) {
   const bits = [];
   if (views != null && views !== "") {
     bits.push(`<span class="stat-group"><span class="stat-num" id="views">${esc(formatStatCount(views))}</span><span class="stat-lbl">Views</span></span>`);
@@ -524,10 +529,10 @@ export function brandCountPills({ views, downloads, nodes, liveNodes } = {}) {
   if (downloads != null && downloads !== "") {
     bits.push(`<span class="stat-group"><span class="stat-num" id="downloads">${esc(formatStatCount(downloads))}</span><span class="stat-lbl">Downloads</span></span>`);
   }
-  if ((views != null && views !== "") || (downloads != null && downloads !== "") || (nodes != null && nodes !== "") || (liveNodes != null && liveNodes !== "")) {
-    const n = nodes != null && nodes !== "" ? nodes : 0;
-    const live = liveNodes != null && liveNodes !== "" ? liveNodes : 0;
-    bits.push(`<span class="stat-group"><span class="stat-num" id="nodes">${esc(formatStatCount(n))}</span><span class="stat-slash" aria-hidden="true">/</span><span class="stat-num" id="livenodes">${esc(formatStatCount(live))}</span><span class="stat-lbl">Nodes / Live Nodes</span></span>`);
+  if (nodesUnknown || (views != null && views !== "") || (downloads != null && downloads !== "") || (nodes != null && nodes !== "") || (liveNodes != null && liveNodes !== "")) {
+    const n = nodesUnknown ? NODES_UNKNOWN : (nodes != null && nodes !== "" ? formatStatCount(nodes) : "0");
+    const live = nodesUnknown ? NODES_UNKNOWN : (liveNodes != null && liveNodes !== "" ? formatStatCount(liveNodes) : "0");
+    bits.push(`<span class="stat-group" title="${esc(NODES_LIVE_TITLE)}"><span class="stat-num" id="Nodes">${esc(n)}</span><span class="stat-slash" aria-hidden="true">/</span><span class="stat-num" id="LiveNodes">${esc(live)}</span><span class="stat-lbl">Nodes / Live Nodes</span></span>`);
   }
   if (!bits.length) return "";
   return `<div class="statbar" role="status" aria-label="Library views, downloads, and Nodes/Live Nodes"><span class="pill stat-counter">${bits.join('<span class="stat-sep" aria-hidden="true">·</span>')}</span></div>`;
@@ -812,7 +817,7 @@ export function readerZoomScript() {
 </script>`;
 }
 
-export function page(title, body, { signed, scripts, path, kind, description, work, runtimeVersion, views, downloads, nodes, liveNodes, donateStrip = true, ecosystem = true } = {}) {
+export function page(title, body, { signed, scripts, path, kind, description, work, runtimeVersion, views, downloads, nodes, liveNodes, nodesUnknown = false, donateStrip = true, ecosystem = true } = {}) {
   const metaOpts = { title, path: path || "/", kind, description, work, runtimeVersion, includeJsonLd: false };
   const homeChrome = kind === "search";
   const showDonate = donateStrip && !homeChrome;
@@ -820,7 +825,7 @@ export function page(title, body, { signed, scripts, path, kind, description, wo
   const zoomScript = String(body || "").includes("class=\"paper-stage") ? readerZoomScript() : "";
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">${sigilHintBootScript()}<title>${esc(documentTitle(kind, title))}</title>${headMeta(metaOpts)}${ingestReceiptHead()}<link rel="preload" href="/sigil.png" as="image" fetchpriority="high"><style>${CSS}</style></head><body>
 <header class="sitehead"><div class="sitehead-inner">
-<div class="brandrow nav1">${brandMarkHtml()}<span class="sigil-click-hint" id="sigilClickHint" aria-hidden="true">click me</span><a class="brand" href="/">Aziel Corpus Library</a>${authBarHtml(signed)}${homeChrome ? brandCountPills({ views, downloads, nodes, liveNodes }) : ""}</div>
+<div class="brandrow nav1">${brandMarkHtml()}<span class="sigil-click-hint" id="sigilClickHint" aria-hidden="true">click me</span><a class="brand" href="/">Aziel Corpus Library</a>${authBarHtml(signed)}${homeChrome ? brandCountPills({ views, downloads, nodes, liveNodes, nodesUnknown }) : ""}</div>
 ${sigilNavHtml()}
 </div></header>
 ${homeChrome ? statbarClockScript() : ""}
