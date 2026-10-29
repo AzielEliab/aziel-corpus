@@ -195,3 +195,21 @@ CREATE INDEX IF NOT EXISTS intake_seen_submitter ON intake_seen(submitter_key, c
 CREATE INDEX IF NOT EXISTS intake_seen_ip ON intake_seen(ip_key, created_utc);
 CREATE INDEX IF NOT EXISTS intake_refusals_submitter ON intake_refusals(submitter_key, created_utc);
 CREATE INDEX IF NOT EXISTS intake_refusals_ip ON intake_refusals(ip_key, created_utc);
+
+-- Secondary lattice for GodLock bidir (AZRT-DUAL-LATTICE-1.0). Hash blocks only.
+-- Pull reads entry_hash across users, sites, uses, host_sites, access_points, nodes, node_mesh.
+-- live stays false. cap7_is_icann stays false. Separate from ledger and document_ledger.
+CREATE TABLE IF NOT EXISTS lattice_secondary (
+  entry_hash TEXT PRIMARY KEY,
+  document_hash TEXT NOT NULL,
+  plane TEXT NOT NULL,
+  target TEXT NOT NULL,
+  offline INTEGER NOT NULL DEFAULT 0,
+  secondary_hash TEXT NOT NULL,
+  position INTEGER,
+  lattice_json TEXT NOT NULL,
+  created_utc TEXT NOT NULL,
+  submitter_key TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_lattice_secondary_plane ON lattice_secondary(plane);
+CREATE INDEX IF NOT EXISTS idx_lattice_secondary_offline ON lattice_secondary(secondary_hash);
