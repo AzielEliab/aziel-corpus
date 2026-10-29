@@ -13,8 +13,9 @@
  * Intake flags are not read or written here.
  * Author: Aziel Eliab.
  */
-import { timingSafeEqual } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { hashPayload } from "./ledger.js";
+import { isOperator } from "./library.js";
 import { isOperatorRequest, operatorTokenFromEnv } from "./rate-limit.js";
 
 export const LATTICE_SPEC = "AZRT-DUAL-LATTICE-1.0";
@@ -156,12 +157,14 @@ export function canonicalBlock(block) {
   };
 }
 
+/** Offline secondary rows are the users plane. A client plane tag cannot move them. */
 function planeFor(body, block) {
+  if (block.offline !== true) return null;
+  const derived = "users";
   const raw = body.plane != null ? body.plane : body.scope;
-  if (raw == null || raw === "") return block.offline === true ? "users" : "sites";
-  const name = String(raw).trim();
-  if (!LATTICE_PLANES.includes(name)) return null;
-  return name;
+  if (raw == null || raw === "") return derived;
+  if (String(raw).trim() !== derived) return null;
+  return derived;
 }
 
 function positionFor(value) {
@@ -202,8 +205,12 @@ async function ensureTable(env) {
     + "secondary_hash TEXT NOT NULL, "
     + "position INTEGER, "
     + "lattice_json TEXT NOT NULL, "
-    + "created_utc TEXT NOT NULL)"
+    + "created_utc TEXT NOT NULL, "
+    + "submitter_key TEXT)"
   ).run();
+  try {
+    await env.DB.prepare("ALTER TABLE lattice_secondary ADD COLUMN submitter_key TEXT").run();
+  } catch { /* column already present */ }
   await env.DB.prepare(
     "CREATE INDEX IF NOT EXISTS idx_lattice_secondary_plane ON lattice_secondary(plane)"
   ).run();
@@ -229,7 +236,7 @@ async function readAggregate(env) {
 
 async function readEntry(env, entryHash) {
   const row = await env.DB.prepare(
-    "SELECT entry_hash, document_hash, plane, target, offline, position, lattice_json "
+    "SELECT entry_hash, document_hash, plane, target, offline, position, lattice_json, submitter_key "
     + "FROM lattice_secondary WHERE entry_hash = ? /* lattice-pull */"
   ).bind(entryHash).first();
   if (!row || row.entry_hash !== entryHash) return null;
@@ -243,6 +250,7 @@ async function readEntry(env, entryHash) {
     target: row.target,
     offline: Number(row.offline) === 1,
     position: row.position == null ? null : Number(row.position),
+    submitter_key: row.submitter_key ? String(row.submitter_key) : "",
     lattice,
   };
 }
@@ -285,7 +293,7 @@ function configuredSecrets(env) {
  * Operator session, corpus operator header, Authorization Bearer,
  * or X-Aziel-Runtime-Token. A public caller is not authorized.
  */
-async function operatorAuthorized(request, env) {
+async function operatorGrant(request, env) {
   let signed = null;
   const token = sessionToken(request);
   if (token && env && env.DB && typeof env.DB.prepare === "function") {
@@ -300,18 +308,51 @@ async function operatorAuthorized(request, env) {
       signed = null;
     }
   }
-  if (isOperatorRequest(request, env, signed)) return true;
+  if (isOperator(signed) && signed.user_id) {
+    return { ok: true, submitter_key: submitterKeyFor("session|" + signed.user_id) };
+  }
   const secrets = configuredSecrets(env);
-  const presented = [headerToken(request, "X-Aziel-Runtime-Token"), bearerToken(request)].filter(Boolean);
+  const presented = [
+    headerToken(request, "X-Aziel-Operator-Token"),
+    headerToken(request, "X-Aziel-Runtime-Token"),
+    bearerToken(request),
+  ].filter(Boolean);
   for (const given of presented) {
     for (const secret of secrets) {
-      if (sameSecret(given, secret)) return true;
+      if (sameSecret(given, secret)) return { ok: true, submitter_key: submitterKeyFor("token|" + given) };
     }
   }
-  return false;
+  if (isOperatorRequest(request, env, signed)) {
+    const material = presented[0] || (signed && signed.user_id) || "";
+    if (!material) return { ok: false, submitter_key: "" };
+    return { ok: true, submitter_key: submitterKeyFor("token|" + material) };
+  }
+  return { ok: false, submitter_key: "" };
 }
 
-const PRIVATE_FIELDS = new Set(["username", "lattice_handles", "offline_user", "offline_username", "user_handle"]);
+const PRIVATE_FIELDS = new Set(["username", "lattice_handles", "offline_user", "offline_username", "user_handle", "submitter_key"]);
+
+export const LATTICE_WRAP_PER_MINUTE = 30;
+const wrapRate = new Map();
+
+export function resetLatticeRate() {
+  wrapRate.clear();
+}
+
+export function allowWrapRate(key, now = Date.now(), limit = LATTICE_WRAP_PER_MINUTE) {
+  if (!key) return false;
+  const cap = Number(limit);
+  if (!Number.isFinite(cap) || cap < 1) return false;
+  const window = Math.floor(now / 60000);
+  const id = key + ":" + window;
+  const next = (wrapRate.get(id) || 0) + 1;
+  wrapRate.set(id, next);
+  return next <= cap;
+}
+
+function submitterKeyFor(material) {
+  return createHash("sha256").update("lattice-submitter|" + String(material)).digest("hex");
+}
 
 function omitPrivate(value) {
   if (!value || typeof value !== "object") return value;
@@ -435,6 +476,9 @@ async function writeWrap(env, screened, reveal) {
   const lattice_json = JSON.stringify(screened.lattice);
   const existing = await readEntry(env, screened.entry_hash);
   if (existing) {
+    if (!screened.submitter_key || existing.submitter_key !== screened.submitter_key) {
+      return fail(409, "LATTICE-SQUAT", { entry_hash: screened.entry_hash });
+    }
     const same = JSON.stringify(existing.lattice) === lattice_json
       && existing.plane === screened.plane
       && samePosition(existing.position, screened.position)
@@ -451,8 +495,8 @@ async function writeWrap(env, screened, reveal) {
   const created_utc = new Date().toISOString();
   try {
     await env.DB.prepare(
-      "INSERT INTO lattice_secondary(entry_hash, document_hash, plane, target, offline, secondary_hash, position, lattice_json, created_utc) "
-      + "VALUES(?,?,?,?,?,?,?,?,?)"
+      "INSERT INTO lattice_secondary(entry_hash, document_hash, plane, target, offline, secondary_hash, position, lattice_json, created_utc, submitter_key) "
+      + "VALUES(?,?,?,?,?,?,?,?,?,?)"
     ).bind(
       screened.entry_hash,
       screened.lattice.document_hash,
@@ -463,12 +507,17 @@ async function writeWrap(env, screened, reveal) {
       screened.position,
       lattice_json,
       created_utc,
+      screened.submitter_key,
     ).run();
   } catch (err) {
     const msg = String(err && err.message ? err.message : err);
     if (!/UNIQUE/i.test(msg)) return fail(503, "LATTICE-STORE-UNAVAILABLE");
     const again = await readEntry(env, screened.entry_hash);
-    if (!again || JSON.stringify(again.lattice) !== lattice_json) return fail(409, "LATTICE-DOUBLE", { entry_hash: screened.entry_hash });
+    if (!again) return fail(503, "LATTICE-STORE-UNAVAILABLE");
+    if (!screened.submitter_key || again.submitter_key !== screened.submitter_key) {
+      return fail(409, "LATTICE-SQUAT", { entry_hash: screened.entry_hash });
+    }
+    if (JSON.stringify(again.lattice) !== lattice_json) return fail(409, "LATTICE-DOUBLE", { entry_hash: screened.entry_hash });
   }
   const row = await readEntry(env, screened.entry_hash);
   if (!row || row.entry_hash !== screened.entry_hash) return fail(503, "LATTICE-STORE-UNAVAILABLE");
@@ -489,10 +538,13 @@ async function wrapEntry(request, env) {
   try { parsed = JSON.parse(raw); } catch { return fail(400, "LATTICE-JSON"); }
   const screened = screenWrap(parsed);
   if (!screened.ok) return screened;
-  if (!(await operatorAuthorized(request, env))) return fail(401, "LATTICE-AUTH");
+  const grant = await operatorGrant(request, env);
+  if (!grant.ok || !grant.submitter_key) return fail(401, "LATTICE-AUTH");
+  const limit = env && env.LATTICE_WRAP_RATE != null ? Number(env.LATTICE_WRAP_RATE) : LATTICE_WRAP_PER_MINUTE;
+  if (!allowWrapRate(grant.submitter_key, Date.now(), limit)) return fail(429, "LATTICE-RATE");
   if (!(await storeReady(env))) return fail(503, "LATTICE-STORE-UNAVAILABLE");
   try {
-    return await writeWrap(env, screened, true);
+    return await writeWrap(env, { ...screened, submitter_key: grant.submitter_key }, true);
   } catch {
     return fail(503, "LATTICE-STORE-UNAVAILABLE");
   }
@@ -576,7 +628,7 @@ export async function handleLatticeBidir(request, url, env) {
   if (!source.ok) return source;
   const asked = aggregateRequested(url, source.value);
   if (asked.mismatch) return fail(400, "LATTICE-ENTRY-MISMATCH");
-  const revealUser = await operatorAuthorized(request, env);
+  const revealUser = (await operatorGrant(request, env)).ok;
   if (asked.wants) {
     if (!revealUser) return fail(401, "LATTICE-AUTH");
     if (asked.entry && !isHex64(asked.entry)) return fail(400, "LATTICE-DOCUMENT");

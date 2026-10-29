@@ -208,7 +208,8 @@ CREATE TABLE IF NOT EXISTS lattice_secondary (
   secondary_hash TEXT NOT NULL,
   position INTEGER,
   lattice_json TEXT NOT NULL,
-  created_utc TEXT NOT NULL
+  created_utc TEXT NOT NULL,
+  submitter_key TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_lattice_secondary_plane ON lattice_secondary(plane);
 CREATE INDEX IF NOT EXISTS idx_lattice_secondary_offline ON lattice_secondary(secondary_hash);

@@ -9,6 +9,7 @@ import {
   LATTICE_PLANES,
   LATTICE_SECONDARY_LIVE,
   LATTICE_SPEC,
+  resetLatticeRate,
   SECONDARY_TARGET,
   handleLatticeBidir,
 } from "./lattice-bidir.js";
@@ -34,7 +35,7 @@ function memoryDb() {
         async run() {
           if (/CREATE /i.test(sql)) return { success: true };
           if (/INSERT INTO lattice_secondary/i.test(sql)) {
-            const [entry_hash, document_hash, plane, target, offline, secondary_hash, position, lattice_json, created_utc] = stmt.binds;
+            const [entry_hash, document_hash, plane, target, offline, secondary_hash, position, lattice_json, created_utc, submitter_key] = stmt.binds;
             if (rows.some((r) => r.entry_hash === entry_hash)) {
               throw new Error("UNIQUE constraint failed: lattice_secondary.entry_hash");
             }
@@ -48,6 +49,7 @@ function memoryDb() {
               position,
               lattice_json,
               created_utc,
+              submitter_key,
             });
             return { success: true };
           }
@@ -259,8 +261,12 @@ test("pull aggregates every plane without a plane filter", async () => {
   const meshHash = hashPayload({ doc: "mesh" });
   const accessHash = hashPayload({ doc: "access", user: "reader" });
   const mesh = wrapBody(meshHash, { plane: "node_mesh", position: 2 });
-  const access = wrapBody(accessHash, { plane: "access_points", position: 3 }, { username: "reader" });
-  assert.equal((await postWrap(env, mesh.body, operatorHeaders())).status, 201);
+  const access = wrapBody(accessHash, { position: 3 }, { username: "reader" });
+  const forged = await postWrap(env, mesh.body, operatorHeaders());
+  assert.equal(forged.status, 422);
+  assert.equal(forged.body.code, "LATTICE-PLANE");
+  assert.equal(forged.body.live, false);
+  assert.equal((await postWrap(env, wrapBody(meshHash, { position: 2 }).body, operatorHeaders())).status, 201);
   assert.equal((await postWrap(env, access.body, operatorHeaders())).status, 201);
   const closed = await getPull(env, accessHash);
   assert.equal(closed.status, 200);
@@ -271,10 +277,10 @@ test("pull aggregates every plane without a plane filter", async () => {
   const pulled = await getPull(env, accessHash, operatorHeaders(), "&aggregate=1");
   assert.equal(pulled.status, 200);
   assert.equal(pulled.body.entry_hash, accessHash);
-  assert.equal(pulled.body.plane, "access_points");
-  assert.equal(pulled.body.aggregate.counts.node_mesh, 1);
-  assert.equal(pulled.body.aggregate.counts.access_points, 1);
-  assert.equal(pulled.body.aggregate.counts.users, 0);
+  assert.equal(pulled.body.plane, "users");
+  assert.equal(pulled.body.aggregate.counts.node_mesh, 0);
+  assert.equal(pulled.body.aggregate.counts.access_points, 0);
+  assert.equal(pulled.body.aggregate.counts.users, 2);
   assert.equal(pulled.body.aggregate.fan_out, false);
   assert.equal(Object.keys(pulled.body.aggregate.counts).length, LATTICE_PLANES.length);
 });
@@ -468,10 +474,52 @@ test("an operator session may aggregate and a member session may not", async () 
   assert.equal(operator.body.policy.cap7_is_icann, false);
 });
 
+test("wrap rate limit and a second submitter cannot squat a hash", async () => {
+  resetLatticeRate();
+  const env = operatorEnv();
+  env.LATTICE_WRAP_RATE = 2;
+  env.RUNTIME_TOKEN = "other-operator-token-value";
+  const first = wrapBody(hashPayload({ doc: "rate-a" }));
+  const second = wrapBody(hashPayload({ doc: "rate-b" }));
+  const third = wrapBody(hashPayload({ doc: "rate-c" }));
+  assert.equal((await postWrap(env, first.body, operatorHeaders())).status, 201);
+  assert.equal((await postWrap(env, second.body, operatorHeaders())).status, 201);
+  const limited = await postWrap(env, third.body, operatorHeaders());
+  assert.equal(limited.status, 429);
+  assert.equal(limited.body.code, "LATTICE-RATE");
+  assert.equal(limited.body.live, false);
+  assert.equal(limited.body.written, false);
+  assert.equal(limited.body.policy.cap7_is_icann, false);
+  assert.doesNotMatch(JSON.stringify(limited.body), /godlock/);
+  assert.equal(env.db.rows.length, 2);
+
+  resetLatticeRate();
+  env.LATTICE_WRAP_RATE = 30;
+  const documentHash = hashPayload({ doc: "squat" });
+  const { body } = wrapBody(documentHash);
+  assert.equal((await postWrap(env, body, operatorHeaders())).status, 201);
+  const bound = env.db.rows.find((row) => row.entry_hash === documentHash);
+  assert.match(bound.submitter_key, /^[a-f0-9]{64}$/);
+  const squat = await postWrap(env, body, { "X-Aziel-Runtime-Token": "other-operator-token-value" });
+  assert.equal(squat.status, 409);
+  assert.equal(squat.body.code, "LATTICE-SQUAT");
+  assert.equal(squat.body.username_listing, false);
+  assert.equal(squat.body.live, false);
+  assert.doesNotMatch(JSON.stringify(squat.body), /godlock|submitter_key/);
+  assert.equal(env.db.rows.filter((row) => row.entry_hash === documentHash).length, 1);
+  const replay = await postWrap(env, body, operatorHeaders());
+  assert.equal(replay.status, 200);
+  assert.equal(replay.body.code, "LATTICE-ALREADY");
+  const pub = await getPull(env, documentHash);
+  assert.equal(pub.status, 200);
+  assert.equal(pub.body.lattice.username, undefined);
+  assert.doesNotMatch(JSON.stringify(pub.body), /godlock|submitter_key|lattice_handles|offline_user/);
+});
+
 test("the worker routes wrap and pull and leaves the record lattice and intake lock alone", async () => {
   const env = operatorEnv();
   const documentHash = hashPayload({ doc: "route" });
-  const { body } = wrapBody(documentHash, { plane: "host_sites", position: 9 });
+  const { body } = wrapBody(documentHash, { position: 9 });
   const url = new URL("https://www.azielcorpuslibrary.net/v1/lattice/wrap");
   const request = new Request(url, {
     method: "POST",
@@ -484,7 +532,7 @@ test("the worker routes wrap and pull and leaves the record lattice and intake l
   const wrapped = await res.json();
   assert.equal(wrapped.entry_hash, documentHash);
   assert.equal(wrapped.live, false);
-  assert.equal(wrapped.plane, "host_sites");
+  assert.equal(wrapped.plane, "users");
   assert.equal(wrapped.policy.cap7_is_icann, false);
 
   const pullUrl = new URL("https://www.azielcorpuslibrary.net/v1/lattice/pull?entry_hash=" + documentHash);
@@ -503,7 +551,8 @@ test("the worker routes wrap and pull and leaves the record lattice and intake l
   const pulled = await pullRes.json();
   assert.equal(pulled.entry_hash, documentHash);
   assert.equal(pulled.lattice.username, "godlock");
-  assert.equal(pulled.aggregate.counts.host_sites, 1);
+  assert.equal(pulled.aggregate.counts.users, 1);
+  assert.equal(pulled.aggregate.counts.host_sites, 0);
   assert.equal(pulled.aggregate.counts.uses, 0);
 
   const spec = await handleRuntimeApi(
@@ -520,8 +569,9 @@ test("the worker routes wrap and pull and leaves the record lattice and intake l
   assert.match(llms, /\/v1\/lattice\/wrap/);
   assert.match(llms, /\/v1\/lattice\/pull\?entry_hash=/);
 
-  assert.equal(isFanoutPath("/v1/lattice/wrap", "POST"), false);
-  assert.equal(isFanoutPath("/v1/lattice/pull", "GET"), false);
+  assert.equal(isFanoutPath("/v1/lattice/wrap", "POST"), true);
+  assert.equal(isFanoutPath("/v1/lattice/pull", "POST"), true);
+  assert.equal(isFanoutPath("/v1/lattice/pull", "GET"), true);
 
   const src = readFileSync(new URL("./lattice-bidir.js", import.meta.url), "utf8");
   assert.doesNotMatch(src, /intake_live\s*=/);
