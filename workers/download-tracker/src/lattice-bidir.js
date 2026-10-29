@@ -5,6 +5,8 @@
  * Wrap stores one hash block by entry_hash. Pull reads that hash back.
  * The pull is one indexed read plus a count across every plane
  * (users, sites, uses, host sites, access points, nodes, node mesh).
+ * That aggregate, and any session-handle username on a row, requires the
+ * operator token. An unauthenticated aggregate fails closed and lists no handles.
  * It does not walk the library ledger from genesis and it does not fan out.
  *
  * live stays false. Cap-7 stays off the ICANN name plane.
@@ -12,6 +14,7 @@
  * Author: Aziel Eliab.
  */
 import { hashPayload } from "./ledger.js";
+import { isOperatorRequest } from "./rate-limit.js";
 
 export const LATTICE_SPEC = "AZRT-DUAL-LATTICE-1.0";
 export const PRIMARY_TARGET = "aziel-runtime";
@@ -240,36 +243,69 @@ function samePosition(a, b) {
   return left === right;
 }
 
-function pullBody(row, counts) {
-  if (!row) {
-    return {
-      ok: false,
-      live: false,
-      code: "LATTICE-PULL-MISS",
-      written: false,
-      rebuilt_from_zero: false,
-      fan_out: false,
-      role: "secondary",
-      target: SECONDARY_TARGET,
-      aggregate: aggregateBody(counts, []),
-      policy: latticePolicy(),
-    };
+function sessionToken(request) {
+  const raw = request && request.headers ? request.headers.get("Cookie") || "" : "";
+  const match = raw.match(/(?:^|;\s*)aziel_session=([^;]+)/);
+  return match ? match[1] : "";
+}
+
+/** Operator header, bearer, or an operator session. A public caller is refused. */
+async function mayReadAggregate(request, env) {
+  let signed = null;
+  const token = sessionToken(request);
+  if (token && env && env.DB && typeof env.DB.prepare === "function") {
+    try {
+      const row = await env.DB.prepare(
+        "SELECT user_id, role, expires_utc FROM sessions WHERE token=? /* lattice-auth */"
+      ).bind(token).first();
+      if (row && !(row.expires_utc && row.expires_utc < new Date().toISOString())) {
+        signed = { user_id: row.user_id, role: row.role };
+      }
+    } catch {
+      signed = null;
+    }
   }
-  return {
-    ok: true,
+  return isOperatorRequest(request, env, signed);
+}
+
+function revealLattice(lattice, reveal) {
+  if (!lattice || typeof lattice !== "object") return lattice;
+  if (reveal) return lattice;
+  const copy = { ...lattice };
+  delete copy.username;
+  return copy;
+}
+
+function pullBody(row, counts, reveal) {
+  const base = {
     live: false,
+    written: false,
+    rebuilt_from_zero: false,
+    fan_out: false,
+    role: "secondary",
+    target: SECONDARY_TARGET,
+    policy: latticePolicy(),
+  };
+  if (!row) {
+    const miss = {
+      ...base,
+      ok: false,
+      code: "LATTICE-PULL-MISS",
+    };
+    if (reveal) miss.aggregate = aggregateBody(counts || emptyCounts(), []);
+    return miss;
+  }
+  const body = {
+    ...base,
+    ok: true,
     code: "LATTICE-PULL-OK",
     entry_hash: row.entry_hash,
     position: row.position,
     plane: row.plane,
-    target: SECONDARY_TARGET,
-    lattice: row.lattice,
-    rebuilt_from_zero: false,
-    fan_out: false,
-    role: "secondary",
-    aggregate: aggregateBody(counts, row.plane ? [row.plane] : []),
-    policy: latticePolicy(),
+    lattice: revealLattice(row.lattice, reveal),
   };
+  if (reveal) body.aggregate = aggregateBody(counts || emptyCounts(), row.plane ? [row.plane] : []);
+  return body;
 }
 
 async function storeReady(env) {
@@ -282,7 +318,8 @@ async function storeReady(env) {
   }
 }
 
-async function pullEntry(env, entryHash) {
+async function pullEntry(request, env, entryHash) {
+  if (!(await mayReadAggregate(request, env))) return fail(401, "LATTICE-AUTH");
   if (!isHex64(entryHash)) return fail(400, "LATTICE-DOCUMENT");
   if (!(await storeReady(env))) return fail(503, "LATTICE-STORE-UNAVAILABLE");
   let counts;
@@ -293,7 +330,7 @@ async function pullEntry(env, entryHash) {
   } catch {
     return fail(503, "LATTICE-STORE-UNAVAILABLE");
   }
-  const body = pullBody(row, counts);
+  const body = pullBody(row, counts, true);
   return { status: body.ok ? 200 : 404, body };
 }
 
@@ -334,7 +371,7 @@ async function offlineDouble(env, secondary, entryHash) {
   return !!(row && row.entry_hash);
 }
 
-async function writeWrap(env, screened) {
+async function writeWrap(env, screened, reveal) {
   const lattice_json = JSON.stringify(screened.lattice);
   const existing = await readEntry(env, screened.entry_hash);
   if (existing) {
@@ -343,8 +380,8 @@ async function writeWrap(env, screened) {
       && samePosition(existing.position, screened.position)
       && existing.target === SECONDARY_TARGET;
     if (!same) return fail(409, "LATTICE-DOUBLE", { entry_hash: screened.entry_hash });
-    const counts = await readAggregate(env);
-    const body = pullBody(existing, counts);
+    const counts = reveal ? await readAggregate(env) : null;
+    const body = pullBody(existing, counts, reveal);
     body.code = "LATTICE-ALREADY";
     body.written = false;
     return { status: 200, body };
@@ -376,8 +413,8 @@ async function writeWrap(env, screened) {
   }
   const row = await readEntry(env, screened.entry_hash);
   if (!row || row.entry_hash !== screened.entry_hash) return fail(503, "LATTICE-STORE-UNAVAILABLE");
-  const counts = await readAggregate(env);
-  const body = pullBody(row, counts);
+  const counts = reveal ? await readAggregate(env) : null;
+  const body = pullBody(row, counts, reveal);
   body.code = "LATTICE-WRAP-PULL";
   body.written = true;
   return { status: 201, body };
@@ -395,7 +432,8 @@ async function wrapEntry(request, env) {
   if (!screened.ok) return screened;
   if (!(await storeReady(env))) return fail(503, "LATTICE-STORE-UNAVAILABLE");
   try {
-    return await writeWrap(env, screened);
+    const reveal = await mayReadAggregate(request, env);
+    return await writeWrap(env, screened, reveal);
   } catch {
     return fail(503, "LATTICE-STORE-UNAVAILABLE");
   }
@@ -410,5 +448,5 @@ export async function handleLatticeBidir(request, url, env) {
   }
   if (request.method !== "GET" && request.method !== "HEAD") return fail(405, "LATTICE-PULL-GET");
   const entry_hash = String(url.searchParams.get("entry_hash") || "");
-  return pullEntry(env, entry_hash);
+  return pullEntry(request, env, entry_hash);
 }

@@ -13,12 +13,16 @@ import {
   handleLatticeBidir,
 } from "./lattice-bidir.js";
 
+const OPERATOR = "secret-operator-token";
+
 function memoryDb() {
   const rows = [];
   const sqlLog = [];
+  const sessions = new Map();
   return {
     rows,
     sqlLog,
+    sessions,
     prepare(sql) {
       sqlLog.push(sql);
       const stmt = {
@@ -50,6 +54,7 @@ function memoryDb() {
           throw new Error("unexpected run " + sql);
         },
         async first() {
+          if (/lattice-auth/.test(sql)) return sessions.get(stmt.binds[0]) || null;
           if (/lattice-double/.test(sql)) {
             const [hash, entry] = stmt.binds;
             return rows.find((r) => r.secondary_hash === hash && Number(r.offline) === 1 && r.entry_hash !== entry) || null;
@@ -73,6 +78,16 @@ function memoryDb() {
 
 function envWith(db = memoryDb()) {
   return { DB: db, db };
+}
+
+function operatorEnv(db) {
+  const env = envWith(db);
+  env.OPERATOR_TOKEN = OPERATOR;
+  return env;
+}
+
+function operatorHeaders(extra = {}) {
+  return { "X-Aziel-Operator-Token": OPERATOR, ...extra };
 }
 
 function blockFor(documentHash, { offline = true, username = "godlock", primaryPrev = "0".repeat(64), secondaryPrev = "0".repeat(64) } = {}) {
@@ -108,19 +123,19 @@ function wrapBody(documentHash, extra = {}, blockExtra = {}) {
   };
 }
 
-async function postWrap(env, body) {
+async function postWrap(env, body, headers = {}) {
   const url = new URL("https://www.azielcorpuslibrary.net/v1/lattice/wrap");
   const request = new Request(url, {
     method: "POST",
-    headers: { "content-type": "application/json", "User-Agent": "Mozilla/5.0" },
+    headers: { "content-type": "application/json", "User-Agent": "Mozilla/5.0", ...headers },
     body: JSON.stringify(body),
   });
   return handleLatticeBidir(request, url, env);
 }
 
-async function getPull(env, entryHash) {
+async function getPull(env, entryHash, headers = {}) {
   const url = new URL("https://www.azielcorpuslibrary.net/v1/lattice/pull?entry_hash=" + encodeURIComponent(entryHash));
-  const request = new Request(url, { method: "GET", headers: { "User-Agent": "Mozilla/5.0", Accept: "application/json" } });
+  const request = new Request(url, { method: "GET", headers: { "User-Agent": "Mozilla/5.0", Accept: "application/json", ...headers } });
   return handleLatticeBidir(request, url, env);
 }
 
@@ -142,7 +157,10 @@ test("wrap stores a godlock hash block and pull reads it back by entry_hash", as
   assert.equal(wrapped.body.rebuilt_from_zero, false);
   assert.equal(wrapped.body.fan_out, false);
   assert.equal(wrapped.body.lattice.position, undefined);
+  assert.equal(wrapped.body.lattice.username, undefined);
+  assert.equal(wrapped.body.aggregate, undefined);
   assert.equal(wrapped.body.lattice.secondary, lattice.secondary);
+  assert.doesNotMatch(JSON.stringify(wrapped.body), /godlock/);
   assert.equal(wrapped.body.policy.live, false);
   assert.equal(wrapped.body.policy.cap7_is_icann, false);
   assert.equal(wrapped.body.policy.public_icann, false);
@@ -150,24 +168,39 @@ test("wrap stores a godlock hash block and pull reads it back by entry_hash", as
   assert.equal(wrapped.body.policy.auto_update, false);
   assert.equal(wrapped.body.policy.rf, false);
   assert.equal(wrapped.body.policy.sat, false);
-  assert.deepEqual(wrapped.body.aggregate.planes, LATTICE_PLANES.slice());
-  assert.equal(wrapped.body.aggregate.counts.users, 1);
-  assert.equal(wrapped.body.aggregate.counts.sites, 0);
-  assert.equal(wrapped.body.aggregate.counts.uses, 0);
-  assert.equal(wrapped.body.aggregate.counts.host_sites, 0);
-  assert.equal(wrapped.body.aggregate.counts.access_points, 0);
-  assert.equal(wrapped.body.aggregate.counts.nodes, 0);
-  assert.equal(wrapped.body.aggregate.counts.node_mesh, 0);
-  assert.deepEqual(wrapped.body.aggregate.found_in, ["users"]);
   assert.equal(env.db.rows.length, 1);
+  assert.equal(env.db.rows[0].lattice_json.includes("godlock"), true);
 
-  const pulled = await getPull(env, documentHash);
+  const denied = await getPull(env, documentHash);
+  assert.equal(denied.status, 401);
+  assert.equal(denied.body.ok, false);
+  assert.equal(denied.body.live, false);
+  assert.equal(denied.body.code, "LATTICE-AUTH");
+  assert.equal(denied.body.aggregate, undefined);
+  assert.equal(denied.body.lattice, undefined);
+  assert.doesNotMatch(JSON.stringify(denied.body), /godlock|username/);
+  assert.equal(denied.body.policy.cap7_is_icann, false);
+  assert.equal(env.db.sqlLog.some((sql) => sql.includes("lattice-aggregate")), false);
+
+  env.OPERATOR_TOKEN = OPERATOR;
+  const pulled = await getPull(env, documentHash, operatorHeaders());
   assert.equal(pulled.status, 200);
   assert.equal(pulled.body.entry_hash, documentHash);
   assert.equal(pulled.body.live, false);
   assert.equal(pulled.body.rebuilt_from_zero, false);
   assert.equal(pulled.body.code, "LATTICE-PULL-OK");
   assert.equal(pulled.body.lattice.primary, lattice.primary);
+  assert.equal(pulled.body.lattice.username, "godlock");
+  assert.deepEqual(pulled.body.aggregate.planes, LATTICE_PLANES.slice());
+  assert.equal(pulled.body.aggregate.counts.users, 1);
+  assert.equal(pulled.body.aggregate.counts.sites, 0);
+  assert.equal(pulled.body.aggregate.counts.uses, 0);
+  assert.equal(pulled.body.aggregate.counts.host_sites, 0);
+  assert.equal(pulled.body.aggregate.counts.access_points, 0);
+  assert.equal(pulled.body.aggregate.counts.nodes, 0);
+  assert.equal(pulled.body.aggregate.counts.node_mesh, 0);
+  assert.deepEqual(pulled.body.aggregate.found_in, ["users"]);
+  assert.equal(pulled.body.usernames, undefined);
   assert.ok(env.db.sqlLog.some((sql) => sql.includes("lattice-pull")));
   assert.ok(env.db.sqlLog.some((sql) => sql.includes("lattice-aggregate")));
   const joined = env.db.sqlLog.join("\n");
@@ -176,14 +209,18 @@ test("wrap stores a godlock hash block and pull reads it back by entry_hash", as
 });
 
 test("pull aggregates every plane without a plane filter", async () => {
-  const env = envWith();
+  const env = operatorEnv();
   const meshHash = hashPayload({ doc: "mesh" });
   const accessHash = hashPayload({ doc: "access", user: "reader" });
   const mesh = wrapBody(meshHash, { plane: "node_mesh", position: 2 });
   const access = wrapBody(accessHash, { plane: "access_points", position: 3 }, { username: "reader" });
-  assert.equal((await postWrap(env, mesh.body)).status, 201);
-  assert.equal((await postWrap(env, access.body)).status, 201);
-  const pulled = await getPull(env, accessHash);
+  assert.equal((await postWrap(env, mesh.body, operatorHeaders())).status, 201);
+  assert.equal((await postWrap(env, access.body, operatorHeaders())).status, 201);
+  const closed = await getPull(env, accessHash);
+  assert.equal(closed.status, 401);
+  assert.equal(closed.body.code, "LATTICE-AUTH");
+  assert.doesNotMatch(JSON.stringify(closed.body), /reader|godlock/);
+  const pulled = await getPull(env, accessHash, operatorHeaders());
   assert.equal(pulled.status, 200);
   assert.equal(pulled.body.entry_hash, accessHash);
   assert.equal(pulled.body.plane, "access_points");
@@ -285,8 +322,11 @@ test("an offline secondary already stored under another entry_hash is not writte
 });
 
 test("pull misses stay fail-closed and still report every plane", async () => {
-  const env = envWith();
-  const missing = await getPull(env, hashPayload({ doc: "missing" }));
+  const env = operatorEnv();
+  const closed = await getPull(env, hashPayload({ doc: "closed" }));
+  assert.equal(closed.status, 401);
+  assert.equal(closed.body.aggregate, undefined);
+  const missing = await getPull(env, hashPayload({ doc: "missing" }), operatorHeaders());
   assert.equal(missing.status, 404);
   assert.equal(missing.body.ok, false);
   assert.equal(missing.body.live, false);
@@ -296,7 +336,7 @@ test("pull misses stay fail-closed and still report every plane", async () => {
   assert.equal(missing.body.aggregate.counts.host_sites, 0);
   assert.equal(missing.body.aggregate.counts.node_mesh, 0);
 
-  const bad = await getPull(env, "not-a-hash");
+  const bad = await getPull(env, "not-a-hash", operatorHeaders());
   assert.equal(bad.status, 400);
   assert.equal(bad.body.code, "LATTICE-DOCUMENT");
 
@@ -319,6 +359,9 @@ test("a missing store fails closed and does not claim the row was written", asyn
   assert.equal(down.body.live, false);
   assert.equal(down.body.code, "LATTICE-STORE-UNAVAILABLE");
   assert.equal(down.body.written, false);
+  const closed = await getPull({}, documentHash);
+  assert.equal(closed.status, 401);
+  assert.equal(closed.body.code, "LATTICE-AUTH");
 
   const throwing = envWith({
     prepare() {
@@ -330,8 +373,27 @@ test("a missing store fails closed and does not claim the row was written", asyn
   assert.equal(blew.body.live, false);
 });
 
-test("the worker routes wrap and pull and leaves the record lattice and intake lock alone", async () => {
+test("an operator session may aggregate and a member session may not", async () => {
   const env = envWith();
+  const documentHash = hashPayload({ doc: "session" });
+  const { body } = wrapBody(documentHash);
+  assert.equal((await postWrap(env, body)).status, 201);
+  const future = new Date(Date.now() + 3600_000).toISOString();
+  env.db.sessions.set("op", { user_id: "master", role: "superadmin", expires_utc: future });
+  env.db.sessions.set("member", { user_id: "u1", role: "user", expires_utc: future });
+  const member = await getPull(env, documentHash, { Cookie: "aziel_session=member" });
+  assert.equal(member.status, 401);
+  assert.doesNotMatch(JSON.stringify(member.body), /godlock/);
+  const operator = await getPull(env, documentHash, { Cookie: "aziel_session=op" });
+  assert.equal(operator.status, 200);
+  assert.equal(operator.body.lattice.username, "godlock");
+  assert.equal(operator.body.aggregate.counts.users, 1);
+  assert.equal(operator.body.live, false);
+  assert.equal(operator.body.policy.cap7_is_icann, false);
+});
+
+test("the worker routes wrap and pull and leaves the record lattice and intake lock alone", async () => {
+  const env = operatorEnv();
   const documentHash = hashPayload({ doc: "route" });
   const { body } = wrapBody(documentHash, { plane: "host_sites", position: 9 });
   const url = new URL("https://www.azielcorpuslibrary.net/v1/lattice/wrap");
@@ -347,10 +409,18 @@ test("the worker routes wrap and pull and leaves the record lattice and intake l
   assert.equal(wrapped.entry_hash, documentHash);
   assert.equal(wrapped.live, false);
   assert.equal(wrapped.plane, "host_sites");
+  assert.equal(wrapped.lattice.username, undefined);
+  assert.equal(wrapped.aggregate, undefined);
+  assert.doesNotMatch(JSON.stringify(wrapped), /godlock/);
   assert.equal(wrapped.policy.cap7_is_icann, false);
 
   const pullUrl = new URL("https://www.azielcorpuslibrary.net/v1/lattice/pull?entry_hash=" + documentHash);
-  const pullRes = await handleRuntimeApi(new Request(pullUrl), pullUrl, env);
+  const deniedRes = await handleRuntimeApi(new Request(pullUrl), pullUrl, env);
+  assert.equal(deniedRes.status, 401);
+  const denied = await deniedRes.json();
+  assert.equal(denied.code, "LATTICE-AUTH");
+  assert.equal(denied.aggregate, undefined);
+  const pullRes = await handleRuntimeApi(new Request(pullUrl, { headers: operatorHeaders() }), pullUrl, env);
   assert.equal(pullRes.status, 200);
   const pulled = await pullRes.json();
   assert.equal(pulled.entry_hash, documentHash);
