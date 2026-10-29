@@ -542,6 +542,7 @@ const STATIC_SITEMAP = [
   "/v1/example",
   "/v1/review",
   "/v1/lattice",
+  "/v1/lattice/pull",
   "/v1/verify-backfill",
   "/v1/recalibrate-all",
   "/v1/verify-geo",
@@ -1318,6 +1319,8 @@ export function llmsDoc(limitation, survival) {
     + "- GET " + HOST + "/v1/example\n"
     + "- GET " + HOST + "/v1/review?record_id=\n"
     + "- GET " + HOST + "/v1/lattice?record_id=\n"
+    + "- POST " + HOST + "/v1/lattice/wrap  (secondary lattice; GodLock bidir; hash block by entry_hash; fail closed; live stays false; cap7_is_icann false)\n"
+    + "- GET " + HOST + "/v1/lattice/pull?entry_hash=  (aggregate read across users, sites, uses, host sites, access points, nodes, node mesh)\n"
     + "- GET " + HOST + "/v1/possibility?record_id=\n"
     + "- GET " + HOST + "/v1/recollect?record_id=\n"
     + "- GET " + HOST + "/v1/poison-learn\n"

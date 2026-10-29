@@ -9,6 +9,7 @@ import { serveFileByHash, normalizeContentHash } from "./library.js";
 import { receiptForRecord, documentChain, isJsonDocumentId } from "./ledger.js";
 import { loadRecordReview, runReviewBundle, backfillReviews, continueFullBackfill, continueRecalibrateAll, recalibrateAllStatus, fullBackfillStatus, syncShelfScores, refreshPackedShelf, publicizeReview, SHELF_REBUILD_MS, RECALIBRATE_LOCKED } from "./review-store.js";
 import { latticeAnchorTip, LATTICE_NOTE } from "./lattice.js";
+import { handleLatticeBidir } from "./lattice-bidir.js";
 import { handleJeevesApi, JEEVES_LIMITATION } from "./jeeves.js";
 import { handleOperatorIngestApi } from "./operator-ingest.js";
 import { handleLibraryIngestApi, handleLibraryMcp } from "./library-mcp.js";
@@ -126,6 +127,8 @@ Ops (do **not** increment downloads):
 - \`GET /v1/skill\`
 - \`GET /v1/review?record_id=\` (triad + ZionPattern Solver secondary score + succession cites + Bayesian + possibility)
 - \`GET /v1/lattice?record_id=\`
+- \`POST /v1/lattice/wrap\` (secondary lattice for GodLock bidir; one hash block by entry_hash; fail closed; live stays false; cap7_is_icann false)
+- \`GET /v1/lattice/pull?entry_hash=\` (aggregate read across users, sites, uses, host sites, access points, nodes, and node mesh)
 - \`GET /v1/possibility?record_id=\` (HEURISTIC possibility over lattice time×geo pins; not Bayesian)
 - \`GET /v1/recollect?record_id=\` (tip + depth / prev-hash verify; fail closed)
 - \`GET /v1/poison-learn\` (feature receipts only; no poison bodies)
@@ -217,6 +220,8 @@ function openapi() {
       "/v1/skill": { get: { summary: "Skill markdown.", operationId: "skill" } },
       "/v1/review": { get: { summary: "Triad composite (SPRE × CLCE × PhysLing geometric mean) plus component scores, Bayesian (unranked), HEURISTIC possibility (separate), quarantine, document chain tip, and exact-same-subject succession cites when present. Does not increment downloads.", operationId: "review", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
       "/v1/lattice": { get: { summary: "AzielTether lattice anchor tip for a verified record. Adaptive learning via hashchain lattice for recollection and reasoning.", operationId: "lattice", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
+      "/v1/lattice/wrap": { post: { summary: "Secondary lattice wrap (aziel-corpus) for GodLock bidir. One hash block by entry_hash. Fail closed. live stays false. cap7_is_icann false. Does not write the library ledger.", operationId: "latticeWrap" } },
+      "/v1/lattice/pull": { get: { summary: "Secondary lattice pull by entry_hash. Aggregates users, sites, uses, host sites, access points, nodes, and node mesh. Indexed read. Fail closed. live stays false. cap7_is_icann false.", operationId: "latticePull", parameters: [{ name: "entry_hash", in: "query", required: true, schema: { type: "string" } }] } },
       "/v1/possibility": { get: { summary: "HEURISTIC possibility score derived from lattice time×geo pin receipts.", operationId: "possibility", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
       "/v1/recollect": { get: { summary: "Recollection = walk document hashchain from tip + depth. Prev-hash verify. Fail closed on break. Not LLM memory.", operationId: "recollect", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }, { name: "depth", in: "query", schema: { type: "integer", default: 32 } }, { name: "tip", in: "query", schema: { type: "string" } }] } },
       "/v1/poison-learn": { get: { summary: "Poison-learn feature lattice (AZDOC-POISONLEARN). Hash + markers + token hashes only. No poison bodies.", operationId: "poisonLearn" } },
@@ -323,6 +328,13 @@ export async function handleRuntimeApi(request, url, env, ctx) {
   }
   if (path === "/openapi.json" && (request.method === "GET" || request.method === "HEAD")) {
     const res = json(openapi());
+    if (request.method === "HEAD") return new Response(null, { status: res.status, headers: res.headers });
+    return res;
+  }
+  const latticeBidir = await handleLatticeBidir(request, url, env);
+  if (latticeBidir) {
+    const res = json(latticeBidir.body, latticeBidir.status);
+    res.headers.set("Cache-Control", "no-store");
     if (request.method === "HEAD") return new Response(null, { status: res.status, headers: res.headers });
     return res;
   }
