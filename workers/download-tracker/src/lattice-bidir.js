@@ -13,8 +13,9 @@
  * Intake flags are not read or written here.
  * Author: Aziel Eliab.
  */
+import { timingSafeEqual } from "node:crypto";
 import { hashPayload } from "./ledger.js";
-import { isOperatorRequest } from "./rate-limit.js";
+import { isOperatorRequest, operatorTokenFromEnv } from "./rate-limit.js";
 
 export const LATTICE_SPEC = "AZRT-DUAL-LATTICE-1.0";
 export const PRIMARY_TARGET = "aziel-runtime";
@@ -24,6 +25,14 @@ export const LATTICE_PULL_PATH = "/v1/lattice/pull";
 export const LATTICE_USER_RE = /^[a-zA-Z0-9._-]{1,80}$/;
 /** Product live stays false. These routes run because this file implements them. */
 export const LATTICE_SECONDARY_LIVE = false;
+
+/** Default off. Wrap and pull fail closed until this flag is on. */
+export function latticeRemoteEnabled(env) {
+  const value = env && env.LATTICE_REMOTE;
+  if (value === true || value === 1) return true;
+  const text = String(value == null ? "" : value).trim().toLowerCase();
+  return text === "1" || text === "true" || text === "yes" || text === "on";
+}
 
 /** Planes a pull always reads. One row lives on one plane; the read covers every plane. */
 export const LATTICE_PLANES = Object.freeze([
@@ -81,6 +90,7 @@ function fail(status, code, extra = {}) {
       written: false,
       rebuilt_from_zero: false,
       fan_out: false,
+      username_listing: false,
       role: "secondary",
       target: SECONDARY_TARGET,
       policy: latticePolicy(),
@@ -104,7 +114,7 @@ export function verifyLatticeBlock(block) {
   if (claimsIcann(block)) return "CAP7-NOT-ICANN";
   if (block.live === true) return "LATTICE-NOT-LIVE";
   if (hasIntakeFlag(block)) return "LATTICE-FLAG";
-  if (Object.prototype.hasOwnProperty.call(block, "tiebreak")) return "LATTICE-TIEBREAK-PRIMARY";
+  if (Object.prototype.hasOwnProperty.call(block, "tiebreak")) return "LATTICE-TIEBREAK-CORPUS";
   for (const key of Object.keys(block)) {
     if (!BLOCK_KEYS.has(key)) return "LATTICE-FIELD";
   }
@@ -249,8 +259,33 @@ function sessionToken(request) {
   return match ? match[1] : "";
 }
 
-/** Operator header, bearer, or an operator session. A public caller is refused. */
-async function mayReadAggregate(request, env) {
+function headerToken(request, name) {
+  if (!request || !request.headers) return "";
+  return String(request.headers.get(name) || "").trim();
+}
+
+function bearerToken(request) {
+  const match = headerToken(request, "Authorization").match(/^Bearer\s+(.+)$/i);
+  return match ? match[1].trim() : "";
+}
+
+function sameSecret(left, right) {
+  const a = Buffer.from(String(left || ""));
+  const b = Buffer.from(String(right || ""));
+  if (!a.length || a.length !== b.length) return false;
+  try { return timingSafeEqual(a, b); } catch { return false; }
+}
+
+function configuredSecrets(env) {
+  const runtime = env && env.RUNTIME_TOKEN ? String(env.RUNTIME_TOKEN).trim() : "";
+  return [operatorTokenFromEnv(env), runtime].filter(Boolean);
+}
+
+/**
+ * Operator session, corpus operator header, Authorization Bearer,
+ * or X-Aziel-Runtime-Token. A public caller is not authorized.
+ */
+async function operatorAuthorized(request, env) {
   let signed = null;
   const token = sessionToken(request);
   if (token && env && env.DB && typeof env.DB.prepare === "function") {
@@ -265,34 +300,44 @@ async function mayReadAggregate(request, env) {
       signed = null;
     }
   }
-  return isOperatorRequest(request, env, signed);
+  if (isOperatorRequest(request, env, signed)) return true;
+  const secrets = configuredSecrets(env);
+  const presented = [headerToken(request, "X-Aziel-Runtime-Token"), bearerToken(request)].filter(Boolean);
+  for (const given of presented) {
+    for (const secret of secrets) {
+      if (sameSecret(given, secret)) return true;
+    }
+  }
+  return false;
 }
 
-function revealLattice(lattice, reveal) {
-  if (!lattice || typeof lattice !== "object") return lattice;
-  if (reveal) return lattice;
-  const copy = { ...lattice };
-  delete copy.username;
-  return copy;
+const PRIVATE_FIELDS = new Set(["username", "lattice_handles", "offline_user", "offline_username", "user_handle"]);
+
+function omitPrivate(value) {
+  if (!value || typeof value !== "object") return value;
+  if (Array.isArray(value)) return value.map(omitPrivate);
+  const out = {};
+  for (const [key, item] of Object.entries(value)) {
+    if (PRIVATE_FIELDS.has(key)) continue;
+    out[key] = item && typeof item === "object" ? omitPrivate(item) : item;
+  }
+  return out;
 }
 
-function pullBody(row, counts, reveal) {
+function pullBody(row, counts, revealUser) {
   const base = {
     live: false,
     written: false,
     rebuilt_from_zero: false,
     fan_out: false,
+    username_listing: false,
     role: "secondary",
     target: SECONDARY_TARGET,
     policy: latticePolicy(),
   };
   if (!row) {
-    const miss = {
-      ...base,
-      ok: false,
-      code: "LATTICE-PULL-MISS",
-    };
-    if (reveal) miss.aggregate = aggregateBody(counts || emptyCounts(), []);
+    const miss = { ...base, ok: false, code: "LATTICE-PULL-MISS" };
+    if (counts) miss.aggregate = aggregateBody(counts, []);
     return miss;
   }
   const body = {
@@ -302,9 +347,10 @@ function pullBody(row, counts, reveal) {
     entry_hash: row.entry_hash,
     position: row.position,
     plane: row.plane,
-    lattice: revealLattice(row.lattice, reveal),
+    lattice: revealUser ? row.lattice : omitPrivate(row.lattice),
+    username_listing: !!(revealUser && row.lattice && row.lattice.username),
   };
-  if (reveal) body.aggregate = aggregateBody(counts || emptyCounts(), row.plane ? [row.plane] : []);
+  if (counts) body.aggregate = aggregateBody(counts, row.plane ? [row.plane] : []);
   return body;
 }
 
@@ -318,20 +364,32 @@ async function storeReady(env) {
   }
 }
 
-async function pullEntry(request, env, entryHash) {
-  if (!(await mayReadAggregate(request, env))) return fail(401, "LATTICE-AUTH");
+async function readHandles(env) {
+  const res = await env.DB.prepare(
+    "SELECT lattice_json FROM lattice_secondary /* lattice-handles */"
+  ).all();
+  const seen = [];
+  const list = res && Array.isArray(res.results) ? res.results : [];
+  for (const row of list) {
+    let lattice = null;
+    try { lattice = JSON.parse(row.lattice_json); } catch { lattice = null; }
+    const name = lattice && lattice.username;
+    if (typeof name === "string" && LATTICE_USER_RE.test(name) && !seen.includes(name)) seen.push(name);
+  }
+  return seen;
+}
+
+async function pullEntry(env, entryHash, revealUser) {
   if (!isHex64(entryHash)) return fail(400, "LATTICE-DOCUMENT");
   if (!(await storeReady(env))) return fail(503, "LATTICE-STORE-UNAVAILABLE");
-  let counts;
   let row;
   try {
-    counts = await readAggregate(env);
     row = await readEntry(env, entryHash);
   } catch {
     return fail(503, "LATTICE-STORE-UNAVAILABLE");
   }
-  const body = pullBody(row, counts, true);
-  return { status: body.ok ? 200 : 404, body };
+  if (!row) return { status: 404, body: pullBody(null, null, false) };
+  return { status: 200, body: pullBody(row, null, revealUser) };
 }
 
 function screenWrap(body) {
@@ -349,7 +407,9 @@ function screenWrap(body) {
   if (body.spec != null && body.spec !== LATTICE_SPEC) return fail(422, "LATTICE-SPEC");
   if (body.target != null && body.target !== SECONDARY_TARGET) return fail(422, "LATTICE-TARGET");
   const reason = verifyLatticeBlock(body.lattice);
+  if (reason === "LATTICE-TIEBREAK-CORPUS") return fail(409, reason);
   if (reason) return fail(422, reason);
+  if (body.lattice.offline !== true) return fail(409, "LATTICE-SECONDARY-OFFLINE");
   if (body.lattice.document_hash !== entry_hash) return fail(400, "LATTICE-DOCUMENT");
   const plane = planeFor(body, body.lattice);
   if (!plane) return fail(422, "LATTICE-PLANE");
@@ -380,8 +440,7 @@ async function writeWrap(env, screened, reveal) {
       && samePosition(existing.position, screened.position)
       && existing.target === SECONDARY_TARGET;
     if (!same) return fail(409, "LATTICE-DOUBLE", { entry_hash: screened.entry_hash });
-    const counts = reveal ? await readAggregate(env) : null;
-    const body = pullBody(existing, counts, reveal);
+    const body = pullBody(existing, null, reveal);
     body.code = "LATTICE-ALREADY";
     body.written = false;
     return { status: 200, body };
@@ -413,14 +472,14 @@ async function writeWrap(env, screened, reveal) {
   }
   const row = await readEntry(env, screened.entry_hash);
   if (!row || row.entry_hash !== screened.entry_hash) return fail(503, "LATTICE-STORE-UNAVAILABLE");
-  const counts = reveal ? await readAggregate(env) : null;
-  const body = pullBody(row, counts, reveal);
+  const body = pullBody(row, null, reveal);
   body.code = "LATTICE-WRAP-PULL";
   body.written = true;
   return { status: 201, body };
 }
 
 async function wrapEntry(request, env) {
+  if (!latticeRemoteEnabled(env)) return fail(403, "LATTICE-REMOTE-OFF", { enabled: false });
   const ctype = String((request.headers && request.headers.get("content-type")) || "");
   if (ctype && !/application\/json|text\/json/i.test(ctype)) return fail(415, "LATTICE-JSON");
   let raw = "";
@@ -430,10 +489,73 @@ async function wrapEntry(request, env) {
   try { parsed = JSON.parse(raw); } catch { return fail(400, "LATTICE-JSON"); }
   const screened = screenWrap(parsed);
   if (!screened.ok) return screened;
+  if (!(await operatorAuthorized(request, env))) return fail(401, "LATTICE-AUTH");
   if (!(await storeReady(env))) return fail(503, "LATTICE-STORE-UNAVAILABLE");
   try {
-    const reveal = await mayReadAggregate(request, env);
-    return await writeWrap(env, screened, reveal);
+    return await writeWrap(env, screened, true);
+  } catch {
+    return fail(503, "LATTICE-STORE-UNAVAILABLE");
+  }
+}
+
+function aggregateRequested(url, source) {
+  const fromQuery = String((url && url.searchParams.get("entry_hash")) || "");
+  const fromBody = source && source.entry_hash != null ? String(source.entry_hash) : "";
+  if (fromQuery && fromBody && fromQuery !== fromBody) return { mismatch: true, entry: "" };
+  const entry = fromQuery || fromBody;
+  const hasPlanes = !!(url && url.searchParams.has("planes")) || !!(source && Object.prototype.hasOwnProperty.call(source, "planes"));
+  const agg = source && source.aggregate != null ? source.aggregate : (url ? url.searchParams.get("aggregate") : null);
+  const wants = !entry || hasPlanes || agg === true || agg === 1 || agg === "1" || agg === "true" || agg === "all";
+  return { mismatch: false, entry, wants };
+}
+
+async function readPullSource(request) {
+  if (!request || request.method !== "POST") return { ok: true, value: {} };
+  let raw = "";
+  try { raw = await request.text(); } catch { return fail(400, "LATTICE-JSON"); }
+  if (!raw) return { ok: true, value: {} };
+  if (raw.length > MAX_BODY) return fail(413, "LATTICE-TOO-LARGE");
+  try {
+    const value = JSON.parse(raw);
+    if (!value || typeof value !== "object" || Array.isArray(value)) return fail(400, "LATTICE-JSON");
+    return { ok: true, value };
+  } catch {
+    return fail(400, "LATTICE-JSON");
+  }
+}
+
+async function pullAggregate(env, entryHash, revealUser) {
+  if (!(await storeReady(env))) return fail(503, "LATTICE-STORE-UNAVAILABLE");
+  try {
+    const counts = await readAggregate(env);
+    const handles = await readHandles(env);
+    const row = entryHash ? await readEntry(env, entryHash) : null;
+    if (entryHash && !isHex64(entryHash)) return fail(400, "LATTICE-DOCUMENT");
+    if (entryHash && isHex64(entryHash) && !row) {
+      const miss = pullBody(null, counts, false);
+      miss.aggregate.lattice_handles = handles;
+      return { status: 404, body: miss };
+    }
+    const body = row ? pullBody(row, counts, revealUser) : {
+      ok: true,
+      live: false,
+      code: "LATTICE-AGGREGATE",
+      written: false,
+      rebuilt_from_zero: false,
+      fan_out: false,
+      username_listing: handles.length > 0,
+      role: "secondary",
+      target: SECONDARY_TARGET,
+      policy: latticePolicy(),
+      aggregate: aggregateBody(counts, []),
+    };
+    body.aggregate.lattice_handles = handles;
+    if (!revealUser) {
+      body.lattice = body.lattice ? omitPrivate(body.lattice) : body.lattice;
+      delete body.aggregate.lattice_handles;
+      body.username_listing = false;
+    }
+    return { status: body.ok ? 200 : 404, body };
   } catch {
     return fail(503, "LATTICE-STORE-UNAVAILABLE");
   }
@@ -442,11 +564,23 @@ async function wrapEntry(request, env) {
 export async function handleLatticeBidir(request, url, env) {
   const path = String((url && url.pathname) || "").replace(/\/+$/, "") || "/";
   if (path !== LATTICE_WRAP_PATH && path !== LATTICE_PULL_PATH) return null;
+  if (!latticeRemoteEnabled(env)) return fail(403, "LATTICE-REMOTE-OFF", { enabled: false });
   if (path === LATTICE_WRAP_PATH) {
     if (request.method !== "POST") return fail(405, "LATTICE-WRAP-POST");
     return wrapEntry(request, env);
   }
-  if (request.method !== "GET" && request.method !== "HEAD") return fail(405, "LATTICE-PULL-GET");
-  const entry_hash = String(url.searchParams.get("entry_hash") || "");
-  return pullEntry(request, env, entry_hash);
+  if (request.method !== "GET" && request.method !== "HEAD" && request.method !== "POST") {
+    return fail(405, "LATTICE-PULL-GET");
+  }
+  const source = await readPullSource(request);
+  if (!source.ok) return source;
+  const asked = aggregateRequested(url, source.value);
+  if (asked.mismatch) return fail(400, "LATTICE-ENTRY-MISMATCH");
+  const revealUser = await operatorAuthorized(request, env);
+  if (asked.wants) {
+    if (!revealUser) return fail(401, "LATTICE-AUTH");
+    if (asked.entry && !isHex64(asked.entry)) return fail(400, "LATTICE-DOCUMENT");
+    return pullAggregate(env, asked.entry, true);
+  }
+  return pullEntry(env, asked.entry, revealUser);
 }
