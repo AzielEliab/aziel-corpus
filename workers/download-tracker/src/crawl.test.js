@@ -326,11 +326,20 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.ok(cite.keywords.includes("PeaceLock"));
   assert.ok(cite.keywords.includes("PL-WP-0.1"));
   assert.equal(cite.trades_runtime.byo_field_os, true);
-  assert.equal(cite.runtime_git, "231b02f");
-  assert.equal(cite.runtime_version_id, "a8f7fdc9");
+  assert.equal(cite.runtime_git, "ce673365");
+  assert.equal(cite.runtime_git_full, "ce673365700d41fc604292ab2b92b1b1ca504016");
+  assert.equal(cite.runtime_version_id, "eaf0b54c-1e5b-4d54-a582-25c5cdc09f92");
+  assert.equal(cite.runtime_stamp_source, "baked-fallback");
+  assert.match(cite.runtime_stamp_duty, /Cos LIVE restamp duty/);
+  assert.match(cite.runtime_stamp_duty, /ce673365 \/ eaf0b54c/);
+  assert.equal(cite.mesh_get_enables, false);
+  assert.equal(cite.remain_off, true);
+  assert.match(cite.mesh_pointer_note, /GET \/v1\/mesh never enables/);
+  assert.match(cite.mesh_pointer_note, /Remain-OFF/);
   assert.equal(cite.runtime_sot_branch, "main");
   assert.equal(cite.runtime_live_count, 41);
-  assert.equal(cite.runtime_launch.sot.git, "231b02f");
+  assert.equal(cite.runtime_launch.sot.git, "ce673365");
+  assert.equal(cite.runtime_launch.sot.version_id, "eaf0b54c-1e5b-4d54-a582-25c5cdc09f92");
   assert.equal(cite.runtime_launch.mcp.softwares, "fraggate_call only");
   assert.equal(cite.runtime_launch.shelves.plane_b_live, false);
   assert.equal(cite.runtime_launch.claim_complete, undefined);
@@ -914,4 +923,39 @@ test("sitemap lists the slug URL for every record with a permalink; slugless D1 
     assert.equal(new Set(locs).size, locs.length, "no duplicate locs");
     assert.equal(locs.some((u) => u.endsWith("/")) && locs.filter((u) => u.endsWith("/")).some((u) => u !== H + "/"), false, "no trailing-slash twins");
   }
+});
+
+test("cite and llms prefer a live software stamp and ignore the retired bake", () => {
+  const retired = citeDoc(null, {
+    sot: { git: "231b02f", git_full: "231b02fcbb7b50fbd52762a49329042bc1715fe9", version_id: "a8f7fdc9", version: "2.0.0-rc1", branch: "main" },
+  });
+  assert.equal(retired.runtime_git, "ce673365");
+  assert.equal(retired.runtime_version_id, "eaf0b54c-1e5b-4d54-a582-25c5cdc09f92");
+  assert.equal(retired.runtime_stamp_source, "baked-fallback");
+  assert.equal(retired.mesh_get_enables, false);
+
+  const live = {
+    git: "ce673365",
+    git_full: "ce673365700d41fc604292ab2b92b1b1ca504016",
+    version_id: "eaf0b54c-1e5b-4d54-a582-25c5cdc09f92",
+    source: "live",
+  };
+  const cite = citeDoc(null, {
+    sot: { git: "abcdef0", git_full: "abcdef0123456789abcdef0123456789abcdef01", version_id: "aaaaaaaa", branch: "main" },
+  }, live);
+  assert.equal(cite.runtime_git, "ce673365");
+  assert.equal(cite.runtime_version_id, "eaf0b54c-1e5b-4d54-a582-25c5cdc09f92");
+  assert.equal(cite.runtime_stamp_source, "live");
+  assert.equal(cite.runtime_launch.sot.git, "ce673365");
+  assert.match(cite.runtime_stamp_duty, /Cos LIVE restamp duty/);
+
+  const llms = llmsDoc("LIMIT", null, live);
+  assert.match(llms, /ce673365/);
+  assert.match(llms, /eaf0b54c-1e5b-4d54-a582-25c5cdc09f92/);
+  assert.match(llms, /Cos LIVE restamp duty/);
+  assert.match(llms, /GET \/v1\/mesh never enables/);
+  assert.match(llms, /Remain-OFF/);
+  assert.match(llms, /read-only QNM ON/);
+  assert.doesNotMatch(llms, /231b02f/);
+  assert.doesNotMatch(llms, /a8f7fdc9/);
 });

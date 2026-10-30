@@ -118,7 +118,7 @@ Optional fold applies only to export notes/metadata. Never to lockset tip bytes,
 
 ## 6. What this repo is not
 
-AZ Generator is MirageGrid Cap-7 mesh DNS factory — **not this repo**. Refuse invented PHY / DNS / ICANN and live-ICANN-publish overclaim. GET `/v1/mesh` stays read-only QNM ON. No Softwares-tab product. No visible identity-lock chrome.
+AZ Generator is MirageGrid Cap-7 mesh DNS factory — **not this repo**. Refuse invented PHY / DNS / ICANN and live-ICANN-publish overclaim. GET `/v1/mesh` is a counts/status cite (read-only QNM). GET never enables. Remain-OFF untouched. No Softwares-tab product. No visible identity-lock chrome.
 
 ## 7. Cap
 

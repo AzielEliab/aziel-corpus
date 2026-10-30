@@ -112,8 +112,16 @@ test("GET / is the film and GET /search keeps the library hub", async () => {
   );
   assert.equal(home.status, 200);
   assert.match(home.headers.get("content-type") || "", /text\/html/);
+  assert.equal(home.headers.get("Strict-Transport-Security"), "max-age=31536000; includeSubDomains");
+  assert.equal(home.headers.get("X-Content-Type-Options"), "nosniff");
+  assert.equal(home.headers.get("X-Frame-Options"), "DENY");
+  const homeCsp = home.headers.get("Content-Security-Policy") || "";
+  assert.match(homeCsp, /script-src 'unsafe-inline'/);
+  assert.match(homeCsp, /frame-ancestors 'none'/);
+  assert.match(homeCsp, /media-src 'self'/);
   const theater = await home.text();
   assert.match(theater, /<main class="theater">/);
+  assert.match(theater, /<script>/);
   assert.match(theater, /class="enter" href="\/search"/);
   assert.doesNotMatch(theater, /class="brandrow"/);
   assert.doesNotMatch(theater, /id="Nodes"/);
@@ -129,7 +137,20 @@ test("GET / is the film and GET /search keeps the library hub", async () => {
     {}
   );
   assert.equal(head.status, 200);
+  assert.equal(head.headers.get("Strict-Transport-Security"), "max-age=31536000; includeSubDomains");
+  assert.match(head.headers.get("Content-Security-Policy") || "", /script-src 'unsafe-inline'/);
   assert.equal(await head.text(), "");
+
+  const apex = await worker.fetch(
+    new Request("https://azielcorpuslibrary.net/", { method: "HEAD", headers: { "User-Agent": "Mozilla/5.0" } }),
+    env,
+    {}
+  );
+  assert.equal(apex.status, 200);
+  assert.match(apex.headers.get("content-type") || "", /text\/html/);
+  assert.equal(apex.headers.get("Strict-Transport-Security"), "max-age=31536000; includeSubDomains");
+  assert.equal(apex.headers.get("X-Frame-Options"), "DENY");
+  assert.match(apex.headers.get("Content-Security-Policy") || "", /frame-ancestors 'none'/);
 
   const moved = await worker.fetch(
     new Request("https://www.azielcorpuslibrary.net/?q=Florence", { headers: { "User-Agent": "Mozilla/5.0" } }),

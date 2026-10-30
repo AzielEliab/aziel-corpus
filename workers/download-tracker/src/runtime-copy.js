@@ -9,11 +9,16 @@ export const RUNTIME_ORIGIN = "https://aziel-runtime.vibelock.workers.dev";
 /** Public suite version from Softwares SSoT (GET /v1/software catalog.version). Product versions stay on cards. */
 export const RUNTIME_VERSION = "2.0.0-rc1";
 export const SOFTWARES_SSOT_VERSION = RUNTIME_VERSION;
-/** Operator SoT: aziel-runtime main tip that the live Worker serves. */
-export const RUNTIME_GIT_SHA = "231b02f";
-export const RUNTIME_GIT_FULL = "231b02fcbb7b50fbd52762a49329042bc1715fe9";
-/** Cloudflare Workers deployment id for that LIVE Worker (operator SoT; not health.version). */
-export const RUNTIME_VERSION_ID = "a8f7fdc9";
+/**
+ * Baked SoT fallback. Live cite.json / llms.txt prefer GET /v1/software at serve time.
+ * Cos LIVE restamp duty: update this bake when the deployed Softwares tip moves and
+ * the live read is down. Short pair: ce673365 / eaf0b54c.
+ * version_id is CF_VERSION_METADATA.id (not health.version).
+ */
+export const RUNTIME_GIT_SHA = "ce673365";
+export const RUNTIME_GIT_FULL = "ce673365700d41fc604292ab2b92b1b1ca504016";
+export const RUNTIME_VERSION_ID = "eaf0b54c-1e5b-4d54-a582-25c5cdc09f92";
+export const RUNTIME_VERSION_ID_SHORT = "eaf0b54c";
 export const RUNTIME_SOT_BRANCH = "main";
 export const RUNTIME_DOOR = "fraggate";
 export const RUNTIME_KERNEL = "https://github.com/AzielEliab/fraggate";
@@ -219,27 +224,39 @@ export const RUNTIME_LIMITATION =
 export const RUNTIME_NOTE = runtimeNote();
 
 /** Hub cite of live Runtime launch surfaces. Does not flip shelves. */
-export function runtimeLaunchCite() {
+export function runtimeLaunchCite(stamp) {
+  const git = stamp && stamp.git ? stamp.git : RUNTIME_GIT_SHA;
+  const gitFull = !stamp
+    ? RUNTIME_GIT_FULL
+    : (stamp.git_full || (stamp.git === RUNTIME_GIT_SHA ? RUNTIME_GIT_FULL : ""));
+  const versionId = stamp && Object.prototype.hasOwnProperty.call(stamp, "version_id")
+    ? stamp.version_id
+    : RUNTIME_VERSION_ID;
+  const source = stamp && stamp.source ? stamp.source : "baked-fallback";
   return {
     spec: "AZRT-HUB-LAUNCH-CITE-1.0",
     status: "ready",
     sot: {
       live: true,
       branch: RUNTIME_SOT_BRANCH,
-      git: RUNTIME_GIT_SHA,
-      git_full: RUNTIME_GIT_FULL,
-      version_id: RUNTIME_VERSION_ID,
+      git,
+      git_full: gitFull,
+      version_id: versionId,
       version: RUNTIME_VERSION,
       origin: RUNTIME_ORIGIN + "/",
       health: RUNTIME_ORIGIN + "/v1/health",
       cite: RUNTIME_ORIGIN + "/cite.json",
       engine_count: RUNTIME_LIVE_COUNT,
       local_only: RUNTIME_LOCAL_ONLY,
+      source,
       note:
-        "Operator SoT LIVE: aziel-runtime " + RUNTIME_SOT_BRANCH + " " + RUNTIME_GIT_SHA
-        + " / version_id " + RUNTIME_VERSION_ID + " / " + RUNTIME_VERSION
-        + " at " + RUNTIME_ORIGIN + ". Cite live GET /v1/health for the engine snapshot. "
-        + "version_id is the Cloudflare Workers deployment id (not health.version).",
+        "Operator SoT " + (source === "live" ? "LIVE" : "baked fallback") + ": aziel-runtime "
+        + RUNTIME_SOT_BRANCH + " " + git
+        + " / version_id " + versionId + " / " + RUNTIME_VERSION
+        + " at " + RUNTIME_ORIGIN + ". Prefer live GET /v1/software git_sha and version_id. "
+        + "Cos LIVE restamp duty on the bake (ce673365 / eaf0b54c). "
+        + "version_id is the Cloudflare Workers deployment id (not health.version). "
+        + "GET /v1/mesh never enables. Remain-OFF untouched.",
     },
     human_ui: {
       host: RUNTIME_ORIGIN + "/",
@@ -309,8 +326,17 @@ export function runtimeLaunchNote() {
     + "FragGate is THE single door. Lamb Lens " + cite.lamb_lens + ". NO-LIE. Growth-ON.";
 }
 
-export function runtimeHowTo(host) {
+export function runtimeHowTo(host, stamp) {
   const h = host || HOST;
+  const git = stamp && stamp.git ? stamp.git : RUNTIME_GIT_SHA;
+  const versionId = stamp && Object.prototype.hasOwnProperty.call(stamp, "version_id")
+    ? stamp.version_id
+    : RUNTIME_VERSION_ID;
+  const duty = stamp && stamp.duty
+    ? stamp.duty
+    : "Cos LIVE restamp duty. Prefer live GET /runtime/v1/software. Baked fallback "
+      + RUNTIME_SOT_BRANCH + " " + RUNTIME_GIT_SHA + " / " + RUNTIME_VERSION_ID_SHORT
+      + " (version_id " + RUNTIME_VERSION_ID + "). GET /v1/mesh never enables. Remain-OFF untouched.";
   return [
     "# " + RUNTIME_TITLE,
     "",
@@ -341,7 +367,7 @@ export function runtimeHowTo(host) {
     "- FragGate call: POST " + h + "/runtime/v1/fraggate/call",
     "- Health: " + h + "/runtime/v1/health",
     "- Uses (this door): " + h + "/runtime/v1/uses",
-    "- Suite mesh (read-only QNM ON): " + h + "/runtime/v1/mesh  (also " + h + "/v1/mesh). Live Nodes = human mesh presence + current website page viewers (not software_nodes, not uses). Counts/status rollup. QNS-CD-1.0 + CROSS-NETWORK-SURVIVAL-1.0 + MESH-SPLIT-WIRES-1.0 + MESH-COLD-COPY-1.0 + MESH-REEXPAND-1.0 + MESH-REHEAL-1.0. Re-expand is archive restore. Reheal is never neighbor majority. GET never enables. Disable is refused.",
+    "- Suite mesh (read-only QNM ON): " + h + "/runtime/v1/mesh  (also " + h + "/v1/mesh). Live Nodes = human mesh presence + current website page viewers (not software_nodes, not uses). Counts/status rollup. QNS-CD-1.0 + CROSS-NETWORK-SURVIVAL-1.0 + MESH-SPLIT-WIRES-1.0 + MESH-COLD-COPY-1.0 + MESH-REEXPAND-1.0 + MESH-REHEAL-1.0. Re-expand is archive restore. Reheal is never neighbor majority. GET /v1/mesh never enables. Remain-OFF untouched. Disable is refused.",
     "- Manifest: " + h + "/runtime/v1/runtime.json",
     "- Skill: " + h + "/runtime/v1/skill",
     "- OpenAPI: " + h + "/runtime/openapi.json",
@@ -356,7 +382,7 @@ export function runtimeHowTo(host) {
     "- Source on GitHub: " + RUNTIME_GITHUB,
     "- Documentation: " + RUNTIME_DOCS,
     "- " + RUNTIME_WORKER_LABEL + " (Worker): " + RUNTIME_ORIGIN + "/",
-    "- SoT LIVE: " + RUNTIME_SOT_BRANCH + " " + RUNTIME_GIT_SHA + " / version_id " + RUNTIME_VERSION_ID + " / " + RUNTIME_VERSION,
+    "- SoT: " + RUNTIME_SOT_BRANCH + " " + git + " / version_id " + versionId + " / " + RUNTIME_VERSION + ". " + duty,
     "- Human UI (Runtime Worker): #op-panel #dashboard #fg-console #task-* + About Aziel + hashtags + /download suite pack",
     "- MCP Softwares: fraggate_call only. FragGate is THE single door.",
     "- Lamb Lens: " + LAMB_LENS_PATH + ". Dual surface. NO-LIE. Growth-ON.",

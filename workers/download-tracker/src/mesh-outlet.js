@@ -269,7 +269,9 @@ function shortGit(value) {
   const s = text(value).toLowerCase();
   if (!s) return "";
   if (!/^[0-9a-f]{7,40}$/.test(s)) return null;
-  return s.slice(0, 7);
+  // Seven-character shorts stay as written. Longer shas cite the first eight (ce673365).
+  if (s.length === 7) return s;
+  return s.slice(0, 8);
 }
 
 function fullGit(value) {
@@ -277,6 +279,15 @@ function fullGit(value) {
   if (!s) return "";
   if (!/^[0-9a-f]{40}$/.test(s)) return null;
   return s;
+}
+
+/** 8-hex bake or CF_VERSION_METADATA UUID. null clears. false refuses. */
+function canonicalVersionId(value) {
+  if (value == null || value === "") return null;
+  const s = text(value).toLowerCase();
+  if (/^[0-9a-f]{8}$/.test(s)) return s;
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(s)) return s;
+  return false;
 }
 
 export function suiteHelpOk(help) {
@@ -340,7 +351,7 @@ export function acceptFanout(previous, body) {
     if (full == null) return refuse(400, "OUTLET-SHA");
     if (full) {
       next.sot.git_full = full;
-      next.sot.git = full.slice(0, 7);
+      next.sot.git = full.slice(0, 8);
     }
   }
   if (text(sotIn.version)) {
@@ -349,9 +360,9 @@ export function acceptFanout(previous, body) {
     next.sot.version = version;
   }
   if (Object.prototype.hasOwnProperty.call(sotIn, "version_id")) {
-    if (sotIn.version_id == null || sotIn.version_id === "") next.sot.version_id = null;
-    else if (/^[0-9a-f]{8}$/i.test(String(sotIn.version_id))) next.sot.version_id = String(sotIn.version_id).toLowerCase();
-    else return refuse(400, "OUTLET-VERSION-ID");
+    const vid = canonicalVersionId(sotIn.version_id);
+    if (vid === false) return refuse(400, "OUTLET-VERSION-ID");
+    next.sot.version_id = vid;
   }
   for (const key of ["count", "live_count", "local_only_count", "isolation_software_count"]) {
     if (softIn[key] == null && body[key] == null) continue;

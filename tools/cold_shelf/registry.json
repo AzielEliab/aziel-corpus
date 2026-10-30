@@ -763,16 +763,16 @@
     "sot": {
       "live": true,
       "branch": "main",
-      "git": "231b02f",
-      "git_full": "231b02fcbb7b50fbd52762a49329042bc1715fe9",
-      "version_id": "a8f7fdc9",
+      "git": "ce673365",
+      "git_full": "ce673365700d41fc604292ab2b92b1b1ca504016",
+      "version_id": "eaf0b54c-1e5b-4d54-a582-25c5cdc09f92",
       "version": "2.0.0-rc1",
       "origin": "https://aziel-runtime.vibelock.workers.dev/",
       "health": "https://aziel-runtime.vibelock.workers.dev/v1/health",
       "cite": "https://aziel-runtime.vibelock.workers.dev/cite.json",
       "engine_count": 41,
       "local_only": "VeilLock",
-      "note": "Operator SoT LIVE: aziel-runtime main 231b02f / version_id a8f7fdc9 / 2.0.0-rc1 at https://aziel-runtime.vibelock.workers.dev. Cite live GET /v1/health for the engine snapshot. version_id is the Cloudflare Workers deployment id (not health.version)."
+      "note": "Operator SoT baked fallback: aziel-runtime main ce673365 / version_id eaf0b54c-1e5b-4d54-a582-25c5cdc09f92 / 2.0.0-rc1 at https://aziel-runtime.vibelock.workers.dev. Cos LIVE restamp duty. Prefer live GET /v1/software. version_id is the Cloudflare Workers deployment id (not health.version). GET /v1/mesh never enables. Remain-OFF untouched."
     },
     "human_ui": {
       "host": "https://aziel-runtime.vibelock.workers.dev/",

@@ -12,6 +12,8 @@ import { filmTheaterHtml, libraryHubRedirect, LIBRARY_HUB_PATH } from "./film.js
 import { peekMeshDualCounts } from "./mesh.js";
 import { handleHosted } from "./hosted.js";
 import { robotsTxt, sitemapXml, sitemapIndexXml, sitemapRecordsXml, citeDoc, llmsDoc, aiTxt, humansTxt, mcpDiscovery, isReadMethod, crawlResponse, MIME, isIndexNowKeyPath, indexNowKeyBody } from "./crawl.js";
+import { resolveRuntimeCiteStamp } from "./runtime-cite-stamp.js";
+import { applyHtmlSecurity } from "./html-security.js";
 import { readOutletState } from "./mesh-outlet.js";
 import { helpRouteBody } from "./help.js";
 import { bridgeDoc, productBySlug } from "./ai-surface.js";
@@ -501,7 +503,7 @@ export default {
   },
   async fetch(request, env, ctx) {
     try {
-      return await handleFetch(request, env, ctx);
+      return applyHtmlSecurity(await handleFetch(request, env, ctx));
     } catch (err) {
       // Daily D1/KV quota: 503 + Retry-After instead of an uncaught 1101.
       if (isQuotaError(err) || isTransientOverload(err)) return quotaResponse(err, { headers: corsHeaders() });
@@ -770,7 +772,8 @@ async function handleFetch(request, env, ctx) {
     }
     if (isReadMethod(request.method) && crawlPath === "/cite.json") {
       const outlet = await readOutletState(env);
-      return crawlResponse(request, JSON.stringify(citeDoc(survival, outlet && outlet.cite), null, 2), MIME.json, { "Cache-Control": seoCache, ...corsHeaders() });
+      const stamp = await resolveRuntimeCiteStamp(env);
+      return crawlResponse(request, JSON.stringify(citeDoc(survival, outlet && outlet.cite, stamp), null, 2), MIME.json, { "Cache-Control": seoCache, ...corsHeaders() });
     }
     if (isReadMethod(request.method) && crawlPath === "/bridge.json") {
       return crawlResponse(request, JSON.stringify(bridgeDoc(), null, 2), MIME.json, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
@@ -788,10 +791,16 @@ async function handleFetch(request, env, ctx) {
       }
     }
     if (isReadMethod(request.method) && crawlPath === "/llms.txt") {
-      return crawlResponse(request, llmsDoc(LIMITATION, survival), MIME.plain, { "Cache-Control": seoCache, ...corsHeaders() });
+      const outlet = await readOutletState(env);
+      const stamp = await resolveRuntimeCiteStamp(env);
+      const sot = outlet && outlet.cite && outlet.cite.sot;
+      return crawlResponse(request, llmsDoc(LIMITATION, survival, stamp, sot), MIME.plain, { "Cache-Control": seoCache, ...corsHeaders() });
     }
     if (isReadMethod(request.method) && crawlPath === "/ai.txt") {
-      return crawlResponse(request, aiTxt(LIMITATION, survival), MIME.plain, { "Cache-Control": seoCache, ...corsHeaders() });
+      const outlet = await readOutletState(env);
+      const stamp = await resolveRuntimeCiteStamp(env);
+      const sot = outlet && outlet.cite && outlet.cite.sot;
+      return crawlResponse(request, aiTxt(LIMITATION, survival, stamp, sot), MIME.plain, { "Cache-Control": seoCache, ...corsHeaders() });
     }
     if (isReadMethod(request.method) && crawlPath === "/humans.txt") {
       return crawlResponse(request, humansTxt(), MIME.plain, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });

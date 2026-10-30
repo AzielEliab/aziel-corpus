@@ -82,7 +82,8 @@ function fanoutBody(extra = {}) {
 test("frozen outlet cite is Aziel Eliab, tab 42, live 41, Ask Jeeves suite help", () => {
   const cite = frozenCite();
   assert.equal(cite.sot.version, "2.0.0-rc1");
-  assert.equal(cite.sot.git, "231b02f");
+  assert.equal(cite.sot.git, "ce673365");
+  assert.equal(cite.sot.version_id, "eaf0b54c-1e5b-4d54-a582-25c5cdc09f92");
   assert.equal(cite.softwares.count, RUNTIME_TAB_COUNT);
   assert.equal(cite.softwares.live_count, RUNTIME_LIVE_COUNT);
   assert.equal(cite.softwares.isolation_software_count, RUNTIME_ISOLATION_COUNT);
@@ -173,7 +174,7 @@ test("fan-out applies cite fields and drops download counters", () => {
   assert.equal(accepted.ok, true);
   assert.equal(accepted.counters_untouched, true);
   assert.ok(accepted.dropped_counter_fields.includes("downloads"));
-  assert.equal(accepted.state.cite.sot.git, "abcdef0");
+  assert.equal(accepted.state.cite.sot.git, "abcdef01");
   assert.equal(accepted.state.cite.softwares.count, 43);
   assert.equal(accepted.state.cite.softwares.live_count, 41);
   assert.equal(accepted.state.downloads, undefined);
@@ -183,7 +184,7 @@ test("fan-out applies cite fields and drops download counters", () => {
     identity: AUTHOR,
     softwares: { count: 42 },
   });
-  assert.equal(kept.state.cite.sot.git, "abcdef0");
+  assert.equal(kept.state.cite.sot.git, "abcdef01");
   assert.equal(kept.state.cite.softwares.count, 42);
 });
 
@@ -270,7 +271,7 @@ test("SoT pull keeps last-known cite when the origin is unreachable", async () =
   assert.equal(down.status, "unreachable");
   assert.equal(down.source, "last-known");
   assert.equal(down.invented, false);
-  assert.equal(down.cite.sot.git, "231b02f");
+  assert.equal(down.cite.sot.git, "ce673365");
   assert.equal(down.cite.softwares.count, 42);
   assert.match(down.note, /No library rows invented/);
 
@@ -304,6 +305,21 @@ test("SoT pull keeps last-known cite when the origin is unreachable", async () =
   assert.equal(live.state.cite.suite_help.software_tab, false);
   assert.equal(live.state.cite.softwares.count, 42);
   assert.equal(unreachableCite(previous, "http").cite.sot.git, previous.cite.sot.git);
+
+  const uuid = citeFromSoftwareDoc({
+    author: AUTHOR,
+    identity: AUTHOR,
+    version: "2.0.0-rc1",
+    git_sha: "ce673365700d41fc604292ab2b92b1b1ca504016",
+    version_id: "eaf0b54c-1e5b-4d54-a582-25c5cdc09f92",
+    count: 42,
+    live_count: 41,
+    isolation_software_count: 33,
+    software: [{ slug: "peacelock", name: "PeaceLock" }],
+  });
+  assert.equal(uuid.ok, true);
+  assert.equal(uuid.state.cite.sot.git, "ce673365");
+  assert.equal(uuid.state.cite.sot.version_id, "eaf0b54c-1e5b-4d54-a582-25c5cdc09f92");
 });
 
 test("peer inventory sync keeps last-known rows and invents none", async () => {
