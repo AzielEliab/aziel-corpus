@@ -17,6 +17,16 @@ import {
   ingestVerifyJson,
   matchPublishedTip,
 } from "./ingest-receipt.js";
+import {
+  RECEIPTS_SITES_PATH,
+  RECEIPTS_SITES_V1,
+  aggregateCatalog,
+  aggregateIndexHtml,
+  aggregateSite,
+  aggregateSiteHtml,
+  aggregateSubtreeHtml,
+  listFiledReceipts,
+} from "./receipt-aggregate.js";
 
 export const RECEIPTS_SPEC = "ACT-RECEIPT-1.0";
 export const RECEIPTS_PATH = "/receipts";
@@ -401,6 +411,7 @@ ${isolatedHtml}
 <ul>${sisterHtml}</ul>
 <p class="muted"><a href="${RECEIPTS_PATH}.jsonl">receipts.jsonl</a> · <a href="${RECEIPTS_PATH}/verify">verify</a></p>
 </div>
+${aggregateSubtreeHtml()}
 <script type="application/ld+json">${JSON.stringify(dataset)}</script>`;
 }
 
@@ -480,6 +491,55 @@ export async function handleReceipts(request, env) {
 
   if (method !== "GET" && method !== "HEAD") {
     return json({ ok: false, error: "method not allowed" }, 405);
+  }
+
+  if (path === RECEIPTS_SITES_PATH || path === RECEIPTS_SITES_V1) {
+    const catalog = aggregateCatalog();
+    if (path === RECEIPTS_SITES_V1 || wantsJson(request)) return json(catalog);
+    const html = page("receipts", aggregateIndexHtml(), { path: RECEIPTS_SITES_PATH, kind: "receipts" });
+    if (method === "HEAD") return new Response(null, { status: 200, headers: htmlHeaders() });
+    return new Response(html, { status: 200, headers: htmlHeaders() });
+  }
+
+  const siteMatch = path.match(/^\/(?:v1\/)?receipts\/sites\/([a-z0-9][a-z0-9-]{0,40})$/);
+  if (siteMatch) {
+    const site = aggregateSite(siteMatch[1]);
+    if (!site) {
+      return json({
+        ok: false,
+        live: false,
+        code: "AGGREGATE-SITE",
+        decryption_complete: false,
+        cap7_is_icann: false,
+        paid_sat: "HELD",
+        sat: false,
+      }, 404);
+    }
+    const filed = await listFiledReceipts(env, site.slug);
+    const status = filed.ok ? 200 : 503;
+    if (path.startsWith("/v1/") || wantsJson(request)) {
+      return json({
+        ok: filed.ok,
+        live: false,
+        decryption_complete: false,
+        cap7_is_icann: false,
+        public_icann: false,
+        resolves_to_hub: false,
+        paid_sat: "HELD",
+        sat: false,
+        tiebreak: "refused",
+        tiebreak_owner: "aziel-runtime",
+        code: filed.code,
+        site: site.slug,
+        receipts: filed.receipts,
+      }, status);
+    }
+    const html = page("receipts", aggregateSiteHtml(site, filed), {
+      path: RECEIPTS_SITES_PATH + "/" + site.slug,
+      kind: "receipts",
+    });
+    if (method === "HEAD") return new Response(null, { status, headers: htmlHeaders() });
+    return new Response(html, { status, headers: htmlHeaders() });
   }
 
   if (path === "/receipts/verify" || path === "/v1/receipts/verify") {

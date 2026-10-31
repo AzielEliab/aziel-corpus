@@ -10,6 +10,9 @@
  * It does not walk the library ledger from genesis and it does not fan out.
  *
  * live stays false. Cap-7 stays off the ICANN name plane.
+ * Paid sat stays HELD. decryption_complete stays false.
+ * Unseal receipts from TimeToUnsealTheBook use the same wrap and pull.
+ * They land on the unseal plane. Corpus refuses tie-break; runtime owns it.
  * Intake flags are not read or written here.
  * Author: Aziel Eliab.
  */
@@ -17,6 +20,22 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { hashPayload } from "./ledger.js";
 import { isOperator } from "./library.js";
 import { isOperatorRequest, operatorTokenFromEnv } from "./rate-limit.js";
+import {
+  COUNTER_SNAPSHOT_KIND,
+  KEYWORD_KIND,
+  KEYWORD_RE,
+  METHOD_RUN_KIND,
+  PAID_SAT_HELD,
+  SOURCE_BLOB_RE,
+  TEST_ID_RE,
+  THEME_RE,
+  THEORY_KIND,
+  UNSEAL_KINDS,
+  UNSEAL_PLANE,
+  UNSEAL_SOURCE,
+  isUnsealSlot,
+} from "./voynich-housing.js";
+import { fileAggregateReceipt, isAggregateSite } from "./receipt-aggregate.js";
 
 export const LATTICE_SPEC = "AZRT-DUAL-LATTICE-1.0";
 export const PRIMARY_TARGET = "aziel-runtime";
@@ -44,11 +63,47 @@ export const LATTICE_PLANES = Object.freeze([
   "access_points",
   "nodes",
   "node_mesh",
+  UNSEAL_PLANE,
 ]);
 
 const HEX64 = /^[a-f0-9]{64}$/;
+const SLOT_RE = /^[a-z0-9][a-z0-9._-]{0,63}$/;
 const MAX_BODY = 8192;
-const TOP_KEYS = new Set(["entry_hash", "lattice", "position", "target", "spec", "plane", "scope"]);
+const TOP_KEYS = new Set(["entry_hash", "lattice", "position", "target", "spec", "plane", "scope", "unseal", "aggregate"]);
+const AGGREGATE_KEYS = new Set([
+  "site",
+  "receipt_hash",
+  "decryption_complete",
+  "live",
+  "cap7_is_icann",
+  "public_icann",
+  "resolves_to_hub",
+  "paid_sat",
+  "sat",
+]);
+const UNSEAL_KEYS = new Set([
+  "source",
+  "kind",
+  "id",
+  "slot",
+  "decryption_complete",
+  "live",
+  "cap7_is_icann",
+  "public_icann",
+  "resolves_to_hub",
+  "paid_sat",
+  "sat",
+  "receipt_hash",
+  "tab",
+  "test_id",
+  "ledger_entry_hash",
+  "sha256",
+  "source_blob",
+  "theory_id",
+  "method_id",
+  "keyword",
+  "theme",
+]);
 const BLOCK_KEYS = new Set([
   "spec",
   "document_hash",
@@ -67,10 +122,14 @@ export function latticePolicy() {
     auto_update: false,
     rf: false,
     sat: false,
+    paid_sat: PAID_SAT_HELD,
+    decryption_complete: false,
     cap7_is_icann: false,
     public_icann: false,
     resolves_to_hub: false,
     spend: false,
+    tiebreak: "refused",
+    tiebreak_owner: "aziel-runtime",
     role: "secondary",
     target: SECONDARY_TARGET,
     primary_target: PRIMARY_TARGET,
@@ -116,7 +175,9 @@ export function verifyLatticeBlock(block) {
   if (block.live === true) return "LATTICE-NOT-LIVE";
   if (hasIntakeFlag(block)) return "LATTICE-FLAG";
   if (Object.prototype.hasOwnProperty.call(block, "tiebreak")) return "LATTICE-TIEBREAK-CORPUS";
+  if (Object.prototype.hasOwnProperty.call(block, "tab") && block.tab !== "voynich") return "VOYNICH-TAB";
   for (const key of Object.keys(block)) {
+    if (key === "tab") continue;
     if (!BLOCK_KEYS.has(key)) return "LATTICE-FIELD";
   }
   if (block.spec !== LATTICE_SPEC) return "LATTICE-SPEC";
@@ -157,14 +218,197 @@ export function canonicalBlock(block) {
   };
 }
 
-/** Offline secondary rows are the users plane. A client plane tag cannot move them. */
-function planeFor(body, block) {
-  if (block.offline !== true) return null;
-  const derived = "users";
+/** Offline secondary rows are the users plane. Unseal receipts are the unseal plane. Aggregated receipts are the sites plane. */
+function planeFor(body, block, kind) {
+  const derived = kind === "unseal" ? UNSEAL_PLANE : kind === "aggregate" ? "sites" : (block.offline === true ? "users" : null);
+  if (!derived) return null;
   const raw = body.plane != null ? body.plane : body.scope;
   if (raw == null || raw === "") return derived;
   if (String(raw).trim() !== derived) return null;
   return derived;
+}
+
+function storedLattice(block, extra) {
+  const canon = canonicalBlock(block);
+  const tab = block && block.tab === "voynich" ? "voynich" : (extra && extra.unseal && extra.unseal.tab === "voynich" ? "voynich" : null);
+  if ((!extra || (!extra.unseal && !extra.aggregate)) && !tab) return canon;
+  const stored = {
+    spec: canon.spec,
+    document_hash: canon.document_hash,
+    primary: canon.primary,
+    primary_prev: canon.primary_prev,
+    secondary: canon.secondary,
+    secondary_prev: canon.secondary_prev,
+    offline: canon.offline,
+    username: canon.username,
+    lattices: canon.lattices,
+  };
+  if (tab) stored.tab = tab;
+  if (extra && extra.unseal) stored.unseal = extra.unseal;
+  if (extra && extra.aggregate) stored.aggregate = extra.aggregate;
+  return stored;
+}
+
+/** Unseal pointer on a wrap. Absent means a GodLock row. A present key must be a catalog slot. */
+function screenUnsealPointer(value, entryHash) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return { ok: false, status: 422, code: "UNSEAL-SHAPE" };
+  if (Object.prototype.hasOwnProperty.call(value, "tiebreak")) return { ok: false, status: 409, code: "LATTICE-TIEBREAK-CORPUS" };
+  if (Object.prototype.hasOwnProperty.call(value, "decryption_complete") && value.decryption_complete !== false) {
+    return { ok: false, status: 422, code: "UNSEAL-DECRYPTION-HELD" };
+  }
+  if (Object.prototype.hasOwnProperty.call(value, "live") && value.live !== false) {
+    return { ok: false, status: 422, code: "LATTICE-NOT-LIVE" };
+  }
+  if (
+    (Object.prototype.hasOwnProperty.call(value, "cap7_is_icann") && value.cap7_is_icann !== false)
+    || (Object.prototype.hasOwnProperty.call(value, "public_icann") && value.public_icann !== false)
+    || (Object.prototype.hasOwnProperty.call(value, "resolves_to_hub") && value.resolves_to_hub !== false)
+  ) {
+    return { ok: false, status: 422, code: "CAP7-NOT-ICANN" };
+  }
+  if (Object.prototype.hasOwnProperty.call(value, "sat") && value.sat !== false) {
+    return { ok: false, status: 422, code: "UNSEAL-SAT-HELD" };
+  }
+  if (Object.prototype.hasOwnProperty.call(value, "paid_sat") && value.paid_sat !== PAID_SAT_HELD) {
+    return { ok: false, status: 422, code: "UNSEAL-SAT-HELD" };
+  }
+  for (const key of Object.keys(value)) {
+    if (!UNSEAL_KEYS.has(key)) return { ok: false, status: 422, code: "UNSEAL-FIELD" };
+  }
+  if (value.source !== UNSEAL_SOURCE) return { ok: false, status: 422, code: "UNSEAL-SOURCE" };
+  if (Object.prototype.hasOwnProperty.call(value, "tab") && value.tab !== "voynich") {
+    return { ok: false, status: 422, code: "VOYNICH-TAB" };
+  }
+  const flags = {
+    decryption_complete: false,
+    live: false,
+    cap7_is_icann: false,
+    public_icann: false,
+    resolves_to_hub: false,
+    paid_sat: PAID_SAT_HELD,
+    sat: false,
+  };
+  if (value.kind === COUNTER_SNAPSHOT_KIND) {
+    if (value.test_id || value.theory_id || value.method_id || value.keyword || value.ledger_entry_hash || value.sha256 || value.source_blob) {
+      return { ok: false, status: 422, code: "UNSEAL-FIELD" };
+    }
+    return {
+      ok: true,
+      counter: true,
+      unseal: { source: UNSEAL_SOURCE, kind: COUNTER_SNAPSHOT_KIND, id: "counter-snapshot", tab: "voynich", ...flags },
+    };
+  }
+  if (value.kind === KEYWORD_KIND) {
+    const keyword = typeof value.keyword === "string" ? value.keyword.trim() : "";
+    const theme = typeof value.theme === "string" ? value.theme.trim() : "";
+    const test_id = typeof value.test_id === "string" ? value.test_id : "";
+    if (!KEYWORD_RE.test(keyword) || !THEME_RE.test(theme) || !TEST_ID_RE.test(test_id)) {
+      return { ok: false, status: 422, code: "UNSEAL-SLOT" };
+    }
+    return {
+      ok: true,
+      unseal: { source: UNSEAL_SOURCE, kind: KEYWORD_KIND, keyword, theme, test_id, tab: "voynich", ...flags },
+    };
+  }
+  if (value.kind === METHOD_RUN_KIND || (value.kind === "test" && value.method_id)) {
+    const method_id = typeof value.method_id === "string" ? value.method_id : "";
+    if (!TEST_ID_RE.test(method_id)) return { ok: false, status: 422, code: "UNSEAL-SLOT" };
+    const test_id = value.test_id == null || value.test_id === "" ? null : value.test_id;
+    if (test_id != null && !TEST_ID_RE.test(test_id)) return { ok: false, status: 422, code: "UNSEAL-SLOT" };
+    return {
+      ok: true,
+      unseal: { source: UNSEAL_SOURCE, kind: METHOD_RUN_KIND, method_id, test_id, tab: "voynich", ...flags },
+    };
+  }
+  if (value.kind === THEORY_KIND || (value.kind === "theory" && value.theory_id)) {
+    const theory_id = typeof value.theory_id === "string" ? value.theory_id : "";
+    if (!TEST_ID_RE.test(theory_id)) return { ok: false, status: 422, code: "UNSEAL-SLOT" };
+    return {
+      ok: true,
+      unseal: { source: UNSEAL_SOURCE, kind: THEORY_KIND, theory_id, tab: "voynich", ...flags },
+    };
+  }
+  const indexReceipt = value.test_id || value.ledger_entry_hash || value.sha256 || value.source_blob;
+  if (indexReceipt) {
+    if (value.kind !== "receipt" && value.kind !== "test") return { ok: false, status: 422, code: "UNSEAL-KIND" };
+    const test_id = typeof value.test_id === "string" ? value.test_id : "";
+    if (!TEST_ID_RE.test(test_id) || !isHex64(value.ledger_entry_hash) || value.ledger_entry_hash !== entryHash || !isHex64(value.sha256) || !SOURCE_BLOB_RE.test(value.source_blob)) {
+      return { ok: false, status: 400, code: "UNSEAL-HASH" };
+    }
+    return {
+      ok: true,
+      unseal: {
+        source: UNSEAL_SOURCE,
+        kind: "receipt",
+        test_id,
+        ledger_entry_hash: value.ledger_entry_hash,
+        sha256: value.sha256,
+        source_blob: value.source_blob,
+        tab: "voynich",
+        ...flags,
+      },
+    };
+  }
+  if (!UNSEAL_KINDS.includes(value.kind)) return { ok: false, status: 422, code: "UNSEAL-KIND" };
+  const id = typeof value.id === "string" ? value.id : "";
+  const slot = value.slot == null || value.slot === "" ? id : value.slot;
+  if (!SLOT_RE.test(id) || typeof slot !== "string" || !SLOT_RE.test(slot) || !isUnsealSlot(value.kind, slot)) {
+    return { ok: false, status: 422, code: "UNSEAL-SLOT" };
+  }
+  if (value.receipt_hash != null && value.receipt_hash !== entryHash) {
+    return { ok: false, status: 400, code: "UNSEAL-HASH" };
+  }
+  return {
+    ok: true,
+    unseal: { source: UNSEAL_SOURCE, kind: value.kind, id, slot, tab: value.tab === "voynich" ? "voynich" : undefined, ...flags },
+  };
+}
+
+/** Aggregated receipt pointer. The hash is filed. Sister prose is not copied. */
+function screenAggregatePointer(value, entryHash) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return { ok: false, status: 422, code: "AGGREGATE-SHAPE" };
+  if (Object.prototype.hasOwnProperty.call(value, "tiebreak")) return { ok: false, status: 409, code: "LATTICE-TIEBREAK-CORPUS" };
+  if (Object.prototype.hasOwnProperty.call(value, "decryption_complete") && value.decryption_complete !== false) {
+    return { ok: false, status: 422, code: "UNSEAL-DECRYPTION-HELD" };
+  }
+  if (Object.prototype.hasOwnProperty.call(value, "live") && value.live !== false) {
+    return { ok: false, status: 422, code: "LATTICE-NOT-LIVE" };
+  }
+  if (
+    (Object.prototype.hasOwnProperty.call(value, "cap7_is_icann") && value.cap7_is_icann !== false)
+    || (Object.prototype.hasOwnProperty.call(value, "public_icann") && value.public_icann !== false)
+    || (Object.prototype.hasOwnProperty.call(value, "resolves_to_hub") && value.resolves_to_hub !== false)
+  ) {
+    return { ok: false, status: 422, code: "CAP7-NOT-ICANN" };
+  }
+  if (Object.prototype.hasOwnProperty.call(value, "sat") && value.sat !== false) {
+    return { ok: false, status: 422, code: "UNSEAL-SAT-HELD" };
+  }
+  if (Object.prototype.hasOwnProperty.call(value, "paid_sat") && value.paid_sat !== PAID_SAT_HELD) {
+    return { ok: false, status: 422, code: "UNSEAL-SAT-HELD" };
+  }
+  for (const key of Object.keys(value)) {
+    if (!AGGREGATE_KEYS.has(key)) return { ok: false, status: 422, code: "AGGREGATE-FIELD" };
+  }
+  const site = typeof value.site === "string" ? value.site : "";
+  if (!isAggregateSite(site)) return { ok: false, status: 422, code: "AGGREGATE-SITE" };
+  if (value.receipt_hash != null && value.receipt_hash !== entryHash) {
+    return { ok: false, status: 400, code: "AGGREGATE-HASH" };
+  }
+  return {
+    ok: true,
+    aggregate: {
+      site,
+      receipt_hash: entryHash,
+      decryption_complete: false,
+      live: false,
+      cap7_is_icann: false,
+      public_icann: false,
+      resolves_to_hub: false,
+      paid_sat: PAID_SAT_HELD,
+      sat: false,
+    },
+  };
 }
 
 function positionFor(value) {
@@ -435,6 +679,11 @@ async function pullEntry(env, entryHash, revealUser) {
 
 function screenWrap(body) {
   if (!body || typeof body !== "object" || Array.isArray(body)) return fail(400, "LATTICE-JSON");
+  if (Object.prototype.hasOwnProperty.call(body, "tiebreak")) return fail(409, "LATTICE-TIEBREAK-CORPUS");
+  if (body.decryption_complete === true || (body.lattice && body.lattice.decryption_complete === true)) {
+    return fail(422, "UNSEAL-DECRYPTION-HELD");
+  }
+  if (body.sat === true || (body.paid_sat != null && body.paid_sat !== PAID_SAT_HELD)) return fail(422, "UNSEAL-SAT-HELD");
   if (claimsIcann(body) || claimsIcann(body.lattice) || claimsIcann(body.policy)) return fail(422, "CAP7-NOT-ICANN");
   if (body.live === true || (body.policy && body.policy.live === true) || (body.lattice && body.lattice.live === true)) {
     return fail(422, "LATTICE-NOT-LIVE");
@@ -449,10 +698,31 @@ function screenWrap(body) {
   if (body.target != null && body.target !== SECONDARY_TARGET) return fail(422, "LATTICE-TARGET");
   const reason = verifyLatticeBlock(body.lattice);
   if (reason === "LATTICE-TIEBREAK-CORPUS") return fail(409, reason);
+  if (reason === "VOYNICH-TAB") return fail(422, reason);
   if (reason) return fail(422, reason);
-  if (body.lattice.offline !== true) return fail(409, "LATTICE-SECONDARY-OFFLINE");
+  let unseal = null;
+  if (Object.prototype.hasOwnProperty.call(body, "unseal")) {
+    const screenedUnseal = screenUnsealPointer(body.unseal, entry_hash);
+    if (!screenedUnseal.ok) return fail(screenedUnseal.status, screenedUnseal.code);
+    unseal = screenedUnseal.unseal;
+  }
+  let aggregate = null;
+  if (Object.prototype.hasOwnProperty.call(body, "aggregate")) {
+    const screenedAggregate = screenAggregatePointer(body.aggregate, entry_hash);
+    if (!screenedAggregate.ok) return fail(screenedAggregate.status, screenedAggregate.code);
+    aggregate = screenedAggregate.aggregate;
+  }
+  if (unseal && unseal.kind === COUNTER_SNAPSHOT_KIND && body.lattice.tab !== "voynich") {
+    return fail(422, "VOYNICH-TAB");
+  }
+  if (unseal && aggregate) return fail(422, "LATTICE-FIELD");
+  if (unseal || aggregate) {
+    if (body.lattice.offline !== false) return fail(422, unseal ? "UNSEAL-NOT-USER" : "AGGREGATE-NOT-USER");
+  } else if (body.lattice.offline !== true) {
+    return fail(409, "LATTICE-SECONDARY-OFFLINE");
+  }
   if (body.lattice.document_hash !== entry_hash) return fail(400, "LATTICE-DOCUMENT");
-  const plane = planeFor(body, body.lattice);
+  const plane = planeFor(body, body.lattice, unseal ? "unseal" : aggregate ? "aggregate" : "");
   if (!plane) return fail(422, "LATTICE-PLANE");
   const position = positionFor(body.position);
   if (!position.ok) return fail(422, "LATTICE-FIELD");
@@ -461,7 +731,8 @@ function screenWrap(body) {
     entry_hash,
     plane,
     position: position.position,
-    lattice: canonicalBlock(body.lattice),
+    lattice: storedLattice(body.lattice, { unseal, aggregate }),
+    aggregate,
   };
 }
 
@@ -470,6 +741,19 @@ async function offlineDouble(env, secondary, entryHash) {
     "SELECT entry_hash FROM lattice_secondary WHERE offline = 1 AND secondary_hash = ? AND entry_hash != ? /* lattice-double */"
   ).bind(secondary, entryHash).first();
   return !!(row && row.entry_hash);
+}
+
+async function fileIfAggregate(env, screened) {
+  if (!screened.aggregate) return null;
+  const filed = await fileAggregateReceipt(env, {
+    site: screened.aggregate.site,
+    entry_hash: screened.entry_hash,
+  });
+  if (!filed.ok) {
+    const status = filed.code === "LATTICE-TIEBREAK-CORPUS" ? 409 : 503;
+    return fail(status, filed.code, { entry_hash: screened.entry_hash, filed: false });
+  }
+  return null;
 }
 
 async function writeWrap(env, screened, reveal) {
@@ -484,9 +768,12 @@ async function writeWrap(env, screened, reveal) {
       && samePosition(existing.position, screened.position)
       && existing.target === SECONDARY_TARGET;
     if (!same) return fail(409, "LATTICE-DOUBLE", { entry_hash: screened.entry_hash });
+    const refused = await fileIfAggregate(env, screened);
+    if (refused) return refused;
     const body = pullBody(existing, null, reveal);
     body.code = "LATTICE-ALREADY";
     body.written = false;
+    body.filed = !!screened.aggregate;
     return { status: 200, body };
   }
   if (screened.lattice.offline === true && await offlineDouble(env, screened.lattice.secondary, screened.entry_hash)) {
@@ -521,9 +808,12 @@ async function writeWrap(env, screened, reveal) {
   }
   const row = await readEntry(env, screened.entry_hash);
   if (!row || row.entry_hash !== screened.entry_hash) return fail(503, "LATTICE-STORE-UNAVAILABLE");
+  const refused = await fileIfAggregate(env, screened);
+  if (refused) return refused;
   const body = pullBody(row, null, reveal);
   body.code = "LATTICE-WRAP-PULL";
   body.written = true;
+  body.filed = !!screened.aggregate;
   return { status: 201, body };
 }
 
@@ -540,6 +830,12 @@ async function wrapEntry(request, env) {
   if (!screened.ok) return screened;
   const grant = await operatorGrant(request, env);
   if (!grant.ok || !grant.submitter_key) return fail(401, "LATTICE-AUTH");
+  if (screened.aggregate) {
+    const store = env && env.DOWNLOADS;
+    if (!store || typeof store.get !== "function" || typeof store.put !== "function") {
+      return fail(503, "AGGREGATE-STORE-UNAVAILABLE", { filed: false });
+    }
+  }
   const limit = env && env.LATTICE_WRAP_RATE != null ? Number(env.LATTICE_WRAP_RATE) : LATTICE_WRAP_PER_MINUTE;
   if (!allowWrapRate(grant.submitter_key, Date.now(), limit)) return fail(429, "LATTICE-RATE");
   if (!(await storeReady(env))) return fail(503, "LATTICE-STORE-UNAVAILABLE");
@@ -548,6 +844,32 @@ async function wrapEntry(request, env) {
   } catch {
     return fail(503, "LATTICE-STORE-UNAVAILABLE");
   }
+}
+
+function truthyFlag(value) {
+  return value === true || value === 1 || value === "1" || value === "true" || value === "all";
+}
+
+function aggregateFlag(url, source) {
+  const hasPlanes = !!(url && url.searchParams.has("planes")) || !!(source && Object.prototype.hasOwnProperty.call(source, "planes"));
+  const agg = source && source.aggregate != null ? source.aggregate : (url ? url.searchParams.get("aggregate") : null);
+  return hasPlanes || truthyFlag(agg);
+}
+
+/** Pull may ask for the Unseal receipt on a hash. An object here is a wrap, not a pull. */
+function unsealPullRequested(url, source) {
+  if (source && Object.prototype.hasOwnProperty.call(source, "unseal")) {
+    const value = source.unseal;
+    if (value && typeof value === "object") return { ok: false, code: "UNSEAL-FIELD" };
+    if (value === true || value === 1 || value === "1" || value === "true") return { ok: true, wants: true };
+    if (value === false || value === 0 || value === "0" || value === "false" || value == null) return { ok: true, wants: false };
+    return { ok: false, code: "UNSEAL-FIELD" };
+  }
+  const q = url && url.searchParams.has("unseal") ? url.searchParams.get("unseal") : null;
+  if (q == null) return { ok: true, wants: false };
+  if (q === "1" || q === "true") return { ok: true, wants: true };
+  if (q === "0" || q === "false" || q === "") return { ok: true, wants: false };
+  return { ok: false, code: "UNSEAL-FIELD" };
 }
 
 function aggregateRequested(url, source) {
@@ -626,13 +948,25 @@ export async function handleLatticeBidir(request, url, env) {
   }
   const source = await readPullSource(request);
   if (!source.ok) return source;
+  if ((url && url.searchParams.has("tiebreak")) || Object.prototype.hasOwnProperty.call(source.value, "tiebreak")) {
+    return fail(409, "LATTICE-TIEBREAK-CORPUS");
+  }
+  const unsealAsk = unsealPullRequested(url, source.value);
+  if (!unsealAsk.ok) return fail(422, unsealAsk.code);
   const asked = aggregateRequested(url, source.value);
   if (asked.mismatch) return fail(400, "LATTICE-ENTRY-MISMATCH");
+  if (unsealAsk.wants && aggregateFlag(url, source.value)) return fail(409, "LATTICE-TIEBREAK-CORPUS");
+  if (unsealAsk.wants && !asked.entry) return fail(400, "UNSEAL-ENTRY");
   const revealUser = (await operatorGrant(request, env)).ok;
-  if (asked.wants) {
+  if (!unsealAsk.wants && asked.wants) {
     if (!revealUser) return fail(401, "LATTICE-AUTH");
     if (asked.entry && !isHex64(asked.entry)) return fail(400, "LATTICE-DOCUMENT");
     return pullAggregate(env, asked.entry, true);
   }
-  return pullEntry(env, asked.entry, revealUser);
+  const pulled = await pullEntry(env, asked.entry, revealUser);
+  if (!unsealAsk.wants) return pulled;
+  if (pulled.status === 503 || pulled.status === 400) return pulled;
+  const rowUnseal = pulled.body && pulled.body.lattice && pulled.body.lattice.unseal;
+  if (!rowUnseal) return fail(404, "UNSEAL-PULL-MISS");
+  return pulled;
 }
