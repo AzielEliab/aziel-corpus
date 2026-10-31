@@ -774,9 +774,13 @@ test("Worker-served HTML and library docs never use the retired bloom phrase", (
 test("homepage first screen names browse, upload, explore, and a footer Agents tab", () => {
   const home = homeBody({ rows: [], host: "https://www.azielcorpuslibrary.net" });
   assert.match(home, /<h1>Search the libraries<\/h1>/);
-  assert.match(home, /public MASTER of hashed records/);
-  assert.match(home, /Aziel Corpus Library is the public MASTER of hashed records/);
-  assert.match(home, /Ask Jeeves/);
+  assert.doesNotMatch(home, /public MASTER of hashed records/);
+  assert.doesNotMatch(home, /Search a title, browse a shelf, or upload a file/);
+  assert.doesNotMatch(home, /Ask Jeeves — the gold button/);
+  assert.doesNotMatch(home, /FragGate op jeeves on this corpus/);
+  assert.match(home, /data-record-suggest="1"/);
+  assert.match(home, /\/v1\/search\?suggest=1/);
+  assert.match(home, /requestSubmit/);
   assert.match(home, /class="trend"/);
   assert.match(home, /No counted paper views yet/);
   assert.match(home, /No counted paper downloads yet/);
@@ -800,7 +804,8 @@ test("homepage first screen names browse, upload, explore, and a footer Agents t
   const split = splitLcpHtml(home);
   assert.match(split.early, /hero-search/);
   assert.match(split.early, /class="trend"/);
-  assert.match(split.early, /Ask Jeeves/);
+  assert.doesNotMatch(split.early, /public MASTER of hashed records/);
+  assert.doesNotMatch(split.early, /Ask Jeeves — the gold button/);
   assert.doesNotMatch(split.early, /id="signup"/);
   assert.doesNotMatch(split.early, /class="agents-tab"/);
   assert.match(split.late, /class="start-paths"/);
@@ -848,6 +853,26 @@ test("Upload, shelves, Map, Tree, Historical, and Forensics share explore chips 
   assert.match(upload, /href="\/help\/uploads\.txt"/);
   assert.match(map, /<h1>Map<\/h1>/);
   assert.match(tree, /Open a title to read the record/);
+  const counted = treeBody({
+    libraries: {
+      aziel: {
+        History: {
+          "A long subject name that must stay clear of its count": {
+            "": [{ record_id: "AZDOC-1", title: "Paper" }],
+          },
+        },
+      },
+    },
+    standalone: [],
+  });
+  assert.match(counted, /class="tree-label">A long subject name that must stay clear of its count</);
+  assert.match(counted, /class="tree-count">\(1\)<\/span>/);
+  assert.doesNotMatch(counted, /tree-count[^<]*<\/span>\s*<span class="tree-count"/);
+  assert.match(CSS, /\.tree summary \.tree-count\{[^}]*white-space:nowrap/);
+  assert.match(CSS, /\.tree summary \.tree-count\{[^}]*flex:0 0 auto/);
+  assert.match(CSS, /\.hero-search\{[^}]*align-items:center/);
+  assert.match(CSS, /\.hero-search \.search\{[^}]*max-height:44px/);
+  assert.match(CSS, /\.hero-search > button\{[^}]*height:44px/);
   assert.match(hist, /<h1>Historical<\/h1>/);
   assert.match(CSS, /\.start-paths\{/);
   assert.match(CSS, /\.explore-row\{/);

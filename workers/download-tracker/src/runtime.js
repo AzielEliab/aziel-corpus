@@ -57,6 +57,7 @@ import {
   readPackedIndex,
   refreshPackedIndex,
   searchPackedRecords,
+  suggestPackedRecords,
 } from "./library-index.js";
 const PRODUCT = "aziel-corpus";
 const VERSION = "2.7.0";
@@ -215,7 +216,7 @@ function openapi() {
       "/stats": { get: { summary: "Packed views and counted downloads. Does not increment. Does not KV.list(). Author Aziel Eliab.", operationId: "libraryStats" } },
       "/v1/library-index": { get: { summary: "Packed library:index:v1 shelf cards (no PDF bodies). One KV get. Author Aziel Eliab.", operationId: "libraryIndex" } },
       "/donate": { get: { summary: "AZL-DONATE-1.0 static Donate door. Exodus rails. Does not touch KV. Not a catalog item.", operationId: "donate" } },
-      "/v1/search": { get: { summary: "Filter packed library:index:v1 in memory (one KV get). AZDOC cards only — no PDF bodies. Includes records_packed / records_aziel / records_corpus. ChainLock library-sync client. Author Aziel Eliab.", operationId: "search", parameters: [{ name: "q", in: "query", schema: { type: "string" } }, { name: "lib", in: "query", schema: { type: "string", enum: ["all", "aziel", "corpus"] } }, { name: "sort", in: "query", schema: { type: "string", enum: ["newest", "oldest", "alpha", "title", "author", "domain"] } }, { name: "author", in: "query", schema: { type: "string" } }, { name: "domain", in: "query", schema: { type: "string" } }, { name: "subject", in: "query", schema: { type: "string" } }, { name: "keyword", in: "query", schema: { type: "string" } }] } },
+      "/v1/search": { get: { summary: "Filter packed library:index:v1 in memory (one KV get). AZDOC cards only — no PDF bodies. Includes records_packed / records_aziel / records_corpus. suggest=1 returns a short title list for the search box. ChainLock library-sync client. Author Aziel Eliab.", operationId: "search", parameters: [{ name: "q", in: "query", schema: { type: "string" } }, { name: "lib", in: "query", schema: { type: "string", enum: ["all", "aziel", "corpus"] } }, { name: "sort", in: "query", schema: { type: "string", enum: ["newest", "oldest", "alpha", "title", "author", "domain"] } }, { name: "author", in: "query", schema: { type: "string" } }, { name: "domain", in: "query", schema: { type: "string" } }, { name: "subject", in: "query", schema: { type: "string" } }, { name: "keyword", in: "query", schema: { type: "string" } }, { name: "suggest", in: "query", schema: { type: "string", enum: ["0", "1"] } }] } },
       "/v1/example": { get: { summary: "Sample search payload.", operationId: "example" } },
       "/v1/skill": { get: { summary: "Skill markdown.", operationId: "skill" } },
       "/v1/review": { get: { summary: "Triad composite (SPRE × CLCE × PhysLing geometric mean) plus component scores, Bayesian (unranked), HEURISTIC possibility (separate), quarantine, document chain tip, and exact-same-subject succession cites when present. Does not increment downloads.", operationId: "review", parameters: [{ name: "record_id", in: "query", required: true, schema: { type: "string" } }] } },
@@ -528,9 +529,13 @@ export async function handleRuntimeApi(request, url, env, ctx) {
         /* stay empty; still no KV.list() */
       }
     }
-    const rows = searchPackedRecords(packed, { q, library: lib, sort, author, domain, subject, keyword, limit: 50 }).map(publicSearchCard).filter(Boolean);
+    const suggestOn = (url.searchParams.get("suggest") || "") === "1";
+    const found = suggestOn
+      ? suggestPackedRecords(packed, { q, library: lib, limit: 8 })
+      : searchPackedRecords(packed, { q, library: lib, sort, author, domain, subject, keyword, limit: 50 });
+    const rows = found.map(publicSearchCard).filter(Boolean);
     const counts = packedRecordCounts(packed);
-    const res = json({
+    const payload = {
       ok: true,
       q,
       lib,
@@ -546,7 +551,16 @@ export async function handleRuntimeApi(request, url, env, ctx) {
       bayesian_unranked: true,
       ...counts,
       limitation: LIMITATION,
-    });
+    };
+    if (suggestOn) {
+      payload.suggest = true;
+      payload.suggestions = rows.map((c) => ({
+        title: c.title,
+        shelf: c.shelf,
+        href: c.permalink || c.href,
+      }));
+    }
+    const res = json(payload);
     res.headers.set("Cache-Control", SEARCH_CACHE_CONTROL);
     return res;
   }
