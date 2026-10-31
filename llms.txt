@@ -168,7 +168,7 @@ Softwares on this repo is the Digital Library catalog for aziel-runtime. Heading
 
 ## Aziel Runtime
 
-Aziel Runtime is not merely an API orchestrator or software aggregator; it is a node-meshed orchestration suite of MCP-connected software. Version 2.0.0-rc1 is the certification-point freeze (docs/2.0/). SoT LIVE: main 231b02f / version_id a8f7fdc9. FragGate is the single door. MCP Softwares via fraggate_call only. Prefer /runtime/*. 41 live advisory engines; VeilLock local_only; stubs refuse. Human UI on the Runtime Worker (#op-panel #dashboard #fg-console #task-* + About Aziel + hashtags + /download). Lamb Lens Service → Clarity → Peace. Remain-OFF untouched. GET /v1/mesh never enables.
+Aziel Runtime is not merely an API orchestrator or software aggregator; it is a node-meshed orchestration suite of MCP-connected software. Version 2.0.0-rc1 is the certification-point freeze (docs/2.0/). SoT baked fallback: main ce673365 / version_id eaf0b54c-1e5b-4d54-a582-25c5cdc09f92 (short pair ce673365 / eaf0b54c). Cos LIVE restamp duty: prefer live GET /runtime/v1/software at serve time. GET /v1/mesh never enables. Remain-OFF untouched. FragGate is the single door. MCP Softwares via fraggate_call only. Prefer /runtime/*. 41 live advisory engines; VeilLock local_only; stubs refuse. Human UI on the Runtime Worker (#op-panel #dashboard #fg-console #task-* + About Aziel + hashtags + /download). Lamb Lens Service → Clarity → Peace. Remain-OFF untouched. GET /v1/mesh never enables.
 
 - Page: https://www.azielcorpuslibrary.net/runtime
 - FragGate list: GET https://www.azielcorpuslibrary.net/runtime/v1/fraggate/list

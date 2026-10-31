@@ -29,13 +29,13 @@ import {
   RUNTIME_ABSTRACT,
   RUNTIME_GIT_SHA,
   RUNTIME_GIT_FULL,
-  RUNTIME_VERSION_ID,
   RUNTIME_SOT_BRANCH,
   LAMB_LENS_PATH,
   AI_CLIENTS,
   runtimeHowTo,
   runtimeLaunchCite,
 } from "./runtime-copy.js";
+import { COS_LIVE_RESTAMP_DUTY, MESH_POINTER_NOTE, pickRuntimeStamp } from "./runtime-cite-stamp.js";
 import { MESH_NOTE, QNS_CD_SPEC, VPN_CITE, CHANNEL_PLANE } from "./mesh.js";
 import { ingestReceiptCite, ingestReceiptLlmsBlock } from "./ingest-receipt.js";
 import { shelvesLlmsBlock } from "./cold-shelf.js";
@@ -792,6 +792,9 @@ export function mcpDiscovery() {
     mesh: HOST + "/v1/mesh",
     runtime_mesh: HOST + "/runtime/v1/mesh",
     mesh_origin: CATALOG + "/v1/mesh",
+    mesh_get_enables: false,
+    remain_off: true,
+    mesh_pointer_note: MESH_POINTER_NOTE,
     mesh_note: MESH_NOTE,
     qns_cd_spec: QNS_CD_SPEC,
     fraggate_list: HOST + "/runtime/v1/fraggate/list",
@@ -873,14 +876,15 @@ export async function sitemapXml(env) {
     + "\n</urlset>\n";
 }
 
-export function citeDoc(survival, outletCite) {
+export function citeDoc(survival, outletCite, stamp) {
   const sot = outletCite && outletCite.sot && typeof outletCite.sot === "object" ? outletCite.sot : null;
   const soft = outletCite && outletCite.softwares && typeof outletCite.softwares === "object" ? outletCite.softwares : null;
   const help = outletCite && outletCite.suite_help && outletCite.suite_help.software_tab === false
     ? outletCite.suite_help
     : JEEVES_SUITE_HELP;
-  const git = sot && /^[0-9a-f]{7}$/.test(String(sot.git || "")) ? String(sot.git) : RUNTIME_GIT_SHA;
-  const gitFull = sot && /^[0-9a-f]{40}$/.test(String(sot.git_full || "")) ? String(sot.git_full) : RUNTIME_GIT_FULL;
+  const picked = pickRuntimeStamp(stamp, sot);
+  const git = picked.git;
+  const gitFull = picked.git_full || (picked.git === RUNTIME_GIT_SHA ? RUNTIME_GIT_FULL : "");
   const version = sot && /^[0-9A-Za-z._+-]{1,40}$/.test(String(sot.version || "")) ? String(sot.version) : RUNTIME_VERSION;
   const tabCount = soft && Number.isInteger(soft.count) ? soft.count : RUNTIME_TAB_COUNT;
   const liveCount = soft && Number.isInteger(soft.live_count) ? soft.live_count : RUNTIME_LIVE_COUNT;
@@ -1009,6 +1013,9 @@ export function citeDoc(survival, outletCite) {
     mesh: HOST + "/v1/mesh",
     runtime_mesh: HOST + "/runtime/v1/mesh",
     mesh_origin: CATALOG + "/v1/mesh",
+    mesh_get_enables: false,
+    remain_off: true,
+    mesh_pointer_note: MESH_POINTER_NOTE,
     mesh_note: MESH_NOTE,
     qns_cd_spec: QNS_CD_SPEC,
     mcp_discovery: HOST + "/.well-known/mcp.json",
@@ -1052,7 +1059,9 @@ export function citeDoc(survival, outletCite) {
     public_version_source: "GET /v1/software catalog.version",
     runtime_git: git,
     runtime_git_full: gitFull,
-    runtime_version_id: sot && Object.prototype.hasOwnProperty.call(sot, "version_id") ? sot.version_id : RUNTIME_VERSION_ID,
+    runtime_version_id: picked.version_id,
+    runtime_stamp_source: picked.source,
+    runtime_stamp_duty: picked.duty || COS_LIVE_RESTAMP_DUTY,
     runtime_sot_branch: sot && typeof sot.branch === "string" && sot.branch ? sot.branch : RUNTIME_SOT_BRANCH,
     runtime_official: CATALOG + "/",
     runtime_github: RUNTIME_GITHUB,
@@ -1067,7 +1076,7 @@ export function citeDoc(survival, outletCite) {
     mesh_outlet: HOST + "/v1/mesh/outlet",
     site_inventory: HOST + "/v1/inventory",
     runtime_local_only: RUNTIME_LOCAL_ONLY,
-    runtime_launch: runtimeLaunchCite(),
+    runtime_launch: runtimeLaunchCite(picked),
     lamb_lens: LAMB_LENS_PATH,
     vpn: VPN_CITE,
     channel_plane: CHANNEL_PLANE,
@@ -1124,7 +1133,8 @@ function productIndex() {
   return PRODUCT_LINES.map((row) => "- " + row[0] + ": " + row[1]).join("\n");
 }
 
-export function llmsDoc(limitation, survival) {
+export function llmsDoc(limitation, survival, stamp, sot) {
+  const picked = pickRuntimeStamp(stamp, sot);
   return "# Aziel Digital Library v2.7.0\n\n"
     + "Author: " + AUTHOR + "\n"
     + "Also known as: " + AKA + "\n"
@@ -1143,7 +1153,7 @@ export function llmsDoc(limitation, survival) {
     + "Runtime catalog: " + HOST + "/runtime\n"
     + "Runtime FragGate: " + HOST + "/runtime/v1/fraggate\n"
     + RUNTIME_ABSTRACT + "\n"
-    + "Runtime version: Aziel Runtime " + RUNTIME_VERSION + " (" + RUNTIME_LIVE_COUNT + " live; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse). SoT LIVE: " + RUNTIME_SOT_BRANCH + " " + RUNTIME_GIT_SHA + " / version_id " + RUNTIME_VERSION_ID + ". Cite live GET /runtime/v1/health. FragGate is the single door. MCP Softwares via fraggate_call only. Human UI on the Runtime Worker (#op-panel #dashboard #fg-console #task-* + About Aziel + hashtags + /download). Lamb Lens " + LAMB_LENS_PATH + ". Remain-OFF untouched.\n"
+    + "Runtime version: Aziel Runtime " + RUNTIME_VERSION + " (" + RUNTIME_LIVE_COUNT + " live; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse). SoT " + picked.source + ": " + RUNTIME_SOT_BRANCH + " " + picked.git + " / version_id " + picked.version_id + ". " + (picked.duty || COS_LIVE_RESTAMP_DUTY) + " Cite live GET /runtime/v1/software. FragGate is the single door. MCP Softwares via fraggate_call only. Human UI on the Runtime Worker (#op-panel #dashboard #fg-console #task-* + About Aziel + hashtags + /download). Lamb Lens " + LAMB_LENS_PATH + ". Remain-OFF untouched. GET /v1/mesh never enables.\n"
     + RUNTIME_GLAMA_LABEL + ": " + RUNTIME_GLAMA + "\n"
     + "Source on GitHub: " + RUNTIME_GITHUB + "\n"
     + "Documentation: " + RUNTIME_DOCS + "\n"
@@ -1157,7 +1167,7 @@ export function llmsDoc(limitation, survival) {
     + "Runtime OpenAPI: " + HOST + "/runtime/openapi.json\n"
     + "Runtime MCP: POST " + HOST + "/runtime/mcp\n"
     + "Runtime uses (this door): " + HOST + "/runtime/v1/uses\n"
-    + "Suite mesh (read-only QNM ON): " + HOST + "/v1/mesh\n"
+    + "Suite mesh (read-only QNM ON): " + HOST + "/v1/mesh  GET /v1/mesh never enables. Remain-OFF.\n"
     + "Runtime mesh: " + HOST + "/runtime/v1/mesh\n"
     + "Live Nodes (mesh presence + current website page viewers; not Softwares; not uses): " + HOST + "/v1/mesh\n"
     + "Mesh roster: " + HOST + "/v1/mesh/nodes\n"
@@ -1275,7 +1285,7 @@ export function llmsDoc(limitation, survival) {
     + "- Alternate origin fraggate/list: " + CATALOG + "/v1/fraggate/list\n"
     + "- Alternate origin catalog JSON: " + CATALOG + "/v1/catalog.json\n"
     + "- MCP discovery: " + HOST + "/.well-known/mcp.json\n\n"
-    + runtimeHowTo(HOST) + "\n\n"
+    + runtimeHowTo(HOST, picked) + "\n\n"
     + "## Public HTML (anonymous GET; User-Agent Mozilla/5.0)\n\n"
     + "- Search: " + HOST + "/\n"
     + "- Corpus: " + HOST + "/corpus\n"
@@ -1284,7 +1294,7 @@ export function llmsDoc(limitation, survival) {
     + "- Software: " + HOST + "/software\n"
     + "- How it's scored: " + HOST + "/how-its-scored\n"
     + "- Runtime root: " + HOST + "/runtime\n"
-    + "- Runtime health: " + HOST + "/runtime/v1/health  (Aziel Runtime " + RUNTIME_VERSION + "; " + RUNTIME_LIVE_COUNT + " live; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse; SoT " + RUNTIME_SOT_BRANCH + " " + RUNTIME_GIT_SHA + " / version_id " + RUNTIME_VERSION_ID + ")\n"
+    + "- Runtime health: " + HOST + "/runtime/v1/health  (Aziel Runtime " + RUNTIME_VERSION + "; " + RUNTIME_LIVE_COUNT + " live; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse; SoT " + RUNTIME_SOT_BRANCH + " " + picked.git + " / version_id " + picked.version_id + ")\n"
     + "- Launch cite: human UI on Runtime Worker (#op-panel #dashboard #fg-console #task-* + About Aziel + hashtags + /download). MCP Softwares via fraggate_call only. Lamb Lens " + LAMB_LENS_PATH + ".\n"
     + "- Softwares download: " + HOST + "/download  ·  " + HOST + "/v1/download\n"
     + "- Runtime uses (this door): " + HOST + "/runtime/v1/uses\n"
@@ -1409,7 +1419,8 @@ export function llmsDoc(limitation, survival) {
     + worksLlmsBlock();
 }
 
-export function aiTxt(limitation, survival) {
+export function aiTxt(limitation, survival, stamp, sot) {
+  const picked = pickRuntimeStamp(stamp, sot);
   const policy = [
     "# Aziel Digital Library — AI crawl policy",
     "# Complement of /llms.txt. Author " + AUTHOR + " (aka " + AKA + ").",
@@ -1571,7 +1582,7 @@ export function aiTxt(limitation, survival) {
     + "- " + HEDIDNTJUMP_LABEL + ": " + HEDIDNTJUMP_HOME + "\n"
     + "- aziel-runtime (this domain): " + HOST + "/runtime\n"
     + "- aziel-runtime alternate origin: " + CATALOG + "/\n\n"
-    + runtimeHowTo(HOST) + "\n\n"
+    + runtimeHowTo(HOST, picked) + "\n\n"
     + ingestReceiptLlmsBlock(HOST) + "\n"
     + shelvesLlmsBlock(HOST) + "\n"
     + survivalLlmsBlock(survival) + "\n"
@@ -1622,7 +1633,7 @@ export function humansTxt() {
     SPECTRALLOCK_NOTE,
     PEACELOCK_NOTE,
     "Public version: Aziel Runtime / Softwares SSoT " + RUNTIME_VERSION,
-    "Suite mesh (read-only QNM ON): " + HOST + "/v1/mesh",
+    "Suite mesh (read-only QNM ON): " + HOST + "/v1/mesh. GET /v1/mesh never enables. Remain-OFF.",
     "Lockset tip / ingest-as-receipt: " + HOST + "/lockset.json · " + HOST + "/receipts/verify",
     "Cold multi-shelf: " + HOST + "/shelves · " + HOST + "/cold-copy · COLD-MULTI-SHELF-1.0",
     "BAN-SURVIVAL-1.0: prefer GET " + CATALOG + "/v1/survival (short TTL) · same door " + HOST + "/runtime/survival · hub map " + HOST + "/survival · " + HOST + "/v1/survival. Cold shelves and live fronts back each other up. Shelves stay intact (not failed). SPORE-1.0 last-resort failsafe + RE-COLD-STORE (honest hook). Cap-7 MirageGrid shuffle resolves_to_hub: false.",

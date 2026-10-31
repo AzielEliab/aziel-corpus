@@ -14,8 +14,9 @@ Frozen bake at the time this contract was written:
 | --- | --- |
 | version | `2.0.0-rc1` |
 | branch | `main` |
-| git | `231b02f` |
-| git_full | `231b02fcbb7b50fbd52762a49329042bc1715fe9` |
+| git | `ce673365` |
+| git_full | `ce673365700d41fc604292ab2b92b1b1ca504016` |
+| version_id | `eaf0b54c-1e5b-4d54-a582-25c5cdc09f92` (short pair `eaf0b54c`) |
 | Softwares tab `count` | `42` |
 | `live_count` | `41` |
 | isolation `software_count` | `33` |
@@ -42,7 +43,7 @@ Ask Jeeves is FragGate op `jeeves` on `aziel-corpus` (suite help). `software_tab
 
 Operator header: `X-Aziel-Operator-Token` (`OPERATOR_TOKEN`, `GATE_TOKEN`, or `LIBRARY_OPERATOR_TOKEN`).
 
-`/runtime/v1/mesh/*` stays a proxy of the runtime Worker. The corpus outlet is `/v1/mesh/outlet` on this library host. It is not forwarded to the runtime mesh proxy.
+`/runtime/v1/mesh/*` stays a proxy of the runtime Worker. The corpus outlet is `/v1/mesh/outlet` on this library host. It is not forwarded to the runtime mesh proxy. `GET /v1/mesh` never enables. Remain-OFF untouched. Public cite.json and llms.txt prefer live `GET /runtime/v1/software` at serve time. The bake above is the Cos LIVE restamp fallback.
 
 ## Fan-out envelope
 
@@ -53,10 +54,10 @@ Operator header: `X-Aziel-Operator-Token` (`OPERATOR_TOKEN`, `GATE_TOKEN`, or `L
   "identity": "Aziel Eliab",
   "sot": {
     "branch": "main",
-    "git": "231b02f",
-    "git_full": "231b02fcbb7b50fbd52762a49329042bc1715fe9",
+    "git": "ce673365",
+    "git_full": "ce673365700d41fc604292ab2b92b1b1ca504016",
     "version": "2.0.0-rc1",
-    "version_id": "a8f7fdc9"
+    "version_id": "eaf0b54c-1e5b-4d54-a582-25c5cdc09f92"
   },
   "softwares": {
     "count": 42,

@@ -292,7 +292,7 @@ export const MESH_NOTE =
   + "Cold multi-shelf (COLD-MULTI-SHELF-1.0): planes A/B/C — A = one CF/GitHub tunnel (5 published surfaces / 2 family radii); B = alt independent forge/archive tip-pack SLOT (Codeberg / archive.org / Framagit); C = USB airgap SLOT + RESTORE-DRILL schema. Extra E/F/G SLOTs stay url-null. Executable export/verify + honest live|slot|refused registry on GET /shelves. "
   + "SPORE-1.0 last-resort failsafe after live fronts and cold-shelf mutual backup: pause / preserve / wait / physical-wipe-only. Does not replace shelves. Shelves stay intact (not failed). RE-COLD-STORE is an honest hook (no invented destinations). Cite Worker GET /v1/survival. "
   + "QNS-CD-1.0 photon QNS1 packet transfer (local qnsd in qnm-node; runtime cite only; no public proxy; no Node Gate). "
-  + "Public VPN / channel plane as on live aziel-runtime GET /v1/mesh (SoT " + RUNTIME_VERSION + " " + RUNTIME_GIT_SHA + " / version_id " + RUNTIME_VERSION_ID + "): vpn HTTPS/WS REAL; WireGuard/OpenVPN/L3 SLOT; default_vpn_backend azvpn auto_use true; channel_plane worker_hardware:false (wifi/bluetooth/rf/photon cites ON on local qnm-node). GET never enables radios beyond suite-presence. "
+  + "Public VPN / channel plane as on live aziel-runtime GET /v1/mesh (SoT " + RUNTIME_VERSION + " " + RUNTIME_GIT_SHA + " / version_id " + RUNTIME_VERSION_ID + "): vpn HTTPS/WS REAL; WireGuard/OpenVPN/L3 SLOT; default_vpn_backend azvpn auto_use true; channel_plane worker_hardware:false (wifi/bluetooth/rf/photon cites ON on local qnm-node). GET /v1/mesh never enables. Remain-OFF untouched. GET never enables radios beyond suite-presence. "
   + "Identity Aziel Eliab only.";
 
 /** Live GET /v1/mesh VPN kinds. Cite only — this hub is not a kernel concentrator. */
