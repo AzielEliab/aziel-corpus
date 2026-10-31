@@ -712,6 +712,7 @@ function screenWrap(body) {
     if (!screenedAggregate.ok) return fail(screenedAggregate.status, screenedAggregate.code);
     aggregate = screenedAggregate.aggregate;
   }
+  if (body.lattice && body.lattice.tab != null && !unseal) return fail(422, "VOYNICH-TAB");
   if (unseal && unseal.kind === COUNTER_SNAPSHOT_KIND && body.lattice.tab !== "voynich") {
     return fail(422, "VOYNICH-TAB");
   }
@@ -743,6 +744,14 @@ async function offlineDouble(env, secondary, entryHash) {
   return !!(row && row.entry_hash);
 }
 
+/** A second site for one hash is a tie-break. Any other changed block stays LATTICE-DOUBLE. */
+function clashCode(existing, screened) {
+  const prev = existing && existing.lattice && existing.lattice.aggregate && existing.lattice.aggregate.site;
+  const next = screened && screened.aggregate && screened.aggregate.site;
+  if (prev && next && prev !== next) return "LATTICE-TIEBREAK-CORPUS";
+  return "LATTICE-DOUBLE";
+}
+
 async function fileIfAggregate(env, screened) {
   if (!screened.aggregate) return null;
   const filed = await fileAggregateReceipt(env, {
@@ -767,7 +776,7 @@ async function writeWrap(env, screened, reveal) {
       && existing.plane === screened.plane
       && samePosition(existing.position, screened.position)
       && existing.target === SECONDARY_TARGET;
-    if (!same) return fail(409, "LATTICE-DOUBLE", { entry_hash: screened.entry_hash });
+    if (!same) return fail(409, clashCode(existing, screened), { entry_hash: screened.entry_hash });
     const refused = await fileIfAggregate(env, screened);
     if (refused) return refused;
     const body = pullBody(existing, null, reveal);
@@ -804,7 +813,7 @@ async function writeWrap(env, screened, reveal) {
     if (!screened.submitter_key || again.submitter_key !== screened.submitter_key) {
       return fail(409, "LATTICE-SQUAT", { entry_hash: screened.entry_hash });
     }
-    if (JSON.stringify(again.lattice) !== lattice_json) return fail(409, "LATTICE-DOUBLE", { entry_hash: screened.entry_hash });
+    if (JSON.stringify(again.lattice) !== lattice_json) return fail(409, clashCode(again, screened), { entry_hash: screened.entry_hash });
   }
   const row = await readEntry(env, screened.entry_hash);
   if (!row || row.entry_hash !== screened.entry_hash) return fail(503, "LATTICE-STORE-UNAVAILABLE");

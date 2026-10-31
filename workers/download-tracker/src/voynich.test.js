@@ -14,6 +14,8 @@ test("the front door and nav label the tab exactly voynich", () => {
   const link = EXPLORE_LINKS.find((item) => item.href === "/voynich");
   assert.equal(link && link.label, "voynich");
   assert.match(sigilNavHtml(), /href="\/voynich">voynich</);
+  assert.match(sigilNavHtml(), /href="\/receipts">Receipts</);
+  assert.ok(EXPLORE_LINKS.some((item) => item.href === "/receipts" && item.label === "Receipts"));
   assert.doesNotMatch(sigilNavHtml(), />Voynich</);
 });
 
@@ -33,7 +35,7 @@ test("the voynich catalog is an empty housing and stays fail-closed", () => {
   for (const slot of slots) {
     assert.equal(slot.payload, null);
     assert.equal(slot.status, "slot");
-    assert.equal(slot.source_status, "awaiting_unseal_pr");
+    assert.equal(slot.source_status, "local-slot");
   }
   assert.equal(catalog.lattice.wrap, "/v1/lattice/wrap");
   assert.equal(catalog.lattice.pull, "/v1/lattice/pull");
@@ -118,7 +120,33 @@ test("the voynich page lists housed theories and files keywords against tests", 
   assert.equal(machine.keywords_public[0].test_ids[0], "abad-zd30-v3-0-shared-glyph-core");
 });
 
+function unsealFixtureResponse(url) {
+  const u = String(url);
+  const json = (body, status = 200) => new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
+  if (u.endsWith("/receipts/index.json")) {
+    return json({ decryption_complete: false, tip: "ab".repeat(32), receipts: [] });
+  }
+  if (u.endsWith("/data/theories.json")) {
+    return json({ decryption_complete: false, theories: [{ theory_id: "shared-glyph-core", title: "Compact shared glyph core", family: "structure", related_test_ids: [], decryption_complete: false }] });
+  }
+  if (u.endsWith("/data/tests.json")) {
+    return json({ decryption_complete: false, methods: [{ method_id: "markov-ngram", title: "Markov and n-gram", related_test_ids: [], decryption_complete: false }] });
+  }
+  if (u.endsWith("/data/keywords.json")) return json({ error: "missing" }, 404);
+  return null;
+}
+
 test("GET /voynich is HTML with HSTS and the machine index stays false", async () => {
+  const prior = globalThis.fetch;
+  globalThis.fetch = async (url, init) => {
+    const fixture = unsealFixtureResponse(url);
+    if (fixture) return fixture;
+    return prior(url, init);
+  };
+  try {
   const { default: worker } = await import("./index.js");
   const htmlRes = await worker.fetch(new Request("https://www.azielcorpuslibrary.net/voynich", {
     headers: { "User-Agent": "Mozilla/5.0" },
@@ -149,4 +177,9 @@ test("GET /voynich is HTML with HSTS and the machine index stays false", async (
   assert.equal(denied.paid_sat, "HELD");
   assert.equal(denied.cap7_is_icann, false);
   assert.equal(denied.live, false);
+  assert.match(html, /shared-glyph-core/);
+  assert.match(html, /no keywords are invented/);
+  } finally {
+    globalThis.fetch = prior;
+  }
 });

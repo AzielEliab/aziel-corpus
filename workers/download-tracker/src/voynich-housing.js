@@ -1,7 +1,7 @@
 /**
  * Corpus housing for Unseal test-lattice materials.
- * Slots stay empty until TimeToUnsealTheBook hands its tests.
- * Extension point: append a slot below. Keep payload null until that handoff.
+ * The public registry is read live. Local slots stay payload null until an operator files one.
+ * Extension point: append a slot below.
  * Do not set decryption_complete true. Do not mark live. Cap-7 is not ICANN.
  * Paid sat stays HELD. Corpus does not tie-break; aziel-runtime owns that.
  * Author: Aziel Eliab.
@@ -33,7 +33,7 @@ export const KEYWORD_RE = /^[A-Za-z0-9][A-Za-z0-9 .'_-]{0,80}$/;
 export const THEME_RE = /^[A-Za-z0-9][A-Za-z0-9 .'_-]{0,40}$/;
 const HEX64 = /^[a-f0-9]{64}$/;
 
-const SOURCE_STATUS = "awaiting_unseal_pr";
+const SOURCE_STATUS = "local-slot";
 
 function slot(kind, id, title, note, pointer = null) {
   return Object.freeze({

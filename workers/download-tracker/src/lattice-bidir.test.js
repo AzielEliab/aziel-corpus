@@ -665,7 +665,7 @@ test("an aggregated receipt is filed by hash and a second site cannot tie-break 
   const other = wrapBody(documentHash, { aggregate: { site: "hdj" } }, { offline: false });
   const clash = await postWrap(env, other.body, operatorHeaders());
   assert.equal(clash.status, 409);
-  assert.equal(clash.body.code, "LATTICE-DOUBLE");
+  assert.equal(clash.body.code, "LATTICE-TIEBREAK-CORPUS");
   const filed = JSON.parse(await env.DOWNLOADS.get("act_receipt:aggregate:row:" + documentHash));
   assert.equal(filed.site, "godlock");
 
@@ -740,4 +740,10 @@ test("voynich counter snapshots, new theories, method runs, and keywords wrap wi
   assert.equal(pulled.status, 200);
   assert.equal(pulled.body.lattice.tab, "voynich");
   assert.equal(pulled.body.policy.tiebreak, "refused");
+
+  const godlock = wrapBody(hashPayload({ doc: "tab-on-user" }));
+  godlock.body.lattice.tab = "voynich";
+  const userTab = await postWrap(env, godlock.body, operatorHeaders());
+  assert.equal(userTab.status, 422);
+  assert.equal(userTab.body.code, "VOYNICH-TAB");
 });

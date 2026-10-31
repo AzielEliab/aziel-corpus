@@ -42,7 +42,7 @@ export const AGGREGATE_SITES = Object.freeze([
     label: "TimeToUnsealTheBook",
     origin: null,
     receipts: "/voynich",
-    note: "Unseal handoff is not here yet. The voynich tab holds the empty slots.",
+    note: "Unseal receipts are read on the voynich tab. This folder files a hash only after an operator wrap.",
   }),
   Object.freeze({
     slug: "ae",
