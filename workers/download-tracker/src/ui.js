@@ -177,9 +177,17 @@ input[type=file]{width:100%;min-height:44px;padding:10px;background:#16130f;colo
 .hero h1{font-size:28px;margin:0 0 8px;letter-spacing:-.03em;color:var(--ink);content-visibility:visible}
 .library-count{margin:10px 0 0;font-size:15px;font-variant-numeric:tabular-nums;line-height:1.45}
 .library-count strong{color:var(--gold);font-size:18px;font-weight:800}
-.hero-search{display:flex;gap:10px;flex-wrap:wrap;align-items:stretch;margin:18px 0 8px}
-.hero-search .search{flex:1 1 220px}
-.hero-search button{flex:0 0 auto}
+.hero-search{display:flex;flex-wrap:nowrap;align-items:center;gap:8px;margin:14px 0 8px;max-width:100%;min-width:0}
+.search-suggest{position:relative;flex:1 1 auto;min-width:0;max-width:100%}
+.hero-search .search{flex:1 1 auto;width:100%;min-width:0;height:44px;min-height:44px;max-height:44px;padding:0 12px;font-size:16px;line-height:1.2}
+.hero-search > button{flex:0 0 auto;width:auto;height:44px;min-height:44px;max-height:44px;padding:0 16px}
+.suggest-list{position:absolute;z-index:30;left:0;right:0;top:calc(100% + 4px);margin:0;padding:4px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 28px #00000066;max-height:min(280px,50vh);overflow:auto}
+.suggest-list[hidden]{display:none!important}
+button.suggest-opt{display:flex;align-items:baseline;gap:8px;width:100%;max-width:100%;height:auto;min-height:40px;max-height:none;margin:0;padding:8px 10px;border:0;border-radius:8px;background:transparent;color:var(--ink);font-size:15px;font-weight:550;line-height:1.3;text-align:left;justify-content:flex-start;cursor:pointer}
+button.suggest-opt.is-on,button.suggest-opt:hover{background:#2a241c;color:var(--ink)}
+.suggest-title{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.suggest-title mark{background:transparent;color:var(--gold);font-weight:800;padding:0}
+.suggest-shelf{flex:0 0 auto;margin-left:auto;color:var(--muted);font-size:12px;font-weight:650;white-space:nowrap}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 8px;min-width:0;max-width:100%;overflow-x:hidden}
 .chip{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 16px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink);text-decoration:none;font-weight:650;min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere;word-break:break-word}
 .chip.on{background:var(--gold);color:#14110a;border-color:var(--gold)}
@@ -328,9 +336,11 @@ a.runtime-muted:hover{color:var(--ink)}
   .sigil-nav-btn,.brandmark-link{width:44px;max-width:44px;height:44px;flex:0 0 44px}
   .pill{padding:5px 10px}
   .statbar .pill{padding:8px 12px;font-size:14px;line-height:1.35}
-  .search,.hero-search .search{width:100%;min-width:0}
-  .hero-search{flex-direction:column}
-  .hero-search button,.button,button{width:100%}
+  .search{width:100%;min-width:0}
+  .hero-search{flex-direction:row;align-items:center;max-width:100%}
+  .hero-search .search{width:auto;min-width:0;height:44px;max-height:44px}
+  .hero-search > button{width:auto;flex:0 0 auto;height:44px;max-height:44px}
+  .button,button{width:100%}
   .jeeves-fab,.jeeves-drawer button,.jeeves-drawer .button,.jeeves-x{width:auto}
   .nav1{width:100%}
   .nav2{left:0;right:auto;width:min(360px,86vw);min-width:0;padding-top:68px}
@@ -338,7 +348,7 @@ a.runtime-muted:hover{color:var(--ink)}
   .tools{position:static;width:100%}
   .tools-grid{grid-template-columns:1fr}
   .tools select,.tools input,.tools .search{width:100%;min-height:44px}
-  .tools button{width:100%}
+  .tools .tools-grid button{width:100%}
   .shelf{display:grid;grid-template-columns:minmax(0,1fr);max-height:none;overflow:visible;border:0;padding:0;background:transparent}
   .chips,.mini-chips,.checkrow,.lens-grid,.ocr-form,.ocr-form button,.explore-row,.start-paths{width:100%}
   .mini-chip{min-height:44px;white-space:normal;overflow:visible;text-overflow:clip;height:auto;text-align:center}
@@ -363,8 +373,10 @@ a.runtime-muted:hover{color:var(--ink)}
 }
 
 .tree details{margin:4px 0}
-.tree summary{cursor:pointer;min-height:44px;display:flex;align-items:center;padding:8px 4px;border-radius:10px}
+.tree summary{cursor:pointer;min-height:44px;display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;padding:8px 4px;border-radius:10px}
 .tree summary:hover{background:#2a241c}
+.tree summary .tree-label{flex:1 1 12em;min-width:min(100%,8em);overflow-wrap:anywhere;word-break:break-word}
+.tree summary .tree-count{flex:0 0 auto;white-space:nowrap;word-break:normal;overflow-wrap:normal;min-width:max-content;font-variant-numeric:tabular-nums;color:var(--muted)}
 .tree ul{margin:0 0 0 14px;padding:0;list-style:none}
 .tree li{margin:2px 0}
 .tree-aziel>summary,.tree .tree-aziel{color:var(--royal);font-weight:700}
@@ -914,6 +926,90 @@ const SORTS = [
   ["domain", "Domain A–Z"],
 ];
 
+/** Fast record titles from packed /v1/search?suggest=1. Click fills q and submits. */
+function recordSuggestScript() {
+  return `<script>(function(){
+if(window.__azRecordSuggest)return;
+window.__azRecordSuggest=1;
+var forms=document.querySelectorAll("form[data-record-suggest]");
+for(var i=0;i<forms.length;i++)bind(forms[i],i);
+function bind(form,i){
+  var input=form.querySelector("input[name=q]");
+  var box=form.querySelector(".search-suggest");
+  var list=form.querySelector(".suggest-list");
+  if(!input||!box||!list)return;
+  if(!list.id)list.id="record-suggest-"+i;
+  input.setAttribute("autocomplete","off");
+  input.setAttribute("role","combobox");
+  input.setAttribute("aria-autocomplete","list");
+  input.setAttribute("aria-expanded","false");
+  input.setAttribute("aria-controls",list.id);
+  var timer=0,seq=0,items=[],active=-1;
+  function escText(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;"}[c];});}
+  function hide(){list.hidden=true;list.innerHTML="";input.setAttribute("aria-expanded","false");active=-1;items=[];}
+  function paint(){
+    var q=input.value.trim();
+    var ql=q.toLowerCase();
+    var html="";
+    for(var n=0;n<items.length;n++){
+      var it=items[n];
+      var title=String(it.title||"");
+      var at=title.toLowerCase().indexOf(ql);
+      var label=at<0?escText(title):escText(title.slice(0,at))+"<mark>"+escText(title.slice(at,at+q.length))+"</mark>"+escText(title.slice(at+q.length));
+      var shelf=it.shelf==="aziel"?"Aziel Library":"Corpus";
+      html+='<button type="button" class="suggest-opt'+(n===active?" is-on":"")+'" role="option" data-i="'+n+'"><span class="suggest-title">'+label+'</span><span class="suggest-shelf">'+escText(shelf)+'</span></button>';
+    }
+    list.innerHTML=html;
+    list.hidden=items.length===0;
+    input.setAttribute("aria-expanded",items.length?"true":"false");
+  }
+  function choose(it){
+    if(!it||!it.title)return;
+    input.value=it.title;
+    hide();
+    if(typeof form.requestSubmit==="function")form.requestSubmit();
+    else form.submit();
+  }
+  function load(){
+    var q=input.value.trim();
+    var my=++seq;
+    if(!q){hide();return;}
+    var lib="all";
+    var hidden=form.querySelector('input[name="lib"]');
+    if(hidden&&hidden.value)lib=hidden.value;
+    var action=String(form.getAttribute("action")||"");
+    if(action.indexOf("aziel-library")>=0)lib="aziel";
+    if(action.indexOf("/corpus")>=0)lib="corpus";
+    fetch("/v1/search?suggest=1&lib="+encodeURIComponent(lib)+"&q="+encodeURIComponent(q),{headers:{Accept:"application/json"}})
+      .then(function(r){return r.ok?r.json():null;})
+      .then(function(body){
+        if(my!==seq||input.value.trim()!==q)return;
+        var rows=body&&Array.isArray(body.suggestions)?body.suggestions:[];
+        items=rows.filter(function(row){return row&&row.title;}).slice(0,8);
+        active=-1;
+        paint();
+      })
+      .catch(function(){if(my===seq)hide();});
+  }
+  input.addEventListener("input",function(){clearTimeout(timer);timer=setTimeout(load,140);});
+  input.addEventListener("keydown",function(e){
+    if(list.hidden||!items.length)return;
+    if(e.key==="ArrowDown"){e.preventDefault();active=Math.min(items.length-1,active+1);paint();}
+    else if(e.key==="ArrowUp"){e.preventDefault();active=Math.max(0,active-1);paint();}
+    else if(e.key==="Enter"&&active>=0){e.preventDefault();choose(items[active]);}
+    else if(e.key==="Escape"){hide();}
+  });
+  list.addEventListener("mousedown",function(e){e.preventDefault();});
+  list.addEventListener("click",function(e){
+    var btn=e.target&&e.target.closest?e.target.closest("button[data-i]"):null;
+    if(!btn)return;
+    choose(items[Number(btn.getAttribute("data-i"))]);
+  });
+  document.addEventListener("click",function(e){if(!box.contains(e.target))hide();});
+}
+})();</script>`;
+}
+
 function browseTools({ action = "/", showLibChips = true, ...raw }) {
   const state = browseState(raw);
   const sortKey = state.sort === "title" ? "alpha" : state.sort;
@@ -924,8 +1020,8 @@ function browseTools({ action = "/", showLibChips = true, ...raw }) {
   const libChips = showLibChips
     ? `<div class="chips">${chip("All", browseHref("/", state, { lib: "all" }), state.lib === "all" || !state.lib)}${chip("Aziel Library", browseHref("/", state, { lib: "aziel" }), state.lib === "aziel")}${chip("Corpus", browseHref("/", state, { lib: "corpus" }), state.lib === "corpus")}</div>`
     : "";
-  return `<form class="tools" method="get" action="${esc(action)}">
-<div class="hero-search"><input class="search" name="q" value="${esc(state.q)}" placeholder="Search title, text, author, domain, subjects, keywords…">${hiddenLib}<button>Search</button></div>
+  return `<form class="tools" method="get" action="${esc(action)}" data-record-suggest="1">
+<div class="hero-search"><div class="search-suggest"><input class="search" name="q" value="${esc(state.q)}" placeholder="Search title, text, author, domain, subjects, keywords…" autocomplete="off" enterkeyhint="search"><div class="suggest-list" role="listbox" hidden></div></div>${hiddenLib}<button type="submit">Search</button></div>
 <div class="tools-grid">
 <label>Sort<select name="sort">${opts}</select></label>
 <label>Domain<input name="domain" value="${esc(state.domain)}" placeholder="Domain"></label>
@@ -934,7 +1030,8 @@ function browseTools({ action = "/", showLibChips = true, ...raw }) {
 <label>Author<input name="author" value="${esc(state.author)}" placeholder="Author"></label>
 </div>
 ${libChips}
-</form>`;
+</form>
+${recordSuggestScript()}`;
 }
 
 function facetRow(label, items, param, state, path) {
@@ -1197,8 +1294,6 @@ export function homeBody({ q, lib, sort, domain, subject, keyword, author, rows,
     : "";
   return `<section class="hero">
 <h1>Search the libraries</h1>
-<p>Aziel Corpus Library is the public MASTER of hashed records. Search a title, browse a shelf, or upload a file.</p>
-<p class="muted">Public search across Aziel Library and Corpus. Ask Jeeves — the gold button — is FragGate op jeeves on this corpus (suite help) and answers from filed text.</p>
 ${libraryFileCountHtml({ records_packed, records_aziel, records_corpus })}
 </section>
 ${tools}
