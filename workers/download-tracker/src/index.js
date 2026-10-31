@@ -39,6 +39,7 @@ import { enforceRateLimit, rememberCatalog, isSeoBot } from "./rate-limit.js";
 import { handleDonate, DONATE_PATH } from "./donate.js";
 import { handleDonateQr, isDonateQrPath } from "./donate-qr.js";
 import { handleWitness, isWitnessPath } from "./witness.js";
+import { handleVoynich, isVoynichPath } from "./voynich.js";
 import { handleReceipts, isReceiptsPath } from "./action-receipts.js";
 import { locksetFile } from "./ingest-receipt.js";
 import { isShelvesPath, shelvesDoc } from "./cold-shelf.js";
@@ -531,6 +532,23 @@ async function handleFetch(request, env, ctx) {
     }
     if (isWitnessPath(earlyPath) && isReadMethod(request.method)) {
       return handleWitness(request, env, ctx);
+    }
+    if (isVoynichPath(earlyPath)) {
+      if (!isReadMethod(request.method)) {
+        return json({
+          ok: false,
+          live: false,
+          code: "VOYNICH-READ",
+          decryption_complete: false,
+          cap7_is_icann: false,
+          public_icann: false,
+          resolves_to_hub: false,
+          paid_sat: "HELD",
+          sat: false,
+          written: false,
+        }, 405);
+      }
+      return handleVoynich(request);
     }
     if (isReceiptsPath(earlyPath) && (isReadMethod(request.method) || request.method === "POST")) {
       return handleReceipts(request, env);

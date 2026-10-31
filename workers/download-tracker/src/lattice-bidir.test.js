@@ -583,3 +583,167 @@ test("the worker routes wrap and pull and leaves the record lattice and intake l
   const runtime = readFileSync(new URL("./runtime.js", import.meta.url), "utf8");
   assert.match(runtime, /path === "\/v1\/lattice" && request\.method === "GET"/);
 });
+
+function memoryKv() {
+  const map = new Map();
+  return {
+    async get(key) { return map.has(key) ? map.get(key) : null; },
+    async put(key, value) { map.set(key, String(value)); },
+  };
+}
+
+test("an Unseal receipt wraps and pulls on the unseal plane and refuses tie-break", async () => {
+  const env = operatorEnv();
+  const documentHash = hashPayload({ doc: "unseal-markov" });
+  const { body } = wrapBody(documentHash, {
+    unseal: { source: "timetounsealthebook", kind: "test", id: "markov-ngram", slot: "markov-ngram" },
+  }, { offline: false });
+  const wrapped = await postWrap(env, body, operatorHeaders());
+  assert.equal(wrapped.status, 201);
+  assert.equal(wrapped.body.plane, "unseal");
+  assert.equal(wrapped.body.live, false);
+  assert.equal(wrapped.body.lattice.unseal.decryption_complete, false);
+  assert.equal(wrapped.body.lattice.unseal.paid_sat, "HELD");
+  assert.equal(wrapped.body.lattice.unseal.cap7_is_icann, false);
+  assert.equal(wrapped.body.lattice.username, null);
+  assert.equal(wrapped.body.policy.decryption_complete, false);
+  assert.equal(wrapped.body.policy.paid_sat, "HELD");
+  assert.equal(wrapped.body.policy.tiebreak, "refused");
+  assert.equal(wrapped.body.policy.cap7_is_icann, false);
+  assert.equal(wrapped.body.policy.sat, false);
+
+  const pub = await getPull(env, documentHash, {}, "&unseal=1");
+  assert.equal(pub.status, 200);
+  assert.equal(pub.body.lattice.unseal.slot, "markov-ngram");
+  assert.equal(pub.body.lattice.username, undefined);
+  assert.doesNotMatch(JSON.stringify(pub.body), /godlock/);
+
+  const tie = wrapBody(hashPayload({ doc: "unseal-tie" }), {
+    unseal: { source: "timetounsealthebook", kind: "test", id: "markov-ngram", tiebreak: "corpus" },
+  }, { offline: false });
+  const tieRes = await postWrap(env, tie.body, operatorHeaders());
+  assert.equal(tieRes.status, 409);
+  assert.equal(tieRes.body.code, "LATTICE-TIEBREAK-CORPUS");
+
+  const decrypted = wrapBody(hashPayload({ doc: "unseal-done" }), {
+    unseal: { source: "timetounsealthebook", kind: "test", id: "markov-ngram", decryption_complete: true },
+  }, { offline: false });
+  const held = await postWrap(env, decrypted.body, operatorHeaders());
+  assert.equal(held.status, 422);
+  assert.equal(held.body.code, "UNSEAL-DECRYPTION-HELD");
+  assert.equal(held.body.policy.decryption_complete, false);
+});
+
+test("an aggregated receipt is filed by hash and a second site cannot tie-break it", async () => {
+  const env = operatorEnv();
+  env.DOWNLOADS = memoryKv();
+  const documentHash = hashPayload({ doc: "agg-godlock" });
+  const { body } = wrapBody(documentHash, { aggregate: { site: "godlock" } }, { offline: false });
+  const missingStore = operatorEnv();
+  const closed = await postWrap(missingStore, body, operatorHeaders());
+  assert.equal(closed.status, 503);
+  assert.equal(closed.body.code, "AGGREGATE-STORE-UNAVAILABLE");
+  assert.equal(closed.body.filed, false);
+  assert.equal(missingStore.db.rows.length, 0);
+
+  const wrapped = await postWrap(env, body, operatorHeaders());
+  assert.equal(wrapped.status, 201);
+  assert.equal(wrapped.body.filed, true);
+  assert.equal(wrapped.body.plane, "sites");
+  assert.equal(wrapped.body.live, false);
+  assert.equal(wrapped.body.lattice.aggregate.site, "godlock");
+  assert.equal(wrapped.body.lattice.aggregate.decryption_complete, false);
+  assert.equal(wrapped.body.lattice.aggregate.paid_sat, "HELD");
+  assert.equal(wrapped.body.lattice.aggregate.cap7_is_icann, false);
+  assert.equal(wrapped.body.policy.sat, false);
+  assert.doesNotMatch(JSON.stringify(wrapped.body.lattice.aggregate), /action|output/);
+
+  const pulled = await getPull(env, documentHash, operatorHeaders());
+  assert.equal(pulled.status, 200);
+  assert.equal(pulled.body.lattice.aggregate.receipt_hash, documentHash);
+
+  const other = wrapBody(documentHash, { aggregate: { site: "hdj" } }, { offline: false });
+  const clash = await postWrap(env, other.body, operatorHeaders());
+  assert.equal(clash.status, 409);
+  assert.equal(clash.body.code, "LATTICE-TIEBREAK-CORPUS");
+  const filed = JSON.parse(await env.DOWNLOADS.get("act_receipt:aggregate:row:" + documentHash));
+  assert.equal(filed.site, "godlock");
+
+  const unknown = wrapBody(hashPayload({ doc: "agg-unknown" }), { aggregate: { site: "not-a-hub" } }, { offline: false });
+  const badSite = await postWrap(env, unknown.body, operatorHeaders());
+  assert.equal(badSite.status, 422);
+  assert.equal(badSite.body.code, "AGGREGATE-SITE");
+
+  const both = wrapBody(hashPayload({ doc: "both" }), {
+    unseal: { source: "timetounsealthebook", kind: "test", id: "markov-ngram" },
+    aggregate: { site: "unseal" },
+  }, { offline: false });
+  const mixed = await postWrap(env, both.body, operatorHeaders());
+  assert.equal(mixed.status, 422);
+  assert.equal(mixed.body.code, "LATTICE-FIELD");
+});
+
+test("voynich counter snapshots, new theories, method runs, and keywords wrap without posting a tie-break", async () => {
+  const env = operatorEnv();
+  const snapshotHash = hashPayload({ doc: "counter-snapshot" });
+  const bare = wrapBody(snapshotHash, {
+    unseal: { source: "timetounsealthebook", kind: "timetounsealthebook.counter_snapshot" },
+  }, { offline: false });
+  const missingTab = await postWrap(env, bare.body, operatorHeaders());
+  assert.equal(missingTab.status, 422);
+  assert.equal(missingTab.body.code, "VOYNICH-TAB");
+
+  bare.body.lattice.tab = "Voynich";
+  const wrongTab = await postWrap(env, bare.body, operatorHeaders());
+  assert.equal(wrongTab.status, 422);
+  assert.equal(wrongTab.body.code, "VOYNICH-TAB");
+
+  bare.body.lattice.tab = "voynich";
+  const snapshot = await postWrap(env, bare.body, operatorHeaders());
+  assert.equal(snapshot.status, 201);
+  assert.equal(snapshot.body.lattice.tab, "voynich");
+  assert.equal(snapshot.body.lattice.unseal.kind, "timetounsealthebook.counter_snapshot");
+  assert.equal(snapshot.body.lattice.unseal.decryption_complete, false);
+  assert.equal(snapshot.body.policy.paid_sat, "HELD");
+  assert.equal(snapshot.body.policy.cap7_is_icann, false);
+  assert.equal(snapshot.body.live, false);
+
+  const theoryHash = hashPayload({ doc: "new-theory" });
+  const theory = wrapBody(theoryHash, {
+    unseal: { source: "timetounsealthebook", kind: "timetounsealthebook.theory", theory_id: "currier-hand-structure" },
+  }, { offline: false });
+  theory.body.lattice.tab = "voynich";
+  const housed = await postWrap(env, theory.body, operatorHeaders());
+  assert.equal(housed.status, 201);
+  assert.equal(housed.body.lattice.unseal.theory_id, "currier-hand-structure");
+  assert.equal(housed.body.plane, "unseal");
+
+  const runHash = hashPayload({ doc: "method-run" });
+  const run = wrapBody(runHash, {
+    unseal: { source: "timetounsealthebook", kind: "timetounsealthebook.method_run", method_id: "ink-handwriting", test_id: "abad-zd30-v3-0-shared-glyph-core" },
+  }, { offline: false });
+  assert.equal((await postWrap(env, run.body, operatorHeaders())).status, 201);
+
+  const wordHash = hashPayload({ doc: "keyword" });
+  const word = wrapBody(wordHash, {
+    unseal: { source: "timetounsealthebook", kind: "timetounsealthebook.keyword", keyword: "currier", theme: "handoff", test_id: "abad-zd30-v3-0-shared-glyph-core" },
+  }, { offline: false });
+  const filed = await postWrap(env, word.body, operatorHeaders());
+  assert.equal(filed.status, 201);
+  assert.equal(filed.body.lattice.unseal.test_id, "abad-zd30-v3-0-shared-glyph-core");
+  const orphan = wrapBody(hashPayload({ doc: "keyword-orphan" }), {
+    unseal: { source: "timetounsealthebook", kind: "timetounsealthebook.keyword", keyword: "orphan", theme: "handoff" },
+  }, { offline: false });
+  assert.equal((await postWrap(env, orphan.body, operatorHeaders())).status, 422);
+
+  const pulled = await getPull(env, snapshotHash, {}, "&unseal=1");
+  assert.equal(pulled.status, 200);
+  assert.equal(pulled.body.lattice.tab, "voynich");
+  assert.equal(pulled.body.policy.tiebreak, "refused");
+
+  const godlock = wrapBody(hashPayload({ doc: "tab-on-user" }));
+  godlock.body.lattice.tab = "voynich";
+  const userTab = await postWrap(env, godlock.body, operatorHeaders());
+  assert.equal(userTab.status, 422);
+  assert.equal(userTab.body.code, "VOYNICH-TAB");
+});

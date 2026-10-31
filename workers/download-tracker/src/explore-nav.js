@@ -4,6 +4,7 @@
  */
 
 import { LIBRARY_HUB_PATH } from "./film.js";
+import { VOYNICH_LABEL, VOYNICH_PATH } from "./voynich-housing.js";
 
 function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -14,6 +15,7 @@ export const EXPLORE_LINKS = Object.freeze([
   Object.freeze({ href: LIBRARY_HUB_PATH, label: "Search" }),
   Object.freeze({ href: "/aziel-library", label: "Aziel Library" }),
   Object.freeze({ href: "/corpus", label: "Corpus" }),
+  Object.freeze({ href: VOYNICH_PATH, label: VOYNICH_LABEL }),
   Object.freeze({ href: "/upload", label: "Upload" }),
   Object.freeze({ href: "/tree", label: "Tree" }),
   Object.freeze({ href: "/map", label: "Map" }),

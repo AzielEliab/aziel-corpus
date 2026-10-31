@@ -231,8 +231,8 @@ function isoDay(value, fallback) {
 
 /** Real per-path lastmod from source-file git dates (ISO day). Fallback SITE_LASTMOD. */
 const PATH_LASTMOD = Object.freeze({
-  "/": "2026-10-24",
-  "/software": "2026-10-24",
+  "/": "2026-10-31",
+  "/software": "2026-10-31",
   "/AzielEliab": "2026-10-10",
   "/who": "2026-10-10",
   "/who-is": "2026-10-10",
@@ -249,7 +249,7 @@ const PATH_LASTMOD = Object.freeze({
   "/help/how-to-cite.txt": "2026-09-29",
   "/help/uploads.txt": "2026-09-29",
   "/runtime": "2026-09-21",
-  "/how-its-scored": "2026-10-24",
+  "/how-its-scored": "2026-10-31",
 });
 
 /**
@@ -368,6 +368,9 @@ export function robotsTxt() {
     "Allow: /historical",
     "Allow: /verify",
     "Allow: /corpus",
+    "Allow: /voynich",
+    "Allow: /voynich.json",
+    "Allow: /v1/voynich",
     "Allow: /upload",
     "Allow: /aziel-library",
     "Allow: /pattern",
@@ -509,6 +512,7 @@ const STATIC_SITEMAP = [
   "/forensics",
   "/aziel-library",
   "/corpus",
+  "/voynich",
   "/cite.json",
   "/lockset.json",
   "/shelves",
@@ -516,6 +520,7 @@ const STATIC_SITEMAP = [
   "/v1/shelves",
   "/v1/cold-copy",
   "/receipts",
+  "/receipts/sites",
   "/receipts/verify",
   "/v1/receipts",
   "/v1/receipts/verify",
@@ -977,6 +982,13 @@ export function citeDoc(survival, outletCite, stamp) {
     transcribe_note: "POST /transcribe — Workers AI Whisper; mandatory VibeLock determination; hard A/V blocks (HTTP 451)",
     receipt: HOST + "/receipt/{id}",
     receipts: HOST + "/receipts",
+    voynich: HOST + "/voynich",
+    voynich_json: HOST + "/voynich.json",
+    voynich_label: "voynich",
+    voynich_live: false,
+    voynich_decryption_complete: false,
+    voynich_cap7_is_icann: false,
+    voynich_paid_sat: "HELD",
     receipts_json: HOST + "/v1/receipts",
     receipts_spec: "ACT-RECEIPT-1.0",
     receipts_verify: HOST + "/receipts/verify",
@@ -1320,6 +1332,8 @@ export function llmsDoc(limitation, survival, stamp, sot) {
     + "- Gazetteer (background lookup, not a top-nav tab): " + HOST + "/gazetteer\n"
     + "- Historical Geography: " + HOST + "/historical\n"
     + "- Forensics / hosted OCR and Whisper: " + HOST + "/forensics\n"
+    + "- voynich: " + HOST + "/voynich  (label exactly voynich; Unseal test-lattice housing; not live; decryption_complete false; cap7_is_icann false; paid sat HELD)\n"
+    + "- receipts: " + HOST + "/receipts  (front-door label receipts; site subtree " + HOST + "/receipts/sites ; hash pointers only; lattice wrap files them; tie-break refused; not live)\n"
     + "- OCR / transcription: " + HOST + "/ocr\n"
     + "- Verify: " + HOST + "/verify\n\n"
     + "## JSON / LLM routes (do not increment downloads)\n\n"
@@ -1329,8 +1343,8 @@ export function llmsDoc(limitation, survival, stamp, sot) {
     + "- GET " + HOST + "/v1/example\n"
     + "- GET " + HOST + "/v1/review?record_id=\n"
     + "- GET " + HOST + "/v1/lattice?record_id=\n"
-    + "- POST " + HOST + "/v1/lattice/wrap  (secondary lattice; GodLock bidir; hash block by entry_hash; fail closed; live stays false; cap7_is_icann false)\n"
-    + "- GET " + HOST + "/v1/lattice/pull?entry_hash=  (unauthenticated row omits username, lattice_handles, and offline-user fields; aggregate requires operator Bearer or X-Aziel-Runtime-Token; LATTICE_REMOTE defaults off)\n"
+    + "- POST " + HOST + "/v1/lattice/wrap  (secondary lattice; GodLock bidir and Unseal receipts; hash block by entry_hash; fail closed; live stays false; decryption_complete false; cap7_is_icann false; paid sat HELD; tie-break refused)\n"
+    + "- GET " + HOST + "/v1/lattice/pull?entry_hash=  (unauthenticated row omits username, lattice_handles, and offline-user fields; aggregate requires operator Bearer or X-Aziel-Runtime-Token; LATTICE_REMOTE defaults off; unseal=1 pulls one Unseal receipt and refuses aggregate)\n"
     + "- GET " + HOST + "/v1/possibility?record_id=\n"
     + "- GET " + HOST + "/v1/recollect?record_id=\n"
     + "- GET " + HOST + "/v1/poison-learn\n"
@@ -1458,6 +1472,9 @@ export function aiTxt(limitation, survival, stamp, sot) {
     "Allow: /intelligence",
     "Allow: /aziel-library",
     "Allow: /corpus",
+    "Allow: /voynich",
+    "Allow: /voynich.json",
+    "Allow: /v1/voynich",
     "Allow: /upload",
     "Allow: /cite.json",
     "Allow: /works.json",

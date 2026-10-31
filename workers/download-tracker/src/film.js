@@ -6,6 +6,8 @@
  */
 import { CANON_HOST, HUB_PERSON_ID, websiteNode } from "./seo.js";
 import { personNode } from "./identity.js";
+import { VOYNICH_LABEL, VOYNICH_PATH } from "./voynich-housing.js";
+import { RECEIPTS_TAB_LABEL, RECEIPTS_TAB_PATH } from "./receipt-aggregate.js";
 
 export const LIBRARY_HUB_PATH = "/search";
 export const FILM_MP4_PATH = "/film/aziel-corpus-the-record.mp4";
@@ -131,6 +133,8 @@ function filmGateHtml() {
     <nav class="doors" aria-label="Film doors">
       <a href="${LIBRARY_HUB_PATH}">www.azielcorpuslibrary.net</a>
       <a href="/corpus">corpus</a>
+      <a href="${VOYNICH_PATH}">${VOYNICH_LABEL}</a>
+      <a href="${RECEIPTS_TAB_PATH}">${RECEIPTS_TAB_LABEL}</a>
       <a href="https://www.azieleliab.com/" target="_blank" rel="noreferrer">www.azieleliab.com</a>
     </nav>
     <p class="close-line">If the files hold, the name was never the point.</p>
