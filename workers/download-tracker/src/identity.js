@@ -31,6 +31,15 @@ export const GLAMA_RUNTIME = "https://glama.ai/mcp/servers/AzielEliab/aziel-runt
 export const GITHUB_RUNTIME = "https://github.com/AzielEliab/aziel-runtime";
 export const X_PRIMARY = "https://x.com/AzielEliab";
 export const X_HANDLE = "@AzielEliab";
+/** Softwares door. Worker origin of Aziel Runtime. */
+export const RUNTIME_HOME = "https://aziel-runtime.vibelock.workers.dev/";
+/** Official Furnace doors. Exact public URLs. Not a Live Node. Cap-7 is not this name. */
+export const FURNACE_NAME = "The Furnace Isn't Free";
+export const FURNACE_HOME = "https://www.furnaceisntfree.com/";
+export const FURNACE_AZIEL = "https://furnaceisntfree.com/aziel/";
+/** Official Unseal door. www host. The non-www /aziel path stays a separate handle. */
+export const UNSEAL_OFFICIAL = "https://www.timetounsealthebook.net";
+export const UNSEAL_NAME = "TimeToUnsealTheBook";
 
 /** Full public sameAs lock. Do not drop entries. Do not add legal-name / home / court IDs. */
 export const PERSON_SAME_AS = Object.freeze([
@@ -42,6 +51,10 @@ export const PERSON_SAME_AS = Object.freeze([
   GODLOCK_HOME,
   HEDIDNTJUMP_HOME,
   X_PRIMARY,
+  RUNTIME_HOME,
+  FURNACE_HOME,
+  FURNACE_AZIEL,
+  UNSEAL_OFFICIAL,
 ]);
 
 /**
@@ -60,6 +73,10 @@ export const MACHINE_ECOSYSTEM_LINKS = Object.freeze([
   Object.freeze({ href: GLAMA_RUNTIME, label: "Try on Glama", primary: true }),
   Object.freeze({ href: X_PRIMARY, label: X_HANDLE }),
   Object.freeze({ href: LIBRARY_HOST + "/software", label: "Softwares" }),
+  Object.freeze({ href: RUNTIME_HOME, label: "Aziel Runtime" }),
+  Object.freeze({ href: FURNACE_HOME, label: FURNACE_NAME }),
+  Object.freeze({ href: FURNACE_AZIEL, label: "Furnace · Aziel" }),
+  Object.freeze({ href: UNSEAL_OFFICIAL, label: UNSEAL_NAME }),
   Object.freeze({ href: WHO_URL, label: "Who is Aziel Eliab" }),
   Object.freeze({ href: LIBRARY_ROLE_URL, label: "What Aziel Eliab does" }),
   Object.freeze({ href: LIBRARY_HOST + "/who-is-aziel-eliab.txt", label: "Why Aziel Eliab" }),
@@ -349,7 +366,7 @@ export const ABOUT_SIGNIFICANT_LINKS = Object.freeze([
 
 /** Verbatim Who-is answer. FAQ + /who-is-aziel-eliab.txt must match this string. */
 export const WHO_IS_AZIEL_ELIAB =
-  "Aziel Eliab (also Aziel Elroi Eliab) is a researcher, digital rights activist, software developer, author, and philosopher. Roles cite published work only. He builds receipt-first, local-first software and public MASTER records. Canonical person: https://www.azieleliab.com/#aziel. Primary surfaces: azieleliab.com, azielcorpuslibrary.net, godlock.uk, hedidntjump.com, github.com/AzielEliab. He is one living person. The public identity is the work.";
+  "Aziel Eliab (also Aziel Elroi Eliab) is a researcher, digital rights activist, software developer, author, and philosopher. Roles cite published work only. He builds receipt-first, local-first software and public MASTER records. Canonical person: https://www.azieleliab.com/#aziel. Primary surfaces: azieleliab.com, azielcorpuslibrary.net, godlock.uk, hedidntjump.com, aziel-runtime, furnaceisntfree.com, timetounsealthebook.net, github.com/AzielEliab. He is one living person. The public identity is the work.";
 
 export const FAQ_WHO_IS = Object.freeze({
   name: "Who is Aziel Eliab?",
@@ -508,10 +525,25 @@ export const SITE_BLURBS = Object.freeze({
   runtime: Object.freeze({
     slug: "aziel-runtime",
     name: "Aziel Runtime",
-    url: "https://aziel-runtime.vibelock.workers.dev/",
+    url: RUNTIME_HOME,
     runtime_id: "https://www.azieleliab.com/runtime#runtime",
     blurb:
       "Node-meshed orchestration suite of MCP-connected software. FragGate is THE single public executable door. Worker origin is relatedLink — identity lives at https://www.azieleliab.com/runtime#runtime.",
+  }),
+  furnace: Object.freeze({
+    slug: "furnaceisntfree-com",
+    name: FURNACE_NAME,
+    url: FURNACE_HOME,
+    aziel: FURNACE_AZIEL,
+    blurb:
+      "The Furnace Isn't Free. HVAC quote transparency by Aziel Eliab. Official doors " + FURNACE_HOME + " and " + FURNACE_AZIEL + ". A handle, not a Live Node. decryption_complete stays false. Not LIVE until Dual CLEAR, Aziel merge OK, and Cos.",
+  }),
+  unseal: Object.freeze({
+    slug: "timetounsealthebook-net",
+    name: UNSEAL_NAME,
+    url: UNSEAL_OFFICIAL,
+    blurb:
+      "TimeToUnsealTheBook. Official door " + UNSEAL_OFFICIAL + ". A handle, not a Live Node. Cap-7 is not an ICANN registration. Paid satellite stays HELD. decryption_complete stays false. Not LIVE until Dual CLEAR, Aziel merge OK, and Cos.",
   }),
 });
 
@@ -526,6 +558,8 @@ export function siteBlurbsCite() {
     godlock: { ...SITE_BLURBS.godlock },
     hedidntjump: { ...SITE_BLURBS.hedidntjump },
     runtime: { ...SITE_BLURBS.runtime },
+    furnace: { ...SITE_BLURBS.furnace },
+    unseal: { ...SITE_BLURBS.unseal },
   };
 }
 
@@ -536,6 +570,8 @@ export function siteBlurbsLlmsBlock() {
     + "- godlock.uk: " + SITE_BLURBS.godlock.blurb + " " + SITE_BLURBS.godlock.url + "\n"
     + "- hedidntjump.com: " + SITE_BLURBS.hedidntjump.blurb + " " + SITE_BLURBS.hedidntjump.url + "\n"
     + "- aziel-runtime: " + SITE_BLURBS.runtime.blurb + " " + SITE_BLURBS.runtime.url + "\n"
+    + "- furnaceisntfree.com: " + SITE_BLURBS.furnace.blurb + " " + SITE_BLURBS.furnace.url + " · " + SITE_BLURBS.furnace.aziel + "\n"
+    + "- timetounsealthebook.net: " + SITE_BLURBS.unseal.blurb + " " + SITE_BLURBS.unseal.url + "\n"
     + "- Roles cite published work only. Growth-ON. NO-LIE. No visible HTML chrome.\n";
 }
 
@@ -812,6 +848,8 @@ export function whoIsTxt(survival) {
     "- godlock.uk — " + SITE_BLURBS.godlock.blurb + " " + SITE_BLURBS.godlock.url,
     "- hedidntjump.com — " + SITE_BLURBS.hedidntjump.blurb + " " + SITE_BLURBS.hedidntjump.url,
     "- aziel-runtime — " + SITE_BLURBS.runtime.blurb + " " + SITE_BLURBS.runtime.url,
+    "- furnaceisntfree.com — " + SITE_BLURBS.furnace.blurb + " " + SITE_BLURBS.furnace.url + " · " + SITE_BLURBS.furnace.aziel,
+    "- timetounsealthebook.net — " + SITE_BLURBS.unseal.blurb + " " + SITE_BLURBS.unseal.url,
     "Growth-ON. NO-LIE. No visible HTML chrome.",
     survivalWhoIsBlock(survival),
   ].join("\n") + "\n";

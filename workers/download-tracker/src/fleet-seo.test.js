@@ -48,7 +48,10 @@ test("handles page lists public doors and keeps 15:20 off the visible page", () 
   assert.match(body, /<h1>Aziel<\/h1>/);
   assert.match(body, /<h2>Handles<\/h2>/);
   assert.match(body, /href="https:\/\/www\.azieleliab\.com\/">azieleliab\.com<\/a>/);
+  assert.match(body, /href="https:\/\/www\.timetounsealthebook\.net">TimeToUnsealTheBook<\/a>/);
   assert.match(body, /href="https:\/\/timetounsealthebook\.net\/aziel">TimeToUnsealTheBook<\/a>/);
+  assert.match(body, /href="https:\/\/www\.furnaceisntfree\.com\/">The Furnace Isn't Free<\/a>/);
+  assert.match(body, /href="https:\/\/furnaceisntfree\.com\/aziel\/">Furnace · Aziel<\/a>/);
   assert.match(body, /href="https:\/\/x\.com\/AzielEliab">X @AzielEliab<\/a>/);
   assert.match(body, /He Didn't Jump is a handle, not a Live Node/);
   assert.match(body, /TimeToUnsealTheBook is a handle, not a Live Node/);
@@ -70,6 +73,13 @@ test("handles page lists public doors and keeps 15:20 off the visible page", () 
   assert.equal(json.he_didnt_jump_is_live_node, false);
   assert.equal(json.unseal_is_live_node, false);
   assert.ok(json.handles.some((row) => row.href === UNSEAL_AZIEL && row.label === "TimeToUnsealTheBook"));
+  assert.ok(json.handles.some((row) => row.href === "https://www.timetounsealthebook.net" && row.official === true));
+  assert.ok(json.handles.some((row) => row.href === "https://www.furnaceisntfree.com/" && row.official === true));
+  assert.ok(json.handles.some((row) => row.href === "https://furnaceisntfree.com/aziel/" && row.official === true));
+  assert.equal(json.furnace_is_live_node, false);
+  assert.equal(json.decryption_complete, false);
+  assert.equal(json.paid_satellite, "HELD");
+  assert.equal(json.cap7_is_icann, false);
   assert.equal(AZIEL_HANDLES.length, json.handles.length);
 });
 
@@ -78,12 +88,22 @@ test("film and search hub carry the same footer", () => {
   assert.match(film, /id="corpus-site-footer"/);
   assert.match(film, /Part of the Aziel Eliab ecosystem/);
   assert.match(film, /href="\/aziel"/);
+  assert.match(film, /href="https:\/\/www\.furnaceisntfree\.com\/"/);
+  assert.match(film, /href="https:\/\/furnaceisntfree\.com\/aziel\/"/);
+  assert.match(film, /href="https:\/\/www\.timetounsealthebook\.net"/);
+  assert.match(film, /href="https:\/\/aziel-runtime\.vibelock\.workers\.dev\/"/);
   assert.doesNotMatch(visible(film), /1 Chronicles 15:20/);
   assert.doesNotMatch(film, /class="brandrow"/);
   const search = page("Corpus Search", "<h1>Search the libraries</h1>", { path: "/search", kind: "search" });
   assert.match(search, /id="corpus-site-footer"/);
   assert.match(search, /Part of the Aziel Eliab ecosystem/);
   assert.match(visible(search), /href="\/aziel"/);
+  assert.match(search, /aria-label="Sister sites"/);
+  assert.match(search, /href="https:\/\/www\.furnaceisntfree\.com\/"/);
+  assert.match(search, /href="https:\/\/furnaceisntfree\.com\/aziel\/"/);
+  assert.match(search, /href="https:\/\/www\.timetounsealthebook\.net"/);
+  assert.match(search, /href="https:\/\/godlock\.uk\/"/);
+  assert.match(search, /href="https:\/\/www\.hedidntjump\.com\/"/);
   assert.doesNotMatch(visible(search), /1 Chronicles 15:20/);
 });
 
@@ -111,6 +131,9 @@ test("crawler surfaces list pretty paths, Allow, and the Unseal handle", async (
   assert.match(block, /Paths \(not hash-only\)/);
   assert.match(block, /https:\/\/www\.azielcorpuslibrary\.net\/aziel/);
   assert.match(block, /https:\/\/timetounsealthebook\.net\/aziel/);
+  assert.match(block, /https:\/\/www\.timetounsealthebook\.net/);
+  assert.match(block, /https:\/\/www\.furnaceisntfree\.com\//);
+  assert.match(block, /https:\/\/furnaceisntfree\.com\/aziel\//);
   assert.match(block, /He Didn't Jump is a handle\. It is not a Live Node/);
   assert.match(block, /Growth-ON\. Allow: \//);
   assert.match(block, /Person: https:\/\/www\.azieleliab\.com\/#aziel/);
@@ -145,6 +168,18 @@ test("crawler surfaces list pretty paths, Allow, and the Unseal handle", async (
   assert.equal(cite.unseal.live, false);
   assert.equal(cite.unseal.live_node, false);
   assert.equal(cite.unseal.decryption_complete, false);
+  assert.equal(cite.unseal.official, "https://www.timetounsealthebook.net");
+  assert.equal(cite.unseal.cap7_public_icann, false);
+  assert.equal(cite.unseal.paid_satellite, "HELD");
+  assert.equal(cite.furnace_cite.home, "https://www.furnaceisntfree.com/");
+  assert.equal(cite.furnace_cite.aziel, "https://furnaceisntfree.com/aziel/");
+  assert.equal(cite.furnace_cite.live, false);
+  assert.equal(cite.furnace_cite.decryption_complete, false);
+  assert.equal(cite.furnace_cite.cap7_public_icann, false);
+  assert.equal(cite.furnace_cite.paid_satellite, "HELD");
+  assert.equal(cite.furnace, "https://www.furnaceisntfree.com/");
+  assert.equal(cite.unseal_official, "https://www.timetounsealthebook.net");
+  assert.equal(cite.remain_off, true);
 });
 
 test("GET /aziel answers HTML and JSON without redirecting to /AzielEliab", async () => {

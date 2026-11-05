@@ -371,6 +371,10 @@ test("ecosystem footer/nav is chrome, not Softwares heading→list", () => {
     ["Corpus", "https://www.azielcorpuslibrary.net/", false, false],
     ["GodLock", "https://godlock.uk/", false, false],
     ["He Didn't Jump", "https://www.hedidntjump.com/", false, false],
+    ["Softwares", "https://aziel-runtime.vibelock.workers.dev/", false, false],
+    ["The Furnace Isn't Free", "https://www.furnaceisntfree.com/", false, false],
+    ["Furnace · Aziel", "https://furnaceisntfree.com/aziel/", false, false],
+    ["TimeToUnsealTheBook", "https://www.timetounsealthebook.net", false, false],
     ["Runtime GitHub", "https://github.com/AzielEliab/aziel-runtime", false, false],
     ["Try on Glama", "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime", false, true],
   ]);
