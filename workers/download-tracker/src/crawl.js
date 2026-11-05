@@ -11,6 +11,14 @@ import {
   WEBSITE_ID,
   WEBSITE_NAME,
   canonicalPath,
+  AZIEL_HANDLES_PATH,
+  fleetSeoPlainBlock,
+  tabUrl,
+  TAB_PATHS,
+  AZIEL_HANDLES,
+  DOORS_URL,
+  unsealCite,
+  CAP7_PUBLIC,
 } from "./seo.js";
 import {
   RUNTIME_VERSION,
@@ -231,8 +239,9 @@ function isoDay(value, fallback) {
 
 /** Real per-path lastmod from source-file git dates (ISO day). Fallback SITE_LASTMOD. */
 const PATH_LASTMOD = Object.freeze({
-  "/": "2026-10-31",
-  "/software": "2026-10-31",
+  "/": "2026-11-05",
+  "/aziel": "2026-11-05",
+  "/software": "2026-11-05",
   "/AzielEliab": "2026-10-10",
   "/who": "2026-10-10",
   "/who-is": "2026-10-10",
@@ -249,7 +258,7 @@ const PATH_LASTMOD = Object.freeze({
   "/help/how-to-cite.txt": "2026-09-29",
   "/help/uploads.txt": "2026-09-29",
   "/runtime": "2026-09-21",
-  "/how-its-scored": "2026-10-31",
+  "/how-its-scored": "2026-11-05",
 });
 
 /**
@@ -258,6 +267,7 @@ const PATH_LASTMOD = Object.freeze({
  */
 export const PATH_LASTMOD_SOURCES = Object.freeze({
   "/": ["workers/download-tracker/src/ui.js", "workers/download-tracker/src/identity.js"],
+  "/aziel": ["workers/download-tracker/src/ui.js", "workers/download-tracker/src/seo.js"],
   "/software": ["workers/download-tracker/src/software-catalog.js", "workers/download-tracker/src/ui.js"],
   "/AzielEliab": ["workers/download-tracker/src/identity.js"],
   "/who": ["workers/download-tracker/src/identity.js"],
@@ -344,6 +354,7 @@ export function robotsTxt() {
   return [
     "# Aziel Digital Library by Aziel Eliab (aka Aziel Elroi Eliab)",
     "# Priority pages: /  /software  /AzielEliab  /who",
+    "# Growth-ON. Allow: /. GPTBot Disallow is refused.",
     "User-agent: *",
     "Allow: /",
     "Allow: /map",
@@ -383,6 +394,7 @@ export function robotsTxt() {
     "Allow: /help/how-to-cite.txt",
     "Allow: /help/uploads.txt",
     "Allow: " + ABOUT_PATH,
+    "Allow: " + AZIEL_HANDLES_PATH,
     "Allow: /about",
     "Allow: /aboutme",
     "Allow: /runtime",
@@ -460,6 +472,7 @@ export function robotsTxt() {
 const STATIC_SITEMAP = [
   "/",
   ABOUT_PATH,
+  AZIEL_HANDLES_PATH,
   "/software",
   "/donate",
   "/v1/software",
@@ -567,6 +580,7 @@ const SITEMAP_HINTS = {
   "/search": { changefreq: "daily", priority: "0.8" },
   "/software": { changefreq: "weekly", priority: "0.9" },
   [ABOUT_PATH]: { changefreq: "monthly", priority: "0.9" },
+  [AZIEL_HANDLES_PATH]: { changefreq: "monthly", priority: "0.9" },
   "/v1/software": { changefreq: "weekly", priority: "0.8" },
   "/v1/download": { changefreq: "weekly", priority: "0.7" },
   "/runtime": { changefreq: "weekly", priority: "0.8" },
@@ -972,6 +986,21 @@ export function citeDoc(survival, outletCite, stamp) {
     },
     software_hub: HOST + "/software",
     aziel_eliab: HOST + ABOUT_PATH,
+    aziel: HOST + AZIEL_HANDLES_PATH,
+    tab_paths: TAB_PATHS.map((tab) => tabUrl(tab.href)),
+    paths_not_hash_only: true,
+    doors: DOORS_URL,
+    aziel_handles: AZIEL_HANDLES.map((row) => ({ id: row.id, label: row.label, href: row.href })),
+    aziel_handles_note: "Same public doors as " + DOORS_URL + ". He Didn't Jump is a handle, not a Live Node. TimeToUnsealTheBook is a handle, not a Live Node.",
+    unseal: unsealCite(),
+    cap7_is_icann: false,
+    cap7_note: CAP7_PUBLIC,
+    paid_satellite: "HELD",
+    decryption_complete: false,
+    live: false,
+    live_gate: "Dual CLEAR + Aziel merge OK + Cos",
+    growth: "ON",
+    crawl: "Allow",
     download: HOST + "/download",
     map: HOST + "/map",
     gazetteer: HOST + "/gazetteer",
@@ -1188,6 +1217,7 @@ export function llmsDoc(limitation, survival, stamp, sot) {
     + "Compatible AI clients: " + AI_CLIENTS + "\n"
     + "License: Apache-2.0\n"
     + "DOI: none (do not invent)\n\n"
+    + fleetSeoPlainBlock() + "\n"
     + ingestReceiptLlmsBlock(HOST) + "\n"
     + shelvesLlmsBlock(HOST) + "\n"
     + survivalLlmsBlock(survival) + "\n"
@@ -1443,9 +1473,11 @@ export function aiTxt(limitation, survival, stamp, sot) {
     "#",
     "# Allow public research surfaces. Do not crawl account mutation routes.",
     "",
+    "# Growth-ON. Allow: /. GPTBot Disallow is refused.",
     "User-agent: *",
     "Allow: /",
     "Allow: " + ABOUT_PATH,
+    "Allow: " + AZIEL_HANDLES_PATH,
     "Allow: /about",
     "Allow: /aboutme",
     "Allow: /software",
@@ -1544,6 +1576,7 @@ export function aiTxt(limitation, survival, stamp, sot) {
     + "Sitemap: " + HOST + "/sitemap.xml\n"
     + "Sitemap: " + HOST + "/sitemap-index.xml\n"
     + "Sitemap: " + HOST + "/sitemap-records.xml\n\n"
+    + fleetSeoPlainBlock() + "\n"
     + "## Priority pages (index first)\n\n"
     + "- Homepage: " + HOST + "/\n"
     + "- Softwares: " + HOST + "/software\n"

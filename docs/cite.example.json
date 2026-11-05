@@ -3586,5 +3586,24 @@
         "description": "UI-software side of the AZ triad. White paper https://www.azielcorpuslibrary.net/record/AZDOC-EB7454682E74."
       }
     ]
+  },
+  "aziel": "https://www.azielcorpuslibrary.net/aziel",
+  "paths_not_hash_only": true,
+  "doors": "https://www.azieleliab.com/doors",
+  "cap7_is_icann": false,
+  "cap7_note": "Cap-7 is not an ICANN registration and is not a public egress address.",
+  "paid_satellite": "HELD",
+  "decryption_complete": false,
+  "live": false,
+  "live_gate": "Dual CLEAR + Aziel merge OK + Cos",
+  "growth": "ON",
+  "crawl": "Allow",
+  "unseal": {
+    "name": "TimeToUnsealTheBook",
+    "aziel": "https://timetounsealthebook.net/aziel",
+    "cos_tip": "5b3c878e",
+    "live": false,
+    "live_node": false,
+    "decryption_complete": false
   }
 }

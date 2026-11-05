@@ -4,7 +4,7 @@
  * Enter navigates to the library hub at /search. The hub is not mounted under this page.
  * Author: Aziel Eliab.
  */
-import { CANON_HOST, HUB_PERSON_ID, websiteNode } from "./seo.js";
+import { CANON_HOST, HUB_PERSON_ID, websiteNode, siteFooterHtml, AZIEL_HANDLES_PATH } from "./seo.js";
 import { personNode } from "./identity.js";
 import { VOYNICH_LABEL, VOYNICH_PATH } from "./voynich-housing.js";
 import { RECEIPTS_TAB_LABEL, RECEIPTS_TAB_PATH } from "./receipt-aggregate.js";
@@ -24,6 +24,7 @@ const LIBRARY_QUERY_KEYS = ["q", "lib", "sort", "domain", "subject", "keyword", 
 const HASH_TO_HUB = {
   "upload-anonymous": LIBRARY_HUB_PATH + "#upload-anonymous",
   signup: LIBRARY_HUB_PATH + "#signup",
+  aziel: AZIEL_HANDLES_PATH,
 };
 
 /** Library filters on / belong on the hub. Bare / stays the film. */
@@ -85,7 +86,13 @@ export const THEATER_CSS = `
 .theater .download{margin:1.4rem 0 0}
 .theater .download a{color:#b0f0c4;letter-spacing:.18em;text-transform:uppercase;border-bottom:1px solid #b0f0c473;padding-bottom:.12rem;font-size:.72rem;text-decoration:none}
 .theater .download a:hover{color:#e6d4b5;border-color:#e6d4b5}
-html,body{margin:0;background:#07090f}
+html,body{margin:0;background:#07090f;--line:#e6d4b538;--muted:#e6d4b5c7;--gold:#e6d4b5;--paper:#07090f}
+body .ecosystem{width:min(820px,calc(100% - 2.2rem));margin:0 auto 2.8rem;position:relative;z-index:2;color:#e6d4b5c7;font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.75rem;line-height:1.5}
+body .ecosystem a{color:#e6d4b5}
+body .eco-head{letter-spacing:.16em;text-transform:uppercase;color:#b0f0c4;font-size:.64rem;margin:0 0 8px}
+body .ecosystem-list{list-style:none;display:flex;flex-wrap:wrap;gap:.35rem 1rem;margin:0;padding:0}
+body .ecosystem-list a{min-height:0;color:#e6d4b5;font-weight:500;text-decoration:none;border-bottom:1px solid #e6d4b566}
+body .ecosystem .crawl-links,body .ecosystem .paths,body .ecosystem .honesty{margin:.55rem 0 0;color:#e6d4b5c7;font-size:.75rem}
 @media (width>=740px){.theater .facts{grid-template-columns:1fr 1fr 1fr;gap:1.25rem}}
 @media (width<=720px){
   .theater .mast{letter-spacing:.14em;gap:.7rem;padding:.85rem .9rem .15rem;font-size:.62rem}
@@ -141,6 +148,7 @@ function filmGateHtml() {
     <p class="download"><a href="${FILM_SRC}" download="aziel-corpus-the-record.mp4">Download the film</a></p>
   </section>
 </main>
+${siteFooterHtml()}
 <script>(function(){var v=document.querySelector(".theater video.film");if(!v)return;v.addEventListener("play",function(){var s=v.closest(".stage");if(s)s.classList.add("is-playing");});})();</script>`;
 }
 
@@ -172,7 +180,7 @@ function filmJsonLd() {
   };
 }
 
-/** Sole document for GET /. No library chrome, brandrow, or shelf HTML. */
+/** Sole document for GET /. Film theater plus the shared ecosystem footer. No library chrome, brandrow, or shelf HTML. */
 export function filmTheaterHtml() {
   const canonical = CANON_HOST + "/";
   const image = CANON_HOST + FILM_OG_PATH;
