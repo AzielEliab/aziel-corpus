@@ -106,6 +106,55 @@ Softwares / runtime mirrors stay Worker SSoT (GET /v1/software, fallback fraggat
 - FragGate kernel https://github.com/AzielEliab/fraggate (FG-0.1)
 - Donate (same rails) https://www.azielcorpuslibrary.net/donate · https://www.azieleliab.com/donate
 
+Growth-ON. Allow: /
+
+Paths (not hash-only):
+
+- https://www.azielcorpuslibrary.net/
+- https://www.azielcorpuslibrary.net/search
+- https://www.azielcorpuslibrary.net/aziel-library
+- https://www.azielcorpuslibrary.net/corpus
+- https://www.azielcorpuslibrary.net/voynich
+- https://www.azielcorpuslibrary.net/software
+- https://www.azielcorpuslibrary.net/runtime
+- https://www.azielcorpuslibrary.net/how-its-scored
+- https://www.azielcorpuslibrary.net/tree
+- https://www.azielcorpuslibrary.net/map
+- https://www.azielcorpuslibrary.net/historical
+- https://www.azielcorpuslibrary.net/forensics
+- https://www.azielcorpuslibrary.net/receipts
+- https://www.azielcorpuslibrary.net/AzielEliab
+- https://www.azielcorpuslibrary.net/aziel
+- https://www.azielcorpuslibrary.net/who
+- https://www.azielcorpuslibrary.net/donate
+- https://www.azielcorpuslibrary.net/upload
+
+Handles, same public doors as https://www.azieleliab.com/doors :
+
+- https://www.azieleliab.com/
+- https://github.com/AzielEliab
+- https://github.com/azieltherevealerofthesealed-arch
+- https://www.azielcorpuslibrary.net/
+- https://www.azielcorpuslibrary.net/AzielEliab
+- https://godlock.uk/
+- https://www.hedidntjump.com/
+- https://www.azieleliab.com/runtime
+- https://aziel-runtime.vibelock.workers.dev/
+- https://glama.ai/mcp/servers/AzielEliab/aziel-runtime
+- https://trades-runtime.vibelock.workers.dev/
+- https://trades-runtime.vibelock.workers.dev/mcp
+- https://x.com/AzielEliab
+- https://timetounsealthebook.net/aziel
+- https://www.azielcorpuslibrary.net/aziel
+
+He Didn't Jump is a handle. It is not a Live Node.
+TimeToUnsealTheBook is a handle. It is not a Live Node.
+Cap-7: not an ICANN name. Paid satellite stays HELD.
+decryption_complete: false
+Not LIVE until Dual CLEAR, Aziel merge OK, and Cos.
+Person: https://www.azieleliab.com/#aziel
+Ecosystem: Part of the Aziel Eliab ecosystem (https://www.azieleliab.com/)
+
 ## Priority pages (index first)
 
 - Homepage: https://www.azielcorpuslibrary.net/

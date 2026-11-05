@@ -420,7 +420,7 @@ async function indexHtml(env, request, signed, ctx) {
     trending: topPapers(metrics, catalog, "views", 5),
     downloaded: topPapers(metrics, catalog, "downloads", 5),
     host: HOST,
-  }), { signed: session, path: LIBRARY_HUB_PATH, kind: "search", views: stats.views || 0, downloads: stats.downloads || 0, nodes: mesh.unknown ? null : mesh.nodes, liveNodes: mesh.unknown ? null : mesh.liveNodes, nodesUnknown: mesh.unknown === true, donateStrip: false, ecosystem: false });
+  }), { signed: session, path: LIBRARY_HUB_PATH, kind: "search", views: stats.views || 0, downloads: stats.downloads || 0, nodes: mesh.unknown ? null : mesh.nodes, liveNodes: mesh.unknown ? null : mesh.liveNodes, nodesUnknown: mesh.unknown === true, donateStrip: false });
 }
 
 function llmsTxt() {

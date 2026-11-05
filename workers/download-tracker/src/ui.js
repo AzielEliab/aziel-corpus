@@ -11,8 +11,14 @@ import {
   GODLOCK_IDENTITY,
   HEDIDNTJUMP_HOME,
   HEDIDNTJUMP_LABEL,
-  ECOSYSTEM_HEADING,
-  ECOSYSTEM_LINKS,
+  siteFooterHtml,
+  AZIEL_HANDLES_PATH,
+  AZIEL_HANDLES,
+  DOORS_URL,
+  CAP7_PUBLIC,
+  PAID_SAT_PUBLIC,
+  DECRYPTION_PUBLIC,
+  LIVE_HOLD_PUBLIC,
 } from "./seo.js";
 import { jeevesFabHtml } from "./jeeves.js";
 import { WHO_IS_AZIEL_ELIAB } from "./identity.js";
@@ -286,6 +292,10 @@ a.runtime-muted:hover{color:var(--ink)}
 .ecosystem-list{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:0;padding:0;list-style:none}
 .ecosystem-list a{min-height:44px;display:inline-flex;align-items:center}
 .ecosystem-list a.button{min-height:44px}
+.site-footer .crawl-links,.ecosystem .crawl-links,.ecosystem .paths,.ecosystem .honesty{margin:8px 0 0;color:var(--muted);font-size:14px;line-height:1.55}
+.handles{list-style:none;margin:0;padding:0}
+.handles li{margin:0 0 8px}
+.handles a{font-weight:700}
 .jeeves-fab{position:fixed;right:16px;bottom:16px;z-index:40;width:auto;min-width:120px;max-width:calc(100vw - 32px);box-shadow:0 8px 24px #00000066;touch-action:manipulation;pointer-events:auto;background:var(--gold);color:#14110a}
 .jeeves-drawer{position:fixed;right:12px;bottom:72px;z-index:39;width:min(380px,calc(100vw - 24px));max-height:70vh;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 12px 32px #00000066;touch-action:pan-y;pointer-events:auto}
 .jeeves-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -487,12 +497,7 @@ export function donateStripHtml() {
 
 /** Footer/nav ecosystem block. Keep out of Softwares heading→list. */
 export function ecosystemBlockHtml() {
-  const items = ECOSYSTEM_LINKS.map((l) => {
-    const cls = l.muted ? "runtime-muted" : l.primary ? "button" : "";
-    const extra = cls ? ` class="${cls}"` : "";
-    return `<li><a${extra} href="${esc(l.href)}" rel="noopener noreferrer">${esc(l.label)}</a></li>`;
-  }).join("");
-  return `<footer class="ecosystem" aria-label="${esc(ECOSYSTEM_HEADING)}"><p class="eco-head">${esc(ECOSYSTEM_HEADING)}</p><nav class="ecosystem-nav"><ul class="ecosystem-list">${items}</ul></nav></footer>`;
+  return siteFooterHtml();
 }
 
 /** Rose-star brand mark only — no words on the mark. Opens the library menu. */
@@ -540,7 +545,7 @@ export function brandCountPills({ views, downloads, nodes, liveNodes, nodesUnkno
 
 /** Left-edge sigil drawer. Pattern and Runtime stay off chrome. Login/Sign up live in the top bar. */
 export function sigilNavHtml() {
-  return `<div class="sigil-nav-scrim" id="sigilNavScrim" hidden aria-hidden="true"></div><nav class="nav2 quiet" id="sigilNav" hidden><a href="${LIBRARY_HUB_PATH}">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/voynich">voynich</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/how-its-scored">How it's scored</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/forensics">Forensics</a><span class="sep">|</span><a class="nav-aziel" href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a><span class="sep">|</span><a href="/receipts">Receipts</a><span class="sep">|</span><a href="/donate">Donate</a><span class="sep">|</span><a href="/upload">Upload</a></nav>`;
+  return `<div class="sigil-nav-scrim" id="sigilNavScrim" hidden aria-hidden="true"></div><nav class="nav2 quiet" id="sigilNav" hidden><a href="${LIBRARY_HUB_PATH}">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/voynich">voynich</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/how-its-scored">How it's scored</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/forensics">Forensics</a><span class="sep">|</span><a class="nav-aziel" href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a><span class="sep">|</span><a class="nav-aziel" href="${AZIEL_HANDLES_PATH}">Aziel</a><span class="sep">|</span><a href="/receipts">Receipts</a><span class="sep">|</span><a href="/donate">Donate</a><span class="sep">|</span><a href="/upload">Upload</a></nav>`;
 }
 
 /** Session-only dismissal for the sigil "click me" callout. Not a cookie. */
@@ -821,7 +826,7 @@ export function page(title, body, { signed, scripts, path, kind, description, wo
   const metaOpts = { title, path: path || "/", kind, description, work, runtimeVersion, includeJsonLd: false };
   const homeChrome = kind === "search";
   const showDonate = donateStrip && !homeChrome;
-  const showEco = ecosystem && !homeChrome;
+  const showEco = ecosystem !== false;
   const zoomScript = String(body || "").includes("class=\"paper-stage") ? readerZoomScript() : "";
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">${sigilHintBootScript()}<title>${esc(documentTitle(kind, title))}</title>${headMeta(metaOpts)}${ingestReceiptHead()}<link rel="preload" href="/sigil.png" as="image" fetchpriority="high"><style>${CSS}</style></head><body>
 <header class="sitehead"><div class="sitehead-inner">
@@ -1326,6 +1331,18 @@ export function patternBody({ total, domains, subjects, keywords, crosses } = {}
 <div class="card"><h2>Subjects</h2><div class="pattern-grid">${subjectCards || "<p class=\"muted\">No subjects yet.</p>"}</div></div>
 <div class="card"><h2>Keywords</h2><div class="pattern-grid">${keywordCards || "<p class=\"muted\">No keywords yet.</p>"}</div></div>
 <div class="card"><h2>Domain × subject</h2><div class="pattern-grid">${crossCards || "<p class=\"muted\">No pairs yet.</p>"}</div></div>`;
+}
+
+export function azielHandlesBody() {
+  const items = AZIEL_HANDLES.map((row) => `<li><a href="${esc(row.href)}">${esc(row.label)}</a></li>`).join("");
+  return `<section class="hero about-aziel" id="aziel-handles"><h1>Aziel</h1>
+<div class="card about-prose">
+<h2>Handles</h2>
+<p>Public identity on this page is Aziel Eliab. The handles below are the public doors listed on <a href="${esc(DOORS_URL)}">azieleliab.com</a>. Each site keeps its own receipt tip. He Didn't Jump is a handle, not a Live Node. TimeToUnsealTheBook is a handle, not a Live Node.</p>
+<ul class="handles">${items}</ul>
+<p class="muted">${esc(CAP7_PUBLIC)} ${esc(PAID_SAT_PUBLIC)} ${esc(DECRYPTION_PUBLIC)} ${esc(LIVE_HOLD_PUBLIC)}</p>
+<p><a href="${ABOUT_PATH}">About Aziel Eliab</a></p>
+</div></section>`;
 }
 
 export function aboutBody() {

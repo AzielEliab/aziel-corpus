@@ -84,7 +84,7 @@ test("Aziel Eliab identity tab stays one wrap unit in public nav2", () => {
   assert.match(html, />Aziel Eliab</);
   assert.match(
     html,
-    /href="\/forensics">Forensics<\/a><span class="sep">\|<\/span><a class="nav-aziel" href="\/AzielEliab">Aziel Eliab<\/a><span class="sep">\|<\/span><a href="\/receipts">Receipts<\/a><span class="sep">\|<\/span><a href="\/donate">Donate<\/a><span class="sep">\|<\/span><a href="\/upload">Upload<\/a>/,
+    /href="\/forensics">Forensics<\/a><span class="sep">\|<\/span><a class="nav-aziel" href="\/AzielEliab">Aziel Eliab<\/a><span class="sep">\|<\/span><a class="nav-aziel" href="\/aziel">Aziel<\/a><span class="sep">\|<\/span><a href="\/receipts">Receipts<\/a><span class="sep">\|<\/span><a href="\/donate">Donate<\/a><span class="sep">\|<\/span><a href="\/upload">Upload<\/a>/,
   );
   assert.match(html, /class="authbar"[^>]*>[\s\S]*href="\/upload">Upload<\/a><a class="auth-link" href="\/login">Log in<\/a><a class="auth-link" href="\/signup">Sign up<\/a>/);
   assert.match(CSS, /\.nav2 a,\.quiet a\{[^}]*white-space:nowrap/);
@@ -268,7 +268,9 @@ test("homepage LCP fold keeps hero first and leaves entity-graph plus doors inta
   assert.doesNotMatch(html.slice(0, headEnd), /<script type="application\/ld\+json">/);
   assert.doesNotMatch(html, /class="donate-strip"/);
   assert.doesNotMatch(html, /Nothing is free\. Static Donate door/);
-  assert.doesNotMatch(html, /Part of the Aziel Eliab ecosystem/);
+  const footAt = html.indexOf("Part of the Aziel Eliab ecosystem");
+  assert.ok(footAt > foldAt, "search hub footer sits after the LCP fold");
+  assert.match(html, /id="corpus-site-footer"/);
   assert.match(html, /fetchpriority="high"/);
   assert.match(html, /id="views">12</);
   assert.match(html, /id="downloads">3</);
@@ -660,7 +662,8 @@ test("homepage doors include Sign up and anonymous Corpus upload; other pages ke
   assert.match(home, /href="\/corpus"/);
   assert.doesNotMatch(home, /class="donate-strip"/);
   assert.doesNotMatch(home, /Nothing is free\. Static Donate door/);
-  assert.doesNotMatch(home, /Part of the Aziel Eliab ecosystem/);
+  assert.match(home, /id="corpus-site-footer"/);
+  assert.match(home, /Part of the Aziel Eliab ecosystem/);
   assert.doesNotMatch(home, /class="shelf"/);
   assert.match(other, /class="donate-strip"/);
   assert.match(other, /Part of the Aziel Eliab ecosystem/);

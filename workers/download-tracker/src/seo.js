@@ -25,11 +25,31 @@ import {
   LOCK_LINE,
   WHO_PATH as LOCKED_WHO_PATH,
   GITHUB_SECONDARY,
+  X_PRIMARY,
 } from "./identity.js";
 
 export const CANON_HOST = "https://www.azielcorpuslibrary.net";
 export const ABOUT_PATH = "/AzielEliab";
+/** Pretty path for the Aziel handles tab. Not a redirect to /AzielEliab. */
+export const AZIEL_HANDLES_PATH = "/aziel";
 export const ABOUT_NAV_LABEL = "Aziel Eliab";
+/** Public doors list. Handles on this site match that page. */
+export const DOORS_URL = "https://www.azieleliab.com/doors";
+export const UNSEAL_NAME = "TimeToUnsealTheBook";
+export const UNSEAL_ORIGIN = "https://timetounsealthebook.net";
+export const UNSEAL_AZIEL = UNSEAL_ORIGIN + "/aziel";
+export const UNSEAL_COS_TIP = "5b3c878e";
+/** Cap-7 is a design name. It is not an ICANN registration and not a public egress address. */
+export const CAP7_PUBLIC = "Cap-7 is not an ICANN registration and is not a public egress address.";
+/** Paid satellite stays held. This copy does not buy a domain, change DNS, or spend. */
+export const PAID_SAT_PUBLIC = "Paid satellite stays HELD.";
+/** Voynich / Unseal decryption flag stays false on this public door. */
+export const DECRYPTION_PUBLIC = "decryption_complete stays false.";
+/** This mirror stays unpublished as LIVE until those three gates clear. */
+export const LIVE_HOLD_PUBLIC = "Not LIVE until Dual CLEAR, Aziel merge OK, and Cos.";
+export const HDJ_HANDLE_NOTE = "He Didn't Jump is a handle, not a Live Node.";
+export const UNSEAL_HANDLE_NOTE = "TimeToUnsealTheBook is a handle, not a Live Node.";
+export const GROWTH_ON_LINE = "Growth-ON. Allow.";
 export const WHO_PATH = LOCKED_WHO_PATH;
 export const HUB_ORIGIN = "https://www.azieleliab.com";
 /** Shared public Person @id. Do not invent a corpus-local competing Person @id. */
@@ -62,12 +82,147 @@ export const ECOSYSTEM_LINKS = Object.freeze([
   Object.freeze({ href: RUNTIME_GLAMA, label: "Try on Glama", primary: true }),
 ]);
 
+/**
+ * Same-origin human tabs. Each one is a path crawlers can fetch.
+ * Hashes are not the crawl path. /aziel is the handles tab.
+ */
+export const TAB_PATHS = Object.freeze([
+  Object.freeze({ href: "/", label: "Film" }),
+  Object.freeze({ href: "/search", label: "Search" }),
+  Object.freeze({ href: "/aziel-library", label: "Aziel Library" }),
+  Object.freeze({ href: "/corpus", label: "Corpus" }),
+  Object.freeze({ href: "/voynich", label: "voynich" }),
+  Object.freeze({ href: "/software", label: "Software" }),
+  Object.freeze({ href: "/runtime", label: "Runtime" }),
+  Object.freeze({ href: "/how-its-scored", label: "How it's scored" }),
+  Object.freeze({ href: "/tree", label: "Tree" }),
+  Object.freeze({ href: "/map", label: "Map" }),
+  Object.freeze({ href: "/historical", label: "Historical" }),
+  Object.freeze({ href: "/forensics", label: "Forensics" }),
+  Object.freeze({ href: "/receipts", label: "Receipts" }),
+  Object.freeze({ href: ABOUT_PATH, label: "Aziel Eliab" }),
+  Object.freeze({ href: AZIEL_HANDLES_PATH, label: "Aziel" }),
+  Object.freeze({ href: WHO_PATH, label: "Who" }),
+  Object.freeze({ href: "/donate", label: "Donate" }),
+  Object.freeze({ href: "/upload", label: "Upload" }),
+]);
+
+const TRADES_HOME = "https://trades-runtime.vibelock.workers.dev/";
+const TRADES_MCP = "https://trades-runtime.vibelock.workers.dev/mcp";
+
+/**
+ * Public doors. Same list as azieleliab.com/doors, plus this site's handles tab
+ * and TimeToUnsealTheBook at /aziel. He Didn't Jump is a handle, not a Live Node.
+ */
+export const AZIEL_HANDLES = Object.freeze([
+  Object.freeze({ id: "official", label: "azieleliab.com", href: HUB_ORIGIN + "/" }),
+  Object.freeze({ id: "github", label: "GitHub", href: GITHUB_AUTHOR }),
+  Object.freeze({ id: "github-secondary", label: "Secondary source", href: GITHUB_SECONDARY }),
+  Object.freeze({ id: "corpus", label: "Corpus", href: CANON_HOST + "/" }),
+  Object.freeze({ id: "corpus-aziel", label: "Corpus · AzielEliab", href: CANON_HOST + ABOUT_PATH }),
+  Object.freeze({ id: "godlock", label: "GodLock", href: GODLOCK_HOME }),
+  Object.freeze({ id: "hedidntjump", label: HEDIDNTJUMP_LABEL, href: HEDIDNTJUMP_HOME }),
+  Object.freeze({ id: "runtime-hub", label: "Runtime", href: HUB_ORIGIN + "/runtime" }),
+  Object.freeze({ id: "runtime", label: "Official Runtime", href: RUNTIME_ORIGIN + "/" }),
+  Object.freeze({ id: "glama", label: "Try on Glama", href: RUNTIME_GLAMA }),
+  Object.freeze({ id: "trades", label: "Trades-Runtime", href: TRADES_HOME }),
+  Object.freeze({ id: "trades-mcp", label: "Trades-Runtime MCP", href: TRADES_MCP }),
+  Object.freeze({ id: "x", label: "X @AzielEliab", href: X_PRIMARY }),
+  Object.freeze({ id: "unseal", label: UNSEAL_NAME, href: UNSEAL_AZIEL }),
+  Object.freeze({ id: "handles", label: "Corpus handles", href: CANON_HOST + AZIEL_HANDLES_PATH }),
+]);
+
+export function tabUrl(href) {
+  const path = href || "/";
+  return CANON_HOST + (path === "/" ? "/" : path);
+}
+
+export function unsealCite() {
+  return {
+    name: UNSEAL_NAME,
+    origin: UNSEAL_ORIGIN + "/",
+    aziel: UNSEAL_AZIEL,
+    cos_tip: UNSEAL_COS_TIP,
+    live: false,
+    live_node: false,
+    paid_satellite: "HELD",
+    cap7_public_icann: false,
+    resolves_to_hub: false,
+    decryption_complete: false,
+    held_until: "Dual CLEAR + Aziel merge OK + Cos",
+    note: UNSEAL_HANDLE_NOTE + " " + LIVE_HOLD_PUBLIC,
+  };
+}
+
+export function azielHandlesDoc() {
+  return {
+    ok: true,
+    product: "Aziel Corpus Library",
+    site: "azielcorpuslibrary.net",
+    author: AUTHOR,
+    title: "Aziel handles",
+    path: AZIEL_HANDLES_PATH,
+    identity: AUTHOR,
+    person_id: HUB_PERSON_ID,
+    doors: DOORS_URL,
+    handles: AZIEL_HANDLES.map((row) => ({ id: row.id, label: row.label, href: row.href })),
+    he_didnt_jump_is_live_node: false,
+    unseal_is_live_node: false,
+    cap7_is_icann: false,
+    cap7_note: CAP7_PUBLIC,
+    paid_satellite: "HELD",
+    decryption_complete: false,
+    live: false,
+    live_gate: "Dual CLEAR + Aziel merge OK + Cos",
+    growth: "ON",
+    crawl: "Allow",
+    ecosystem: ECOSYSTEM_HEADING,
+  };
+}
+
+/** Shared crawler block for llms.txt and ai.txt. Paths are not hash-only. */
+export function fleetSeoPlainBlock() {
+  const paths = TAB_PATHS.map((tab) => "- " + tabUrl(tab.href)).join("\n");
+  const handles = AZIEL_HANDLES.map((row) => "- " + row.href).join("\n");
+  return "Growth-ON. Allow: /\n\n"
+    + "Paths (not hash-only):\n\n"
+    + paths + "\n\n"
+    + "Handles, same public doors as " + DOORS_URL + " :\n\n"
+    + handles + "\n\n"
+    + "He Didn't Jump is a handle. It is not a Live Node.\n"
+    + "TimeToUnsealTheBook is a handle. It is not a Live Node.\n"
+    + "Cap-7: not an ICANN name. Paid satellite stays HELD.\n"
+    + "decryption_complete: false\n"
+    + LIVE_HOLD_PUBLIC + "\n"
+    + "Person: " + HUB_PERSON_ID + "\n"
+    + "Ecosystem: " + ECOSYSTEM_HEADING + " (" + HUB_ORIGIN + "/)\n";
+}
+
+/** Shared colophon. Ecosystem mark, crawl files, pretty paths. No 15:20 chrome. */
+export function siteFooterHtml() {
+  const items = ECOSYSTEM_LINKS.map((l) => {
+    const cls = l.primary ? "button" : "";
+    const extra = cls ? " class=" + Q + cls + Q : "";
+    return "<li><a" + extra + " href=" + Q + esc(l.href) + Q + " rel=" + Q + "noopener noreferrer" + Q + ">" + esc(l.label) + "</a></li>";
+  }).join("");
+  const paths = TAB_PATHS.map((tab) => "<a href=" + Q + esc(tab.href) + Q + ">" + esc(tab.href) + "</a>").join(" · ");
+  const honesty = GROWTH_ON_LINE + " " + CAP7_PUBLIC + " " + PAID_SAT_PUBLIC + " " + DECRYPTION_PUBLIC + " " + LIVE_HOLD_PUBLIC + " " + HDJ_HANDLE_NOTE + " " + UNSEAL_HANDLE_NOTE;
+  return "<footer class=\"ecosystem\" id=\"corpus-site-footer\" aria-label=\"" + esc(ECOSYSTEM_HEADING) + "\">"
+    + "<p class=\"eco-head\">" + esc(ECOSYSTEM_HEADING) + "</p>"
+    + "<nav class=\"ecosystem-nav\"><ul class=\"ecosystem-list\">" + items + "</ul></nav>"
+    + "<p class=\"crawl-links\"><a href=\"/cite.json\">cite.json</a> · <a href=\"/llms.txt\">llms.txt</a> · <a href=\"/ai.txt\">ai.txt</a> · <a href=\"/sitemap.xml\">sitemap</a> · <a href=\"/person.jsonld\">person</a></p>"
+    + "<p class=\"paths\">Paths: " + paths + ".</p>"
+    + "<p class=\"honesty\">" + esc(honesty) + "</p>"
+    + "</footer>";
+}
+
 /** Unique <title> / OG / Twitter strings. Visible H1s stay in page bodies. */
 export function documentTitle(kind, title) {
   if (kind === "search") return SITE + " — Public MASTER by " + AUTHOR;
   if (kind === "software") return "Softwares — " + AUTHOR + " catalog | " + SITE;
   if (kind === "runtime") return RUNTIME_TITLE;
   if (kind === "about") return "About " + AUTHOR + " | " + SITE;
+  if (kind === "handles") return "Aziel handles — " + SITE;
   if (kind === "who") return "Who is Aziel Eliab";
   const t = String(title || "").trim();
   if (t && t !== SITE) return t + " — " + SITE;
@@ -80,12 +235,21 @@ function ogType(kind) {
   return "website";
 }
 
-/** Permanent Location for legacy /about and case-folded /AzielEliab. */
+/** Permanent Location for legacy /about and case-folded /AzielEliab. /aziel stays the handles tab. */
 export function aboutRedirectFrom(path) {
   const p = String(path || "").replace(/\/+$/, "") || "/";
   if (p === ABOUT_PATH) return null;
+  if (p.toLowerCase() === AZIEL_HANDLES_PATH) return null;
   if (p === "/about" || p === "/aboutme") return ABOUT_PATH;
   if (p.toLowerCase() === "/azieleliab") return ABOUT_PATH;
+  return null;
+}
+
+/** Case-folded /Aziel lands on /aziel. It does not become /AzielEliab. */
+export function handlesRedirectFrom(path) {
+  const p = String(path || "").replace(/\/+$/, "") || "/";
+  if (p === AZIEL_HANDLES_PATH) return null;
+  if (p.toLowerCase() === AZIEL_HANDLES_PATH) return AZIEL_HANDLES_PATH;
   return null;
 }
 
@@ -204,6 +368,7 @@ export function defaultDescription(kind, runtimeVersion) {
   if (kind === "runtime") return runtimeDescription(runtimeVersion);
   if (kind === "software") return softwareDescription(runtimeVersion);
   if (kind === "about") return LOCK_LINE + " About Aziel Eliab, publisher of Aziel Digital Library on this site. " + ABOUT_DESCRIPTION + " Signed Aziel Elroi Eliab. GodLock is one product on that record.";
+  if (kind === "handles") return "Public handles for Aziel Eliab. Same doors as " + DOORS_URL + ". " + HDJ_HANDLE_NOTE + " " + UNSEAL_HANDLE_NOTE + " " + CAP7_PUBLIC + " " + PAID_SAT_PUBLIC + " " + DECRYPTION_PUBLIC + " " + LIVE_HOLD_PUBLIC;
   if (kind === "who") return LOCK_LINE;
   if (kind === "scored" || kind === "how-its-scored") return "How Aziel Digital Library scores records: the triad is always published (TRIAD_V3 36-cycle mean of applicable factors), AZCoherence second-pass triad coherence (peer AZ-CLCE), and ZionPattern meaning (75 is intentional suppression confidence; lower is more natural). Author Aziel Eliab.";
   if (kind === "pattern") return "Pattern clusters across Aziel Digital Library domains, subjects, and keywords. Author Aziel Eliab.";
@@ -391,6 +556,31 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
       termsOfService: CANON_HOST + "/runtime",
     });
   }
+  if (kind === "handles" || path === AZIEL_HANDLES_PATH) {
+    graph.push({
+      "@type": "WebPage",
+      "@id": CANON_HOST + AZIEL_HANDLES_PATH + "#page",
+      name: "Aziel handles",
+      url: CANON_HOST + AZIEL_HANDLES_PATH,
+      description: defaultDescription("handles"),
+      isPartOf: { "@id": WEBSITE_ID },
+      author: who,
+      mainEntity: {
+        "@type": "ItemList",
+        name: "Aziel Eliab handles",
+        itemListElement: AZIEL_HANDLES.map((row, i) => ({
+          "@type": "ListItem",
+          position: i + 1,
+          name: row.label,
+          url: row.href,
+        })),
+      },
+    });
+    graph.push(breadcrumbNode([
+      { name: SITE, item: CANON_HOST + "/" },
+      { name: "Aziel handles", item: CANON_HOST + AZIEL_HANDLES_PATH },
+    ]));
+  }
   if (kind === "about" || path === ABOUT_PATH) {
     graph.push(aboutPageNode(description));
     graph.push(faqNode());
@@ -459,6 +649,7 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
 function pageKeywords(kind) {
   const base = [AUTHOR, AKA, "Elias Artista", SITE, "aziel-corpus"];
   if (kind === "about") base.push("GodLock");
+  if (kind === "handles") base.push("Aziel handles", "TimeToUnsealTheBook");
   if (kind === "software" || kind === "runtime") base.push("aziel-runtime", "FragGate", "AzielTether", "GodLock", "AZCoherence", "azcoherence");
   if (kind === "scored" || kind === "how-its-scored" || kind === "record") base.push("SPRE", "CLCE", "PhysLing", "ZionPattern", "AZCoherence", "azcoherence", "AZ-CLCE");
   return base.join(", ");

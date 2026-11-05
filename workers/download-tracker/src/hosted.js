@@ -1,5 +1,5 @@
-import { page, patternBody, softwareBody, aboutBody, whoBody, howItsScoredBody, streamLcpHtml } from "./ui.js";
-import { recordDescription, ABOUT_PATH, ABOUT_NAV_LABEL, FORENSICS_PATH, WHO_PATH, aboutRedirectFrom, forensicsRedirectFrom } from "./seo.js";
+import { page, patternBody, softwareBody, aboutBody, whoBody, howItsScoredBody, azielHandlesBody, streamLcpHtml } from "./ui.js";
+import { recordDescription, ABOUT_PATH, ABOUT_NAV_LABEL, FORENSICS_PATH, WHO_PATH, aboutRedirectFrom, forensicsRedirectFrom, handlesRedirectFrom, AZIEL_HANDLES_PATH, azielHandlesDoc } from "./seo.js";
 import { treeBody, mapBody, historicalBody, gazetteerBody, intelligenceBody, healthBody, verifyBody, recordBody, receiptBody, ocrPageBody, blockedAvBody } from "./hosted-pages.js";
 import { json, corsHeaders } from "./runtime.js";
 import { isQuotaError, isTransientOverload, rethrowIfQuota } from "./quota.js";
@@ -267,7 +267,7 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
   // /map is a shell. Cold ensureSchema (sequential D1 DDL) plus gazetteer,
   // event, and historical counts were the multi-second TTFB. Pins hydrate
   // from GET /api/events. Historical polygons and unresolved names stay lazy.
-  const staticPriority = path === "/software" || path === ABOUT_PATH || path === WHO_PATH || path === "/how-its-scored" || path === "/map" || isHelpPath(path);
+  const staticPriority = path === "/software" || path === ABOUT_PATH || path === AZIEL_HANDLES_PATH || path === WHO_PATH || path === "/how-its-scored" || path === "/map" || isHelpPath(path);
   if (!staticPriority) {
     // Schema exists in production. A D1 quota/overload on these DDL checks must not take down
     // pages that can still answer from the packed snapshot (/tree, /record from packed cards).
@@ -921,6 +921,29 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
   }
   if (path === "/how-its-scored" && read) {
     return pageHtml(page("How it's scored", howItsScoredBody(), { signed, path: "/how-its-scored", kind: "scored" }));
+  }
+  if (read) {
+    const handlesDest = handlesRedirectFrom(path);
+    if (handlesDest) {
+      return new Response(null, {
+        status: 301,
+        headers: {
+          Location: handlesDest + (url.search || ""),
+          "Cache-Control": "public, s-maxage=86400",
+          ...corsHeaders(),
+        },
+      });
+    }
+  }
+  if (path === AZIEL_HANDLES_PATH && read) {
+    const accept = String(request.headers.get("accept") || "");
+    const wantsJson = url.searchParams.get("format") === "json" || (!accept.includes("text/html") && accept.includes("application/json"));
+    if (wantsJson) {
+      const res = json(azielHandlesDoc());
+      if (head) return new Response(null, { status: 200, headers: res.headers });
+      return res;
+    }
+    return pageHtml(page("Aziel", azielHandlesBody(), { signed, path: AZIEL_HANDLES_PATH, kind: "handles" }), { cacheControl: signed ? "private, no-store" : SEO_CACHE_CONTROL });
   }
   if (read) {
     const aboutDest = aboutRedirectFrom(path);
