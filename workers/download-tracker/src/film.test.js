@@ -64,7 +64,10 @@ test("film theater document is the front door only", () => {
   assert.doesNotMatch(html, /sigilNav/);
   assert.doesNotMatch(html, /Search the libraries/);
   assert.doesNotMatch(html, /class="soft-card"/);
-  assert.doesNotMatch(body, /Softwares/);
+  assert.doesNotMatch(body, /<h1>Softwares/);
+  assert.match(body, /href="https:\/\/www\.furnaceisntfree\.com\/"/);
+  assert.match(body, /href="https:\/\/furnaceisntfree\.com\/aziel\/"/);
+  assert.match(body, /href="https:\/\/www\.timetounsealthebook\.net"/);
   assert.doesNotMatch(html, BANNED);
   assert.equal(html.split("<main").length - 1, 1);
 });

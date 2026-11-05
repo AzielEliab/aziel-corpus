@@ -18,7 +18,13 @@ import {
   AZIEL_HANDLES,
   DOORS_URL,
   unsealCite,
+  furnaceCite,
   CAP7_PUBLIC,
+  SISTER_SITES,
+  FURNACE_HOME,
+  FURNACE_AZIEL,
+  FURNACE_NAME,
+  UNSEAL_OFFICIAL,
 } from "./seo.js";
 import {
   RUNTIME_VERSION,
@@ -355,6 +361,8 @@ export function robotsTxt() {
     "# Aziel Digital Library by Aziel Eliab (aka Aziel Elroi Eliab)",
     "# Priority pages: /  /software  /AzielEliab  /who",
     "# Growth-ON. Allow: /. GPTBot Disallow is refused.",
+    "# Sister sites: " + SISTER_SITES.map((row) => row.href).join(" "),
+    "# Official: " + FURNACE_HOME + " " + FURNACE_AZIEL + " " + UNSEAL_OFFICIAL,
     "User-agent: *",
     "Allow: /",
     "Allow: /map",
@@ -784,6 +792,8 @@ export function sitemapIndexXml() {
     "https://godlock.uk/sitemap.xml",
     HEDIDNTJUMP_HOME.replace(/\/+$/, "") + "/sitemap.xml",
     HUB_ORIGIN + "/sitemap.xml",
+    FURNACE_HOME.replace(/\/+$/, "") + "/sitemap.xml",
+    "https://www.timetounsealthebook.net/sitemap.xml",
   ];
   const entries = own.map((loc) => {
       const path = loc.slice(HOST.length) || "/";
@@ -971,6 +981,11 @@ export function citeDoc(survival, outletCite, stamp) {
     godlock: GODLOCK_IDENTITY,
     hedidntjump: HEDIDNTJUMP_HOME,
     hedidntjump_label: HEDIDNTJUMP_LABEL,
+    furnace: FURNACE_HOME,
+    furnace_aziel: FURNACE_AZIEL,
+    furnace_label: FURNACE_NAME,
+    unseal_official: UNSEAL_OFFICIAL,
+    sister_sites: SISTER_SITES.map((row) => ({ id: row.id, label: row.label, href: row.href })),
     library: HOST + "/",
     purpose: "Public MASTER digital library and intelligence runtime by Aziel Eliab. Aziel Library holds the operator collection; Corpus is the public Lamb Lens shelf. Search, map, gazetteer, triad scoring, and hosted OCR live on this Worker.",
     software: HOST + "/software",
@@ -991,8 +1006,9 @@ export function citeDoc(survival, outletCite, stamp) {
     paths_not_hash_only: true,
     doors: DOORS_URL,
     aziel_handles: AZIEL_HANDLES.map((row) => ({ id: row.id, label: row.label, href: row.href })),
-    aziel_handles_note: "Same public doors as " + DOORS_URL + ". He Didn't Jump is a handle, not a Live Node. TimeToUnsealTheBook is a handle, not a Live Node.",
+    aziel_handles_note: "Same public doors as " + DOORS_URL + ". He Didn't Jump is a handle, not a Live Node. TimeToUnsealTheBook is a handle, not a Live Node. The Furnace Isn't Free is a handle, not a Live Node.",
     unseal: unsealCite(),
+    furnace_cite: furnaceCite(),
     cap7_is_icann: false,
     cap7_note: CAP7_PUBLIC,
     paid_satellite: "HELD",
@@ -1204,6 +1220,9 @@ export function llmsDoc(limitation, survival, stamp, sot) {
     + "Author GitHub: " + GITHUB_AUTHOR + "\n"
     + "GodLock identity: " + GODLOCK_IDENTITY + "\n"
     + HEDIDNTJUMP_LABEL + ": " + HEDIDNTJUMP_HOME + "\n"
+    + FURNACE_NAME + ": " + FURNACE_HOME + "\n"
+    + "Furnace · Aziel: " + FURNACE_AZIEL + "\n"
+    + "TimeToUnsealTheBook: " + UNSEAL_OFFICIAL + "\n"
     + "OpenAPI: " + HOST + "/openapi.json\n"
     + "Runtime OpenAPI: " + HOST + "/runtime/openapi.json\n"
     + "Runtime MCP: POST " + HOST + "/runtime/mcp\n"
@@ -1269,6 +1288,10 @@ export function llmsDoc(limitation, survival, stamp, sot) {
     + "- Compact misspellings (AZindex tether only): " + MISSPELLING_AKA.join(", ") + "\n"
     + "- GodLock identity: " + GODLOCK_IDENTITY + "\n"
     + "- " + HEDIDNTJUMP_LABEL + ": " + HEDIDNTJUMP_HOME + "\n"
+    + "- " + FURNACE_NAME + ": " + FURNACE_HOME + "\n"
+    + "- Furnace · Aziel: " + FURNACE_AZIEL + "\n"
+    + "- TimeToUnsealTheBook: " + UNSEAL_OFFICIAL + "\n"
+    + "- Sister sites: " + SISTER_SITES.map((row) => row.label + " " + row.href).join(" · ") + "\n"
     + "- sameAs: " + identitySameAsLine() + "\n"
     + "- person.jsonld / identity.jsonld / graph.jsonld / who-is-aziel-eliab.txt / /who / .well-known/aziel.json / .well-known/person.jsonld\n"
     + "- Cross-tether stats: " + STATS_TETHER.azieleliab + " · " + STATS_TETHER.corpus + " · " + STATS_TETHER.hedidntjump + "\n"
@@ -1306,6 +1329,8 @@ export function llmsDoc(limitation, survival, stamp, sot) {
     + "- significantLink: " + ABOUT_SIGNIFICANT_LINKS.join(" · ") + "\n"
     + "- Identity page sameAs: " + GODLOCK_IDENTITY + "\n"
     + "- Sister archive: " + HEDIDNTJUMP_LABEL + " " + HEDIDNTJUMP_HOME + "\n"
+    + "- " + FURNACE_NAME + ": " + FURNACE_HOME + " · " + FURNACE_AZIEL + "\n"
+    + "- TimeToUnsealTheBook: " + UNSEAL_OFFICIAL + "\n"
     + "- Alternate name Aziel Elroi Eliab is SEO alternateName only.\n\n"
     + "## Software products (crawl these hubs)\n\n"
     + "The Software hub mirrors the live runtime catalog. Cards grow with GET /v1/software (fallback fraggate/list). PeaceLock, AZMail, AZBrowser, and later slugs appear automatically. No hard-coded 27 cap. Door extras AZNet and FragGate (separate app Workers) and EmbryoLock are listed without dropping catalog engines. AZCoherence (azcoherence) is a Softwares extra / peer-map fallback (Plain, scoring-review) so cite surfaces stay mapped if the live catalog is thin. FoldLock (foldlock) is a Softwares Language extra / cold-shelf SLOT hook; never fold the lockset tip. "
@@ -1474,6 +1499,8 @@ export function aiTxt(limitation, survival, stamp, sot) {
     "# Allow public research surfaces. Do not crawl account mutation routes.",
     "",
     "# Growth-ON. Allow: /. GPTBot Disallow is refused.",
+    "# Sister sites: " + SISTER_SITES.map((row) => row.href).join(" "),
+    "# Official: " + FURNACE_HOME + " " + FURNACE_AZIEL + " " + UNSEAL_OFFICIAL,
     "User-agent: *",
     "Allow: /",
     "Allow: " + ABOUT_PATH,
@@ -1629,7 +1656,11 @@ export function aiTxt(limitation, survival, stamp, sot) {
     + "- OpenAPI: " + HOST + "/openapi.json\n"
     + "- GitHub: " + GITHUB_REPO + "\n"
     + "- GodLock identity: " + GODLOCK_IDENTITY + "\n"
-    + "- " + HEDIDNTJUMP_LABEL + ": " + HEDIDNTJUMP_HOME + "\n"
+    +     "- " + HEDIDNTJUMP_LABEL + ": " + HEDIDNTJUMP_HOME + "\n"
+    + "- " + FURNACE_NAME + ": " + FURNACE_HOME + "\n"
+    + "- Furnace · Aziel: " + FURNACE_AZIEL + "\n"
+    + "- TimeToUnsealTheBook: " + UNSEAL_OFFICIAL + "\n"
+    + "- Sister sites: " + SISTER_SITES.map((row) => row.label + " " + row.href).join(" · ") + "\n"
     + "- aziel-runtime (this domain): " + HOST + "/runtime\n"
     + "- aziel-runtime alternate origin: " + CATALOG + "/\n\n"
     + runtimeHowTo(HOST, picked) + "\n\n"
@@ -1665,6 +1696,10 @@ export function humansTxt() {
     "Repo: " + GITHUB_REPO,
     "GodLock: " + GODLOCK_IDENTITY,
     HEDIDNTJUMP_LABEL + ": " + HEDIDNTJUMP_HOME,
+    FURNACE_NAME + ": " + FURNACE_HOME,
+    "Furnace · Aziel: " + FURNACE_AZIEL,
+    "TimeToUnsealTheBook: " + UNSEAL_OFFICIAL,
+    "Softwares: " + "https://aziel-runtime.vibelock.workers.dev/",
     "",
     "/* SITE */",
     "Name: Aziel Digital Library",

@@ -26,7 +26,15 @@ import {
   WHO_PATH as LOCKED_WHO_PATH,
   GITHUB_SECONDARY,
   X_PRIMARY,
+  RUNTIME_HOME,
+  FURNACE_NAME,
+  FURNACE_HOME,
+  FURNACE_AZIEL,
+  UNSEAL_OFFICIAL,
+  UNSEAL_NAME as UNSEAL_NAME_LOCK,
 } from "./identity.js";
+
+export { FURNACE_NAME, FURNACE_HOME, FURNACE_AZIEL, UNSEAL_OFFICIAL, RUNTIME_HOME };
 
 export const CANON_HOST = "https://www.azielcorpuslibrary.net";
 export const ABOUT_PATH = "/AzielEliab";
@@ -35,7 +43,7 @@ export const AZIEL_HANDLES_PATH = "/aziel";
 export const ABOUT_NAV_LABEL = "Aziel Eliab";
 /** Public doors list. Handles on this site match that page. */
 export const DOORS_URL = "https://www.azieleliab.com/doors";
-export const UNSEAL_NAME = "TimeToUnsealTheBook";
+export const UNSEAL_NAME = UNSEAL_NAME_LOCK;
 export const UNSEAL_ORIGIN = "https://timetounsealthebook.net";
 export const UNSEAL_AZIEL = UNSEAL_ORIGIN + "/aziel";
 export const UNSEAL_COS_TIP = "5b3c878e";
@@ -49,6 +57,7 @@ export const DECRYPTION_PUBLIC = "decryption_complete stays false.";
 export const LIVE_HOLD_PUBLIC = "Not LIVE until Dual CLEAR, Aziel merge OK, and Cos.";
 export const HDJ_HANDLE_NOTE = "He Didn't Jump is a handle, not a Live Node.";
 export const UNSEAL_HANDLE_NOTE = "TimeToUnsealTheBook is a handle, not a Live Node.";
+export const FURNACE_HANDLE_NOTE = "The Furnace Isn't Free is a handle, not a Live Node.";
 export const GROWTH_ON_LINE = "Growth-ON. Allow.";
 export const WHO_PATH = LOCKED_WHO_PATH;
 export const HUB_ORIGIN = "https://www.azieleliab.com";
@@ -73,11 +82,30 @@ export const SITE_DESCRIPTION = "Aziel Digital Library by Aziel Eliab. Search th
 
 /** Visible ecosystem block (footer/nav). Not Softwares H1→list. */
 export const ECOSYSTEM_HEADING = "Part of the Aziel Eliab ecosystem";
+/**
+ * Official sister mesh. Every footer, film door, and search-hub chrome lists these.
+ * Softwares is the Aziel Runtime Worker. Furnace and Unseal use the confirmed public URLs.
+ */
+export const SISTER_SITES = Object.freeze([
+  Object.freeze({ id: "official", label: "azieleliab.com", href: HUB_ORIGIN + "/" }),
+  Object.freeze({ id: "corpus", label: "azielcorpuslibrary.net", href: CANON_HOST + "/" }),
+  Object.freeze({ id: "godlock", label: "GodLock", href: GODLOCK_HOME }),
+  Object.freeze({ id: "hedidntjump", label: HEDIDNTJUMP_LABEL, href: HEDIDNTJUMP_HOME }),
+  Object.freeze({ id: "softwares", label: "Softwares", href: RUNTIME_HOME }),
+  Object.freeze({ id: "furnace", label: FURNACE_NAME, href: FURNACE_HOME }),
+  Object.freeze({ id: "furnace-aziel", label: "Furnace · Aziel", href: FURNACE_AZIEL }),
+  Object.freeze({ id: "unseal", label: UNSEAL_NAME, href: UNSEAL_OFFICIAL }),
+]);
+
 export const ECOSYSTEM_LINKS = Object.freeze([
   Object.freeze({ href: HUB_ORIGIN + "/", label: "Official site" }),
   Object.freeze({ href: CANON_HOST + "/", label: "Corpus" }),
   Object.freeze({ href: GODLOCK_HOME, label: "GodLock" }),
   Object.freeze({ href: HEDIDNTJUMP_HOME, label: HEDIDNTJUMP_LABEL }),
+  Object.freeze({ href: RUNTIME_HOME, label: "Softwares" }),
+  Object.freeze({ href: FURNACE_HOME, label: FURNACE_NAME }),
+  Object.freeze({ href: FURNACE_AZIEL, label: "Furnace · Aziel" }),
+  Object.freeze({ href: UNSEAL_OFFICIAL, label: UNSEAL_NAME }),
   Object.freeze({ href: RUNTIME_GITHUB, label: "Runtime GitHub" }),
   Object.freeze({ href: RUNTIME_GLAMA, label: "Try on Glama", primary: true }),
 ]);
@@ -112,22 +140,25 @@ const TRADES_MCP = "https://trades-runtime.vibelock.workers.dev/mcp";
 
 /**
  * Public doors. Same list as azieleliab.com/doors, plus this site's handles tab
- * and TimeToUnsealTheBook at /aziel. He Didn't Jump is a handle, not a Live Node.
+ * TimeToUnsealTheBook, and The Furnace Isn't Free. He Didn't Jump is a handle, not a Live Node.
  */
 export const AZIEL_HANDLES = Object.freeze([
-  Object.freeze({ id: "official", label: "azieleliab.com", href: HUB_ORIGIN + "/" }),
+  Object.freeze({ id: "official", label: "azieleliab.com", href: HUB_ORIGIN + "/", official: true }),
   Object.freeze({ id: "github", label: "GitHub", href: GITHUB_AUTHOR }),
   Object.freeze({ id: "github-secondary", label: "Secondary source", href: GITHUB_SECONDARY }),
-  Object.freeze({ id: "corpus", label: "Corpus", href: CANON_HOST + "/" }),
+  Object.freeze({ id: "corpus", label: "Corpus", href: CANON_HOST + "/", official: true }),
   Object.freeze({ id: "corpus-aziel", label: "Corpus · AzielEliab", href: CANON_HOST + ABOUT_PATH }),
-  Object.freeze({ id: "godlock", label: "GodLock", href: GODLOCK_HOME }),
-  Object.freeze({ id: "hedidntjump", label: HEDIDNTJUMP_LABEL, href: HEDIDNTJUMP_HOME }),
+  Object.freeze({ id: "godlock", label: "GodLock", href: GODLOCK_HOME, official: true }),
+  Object.freeze({ id: "hedidntjump", label: HEDIDNTJUMP_LABEL, href: HEDIDNTJUMP_HOME, official: true }),
   Object.freeze({ id: "runtime-hub", label: "Runtime", href: HUB_ORIGIN + "/runtime" }),
-  Object.freeze({ id: "runtime", label: "Official Runtime", href: RUNTIME_ORIGIN + "/" }),
+  Object.freeze({ id: "runtime", label: "Official Runtime", href: RUNTIME_ORIGIN + "/", official: true }),
   Object.freeze({ id: "glama", label: "Try on Glama", href: RUNTIME_GLAMA }),
   Object.freeze({ id: "trades", label: "Trades-Runtime", href: TRADES_HOME }),
   Object.freeze({ id: "trades-mcp", label: "Trades-Runtime MCP", href: TRADES_MCP }),
   Object.freeze({ id: "x", label: "X @AzielEliab", href: X_PRIMARY }),
+  Object.freeze({ id: "furnace", label: FURNACE_NAME, href: FURNACE_HOME, official: true }),
+  Object.freeze({ id: "furnace-aziel", label: "Furnace · Aziel", href: FURNACE_AZIEL, official: true }),
+  Object.freeze({ id: "unseal-official", label: UNSEAL_NAME, href: UNSEAL_OFFICIAL, official: true }),
   Object.freeze({ id: "unseal", label: UNSEAL_NAME, href: UNSEAL_AZIEL }),
   Object.freeze({ id: "handles", label: "Corpus handles", href: CANON_HOST + AZIEL_HANDLES_PATH }),
 ]);
@@ -140,6 +171,7 @@ export function tabUrl(href) {
 export function unsealCite() {
   return {
     name: UNSEAL_NAME,
+    official: UNSEAL_OFFICIAL,
     origin: UNSEAL_ORIGIN + "/",
     aziel: UNSEAL_AZIEL,
     cos_tip: UNSEAL_COS_TIP,
@@ -154,6 +186,26 @@ export function unsealCite() {
   };
 }
 
+export function furnaceCite() {
+  return {
+    name: FURNACE_NAME,
+    home: FURNACE_HOME,
+    aziel: FURNACE_AZIEL,
+    live: false,
+    live_node: false,
+    paid_satellite: "HELD",
+    cap7_public_icann: false,
+    resolves_to_hub: false,
+    decryption_complete: false,
+    held_until: "Dual CLEAR + Aziel merge OK + Cos",
+    note: FURNACE_HANDLE_NOTE + " " + LIVE_HOLD_PUBLIC,
+  };
+}
+
+export function sisterSitesDoc() {
+  return SISTER_SITES.map((row) => ({ id: row.id, label: row.label, href: row.href }));
+}
+
 export function azielHandlesDoc() {
   return {
     ok: true,
@@ -165,9 +217,15 @@ export function azielHandlesDoc() {
     identity: AUTHOR,
     person_id: HUB_PERSON_ID,
     doors: DOORS_URL,
-    handles: AZIEL_HANDLES.map((row) => ({ id: row.id, label: row.label, href: row.href })),
+    handles: AZIEL_HANDLES.map((row) => {
+      const out = { id: row.id, label: row.label, href: row.href };
+      if (row.official) out.official = true;
+      return out;
+    }),
+    sister_sites: sisterSitesDoc(),
     he_didnt_jump_is_live_node: false,
     unseal_is_live_node: false,
+    furnace_is_live_node: false,
     cap7_is_icann: false,
     cap7_note: CAP7_PUBLIC,
     paid_satellite: "HELD",
@@ -189,8 +247,10 @@ export function fleetSeoPlainBlock() {
     + paths + "\n\n"
     + "Handles, same public doors as " + DOORS_URL + " :\n\n"
     + handles + "\n\n"
+    + "Sister sites: " + SISTER_SITES.map((row) => row.href).join(" · ") + "\n"
     + "He Didn't Jump is a handle. It is not a Live Node.\n"
     + "TimeToUnsealTheBook is a handle. It is not a Live Node.\n"
+    + "The Furnace Isn't Free is a handle. It is not a Live Node.\n"
     + "Cap-7: not an ICANN name. Paid satellite stays HELD.\n"
     + "decryption_complete: false\n"
     + LIVE_HOLD_PUBLIC + "\n"
@@ -206,7 +266,7 @@ export function siteFooterHtml() {
     return "<li><a" + extra + " href=" + Q + esc(l.href) + Q + " rel=" + Q + "noopener noreferrer" + Q + ">" + esc(l.label) + "</a></li>";
   }).join("");
   const paths = TAB_PATHS.map((tab) => "<a href=" + Q + esc(tab.href) + Q + ">" + esc(tab.href) + "</a>").join(" · ");
-  const honesty = GROWTH_ON_LINE + " " + CAP7_PUBLIC + " " + PAID_SAT_PUBLIC + " " + DECRYPTION_PUBLIC + " " + LIVE_HOLD_PUBLIC + " " + HDJ_HANDLE_NOTE + " " + UNSEAL_HANDLE_NOTE;
+  const honesty = GROWTH_ON_LINE + " " + CAP7_PUBLIC + " " + PAID_SAT_PUBLIC + " " + DECRYPTION_PUBLIC + " " + LIVE_HOLD_PUBLIC + " " + HDJ_HANDLE_NOTE + " " + UNSEAL_HANDLE_NOTE + " " + FURNACE_HANDLE_NOTE;
   return "<footer class=\"ecosystem\" id=\"corpus-site-footer\" aria-label=\"" + esc(ECOSYSTEM_HEADING) + "\">"
     + "<p class=\"eco-head\">" + esc(ECOSYSTEM_HEADING) + "</p>"
     + "<nav class=\"ecosystem-nav\"><ul class=\"ecosystem-list\">" + items + "</ul></nav>"
@@ -214,6 +274,13 @@ export function siteFooterHtml() {
     + "<p class=\"paths\">Paths: " + paths + ".</p>"
     + "<p class=\"honesty\">" + esc(honesty) + "</p>"
     + "</footer>";
+}
+
+/** Visible sister mesh for film doors and the search hub header. */
+export function sisterMeshHtml(className) {
+  const cls = className || "sisters";
+  const items = SISTER_SITES.map((row) => "<a href=" + Q + esc(row.href) + Q + " rel=" + Q + "noopener noreferrer" + Q + ">" + esc(row.label) + "</a>").join("");
+  return "<nav class=" + Q + esc(cls) + Q + " aria-label=" + Q + "Sister sites" + Q + ">" + items + "</nav>";
 }
 
 /** Unique <title> / OG / Twitter strings. Visible H1s stay in page bodies. */
@@ -341,7 +408,7 @@ export function websiteNode() {
     author: personRef(),
     creator: personRef(),
     publisher: personRef(),
-    sameAs: [GITHUB_REPO, HEDIDNTJUMP_HOME],
+    sameAs: [GITHUB_REPO, HUB_ORIGIN + "/", GODLOCK_HOME, HEDIDNTJUMP_HOME, RUNTIME_HOME, FURNACE_HOME, FURNACE_AZIEL, UNSEAL_OFFICIAL],
     potentialAction: {
       "@type": "SearchAction",
       target: {
@@ -368,7 +435,7 @@ export function defaultDescription(kind, runtimeVersion) {
   if (kind === "runtime") return runtimeDescription(runtimeVersion);
   if (kind === "software") return softwareDescription(runtimeVersion);
   if (kind === "about") return LOCK_LINE + " About Aziel Eliab, publisher of Aziel Digital Library on this site. " + ABOUT_DESCRIPTION + " Signed Aziel Elroi Eliab. GodLock is one product on that record.";
-  if (kind === "handles") return "Public handles for Aziel Eliab. Same doors as " + DOORS_URL + ". " + HDJ_HANDLE_NOTE + " " + UNSEAL_HANDLE_NOTE + " " + CAP7_PUBLIC + " " + PAID_SAT_PUBLIC + " " + DECRYPTION_PUBLIC + " " + LIVE_HOLD_PUBLIC;
+  if (kind === "handles") return "Public handles for Aziel Eliab. Same doors as " + DOORS_URL + ". " + HDJ_HANDLE_NOTE + " " + UNSEAL_HANDLE_NOTE + " " + FURNACE_HANDLE_NOTE + " " + CAP7_PUBLIC + " " + PAID_SAT_PUBLIC + " " + DECRYPTION_PUBLIC + " " + LIVE_HOLD_PUBLIC;
   if (kind === "who") return LOCK_LINE;
   if (kind === "scored" || kind === "how-its-scored") return "How Aziel Digital Library scores records: the triad is always published (TRIAD_V3 36-cycle mean of applicable factors), AZCoherence second-pass triad coherence (peer AZ-CLCE), and ZionPattern meaning (75 is intentional suppression confidence; lower is more natural). Author Aziel Eliab.";
   if (kind === "pattern") return "Pattern clusters across Aziel Digital Library domains, subjects, and keywords. Author Aziel Eliab.";

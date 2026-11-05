@@ -104,6 +104,10 @@ test("Person @id is hub #aziel and sameAs is the full lock", () => {
     "https://godlock.uk/",
     "https://www.hedidntjump.com/",
     "https://x.com/AzielEliab",
+    "https://aziel-runtime.vibelock.workers.dev/",
+    "https://www.furnaceisntfree.com/",
+    "https://furnaceisntfree.com/aziel/",
+    "https://www.timetounsealthebook.net",
   ]);
   const person = personJsonLd();
   assert.equal(person["@id"], PERSON_ID);

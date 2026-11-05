@@ -26,7 +26,7 @@
   ],
   "identity": "Aziel Eliab",
   "person_id": "https://www.azieleliab.com/#aziel",
-  "who_is": "Aziel Eliab (also Aziel Elroi Eliab) is a researcher, digital rights activist, software developer, author, and philosopher. Roles cite published work only. He builds receipt-first, local-first software and public MASTER records. Canonical person: https://www.azieleliab.com/#aziel. Primary surfaces: azieleliab.com, azielcorpuslibrary.net, godlock.uk, hedidntjump.com, github.com/AzielEliab. He is one living person. The public identity is the work.",
+  "who_is": "Aziel Eliab (also Aziel Elroi Eliab) is a researcher, digital rights activist, software developer, author, and philosopher. Roles cite published work only. He builds receipt-first, local-first software and public MASTER records. Canonical person: https://www.azieleliab.com/#aziel. Primary surfaces: azieleliab.com, azielcorpuslibrary.net, godlock.uk, hedidntjump.com, aziel-runtime, furnaceisntfree.com, timetounsealthebook.net, github.com/AzielEliab. He is one living person. The public identity is the work.",
   "what_aziel_eliab_does": "Aziel Eliab builds receipt-first, local-first software and public MASTER records — Softwares through Aziel Runtime (FragGate / MCP), the Aziel Digital Library, GodLock (product), and the He Didn’t Jump Zioncheck archive. Public identity is the work. @id https://www.azieleliab.com/#aziel",
   "why_aziel_eliab": "Aziel Eliab publishes so the record can be read: published research through the Aziel Digital Library MASTER, and Softwares / Aziel Runtime as a dual-surface forensics and audit stack — agents run software with outputs shown in the AI; the software side keeps complete human UI (Worker + mobile + download). Public identity is the work. @id https://www.azieleliab.com/#aziel",
   "research": "Outside Softwares, Aziel Eliab publishes research through the Aziel Digital Library MASTER — historical and manuscript studies (Book of the Knowledge), archaeological investigation frameworks (Blemmyes/Ewaipanoma — hypothesis packets), Voynich/linguistics methods (Libro Method), cognition/ethics frameworks (PPIN), AI-systems papers (Lenses as Viewpoint Constraints for Artificial Systems), Copper Scroll / ABAD layered decryption work, evidence/integrity research, and the He Didn’t Jump Zioncheck newspaper archive (hedidntjump.com + corpus volumes). Cite azielcorpuslibrary.net records; do not invent DOIs. Public identity is the work.",
@@ -95,6 +95,19 @@
       "url": "https://aziel-runtime.vibelock.workers.dev/",
       "runtime_id": "https://www.azieleliab.com/runtime#runtime",
       "blurb": "Node-meshed orchestration suite of MCP-connected software. FragGate is THE single public executable door. Worker origin is relatedLink — identity lives at https://www.azieleliab.com/runtime#runtime."
+    },
+    "furnace": {
+      "slug": "furnaceisntfree-com",
+      "name": "The Furnace Isn't Free",
+      "url": "https://www.furnaceisntfree.com/",
+      "aziel": "https://furnaceisntfree.com/aziel/",
+      "blurb": "The Furnace Isn't Free. HVAC quote transparency by Aziel Eliab. Official doors https://www.furnaceisntfree.com/ and https://furnaceisntfree.com/aziel/. A handle, not a Live Node. decryption_complete stays false. Not LIVE until Dual CLEAR, Aziel merge OK, and Cos."
+    },
+    "unseal": {
+      "slug": "timetounsealthebook-net",
+      "name": "TimeToUnsealTheBook",
+      "url": "https://www.timetounsealthebook.net",
+      "blurb": "TimeToUnsealTheBook. Official door https://www.timetounsealthebook.net. A handle, not a Live Node. Cap-7 is not an ICANN registration. Paid satellite stays HELD. decryption_complete stays false. Not LIVE until Dual CLEAR, Aziel merge OK, and Cos."
     }
   },
   "hebrew_aka": [
@@ -222,7 +235,11 @@
     "https://www.azielcorpuslibrary.net/",
     "https://godlock.uk/",
     "https://www.hedidntjump.com/",
-    "https://x.com/AzielEliab"
+    "https://x.com/AzielEliab",
+    "https://aziel-runtime.vibelock.workers.dev/",
+    "https://www.furnaceisntfree.com/",
+    "https://furnaceisntfree.com/aziel/",
+    "https://www.timetounsealthebook.net"
   ],
   "keywords": [
     "Aziel Eliab",
@@ -499,6 +516,22 @@
       {
         "href": "https://www.azielcorpuslibrary.net/software",
         "label": "Softwares"
+      },
+      {
+        "href": "https://aziel-runtime.vibelock.workers.dev/",
+        "label": "Aziel Runtime"
+      },
+      {
+        "href": "https://www.furnaceisntfree.com/",
+        "label": "The Furnace Isn't Free"
+      },
+      {
+        "href": "https://furnaceisntfree.com/aziel/",
+        "label": "Furnace · Aziel"
+      },
+      {
+        "href": "https://www.timetounsealthebook.net",
+        "label": "TimeToUnsealTheBook"
       },
       {
         "href": "https://www.azielcorpuslibrary.net/who",

@@ -11,7 +11,13 @@ import {
   GODLOCK_IDENTITY,
   HEDIDNTJUMP_HOME,
   HEDIDNTJUMP_LABEL,
+  FURNACE_HOME,
+  FURNACE_AZIEL,
+  FURNACE_NAME,
+  UNSEAL_OFFICIAL,
+  UNSEAL_NAME,
   siteFooterHtml,
+  sisterMeshHtml,
   AZIEL_HANDLES_PATH,
   AZIEL_HANDLES,
   DOORS_URL,
@@ -97,6 +103,8 @@ a.brand:hover{color:var(--gold)}
 .stat-counter .stat-slash{color:var(--muted);margin:0 1px;font-weight:650}
 .nav1,.nav2,.top,.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .nav1{margin-bottom:6px}
+.sisters{display:flex;flex-wrap:wrap;gap:.35rem .9rem;margin:0 0 8px;font-size:.78rem}
+.sisters a{color:var(--gold);text-decoration:none;border-bottom:1px solid #c9a22766}
 .nav2{margin:0;gap:2px;position:fixed;left:0;top:0;bottom:0;z-index:45;flex-direction:column;flex-wrap:nowrap;align-items:stretch;justify-content:flex-start;background:var(--paper);border:0;border-right:1px solid var(--gold);border-radius:0 16px 16px 0;padding:76px 12px 24px;width:min(360px,86vw);min-width:min(260px,86vw);max-width:86vw;height:100vh;max-height:100vh;overflow:auto;overflow-x:hidden;box-shadow:12px 0 40px #00000088}
 .nav2[hidden]{display:none!important}
 .nav2 .sep{display:none}
@@ -832,6 +840,7 @@ export function page(title, body, { signed, scripts, path, kind, description, wo
 <header class="sitehead"><div class="sitehead-inner">
 <div class="brandrow nav1">${brandMarkHtml()}<span class="sigil-click-hint" id="sigilClickHint" aria-hidden="true">click me</span><a class="brand" href="/">Aziel Corpus Library</a>${authBarHtml(signed)}${homeChrome ? brandCountPills({ views, downloads, nodes, liveNodes, nodesUnknown }) : ""}</div>
 ${sigilNavHtml()}
+${homeChrome ? sisterMeshHtml("sisters") : ""}
 </div></header>
 ${homeChrome ? statbarClockScript() : ""}
 <div class="wrap">
@@ -1338,7 +1347,7 @@ export function azielHandlesBody() {
   return `<section class="hero about-aziel" id="aziel-handles"><h1>Aziel</h1>
 <div class="card about-prose">
 <h2>Handles</h2>
-<p>Public identity on this page is Aziel Eliab. The handles below are the public doors listed on <a href="${esc(DOORS_URL)}">azieleliab.com</a>. Each site keeps its own receipt tip. He Didn't Jump is a handle, not a Live Node. TimeToUnsealTheBook is a handle, not a Live Node.</p>
+<p>Public identity on this page is Aziel Eliab. The handles below are the public doors listed on <a href="${esc(DOORS_URL)}">azieleliab.com</a>. Each site keeps its own receipt tip. He Didn't Jump is a handle, not a Live Node. TimeToUnsealTheBook is a handle, not a Live Node. The Furnace Isn't Free is a handle, not a Live Node.</p>
 <ul class="handles">${items}</ul>
 <p class="muted">${esc(CAP7_PUBLIC)} ${esc(PAID_SAT_PUBLIC)} ${esc(DECRYPTION_PUBLIC)} ${esc(LIVE_HOLD_PUBLIC)}</p>
 <p><a href="${ABOUT_PATH}">About Aziel Eliab</a></p>
@@ -1362,6 +1371,7 @@ export function aboutBody() {
 <li>If the files hold, the name was never the point.</li>
 <li>Publisher resolves to <a href="https://www.azieleliab.com/#aziel">https://www.azieleliab.com/#aziel</a>.</li>
 <li><a href="${HEDIDNTJUMP_HOME}">${HEDIDNTJUMP_LABEL}</a> is a sister archive challenging the 1936 official Zioncheck suicide narrative. It does not invent court holdings.</li>
+<li><a href="${FURNACE_HOME}">${FURNACE_NAME}</a> and <a href="${FURNACE_AZIEL}">Furnace · Aziel</a> are sister doors. <a href="${UNSEAL_OFFICIAL}">${UNSEAL_NAME}</a> is a sister door. Cap-7 is not an ICANN registration. Paid satellite stays HELD.</li>
 </ul>
 <p>The software suite is listed on <a href="/software">Software</a>. The catalog/MCP door lives on <strong>this domain</strong> at <a href="/runtime">/runtime</a> — Aziel Runtime, a node-meshed MCP Softwares suite for digital forensics and auditing (${RUNTIME_LIVE_COUNT} live advisory engines; ${RUNTIME_LOCAL_ONLY} local_only; stubs refuse). The workers.dev origin is an alternate/sameAs. GodLock is one product Aziel Eliab built; the corresponding identity page is <a href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a>. How records are scored — triad SPRE × CLCE × PhysLing, and ZionPattern as a separate public reading — is on <a href="/how-its-scored">How it's scored</a>. Source: <a href="https://github.com/AzielEliab/aziel-corpus">github.com/AzielEliab/aziel-corpus</a>.</p>
 </aside>
@@ -1533,7 +1543,7 @@ ${softSection("Gate", groups.gate)}
 ${softSection("Lock", groups.lock)}
 <div class="card"><p class="soft-links runtime-dist">${runtimeDistributionButtons()}</p>
 <p class="muted">Softwares heading then list — Plain → Gate → Lock (Clock is a separate lane from Lock). MCP Softwares via <code>fraggate_call</code> only. FragGate is THE single door. ${esc(softwareCountFraming())} ${esc(JEEVES_SUITE_HELP.wording)} Human UI on the Runtime Worker (<code>#op-panel</code> <code>#dashboard</code> <code>#fg-console</code> <code>#task-*</code> + About Aziel + hashtags + <code>/download</code>). SoT LIVE <code>${esc(RUNTIME_SOT_BRANCH)}</code> <code>${esc(RUNTIME_GIT_SHA)}</code> / version_id <code>${esc(RUNTIME_VERSION_ID)}</code>. Lamb Lens ${esc(LAMB_LENS_PATH)}. Dual surface. NO-LIE. Growth-ON. Mesh outlet <a href="/v1/mesh/outlet"><code>/v1/mesh/outlet</code></a>.</p>
-<p class="soft-links"><a class="button" href="/runtime">${esc(chip)}</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="/runtime/v1/software">/v1/software</a> <a class="button ghost" href="/runtime/mcp">MCP</a> <a class="button ghost" href="/runtime/v1/uses">uses</a> <a class="button ghost" href="/v1/lattice">Lattice API</a> <a class="button ghost" href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a> <a class="button ghost" href="${HEDIDNTJUMP_HOME}">${esc(HEDIDNTJUMP_LABEL)}</a> <a class="button ghost" href="https://github.com/AzielEliab/aziel-corpus">aziel-corpus</a> <a class="button ghost" href="${esc(RUNTIME_GITHUB)}">aziel-runtime</a></p></div>
+<p class="soft-links"><a class="button" href="/runtime">${esc(chip)}</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="/runtime/v1/software">/v1/software</a> <a class="button ghost" href="/runtime/mcp">MCP</a> <a class="button ghost" href="/runtime/v1/uses">uses</a> <a class="button ghost" href="/v1/lattice">Lattice API</a> <a class="button ghost" href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a> <a class="button ghost" href="${HEDIDNTJUMP_HOME}">${esc(HEDIDNTJUMP_LABEL)}</a> <a class="button ghost" href="${FURNACE_HOME}">${esc(FURNACE_NAME)}</a> <a class="button ghost" href="${FURNACE_AZIEL}">Furnace · Aziel</a> <a class="button ghost" href="${UNSEAL_OFFICIAL}">${esc(UNSEAL_NAME)}</a> <a class="button ghost" href="https://github.com/AzielEliab/aziel-corpus">aziel-corpus</a> <a class="button ghost" href="${esc(RUNTIME_GITHUB)}">aziel-runtime</a></p></div>
 ${softwareHydrateScript()}`;
 }
 

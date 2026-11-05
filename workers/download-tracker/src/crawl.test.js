@@ -827,6 +827,8 @@ test("IndexNow key file equals the key, robots allow it, and host sitemap lastmo
     "https://aziel-runtime.vibelock.workers.dev/sitemap.xml",
     "https://aziel-runtime.vibelock.workers.dev/sitemap-index.xml",
     "https://spectrallock-download-tracker.vibelock.workers.dev/sitemap.xml",
+    "https://www.furnaceisntfree.com/sitemap.xml",
+    "https://www.timetounsealthebook.net/sitemap.xml",
   ]) {
     assert.equal(foreign.some((row) => row.loc === loc && row.lastmod === FOREIGN_SITEMAP_LASTMOD), true, loc);
   }
