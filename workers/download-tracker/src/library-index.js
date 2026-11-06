@@ -514,6 +514,37 @@ export function searchPackedRecords(doc, { q, library, sort, author, domain, sub
   return rows.slice(0, lim);
 }
 
+/** Title-first slice for the search box. Same packed shelf as search, no body scan. */
+export function suggestPackedRecords(doc, { q, library, limit } = {}) {
+  const query = String(q || "").trim().toLowerCase();
+  if (!query) return [];
+  const lim = Math.min(Math.max(Number(limit) || 8, 1), 12);
+  const pool = searchPackedRecords(doc, { q: query, library: library || "all", sort: "alpha", limit: 500 });
+  const rank = (row) => {
+    const title = String((row && row.title) || "").toLowerCase();
+    if (title.startsWith(query)) return 0;
+    if (title.includes(query)) return 1;
+    return 2;
+  };
+  pool.sort((a, b) => {
+    const d = rank(a) - rank(b);
+    if (d) return d;
+    return String((a && a.title) || "").localeCompare(String((b && b.title) || ""), "en", { sensitivity: "base" });
+  });
+  const seen = new Set();
+  const out = [];
+  for (const row of pool) {
+    const title = String((row && row.title) || "").trim();
+    if (!title) continue;
+    const key = title.toLowerCase() + "\n" + shelfOf(row);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(row);
+    if (out.length >= lim) break;
+  }
+  return out;
+}
+
 function viewsKey() {
   return PROJECT + "|__views__";
 }

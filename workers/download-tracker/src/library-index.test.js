@@ -21,6 +21,7 @@ import {
   readPackedIndex,
   refreshPackedIndex,
   searchPackedRecords,
+  suggestPackedRecords,
   sealPackedIndex,
   writePackedIndex,
   cardFromRecord,
@@ -174,6 +175,24 @@ test("searchPackedRecords filters the packed shelf without KV", () => {
   assert.equal(card.llms_url, "/record/AZDOC-1/llms.txt");
   assert.equal(card.cite_url, "/record/AZDOC-1/cite.json");
   assert.ok(!("body" in card));
+});
+
+test("suggestPackedRecords ranks title prefixes and stays short", () => {
+  const doc = emptyPackedIndex({
+    records: [
+      cardFromRecord({ record_id: "AZDOC-1", title: "Notes on Florence", library: "corpus", created_utc: "2026-01-02" }),
+      cardFromRecord({ record_id: "AZDOC-2", title: "Florence notes", library: "aziel", created_utc: "2026-01-01" }),
+      cardFromRecord({ record_id: "AZDOC-3", title: "Florence notes", library: "aziel", created_utc: "2026-01-03" }),
+      cardFromRecord({ record_id: "AZDOC-4", title: "Other paper", library: "corpus", author: "Florence", created_utc: "2026-01-04" }),
+    ],
+  });
+  const hits = suggestPackedRecords(doc, { q: "Florence", limit: 8 });
+  assert.equal(hits.length, 3);
+  assert.equal(hits[0].title, "Florence notes");
+  assert.equal(hits[0].record_id, "AZDOC-2");
+  assert.equal(hits[1].title, "Notes on Florence");
+  assert.equal(hits[2].title, "Other paper");
+  assert.equal(suggestPackedRecords(doc, { q: "  " }).length, 0);
 });
 
 test("noteIngestedRecord appends llms and cite urls without KV.list", async () => {
@@ -344,6 +363,32 @@ test("GET /v1/search filters packed index even when D1 is bound", async () => {
   assert.equal(kv.calls.get.length, 1);
   assert.equal(kv.calls.get[0].key, LIBRARY_INDEX_KEY);
   assert.doesNotMatch(JSON.stringify(body), BANNED);
+  assert.equal(body.suggest, undefined);
+});
+
+test("GET /v1/search?suggest=1 returns a short title list and does not touch D1", async () => {
+  const packed = sealPackedIndex({
+    records: [
+      cardFromRecord({ record_id: "AZDOC-1", title: "Florence notes", library: "aziel", created_utc: "2026-01-02" }),
+      cardFromRecord({ record_id: "AZDOC-2", title: "Notes on Florence", library: "corpus", created_utc: "2026-01-03" }),
+    ],
+  });
+  const kv = throwingListKv(new Map([[LIBRARY_INDEX_KEY, JSON.stringify(packed)]]));
+  const env = {
+    DOWNLOADS: kv,
+    DB: { prepare() { throw new Error("D1 must not be the suggest hot path"); } },
+  };
+  const url = "https://www.azielcorpuslibrary.net/v1/search?suggest=1&q=Florence";
+  const res = await handleRuntimeApi(new Request(url), new URL(url), env);
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.suggest, true);
+  assert.equal(body.suggestions.length, 2);
+  assert.equal(body.suggestions[0].title, "Florence notes");
+  assert.equal(body.suggestions[0].shelf, "aziel");
+  assert.equal(body.suggestions[0].href, "/record/AZDOC-1");
+  assert.equal(body.results[0].title, "Florence notes");
+  assert.equal(kv.calls.list, 0);
 });
 
 test("public HTML cache helpers share crawler and human Cache-Control", async () => {

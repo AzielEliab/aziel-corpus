@@ -24,6 +24,10 @@ function metricCard(label, value, cls) {
   return "<div class=\"card\"><div class=\"metric " + cls + "\">" + esc(value) + "</div><div class=\"muted\">" + esc(label) + "</div></div>";
 }
 
+function summaryCount(label, n) {
+  return "<summary><span class=\"tree-label\">" + esc(label) + "</span><span class=\"tree-count\">(" + Number(n) + ")</span></summary>";
+}
+
 export function treeBody(payload) {
   const libraries = payload.libraries;
   const standalone = payload.standalone || [];
@@ -61,7 +65,7 @@ export function treeBody(payload) {
         parts.push(docs(rows));
         continue;
       }
-      parts.push("<details><summary>" + esc(micro) + " <span class=\"muted\">(" + (rows || []).length + ")</span></summary>" + docs(rows) + "</details>");
+      parts.push("<details>" + summaryCount(micro, (rows || []).length) + docs(rows) + "</details>");
     }
     return parts.join("");
   }
@@ -76,7 +80,7 @@ export function treeBody(payload) {
       const subMap = subjects instanceof Map ? subjects : new Map(Object.entries(subjects || {}));
       for (const [subject, micros] of subMap) {
         const n = countDocs(micros);
-        subHtml.push("<details><summary>" + esc(subject) + " <span class=\"muted\">(" + n + ")</span></summary>" + renderMicros(micros) + "</details>");
+        subHtml.push("<details>" + summaryCount(subject, n) + renderMicros(micros) + "</details>");
       }
       domainHtml.push("<details open><summary>" + esc(domain) + "</summary>" + subHtml.join("") + "</details>");
     }
