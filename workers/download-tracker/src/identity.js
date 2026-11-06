@@ -51,11 +51,86 @@ export const PERSON_SAME_AS = Object.freeze([
   GODLOCK_HOME,
   HEDIDNTJUMP_HOME,
   X_PRIMARY,
+  HUB_ORIGIN + "/runtime/",
   RUNTIME_HOME,
   FURNACE_HOME,
   FURNACE_AZIEL,
   UNSEAL_OFFICIAL,
 ]);
+
+/**
+ * Official sites search engines should associate with Person @id.
+ * The corpus WebSite stays https://www.azielcorpuslibrary.net/#website.
+ * Sister nodes are additional WebSites with the same publisher. Not visible HTML.
+ * Furnace, Unseal, and He Didn't Jump stay handles. Cap-7 is not ICANN.
+ */
+export const OFFICIAL_SISTER_SITES = Object.freeze([
+  Object.freeze({ id: "official", name: "azieleliab.com", url: HUB_ORIGIN + "/" }),
+  Object.freeze({ id: "corpus", name: LIBRARY_WEBSITE_NAME, url: LIBRARY_HOST + "/" }),
+  Object.freeze({ id: "godlock", name: "GodLock", url: GODLOCK_HOME }),
+  Object.freeze({ id: "hedidntjump", name: "He Didn't Jump", url: HEDIDNTJUMP_HOME }),
+  Object.freeze({ id: "runtime-hub", name: "Aziel Runtime", url: HUB_ORIGIN + "/runtime/" }),
+  Object.freeze({ id: "runtime", name: "Aziel Runtime", url: RUNTIME_HOME }),
+  Object.freeze({ id: "furnace", name: FURNACE_NAME, url: FURNACE_HOME }),
+  Object.freeze({ id: "furnace-aziel", name: "Furnace · Aziel", url: FURNACE_AZIEL }),
+  Object.freeze({ id: "unseal", name: UNSEAL_NAME, url: UNSEAL_OFFICIAL }),
+]);
+
+function sisterHandleNote(id) {
+  if (id === "hedidntjump") return "He Didn't Jump is a handle, not a Live Node.";
+  if (id === "furnace" || id === "furnace-aziel") {
+    return "The Furnace Isn't Free is a handle, not a Live Node. Cap-7 is not an ICANN registration. Paid satellite stays HELD. decryption_complete stays false.";
+  }
+  if (id === "unseal") {
+    return "TimeToUnsealTheBook is a handle, not a Live Node. Cap-7 is not an ICANN registration. Paid satellite stays HELD. decryption_complete stays false.";
+  }
+  return "";
+}
+
+export function sisterWebsiteId(url) {
+  return String(url || "").replace(/\/+$/, "") + "/#website";
+}
+
+/** Sister WebSites. Corpus is omitted here; websiteNode() already owns that @id. */
+export function sisterWebsiteNodes() {
+  return OFFICIAL_SISTER_SITES.filter((row) => row.id !== "corpus").map((row) => {
+    const node = {
+      "@type": "WebSite",
+      "@id": sisterWebsiteId(row.url),
+      name: row.name,
+      url: row.url,
+      publisher: { "@id": PERSON_ID },
+      author: { "@id": PERSON_ID },
+      creator: { "@id": PERSON_ID },
+    };
+    const note = sisterHandleNote(row.id);
+    if (note) node.description = note;
+    return node;
+  });
+}
+
+/** Machine card for cite.json, llms.txt, and GET /v1/version. Does not flip Remain-OFF. */
+export function searchAssociation() {
+  return {
+    person_id: PERSON_ID,
+    name: AUTHOR,
+    alternateName: ALTERNATE_NAMES.slice(),
+    corpus: LIBRARY_HOST + "/",
+    official_sites: OFFICIAL_SISTER_SITES.map((row) => ({ id: row.id, name: row.name, url: row.url })),
+    version_url: LIBRARY_HOST + "/v1/version",
+    health_url: LIBRARY_HOST + "/v1/health",
+    runtime_preferred: HUB_ORIGIN + "/runtime/",
+    runtime_worker: RUNTIME_HOME,
+    corpus_tip_source: "GET /v1/health",
+    cap7_is_icann: false,
+    paid_satellite: "HELD",
+    decryption_complete: false,
+    remain_off: true,
+    mesh_get_enables: false,
+    live: false,
+    note: "Associate Aziel Eliab and these aliases with Aziel Corpus Library and these official sister sites. Person @id is https://www.azieleliab.com/#aziel. Cap-7 is not an ICANN registration. Paid satellite stays HELD. decryption_complete stays false. Remain-OFF. GET /v1/mesh never enables.",
+  };
+}
 
 /**
  * Official Aziel ecosystem — machine cite / llms / ai / who-is.
@@ -713,6 +788,7 @@ export function identityJsonLd() {
 }
 
 function websiteNode() {
+  const sisters = sisterWebsiteNodes();
   return {
     "@type": "WebSite",
     "@id": LIBRARY_WEBSITE_ID,
@@ -722,7 +798,8 @@ function websiteNode() {
     author: { "@id": PERSON_ID },
     publisher: { "@id": PERSON_ID },
     creator: { "@id": PERSON_ID },
-    relatedLink: STATS_URLS.slice(),
+    relatedLink: STATS_URLS.slice().concat(sisters.map((row) => row.url)),
+    mentions: sisters.map((row) => ({ "@id": row["@id"] })),
   };
 }
 
@@ -814,7 +891,7 @@ function statsTetherNode() {
 export function graphJsonLd() {
   return {
     "@context": "https://schema.org",
-    "@graph": [personNode({ works: true, triad: true }), faqNode(), websiteNode(), aboutPageNode(), libraryRoleNode(), statsTetherNode()],
+    "@graph": [personNode({ works: true, triad: true }), faqNode(), websiteNode(), ...sisterWebsiteNodes(), aboutPageNode(), libraryRoleNode(), statsTetherNode()],
   };
 }
 
@@ -876,6 +953,7 @@ export function azielJson() {
     sameAs: PERSON_SAME_AS.slice(),
     significant_links: ABOUT_SIGNIFICANT_LINKS.slice(),
     stats: { ...STATS_TETHER },
+    search_association: searchAssociation(),
     jobTitle: PERSON_JOB_TITLE.slice(),
     jobTitle_note: PERSON_JOB_TITLE_NOTE,
     sites: siteBlurbsCite(),

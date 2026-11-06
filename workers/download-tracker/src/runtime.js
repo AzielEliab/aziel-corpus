@@ -4,6 +4,7 @@
  * Author: Aziel Eliab.
  */
 import { buildStamp } from "./build-stamp.js";
+import { searchAssociation } from "./identity.js";
 import { rethrowIfQuota } from "./quota.js";
 import { serveFileByHash, normalizeContentHash } from "./library.js";
 import { receiptForRecord, documentChain, isJsonDocumentId } from "./ledger.js";
@@ -212,6 +213,7 @@ function openapi() {
     servers: [{ url: HOST }, { url: FALLBACK_HOST }],
     paths: {
       "/v1/health": { get: { summary: "Liveness + TUN-WP-0.1 standby/failover fields. records_packed / records_aziel / records_corpus from packed library:index:v1. Does not increment downloads. Does not KV.list().", operationId: "health" } },
+      "/v1/version": { get: { summary: "Package version and search association for Aziel Eliab. Person @id https://www.azieleliab.com/#aziel. Official sister sites. Cap-7 is not ICANN. Paid satellite HELD. decryption_complete false. Remain-OFF. GET /v1/mesh never enables. Does not increment downloads.", operationId: "version" } },
       "/v1/stats": { get: { summary: "Alias of /stats. Packed views, counted downloads, and library file counts (records_packed). Does not increment. Does not KV.list(). Author Aziel Eliab.", operationId: "stats" } },
       "/stats": { get: { summary: "Packed views and counted downloads. Does not increment. Does not KV.list(). Author Aziel Eliab.", operationId: "libraryStats" } },
       "/v1/library-index": { get: { summary: "Packed library:index:v1 shelf cards (no PDF bodies). One KV get. Author Aziel Eliab.", operationId: "libraryIndex" } },
@@ -448,6 +450,29 @@ export async function handleRuntimeApi(request, url, env, ctx) {
     };
     const res = json(body);
     res.headers.set("Cache-Control", PUBLIC_CACHE_CONTROL);
+    if (request.method === "HEAD") return new Response(null, { status: res.status, headers: res.headers });
+    return res;
+  }
+  if (path === "/v1/version" && (request.method === "GET" || request.method === "HEAD")) {
+    const assoc = searchAssociation();
+    const res = json({
+      ok: true,
+      product: PRODUCT,
+      name: "Aziel Digital Library",
+      version: VERSION,
+      package: VERSION,
+      spec: SPEC,
+      author: "Aziel Eliab",
+      identity: "Aziel Eliab",
+      host: HOST,
+      ...assoc,
+      version: VERSION,
+      ...buildStamp(env),
+      health: HOST + "/v1/health",
+      tip_source: "GET /v1/health",
+      tip_note: "git_sha and version_id match GET /v1/health for this deploy. Unstamped reads are null. Do not invent.",
+    });
+    res.headers.set("Cache-Control", "public, max-age=300");
     if (request.method === "HEAD") return new Response(null, { status: res.status, headers: res.headers });
     return res;
   }

@@ -923,7 +923,8 @@ test("sitemap lists the slug URL for every record with a permalink; slugless D1 
     }
     const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
     assert.equal(new Set(locs).size, locs.length, "no duplicate locs");
-    assert.equal(locs.some((u) => u.endsWith("/")) && locs.filter((u) => u.endsWith("/")).some((u) => u !== H + "/"), false, "no trailing-slash twins");
+    const ownSlash = locs.filter((u) => u.startsWith(H) && u.endsWith("/") && u !== H + "/");
+    assert.equal(ownSlash.length, 0, "no trailing-slash twins");
   }
 });
 

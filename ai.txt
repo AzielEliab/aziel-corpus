@@ -2,6 +2,8 @@
 # Complement of /llms.txt. Author Aziel Eliab (aka Aziel Elroi Eliab · AzielEliab · azieleliab · The Revealer of the Sealed · Elias Artista).
 # GitHub-side discovery file for AzielEliab/aziel-corpus.
 # Live Worker copy: https://www.azielcorpuslibrary.net/ai.txt
+# Person: https://www.azieleliab.com/#aziel
+# Search association: Aziel Eliab and aliases publish this corpus and the official sister sites. Machine card: https://www.azielcorpuslibrary.net/v1/version
 # Priority pages: /  /software  /AzielEliab  /aziel  /who
 # Growth-ON. Allow: /. GPTBot Disallow is refused.
 # Sister sites: https://www.azieleliab.com/ https://www.azielcorpuslibrary.net/ https://godlock.uk/ https://www.hedidntjump.com/ https://aziel-runtime.vibelock.workers.dev/ https://www.furnaceisntfree.com/ https://furnaceisntfree.com/aziel/ https://www.timetounsealthebook.net
@@ -53,6 +55,7 @@ Allow: /.well-known/mcp.json
 Allow: /v1
 Allow: /v1/
 Allow: /v1/software
+Allow: /v1/version
 Allow: /v1/possibility
 Allow: /v1/recollect
 Allow: /v1/poison-learn

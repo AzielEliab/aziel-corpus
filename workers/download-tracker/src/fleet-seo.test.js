@@ -180,6 +180,49 @@ test("crawler surfaces list pretty paths, Allow, and the Unseal handle", async (
   assert.equal(cite.furnace, "https://www.furnaceisntfree.com/");
   assert.equal(cite.unseal_official, "https://www.timetounsealthebook.net");
   assert.equal(cite.remain_off, true);
+  assert.equal(cite.search_association.person_id, "https://www.azieleliab.com/#aziel");
+  assert.equal(cite.search_association.cap7_is_icann, false);
+  assert.equal(cite.search_association.paid_satellite, "HELD");
+  assert.equal(cite.search_association.decryption_complete, false);
+  assert.equal(cite.search_association.remain_off, true);
+  assert.equal(cite.search_association.mesh_get_enables, false);
+  assert.equal(cite.search_association.live, false);
+  assert.equal(cite.person_id, "https://www.azieleliab.com/#aziel");
+  assert.equal(cite.corpus_git_sha, null);
+  assert.equal(cite.corpus_version_id, null);
+  assert.equal(cite.corpus_tip_source, "GET /v1/health");
+  assert.equal(cite.search_association.runtime_preferred, "https://www.azieleliab.com/runtime/");
+  assert.equal(cite.search_association.runtime_worker, "https://aziel-runtime.vibelock.workers.dev/");
+  assert.ok(cite.sameAs.indexOf("https://www.azieleliab.com/runtime/") < cite.sameAs.indexOf("https://aziel-runtime.vibelock.workers.dev/"));
+  assert.equal(cite.search_association.version_url, "https://www.azielcorpuslibrary.net/v1/version");
+  assert.equal(cite.search_association.health_url, "https://www.azielcorpuslibrary.net/v1/health");
+  assert.ok(cite.search_association.alternateName.includes("Aziel Elroi Eliab"));
+  assert.ok(cite.search_association.alternateName.includes("Elias Artista"));
+  assert.ok(cite.search_association.official_sites.some((row) => row.url === "https://www.azieleliab.com/"));
+  assert.ok(cite.search_association.official_sites.some((row) => row.url === "https://godlock.uk/"));
+  assert.ok(cite.search_association.official_sites.some((row) => row.url === "https://www.furnaceisntfree.com/"));
+  assert.ok(cite.search_association.official_sites.some((row) => row.url === "https://furnaceisntfree.com/aziel/"));
+  assert.ok(cite.search_association.official_sites.some((row) => row.url === "https://www.timetounsealthebook.net"));
+  assert.match(llms, /Search association:/);
+  assert.match(llms, /\/v1\/version/);
+  assert.match(llms, /Person sameAs prefers https:\/\/www\.azieleliab\.com\/runtime\/ alongside/);
+  assert.match(llms, /Unstamped reads stay null/);
+  assert.match(ai, /Allow: \/v1\/version/);
+  assert.match(robots, /Allow: \/v1\/version/);
+  assert.match(robots, /Person: https:\/\/www\.azieleliab\.com\/#aziel/);
+  for (const loc of [
+    "https://www.azieleliab.com/",
+    "https://godlock.uk/",
+    "https://www.hedidntjump.com/",
+    "https://www.azieleliab.com/runtime/",
+    "https://aziel-runtime.vibelock.workers.dev/",
+    "https://www.furnaceisntfree.com/",
+    "https://furnaceisntfree.com/aziel/",
+    "https://www.timetounsealthebook.net",
+  ]) {
+    assert.match(xml, new RegExp("<loc>" + loc.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "</loc>"));
+  }
+  assert.match(xml, /<loc>https:\/\/www\.azielcorpuslibrary\.net\/v1\/version<\/loc>/);
 });
 
 test("GET /aziel answers HTML and JSON without redirecting to /AzielEliab", async () => {
@@ -217,4 +260,50 @@ test("GET /aziel answers HTML and JSON without redirecting to /AzielEliab", asyn
   assert.equal(doc.path, "/aziel");
   assert.equal(doc.decryption_complete, false);
   assert.equal(doc.cap7_is_icann, false);
+});
+
+test("GET /v1/version matches GET /v1/health tip and does not invent one", async () => {
+  const { handleRuntimeApi } = await import("./runtime.js");
+  const { citeDoc, llmsDoc } = await import("./crawl.js");
+  const live = {
+    GIT_SHA: "aed265455026ea30a5271d30187ad2e45084dc28",
+    CF_VERSION_METADATA: { id: "d7ffa986-303f-4ea3-b87c-210c2f04efa7" },
+  };
+  const bare = {};
+  async function read(path, env) {
+    const res = await handleRuntimeApi(
+      new Request("https://www.azielcorpuslibrary.net" + path),
+      new URL("https://www.azielcorpuslibrary.net" + path),
+      env,
+      {},
+    );
+    assert.equal(res.status, 200, path);
+    return res.json();
+  }
+  const unstamped = await read("/v1/version", bare);
+  assert.equal(unstamped.person_id, "https://www.azieleliab.com/#aziel");
+  assert.equal(unstamped.git_sha, null);
+  assert.equal(unstamped.version_id, null);
+  assert.equal(unstamped.tip_source, "GET /v1/health");
+  assert.equal(unstamped.cap7_is_icann, false);
+  assert.equal(unstamped.paid_satellite, "HELD");
+  assert.equal(unstamped.decryption_complete, false);
+  assert.equal(unstamped.remain_off, true);
+  assert.equal(unstamped.mesh_get_enables, false);
+  const version = await read("/v1/version", live);
+  const health = await read("/v1/health", live);
+  assert.equal(version.git_sha, health.git_sha);
+  assert.equal(version.version_id, health.version_id);
+  assert.equal(version.git_sha, live.GIT_SHA);
+  assert.equal(version.version_id, live.CF_VERSION_METADATA.id);
+  assert.equal(version.git_sha.slice(0, 8), "aed26545");
+  assert.equal(version.version_id.slice(0, 8), "d7ffa986");
+  const cite = citeDoc(null, null, null, { git_sha: version.git_sha, version_id: version.version_id });
+  assert.equal(cite.corpus_git_sha, version.git_sha);
+  assert.equal(cite.corpus_version_id, version.version_id);
+  assert.equal(cite.person_id, "https://www.azieleliab.com/#aziel");
+  const llms = llmsDoc("limit", null, null, null, { git_sha: version.git_sha, version_id: version.version_id });
+  assert.match(llms, /aed265455026ea30a5271d30187ad2e45084dc28/);
+  assert.match(llms, /d7ffa986-303f-4ea3-b87c-210c2f04efa7/);
+  assert.match(llms, /Do not invent a second tip/);
 });
