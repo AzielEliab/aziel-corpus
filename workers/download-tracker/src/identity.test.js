@@ -104,6 +104,7 @@ test("Person @id is hub #aziel and sameAs is the full lock", () => {
     "https://godlock.uk/",
     "https://www.hedidntjump.com/",
     "https://x.com/AzielEliab",
+    "https://www.azieleliab.com/runtime/",
     "https://aziel-runtime.vibelock.workers.dev/",
     "https://www.furnaceisntfree.com/",
     "https://furnaceisntfree.com/aziel/",
@@ -253,6 +254,29 @@ test("graph.jsonld has Who-is + product FAQs, publisher Person, library role, st
   assert.equal(site["@id"], "https://www.azielcorpuslibrary.net/#website");
   assert.deepEqual(site.publisher, { "@id": PERSON_ID });
   assert.deepEqual(site.creator, { "@id": PERSON_ID });
+  const sisters = graph["@graph"].filter((n) => n["@type"] === "WebSite" && n["@id"] !== site["@id"]);
+  assert.ok(sisters.length >= 7);
+  for (const row of sisters) {
+    assert.deepEqual(row.publisher, { "@id": PERSON_ID });
+    assert.deepEqual(row.author, { "@id": PERSON_ID });
+    assert.notEqual(row["@id"], PERSON_ID);
+  }
+  assert.ok(sisters.some((row) => row.url === "https://www.azieleliab.com/"));
+  assert.ok(sisters.some((row) => row.url === "https://godlock.uk/"));
+  assert.ok(sisters.some((row) => row.url === "https://www.hedidntjump.com/"));
+  assert.ok(sisters.some((row) => row.url === "https://www.azieleliab.com/runtime/"));
+  assert.ok(sisters.some((row) => row.url === "https://aziel-runtime.vibelock.workers.dev/"));
+  const hubAt = sisters.findIndex((row) => row.url === "https://www.azieleliab.com/runtime/");
+  const workerAt = sisters.findIndex((row) => row.url === "https://aziel-runtime.vibelock.workers.dev/");
+  assert.ok(hubAt >= 0 && hubAt < workerAt);
+  assert.ok(sisters.some((row) => row.url === "https://www.furnaceisntfree.com/"));
+  assert.ok(sisters.some((row) => row.url === "https://furnaceisntfree.com/aziel/"));
+  assert.ok(sisters.some((row) => row.url === "https://www.timetounsealthebook.net"));
+  assert.ok(site.mentions.some((row) => row["@id"] === "https://www.azieleliab.com/#website"));
+  const furnace = sisters.find((row) => row.url === "https://www.furnaceisntfree.com/");
+  assert.match(furnace.description, /not a Live Node/);
+  assert.match(furnace.description, /decryption_complete stays false/);
+  assert.match(furnace.description, /not an ICANN/);
   assert.ok(site.relatedLink.includes(STATS_TETHER.azieleliab));
   assert.ok(site.relatedLink.includes(STATS_TETHER.corpus));
   assert.ok(site.relatedLink.includes(STATS_TETHER.hedidntjump));

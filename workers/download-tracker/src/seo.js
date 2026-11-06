@@ -32,6 +32,7 @@ import {
   FURNACE_AZIEL,
   UNSEAL_OFFICIAL,
   UNSEAL_NAME as UNSEAL_NAME_LOCK,
+  sisterWebsiteNodes,
 } from "./identity.js";
 
 export { FURNACE_NAME, FURNACE_HOME, FURNACE_AZIEL, UNSEAL_OFFICIAL, RUNTIME_HOME };
@@ -408,7 +409,7 @@ export function websiteNode() {
     author: personRef(),
     creator: personRef(),
     publisher: personRef(),
-    sameAs: [GITHUB_REPO, HUB_ORIGIN + "/", GODLOCK_HOME, HEDIDNTJUMP_HOME, RUNTIME_HOME, FURNACE_HOME, FURNACE_AZIEL, UNSEAL_OFFICIAL],
+    sameAs: [GITHUB_REPO, HUB_ORIGIN + "/", HUB_ORIGIN + "/runtime/", GODLOCK_HOME, HEDIDNTJUMP_HOME, RUNTIME_HOME, FURNACE_HOME, FURNACE_AZIEL, UNSEAL_OFFICIAL],
     potentialAction: {
       "@type": "SearchAction",
       target: {
@@ -564,7 +565,7 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
     creator: who,
     publisher: who,
   };
-  const graph = [website, software, library, person, org];
+  const graph = [website, ...sisterWebsiteNodes(), software, library, person, org];
   if (kind === "corpus" || kind === "search" || path === "/" || path === "/corpus") {
     graph.push({
       "@type": "Dataset",
@@ -607,7 +608,7 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
       publisher: who,
       license: "https://www.apache.org/licenses/LICENSE-2.0",
       codeRepository: GITHUB_RUNTIME,
-      sameAs: [CANON_HOST + "/runtime", RUNTIME_ORIGIN + "/", GITHUB_RUNTIME, RUNTIME_GLAMA, RUNTIME_DOCS],
+      sameAs: [HUB_ORIGIN + "/runtime/", CANON_HOST + "/runtime", RUNTIME_ORIGIN + "/", GITHUB_RUNTIME, RUNTIME_GLAMA, RUNTIME_DOCS],
     });
     graph.push({
       "@type": "WebAPI",
