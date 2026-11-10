@@ -33,6 +33,7 @@ export const MESH_POINTER_NOTE =
   "GET /v1/mesh never enables. Remain-OFF. The URL is a counts/status cite, not an enable.";
 
 let liveCache = { at: 0, stamp: null };
+/** Short reuse for cite.json only. Not a permanent current tip, and HTML does not read it. */
 const LIVE_CACHE_MS = 60_000;
 
 /**
@@ -156,6 +157,27 @@ export function stampFromSoftwareText(text) {
   if (git_sha_source) stamp.git_sha_source = git_sha_source;
   if (version_id_source) stamp.version_id_source = version_id_source;
   return labelRuntimeStamp(stamp);
+}
+
+/** Top-level fields only. Does not stringify a catalog body. */
+export function stampFromSoftwareDoc(doc) {
+  if (!doc || typeof doc !== "object" || Array.isArray(doc)) return null;
+  const slim = {};
+  for (const key of ["git_sha", "version_id", "git_sha_source", "version_id_source", "git_sha_tracks_deployed_tip", "deploy_lag"]) {
+    if (Object.prototype.hasOwnProperty.call(doc, key)) slim[key] = doc[key];
+  }
+  return stampFromSoftwareText(JSON.stringify(slim));
+}
+
+/** A saved catalog copy is not a fresh observation and is not current forever. */
+export function stampForHtmlCatalog(doc, fetchSource) {
+  const parsed = stampFromSoftwareDoc(doc);
+  if (!parsed) return null;
+  const src = String(fetchSource || "");
+  if (/cache|stale/i.test(src)) {
+    return labelRuntimeStamp(Object.assign({}, parsed, { source: "catalog-copy" }));
+  }
+  return parsed;
 }
 
 /**

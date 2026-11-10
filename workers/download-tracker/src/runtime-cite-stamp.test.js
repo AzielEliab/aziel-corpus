@@ -4,9 +4,13 @@ import {
   bakedRuntimeStamp,
   pickRuntimeStamp,
   readSoftwareStamp,
+  stampForHtmlCatalog,
+  stampFromSoftwareDoc,
   stampFromSoftwareText,
 } from "./runtime-cite-stamp.js";
 import { citeDoc } from "./crawl.js";
+import { runtimeSotPlain } from "./runtime-copy.js";
+import { runtimeBody, softwareBody } from "./ui.js";
 
 const LIVE = "{\"ok\":true,\"git_sha\":\"ce673365700d41fc604292ab2b92b1b1ca504016\",\"version_id\":\"eaf0b54c-1e5b-4d54-a582-25c5cdc09f92\",\"software\":[{\"slug\":\"peacelock\"}]}";
 
@@ -184,6 +188,66 @@ test("an unavailable software observation stays on the labelled baked floor", as
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("human pages use the same floor, current, lag, and outlet words as the machine stamp", () => {
+  const floorHtml = runtimeBody("2.0.0-rc1");
+  const floorSoft = softwareBody({});
+  for (const html of [floorHtml, floorSoft]) {
+    assert.match(html, /SoT floor, not a fresh observation/);
+    assert.match(html, /ce673365/);
+    assert.match(html, /eaf0b54c-1e5b-4d54-a582-25c5cdc09f92/);
+    assert.match(html, /observed_at unknown/);
+    assert.doesNotMatch(html, /SoT LIVE/);
+  }
+  assert.match(floorSoft, /Lamb Lens/);
+  assert.match(floorSoft, /Growth-ON/);
+
+  const current = stampFromSoftwareText(softwareDoc());
+  const currentHtml = runtimeBody("2.0.0-rc1", current);
+  assert.match(currentHtml, /SoT current observation/);
+  assert.match(currentHtml, /aaaaaaaa/);
+  assert.match(currentHtml, /observed_at was not recorded/);
+  assert.doesNotMatch(currentHtml, /SoT LIVE/);
+  assert.doesNotMatch(currentHtml, /SoT floor/);
+  const cite = citeDoc(null, null, current);
+  assert.equal(cite.runtime_stamp_current, true);
+  assert.equal(cite.runtime_stamp_floor, false);
+  assert.equal(cite.runtime_launch.sot.live, true);
+
+  assert.equal(stampFromSoftwareDoc({
+    search_association: { tip_hold: { git_sha: HOLD, version_id: HOLD_VERSION } },
+  }), null);
+  const lagged = stampFromSoftwareDoc({
+    git_sha: TOP,
+    version_id: TOP_VERSION,
+    git_sha_tracks_deployed_tip: false,
+    deploy_lag: "behind",
+    search_association: { tip_hold: { git_sha: HOLD, version_id: HOLD_VERSION } },
+  });
+  assert.equal(lagged, null);
+  assert.match(runtimeSotPlain(lagged), /SoT floor, not a fresh observation/);
+
+  const outlet = pickRuntimeStamp(bakedRuntimeStamp(), {
+    git: "abcdef01",
+    git_full: "abcdef0123456789abcdef0123456789abcdef01",
+    version_id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+  });
+  assert.equal(outlet.source, "outlet");
+  assert.equal(outlet.current, false);
+  assert.equal(outlet.floor, false);
+  assert.match(runtimeSotPlain(outlet), /SoT outlet copy, not a fresh observation/);
+  assert.match(softwareBody({ sot: outlet }), /SoT outlet copy, not a fresh observation/);
+  const outletCite = citeDoc(null, { sot: { git: "abcdef01", git_full: "abcdef0123456789abcdef0123456789abcdef01", version_id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc" } }, null);
+  assert.equal(outletCite.runtime_stamp_source, "outlet");
+  assert.equal(outletCite.runtime_stamp_current, false);
+  assert.equal(outletCite.runtime_stamp_observed, false);
+  assert.equal(outletCite.runtime_launch.sot.live, false);
+
+  const copy = stampForHtmlCatalog({ git_sha: TOP, version_id: TOP_VERSION, git_sha_tracks_deployed_tip: true, deploy_lag: null }, "cache");
+  assert.equal(copy.source, "catalog-copy");
+  assert.equal(copy.current, false);
+  assert.match(runtimeSotPlain(copy), /not current forever/);
 });
 
 test("a newer outlet stamp still applies when the live read is down", () => {
