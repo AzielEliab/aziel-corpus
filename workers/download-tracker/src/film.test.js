@@ -12,6 +12,7 @@ import {
   filmTheaterHtml,
   libraryHubRedirect,
 } from "./film.js";
+import { dualNodesCounts, resetMeshDualLastGood } from "./mesh.js";
 
 const root = dirname(fileURLToPath(import.meta.url));
 const BANNED = /Collin Horton|legalName|homeLocation|familyName|grok\.me|__grok/;
@@ -98,16 +99,31 @@ test("pilot film assets are hosted beside the Worker", async () => {
   }
 });
 
-test("GET / is the film and GET /search keeps the library hub", async () => {
-  const { default: worker } = await import("./index.js");
+function downloadsKv() {
   let views = 0;
-  const env = {
-    DOWNLOADS: {
+  return {
+    views: () => views,
+    kv: {
       async get() { return null; },
       async put(key) { if (String(key).includes("views")) views += 1; },
       async list() { throw new Error("no list"); },
     },
   };
+}
+
+test("GET / is the film and GET /search keeps the library hub", async () => {
+  const { default: worker } = await import("./index.js");
+  resetMeshDualLastGood();
+  const store = downloadsKv();
+  const env = { DOWNLOADS: store.kv };
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = async (input, init) => {
+    const url = String(input && input.url ? input.url : input || "");
+    if (url.includes("/v1/mesh")) return new Response("mesh unread", { status: 503 });
+    return origFetch(input, init);
+  };
+  const readViews = () => store.views();
+  try {
   const home = await worker.fetch(
     new Request("https://www.azielcorpuslibrary.net/", { headers: { "User-Agent": "Mozilla/5.0" } }),
     env,
@@ -132,7 +148,7 @@ test("GET / is the film and GET /search keeps the library hub", async () => {
   assert.doesNotMatch(theater, /class="statbar"/);
   assert.doesNotMatch(theater, /Search the libraries/);
   assert.doesNotMatch(theater, /class="soft-card"/);
-  assert.ok(views >= 1);
+  assert.ok(readViews() >= 1);
 
   const head = await worker.fetch(
     new Request("https://www.azielcorpuslibrary.net/", { method: "HEAD", headers: { "User-Agent": "Mozilla/5.0" } }),
@@ -180,4 +196,50 @@ test("GET / is the film and GET /search keeps the library hub", async () => {
   assert.doesNotMatch(hub, /id="LiveNodes">0</);
   assert.doesNotMatch(hub, /<main class="theater">/);
   assert.doesNotMatch(hub, /class="enter"/);
+  } finally {
+    globalThis.fetch = origFetch;
+    resetMeshDualLastGood();
+  }
+});
+
+test("GET /search paints a real mesh pair and does not turn it into an em dash", async () => {
+  const { default: worker } = await import("./index.js");
+  resetMeshDualLastGood();
+  const doc = {
+    human_mesh_users: 4,
+    human_uses: 2,
+    nodes: 6,
+    live_nodes: 5,
+    includes_site_viewers: true,
+    site_live_viewers: 1,
+    live_nodes_plane: "human-mesh-users-site-viewers",
+    software_nodes: 41,
+  };
+  const pair = dualNodesCounts(doc);
+  assert.ok(pair.nodes > 0 && pair.liveNodes > 0);
+  assert.notEqual(pair.liveNodes, 41);
+  const env = {
+    DOWNLOADS: downloadsKv().kv,
+    AZIEL_RUNTIME: {
+      async fetch() {
+        return new Response(JSON.stringify(doc), { status: 200, headers: { "Content-Type": "application/json" } });
+      },
+    },
+  };
+  try {
+    const search = await worker.fetch(
+      new Request("https://www.azielcorpuslibrary.net/search", { headers: { "User-Agent": "Mozilla/5.0" } }),
+      env,
+      {}
+    );
+    assert.equal(search.status, 200);
+    const hub = await search.text();
+    assert.match(hub, new RegExp('id="Nodes">' + pair.nodes + "<"));
+    assert.match(hub, new RegExp('id="LiveNodes">' + pair.liveNodes + "<"));
+    assert.doesNotMatch(hub, /id="Nodes">\u2014</);
+    assert.doesNotMatch(hub, /id="Nodes">0</);
+    assert.doesNotMatch(hub, /id="LiveNodes">0</);
+  } finally {
+    resetMeshDualLastGood();
+  }
 });
