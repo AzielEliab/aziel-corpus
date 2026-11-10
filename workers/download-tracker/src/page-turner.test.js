@@ -5,7 +5,7 @@ import { deflateRawSync } from "node:zlib";
 import { pdfPageCount } from "./pdf-pages.js";
 import { paperJumpTarget, renderPaperReader } from "./paper-ux.js";
 import { recordBody } from "./hosted-pages.js";
-import { page, readerZoomScript } from "./ui.js";
+import { CSS, page, readerZoomScript } from "./ui.js";
 
 const CRC_TABLE = (() => {
   const table = new Uint32Array(256);
@@ -320,6 +320,51 @@ test("slides and sheets turn one unit at a time; other files do not invent pages
   assert.match(htmlFile, /sandbox=""/);
   assert.doesNotMatch(htmlFile, /<script>alert/);
   assert.doesNotMatch(htmlFile, /class="page-turner"/);
+});
+
+test("keyboard and narrow layout keep jump on the page and arrows off inputs", () => {
+  const script = readerZoomScript();
+  const guard = script.indexOf("input,textarea,select");
+  const arrows = script.indexOf("ArrowLeft");
+  assert.ok(guard > 0 && arrows > guard);
+  assert.match(script, /ArrowRight/);
+  assert.match(script, /PageUp/);
+  assert.match(script, /PageDown/);
+  assert.match(script, /a\[rel=/);
+  assert.match(CSS, /page-turner-end \.page-status,\.page-turner-end \.page-jump\{display:none\}/);
+  assert.match(CSS, /min-height:48px/);
+});
+
+test("unknown PDF and invalid jump do not invent a page image or an off-site link", () => {
+  const row = {
+    record_id: "AZDOC-PDF",
+    title: "Labelled Example — PDF",
+    library: "aziel",
+    content_type: "application/pdf",
+    filename: "labelled.pdf",
+    object_key: "aziel/AZDOC-PDF/labelled.pdf",
+  };
+  const unknown = reader({ row, body: "", page: 1, pdfState: new TextEncoder().encode("%PDF-1.7\nnot a tree") });
+  assert.match(unknown, /page total was not read/);
+  assert.doesNotMatch(unknown, /data:image/);
+  assert.doesNotMatch(unknown, /<canvas/);
+  assert.doesNotMatch(unknown, /page-bitmap|fake page/i);
+  const htmlFile = reader({
+    row: {
+      record_id: "AZDOC-HTM",
+      title: "<script>alert(1)</script>",
+      library: "aziel",
+      content_type: "text/html",
+      filename: "page.html",
+      object_key: "aziel/AZDOC-HTM/page.html",
+    },
+    body: "<script>alert(1)</script>",
+    page: 1,
+  });
+  assert.match(htmlFile, /sandbox=""/);
+  assert.doesNotMatch(htmlFile, /<script>alert/);
+  assert.doesNotMatch(htmlFile, /javascript:/i);
+  assert.equal(paperJumpTarget("/aziellibrary/labelled-example", "nope").invalid, true);
 });
 
 test("page jump accepts a same-path page number and refuses anything else", () => {
