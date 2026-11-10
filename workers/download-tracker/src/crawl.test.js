@@ -330,6 +330,17 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.equal(cite.runtime_git_full, "ce673365700d41fc604292ab2b92b1b1ca504016");
   assert.equal(cite.runtime_version_id, "eaf0b54c-1e5b-4d54-a582-25c5cdc09f92");
   assert.equal(cite.runtime_stamp_source, "baked-fallback");
+  assert.equal(cite.runtime_stamp_observed, false);
+  assert.equal(cite.runtime_stamp_current, false);
+  assert.equal(cite.runtime_stamp_floor, true);
+  assert.equal(cite.runtime_stamp_observed_at, null);
+  assert.equal(cite.runtime_launch.sot.live, false);
+  assert.equal(cite.runtime_launch.sot.observed, false);
+  assert.equal(cite.runtime_launch.sot.current, false);
+  assert.equal(cite.runtime_launch.sot.floor, true);
+  assert.equal(cite.runtime_launch.sot.observed_at, null);
+  assert.match(cite.runtime_launch.sot.note, /Known baked floor, not a fresh software tip/);
+  assert.match(cite.runtime_launch.sot.note, /observed_at is unknown/);
   assert.match(cite.runtime_stamp_duty, /Cos LIVE restamp duty/);
   assert.match(cite.runtime_stamp_duty, /ce673365 \/ eaf0b54c/);
   assert.equal(cite.mesh_get_enables, false);
@@ -965,6 +976,14 @@ test("cite and llms prefer a live software stamp and ignore the retired bake", (
   assert.equal(separated.runtime_launch.sot.git_sha_source, "deploy_var");
   assert.equal(separated.runtime_launch.sot.version_id_source, "cf_version_metadata");
   assert.equal(separated.runtime_launch.sot.version, "2.0.0-rc1");
+  assert.equal(separated.runtime_stamp_observed, true);
+  assert.equal(separated.runtime_stamp_current, true);
+  assert.equal(separated.runtime_stamp_floor, false);
+  assert.equal(separated.runtime_stamp_observed_at, null);
+  assert.equal(separated.runtime_launch.sot.live, true);
+  assert.equal(separated.runtime_launch.sot.observed, true);
+  assert.equal(separated.runtime_launch.sot.current, true);
+  assert.equal(separated.runtime_launch.sot.floor, false);
   assert.notEqual(separated.runtime_version_id, separated.runtime_version);
   assert.match(cite.runtime_stamp_duty, /Cos LIVE restamp duty/);
 

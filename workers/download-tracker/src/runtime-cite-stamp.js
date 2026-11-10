@@ -35,14 +35,31 @@ export const MESH_POINTER_NOTE =
 let liveCache = { at: 0, stamp: null };
 const LIVE_CACHE_MS = 60_000;
 
+/**
+ * Machine labels for a stamp. A bake keeps the known floor pair and is not a
+ * fresh observation. observed_at stays null: this repo does not date the floor,
+ * and a failed read must not invent a clock time.
+ */
+export function labelRuntimeStamp(stamp) {
+  const source = stamp && stamp.source ? stamp.source : "baked-fallback";
+  const observed = source === "live";
+  return Object.assign({}, stamp, {
+    source,
+    observed,
+    current: observed,
+    floor: source === "baked-fallback",
+    observed_at: null,
+  });
+}
+
 export function bakedRuntimeStamp() {
-  return {
+  return labelRuntimeStamp({
     git: RUNTIME_GIT_SHA,
     git_full: RUNTIME_GIT_FULL,
     version_id: RUNTIME_VERSION_ID,
     source: "baked-fallback",
     duty: COS_LIVE_RESTAMP_DUTY,
-  };
+  });
 }
 
 /** Depth-1 JSON fields only. Nested tip_hold git_sha values are not the catalog tip. */
@@ -138,7 +155,7 @@ export function stampFromSoftwareText(text) {
   };
   if (git_sha_source) stamp.git_sha_source = git_sha_source;
   if (version_id_source) stamp.version_id_source = version_id_source;
-  return stamp;
+  return labelRuntimeStamp(stamp);
 }
 
 /**
@@ -164,7 +181,7 @@ export function pickRuntimeStamp(explicit, sot) {
     const versionSource = observedLabel(explicit.version_id_source);
     if (gitSource) picked.git_sha_source = gitSource;
     if (versionSource) picked.version_id_source = versionSource;
-    return picked;
+    return labelRuntimeStamp(picked);
   }
   const git = sot && SHORT_GIT.test(String(sot.git || "").toLowerCase())
     ? String(sot.git).toLowerCase()
@@ -181,13 +198,13 @@ export function pickRuntimeStamp(explicit, sot) {
         if (vid !== RETIRED_RUNTIME_VERSION_ID && VERSION_ID.test(vid)) version_id = vid;
       }
     }
-    return {
+    return labelRuntimeStamp({
       git,
       git_full: full,
       version_id,
       source: "outlet",
       duty: COS_LIVE_RESTAMP_DUTY,
-    };
+    });
   }
   return bakedRuntimeStamp();
 }

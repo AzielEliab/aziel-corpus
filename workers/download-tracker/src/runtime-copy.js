@@ -233,11 +233,17 @@ export function runtimeLaunchCite(stamp) {
     ? stamp.version_id
     : RUNTIME_VERSION_ID;
   const source = stamp && stamp.source ? stamp.source : "baked-fallback";
+  const observed = source === "live";
+  const floor = source === "baked-fallback";
   return {
     spec: "AZRT-HUB-LAUNCH-CITE-1.0",
     status: "ready",
     sot: {
-      live: true,
+      live: observed,
+      observed,
+      current: observed,
+      floor,
+      observed_at: null,
       branch: RUNTIME_SOT_BRANCH,
       git,
       git_full: gitFull,
@@ -252,8 +258,12 @@ export function runtimeLaunchCite(stamp) {
       local_only: RUNTIME_LOCAL_ONLY,
       source,
       note:
-        "Operator SoT " + (source === "live" ? "LIVE" : "baked fallback") + ": aziel-runtime "
-        + RUNTIME_SOT_BRANCH + " " + git
+        (observed
+          ? "Operator SoT LIVE observation: "
+          : floor
+            ? "Known baked floor, not a fresh software tip. observed_at is unknown. "
+            : "Not a fresh software observation. observed_at is unknown. ")
+        + "aziel-runtime " + RUNTIME_SOT_BRANCH + " " + git
         + " / version_id " + versionId + " / " + RUNTIME_VERSION
         + " at " + RUNTIME_ORIGIN + ". Prefer live GET /v1/software git_sha and version_id. "
         + "Cos LIVE restamp duty on the bake (ce673365 / eaf0b54c). "

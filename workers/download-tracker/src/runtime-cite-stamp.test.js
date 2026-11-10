@@ -6,6 +6,7 @@ import {
   readSoftwareStamp,
   stampFromSoftwareText,
 } from "./runtime-cite-stamp.js";
+import { citeDoc } from "./crawl.js";
 
 const LIVE = "{\"ok\":true,\"git_sha\":\"ce673365700d41fc604292ab2b92b1b1ca504016\",\"version_id\":\"eaf0b54c-1e5b-4d54-a582-25c5cdc09f92\",\"software\":[{\"slug\":\"peacelock\"}]}";
 
@@ -110,23 +111,79 @@ test("a prefix reader keeps the top-level pair after a tip hold chunk", async ()
   assert.notEqual(stamp.git, HOLD.slice(0, 8));
 });
 
-test("an unavailable software observation stays on the baked fallback", async () => {
-  const { resolveRuntimeCiteStamp } = await import("./runtime-cite-stamp.js");
-  const env = {
-    AZIEL_RUNTIME: {
-      async fetch() {
-        return new Response(JSON.stringify({
-          ok: true,
-          search_association: { tip_hold: { git_sha: HOLD, version_id: HOLD_VERSION } },
-        }), { status: 200, headers: { "Content-Type": "application/json" } });
-      },
-    },
-  };
-  const stamp = await resolveRuntimeCiteStamp(env, { timeoutMs: 1000 });
+function assertFloor(stamp) {
   assert.equal(stamp.source, "baked-fallback");
+  assert.equal(stamp.observed, false);
+  assert.equal(stamp.current, false);
+  assert.equal(stamp.floor, true);
+  assert.equal(stamp.observed_at, null);
   assert.equal(stamp.git, "ce673365");
+  assert.equal(stamp.git_full, "ce673365700d41fc604292ab2b92b1b1ca504016");
   assert.equal(stamp.version_id, "eaf0b54c-1e5b-4d54-a582-25c5cdc09f92");
-  assert.notEqual(stamp.git, HOLD.slice(0, 8));
+  assert.match(stamp.duty, /ce673365 \/ eaf0b54c/);
+  const cite = citeDoc(null, null, stamp);
+  assert.equal(cite.runtime_git, stamp.git);
+  assert.equal(cite.runtime_version_id, stamp.version_id);
+  assert.equal(cite.runtime_stamp_source, "baked-fallback");
+  assert.equal(cite.runtime_stamp_observed, false);
+  assert.equal(cite.runtime_stamp_current, false);
+  assert.equal(cite.runtime_stamp_floor, true);
+  assert.equal(cite.runtime_stamp_observed_at, null);
+  assert.equal(cite.runtime_launch.sot.live, false);
+  assert.equal(cite.runtime_launch.sot.current, false);
+  assert.equal(cite.runtime_launch.sot.floor, true);
+  assert.equal(cite.runtime_launch.sot.git, "ce673365");
+}
+
+test("an unavailable software observation stays on the labelled baked floor", async () => {
+  const { resolveRuntimeCiteStamp } = await import("./runtime-cite-stamp.js");
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => { throw new Error("origin down"); };
+  try {
+    const missing = await resolveRuntimeCiteStamp({
+      AZIEL_RUNTIME: {
+        async fetch() {
+          return new Response(JSON.stringify({
+            ok: true,
+            search_association: { tip_hold: { git_sha: HOLD, version_id: HOLD_VERSION } },
+          }), { status: 200, headers: { "Content-Type": "application/json" } });
+        },
+      },
+    }, { timeoutMs: 1000 });
+    assertFloor(missing);
+
+    const errored = await resolveRuntimeCiteStamp({
+      AZIEL_RUNTIME: {
+        async fetch() {
+          return new Response("no", { status: 503 });
+        },
+      },
+    }, { timeoutMs: 1000 });
+    assertFloor(errored);
+
+    const lagged = await resolveRuntimeCiteStamp({
+      AZIEL_RUNTIME: {
+        async fetch() {
+          return new Response(softwareDoc({ deploy_lag: "behind" }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        },
+      },
+    }, { timeoutMs: 1000 });
+    assertFloor(lagged);
+
+    const timedOut = await resolveRuntimeCiteStamp({
+      AZIEL_RUNTIME: {
+        async fetch() {
+          throw new Error("timeout");
+        },
+      },
+    }, { timeoutMs: 20 });
+    assertFloor(timedOut);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("a newer outlet stamp still applies when the live read is down", () => {

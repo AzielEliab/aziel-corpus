@@ -1162,6 +1162,10 @@ export function citeDoc(survival, outletCite, stamp, corpusTip) {
     ...(picked.git_sha_source ? { runtime_git_source: picked.git_sha_source } : {}),
     ...(picked.version_id_source ? { runtime_version_id_source: picked.version_id_source } : {}),
     runtime_stamp_source: picked.source,
+    runtime_stamp_observed: picked.observed === true,
+    runtime_stamp_current: picked.current === true,
+    runtime_stamp_floor: picked.floor === true,
+    runtime_stamp_observed_at: null,
     runtime_stamp_duty: picked.duty || COS_LIVE_RESTAMP_DUTY,
     runtime_sot_branch: sot && typeof sot.branch === "string" && sot.branch ? sot.branch : RUNTIME_SOT_BRANCH,
     runtime_official: CATALOG + "/",
@@ -1263,7 +1267,10 @@ export function llmsDoc(limitation, survival, stamp, sot, corpusTip) {
     + "Runtime catalog: " + HOST + "/runtime\n"
     + "Runtime FragGate: " + HOST + "/runtime/v1/fraggate\n"
     + RUNTIME_ABSTRACT + "\n"
-    + "Runtime version: Aziel Runtime " + RUNTIME_VERSION + " (" + RUNTIME_LIVE_COUNT + " live; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse). SoT " + picked.source + ": " + RUNTIME_SOT_BRANCH + " " + picked.git + " / version_id " + picked.version_id + ". " + (picked.duty || COS_LIVE_RESTAMP_DUTY) + " Cite live GET /runtime/v1/software. FragGate is the single door. MCP Softwares via fraggate_call only. Human UI on the Runtime Worker (#op-panel #dashboard #fg-console #task-* + About Aziel + hashtags + /download). Lamb Lens " + LAMB_LENS_PATH + ". Remain-OFF untouched. GET /v1/mesh never enables.\n"
+    + "Runtime version: Aziel Runtime " + RUNTIME_VERSION + " (" + RUNTIME_LIVE_COUNT + " live; " + RUNTIME_LOCAL_ONLY + " local_only; stubs refuse). SoT " + picked.source + ": " + RUNTIME_SOT_BRANCH + " " + picked.git + " / version_id " + picked.version_id
+    + (picked.observed === true ? "" : ". Not a fresh software observation. observed_at unknown")
+    + (picked.floor === true ? ". Known baked floor" : "")
+    + ". " + (picked.duty || COS_LIVE_RESTAMP_DUTY) + " Cite live GET /runtime/v1/software. FragGate is the single door. MCP Softwares via fraggate_call only. Human UI on the Runtime Worker (#op-panel #dashboard #fg-console #task-* + About Aziel + hashtags + /download). Lamb Lens " + LAMB_LENS_PATH + ". Remain-OFF untouched. GET /v1/mesh never enables.\n"
     + RUNTIME_GLAMA_LABEL + ": " + RUNTIME_GLAMA + "\n"
     + "Source on GitHub: " + RUNTIME_GITHUB + "\n"
     + "Documentation: " + RUNTIME_DOCS + "\n"
