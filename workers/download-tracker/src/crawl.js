@@ -264,7 +264,7 @@ const PATH_LASTMOD = Object.freeze({
   "/help/how-to-read-scores.txt": "2026-09-29",
   "/help/how-to-cite.txt": "2026-09-29",
   "/help/uploads.txt": "2026-09-29",
-  "/runtime": "2026-09-21",
+  "/runtime": "2026-11-10",
   "/how-its-scored": "2026-11-10",
 });
 
@@ -291,7 +291,7 @@ export const PATH_LASTMOD_SOURCES = Object.freeze({
   "/help/how-to-read-scores.txt": ["workers/download-tracker/src/help.js"],
   "/help/how-to-cite.txt": ["workers/download-tracker/src/help.js"],
   "/help/uploads.txt": ["workers/download-tracker/src/help.js"],
-  "/runtime": ["workers/download-tracker/src/runtime-root.js"],
+  "/runtime": ["workers/download-tracker/src/runtime-root.js", "workers/download-tracker/src/ui.js"],
   "/how-its-scored": ["workers/download-tracker/src/ui.js"],
 });
 
