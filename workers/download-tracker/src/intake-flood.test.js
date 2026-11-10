@@ -8,6 +8,9 @@ import { screenIntake, submitterKey } from "./intake-gate.js";
 import { ingestRecord, operatorSession } from "./library.js";
 import { handleLibraryIngestApi } from "./library-mcp.js";
 import { intakeStubEnv, contentWritten } from "./fixtures/intake-env.js";
+import { installUnavailableOrigin, originFixtureHits } from "./fixtures/hermetic-observe.js";
+
+installUnavailableOrigin();
 
 const HOST = "https://www.azielcorpuslibrary.net";
 const OPERATOR = operatorSession();
@@ -144,6 +147,7 @@ test("POST /v1/ingest over the rate limit: 429 with a hash-only receipt", async 
 });
 
 test("Jeeves / agent door: rate limit is per real caller, not the shared jeeves-public identity", async () => {
+  const originBefore = originFixtureHits();
   const { jeevesUpload } = await import("./jeeves.js");
   const env = intakeStubEnv();
   const g = guest(1);
@@ -158,4 +162,5 @@ test("Jeeves / agent door: rate limit is per real caller, not the shared jeeves-
   err = null;
   try { await jeevesUpload(env, { signed: g, title: "Synthetic", body: "another fresh agent note" }); } catch (e) { err = e; }
   assert.equal(err && err.code, FLOOD_REASONS.RATE_LIMITED);
+  assert.ok(originFixtureHits() > originBefore, "CLCE score stayed on the unavailable fixture");
 });
