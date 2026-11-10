@@ -246,9 +246,9 @@ function isoDay(value, fallback) {
 
 /** Real per-path lastmod from source-file git dates (ISO day). Fallback SITE_LASTMOD. */
 const PATH_LASTMOD = Object.freeze({
-  "/": "2026-11-06",
-  "/aziel": "2026-11-06",
-  "/software": "2026-11-06",
+  "/": "2026-11-10",
+  "/aziel": "2026-11-10",
+  "/software": "2026-11-10",
   "/AzielEliab": "2026-11-06",
   "/who": "2026-11-06",
   "/who-is": "2026-11-06",
@@ -264,8 +264,8 @@ const PATH_LASTMOD = Object.freeze({
   "/help/how-to-read-scores.txt": "2026-09-29",
   "/help/how-to-cite.txt": "2026-09-29",
   "/help/uploads.txt": "2026-09-29",
-  "/runtime": "2026-09-21",
-  "/how-its-scored": "2026-11-06",
+  "/runtime": "2026-11-10",
+  "/how-its-scored": "2026-11-10",
 });
 
 /**
