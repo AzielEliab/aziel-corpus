@@ -234,6 +234,7 @@ export function recordBody(payload) {
     truncated: payload.truncated,
     fileBytes: payload.fileBytes || null,
     fileSkip: payload.fileSkip || "",
+    pdfState: payload.pdfState,
   });
   const authorName = String(row.author || "").trim();
   const heroBits = authorName && !isChromeAuthorByline(authorName) ? [authorName] : [];

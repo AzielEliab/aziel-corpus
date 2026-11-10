@@ -50,6 +50,7 @@ import {
 } from "./library-index.js";
 import {
   parsePaperPermalink,
+  paperJumpTarget,
   findPaperBySlug,
   lookupPaperSlug,
   paperAliasLocation,
@@ -210,17 +211,26 @@ async function servePaperPage(request, env, ctx, signed, row, { permalink = "", 
   } else {
     fileBytes = null;
   }
+  let pdfState;
+  if (previewKind === "pdf" && String(row.object_key || "").trim()) {
+    if (parts.declared > READER_FILE_CAP) pdfState = "oversize";
+    else {
+      try {
+        const got = await loadServedFileBytes(env, row);
+        if (!got || !got.byteLength) pdfState = "unread";
+        else if (got.byteLength > READER_FILE_CAP) pdfState = "oversize";
+        else pdfState = got;
+      } catch {
+        pdfState = "unread";
+      }
+    }
+  }
   const counts = parts.counts;
   const asked = Math.max(Number(pageNum) || 1, 1);
-  if (request.method === "GET" && !isSeoBot(request)) {
-    const job = bumpPaperCount(env, row.record_id, "views", request).catch(() => null);
-    if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(job);
-    else await job;
-  }
   const events = parts.events;
   const extra = parts.extra;
   const derived = parts.derived;
-  return pageHtml(page(row.title || "Record", recordBody({
+  const rendered = page(row.title || "Record", recordBody({
     row: { ...row, body: loaded.text, content_type: loaded.contentType || row.content_type },
     events,
     signed,
@@ -233,6 +243,7 @@ async function servePaperPage(request, env, ctx, signed, row, { permalink = "", 
     truncated: loaded.truncated,
     fileBytes,
     fileSkip,
+    pdfState,
   }), {
     signed,
     path: link,
@@ -252,7 +263,15 @@ async function servePaperPage(request, env, ctx, signed, row, { permalink = "", 
       content_sha256: row.content_sha256,
       content: String(loaded.text || row.snippet || row.body || "").replace(/\s+/g, " ").trim().slice(0, 400),
     },
-  }), {
+  });
+  const missingPage = rendered.includes("data-page-state=\"missing\"");
+  if (request.method === "GET" && !isSeoBot(request) && !missingPage) {
+    const job = bumpPaperCount(env, row.record_id, "views", request).catch(() => null);
+    if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(job);
+    else await job;
+  }
+  return pageHtml(rendered, {
+    status: missingPage ? 404 : 200,
     headers: { Link: recordMachineLinkHeader(row.record_id, "html", link) },
   });
 }
@@ -796,6 +815,18 @@ export async function handleHosted(request, url, env, ctx, signed, stats) {
 
     const report = await verifyHosted(env, request);
     return pageHtml(page("Verify", verifyBody({ report }), { signed, path: "/verify", kind: "verify" }));
+  }
+  if (read) {
+    const jump = paperJumpTarget(path, url.searchParams.get("page"));
+    if (jump && jump.invalid) {
+      return pageHtml(page("Page", "<div class=\"card\"><h1>Page not opened</h1><p class=\"paper-page-error\" data-page-state=\"missing\">That page request is not a page number. Nothing was painted.</p></div>", { signed, path, kind: "record" }), { status: 400 });
+    }
+    if (jump && jump.redirect) {
+      return new Response(null, {
+        status: 302,
+        headers: { Location: jump.redirect, "Cache-Control": "private, no-store", ...corsHeaders() },
+      });
+    }
   }
   const paperPath = parsePaperPermalink(path);
   if (paperPath && read && !paperPath.legacy) {

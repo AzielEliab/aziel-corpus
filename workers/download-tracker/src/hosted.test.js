@@ -235,6 +235,14 @@ test("Cockroach Doctrine slug guesses redirect to the locked permalink", async (
   const locked = await handleHosted(req(canonical), new URL(HOST + canonical), env, {}, null, null);
   assert.notEqual(locked.status, 301);
   assert.equal(locked.headers.get("location"), null);
+  const jump = await handleHosted(req("/aziellibrary/field-note?page=2"), new URL(HOST + "/aziellibrary/field-note?page=2"), env, {}, null, null);
+  assert.equal(jump.status, 302);
+  assert.equal(jump.headers.get("location"), "/aziellibrary/field-note/p/2");
+  const bad = await handleHosted(req("/aziellibrary/field-note?page=nope"), new URL(HOST + "/aziellibrary/field-note?page=nope"), env, {}, null, null);
+  assert.equal(bad.status, 400);
+  const badHtml = await bad.text();
+  assert.match(badHtml, /not a page number/);
+  assert.match(badHtml, /Nothing was painted/);
 });
 
 test("HEAD /about is a permanent redirect and HEAD /AzielEliab is HTML without a body", async () => {
