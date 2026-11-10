@@ -1159,6 +1159,8 @@ export function citeDoc(survival, outletCite, stamp, corpusTip) {
     runtime_git: git,
     runtime_git_full: gitFull,
     runtime_version_id: picked.version_id,
+    ...(picked.git_sha_source ? { runtime_git_source: picked.git_sha_source } : {}),
+    ...(picked.version_id_source ? { runtime_version_id_source: picked.version_id_source } : {}),
     runtime_stamp_source: picked.source,
     runtime_stamp_duty: picked.duty || COS_LIVE_RESTAMP_DUTY,
     runtime_sot_branch: sot && typeof sot.branch === "string" && sot.branch ? sot.branch : RUNTIME_SOT_BRANCH,

@@ -242,6 +242,8 @@ export function runtimeLaunchCite(stamp) {
       git,
       git_full: gitFull,
       version_id: versionId,
+      ...(stamp && stamp.git_sha_source ? { git_sha_source: stamp.git_sha_source } : {}),
+      ...(stamp && stamp.version_id_source ? { version_id_source: stamp.version_id_source } : {}),
       version: RUNTIME_VERSION,
       origin: RUNTIME_ORIGIN + "/",
       health: RUNTIME_ORIGIN + "/v1/health",

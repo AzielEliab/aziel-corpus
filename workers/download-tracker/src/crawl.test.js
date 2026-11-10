@@ -949,7 +949,23 @@ test("cite and llms prefer a live software stamp and ignore the retired bake", (
   assert.equal(cite.runtime_git, "ce673365");
   assert.equal(cite.runtime_version_id, "eaf0b54c-1e5b-4d54-a582-25c5cdc09f92");
   assert.equal(cite.runtime_stamp_source, "live");
+  assert.equal(cite.runtime_git_source, undefined);
+  assert.equal(cite.runtime_version_id_source, undefined);
   assert.equal(cite.runtime_launch.sot.git, "ce673365");
+  const separated = citeDoc(null, null, {
+    ...live,
+    git_sha_source: "deploy_var",
+    version_id_source: "cf_version_metadata",
+  });
+  assert.equal(separated.runtime_git, "ce673365");
+  assert.equal(separated.runtime_version, "2.0.0-rc1");
+  assert.equal(separated.public_version_source, "GET /v1/software catalog.version");
+  assert.equal(separated.runtime_git_source, "deploy_var");
+  assert.equal(separated.runtime_version_id_source, "cf_version_metadata");
+  assert.equal(separated.runtime_launch.sot.git_sha_source, "deploy_var");
+  assert.equal(separated.runtime_launch.sot.version_id_source, "cf_version_metadata");
+  assert.equal(separated.runtime_launch.sot.version, "2.0.0-rc1");
+  assert.notEqual(separated.runtime_version_id, separated.runtime_version);
   assert.match(cite.runtime_stamp_duty, /Cos LIVE restamp duty/);
 
   const llms = llmsDoc("LIMIT", null, live);
