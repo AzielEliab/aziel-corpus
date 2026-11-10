@@ -13,6 +13,7 @@ import {
   libraryHubRedirect,
 } from "./film.js";
 import { dualNodesCounts, resetMeshDualLastGood } from "./mesh.js";
+import { isLoopbackHost, requestUrl, runtimeBinding, unavailableResponse } from "./fixtures/hermetic-observe.js";
 
 const root = dirname(fileURLToPath(import.meta.url));
 const BANNED = /Collin Horton|legalName|homeLocation|familyName|grok\.me|__grok/;
@@ -118,9 +119,11 @@ test("GET / is the film and GET /search keeps the library hub", async () => {
   const env = { DOWNLOADS: store.kv };
   const origFetch = globalThis.fetch;
   globalThis.fetch = async (input, init) => {
-    const url = String(input && input.url ? input.url : input || "");
-    if (url.includes("/v1/mesh")) return new Response("mesh unread", { status: 503 });
-    return origFetch(input, init);
+    const url = requestUrl(input);
+    let host = "";
+    try { host = new URL(url).hostname; } catch { host = ""; }
+    if (isLoopbackHost(host)) return origFetch(input, init);
+    return unavailableResponse();
   };
   const readViews = () => store.views();
   try {
@@ -220,11 +223,16 @@ test("GET /search paints a real mesh pair and does not turn it into an em dash",
   assert.notEqual(pair.liveNodes, 41);
   const env = {
     DOWNLOADS: downloadsKv().kv,
-    AZIEL_RUNTIME: {
-      async fetch() {
-        return new Response(JSON.stringify(doc), { status: 200, headers: { "Content-Type": "application/json" } });
-      },
-    },
+    AZIEL_RUNTIME: runtimeBinding(async (request) => {
+      const path = new URL(request.url).pathname;
+      if (path === "/v1/mesh") {
+        return new Response(JSON.stringify(doc), {
+          status: 200,
+          headers: { "Content-Type": "application/json", "X-Aziel-Fixture": "observed" },
+        });
+      }
+      return unavailableResponse();
+    }),
   };
   try {
     const search = await worker.fetch(

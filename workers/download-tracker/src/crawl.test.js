@@ -1,5 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { installUnavailableOrigin, originFixtureHits } from "./fixtures/hermetic-observe.js";
+
+installUnavailableOrigin();
 import { SHELF_INDEX_LIMIT, LIBRARY_INDEX_KEY } from "./library-index.js";
 import {
   robotsTxt,
@@ -630,6 +633,7 @@ test("crawlResponse serves GET body and HEAD without body", async () => {
 });
 
 test("Worker SEO documents are 200 with long public cache and never empty for Googlebot", async () => {
+  const originBefore = originFixtureHits();
   const { default: worker } = await import("./index.js");
   const { SEO_CACHE_CONTROL } = await import("./library-index.js");
   const env = {
@@ -652,7 +656,19 @@ test("Worker SEO documents are 200 with long public cache and never empty for Go
     assert.ok(body.length > 20, path + " must not be thin/empty");
     if (path !== "/sitemap-index.xml") assert.match(body, /Aziel Eliab/);
     else assert.match(body, /azielcorpuslibrary\.net/);
+    if (path === "/cite.json") {
+      const cite = JSON.parse(body);
+      assert.equal(cite.platforms.all_live, null);
+      assert.equal(cite.live_doors, null);
+      assert.equal(cite.calling_name.alert, null);
+      assert.equal(cite.calling_name.prefer_pull, true);
+    }
+    if (path === "/llms.txt" || path === "/ai.txt" || path === "/who-is-aziel-eliab.txt" || path === "/who-is") {
+      assert.match(body, /prefer pulled/i);
+      assert.doesNotMatch(body, /Platforms all LIVE/);
+    }
   }
+  assert.ok(originFixtureHits() > originBefore, "survival and software reads stayed on the unavailable fixture");
   assert.match(SEO_CACHE_CONTROL, /s-maxage=3600/);
 });
 

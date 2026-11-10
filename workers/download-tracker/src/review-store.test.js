@@ -1,5 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { installUnavailableOrigin, originFixtureHits } from "./fixtures/hermetic-observe.js";
+
+installUnavailableOrigin();
 import {
   SHELF_REBUILD_MS,
   SHELF_SYNC_CHUNK,
@@ -634,6 +637,7 @@ test("recalibrate scored/skipped accumulate across chunks", async () => {
 });
 
 test("done recalibrate does not restart on ?all=1 unless force=1", async () => {
+  const originBefore = originFixtureHits();
   const env = mockEnv(sampleRecords(), {
     metadata: {
       succession_backfill_utc: "2026-09-12T00:00:00Z",
@@ -646,6 +650,8 @@ test("done recalibrate does not restart on ?all=1 unless force=1", async () => {
   assert.equal(report.scored, 454);
   const walked = env.sqlLog.filter((s) => /all:SELECT record_id, title, body/.test(s));
   assert.equal(walked.length, 0);
+  assert.ok(originFixtureHits() > originBefore, "ZionPattern score stayed on the unavailable fixture");
+  assert.doesNotMatch(JSON.stringify(report), /zsolver-live/);
 });
 
 test("recalibrate done:true clears shelf sync so rebuild walks again", async () => {

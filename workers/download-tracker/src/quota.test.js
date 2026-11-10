@@ -11,6 +11,9 @@ import {
   wouldWipeIndex,
 } from "./library-index.js";
 import worker, { SCHEDULED_WALKS, scheduledWalkIndex, runScheduledTick, CRON_INTERVAL_MS, githubStats, GITHUB_CACHE_MS } from "./index.js";
+import { installUnavailableOrigin, originFixtureHits } from "./fixtures/hermetic-observe.js";
+
+installUnavailableOrigin();
 import { readFileSync } from "node:fs";
 
 const HOST = "https://www.azielcorpuslibrary.net";
@@ -97,10 +100,12 @@ test("stats, count, library-index and v1/stats answer 503 + Retry-After on a KV 
 });
 
 test("record page answers 503 (not 404) when D1 is over quota and no packed card exists", async () => {
+  const originBefore = originFixtureHits();
   const env = { DOWNLOADS: memoryKv(), DB: d1({ error: D1_LIMIT }) };
   const res = await get(env, "/record/AZDOC-QUOTA1");
   assert.equal(res.status, 503);
   assert.ok(res.headers.get("Retry-After"));
+  assert.ok(originFixtureHits() > originBefore, "site presence stayed on the unavailable fixture");
 });
 
 test("sitemap-records answers 503 (not an empty sitemap) when D1 is over quota and the packed index is empty", async () => {

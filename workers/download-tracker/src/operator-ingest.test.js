@@ -4,6 +4,9 @@ import { handleOperatorIngestApi, operatorLibraryIngest } from "./operator-inges
 import { handleRuntimeApi } from "./runtime.js";
 import { isFanoutPath } from "./rate-limit.js";
 import { operatorSession } from "./library.js";
+import { installUnavailableOrigin, originFixtureHits } from "./fixtures/hermetic-observe.js";
+
+installUnavailableOrigin();
 
 const HOST = "https://www.azielcorpuslibrary.net";
 const TOKEN = "test-operator-token";
@@ -119,6 +122,7 @@ test("same SHA on aziel shelf is unchanged (idempotent)", async () => {
 });
 
 test("operator token ingest writes aziel and OpenAPI lists the route", async () => {
+  const originBefore = originFixtureHits();
   const url = new URL(HOST + "/v1/operator/library-ingest");
   const env = stubEnv();
   const md = [
@@ -174,4 +178,6 @@ test("operator token ingest writes aziel and OpenAPI lists the route", async () 
   const spec = await open.json();
   assert.ok(spec.paths["/v1/operator/library-ingest"]);
   assert.ok(spec.paths["/v1/operator/hash-resync"]);
+  assert.ok(originFixtureHits() > originBefore, "CLCE score stayed on the unavailable fixture");
+  assert.doesNotMatch(JSON.stringify(body), /azclce-live/);
 });

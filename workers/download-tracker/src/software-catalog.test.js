@@ -48,7 +48,8 @@ import {
   AZCOHERENCE_COUNT,
 } from "./azcoherence.js";
 import { handleRuntimeApi } from "./runtime.js";
-import { LIBRARY_COUNT } from "./runtime-copy.js";
+import { LIBRARY_COUNT, RUNTIME_VERSION } from "./runtime-copy.js";
+import { installUnavailableOrigin, isLoopbackHost, unavailableResponse } from "./fixtures/hermetic-observe.js";
 
 const HOST = "https://www.azielcorpuslibrary.net";
 const BANNED = /Collin Horton|GodLock\.AZ|\+25|quiet (Aziel|triad|boost)|10\.5281\/zenodo/i;
@@ -72,7 +73,10 @@ function blockLiveRuntime(origFetch, extra) {
         headers: { "Content-Type": "application/json" },
       });
     }
-    return origFetch(url, init);
+    let host = "";
+    try { host = new URL(href, "http://127.0.0.1").hostname; } catch { host = ""; }
+    if (isLoopbackHost(host)) return origFetch(url, init);
+    return unavailableResponse();
   };
 }
 
@@ -1087,25 +1091,32 @@ test("GET /software HTML prefers packed catalog and does not wait on a hanging o
 });
 
 test("fetchLiveRuntimeVersion cites live health and falls back to 2.0.0-rc1", async () => {
+  const observed = "observed-fixture-version";
   const env = stubEnv({
     async fetch(request) {
       const url = new URL(request.url);
       if (url.pathname.endsWith("/v1/health")) {
-        return new Response(JSON.stringify({ ok: true, version: "2.0.0-rc1" }), {
+        return new Response(JSON.stringify({ ok: true, version: observed, fixture: "observed" }), {
           status: 200,
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "X-Aziel-Fixture": "observed" },
         });
       }
       return new Response("no", { status: 404 });
     },
   });
-  assert.equal(await fetchLiveRuntimeVersion(env, { timeoutMs: 200 }), "2.0.0-rc1");
-  const quiet = stubEnv({
-    async fetch() {
-      return new Response(JSON.stringify({ error: "no" }), { status: 404 });
-    },
-  });
-  assert.equal(await fetchLiveRuntimeVersion(quiet, { timeoutMs: 200 }), "2.0.0-rc1");
+  const restore = installUnavailableOrigin();
+  try {
+    assert.equal(await fetchLiveRuntimeVersion(env, { timeoutMs: 200 }), observed);
+    const quiet = stubEnv({
+      async fetch() {
+        return new Response("no", { status: 404 });
+      },
+    });
+    assert.equal(await fetchLiveRuntimeVersion(quiet, { timeoutMs: 200 }), RUNTIME_VERSION);
+    assert.notEqual(observed, RUNTIME_VERSION);
+  } finally {
+    restore();
+  }
 });
 
 test("Softwares cards show views+downloads for corpus, runtime hub, and CodeLock", async () => {
