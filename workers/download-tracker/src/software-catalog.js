@@ -17,6 +17,7 @@ import {
   resolveRuntimeVersion,
   runtimeDistributionLinks,
 } from "./runtime-copy.js";
+import { stampForHtmlCatalog } from "./runtime-cite-stamp.js";
 import { runtimeUsesPayload } from "./runtime-uses.js";
 import {
   AZCOHERENCE_SOFTWARE_EXTRA,
@@ -1115,6 +1116,7 @@ export async function loadSoftwareCatalog(env, stats, opts = {}) {
     extras: cards.filter((c) => c.extra).length,
     catalogVersion,
     source: live.source,
+    sot: stampForHtmlCatalog(catalog, live.source),
     usesTotal: localUses,
     originUses: originUses != null && Number.isFinite(originUses) ? originUses : null,
     siteViews: localStats && localStats.views != null ? Number(localStats.views) : null,

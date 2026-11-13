@@ -19,6 +19,7 @@ export const RETIRED_RUNTIME_VERSION_ID = "a8f7fdc9";
 const SHORT_GIT = /^[0-9a-f]{7,8}$/;
 const FULL_GIT = /^[0-9a-f]{40}$/;
 const VERSION_ID = /^(?:[0-9a-f]{8}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/;
+const SOURCE_LABEL = /^[a-z0-9_-]{1,48}$/;
 
 export const COS_LIVE_RESTAMP_DUTY =
   "Cos LIVE restamp duty. Baked fallback is ce673365 / eaf0b54c "
@@ -32,33 +33,151 @@ export const MESH_POINTER_NOTE =
   "GET /v1/mesh never enables. Remain-OFF. The URL is a counts/status cite, not an enable.";
 
 let liveCache = { at: 0, stamp: null };
+/** Short reuse for cite.json only. Not a permanent current tip, and HTML does not read it. */
 const LIVE_CACHE_MS = 60_000;
 
+/**
+ * Machine labels for a stamp. A bake keeps the known floor pair and is not a
+ * fresh observation. observed_at stays null: this repo does not date the floor,
+ * and a failed read must not invent a clock time.
+ */
+export function labelRuntimeStamp(stamp) {
+  const source = stamp && stamp.source ? stamp.source : "baked-fallback";
+  const observed = source === "live";
+  return Object.assign({}, stamp, {
+    source,
+    observed,
+    current: observed,
+    floor: source === "baked-fallback",
+    observed_at: null,
+  });
+}
+
 export function bakedRuntimeStamp() {
-  return {
+  return labelRuntimeStamp({
     git: RUNTIME_GIT_SHA,
     git_full: RUNTIME_GIT_FULL,
     version_id: RUNTIME_VERSION_ID,
     source: "baked-fallback",
     duty: COS_LIVE_RESTAMP_DUTY,
-  };
+  });
 }
 
-export function stampFromSoftwareText(text) {
+/** Depth-1 JSON fields only. Nested tip_hold git_sha values are not the catalog tip. */
+export function topLevelSoftwareFields(text) {
   const raw = String(text || "");
-  const gitM = raw.match(/"git_sha"\s*:\s*"([0-9a-fA-F]{7,40})"/);
-  const vidM = raw.match(/"version_id"\s*:\s*"([0-9a-fA-F-]{8,36})"/);
-  if (!gitM || !vidM) return null;
-  const full = gitM[1].toLowerCase();
-  const vid = vidM[1].toLowerCase();
+  const fields = new Map();
+  let depth = 0;
+  let i = 0;
+  while (i < raw.length) {
+    const c = raw[i];
+    if (c === '"') {
+      i += 1;
+      let key = "";
+      let esc = false;
+      for (; i < raw.length; i += 1) {
+        const ch = raw[i];
+        if (esc) { key += ch; esc = false; continue; }
+        if (ch === "\\") { esc = true; continue; }
+        if (ch === '"') { i += 1; break; }
+        key += ch;
+      }
+      if (depth !== 1) continue;
+      let j = i;
+      while (j < raw.length && /\s/.test(raw[j])) j += 1;
+      if (raw[j] !== ":") continue;
+      j += 1;
+      while (j < raw.length && /\s/.test(raw[j])) j += 1;
+      if (fields.has(key)) { i = j; continue; }
+      if (raw[j] === '"') {
+        j += 1;
+        let value = "";
+        let escaped = false;
+        for (; j < raw.length; j += 1) {
+          const ch = raw[j];
+          if (escaped) { value += ch; escaped = false; continue; }
+          if (ch === "\\") { escaped = true; continue; }
+          if (ch === '"') { j += 1; break; }
+          value += ch;
+        }
+        fields.set(key, { type: "string", value });
+        i = j;
+        continue;
+      }
+      const lit = /^(true|false|null)\b/.exec(raw.slice(j));
+      if (lit) {
+        fields.set(key, { type: "literal", value: lit[1] });
+        i = j + lit[1].length;
+        continue;
+      }
+      fields.set(key, { type: "other", value: "" });
+      i = j;
+      continue;
+    }
+    if (c === "{" || c === "[") depth += 1;
+    else if (c === "}" || c === "]") depth = Math.max(0, depth - 1);
+    i += 1;
+  }
+  return fields;
+}
+
+function observedLabel(value) {
+  const label = String(value || "").toLowerCase();
+  return SOURCE_LABEL.test(label) ? label : "";
+}
+
+/**
+ * Top-level git_sha and version_id from GET /v1/software.
+ * A nested tip_hold is not the observation. updated_at is not version_id.
+ * git_sha_source and version_id_source stay separate fields.
+ * Refuse when the document says the sha does not track the deployed tip,
+ * or when deploy_lag is present and not null.
+ */
+export function stampFromSoftwareText(text) {
+  const fields = topLevelSoftwareFields(text);
+  const gitField = fields.get("git_sha");
+  const vidField = fields.get("version_id");
+  if (!gitField || gitField.type !== "string" || !vidField || vidField.type !== "string") return null;
+  const tracks = fields.get("git_sha_tracks_deployed_tip");
+  if (tracks && (tracks.type !== "literal" || tracks.value !== "true")) return null;
+  const lag = fields.get("deploy_lag");
+  if (lag && !(lag.type === "literal" && lag.value === "null")) return null;
+  const full = gitField.value.toLowerCase();
+  const vid = vidField.value.toLowerCase();
   if (!/^[0-9a-f]{7,40}$/.test(full) || !VERSION_ID.test(vid)) return null;
-  return {
+  const git_sha_source = observedLabel(fields.get("git_sha_source") && fields.get("git_sha_source").type === "string" ? fields.get("git_sha_source").value : "");
+  const version_id_source = observedLabel(fields.get("version_id_source") && fields.get("version_id_source").type === "string" ? fields.get("version_id_source").value : "");
+  const stamp = {
     git: full.length === 7 ? full : full.slice(0, 8),
     git_full: full.length === 40 ? full : "",
     version_id: vid,
     source: "live",
     duty: COS_LIVE_RESTAMP_DUTY,
   };
+  if (git_sha_source) stamp.git_sha_source = git_sha_source;
+  if (version_id_source) stamp.version_id_source = version_id_source;
+  return labelRuntimeStamp(stamp);
+}
+
+/** Top-level fields only. Does not stringify a catalog body. */
+export function stampFromSoftwareDoc(doc) {
+  if (!doc || typeof doc !== "object" || Array.isArray(doc)) return null;
+  const slim = {};
+  for (const key of ["git_sha", "version_id", "git_sha_source", "version_id_source", "git_sha_tracks_deployed_tip", "deploy_lag"]) {
+    if (Object.prototype.hasOwnProperty.call(doc, key)) slim[key] = doc[key];
+  }
+  return stampFromSoftwareText(JSON.stringify(slim));
+}
+
+/** A saved catalog copy is not a fresh observation and is not current forever. */
+export function stampForHtmlCatalog(doc, fetchSource) {
+  const parsed = stampFromSoftwareDoc(doc);
+  if (!parsed) return null;
+  const src = String(fetchSource || "");
+  if (/cache|stale/i.test(src)) {
+    return labelRuntimeStamp(Object.assign({}, parsed, { source: "catalog-copy" }));
+  }
+  return parsed;
 }
 
 /**
@@ -73,13 +192,18 @@ export function pickRuntimeStamp(explicit, sot) {
     && VERSION_ID.test(String(explicit.version_id || ""))
   ) {
     const full = String(explicit.git_full || "").toLowerCase();
-    return {
+    const picked = {
       git: String(explicit.git).toLowerCase(),
       git_full: FULL_GIT.test(full) ? full : "",
       version_id: String(explicit.version_id).toLowerCase(),
       source: "live",
       duty: COS_LIVE_RESTAMP_DUTY,
     };
+    const gitSource = observedLabel(explicit.git_sha_source);
+    const versionSource = observedLabel(explicit.version_id_source);
+    if (gitSource) picked.git_sha_source = gitSource;
+    if (versionSource) picked.version_id_source = versionSource;
+    return labelRuntimeStamp(picked);
   }
   const git = sot && SHORT_GIT.test(String(sot.git || "").toLowerCase())
     ? String(sot.git).toLowerCase()
@@ -96,13 +220,13 @@ export function pickRuntimeStamp(explicit, sot) {
         if (vid !== RETIRED_RUNTIME_VERSION_ID && VERSION_ID.test(vid)) version_id = vid;
       }
     }
-    return {
+    return labelRuntimeStamp({
       git,
       git_full: full,
       version_id,
       source: "outlet",
       duty: COS_LIVE_RESTAMP_DUTY,
-    };
+    });
   }
   return bakedRuntimeStamp();
 }
@@ -122,7 +246,8 @@ export async function readSoftwareStamp(response) {
           if (step.done) break;
           text += dec.decode(step.value, { stream: true });
           const parsed = stampFromSoftwareText(text);
-          if (parsed) return parsed;
+          // Wait until the deployed-tip flag is in the prefix. A later false must fail closed.
+          if (parsed && text.includes('"git_sha_tracks_deployed_tip"')) return parsed;
         }
       } finally {
         try { await reader.cancel(); } catch { /* already closed */ }

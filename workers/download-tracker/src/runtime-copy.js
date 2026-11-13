@@ -233,15 +233,23 @@ export function runtimeLaunchCite(stamp) {
     ? stamp.version_id
     : RUNTIME_VERSION_ID;
   const source = stamp && stamp.source ? stamp.source : "baked-fallback";
+  const observed = source === "live";
+  const floor = source === "baked-fallback";
   return {
     spec: "AZRT-HUB-LAUNCH-CITE-1.0",
     status: "ready",
     sot: {
-      live: true,
+      live: observed,
+      observed,
+      current: observed,
+      floor,
+      observed_at: null,
       branch: RUNTIME_SOT_BRANCH,
       git,
       git_full: gitFull,
       version_id: versionId,
+      ...(stamp && stamp.git_sha_source ? { git_sha_source: stamp.git_sha_source } : {}),
+      ...(stamp && stamp.version_id_source ? { version_id_source: stamp.version_id_source } : {}),
       version: RUNTIME_VERSION,
       origin: RUNTIME_ORIGIN + "/",
       health: RUNTIME_ORIGIN + "/v1/health",
@@ -250,8 +258,12 @@ export function runtimeLaunchCite(stamp) {
       local_only: RUNTIME_LOCAL_ONLY,
       source,
       note:
-        "Operator SoT " + (source === "live" ? "LIVE" : "baked fallback") + ": aziel-runtime "
-        + RUNTIME_SOT_BRANCH + " " + git
+        (observed
+          ? "Operator SoT LIVE observation: "
+          : floor
+            ? "Known baked floor, not a fresh software tip. observed_at is unknown. "
+            : "Not a fresh software observation. observed_at is unknown. ")
+        + "aziel-runtime " + RUNTIME_SOT_BRANCH + " " + git
         + " / version_id " + versionId + " / " + RUNTIME_VERSION
         + " at " + RUNTIME_ORIGIN + ". Prefer live GET /v1/software git_sha and version_id. "
         + "Cos LIVE restamp duty on the bake (ce673365 / eaf0b54c). "
@@ -317,10 +329,25 @@ export function runtimeLaunchCite(stamp) {
   };
 }
 
-export function runtimeLaunchNote() {
-  const cite = runtimeLaunchCite();
-  return "Launch cite: Runtime SoT LIVE " + cite.sot.branch + " " + cite.sot.git
-    + " / version_id " + cite.sot.version_id + " / " + cite.sot.version
+/** Human sentence for one stamp. No stamp means the known floor, not a live read. */
+export function runtimeSotPlain(stamp) {
+  const s = runtimeLaunchCite(stamp).sot;
+  const pair = s.branch + " " + s.git + " / version_id " + (s.version_id || "");
+  if (s.observed === true && s.current === true && s.source === "live") {
+    return "SoT current observation: " + pair + ". observed_at was not recorded";
+  }
+  if (s.source === "outlet") {
+    return "SoT outlet copy, not a fresh observation: " + pair + ". observed_at unknown";
+  }
+  if (s.source === "catalog-copy") {
+    return "SoT saved catalog copy, not a fresh observation and not current forever: " + pair;
+  }
+  return "SoT floor, not a fresh observation: " + pair + ". observed_at unknown";
+}
+
+export function runtimeLaunchNote(stamp) {
+  const cite = runtimeLaunchCite(stamp);
+  return "Launch cite: " + runtimeSotPlain(stamp)
     + ". Human UI on the Runtime Worker (" + cite.human_ui.anchors.join(" ")
     + " + About Aziel + hashtags + /download). MCP Softwares via fraggate_call only. "
     + "FragGate is THE single door. Lamb Lens " + cite.lamb_lens + ". NO-LIE. Growth-ON.";

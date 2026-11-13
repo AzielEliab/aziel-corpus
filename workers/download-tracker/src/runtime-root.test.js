@@ -154,6 +154,8 @@ test("GET and HEAD /runtime return 200 HTML without a second software index", as
   assert.match(html, /2\.0\.0-rc1/);
   assert.match(html, /node-meshed orchestration suite/);
   assert.match(html, /41 live/);
+  assert.match(html, /SoT floor, not a fresh observation/);
+  assert.doesNotMatch(html, /SoT LIVE/);
   assert.match(html, /ce673365/);
   assert.match(html, /eaf0b54c-1e5b-4d54-a582-25c5cdc09f92/);
   assert.match(html, /#op-panel/);

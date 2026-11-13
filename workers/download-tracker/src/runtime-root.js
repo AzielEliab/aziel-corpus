@@ -25,6 +25,7 @@ import {
   resolveRuntimeVersion,
   runtimeDescription,
   runtimeLaunchCite,
+  runtimeSotPlain,
   RUNTIME_GIT_SHA,
   RUNTIME_VERSION_ID,
   RUNTIME_SOT_BRANCH,
@@ -73,7 +74,7 @@ ${RUNTIME_ABSTRACT}
 **THIS IS:** Aziel Runtime ${RUNTIME_VERSION} on the Digital Library at ${HOST}/runtime.
 Not an API aggregator. One door — discover, route, refuse. Prefer same-origin \`/runtime/*\`.
 ${RUNTIME_LIVE_COUNT} live advisory engines; ${RUNTIME_LOCAL_ONLY} stays local_only; stub verbs refuse.
-SoT LIVE: ${RUNTIME_SOT_BRANCH} ${RUNTIME_GIT_SHA} / version_id ${RUNTIME_VERSION_ID}.
+${runtimeSotPlain()}.
 Catalog slugs (\`${ENGINE_SLUGS.join("`, `")}\`) are true engines. HTTP \`/p/{slug}/{op}\` is a proxy and is not exec.
 Do **not** treat \`${HOST}/v1/runtime\` as the engine manifest (that is Digital Library package discovery).
 Engine manifest: \`${HOST}/runtime/v1/runtime.json\` or \`${HOST}/v1/runtime.json\`.
