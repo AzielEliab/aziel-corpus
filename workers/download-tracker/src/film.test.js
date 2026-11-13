@@ -31,6 +31,18 @@ test("film theater document is the front door only", () => {
   assert.match(html, new RegExp('class="enter" href="' + LIBRARY_HUB_PATH + '"'));
   assert.match(html, new RegExp('href="' + LIBRARY_HUB_PATH + '">www\\.azielcorpuslibrary\\.net'));
   assert.match(html, /href="\/corpus">corpus/);
+  const doors = html.match(/<nav class="doors"[\s\S]*?<\/nav>/)[0];
+  assert.deepEqual(
+    [...doors.matchAll(/<a href="([^"]+)"[^>]*>([^<]+)<\/a>/g)].map((m) => [m[1], m[2]]),
+    [
+      ["/search", "www.azielcorpuslibrary.net"],
+      ["/corpus", "corpus"],
+      ["/voynich", "voynich"],
+      ["/receipts", "receipts"],
+      ["https://www.azieleliab.com/", "www.azieleliab.com"],
+    ],
+  );
+  assert.doesNotMatch(doors, /godlock\.uk|hedidntjump|vibelock\.workers\.dev|furnaceisntfree|timetounsealthebook/);
   assert.match(html, /href="https:\/\/www\.azieleliab\.com\/"/);
   assert.match(html, new RegExp(FILM_MP4_PATH.replace(/\//g, "\\/")));
   assert.match(html, new RegExp(FILM_POSTER_PATH.replace(/\//g, "\\/")));

@@ -4,7 +4,7 @@
  * Enter navigates to the library hub at /search. The hub is not mounted under this page.
  * Author: Aziel Eliab.
  */
-import { CANON_HOST, HUB_PERSON_ID, websiteNode, siteFooterHtml, AZIEL_HANDLES_PATH, SISTER_SITES } from "./seo.js";
+import { CANON_HOST, HUB_PERSON_ID, websiteNode, siteFooterHtml, AZIEL_HANDLES_PATH } from "./seo.js";
 import { personNode } from "./identity.js";
 import { VOYNICH_LABEL, VOYNICH_PATH } from "./voynich-housing.js";
 import { RECEIPTS_TAB_LABEL, RECEIPTS_TAB_PATH } from "./receipt-aggregate.js";
@@ -143,7 +143,6 @@ function filmGateHtml() {
       <a href="${VOYNICH_PATH}">${VOYNICH_LABEL}</a>
       <a href="${RECEIPTS_TAB_PATH}">${RECEIPTS_TAB_LABEL}</a>
       <a href="https://www.azieleliab.com/" target="_blank" rel="noreferrer">www.azieleliab.com</a>
-      ${SISTER_SITES.filter((row) => row.id !== "official" && row.id !== "corpus").map((row) => `<a href="${esc(row.href)}" target="_blank" rel="noreferrer">${esc(row.label)}</a>`).join("\n      ")}
     </nav>
     <p class="close-line">If the files hold, the name was never the point.</p>
     <p class="download"><a href="${FILM_SRC}" download="aziel-corpus-the-record.mp4">Download the film</a></p>
