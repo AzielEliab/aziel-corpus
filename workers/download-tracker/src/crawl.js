@@ -270,8 +270,8 @@ const PATH_LASTMOD = Object.freeze({
 
 /**
  * Source files behind each PATH_LASTMOD entry (repo-root relative). Each date must equal the
- * newest committer day (%cs) of the commit that authored the current bytes. A merge that only
- * carries a parent's blob does not move the day. scripts/check-lastmod.mjs and crawl.test.js verify.
+ * newest non-merge committer day (%cs) across its sources. A later merge commit does not
+ * move the day. scripts/check-lastmod.mjs and crawl.test.js verify.
  */
 export const PATH_LASTMOD_SOURCES = Object.freeze({
   "/": ["workers/download-tracker/src/ui.js", "workers/download-tracker/src/identity.js"],
