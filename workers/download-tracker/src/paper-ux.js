@@ -5,7 +5,8 @@
  * Author: Aziel Eliab.
  */
 import { classifyRequest } from "./classify.js";
-import { extractReaderView, packagedKind, readerWantsBytes } from "./office-extract.js";
+import { extractReaderView, packagedKind, READER_FILE_CAP, readerWantsBytes } from "./office-extract.js";
+import { pdfPageCount } from "./pdf-pages.js";
 import { isHumanTag, isMachineFileTag, visibleTagEntries } from "./visible-tags.js";
 import { rethrowIfQuota } from "./quota.js";
 import { bumpCounters, listD1PrefixCounters, readCounters } from "./counters.js";
@@ -295,6 +296,20 @@ export function paperAliasLocation(row, page) {
   return n <= 1 ? base : base + "/p/" + n;
 }
 
+/** Same-path jump from ?page=. A path that already names /p/N keeps that page. */
+export function paperJumpTarget(pathname, pageParam) {
+  if (pageParam == null || pageParam === "") return null;
+  if (!parsePaperPermalink(pathname)) return null;
+  const raw = String(pageParam);
+  if (!/^[1-9][0-9]{0,5}$/.test(raw)) return { invalid: true };
+  const path = String(pathname || "").replace(/\/+$/, "") || "/";
+  if (/\/p\/\d+$/.test(path)) return null;
+  const n = Number(raw);
+  const parsed = parsePaperPermalink(path);
+  if (parsed && parsed.page === n) return null;
+  return { redirect: n === 1 ? path : path + "/p/" + n };
+}
+
 export function filedLabel(row) {
   const raw = String((row && row.created_utc) || "").trim();
   if (!raw || Number.isNaN(Date.parse(raw))) return { text: "Undated", undated: true };
@@ -563,7 +578,8 @@ function viewFrame(kind, src, title) {
   const label = esc(title || "Filed file");
   const href = esc(src);
   if (kind === "pdf") {
-    return "<div class=\"paper-view\">" + stageHtml("pdf", "framed", "<iframe class=\"paper-embed paper-pdf\" src=\"" + href + "#view=FitH\" title=\"" + label + "\"></iframe>") + "</div>"
+    const withHash = href.includes("#") ? href : href + "#view=FitH";
+    return "<div class=\"paper-view\">" + stageHtml("pdf", "framed", "<iframe class=\"paper-embed paper-pdf\" src=\"" + withHash + "\" title=\"" + label + "\"></iframe>") + "</div>"
       + "<p class=\"muted paper-view-note\">PDF pages open in the browser viewer, fit to the pane width. If this pane stays blank, this browser did not paint the PDF. Download stays below.</p>";
   }
   if (kind === "image") {
@@ -681,6 +697,54 @@ function knownGapReason(filename) {
   return gap[ext] || "";
 }
 
+function unitWord(unit, plural) {
+  if (unit === "slide") return plural ? "Slides" : "Slide";
+  if (unit === "sheet") return plural ? "Sheets" : "Sheet";
+  return plural ? "Pages" : "Page";
+}
+
+function turnerNav(place, { base, index, count, unit }) {
+  if (!base || !count || count < 2 || !index) return "";
+  const word = unitWord(unit, false);
+  const prevHref = index > 1 ? paperAliasLocation({ permalink: base }, index - 1) : "";
+  const nextHref = index < count ? paperAliasLocation({ permalink: base }, index + 1) : "";
+  const prevCtl = prevHref
+    ? "<a class=\"page-turn page-turn-prev\" rel=\"prev\" href=\"" + esc(prevHref) + "\">Previous</a>"
+    : "<span class=\"page-turn page-turn-prev\" aria-disabled=\"true\">Previous</span>";
+  const nextCtl = nextHref
+    ? "<a class=\"page-turn page-turn-next\" rel=\"next\" href=\"" + esc(nextHref) + "\">Next</a>"
+    : "<span class=\"page-turn page-turn-next\" aria-disabled=\"true\">Next</span>";
+  const inputId = "paper-page-" + place;
+  const status = "<span class=\"page-status\">" + word + " " + index + " of " + count + "</span>";
+  const form = "<form class=\"page-jump\" method=\"get\" action=\"" + esc(base) + "\">"
+    + "<label class=\"page-jump-label\" for=\"" + esc(inputId) + "\">Go to " + word.toLowerCase() + "</label>"
+    + "<input id=\"" + esc(inputId) + "\" name=\"page\" type=\"text\" inputmode=\"numeric\" pattern=\"[1-9][0-9]*\" value=\"" + index + "\" aria-label=\"" + word + " number\" size=\"4\">"
+    + "<button class=\"page-jump-go\" type=\"submit\">Go</button></form>";
+  return "<nav class=\"page-turner page-turner-" + place + "\" aria-label=\"" + unitWord(unit, true) + "\" data-page=\"" + index + "\" data-pages=\"" + count + "\" data-unit=\"" + esc(unit || "page") + "\">"
+    + prevCtl + status + form + nextCtl + "</nav>";
+}
+
+function pdfUnknownNote(reason) {
+  if (reason === "encrypted") {
+    return "This PDF is encrypted. Its page total was not read, so next, previous, and jump stay off.";
+  }
+  if (reason === "oversize") {
+    return "This PDF is larger than the reader counts (" + READER_FILE_CAP.toLocaleString("en-US") + " bytes). Its page total was not read, so next, previous, and jump stay off.";
+  }
+  return "This PDF's page total was not read, so next, previous, and jump stay off.";
+}
+
+function notDividedMessage(kind, asked) {
+  const what = kind === "image" ? "image"
+    : kind === "audio" ? "audio file"
+      : kind === "video" ? "video"
+        : kind === "html" ? "HTML file"
+          : kind === "archive" ? "archive"
+            : kind === "office" ? "document"
+              : "file";
+  return "Page " + asked + " was not opened. This " + what + " is not divided into pages.";
+}
+
 function packagedViewHtml(view) {
   if (!view || !view.painted) {
     const reason = (view && view.reason) || "The reader could not paint this file. Download stays below.";
@@ -702,6 +766,7 @@ export function renderPaperReader({
   truncated = false,
   fileBytes = null,
   fileSkip = "",
+  pdfState,
 } = {}) {
   const id = recordIdOf(row);
   const title = redactIdentityCluster((row && row.title) || id || "Paper").text;
@@ -713,34 +778,24 @@ export function renderPaperReader({
   const ct = contentType || (row && row.content_type) || "";
   const kind = readerKind({ contentType: ct, filename, body });
   const hasFile = !!(row && String(row.object_key || "").trim());
-  const split = kind === "text"
-    ? splitPaperPages(body, { contentType: ct })
-    : { mode: kind, pages: [], page_count: 0, note: "" };
-  const asked = Math.max(Number(page) || 1, 1);
-  const inRange = split.mode !== "paged" || asked <= split.page_count;
-  const pageIndex = split.mode === "paged" ? Math.min(asked, Math.max(split.page_count, 1)) : 1;
-  const pageText = split.mode === "paged" || split.mode === "standalone" ? (split.pages[pageIndex - 1] || "") : "";
-  const shown = redactIdentityCluster(pageText).text;
-  const linked = split.mode === "paged" || split.mode === "standalone" ? linkCitations(shown, catalog, id) : "";
+  const askedRaw = Number(page);
+  const asked = Number.isSafeInteger(askedRaw) && askedRaw >= 1 ? askedRaw : 1;
   const base = link || ("/record/" + id);
-  function turnerNav(place) {
-    if (split.mode !== "paged") return "";
-    const prev = pageIndex > 1 ? (pageIndex === 2 ? base : base + "/p/" + (pageIndex - 1)) : "";
-    const next = pageIndex < split.page_count ? base + "/p/" + (pageIndex + 1) : "";
-    const prevCtl = prev
-      ? "<a class=\"page-turn\" rel=\"prev\" href=\"" + esc(prev) + "\">Previous</a>"
-      : "<span class=\"page-turn\" aria-disabled=\"true\">Previous</span>";
-    const nextCtl = next
-      ? "<a class=\"page-turn\" rel=\"next\" href=\"" + esc(next) + "\">Next</a>"
-      : "<span class=\"page-turn\" aria-disabled=\"true\">Next</span>";
-    return "<nav class=\"page-turner page-turner-" + place + "\" aria-label=\"Pages\" data-page=\"" + pageIndex + "\" data-pages=\"" + split.page_count + "\">"
-      + prevCtl
-      + "<span class=\"page-status\">Page " + pageIndex + " of " + split.page_count + "</span>"
-      + nextCtl
-      + "</nav>";
+  let mode = kind;
+  let unit = "page";
+  let knownCount = null;
+  let pageIndex = 0;
+  let pageState = "";
+  let unknownNote = "";
+  let bodyHtml = "";
+  let showTurner = false;
+  function miss(message, state, backLabel) {
+    pageState = state || "missing";
+    const back = pageState === "missing" && base
+      ? "<p><a href=\"" + esc(base) + "\">" + esc(backLabel || "Open page 1") + "</a></p>"
+      : "";
+    bodyHtml = "<p class=\"paper-page-error\" data-page-state=\"" + pageState + "\">" + esc(message) + "</p>" + back;
   }
-  const turnerTop = turnerNav("top");
-  const turnerEnd = turnerNav("end");
   let countsHtml = "<p class=\"paper-counts\" data-source=\"unread\">Views and downloads load with the paper page.</p>";
   if (counts && counts.available === false) {
     countsHtml = "<p class=\"paper-counts\" data-source=\"unavailable\">Per-paper counters are not available on this render.</p>";
@@ -768,27 +823,85 @@ export function renderPaperReader({
   const meta = "<aside class=\"paper-meta\"><h2>Record</h2><dl>"
     + metaRows.map((pair) => "<dt>" + esc(pair[0]) + "</dt><dd>" + esc(pair[1]) + "</dd>").join("")
     + "</dl><p class=\"muted\">Lamb Lens: Service — this page opens the filed paper. Clarity — views and downloads are stored counters, and a cite links only when that paper is already in the library. Peace — a name that is not in the library stays plain text.</p></aside>";
-  const rangeNote = !inRange
-    ? "<p class=\"muted\">Page " + asked + " is not in this paper" + (split.page_count ? " (" + split.page_count + (split.page_count === 1 ? " page" : " pages") + ")" : "") + ".</p>"
-    : "";
   const notes = storedNotesText(body, filename);
   const src = id ? fileSrc(id) : "";
-  let bodyHtml = "";
-  let mode = kind;
-  if (kind === "text" && (split.mode === "paged" || split.mode === "standalone")) {
-    mode = split.mode;
-    const trunc = truncated ? "<p class=\"muted\">Stored text is longer than the reader window (" + READER_TEXT_CAP.toLocaleString("en-US") + " characters). Download the file for the rest.</p>" : "";
-    bodyHtml = "<div class=\"paper-view\">" + stageHtml("text", "flow", rangeNote + paragraphsHtml(linked) + trunc) + "</div>";
+  const truncNote = truncated
+    ? "<p class=\"muted\">Stored text is longer than the reader window (" + READER_TEXT_CAP.toLocaleString("en-US") + " characters). Download the file for the rest.</p>"
+    : "";
+  if (kind === "text") {
+    const split = splitPaperPages(body, { contentType: ct });
+    if (split.mode === "paged" || split.mode === "standalone") {
+      mode = split.mode;
+      knownCount = split.page_count;
+      if (knownCount < 1) {
+        if (asked > 1) miss("Page " + asked + " was not opened. This paper has no pages.");
+        else {
+          const shown = redactIdentityCluster(split.pages[0] || "").text;
+          bodyHtml = "<div class=\"paper-view\">" + stageHtml("text", "flow", paragraphsHtml(linkCitations(shown, catalog, id)) + truncNote) + "</div>";
+        }
+      } else if (asked > knownCount) {
+        miss("Page " + asked + " is not in this paper (" + knownCount + (knownCount === 1 ? " page" : " pages") + ").");
+      } else {
+        pageIndex = asked;
+        const shown = redactIdentityCluster(split.pages[asked - 1] || "").text;
+        const linked = linkCitations(shown, catalog, id);
+        bodyHtml = "<div class=\"paper-view\">" + stageHtml("text", "flow", paragraphsHtml(linked) + truncNote) + "</div>";
+        showTurner = split.mode === "paged";
+      }
+    } else {
+      mode = "opaque";
+      bodyHtml = "<p class=\"paper-unrendered\">Stored text is not readable, so no page was painted.</p>";
+    }
+  } else if (kind === "pdf") {
+    mode = "pdf";
+    if (!hasFile) {
+      if (asked > 1) miss("Page " + asked + " was not opened. This PDF has no stored file object.");
+      else bodyHtml = missingFileNote("pdf") + storedTextBlock(notes, catalog, id, truncated, true);
+    } else if (pdfState === "unread") {
+      miss("The stored PDF could not be read, so no page was painted.", "unreadable");
+      if (notes) bodyHtml += storedTextBlock(notes, catalog, id, truncated, true);
+    } else {
+      let counted = null;
+      if (pdfState instanceof Uint8Array) {
+        try { counted = pdfPageCount(pdfState); } catch { counted = { pages: null, reason: "unresolved" }; }
+      } else if (pdfState === "oversize") {
+        counted = { pages: null, reason: "oversize" };
+      }
+      if (counted && counted.pages === 0) {
+        knownCount = 0;
+        bodyHtml = "<p class=\"paper-page-error\">This PDF has no pages, so nothing was painted.</p>";
+      } else if (counted && counted.pages != null && counted.pages >= 1) {
+        knownCount = counted.pages;
+        if (asked > knownCount) {
+          miss("Page " + asked + " is not in this PDF (" + knownCount + (knownCount === 1 ? " page" : " pages") + ").");
+        } else {
+          pageIndex = asked;
+          const single = knownCount === 1 ? "<p class=\"page-status page-single\" data-pages=\"1\">1 page</p>" : "";
+          bodyHtml = single + viewFrame("pdf", src + "#page=" + asked + "&view=FitH", title + ", page " + asked) + storedTextBlock(notes, catalog, id, truncated);
+          showTurner = knownCount > 1;
+        }
+      } else {
+        unknownNote = pdfUnknownNote(counted && counted.reason);
+        if (asked > 1) miss("Page " + asked + " was not opened. " + unknownNote);
+        else {
+          bodyHtml = "<p class=\"page-total-unknown\">" + esc(unknownNote) + "</p>"
+            + viewFrame("pdf", src, title)
+            + storedTextBlock(notes, catalog, id, truncated);
+        }
+      }
+    }
   } else if (kind === "html" && !hasFile && notes) {
     mode = "html";
-    bodyHtml = htmlSrcdoc(notes, title);
-  } else if ((kind === "pdf" || kind === "image" || kind === "audio" || kind === "video" || kind === "html") && hasFile && src) {
+    if (asked > 1) miss(notDividedMessage("html", asked), "missing", "Open the file");
+    else bodyHtml = htmlSrcdoc(notes, title);
+  } else if ((kind === "image" || kind === "audio" || kind === "video" || kind === "html") && hasFile && src) {
     mode = kind;
-    const extra = kind === "html" ? "" : storedTextBlock(notes, catalog, id, truncated);
-    bodyHtml = viewFrame(kind, src, title) + extra;
-  } else if (kind === "pdf" || kind === "image" || kind === "audio" || kind === "video" || kind === "html") {
+    if (asked > 1) miss(notDividedMessage(kind, asked), "missing", "Open the file");
+    else bodyHtml = viewFrame(kind, src, title) + (kind === "html" ? "" : storedTextBlock(notes, catalog, id, truncated));
+  } else if (kind === "image" || kind === "audio" || kind === "video" || kind === "html") {
     mode = kind;
-    bodyHtml = missingFileNote(kind) + storedTextBlock(notes, catalog, id, truncated, true);
+    if (asked > 1) miss(notDividedMessage(kind, asked), "missing", "Open the file");
+    else bodyHtml = missingFileNote(kind) + storedTextBlock(notes, catalog, id, truncated, true);
   } else if (readerWantsBytes(kind)) {
     let view;
     try {
@@ -800,9 +913,34 @@ export function renderPaperReader({
     } catch {
       view = { painted: false, reason: "The reader hit an error while opening this file. Nothing was painted. Download stays below." };
     }
-    const painted = packagedViewHtml(view);
-    mode = painted.mode;
-    bodyHtml = painted.html + storedTextBlock(notes, catalog, id, truncated, mode === "opaque");
+    const parts = view && view.painted && (view.mode === "slides" || view.mode === "sheet")
+      ? (view.blocks || []).filter((block) => block && block.type === (view.mode === "slides" ? "slide" : "sheet"))
+      : null;
+    if (parts) {
+      unit = view.mode === "slides" ? "slide" : "sheet";
+      mode = view.mode;
+      knownCount = parts.length;
+      const noun = unit === "slide" ? "slide deck" : "workbook";
+      if (!knownCount) {
+        if (asked > 1) miss(unitWord(unit, false) + " " + asked + " is not in this " + noun + " (0 " + unit + "s).");
+        else bodyHtml = blocksHtml(view) + storedTextBlock(notes, catalog, id, truncated, true);
+      } else if (asked > knownCount) {
+        miss(unitWord(unit, false) + " " + asked + " is not in this " + noun + " (" + knownCount + " " + (knownCount === 1 ? unit : unit + "s") + ").");
+      } else {
+        pageIndex = asked;
+        bodyHtml = blocksHtml({ ...view, blocks: [parts[asked - 1]] }) + storedTextBlock(notes, catalog, id, truncated);
+        showTurner = knownCount > 1;
+      }
+    } else if (asked > 1) {
+      const plain = view && view.mode === "archive" ? "archive" : (view && view.painted ? "office" : "file");
+      miss(notDividedMessage(plain, asked), "missing", "Open the file");
+    } else {
+      const painted = packagedViewHtml(view);
+      mode = painted.mode;
+      bodyHtml = painted.html + storedTextBlock(notes, catalog, id, truncated, mode === "opaque");
+    }
+  } else if (asked > 1) {
+    miss(notDividedMessage("file", asked), "missing", "Open the file");
   } else {
     mode = "opaque";
     const gap = knownGapReason(filename);
@@ -819,8 +957,12 @@ export function renderPaperReader({
   const actions = id
     ? "<p class=\"paper-actions\"><a class=\"" + downloadClass + "\" href=\"" + esc(fileHref) + "\"" + downloadAttr(filename) + ">Download</a><a class=\"button ghost\" href=\"" + esc(countHref) + "\">Counted download</a></p>"
     : "";
-  const pagesAttr = mode === "paged" || mode === "standalone" ? (split.page_count || 0) : 0;
-  return "<article class=\"paper-reader\" data-reader=\"" + mode + "\" data-record=\"" + esc(id) + "\" data-pages=\"" + pagesAttr + "\">"
+  const turnerTop = showTurner ? turnerNav("top", { base, index: pageIndex, count: knownCount, unit }) : "";
+  const turnerEnd = showTurner ? turnerNav("end", { base, index: pageIndex, count: knownCount, unit }) : "";
+  const pagesAttr = unknownNote ? "unknown" : (knownCount != null ? String(knownCount) : "0");
+  const stateAttr = pageState ? " data-page-state=\"" + pageState + "\"" : "";
+  const pageAttr = pageIndex ? " data-page=\"" + pageIndex + "\"" : "";
+  return "<article class=\"paper-reader\" data-reader=\"" + mode + "\" data-record=\"" + esc(id) + "\" data-pages=\"" + esc(pagesAttr) + "\"" + pageAttr + stateAttr + ">"
     + "<header class=\"paper-head\"><p class=\"paper-kicker\">" + esc(shelfName) + (filed.undated ? " · Undated" : "") + "</p>"
     + countsHtml + share + "</header>"
     + "<div class=\"paper-layout\"><div class=\"paper-body\">" + turnerTop + bodyHtml + actions + turnerEnd + "</div>" + meta + "</div></article>";

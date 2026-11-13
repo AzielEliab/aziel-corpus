@@ -1,5 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { installUnavailableOrigin, originFixtureHits } from "./fixtures/hermetic-observe.js";
+
+installUnavailableOrigin();
 import {
   LIBRARY_INDEX_KEY,
   KV_CACHE_TTL,
@@ -461,6 +464,7 @@ test("GET /v1/health reports packed shelf file counts from the index", async () 
 });
 
 test("GET /search renders packed file counts from library:index:v1", async () => {
+  const originBefore = originFixtureHits();
   const packed = sealPackedIndex({
     views: 9,
     downloads: 2,
@@ -494,6 +498,11 @@ test("GET /search renders packed file counts from library:index:v1", async () =>
   assert.doesNotMatch(countHtml, /15:20/);
   assert.doesNotMatch(countHtml, /claim_complete/);
   assert.equal(kv.calls.list, 0);
+  assert.ok(originFixtureHits() > originBefore, "mesh read stayed on the unavailable fixture");
+  assert.match(html, /id="Nodes">\u2014</);
+  assert.match(html, /id="LiveNodes">\u2014</);
+  assert.doesNotMatch(html, /id="Nodes">0</);
+  assert.doesNotMatch(html, /id="LiveNodes">0</);
 });
 
 test("homepage and shelf chrome show packed file counts and invent none", () => {

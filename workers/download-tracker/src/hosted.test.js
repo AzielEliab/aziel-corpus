@@ -235,6 +235,108 @@ test("Cockroach Doctrine slug guesses redirect to the locked permalink", async (
   const locked = await handleHosted(req(canonical), new URL(HOST + canonical), env, {}, null, null);
   assert.notEqual(locked.status, 301);
   assert.equal(locked.headers.get("location"), null);
+  const jump = await handleHosted(req("/aziellibrary/field-note?page=2"), new URL(HOST + "/aziellibrary/field-note?page=2"), env, {}, null, null);
+  assert.equal(jump.status, 302);
+  assert.equal(jump.headers.get("location"), "/aziellibrary/field-note/p/2");
+  const bad = await handleHosted(req("/aziellibrary/field-note?page=nope"), new URL(HOST + "/aziellibrary/field-note?page=nope"), env, {}, null, null);
+  assert.equal(bad.status, 400);
+  const badHtml = await bad.text();
+  assert.match(badHtml, /not a page number/);
+  assert.match(badHtml, /Nothing was painted/);
+});
+
+test("a missing reader page is 404 and does not count a view; a real page does", async () => {
+  const id = "AZDOC-TURN01";
+  const slug = "labelled-example";
+  const row = {
+    record_id: id,
+    title: "Labelled Example — Page Turner",
+    library: "aziel",
+    author: "Aziel Eliab",
+    body: "Alpha page one.\fBeta page two.\fGamma page three.",
+    filename: "labelled.txt",
+    content_type: "text/plain",
+    permalink_locked: true,
+    permalink_slug: slug,
+    content_sha256: "ab".repeat(32),
+  };
+  const hits = [];
+  const env = stubEnv();
+  env.DB = {
+    prepare(sql) {
+      const text = String(sql);
+      const stmt = {
+        sql: text,
+        args: [],
+        bind(...a) { stmt.args.push(...a); return stmt; },
+        async first() {
+          if (text.includes("FROM records")) return row;
+          return null;
+        },
+        async all() { return { results: [] }; },
+        async run() {
+          hits.push(text + " " + stmt.args.join(" "));
+          return { success: true };
+        },
+      };
+      return stmt;
+    },
+    async batch(stmts) {
+      for (const stmt of stmts || []) hits.push(String(stmt.sql || "") + " " + (stmt.args || []).join(" "));
+      return [];
+    },
+  };
+  env.DOWNLOADS = {
+    async get(key) {
+      if (key === "library:index:v1") return JSON.stringify({ version: 1, key, records: [row] });
+      return null;
+    },
+    async put() {},
+  };
+  const headers = { Accept: "text/html", "User-Agent": "Mozilla/5.0" };
+  const pending = [];
+  const ctx = { waitUntil(p) { pending.push(Promise.resolve(p)); } };
+  const miss = await handleHosted(
+    new Request(HOST + "/aziellibrary/" + slug + "/p/9", { headers }),
+    new URL(HOST + "/aziellibrary/" + slug + "/p/9"),
+    env,
+    ctx,
+    null,
+    null
+  );
+  await Promise.all(pending);
+  assert.equal(miss.status, 404);
+  const missHtml = await miss.text();
+  assert.match(missHtml, /Page 9 is not in this paper/);
+  assert.match(missHtml, /data-page-state="missing"/);
+  const missReader = missHtml.match(/<article class="paper-reader"[\s\S]*?<\/article>/);
+  assert.ok(missReader, "missing page still has the record article");
+  assert.doesNotMatch(missReader[0], /Beta page two/);
+  assert.doesNotMatch(missReader[0], /class="page-turner"/);
+  assert.equal(hits.some((line) => line.includes("|views")), false);
+  const before = hits.length;
+  pending.length = 0;
+  const ok = await handleHosted(
+    new Request(HOST + "/aziellibrary/" + slug + "/p/2", { headers }),
+    new URL(HOST + "/aziellibrary/" + slug + "/p/2"),
+    env,
+    ctx,
+    null,
+    null
+  );
+  await Promise.all(pending);
+  assert.equal(ok.status, 200);
+  const okHtml = await ok.text();
+  const okReader = okHtml.match(/<article class="paper-reader"[\s\S]*?<\/article>/);
+  assert.ok(okReader);
+  assert.match(okReader[0], /Beta page two/);
+  assert.doesNotMatch(okReader[0], /Alpha page one/);
+  assert.doesNotMatch(okReader[0], /Gamma page three/);
+  assert.match(okHtml, /Page 2 of 3/);
+  assert.match(okHtml, /class="page-turner/);
+  assert.match(okHtml, /Lamb Lens: Service/);
+  assert.doesNotMatch(okHtml, /identity-lock|15:20 chrome/i);
+  assert.ok(hits.slice(before).some((line) => line.includes("|views")), hits.join("\n"));
 });
 
 test("HEAD /about is a permanent redirect and HEAD /AzielEliab is HTML without a body", async () => {

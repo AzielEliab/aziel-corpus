@@ -1,5 +1,8 @@
-// Verify PATH_LASTMOD dates in src/crawl.js against git log (%cs) of each path's source files.
-// Usage: node scripts/check-lastmod.mjs   (exit 1 on mismatch, 2 if git history unavailable)
+// Verify PATH_LASTMOD dates in src/crawl.js against git log --no-merges (%cs).
+// A merge commit's date is when branches combined, not when the file was written.
+// Usage: node scripts/check-lastmod.mjs
+// (exit 1 on mismatch, 2 if git history unavailable)
+// (exit 1 on mismatch, 2 if git history unavailable)
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -9,7 +12,10 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../.
 
 export function gitDay(file) {
   try {
-    return execFileSync("git", ["log", "-1", "--format=%cs", "--", file], { cwd: ROOT, encoding: "utf8" }).trim();
+    // --no-merges: a merge commit's date is when the branches combined, not when
+    // the file's contents were written. The newest non-merge commit that touches
+    // the file is that content day, including after these two branches join.
+    return execFileSync("git", ["log", "-1", "--no-merges", "--format=%cs", "--", file], { cwd: ROOT, encoding: "utf8" }).trim();
   } catch { return ""; }
 }
 

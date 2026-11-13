@@ -4,6 +4,9 @@ import { ingestRecord, operatorSession } from "./library.js";
 import { handleHosted } from "./hosted.js";
 import { handleRuntimeApi } from "./runtime.js";
 import { handleOperatorIngestApi } from "./operator-ingest.js";
+import { installUnavailableOrigin, originFixtureHits } from "./fixtures/hermetic-observe.js";
+
+installUnavailableOrigin();
 import {
   jsonRecordId,
   paperRecordId,
@@ -256,6 +259,7 @@ test("persist writes package + .Json sidecars and JSON-prefixed ledger without t
 });
 
 test("ingestRecord writes discovery sidecar in the same upload", async () => {
+  const originBefore = originFixtureHits();
   const env = metadataEnv();
   const rec = await ingestRecord(env, {
     signed: operatorSession(),
@@ -280,6 +284,8 @@ test("ingestRecord writes discovery sidecar in the same upload", async () => {
   assert.equal(doc.title, "Ingested dossier");
   assert.ok(doc.content.length > 0);
   assert.equal(doc.author["@id"], HUB_PERSON_ID);
+  assert.ok(originFixtureHits() > originBefore, "CLCE score stayed on the unavailable fixture");
+  assert.doesNotMatch(JSON.stringify(rec), /azclce-live/);
 });
 
 test("GET /record/{id}/metadata.json is 200 with required fields for a fixture record", async () => {
@@ -377,6 +383,7 @@ test("JSON-LD ScholarlyArticle matches sidecar identity without changing visible
 });
 
 test("operator ingest response cites metadata_url", async () => {
+  const originBefore = originFixtureHits();
   const env = metadataEnv();
   const url = new URL(HOST + "/v1/operator/library-ingest");
   const form = new FormData();
@@ -397,4 +404,6 @@ test("operator ingest response cites metadata_url", async () => {
   assert.equal(body.llms_url, "/record/" + body.record_id + "/llms.txt");
   assert.equal(body.cite_url, "/record/" + body.record_id + "/cite.json");
   assert.ok(env.files.has(packageMetadataKey("aziel", body.record_id)));
+  assert.ok(originFixtureHits() > originBefore, "ZionPattern score stayed on the unavailable fixture");
+  assert.doesNotMatch(JSON.stringify(body), /zsolver-live/);
 });

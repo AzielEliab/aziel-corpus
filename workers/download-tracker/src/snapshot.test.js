@@ -7,6 +7,9 @@ import { discardBody, mapLimit } from "./http-body.js";
 import { LIBRARY_INDEX_KEY, sealPackedIndex, HTML_CACHE_PREFIX } from "./library-index.js";
 import { bumpPaperCount } from "./paper-ux.js";
 import worker from "./index.js";
+import { installUnavailableOrigin, originFixtureHits } from "./fixtures/hermetic-observe.js";
+
+installUnavailableOrigin();
 
 const HOST = "https://www.azielcorpuslibrary.net";
 const D1_DAILY = "D1_ERROR: Your account has exceeded D1's free tier daily row read limit. Upgrade to a paid plan or wait until tomorrow (midnight UTC) to continue.";
@@ -120,6 +123,7 @@ test("crawlers get /aziel-library from the packed snapshot with zero D1 calls", 
 });
 
 test("/aziel-library and /corpus still answer 200 with a stale label when D1 is over quota", async () => {
+  const originBefore = originFixtureHits();
   const env = { DOWNLOADS: memoryKv({ [LIBRARY_INDEX_KEY]: JSON.stringify(packedShelf()) }), DB: quotaDb() };
   for (const path of ["/aziel-library", "/corpus"]) {
     const res = await worker.fetch(new Request(HOST + path, { headers: human }), env, {});
@@ -130,9 +134,11 @@ test("/aziel-library and /corpus still answer 200 with a stale label when D1 is 
     assert.match(html, /data-stale="true"/, path);
     assert.match(html, /Stale view/, path);
   }
+  assert.ok(originFixtureHits() > originBefore, "site presence stayed on the unavailable fixture");
 });
 
 test("/tree answers 200 from the snapshot with a stale label when D1 is over quota", async () => {
+  const originBefore = originFixtureHits();
   const env = { DOWNLOADS: memoryKv({ [LIBRARY_INDEX_KEY]: JSON.stringify(packedShelf()) }), DB: quotaDb() };
   const res = await worker.fetch(new Request(HOST + "/tree", { headers: human }), env, {});
   assert.equal(res.status, 200);
@@ -140,13 +146,16 @@ test("/tree answers 200 from the snapshot with a stale label when D1 is over quo
   const html = await res.text();
   assert.match(html, /Stale view/);
   assert.match(html, /Shelf paper 1/);
+  assert.ok(originFixtureHits() > originBefore, "site presence stayed on the unavailable fixture");
 });
 
 test("with neither D1 nor a snapshot, shelf pages still answer 503 + Retry-After (no false empty shelf)", async () => {
+  const originBefore = originFixtureHits();
   const env = { DOWNLOADS: { async get() { throw new Error("KV get() limit exceeded for the day."); }, async put() {} }, DB: quotaDb() };
   const res = await worker.fetch(new Request(HOST + "/aziel-library", { headers: human }), env, {});
   assert.equal(res.status, 503);
   assert.ok(Number(res.headers.get("Retry-After")) >= 60);
+  assert.ok(originFixtureHits() > originBefore, "site presence stayed on the unavailable fixture");
 });
 
 test("canonical shelf cache key: param order and defaults do not split the cache; default view keeps the plain key", () => {

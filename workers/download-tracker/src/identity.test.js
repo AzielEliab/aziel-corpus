@@ -1,5 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { installUnavailableOrigin, originFixtureHits } from "./fixtures/hermetic-observe.js";
+
+installUnavailableOrigin();
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -569,6 +572,7 @@ test("llms.txt keeps library sections and the full sameAs lock", () => {
 });
 
 test("Worker serves identity routes with locked Content-Types", async () => {
+  const originBefore = originFixtureHits();
   const { default: worker } = await import("./index.js");
   const env = {
     DOWNLOADS: { async get() { return null; }, async put() {}, async list() { throw new Error("no list"); } },
@@ -595,6 +599,10 @@ test("Worker serves identity routes with locked Content-Types", async () => {
     assert.equal(res.headers.get("content-type"), type, path);
     const body = await res.text();
     assert.match(body, /Aziel Eliab/);
+    if (path === "/who-is-aziel-eliab.txt" || path === "/who-is") {
+      assert.match(body, /Platforms: prefer pulled/);
+      assert.doesNotMatch(body, /Platforms all LIVE/);
+    }
     assert.ok(!body.includes(LOCAL_PERSON), path + " must not invent a corpus-local Person @id");
     assert.doesNotMatch(body, /10\.5281\/zenodo/);
     assert.doesNotMatch(body, IDENTITY_SPAM);
@@ -630,6 +638,7 @@ test("Worker serves identity routes with locked Content-Types", async () => {
   assert.equal(head.status, 200);
   assert.equal(head.headers.get("content-type"), IDENTITY_MIME.jsonld);
   assert.equal(await head.text(), "");
+  assert.ok(originFixtureHits() > originBefore, "survival read stayed on the unavailable fixture");
 });
 
 test("GET /search is HTTP 200 and does not increment homepage views", async () => {
@@ -662,6 +671,9 @@ test("GET /search is HTTP 200 and does not increment homepage views", async () =
   assert.match(html, /class="library-count"/);
   assert.match(html, /data-source="library:index:v1"/);
   assert.match(html, /<strong>0<\/strong> files in the libraries/);
+  assert.match(html, /id="Nodes">0</);
+  assert.match(html, /id="LiveNodes">0</);
+  assert.doesNotMatch(html, /id="Nodes">\u2014</);
   assert.ok(!html.includes(LOCAL_PERSON));
   assert.equal(views, 0);
   const head = await worker.fetch(

@@ -482,7 +482,15 @@ video.paper-av{width:100%;max-width:100%;max-height:calc(100dvh - 8.5rem);height
 a.page-turn{color:#14110a}
 a.page-turn:hover{color:#14110a}
 span.page-turn{background:transparent;color:var(--muted);border:1px solid var(--line)}
+.page-turn:focus-visible,.page-jump-go:focus-visible,.page-jump input:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .page-status{font-variant-numeric:tabular-nums;font-weight:700;text-align:center;padding:0 4px}
+.page-single{margin:0 0 8px}
+.page-jump{display:flex;gap:8px;align-items:center;margin:0;flex-wrap:wrap}
+.page-jump-label{font-weight:700}
+.page-jump input{width:4.5em;max-width:100%;min-height:44px;text-align:center;font:inherit;font-variant-numeric:tabular-nums;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.page-jump-go{min-height:44px;min-width:44px;padding:8px 12px;border-radius:10px;font-weight:700;background:transparent;color:var(--ink);border:1px solid var(--line)}
+.paper-page-error{margin:0 0 12px;font-weight:700}
+.page-total-unknown{margin:0 0 12px}
 .trend .event-row{display:flex;align-items:stretch;min-height:48px;padding:0}
 .trend .event-row a{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;min-height:48px;padding:10px 0;font-size:17px;line-height:1.35;flex:1 1 auto;max-width:100%}
 .trend .event-row a .muted{font-size:14px}
@@ -494,14 +502,19 @@ span.page-turn{background:transparent;color:var(--muted);border:1px solid var(--
   .machine-cites a{min-height:44px;display:inline-flex;align-items:center;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--paper)}
   .paper-body a.paper-cite{position:relative;z-index:1}
   .paper-body a.paper-cite::after{content:"";position:absolute;inset:-10px -4px}
-  .page-turner{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:center;width:100%;margin:0}
+  .page-turner{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"prev next" "status status" "jump jump";gap:8px;align-items:center;width:100%;margin:0}
+  .page-turn-prev{grid-area:prev}
+  .page-turn-next{grid-area:next}
+  .page-status{grid-area:status}
+  .page-jump{grid-area:jump;justify-content:center}
   .page-turner-top{margin:0 0 14px}
-  .page-turner-end{position:fixed;left:0;right:0;bottom:0;width:auto;z-index:35;margin:0;padding:8px 14px calc(8px + env(safe-area-inset-bottom,0px));background:var(--paper);border-top:1px solid var(--gold);box-shadow:0 -8px 24px #00000088}
+  .page-turner-end{position:fixed;left:0;right:0;bottom:0;width:auto;z-index:35;margin:0;padding:8px 14px calc(8px + env(safe-area-inset-bottom,0px));background:var(--paper);border-top:1px solid var(--gold);box-shadow:0 -8px 24px #00000088;grid-template-areas:"prev next"}
+  .page-turner-end .page-status,.page-turner-end .page-jump{display:none}
   .page-turn{width:100%;min-height:48px;padding:12px 6px;font-size:15px;white-space:nowrap}
   .page-status{font-size:14px}
-  .wrap:has(.page-turner-end){padding-bottom:calc(env(safe-area-inset-bottom,0px) + 168px)}
-  body:has(.page-turner-end) .jeeves-fab{bottom:calc(env(safe-area-inset-bottom,0px) + 84px)}
-  body:has(.page-turner-end) .jeeves-drawer{bottom:calc(env(safe-area-inset-bottom,0px) + 140px)}
+  .wrap:has(.page-turner-end){padding-bottom:calc(env(safe-area-inset-bottom,0px) + 120px)}
+  body:has(.page-turner-end) .jeeves-fab{bottom:calc(env(safe-area-inset-bottom,0px) + 88px)}
+  body:has(.page-turner-end) .jeeves-drawer{bottom:calc(env(safe-area-inset-bottom,0px) + 148px)}
 }
 `;
 
@@ -816,6 +829,13 @@ export function readerZoomScript() {
     if(e.key==="+"||e.key==="="){e.preventDefault();step(1);}
     else if(e.key==="-"||e.key==="_"){e.preventDefault();step(-1);}
     else if(e.key==="0"){e.preventDefault();fit();}
+    else if(e.key==="ArrowLeft"||e.key==="PageUp"||e.key==="ArrowRight"||e.key==="PageDown"){
+      var rel=(e.key==="ArrowLeft"||e.key==="PageUp")?"prev":"next";
+      var link=root.querySelector(".page-turner a[rel="+rel+"]");
+      if(!link)return;
+      e.preventDefault();
+      window.location.assign(link.href);
+    }
   });
   root.addEventListener("wheel",function(e){
     if(!e.ctrlKey&&!e.metaKey)return;

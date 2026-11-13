@@ -167,7 +167,7 @@ test("reader links an in-library cite and pages a multi-page paper", () => {
   assert.match(reader, /href="\/aziellibrary\/cockroach-doctrine"/);
   assert.match(reader, /class="page-turner page-turner-top"/);
   assert.match(reader, /class="page-turner page-turner-end"/);
-  assert.match(reader, /class="page-turn"/);
+  assert.match(reader, /class="page-turn /);
   assert.match(reader, /rel="prev" href="\/azielcorpus\/usersubmitted\/field-methods-note"/);
   assert.match(reader, /rel="next" href="\/azielcorpus\/usersubmitted\/field-methods-note\/p\/3"/);
   assert.match(reader, /class="paper-actions"/);

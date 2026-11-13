@@ -14,6 +14,9 @@ import {
 } from "./library-index.js";
 import { visibleTagEntries } from "./visible-tags.js";
 import worker from "./index.js";
+import { installUnavailableOrigin, originFixtureHits } from "./fixtures/hermetic-observe.js";
+
+installUnavailableOrigin();
 
 const HOST = "https://www.azielcorpuslibrary.net";
 const D1_DAILY = "D1_ERROR: Your account has exceeded D1's free tier daily row write limit. Upgrade to a paid plan or wait until tomorrow (midnight UTC) to continue.";
@@ -108,11 +111,14 @@ test("readCounters propagates a D1 daily-limit error (never publish a low count)
 });
 
 test("homepage views: bot view = 1 D1 upsert (total only), human = 2, zero KV puts", async () => {
+  const originBefore = originFixtureHits();
   const kv = memoryKv();
   const db = fakeD1();
   const env = { DOWNLOADS: kv, DB: db };
   await worker.fetch(new Request(HOST + "/", { headers: { "User-Agent": "curl/8.0 health-check" } }), env, {});
-  await worker.fetch(new Request(HOST + "/", { headers: { "User-Agent": "Mozilla/5.0" } }), env, { waitUntil() {} });
+  const human = await worker.fetch(new Request(HOST + "/", { headers: { "User-Agent": "Mozilla/5.0" } }), env, { waitUntil() {} });
+  assert.doesNotMatch(await human.text(), /id="Nodes"/);
+  assert.ok(originFixtureHits() > originBefore, "site presence stayed on the unavailable fixture");
   await new Promise((r) => setTimeout(r, 10));
   assert.equal(kv.puts.filter((k) => k.includes("__views")).length, 0);
   assert.ok(db.counters.get("aziel-corpus|__views__") >= 1);

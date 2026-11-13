@@ -28,9 +28,9 @@ A view increments on a human or other non-SEO GET of the reader. A download incr
 
 ## Reader
 
-Text papers open in a Zenodo-style record aside plus a Wikipedia-style body. Form-feed and page-break markers become a page turner with a page count. One block stays a standalone paper. Markdown stays that text view.
+Text papers open in a Zenodo-style record aside plus a Wikipedia-style body. Form-feed and page-break markers become a page turner with previous, next, and a jump to a page number. One block stays a standalone paper. A page past the end is an error and does not paint another page. Markdown stays that text view.
 
-PDFs, images, audio, video, and HTML are painted in the reader from the stored file. HTML is shown with scripts off. Download stays under the view. A type the browser cannot paint (archives, office documents, and other binaries) says so in plain language. Stored text is shown when the upload stored readable text and that text is not the file bytes.
+PDFs, images, audio, video, and HTML are painted in the reader from the stored file. When a PDF page tree can be read, the same turner moves the browser viewer to that page and shows the current page and the total. When the total cannot be read, next, previous, and jump stay off. One counted page stays one page. Slides and sheets use the same turner, one slide or sheet at a time. Images, audio, video, HTML, archives, and reflowed office text are not given an invented page count. A missing file or a failed read is an error, not a blank page. HTML is shown with scripts off. Download stays under the view. A type the browser cannot paint says so in plain language. Stored text is shown when the upload stored readable text and that text is not the file bytes. Zoom is remembered for the record while the reader is open. Arrow keys and Page Up / Page Down follow previous and next when those links are on the page.
 
 A title or AZDOC id becomes a link only when that paper is already in the library. Lamb Lens on the reader: Service, then Clarity, then Peace.
 

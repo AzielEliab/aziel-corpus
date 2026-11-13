@@ -16,6 +16,13 @@ import { handleRuntimeApi } from "./runtime.js";
 import { cardFromRecord, LIBRARY_INDEX_KEY, refreshPackedIndex } from "./library-index.js";
 import { repairRecordContentHash, continueContentHashRepair, KNOWN_HASH_MISMATCH_IDS } from "./content-hash-repair.js";
 import { JSON_HASH_REPAIR_ACTION } from "./record-metadata.js";
+import { installUnavailableOrigin, originFixtureHits } from "./fixtures/hermetic-observe.js";
+
+installUnavailableOrigin();
+
+function sawUnavailable(before) {
+  assert.ok(originFixtureHits() > before, "score origin stayed on the unavailable fixture");
+}
 
 const HOST = "https://www.azielcorpuslibrary.net";
 const TOKEN = "test-operator-token";
@@ -184,6 +191,7 @@ test("confirmed AZDOC-498664EBE53C hashes: notes-only vs served notes+author", (
 });
 
 test("corpus text-only upload hashes the final inserted body that /file serves (author appended)", async () => {
+  const originBefore = originFixtureHits();
   const env = hashEnv();
   const rec = await ingestRecord(env, {
     signed: corpusSigned(),
@@ -199,6 +207,8 @@ test("corpus text-only upload hashes the final inserted body that /file serves (
   assert.notEqual(live, sha(LURE_NOTES));
   const packedCard = cardFromRecord(env.store.records.find((r) => r.record_id === rec.id));
   assert.equal(packedCard.content_sha256, rec.content_sha256);
+  sawUnavailable(originBefore);
+  assert.doesNotMatch(JSON.stringify(rec), /azclce-live/);
 });
 
 test("text-only title-only upload never stores sha256(title) when body becomes the author (AZDOC-697F4E1D8C34)", async () => {
@@ -217,6 +227,7 @@ test("text-only title-only upload never stores sha256(title) when body becomes t
 });
 
 test("corpus file upload hashes attachment bytes even when content/notes are whitespace-normalized", async () => {
+  const originBefore = originFixtureHits();
   const env = hashEnv();
   const normalized = LURE_NOTES.replace(/\s+/g, " ").trim() + " " + LURE_AUTHOR;
   const rec = await ingestRecord(env, {
@@ -230,9 +241,12 @@ test("corpus file upload hashes attachment bytes even when content/notes are whi
   assert.notEqual(rec.content_sha256, sha(normalized));
   const { body } = await assertFileMatchesRecord(env, rec);
   assert.equal(new TextDecoder().decode(body), LURE_NOTES);
+  sawUnavailable(originBefore);
+  assert.doesNotMatch(JSON.stringify(rec), /azclce-live/);
 });
 
 test("operator upload hashes file bytes and /file header matches body", async () => {
+  const originBefore = originFixtureHits();
   const env = hashEnv();
   const md = "# Operator dossier\n\nExact bytes.\r\n";
   const rec = await ingestRecord(env, {
@@ -247,9 +261,12 @@ test("operator upload hashes file bytes and /file header matches body", async ()
   assert.equal(rec.library, "aziel");
   assert.equal(rec.content_sha256, sha(md));
   await assertFileMatchesRecord(env, rec);
+  sawUnavailable(originBefore);
+  assert.doesNotMatch(JSON.stringify(rec), /azclce-live/);
 });
 
 test("operator library-ingest API stores file-bytes hash matching /file", async () => {
+  const originBefore = originFixtureHits();
   const env = hashEnv();
   const url = new URL(HOST + "/v1/operator/library-ingest");
   const form = new FormData();
@@ -267,9 +284,12 @@ test("operator library-ingest API stores file-bytes hash matching /file", async 
   const body = await res.json();
   assert.equal(body.content_sha256, sha(LURE_NOTES));
   await assertFileMatchesRecord(env, { id: body.record_id, content_sha256: body.content_sha256 });
+  sawUnavailable(originBefore);
+  assert.doesNotMatch(JSON.stringify(body), /azclce-live/);
 });
 
 test("anonymous/guest text upload hashes the exact final body that /file returns", async () => {
+  const originBefore = originFixtureHits();
   const env = hashEnv();
   const rec = await ingestRecord(env, {
     signed: guestSession(),
@@ -280,6 +300,8 @@ test("anonymous/guest text upload hashes the exact final body that /file returns
   assert.equal(rec.library, "corpus");
   const { live } = await assertFileMatchesRecord(env, rec);
   assert.notEqual(live, sha(LURE_NOTES));
+  sawUnavailable(originBefore);
+  assert.doesNotMatch(JSON.stringify(rec), /azclce-live/);
 });
 
 test("ingest fails closed when stored object bytes are not the hashed bytes", async () => {
@@ -335,6 +357,7 @@ test("legacy AZDOC-498664EBE53C-shaped row: /file live header matches body; repa
 });
 
 test("packed library:index:v1 card uses the verified file-bytes hash", async () => {
+  const originBefore = originFixtureHits();
   const env = hashEnv();
   const rec = await ingestRecord(env, {
     signed: operatorSession(),
@@ -349,6 +372,8 @@ test("packed library:index:v1 card uses the verified file-bytes hash", async () 
   assert.ok(card);
   assert.equal(card.content_sha256, rec.content_sha256);
   assert.equal(card.content_sha256, sha("packed-bytes-exact"));
+  sawUnavailable(originBefore);
+  assert.doesNotMatch(JSON.stringify(card), /azclce-live/);
 });
 
 test("GET /v1/content-hash-repair apply=1 requires operator; dry-run lists the confirmed mismatch", async () => {

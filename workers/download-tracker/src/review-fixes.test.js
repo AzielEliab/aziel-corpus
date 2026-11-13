@@ -5,6 +5,9 @@ import { lastGoodUrl, LASTGOOD_PREFIX, canonicalShelfCacheUrl, staleNoticeHtml, 
 import { isCrawlerRequest, isCrawlerUa } from "./crawler.js";
 import { COUNTS_NOTE, HTML_CACHE_PREFIX, LIBRARY_INDEX_KEY, readPackedIndex, sealPackedIndex, writePackedIndex } from "./library-index.js";
 import worker from "./index.js";
+import { installUnavailableOrigin, originFixtureHits } from "./fixtures/hermetic-observe.js";
+
+installUnavailableOrigin();
 
 const HOST = "https://www.azielcorpuslibrary.net";
 const D1_DAILY = "D1_ERROR: Your account has exceeded D1's free tier daily row read limit. Upgrade to a paid plan or wait until tomorrow (midnight UTC) to continue.";
@@ -126,6 +129,7 @@ test("crawler + missing index: 503 short Retry-After, and nothing is cached or l
 });
 
 test("D1 over quota + missing index: falls through to last-good, then 503", async () => {
+  const originBefore = originFixtureHits();
   await withCache(async (cache) => {
     const env = { DOWNLOADS: memoryKv(), DB: db({ error: D1_DAILY }) };
     const none = await worker.fetch(new Request(HOST + "/aziel-library", { headers: human }), env, {});
@@ -141,9 +145,11 @@ test("D1 over quota + missing index: falls through to last-good, then 503", asyn
     const tree = await worker.fetch(new Request(HOST + "/tree", { headers: human }), env, {});
     assert.equal(tree.status, 503, "no snapshot and no last-good tree: 503");
   });
+  assert.ok(originFixtureHits() > originBefore, "site presence stayed on the unavailable fixture");
 });
 
 test("empty renders are never cached or last-good-written; non-empty ones are", async () => {
+  const originBefore = originFixtureHits();
   await withCache(async (cache) => {
     await worker.fetch(new Request(HOST + "/aziel-library", { headers: human }), { DOWNLOADS: memoryKv(), DB: db({ rows: [] }) }, {});
     assert.equal(cache.store.size, 0, "zero-row shelf not cached");
@@ -156,10 +162,12 @@ test("empty renders are never cached or last-good-written; non-empty ones are", 
     assert.ok(keys.some((k) => k.endsWith("/aziel-library") && k.includes("/__cache/")));
     assert.ok(keys.includes("/__lastgood/aziel-library"));
   });
+  assert.ok(originFixtureHits() > originBefore, "site presence stayed on the unavailable fixture");
 });
 
 // smaller items
 test("stale banner wording follows the cause", async () => {
+  const originBefore = originFixtureHits();
   const daily = staleNoticeHtml({ asOf: "2026-10-09T01:00:00Z", cause: "daily" });
   const outage = staleNoticeHtml({ asOf: "2026-10-09T01:00:00Z", cause: "outage" });
   assert.match(daily, /daily limit/);
@@ -171,6 +179,7 @@ test("stale banner wording follows the cause", async () => {
   assert.equal(res.status, 200);
   assert.match(res.headers.get("X-Aziel-Stale") || "", /cause=outage/);
   assert.doesNotMatch(await res.text(), /daily limit/);
+  assert.ok(originFixtureHits() > originBefore, "site presence stayed on the unavailable fixture");
 });
 
 test("COUNTS_NOTE names the Durable Object", () => {
