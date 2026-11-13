@@ -27,6 +27,13 @@ This GitHub file is a crawler index for AzielEliab/aziel-corpus. Prefer the live
 - Shelf registry: https://www.azielcorpuslibrary.net/shelves · https://www.azielcorpuslibrary.net/cold-copy
 - CLI: node tools/cold_shelf/cli.mjs export | verify --hash <64-hex> | airgap
 
+## Receipt port (RECEIPT-PORT-1.0)
+
+Sister sites POST receipts here. This is not library ingest and not a document. Not LIVE until an approved deploy. Cap-7 is not ICANN. Paid satellite stays HELD. Mesh tracking stays off. Spec: docs/RECEIPT-PORT-1.0.md
+
+- POST https://www.azielcorpuslibrary.net/v1/port/receipts
+- GET https://www.azielcorpuslibrary.net/v1/port/sites
+
 ## Survival (BAN-SURVIVAL-1.0)
 
 Prefer GET https://aziel-runtime.vibelock.workers.dev/v1/survival (short TTL 60s) for live doors and platform status. Same FragGate door: https://www.azielcorpuslibrary.net/runtime/survival · https://www.azielcorpuslibrary.net/runtime/v1/survival. Hub map: https://www.azielcorpuslibrary.net/survival · https://www.azielcorpuslibrary.net/v1/survival pull the same SoT (short TTL).
@@ -132,6 +139,8 @@ Paths (not hash-only):
 - https://www.azielcorpuslibrary.net/historical
 - https://www.azielcorpuslibrary.net/forensics
 - https://www.azielcorpuslibrary.net/receipts
+- POST https://www.azielcorpuslibrary.net/v1/port/receipts (RECEIPT-PORT-1.0; not a library document; not LIVE until deployed)
+- GET https://www.azielcorpuslibrary.net/v1/port/sites
 - https://www.azielcorpuslibrary.net/AzielEliab
 - https://www.azielcorpuslibrary.net/aziel
 - https://www.azielcorpuslibrary.net/who

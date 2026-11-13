@@ -1204,6 +1204,17 @@ export function citeDoc(survival, outletCite, stamp, corpusTip) {
     jeeves_chat: HOST + "/v1/jeeves/chat",
     jeeves_upload: HOST + "/v1/jeeves/upload",
     ingest: HOST + "/v1/ingest",
+    receipt_port: {
+      spec: "RECEIPT-PORT-1.0",
+      post: HOST + "/v1/port/receipts",
+      sites: HOST + "/v1/port/sites",
+      live: false,
+      library_document: false,
+      mesh_tracking: false,
+      cap7_is_icann: false,
+      paid_sat: "HELD",
+      note: "Sister-site receipt ingest. Not a library document. Not /v1/ingest. Not LIVE until an approved deploy.",
+    },
     jeeves: JEEVES_SUITE_HELP.wording + " Research assistant. Add uses the same ingest path as the shelf. Cannot change scores.",
     vibelock: "Mandatory VibeLock determination on every /transcribe run. Hard blocks porn, nudity, child-sexual content.",
     media_lattice: "Transcript success: LATTICE_TRANSCRIPT_VIBELOCK. Blocked A/V: LATTICE_AV_BLOCKED (HTTP 451, never stored).",
@@ -1466,6 +1477,8 @@ export function llmsDoc(limitation, survival, stamp, sot, corpusTip) {
     + "- GET " + HOST + "/v1/lattice?record_id=\n"
     + "- POST " + HOST + "/v1/lattice/wrap  (secondary lattice; GodLock bidir and Unseal receipts; hash block by entry_hash; fail closed; live stays false; decryption_complete false; cap7_is_icann false; paid sat HELD; tie-break refused)\n"
     + "- GET " + HOST + "/v1/lattice/pull?entry_hash=  (unauthenticated row omits username, lattice_handles, and offline-user fields; aggregate requires operator Bearer or X-Aziel-Runtime-Token; LATTICE_REMOTE defaults off; unseal=1 pulls one Unseal receipt and refuses aggregate)\n"
+    + "- POST " + HOST + "/v1/port/receipts  (RECEIPT-PORT-1.0; sister receipt ingest; Bearer per site; not a library document; not /v1/ingest; not LIVE until deployed; cap7_is_icann false; paid sat HELD; mesh tracking off)\n"
+    + "- GET " + HOST + "/v1/port/sites  (registered sites; no token values)\n"
     + "- GET " + HOST + "/v1/possibility?record_id=\n"
     + "- GET " + HOST + "/v1/recollect?record_id=\n"
     + "- GET " + HOST + "/v1/poison-learn\n"

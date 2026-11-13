@@ -20,7 +20,7 @@ test("the receipts subtree names the source hubs and files no invented rows", as
   assert.equal(catalog.paid_sat, "HELD");
   assert.equal(catalog.tiebreak, "refused");
   const slugs = catalog.sites.map((site) => site.slug);
-  assert.deepEqual(slugs, ["godlock", "aziel-runtime", "unseal", "ae", "hdj", "corpus"]);
+  assert.deepEqual(slugs, ["godlock", "aziel-runtime", "unseal", "ae", "hdj", "corpus", "furnace"]);
   for (const site of catalog.sites) assert.equal(site.payload, null);
   assert.equal(AGGREGATE_SITES.length, slugs.length);
 

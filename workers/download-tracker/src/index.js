@@ -42,6 +42,7 @@ import { handleDonateQr, isDonateQrPath } from "./donate-qr.js";
 import { handleWitness, isWitnessPath } from "./witness.js";
 import { handleVoynich, isVoynichPath } from "./voynich.js";
 import { handleReceipts, isReceiptsPath } from "./action-receipts.js";
+import { handleReceiptPort, isReceiptPortPath } from "./receipt-port.js";
 import { locksetFile } from "./ingest-receipt.js";
 import { isShelvesPath, shelvesDoc } from "./cold-shelf.js";
 import { serveSoftwareAsset, DEFAULT_ASSET as SOFTWARE_DEFAULT_ASSET } from "./software-download.js";
@@ -574,6 +575,10 @@ async function handleFetch(request, env, ctx) {
       else ctx.waitUntil(job);
     }
     const attachVid = (res) => attachPresenceCookie(withRateCookie(res, limited), presencePrep);
+
+    if (isReceiptPortPath(earlyPath)) {
+      return attachVid(await handleReceiptPort(request, env));
+    }
 
     if (isReadMethod(request.method) && shouldTunnelFirst(earlyPath)) {
       const tunneled = await tryTunnelFirst(request, env);

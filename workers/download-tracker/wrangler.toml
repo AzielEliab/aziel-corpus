@@ -58,6 +58,10 @@ new_sqlite_classes = ["HitCounters"]
 # Optional named cloudflared frontend (TUN-WP-0.1). When unset, this Worker is standby.
 # TUNNEL_ORIGIN = "https://library-front.example.internal"
 # OPERATOR_TOKEN is a Wrangler secret — never commit it. No public IP allowlist.
+# Receipt port secrets (RECEIPT-PORT-1.0), never commit the values:
+# PORT_TOKEN_FURNACE, PORT_TOKEN_GODLOCK, PORT_TOKEN_UNSEAL.
+# Furnace CORPUS_INGEST_URL = https://www.azielcorpuslibrary.net/v1/port/receipts
+# Furnace CORPUS_INGEST_TOKEN must equal PORT_TOKEN_FURNACE. Leave CORPUS_FORWARD_IMAGES unset.
 # INTAKE_SALT is a REQUIRED Wrangler secret (CORPUS-INTAKE-SAFETY-1.0): random, 16+ chars,
 # never committed. Without it every intake door refuses INTAKE-NOT-READY (503), operator included.
 

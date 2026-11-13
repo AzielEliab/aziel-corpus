@@ -4,7 +4,7 @@ Front-door label is `receipts`. The library nav still says Receipts and opens th
 
 `/receipts/sites` is the subtree. Each folder is a source hub: godlock.uk, aziel-runtime, TimeToUnsealTheBook (`unseal`), azieleliab.com (`ae`), hedidntjump.com (`hdj`), and this corpus. Add a hub in `workers/download-tracker/src/receipt-aggregate.js`.
 
-The subtree does not fetch sister pages and does not invent receipt sentences. A hash is filed only by an operator wrap.
+The subtree does not fetch sister pages and does not invent receipt sentences. A hash is filed by an operator wrap, or by the receipt port after it accepts a sister receipt (`docs/RECEIPT-PORT-1.0.md`). Comments and usernames are not filed.
 
 ## Lattice
 

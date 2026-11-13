@@ -195,6 +195,7 @@ export function isFanoutPath(pathname, method = "GET") {
   if (path.startsWith("/v1/operator/") && verb === "POST") return true;
   if (path === "/v1/mesh/outlet" && verb === "POST") return true;
   if (path === "/v1/ingest" && verb === "POST") return true;
+  if (path === "/v1/port/receipts" && verb === "POST") return true;
   if (path === "/v1/lattice/wrap" && verb === "POST") return true;
   if (path === "/v1/lattice/pull" && (verb === "POST" || verb === "GET")) return true;
   if (path === "/mcp" && verb === "POST") return true;
