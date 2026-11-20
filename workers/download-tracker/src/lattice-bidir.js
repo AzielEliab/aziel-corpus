@@ -574,7 +574,17 @@ async function operatorGrant(request, env) {
   return { ok: false, submitter_key: "" };
 }
 
-const PRIVATE_FIELDS = new Set(["username", "lattice_handles", "offline_user", "offline_username", "user_handle", "submitter_key"]);
+const PRIVATE_FIELDS = new Set([
+  "username",
+  "lattice_handles",
+  "offline_user",
+  "offline_username",
+  "user_handle",
+  "submitter_key",
+  "comment",
+  "comments",
+  "snapshot",
+]);
 
 export const LATTICE_WRAP_PER_MINUTE = 30;
 const wrapRate = new Map();
@@ -941,6 +951,60 @@ async function pullAggregate(env, entryHash, revealUser) {
     return { status: body.ok ? 200 : 404, body };
   } catch {
     return fail(503, "LATTICE-STORE-UNAVAILABLE");
+  }
+}
+
+/**
+ * Online port write. Primary chain is hashPayload({ document, prev }).
+ * offline stays false, so this is not the username chain.
+ * The public POST /v1/lattice/wrap door still requires LATTICE_REMOTE.
+ * This writer does not flip that flag.
+ */
+export async function wrapPortReceipt(env, { entryHash, site, primaryPrev, secondaryPrev } = {}) {
+  if (!isHex64(entryHash)) return { wrapped: false, code: "LATTICE-DOCUMENT" };
+  if (!isAggregateSite(site)) return { wrapped: false, code: "AGGREGATE-SITE" };
+  const prevP = isHex64(primaryPrev) ? primaryPrev : "0".repeat(64);
+  const prevS = isHex64(secondaryPrev) ? secondaryPrev : "0".repeat(64);
+  if (!(await storeReady(env))) return { wrapped: false, code: "LATTICE-STORE-UNAVAILABLE", primary: "", secondary: "" };
+  const primary = hashPayload({ document: entryHash, prev: prevP });
+  const secondary = hashPayload({ offline: false, prev: prevS, primary });
+  const screened = screenWrap({
+    entry_hash: entryHash,
+    spec: LATTICE_SPEC,
+    target: SECONDARY_TARGET,
+    plane: "sites",
+    lattice: {
+      spec: LATTICE_SPEC,
+      document_hash: entryHash,
+      primary,
+      primary_prev: prevP,
+      secondary,
+      secondary_prev: prevS,
+      offline: false,
+      lattices: ["primary", "secondary"],
+    },
+    aggregate: { site },
+  });
+  if (!screened.ok) {
+    const code = screened.body && screened.body.code ? screened.body.code : "LATTICE-SHAPE";
+    return { wrapped: false, code, primary, secondary };
+  }
+  const submitter_key = createHash("sha256").update("receipt-port|" + site).digest("hex");
+  try {
+    const result = await writeWrap(env, { ...screened, submitter_key }, false);
+    const code = result.body && result.body.code ? result.body.code : "";
+    const wrapped = result.status === 201 || code === "LATTICE-ALREADY";
+    return {
+      wrapped,
+      code,
+      primary,
+      secondary,
+      entry_hash: entryHash,
+      plane: wrapped ? "sites" : null,
+      offline: false,
+    };
+  } catch {
+    return { wrapped: false, code: "LATTICE-STORE-UNAVAILABLE", primary, secondary };
   }
 }
 

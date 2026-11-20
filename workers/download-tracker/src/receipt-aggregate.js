@@ -65,6 +65,13 @@ export const AGGREGATE_SITES = Object.freeze([
     receipts: "https://www.azielcorpuslibrary.net/receipts",
     note: "Receipts already on this origin. Aggregate filing is still hash-only.",
   }),
+  Object.freeze({
+    slug: "furnace",
+    label: "furnaceisntfree.com",
+    origin: "https://furnaceisntfree.com",
+    receipts: "https://furnaceisntfree.com",
+    note: "Tool-usefulness receipts. Hash pointer only. Filed by the receipt port or an operator lattice wrap. Comments stay off this catalog.",
+  }),
 ]);
 
 export function aggregateSite(slug) {
@@ -168,7 +175,7 @@ export function aggregateCatalog() {
     sat: false,
     tiebreak: "refused",
     tiebreak_owner: "aziel-runtime",
-    note: "Subtree folders are source hubs. A hash is filed only by POST /v1/lattice/wrap with aggregate.site. This catalog does not copy remote receipt text.",
+    note: "Subtree folders are source hubs. A hash is filed by POST /v1/lattice/wrap with aggregate.site, or by the receipt port after it accepts a sister receipt. This catalog does not copy remote receipt text. Comments and usernames are not filed.",
     lattice: {
       wrap: "/v1/lattice/wrap",
       pull: "/v1/lattice/pull",
@@ -198,7 +205,7 @@ export function aggregateSubtreeHtml() {
     return `<li><a href="${esc(href)}">${esc(site.label)}</a> <span class="muted">${esc(site.note)}</span></li>`;
   }).join("");
   return `<div class="card"><h2>Sites</h2>
-<p class="muted">Nested folders for receipts aggregated onto this corpus. Each folder files hash pointers only. This page does not invent receipt text. A hash is stored only after an operator lattice wrap. Tie-break is refused. Paid sat is HELD. Cap-7 is not ICANN. live is false. decryption_complete is false.</p>
+<p class="muted">Nested folders for receipts aggregated onto this corpus. Each folder files hash pointers only. This page does not invent receipt text. A hash is stored after an operator lattice wrap or a receipt-port accept. Tie-break is refused. Paid sat is HELD. Cap-7 is not ICANN. live is false. decryption_complete is false. Comments are not filed.</p>
 <ul>${items}</ul>
 <p class="muted"><a href="${RECEIPTS_SITES_PATH}">${RECEIPTS_TAB_LABEL} / sites</a></p></div>`;
 }
