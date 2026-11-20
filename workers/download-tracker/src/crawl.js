@@ -25,7 +25,10 @@ import {
   FURNACE_AZIEL,
   FURNACE_NAME,
   UNSEAL_OFFICIAL,
+  DOORS_PATH,
+  AI_WELL_KNOWN_PATH,
 } from "./seo.js";
+import { livePublicDoorsDoc, livePublicDoorsPlain } from "./public-doors.js";
 import {
   RUNTIME_VERSION,
   RUNTIME_NOTE,
@@ -57,7 +60,7 @@ import { aiSurfaceLlmsBlock, bridgeDoc, MCP_TOOLS } from "./ai-surface.js";
 import { survivalCiteFields, survivalLlmsBlock } from "./ban-survival.js";
 import { AZCOHERENCE, AZCLCE_NAME, AZCLCE_SLUG, AZCLCE_GITHUB, AZCLCE_WORKER_HOME, azcoherenceLlmsBlock } from "./azcoherence.js";
 import { foldlockCiteFields, foldlockLlmsBlock } from "./foldlock.js";
-import { spectrallockCiteFields, spectrallockLlmsBlock, SPECTRALLOCK_SITEMAP } from "./spectrallock.js";
+import { spectrallockCiteFields, spectrallockLlmsBlock } from "./spectrallock.js";
 import { peacelockCiteFields, peacelockLlmsBlock } from "./peacelock.js";
 import { tradesRuntimeCiteFields, tradesRuntimeLlmsBlock, tradesRuntimeMcpDiscovery } from "./trades-runtime.js";
 import { redlineCiteFields } from "./redline-cite.js";
@@ -125,9 +128,9 @@ const VERSION = "2.7.0";
 /** This host's urlset and its own sitemap documents. Current date so reindex leaves 2026-09-20. */
 const SITE_LASTMOD = "2026-10-04";
 /** Paths whose sitemap composition or IndexNow key changed in the machine-facing SEO pass. */
-const SEO_PASS_LASTMOD = "2026-10-22";
-/** godlock, azieleliab, hedidntjump, and workers.dev sitemap documents keep their prior stamp. */
-const FOREIGN_SITEMAP_LASTMOD = "2026-09-20";
+const SEO_PASS_LASTMOD = "2026-11-20";
+/** Child sitemaps refreshed with the live-ecosystem doors pass. No *-download-tracker children. */
+const FOREIGN_SITEMAP_LASTMOD = "2026-11-20";
 /** IndexNow key for www.azielcorpuslibrary.net only. Not the azieleliab.com or hedidntjump.com keys. */
 export const INDEXNOW_KEY = "6dad9cd7ce966f7798cb9c5914da96ea";
 export const INDEXNOW_KEY_PATH = "/" + INDEXNOW_KEY + ".txt";
@@ -246,9 +249,10 @@ function isoDay(value, fallback) {
 
 /** Real per-path lastmod from source-file git dates (ISO day). Fallback SITE_LASTMOD. */
 const PATH_LASTMOD = Object.freeze({
-  "/": "2026-11-10",
-  "/aziel": "2026-11-10",
-  "/software": "2026-11-10",
+  "/": "2026-11-20",
+  "/aziel": "2026-11-20",
+  "/software": "2026-11-20",
+  "/doors": "2026-11-20",
   "/AzielEliab": "2026-11-06",
   "/who": "2026-11-06",
   "/who-is": "2026-11-06",
@@ -264,8 +268,8 @@ const PATH_LASTMOD = Object.freeze({
   "/help/how-to-read-scores.txt": "2026-09-29",
   "/help/how-to-cite.txt": "2026-09-29",
   "/help/uploads.txt": "2026-09-29",
-  "/runtime": "2026-11-10",
-  "/how-its-scored": "2026-11-10",
+  "/runtime": "2026-11-20",
+  "/how-its-scored": "2026-11-20",
 });
 
 /**
@@ -277,6 +281,7 @@ export const PATH_LASTMOD_SOURCES = Object.freeze({
   "/": ["workers/download-tracker/src/ui.js", "workers/download-tracker/src/identity.js"],
   "/aziel": ["workers/download-tracker/src/ui.js", "workers/download-tracker/src/seo.js"],
   "/software": ["workers/download-tracker/src/software-catalog.js", "workers/download-tracker/src/ui.js"],
+  "/doors": ["workers/download-tracker/src/public-doors.js", "workers/download-tracker/src/ui.js", "workers/download-tracker/src/seo.js"],
   "/AzielEliab": ["workers/download-tracker/src/identity.js"],
   "/who": ["workers/download-tracker/src/identity.js"],
   "/who-is": ["workers/download-tracker/src/identity.js"],
@@ -399,6 +404,7 @@ export function robotsTxt() {
     "Allow: /aziel-library",
     "Allow: /pattern",
     "Allow: /software",
+    "Allow: " + DOORS_PATH,
     "Allow: /donate",
     "Allow: /how-its-scored",
     "Allow: /help.txt",
@@ -434,6 +440,7 @@ export function robotsTxt() {
     "Allow: " + INDEXNOW_KEY_PATH,
     "Allow: /llms.txt",
     "Allow: /ai.txt",
+    "Allow: " + AI_WELL_KNOWN_PATH,
     "Allow: /humans.txt",
     "Allow: /openapi.json",
     "Allow: /v1/software",
@@ -487,6 +494,7 @@ const STATIC_SITEMAP = [
   ABOUT_PATH,
   AZIEL_HANDLES_PATH,
   "/software",
+  DOORS_PATH,
   "/donate",
   "/v1/software",
   "/v1/download",
@@ -561,6 +569,7 @@ const STATIC_SITEMAP = [
   "/.well-known/person.jsonld",
   "/llms.txt",
   "/ai.txt",
+  AI_WELL_KNOWN_PATH,
   "/humans.txt",
   "/health",
   "/ocr",
@@ -569,7 +578,6 @@ const STATIC_SITEMAP = [
   "/install.sh",
   "/v1/health",
   "/v1/version",
-  "/v1/search",
   "/v1/skill",
   "/v1/example",
   "/v1/review",
@@ -593,6 +601,8 @@ const SITEMAP_HINTS = {
   "/": { changefreq: "daily", priority: "1.0" },
   "/search": { changefreq: "daily", priority: "0.8" },
   "/software": { changefreq: "weekly", priority: "0.9" },
+  [DOORS_PATH]: { changefreq: "weekly", priority: "0.8" },
+  [AI_WELL_KNOWN_PATH]: { changefreq: "weekly", priority: "0.6" },
   [ABOUT_PATH]: { changefreq: "monthly", priority: "0.9" },
   [AZIEL_HANDLES_PATH]: { changefreq: "monthly", priority: "0.9" },
   "/v1/software": { changefreq: "weekly", priority: "0.8" },
@@ -795,7 +805,6 @@ export function sitemapIndexXml() {
   const foreign = [
     CATALOG + "/sitemap.xml",
     CATALOG + "/sitemap-index.xml",
-    SPECTRALLOCK_SITEMAP,
     "https://godlock.uk/sitemap.xml",
     HEDIDNTJUMP_HOME.replace(/\/+$/, "") + "/sitemap.xml",
     HUB_ORIGIN + "/sitemap.xml",
@@ -1026,6 +1035,7 @@ export function citeDoc(survival, outletCite, stamp, corpusTip) {
     furnace_label: FURNACE_NAME,
     unseal_official: UNSEAL_OFFICIAL,
     sister_sites: SISTER_SITES.map((row) => ({ id: row.id, label: row.label, href: row.href })),
+    live_public_doors: livePublicDoorsDoc(),
     library: HOST + "/",
     purpose: "Public MASTER digital library and intelligence runtime by Aziel Eliab. Aziel Library holds the operator collection; Corpus is the public Lamb Lens shelf. Search, map, gazetteer, triad scoring, and hosted OCR live on this Worker.",
     software: HOST + "/software",
@@ -1317,7 +1327,9 @@ export function llmsDoc(limitation, survival, stamp, sot, corpusTip) {
     + "- Action receipts (ACT-RECEIPT-1.0): " + HOST + "/receipts · " + HOST + "/v1/receipts\n"
     + "- Tip verify: " + HOST + "/receipts/verify\n"
     + "- llms.txt: " + HOST + "/llms.txt\n"
-    + "- ai.txt: " + HOST + "/ai.txt\n\n"
+    + "- ai.txt: " + HOST + "/ai.txt\n"
+    + "- ai.txt alias: " + HOST + AI_WELL_KNOWN_PATH + "\n"
+    + "- Ecosystem / Doors: " + HOST + DOORS_PATH + "\n\n"
     + "Purpose: Public MASTER digital library by " + AUTHOR + ". Aziel Library (royal purple) is the operator collection of the author's work. Corpus is the public Lamb Lens shelf. Hosted tools include search, map, gazetteer, triad scoring (SPRE × CLCE × PhysLing), ZionPattern Solver, hosted OCR, upload→pin (GET /v1/pin · /v1/verify-geo), HEURISTIC possibility (GET /v1/possibility), and poison-learn (GET /v1/poison-learn). Adaptive learning via hashchain lattice for recollection and reasoning (GET /v1/recollect). Growth-ON: AI crawlers stay Allowed. 4DMap cite: https://github.com/AzielEliab/4dmap (4DM-WP-1.0).\n\n"
     + limitation + "\n\n"
     + "Hosted tools run on this Worker. Visitors do not download Python, Tesseract, Poppler, or Whisper to use Map, Tree, Health, Forensics, Historical Geography, Verify, OCR, or transcription. Gazetteer lookup stays hosted in the background for map pins and APIs.\n\n"
@@ -1544,6 +1556,8 @@ export function llmsDoc(limitation, survival, stamp, sot, corpusTip) {
     + "- GET " + HOST + "/openapi.json\n"
     + "- GET " + HOST + "/llms.txt\n"
     + "- GET " + HOST + "/ai.txt\n"
+    + "- GET " + HOST + AI_WELL_KNOWN_PATH + "\n"
+    + "- GET " + HOST + DOORS_PATH + "\n"
     + "- GET " + HOST + "/humans.txt\n"
     + "- GET " + HOST + "/assets/world_110m.geojson\n\n"
     + "## Downloads (HTTP 200, counted, no 302)\n\n"
@@ -1576,6 +1590,7 @@ export function aiTxt(limitation, survival, stamp, sot) {
     "Allow: /about",
     "Allow: /aboutme",
     "Allow: /software",
+    "Allow: " + DOORS_PATH,
     "Allow: /donate",
     "Allow: /runtime",
     "Allow: /runtime/",
@@ -1625,6 +1640,7 @@ export function aiTxt(limitation, survival, stamp, sot) {
     "Allow: /.well-known/person.jsonld",
     "Allow: /llms.txt",
     "Allow: /ai.txt",
+    "Allow: " + AI_WELL_KNOWN_PATH,
     "Allow: /humans.txt",
     "Allow: /openapi.json",
     "Allow: /v1",
@@ -1800,5 +1816,6 @@ export function humansTxt() {
     "Softwares download: " + HOST + "/download · " + HOST + "/v1/download",
     "License: Apache-2.0",
     "",
+    livePublicDoorsPlain(),
   ].join("\n");
 }

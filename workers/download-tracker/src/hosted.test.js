@@ -63,8 +63,8 @@ test("GET /AzielEliab serves the About HTML at the canonical path", async () => 
   assert.match(html, /https:\/\/www\.azieleliab\.com\/#aziel/);
   assert.doesNotMatch(html, /azielcorpuslibrary\.net\/AzielEliab#aziel-eliab/);
   assert.match(html, /Part of the Aziel Eliab ecosystem/);
-  assert.match(html, />Official site</);
-  assert.match(html, />Corpus</);
+  assert.match(html, /href="https:\/\/www\.azieleliab\.com\/" rel="noopener noreferrer">Aziel Eliab</);
+  assert.match(html, /href="https:\/\/www\.azielcorpuslibrary\.net\/" rel="noopener noreferrer">Aziel Corpus Library</);
   assert.match(html, />GodLock</);
   assert.match(html, />Runtime GitHub</);
   assert.match(html, />Try on Glama</);

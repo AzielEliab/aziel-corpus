@@ -16,6 +16,7 @@ const NAV = [
   [">Aziel Library<", "/aziel-library"],
   [">Corpus<", "/corpus"],
   [">Software<", "/software"],
+  [">Doors<", "/doors"],
   [">How it's scored<", "/how-its-scored"],
   [">Tree<", "/tree"],
   [">Map<", "/map"],
@@ -68,9 +69,8 @@ test("restored nav2 keeps every public tab and drops Health/Verify/Gazetteer fro
   assert.doesNotMatch(donateStripHtml(), /bc1[a-z0-9]+/i);
   assert.doesNotMatch(donateStripHtml(), /0x[a-f0-9]{40}/i);
   assert.match(html, /Part of the Aziel Eliab ecosystem/);
-  assert.match(html, />Official site</);
-  assert.match(html, /href="https:\/\/www\.azieleliab\.com\/"/);
-  assert.match(html, />Corpus</);
+  assert.match(html, /href="https:\/\/www\.azieleliab\.com\/" rel="noopener noreferrer">Aziel Eliab</);
+  assert.match(html, /href="https:\/\/www\.azielcorpuslibrary\.net\/" rel="noopener noreferrer">Aziel Corpus Library</);
   assert.match(html, />GodLock</);
   assert.match(html, />Runtime GitHub</);
   assert.match(html, />Try on Glama</);

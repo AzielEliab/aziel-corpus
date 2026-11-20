@@ -88,9 +88,13 @@ test("film and search hub carry the same footer", () => {
   assert.match(film, /id="corpus-site-footer"/);
   assert.match(film, /Part of the Aziel Eliab ecosystem/);
   assert.match(film, /href="\/aziel"/);
-  assert.match(film, /href="https:\/\/www\.furnaceisntfree\.com\/"/);
+  assert.match(film, /href="https:\/\/furnaceisntfree\.com\/"/);
   assert.match(film, /href="https:\/\/furnaceisntfree\.com\/aziel\/"/);
-  assert.match(film, /href="https:\/\/www\.timetounsealthebook\.net"/);
+  assert.match(film, /href="https:\/\/timetounsealthebook\.net\/"/);
+  assert.match(film, /href="https:\/\/whitestone\.vibelock\.workers\.dev\/"/);
+  assert.match(film, /href="https:\/\/trades-runtime\.vibelock\.workers\.dev\/"/);
+  assert.match(film, /href="https:\/\/miragegrid\.vibelock\.workers\.dev\/"/);
+  assert.match(film, /href="https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/trades-runtime"/);
   assert.match(film, /href="https:\/\/aziel-runtime\.vibelock\.workers\.dev\/"/);
   assert.doesNotMatch(visible(film), /1 Chronicles 15:20/);
   assert.doesNotMatch(film, /class="brandrow"/);
@@ -99,11 +103,13 @@ test("film and search hub carry the same footer", () => {
   assert.match(search, /Part of the Aziel Eliab ecosystem/);
   assert.match(visible(search), /href="\/aziel"/);
   assert.match(search, /aria-label="Sister sites"/);
-  assert.match(search, /href="https:\/\/www\.furnaceisntfree\.com\/"/);
+  assert.match(search, /href="https:\/\/furnaceisntfree\.com\/"/);
   assert.match(search, /href="https:\/\/furnaceisntfree\.com\/aziel\/"/);
-  assert.match(search, /href="https:\/\/www\.timetounsealthebook\.net"/);
+  assert.match(search, /href="https:\/\/timetounsealthebook\.net\/"/);
   assert.match(search, /href="https:\/\/godlock\.uk\/"/);
-  assert.match(search, /href="https:\/\/www\.hedidntjump\.com\/"/);
+  assert.match(search, /href="https:\/\/hedidntjump\.com\/"/);
+  assert.match(search, /href="https:\/\/whitestone\.vibelock\.workers\.dev\/"/);
+  assert.match(search, /href="https:\/\/miragegrid\.vibelock\.workers\.dev\/"/);
   assert.doesNotMatch(visible(search), /1 Chronicles 15:20/);
 });
 
@@ -213,12 +219,14 @@ test("crawler surfaces list pretty paths, Allow, and the Unseal handle", async (
   for (const loc of [
     "https://www.azieleliab.com/",
     "https://godlock.uk/",
-    "https://www.hedidntjump.com/",
+    "https://hedidntjump.com/",
     "https://www.azieleliab.com/runtime/",
     "https://aziel-runtime.vibelock.workers.dev/",
-    "https://www.furnaceisntfree.com/",
-    "https://furnaceisntfree.com/aziel/",
-    "https://www.timetounsealthebook.net",
+    "https://furnaceisntfree.com/",
+    "https://timetounsealthebook.net/",
+    "https://whitestone.vibelock.workers.dev/",
+    "https://trades-runtime.vibelock.workers.dev/",
+    "https://miragegrid.vibelock.workers.dev/",
   ]) {
     assert.match(xml, new RegExp("<loc>" + loc.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "</loc>"));
   }

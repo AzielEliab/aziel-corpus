@@ -25,7 +25,9 @@ import {
   PAID_SAT_PUBLIC,
   DECRYPTION_PUBLIC,
   LIVE_HOLD_PUBLIC,
+  DOORS_PATH,
 } from "./seo.js";
+import { LIVE_PUBLIC_DOORS, LIVE_PUBLIC_VERIFIED } from "./public-doors.js";
 import { jeevesFabHtml } from "./jeeves.js";
 import { WHO_IS_AZIEL_ELIAB } from "./identity.js";
 import {
@@ -579,7 +581,7 @@ export function brandCountPills({ views, downloads, nodes, liveNodes, nodesUnkno
 
 /** Left-edge sigil drawer. Pattern and Runtime stay off chrome. Login/Sign up live in the top bar. */
 export function sigilNavHtml() {
-  return `<div class="sigil-nav-scrim" id="sigilNavScrim" hidden aria-hidden="true"></div><nav class="nav2 quiet" id="sigilNav" hidden><a href="${LIBRARY_HUB_PATH}">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/voynich">voynich</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="/how-its-scored">How it's scored</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/forensics">Forensics</a><span class="sep">|</span><a class="nav-aziel" href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a><span class="sep">|</span><a class="nav-aziel" href="${AZIEL_HANDLES_PATH}">Aziel</a><span class="sep">|</span><a href="/receipts">Receipts</a><span class="sep">|</span><a href="/donate">Donate</a><span class="sep">|</span><a href="/upload">Upload</a></nav>`;
+  return `<div class="sigil-nav-scrim" id="sigilNavScrim" hidden aria-hidden="true"></div><nav class="nav2 quiet" id="sigilNav" hidden><a href="${LIBRARY_HUB_PATH}">Search</a><span class="sep">|</span><a href="/aziel-library">Aziel Library</a><span class="sep">|</span><a href="/corpus">Corpus</a><span class="sep">|</span><a href="/voynich">voynich</a><span class="sep">|</span><a href="/software">Software</a><span class="sep">|</span><a href="${DOORS_PATH}">Doors</a><span class="sep">|</span><a href="/how-its-scored">How it's scored</a><span class="sep">|</span><a href="/tree">Tree</a><span class="sep">|</span><a href="/map">Map</a><span class="sep">|</span><a href="/historical">Historical</a><span class="sep">|</span><a href="/forensics">Forensics</a><span class="sep">|</span><a class="nav-aziel" href="${ABOUT_PATH}">${ABOUT_NAV_LABEL}</a><span class="sep">|</span><a class="nav-aziel" href="${AZIEL_HANDLES_PATH}">Aziel</a><span class="sep">|</span><a href="/receipts">Receipts</a><span class="sep">|</span><a href="/donate">Donate</a><span class="sep">|</span><a href="/upload">Upload</a></nav>`;
 }
 
 /** Session-only dismissal for the sigil "click me" callout. Not a cookie. */
@@ -1458,12 +1460,36 @@ export function patternBody({ total, domains, subjects, keywords, crosses } = {}
 <div class="card"><h2>Domain × subject</h2><div class="pattern-grid">${crossCards || "<p class=\"muted\">No pairs yet.</p>"}</div></div>`;
 }
 
+function doorsItemsHtml() {
+  return LIVE_PUBLIC_DOORS.map((row) => {
+    const glama = row.glama
+      ? ` · <a href="${esc(row.glama)}" rel="noopener noreferrer">Glama</a>`
+      : "";
+    const note = row.note ? `<p class="muted">${esc(row.note)}</p>` : "";
+    return `<li id="door-${esc(row.id)}"><a href="${esc(row.href)}" rel="noopener noreferrer">${esc(row.label)}</a> <span class="muted">${esc(row.role)}</span>${glama}${note}</li>`;
+  }).join("");
+}
+
+/** Ecosystem / Doors tab. Ten live origins. No download-tracker hosts. */
+export function doorsSectionHtml() {
+  return `<section class="soft-section" id="doors"><h2>Ecosystem / Doors</h2><ul class="handles">${doorsItemsHtml()}</ul><p class="muted"><a href="${DOORS_PATH}">Open the doors page</a>. Verified ${esc(LIVE_PUBLIC_VERIFIED)}. MirageGrid is mesh-only. public_icann is false. It is not an ICANN registrar.</p></section>`;
+}
+
+export function doorsBody() {
+  return `<section class="hero" id="ecosystem-doors"><h1>Ecosystem / Doors</h1>
+<p class="muted">Ten live public sites and runtimes, verified ${esc(LIVE_PUBLIC_VERIFIED)}. Each link is the live origin. Download-tracker hosts are not doors.</p>
+<ul class="handles">${doorsItemsHtml()}</ul>
+<p class="muted">MirageGrid is mesh-only. public_icann is false. It is not an ICANN registrar. Trades Runtime is a public MCP runtime with live_backends false and pilot_started false. He Didn't Jump, Time to Unseal the Book, and Furnace Isn't Free are handles, not Live Nodes.</p>
+<p><a href="/software#doors">Software</a> · <a href="${AZIEL_HANDLES_PATH}">Aziel handles</a></p>
+</section>`;
+}
+
 export function azielHandlesBody() {
   const items = AZIEL_HANDLES.map((row) => `<li><a href="${esc(row.href)}">${esc(row.label)}</a></li>`).join("");
   return `<section class="hero about-aziel" id="aziel-handles"><h1>Aziel</h1>
 <div class="card about-prose">
 <h2>Handles</h2>
-<p>Public identity on this page is Aziel Eliab. The handles below are the public doors listed on <a href="${esc(DOORS_URL)}">azieleliab.com</a>. Each site keeps its own receipt tip. He Didn't Jump is a handle, not a Live Node. TimeToUnsealTheBook is a handle, not a Live Node. The Furnace Isn't Free is a handle, not a Live Node.</p>
+<p>Public identity on this page is Aziel Eliab. The handles below are the public doors listed on <a href="${esc(DOORS_URL)}">azieleliab.com</a>. The live ten are also on <a href="${DOORS_PATH}">Ecosystem / Doors</a>. Each site keeps its own receipt tip. He Didn't Jump is a handle, not a Live Node. TimeToUnsealTheBook is a handle, not a Live Node. The Furnace Isn't Free is a handle, not a Live Node.</p>
 <ul class="handles">${items}</ul>
 <p class="muted">${esc(CAP7_PUBLIC)} ${esc(PAID_SAT_PUBLIC)} ${esc(DECRYPTION_PUBLIC)} ${esc(LIVE_HOLD_PUBLIC)}</p>
 <p><a href="${ABOUT_PATH}">About Aziel Eliab</a></p>
@@ -1657,6 +1683,7 @@ ${softSection("Software", groups.plain)}
 ${LCP_FOLD}
 ${softSection("Gate", groups.gate)}
 ${softSection("Lock", groups.lock)}
+${doorsSectionHtml()}
 <div class="card"><p class="soft-links runtime-dist">${runtimeDistributionButtons()}</p>
 <p class="muted">Softwares heading then list — Plain → Gate → Lock (Clock is a separate lane from Lock). MCP Softwares via <code>fraggate_call</code> only. FragGate is THE single door. ${esc(softwareCountFraming())} ${esc(JEEVES_SUITE_HELP.wording)} Human UI on the Runtime Worker (<code>#op-panel</code> <code>#dashboard</code> <code>#fg-console</code> <code>#task-*</code> + About Aziel + hashtags + <code>/download</code>). ${esc(runtimeSotPlain(model.sot))}. Lamb Lens ${esc(LAMB_LENS_PATH)}. Dual surface. NO-LIE. Growth-ON. Mesh outlet <a href="/v1/mesh/outlet"><code>/v1/mesh/outlet</code></a>.</p>
 <p class="soft-links"><a class="button" href="/runtime">${esc(chip)}</a> <a class="button ghost" href="/how-its-scored">How it's scored</a> <a class="button ghost" href="/runtime/v1/software">/v1/software</a> <a class="button ghost" href="/runtime/mcp">MCP</a> <a class="button ghost" href="/runtime/v1/uses">uses</a> <a class="button ghost" href="/v1/lattice">Lattice API</a> <a class="button ghost" href="${GODLOCK_IDENTITY}">godlock.uk/AzielEliab</a> <a class="button ghost" href="${HEDIDNTJUMP_HOME}">${esc(HEDIDNTJUMP_LABEL)}</a> <a class="button ghost" href="${FURNACE_HOME}">${esc(FURNACE_NAME)}</a> <a class="button ghost" href="${FURNACE_AZIEL}">Furnace · Aziel</a> <a class="button ghost" href="${UNSEAL_OFFICIAL}">${esc(UNSEAL_NAME)}</a> <a class="button ghost" href="https://github.com/AzielEliab/aziel-corpus">aziel-corpus</a> <a class="button ghost" href="${esc(RUNTIME_GITHUB)}">aziel-runtime</a></p></div>

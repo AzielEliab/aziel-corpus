@@ -23,6 +23,7 @@ import { continueMetadataBackfill } from "./record-metadata.js";
 import { bumpPaperCount, refreshPaperMetrics, continuePaperBackfill, permalinksForRows, readPaperMetrics, recordIdForContentHash, stampPermalinks, topPapers } from "./paper-ux.js";
 import { continueContentHashRepair, sampleContentHashIntegrity } from "./content-hash-repair.js";
 import { identityRouteBody } from "./identity.js";
+import { canonicalWwwRedirect } from "./seo.js";
 import { fetchLiveSurvival, isSurvivalSeoPath, SURVIVAL_SEO_CACHE_CONTROL } from "./ban-survival.js";
 import { searchRecords, parseBrowseParams, serveFile, serveFileByHash, normalizeContentHash } from "./library.js";
 import { continueFullBackfill, continueRecalibrateAll } from "./review-store.js";
@@ -519,6 +520,17 @@ async function handleFetch(request, env, ctx) {
     const earlyPath = url.pathname.replace(/\/+$/, "") || "/";
     // Internal Cache API key paths (/__lastgood/*, /__cache/*) are never served publicly.
     if (isInternalCachePath(url.pathname)) return json({ error: "not found" }, 404);
+    const www = canonicalWwwRedirect(url);
+    if (www) {
+      return new Response(null, {
+        status: 301,
+        headers: {
+          Location: www,
+          "Cache-Control": "public, max-age=86400",
+          ...corsHeaders(),
+        },
+      });
+    }
     // Per-request background walks removed: cron runs one walk per tick (D1 read budget).
 
     if (request.method === "OPTIONS") {
@@ -815,7 +827,7 @@ async function handleFetch(request, env, ctx) {
       const sot = outlet && outlet.cite && outlet.cite.sot;
       return crawlResponse(request, llmsDoc(LIMITATION, survival, stamp, sot, buildStamp(env)), MIME.plain, { "Cache-Control": seoCache, ...corsHeaders() });
     }
-    if (isReadMethod(request.method) && crawlPath === "/ai.txt") {
+    if (isReadMethod(request.method) && (crawlPath === "/ai.txt" || crawlPath === "/.well-known/ai.txt")) {
       const outlet = await readOutletState(env);
       const stamp = await resolveRuntimeCiteStamp(env);
       const sot = outlet && outlet.cite && outlet.cite.sot;

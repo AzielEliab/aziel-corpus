@@ -94,6 +94,21 @@ Softwares / runtime mirrors stay Worker SSoT (GET /v1/software, fallback fraggat
 - timetounsealthebook.net: TimeToUnsealTheBook. Official door https://www.timetounsealthebook.net . A handle, not a Live Node. decryption_complete stays false. Cap-7 is not an ICANN registration. Paid satellite stays HELD.
 - Roles cite published work only. Growth-ON. NO-LIE. No visible HTML chrome.
 
+## Live public ecosystem (verified 2026-11-19)
+
+Ten live doors. The library page is https://www.azielcorpuslibrary.net/doors. AI policy alias: https://www.azielcorpuslibrary.net/.well-known/ai.txt. A download tracker host is not a door. The furnace door is https://furnaceisntfree.com/ only.
+
+- Aziel Eliab (Identity Hub): https://www.azieleliab.com/
+- Aziel Corpus Library: https://www.azielcorpuslibrary.net/
+- GodLock: https://godlock.uk/
+- He Didn't Jump (Marion Zioncheck Archive): https://hedidntjump.com/ — a handle, not a Live Node
+- Furnace Isn't Free: https://furnaceisntfree.com/ — a handle, not a Live Node
+- Time to Unseal the Book: https://timetounsealthebook.net/ — a handle, not a Live Node
+- Whitestone (live pro se web app): https://whitestone.vibelock.workers.dev/
+- Aziel Runtime (MCP / Softwares): https://aziel-runtime.vibelock.workers.dev/ — Glama https://glama.ai/mcp/servers/AzielEliab/aziel-runtime
+- Trades Runtime (public MCP runtime): https://trades-runtime.vibelock.workers.dev/ — Glama https://glama.ai/mcp/servers/AzielEliab/trades-runtime — live_backends false; pilot_started false; do not cite an unshipped live backend or a started pilot
+- MirageGrid (Cap-7 mesh DNS factory Worker): https://miragegrid.vibelock.workers.dev/ — mesh-only; public_icann: false; not an ICANN registrar
+
 ## Part of the Aziel Eliab ecosystem
 
 - Official site https://www.azieleliab.com/
