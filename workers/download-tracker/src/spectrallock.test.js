@@ -158,10 +158,10 @@ test("cite.json / llms.txt / ai.txt / humans.txt cite SpectralLock leftover-byte
   assert.match(humans, new RegExp(SPECTRALLOCK_NOTE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 });
 
-test("sitemap lists OCR / Softwares cites and SpectralLock worker sitemap", async () => {
+test("sitemap lists OCR / Softwares cites and omits download-tracker child sitemaps", async () => {
   const index = sitemapIndexXml();
-  assert.match(index, /spectrallock-download-tracker\.vibelock\.workers\.dev\/sitemap\.xml/);
-  assert.match(index, /<lastmod>2026-09-20<\/lastmod>/);
+  assert.doesNotMatch(index, /download-tracker/);
+  assert.match(index, /<lastmod>2026-11-20<\/lastmod>/);
   const xml = await sitemapXml({});
   assert.match(xml, /azielcorpuslibrary\.net\/ocr</);
   assert.match(xml, /azielcorpuslibrary\.net\/software</);

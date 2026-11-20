@@ -79,9 +79,13 @@ test("film theater document is the front door only", () => {
   assert.doesNotMatch(html, /Search the libraries/);
   assert.doesNotMatch(html, /class="soft-card"/);
   assert.doesNotMatch(body, /<h1>Softwares/);
-  assert.match(body, /href="https:\/\/www\.furnaceisntfree\.com\/"/);
+  assert.match(body, /href="https:\/\/furnaceisntfree\.com\/"/);
   assert.match(body, /href="https:\/\/furnaceisntfree\.com\/aziel\/"/);
-  assert.match(body, /href="https:\/\/www\.timetounsealthebook\.net"/);
+  assert.match(body, /href="https:\/\/timetounsealthebook\.net\/"/);
+  assert.match(body, /href="https:\/\/whitestone\.vibelock\.workers\.dev\/"/);
+  assert.match(body, /href="https:\/\/trades-runtime\.vibelock\.workers\.dev\/"/);
+  assert.match(body, /href="https:\/\/miragegrid\.vibelock\.workers\.dev\/"/);
+  assert.match(body, /href="https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/trades-runtime"/);
   assert.doesNotMatch(html, BANNED);
   assert.equal(html.split("<main").length - 1, 1);
 });
@@ -149,6 +153,7 @@ test("GET / is the film and GET /search keeps the library hub", async () => {
   assert.equal(home.headers.get("Strict-Transport-Security"), "max-age=31536000; includeSubDomains");
   assert.equal(home.headers.get("X-Content-Type-Options"), "nosniff");
   assert.equal(home.headers.get("X-Frame-Options"), "DENY");
+  assert.equal(home.headers.get("Content-Signal"), "search=yes, ai-input=yes, ai-train=yes");
   const homeCsp = home.headers.get("Content-Security-Policy") || "";
   assert.match(homeCsp, /script-src 'unsafe-inline'/);
   assert.match(homeCsp, /frame-ancestors 'none'/);
@@ -180,11 +185,8 @@ test("GET / is the film and GET /search keeps the library hub", async () => {
     env,
     {}
   );
-  assert.equal(apex.status, 200);
-  assert.match(apex.headers.get("content-type") || "", /text\/html/);
-  assert.equal(apex.headers.get("Strict-Transport-Security"), "max-age=31536000; includeSubDomains");
-  assert.equal(apex.headers.get("X-Frame-Options"), "DENY");
-  assert.match(apex.headers.get("Content-Security-Policy") || "", /frame-ancestors 'none'/);
+  assert.equal(apex.status, 301);
+  assert.equal(apex.headers.get("location"), "https://www.azielcorpuslibrary.net/");
 
   const moved = await worker.fetch(
     new Request("https://www.azielcorpuslibrary.net/?q=Florence", { headers: { "User-Agent": "Mozilla/5.0" } }),

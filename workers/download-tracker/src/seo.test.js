@@ -367,28 +367,38 @@ test("page-specific descriptions and share images", () => {
 test("ecosystem footer/nav is chrome, not Softwares heading→list", () => {
   assert.equal(ECOSYSTEM_HEADING, "Part of the Aziel Eliab ecosystem");
   assert.deepEqual(ECOSYSTEM_LINKS.map((l) => [l.label, l.href, !!l.muted, !!l.primary]), [
-    ["Official site", "https://www.azieleliab.com/", false, false],
-    ["Corpus", "https://www.azielcorpuslibrary.net/", false, false],
+    ["Aziel Eliab", "https://www.azieleliab.com/", false, false],
+    ["Aziel Corpus Library", "https://www.azielcorpuslibrary.net/", false, false],
     ["GodLock", "https://godlock.uk/", false, false],
-    ["He Didn't Jump", "https://www.hedidntjump.com/", false, false],
-    ["Softwares", "https://aziel-runtime.vibelock.workers.dev/", false, false],
-    ["The Furnace Isn't Free", "https://www.furnaceisntfree.com/", false, false],
+    ["He Didn't Jump", "https://hedidntjump.com/", false, false],
+    ["Furnace Isn't Free", "https://furnaceisntfree.com/", false, false],
+    ["Time to Unseal the Book", "https://timetounsealthebook.net/", false, false],
+    ["Whitestone", "https://whitestone.vibelock.workers.dev/", false, false],
+    ["Aziel Runtime", "https://aziel-runtime.vibelock.workers.dev/", false, false],
+    ["Trades Runtime", "https://trades-runtime.vibelock.workers.dev/", false, false],
+    ["MirageGrid", "https://miragegrid.vibelock.workers.dev/", false, false],
     ["Furnace · Aziel", "https://furnaceisntfree.com/aziel/", false, false],
-    ["TimeToUnsealTheBook", "https://www.timetounsealthebook.net", false, false],
     ["Runtime GitHub", "https://github.com/AzielEliab/aziel-runtime", false, false],
     ["Try on Glama", "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime", false, true],
+    ["Trades Runtime on Glama", "https://glama.ai/mcp/servers/AzielEliab/trades-runtime", false, false],
   ]);
   const block = ecosystemBlockHtml();
   assert.match(block, /<footer class="ecosystem"/);
   assert.match(block, /Part of the Aziel Eliab ecosystem/);
   assert.match(block, /href="https:\/\/www\.azieleliab\.com\/"/);
-  assert.match(block, />Official site</);
+  assert.match(block, />Aziel Eliab</);
   assert.match(block, /href="https:\/\/www\.azielcorpuslibrary\.net\/"/);
-  assert.match(block, />Corpus</);
+  assert.match(block, />Aziel Corpus Library</);
   assert.match(block, /href="https:\/\/godlock\.uk\/"/);
   assert.match(block, />GodLock</);
-  assert.match(block, /href="https:\/\/www\.hedidntjump\.com\/"/);
+  assert.match(block, /href="https:\/\/hedidntjump\.com\/"/);
   assert.match(block, />He Didn't Jump</);
+  assert.match(block, /href="https:\/\/whitestone\.vibelock\.workers\.dev\/"/);
+  assert.match(block, /href="https:\/\/trades-runtime\.vibelock\.workers\.dev\/"/);
+  assert.match(block, /href="https:\/\/miragegrid\.vibelock\.workers\.dev\/"/);
+  assert.match(block, /href="https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/trades-runtime"/);
+  assert.doesNotMatch(block, /thefurnaceisntfree\.com/);
+  assert.doesNotMatch(block, /download-tracker/);
   assert.match(block, /href="https:\/\/github\.com\/AzielEliab\/aziel-runtime"/);
   assert.match(block, />Runtime GitHub</);
   assert.match(block, /class="button"[^>]*href="https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime"[^>]*>Try on Glama</);

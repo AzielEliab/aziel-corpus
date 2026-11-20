@@ -10,6 +10,7 @@
  */
 
 export const CORPUS_HSTS = "max-age=31536000; includeSubDomains";
+export const CONTENT_SIGNAL = "search=yes, ai-input=yes, ai-train=yes";
 
 export const CORPUS_HTML_CSP = [
   "default-src 'none'",
@@ -35,6 +36,7 @@ export function applyHtmlSecurity(response) {
   if (!headers.get("X-Content-Type-Options")) headers.set("X-Content-Type-Options", "nosniff");
   if (!headers.get("X-Frame-Options")) headers.set("X-Frame-Options", "DENY");
   if (!headers.get("Referrer-Policy")) headers.set("Referrer-Policy", "no-referrer");
+  headers.set("Content-Signal", CONTENT_SIGNAL);
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,

@@ -34,8 +34,16 @@ import {
   UNSEAL_NAME as UNSEAL_NAME_LOCK,
   sisterWebsiteNodes,
 } from "./identity.js";
+import {
+  AI_WELL_KNOWN_PATH,
+  DOORS_PATH,
+  LIVE_PUBLIC_DOORS,
+  TRADES_GLAMA,
+  livePublicDoor,
+  livePublicDoorsPlain,
+} from "./public-doors.js";
 
-export { FURNACE_NAME, FURNACE_HOME, FURNACE_AZIEL, UNSEAL_OFFICIAL, RUNTIME_HOME };
+export { FURNACE_NAME, FURNACE_HOME, FURNACE_AZIEL, UNSEAL_OFFICIAL, RUNTIME_HOME, DOORS_PATH, AI_WELL_KNOWN_PATH, LIVE_PUBLIC_DOORS };
 
 export const CANON_HOST = "https://www.azielcorpuslibrary.net";
 export const ABOUT_PATH = "/AzielEliab";
@@ -84,31 +92,25 @@ export const SITE_DESCRIPTION = "Aziel Digital Library by Aziel Eliab. Search th
 /** Visible ecosystem block (footer/nav). Not Softwares H1→list. */
 export const ECOSYSTEM_HEADING = "Part of the Aziel Eliab ecosystem";
 /**
- * Official sister mesh. Every footer, film door, and search-hub chrome lists these.
- * Softwares is the Aziel Runtime Worker. Furnace and Unseal use the confirmed public URLs.
+ * Official sister mesh. The ten verified live public origins.
+ * Footer, film door, and search-hub chrome list these. Download-tracker hosts are not doors.
  */
-export const SISTER_SITES = Object.freeze([
-  Object.freeze({ id: "official", label: "azieleliab.com", href: HUB_ORIGIN + "/" }),
-  Object.freeze({ id: "corpus", label: "azielcorpuslibrary.net", href: CANON_HOST + "/" }),
-  Object.freeze({ id: "godlock", label: "GodLock", href: GODLOCK_HOME }),
-  Object.freeze({ id: "hedidntjump", label: HEDIDNTJUMP_LABEL, href: HEDIDNTJUMP_HOME }),
-  Object.freeze({ id: "softwares", label: "Softwares", href: RUNTIME_HOME }),
-  Object.freeze({ id: "furnace", label: FURNACE_NAME, href: FURNACE_HOME }),
-  Object.freeze({ id: "furnace-aziel", label: "Furnace · Aziel", href: FURNACE_AZIEL }),
-  Object.freeze({ id: "unseal", label: UNSEAL_NAME, href: UNSEAL_OFFICIAL }),
-]);
+export const SISTER_SITES = Object.freeze(LIVE_PUBLIC_DOORS.map((row) => Object.freeze({
+  id: row.id,
+  label: row.label,
+  href: row.href,
+})));
 
 export const ECOSYSTEM_LINKS = Object.freeze([
-  Object.freeze({ href: HUB_ORIGIN + "/", label: "Official site" }),
-  Object.freeze({ href: CANON_HOST + "/", label: "Corpus" }),
-  Object.freeze({ href: GODLOCK_HOME, label: "GodLock" }),
-  Object.freeze({ href: HEDIDNTJUMP_HOME, label: HEDIDNTJUMP_LABEL }),
-  Object.freeze({ href: RUNTIME_HOME, label: "Softwares" }),
-  Object.freeze({ href: FURNACE_HOME, label: FURNACE_NAME }),
+  ...LIVE_PUBLIC_DOORS.map((row) => Object.freeze({
+    href: row.href,
+    label: row.label,
+    ...(row.footerTitle ? { title: row.footerTitle } : {}),
+  })),
   Object.freeze({ href: FURNACE_AZIEL, label: "Furnace · Aziel" }),
-  Object.freeze({ href: UNSEAL_OFFICIAL, label: UNSEAL_NAME }),
   Object.freeze({ href: RUNTIME_GITHUB, label: "Runtime GitHub" }),
   Object.freeze({ href: RUNTIME_GLAMA, label: "Try on Glama", primary: true }),
+  Object.freeze({ href: TRADES_GLAMA, label: "Trades Runtime on Glama" }),
 ]);
 
 /**
@@ -122,6 +124,7 @@ export const TAB_PATHS = Object.freeze([
   Object.freeze({ href: "/corpus", label: "Corpus" }),
   Object.freeze({ href: "/voynich", label: "voynich" }),
   Object.freeze({ href: "/software", label: "Software" }),
+  Object.freeze({ href: DOORS_PATH, label: "Doors" }),
   Object.freeze({ href: "/runtime", label: "Runtime" }),
   Object.freeze({ href: "/how-its-scored", label: "How it's scored" }),
   Object.freeze({ href: "/tree", label: "Tree" }),
@@ -156,6 +159,9 @@ export const AZIEL_HANDLES = Object.freeze([
   Object.freeze({ id: "glama", label: "Try on Glama", href: RUNTIME_GLAMA }),
   Object.freeze({ id: "trades", label: "Trades-Runtime", href: TRADES_HOME }),
   Object.freeze({ id: "trades-mcp", label: "Trades-Runtime MCP", href: TRADES_MCP }),
+  Object.freeze({ id: "trades-glama", label: "Trades Runtime on Glama", href: TRADES_GLAMA }),
+  Object.freeze({ id: "whitestone", label: "Whitestone", href: livePublicDoor("whitestone").href, official: true }),
+  Object.freeze({ id: "miragegrid", label: "MirageGrid", href: livePublicDoor("miragegrid").href, official: true }),
   Object.freeze({ id: "x", label: "X @AzielEliab", href: X_PRIMARY }),
   Object.freeze({ id: "furnace", label: FURNACE_NAME, href: FURNACE_HOME, official: true }),
   Object.freeze({ id: "furnace-aziel", label: "Furnace · Aziel", href: FURNACE_AZIEL, official: true }),
@@ -249,6 +255,7 @@ export function fleetSeoPlainBlock() {
     + "Handles, same public doors as " + DOORS_URL + " :\n\n"
     + handles + "\n\n"
     + "Sister sites: " + SISTER_SITES.map((row) => row.href).join(" · ") + "\n"
+    + livePublicDoorsPlain() + "\n"
     + "He Didn't Jump is a handle. It is not a Live Node.\n"
     + "TimeToUnsealTheBook is a handle. It is not a Live Node.\n"
     + "The Furnace Isn't Free is a handle. It is not a Live Node.\n"
@@ -264,14 +271,15 @@ export function siteFooterHtml() {
   const items = ECOSYSTEM_LINKS.map((l) => {
     const cls = l.primary ? "button" : "";
     const extra = cls ? " class=" + Q + cls + Q : "";
-    return "<li><a" + extra + " href=" + Q + esc(l.href) + Q + " rel=" + Q + "noopener noreferrer" + Q + ">" + esc(l.label) + "</a></li>";
+    const title = l.title ? " title=" + Q + esc(l.title) + Q : "";
+    return "<li><a" + extra + title + " href=" + Q + esc(l.href) + Q + " rel=" + Q + "noopener noreferrer" + Q + ">" + esc(l.label) + "</a></li>";
   }).join("");
   const paths = TAB_PATHS.map((tab) => "<a href=" + Q + esc(tab.href) + Q + ">" + esc(tab.href) + "</a>").join(" · ");
   const honesty = GROWTH_ON_LINE + " " + CAP7_PUBLIC + " " + PAID_SAT_PUBLIC + " " + DECRYPTION_PUBLIC + " " + LIVE_HOLD_PUBLIC + " " + HDJ_HANDLE_NOTE + " " + UNSEAL_HANDLE_NOTE + " " + FURNACE_HANDLE_NOTE;
   return "<footer class=\"ecosystem\" id=\"corpus-site-footer\" aria-label=\"" + esc(ECOSYSTEM_HEADING) + "\">"
-    + "<p class=\"eco-head\">" + esc(ECOSYSTEM_HEADING) + "</p>"
-    + "<nav class=\"ecosystem-nav\"><ul class=\"ecosystem-list\">" + items + "</ul></nav>"
-    + "<p class=\"crawl-links\"><a href=\"/cite.json\">cite.json</a> · <a href=\"/llms.txt\">llms.txt</a> · <a href=\"/ai.txt\">ai.txt</a> · <a href=\"/sitemap.xml\">sitemap</a> · <a href=\"/person.jsonld\">person</a></p>"
+    + "<p class=\"eco-head\"><a href=\"" + DOORS_PATH + "\">" + esc(ECOSYSTEM_HEADING) + "</a></p>"
+    + "<nav class=\"ecosystem-nav\" aria-label=\"Ecosystem doors\"><ul class=\"ecosystem-list\">" + items + "</ul></nav>"
+    + "<p class=\"crawl-links\"><a href=\"" + DOORS_PATH + "\">doors</a> · <a href=\"/cite.json\">cite.json</a> · <a href=\"/llms.txt\">llms.txt</a> · <a href=\"/ai.txt\">ai.txt</a> · <a href=\"/sitemap.xml\">sitemap</a> · <a href=\"/person.jsonld\">person</a></p>"
     + "<p class=\"paths\">Paths: " + paths + ".</p>"
     + "<p class=\"honesty\">" + esc(honesty) + "</p>"
     + "</footer>";
@@ -291,6 +299,7 @@ export function documentTitle(kind, title) {
   if (kind === "runtime") return RUNTIME_TITLE;
   if (kind === "about") return "About " + AUTHOR + " | " + SITE;
   if (kind === "handles") return "Aziel handles — " + SITE;
+  if (kind === "doors") return "Ecosystem / Doors — " + SITE;
   if (kind === "who") return "Who is Aziel Eliab";
   const t = String(title || "").trim();
   if (t && t !== SITE) return t + " — " + SITE;
@@ -301,6 +310,15 @@ function ogType(kind) {
   if (kind === "record") return "article";
   if (kind === "about") return "profile";
   return "website";
+}
+
+/** Apex azielcorpuslibrary.net → canonical www, preserving path and query. */
+export function canonicalWwwRedirect(input) {
+  let u;
+  try { u = input instanceof URL ? input : new URL(String(input || "")); }
+  catch { return null; }
+  if (String(u.hostname || "").toLowerCase() !== "azielcorpuslibrary.net") return null;
+  return CANON_HOST + (u.pathname || "/") + (u.search || "");
 }
 
 /** Permanent Location for legacy /about and case-folded /AzielEliab. /aziel stays the handles tab. */
@@ -437,6 +455,7 @@ export function defaultDescription(kind, runtimeVersion) {
   if (kind === "software") return softwareDescription(runtimeVersion);
   if (kind === "about") return LOCK_LINE + " About Aziel Eliab, publisher of Aziel Digital Library on this site. " + ABOUT_DESCRIPTION + " Signed Aziel Elroi Eliab. GodLock is one product on that record.";
   if (kind === "handles") return "Public handles for Aziel Eliab. Same doors as " + DOORS_URL + ". " + HDJ_HANDLE_NOTE + " " + UNSEAL_HANDLE_NOTE + " " + FURNACE_HANDLE_NOTE + " " + CAP7_PUBLIC + " " + PAID_SAT_PUBLIC + " " + DECRYPTION_PUBLIC + " " + LIVE_HOLD_PUBLIC;
+  if (kind === "doors") return "Ten live public sites and runtimes in the Aziel Eliab ecosystem. Whitestone is a live pro se web app. Trades Runtime is a public MCP runtime with live_backends false and pilot_started false. MirageGrid is a mesh-only Cap-7 DNS factory Worker. public_icann is false. It is not an ICANN registrar. Author Aziel Eliab.";
   if (kind === "who") return LOCK_LINE;
   if (kind === "scored" || kind === "how-its-scored") return "How Aziel Digital Library scores records: the triad is always published (TRIAD_V3 36-cycle mean of applicable factors), AZCoherence second-pass triad coherence (peer AZ-CLCE), and ZionPattern meaning (75 is intentional suppression confidence; lower is more natural). Author Aziel Eliab.";
   if (kind === "pattern") return "Pattern clusters across Aziel Digital Library domains, subjects, and keywords. Author Aziel Eliab.";
@@ -623,6 +642,32 @@ function jsonLd(title, path, kind, description, work, runtimeVersion) {
       provider: who,
       termsOfService: CANON_HOST + "/runtime",
     });
+  }
+  if (kind === "doors" || path === DOORS_PATH) {
+    graph.push({
+      "@type": "CollectionPage",
+      "@id": CANON_HOST + DOORS_PATH + "#doors",
+      name: "Ecosystem / Doors",
+      url: CANON_HOST + DOORS_PATH,
+      description: defaultDescription("doors"),
+      isPartOf: { "@id": WEBSITE_ID },
+      author: who,
+      mainEntity: {
+        "@type": "ItemList",
+        name: "Live public ecosystem",
+        numberOfItems: LIVE_PUBLIC_DOORS.length,
+        itemListElement: LIVE_PUBLIC_DOORS.map((row, i) => ({
+          "@type": "ListItem",
+          position: i + 1,
+          name: row.name,
+          url: row.href,
+        })),
+      },
+    });
+    graph.push(breadcrumbNode([
+      { name: SITE, item: CANON_HOST + "/" },
+      { name: "Ecosystem / Doors", item: CANON_HOST + DOORS_PATH },
+    ]));
   }
   if (kind === "handles" || path === AZIEL_HANDLES_PATH) {
     graph.push({
