@@ -995,7 +995,7 @@ test("rss.xml is one item per upload permalink and pubDate is the stored upload 
   assert.match(xml, new RegExp("<link>" + H + "/azielcorpus/usersubmitted/soil-roots</link>"));
   assert.match(xml, new RegExp("<pubDate>" + soilDate + "</pubDate>"));
   assert.match(xml, /<title>Soil &amp; &lt;Roots&gt;<\/title>/);
-  assert.match(xml, /<dc:creator>Ada &amp; Co<\/dc:creator>/);
+  assert.doesNotMatch(xml, /Ada/);
   assert.match(xml, /Filed 2026-08-02 04:15/);
   assert.match(xml, new RegExp("<link>" + H + "/azielcorpus/usersubmitted/dated-in-d1</link>"));
   assert.match(xml, new RegExp("<pubDate>" + d1Date + "</pubDate>"));
@@ -1004,7 +1004,9 @@ test("rss.xml is one item per upload permalink and pubDate is the stored upload 
   const dated = xml.indexOf("/azielcorpus/usersubmitted/dated-in-d1");
   assert.ok(cock > 0 && cock < soil && soil < dated, "newest upload first");
   assert.equal((xml.match(/<item>/g) || []).length, 3);
-  assert.equal((xml.match(/<dc:creator>/g) || []).length, 2);
+  const creators = [...xml.matchAll(/<dc:creator>([^<]*)<\/dc:creator>/g)].map((m) => m[1]);
+  assert.deepEqual(creators, ["Aziel Eliab"]);
+  assert.doesNotMatch(xml, /<author>/);
   assert.doesNotMatch(xml, /undated|bad-date|AZDOC-NODATE|AZDOC-0000000D1000|\/record\/AZDOC/);
   const sm = await sitemapXml(env);
   assert.match(sm, new RegExp("<loc>" + H + RSS_PATH + "</loc><lastmod>2026-09-01</lastmod>"));
@@ -1013,6 +1015,34 @@ test("rss.xml is one item per upload permalink and pubDate is the stored upload 
   assert.match(headMeta({ title: "Home", path: "/" }), /rel="alternate" href="https:\/\/www\.azielcorpuslibrary\.net\/rss\.xml" type="application\/rss\+xml" title="Aziel Digital Library uploads"/);
   assert.equal(citeDoc().rss, H + RSS_PATH);
   assert.match(llmsDoc("limit"), new RegExp(H.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + RSS_PATH.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+});
+
+test("rss feed link stays in the head and out of the visible footer and body", async () => {
+  const { headMeta, siteFooterHtml } = await import("./seo.js");
+  const { page } = await import("./ui.js");
+  const { filmTheaterHtml } = await import("./film.js");
+  const footer = siteFooterHtml();
+  assert.doesNotMatch(footer, /rss\.xml/i);
+  assert.doesNotMatch(footer, />\s*rss\s*</i);
+  const pages = [
+    page("Corpus", "<p>Shelf</p>", { path: "/corpus", kind: "corpus" }),
+    page("Search", "<p>Search</p>", { path: "/", kind: "search" }),
+    page("Library", "<p>Shelf</p>", { path: "/aziel-library", kind: "aziel-library" }),
+  ];
+  for (const html of pages) {
+    const split = html.toLowerCase().indexOf("</head>");
+    assert.ok(split > 0, "page has a head");
+    const head = html.slice(0, split);
+    const body = html.slice(split);
+    assert.match(head, /rel="alternate" href="https:\/\/www\.azielcorpuslibrary\.net\/rss\.xml" type="application\/rss\+xml"/);
+    assert.doesNotMatch(body, /rss\.xml/i);
+    assert.doesNotMatch(body, /href="[^"]*\/rss(?:\.xml)?"/i);
+  }
+  const film = filmTheaterHtml();
+  const filmBody = film.slice(film.toLowerCase().indexOf("</head>"));
+  assert.doesNotMatch(filmBody, /rss\.xml/i);
+  assert.doesNotMatch(filmBody, /href="[^"]*\/rss(?:\.xml)?"/i);
+  assert.match(headMeta({ title: "Home", path: "/" }), /rel="alternate" href="https:\/\/www\.azielcorpuslibrary\.net\/rss\.xml"/);
 });
 
 test("cite and llms prefer a live software stamp and ignore the retired bake", () => {

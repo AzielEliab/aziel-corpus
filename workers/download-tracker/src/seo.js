@@ -279,7 +279,7 @@ export function siteFooterHtml() {
   return "<footer class=\"ecosystem\" id=\"corpus-site-footer\" aria-label=\"" + esc(ECOSYSTEM_HEADING) + "\">"
     + "<p class=\"eco-head\"><a href=\"" + DOORS_PATH + "\">" + esc(ECOSYSTEM_HEADING) + "</a></p>"
     + "<nav class=\"ecosystem-nav\" aria-label=\"Ecosystem doors\"><ul class=\"ecosystem-list\">" + items + "</ul></nav>"
-    + "<p class=\"crawl-links\"><a href=\"" + DOORS_PATH + "\">doors</a> · <a href=\"/cite.json\">cite.json</a> · <a href=\"/llms.txt\">llms.txt</a> · <a href=\"/ai.txt\">ai.txt</a> · <a href=\"/rss.xml\">rss</a> · <a href=\"/sitemap.xml\">sitemap</a> · <a href=\"/person.jsonld\">person</a></p>"
+    + "<p class=\"crawl-links\"><a href=\"" + DOORS_PATH + "\">doors</a> · <a href=\"/cite.json\">cite.json</a> · <a href=\"/llms.txt\">llms.txt</a> · <a href=\"/ai.txt\">ai.txt</a> · <a href=\"/sitemap.xml\">sitemap</a> · <a href=\"/person.jsonld\">person</a></p>"
     + "<p class=\"paths\">Paths: " + paths + ".</p>"
     + "<p class=\"honesty\">" + esc(honesty) + "</p>"
     + "</footer>";

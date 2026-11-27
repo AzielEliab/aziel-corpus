@@ -849,10 +849,17 @@ function newestUploadDay(recs) {
   return day;
 }
 
+/** Item author is Aziel Eliab or absent. Other stored names are not the feed author. */
+function rssItemAuthor(rec) {
+  const name = rssPlain(rec && rec.author);
+  return name === AUTHOR ? AUTHOR : "";
+}
+
 function rssDescription(rec) {
   const shelf = shelfOfPaper(rec) === "aziel" ? "Aziel Library" : "Corpus";
   const parts = [shelf + " upload"];
-  if (rec.author) parts.push("Author " + rec.author);
+  const author = rssItemAuthor(rec);
+  if (author) parts.push("Author " + author);
   const concept = conceptFromRow(rec);
   if (concept) parts.push(concept);
   const filed = filedLabel(rec);
@@ -896,7 +903,8 @@ function renderRss(items) {
     lines.push("<guid isPermaLink=\"true\">" + xmlText(url) + "</guid>");
     lines.push("<pubDate>" + item.instant.rfc + "</pubDate>");
     lines.push("<category>" + xmlText(shelf) + "</category>");
-    if (item.rec.author) lines.push("<dc:creator>" + xmlText(item.rec.author) + "</dc:creator>");
+    const author = rssItemAuthor(item.rec);
+    if (author) lines.push("<dc:creator>" + xmlText(author) + "</dc:creator>");
     lines.push("<description>" + xmlText(rssDescription(item.rec)) + "</description>");
     lines.push("</item>");
   }
