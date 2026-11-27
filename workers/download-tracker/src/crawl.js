@@ -910,9 +910,20 @@ function newestUploadDay(recs) {
   return day;
 }
 
-/** Hidden and quarantined ids still in a stale packed card. Quota or a missing column leaves the row-level gate. */
+function rssGateUnavailable(cause) {
+  const err = new Error("rss shelf gate unavailable");
+  err.code = "RSS_GATE_UNAVAILABLE";
+  if (cause) err.cause = cause;
+  return err;
+}
+
+/**
+ * Hidden and quarantined ids still in a stale packed card.
+ * The query has to run. A missing D1 binding or any read error throws
+ * so /rss.xml can 503 instead of publishing unverified cards.
+ */
 async function feedBlockedIds(env) {
-  if (!env || !env.DB || typeof env.DB.prepare !== "function") return new Set();
+  if (!env || !env.DB || typeof env.DB.prepare !== "function") throw rssGateUnavailable();
   try {
     const rows = (await env.DB.prepare(
       "SELECT record_id, shelf_hidden, quarantine_status FROM records WHERE IFNULL(shelf_hidden,0) != 0 OR UPPER(IFNULL(quarantine_status,'CLEAR')) IN ('POISON_SUSPECT','QUARANTINE')"
@@ -924,8 +935,8 @@ async function feedBlockedIds(env) {
     }
     return blocked;
   } catch (e) {
-    if (isQuotaError(e) || isTransientOverload(e)) return new Set();
-    return new Set();
+    rethrowIfQuota(e, "rss-shelf");
+    throw rssGateUnavailable(e);
   }
 }
 

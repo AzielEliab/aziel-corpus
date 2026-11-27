@@ -128,12 +128,27 @@ test("sitemap-records still lists packed ids when only D1 is over quota", async 
   assert.match(xml, /AZDOC-Q0/);
   assert.match(xml, /AZDOC-Q2/);
   const rss = await get(env, "/rss.xml");
-  assert.equal(rss.status, 200);
-  assert.match(rss.headers.get("content-type") || "", /application\/rss\+xml/);
+  assert.equal(rss.status, 503);
+  assert.ok(Number(rss.headers.get("Retry-After")) >= 60);
+  assert.match(rss.headers.get("Cache-Control") || "", /no-store/);
   const feed = await rss.text();
-  assert.match(feed, /\/aziellibrary\/q0/);
-  assert.match(feed, /<pubDate>[^<]*2026[^<]*<\/pubDate>/);
-  assert.equal((feed.match(/<item>/g) || []).length, 3);
+  assert.doesNotMatch(feed, /<item>/);
+  assert.doesNotMatch(feed, /aziellibrary\/q0/);
+});
+
+test("/rss.xml answers 503 + Retry-After and is not cached when the shelf re-filter errors", async () => {
+  const packed = packedWith(2);
+  const env = {
+    DOWNLOADS: memoryKv({ [LIBRARY_INDEX_KEY]: JSON.stringify(packed) }),
+    DB: d1({ error: "D1_ERROR: no such column: shelf_hidden" }),
+  };
+  const rss = await get(env, "/rss.xml");
+  assert.equal(rss.status, 503);
+  assert.equal(rss.headers.get("Retry-After"), "30");
+  assert.match(rss.headers.get("Cache-Control") || "", /no-store/);
+  const body = await rss.json();
+  assert.equal(body.code, "RSS_GATE_UNAVAILABLE");
+  assert.equal(body.ok, false);
 });
 
 test("/v1/search answers 503 when the shelf is empty because D1 is over quota", async () => {
@@ -190,6 +205,14 @@ test("refresh skips the KV put when nothing changed", async () => {
   const after = await refreshPackedIndex(env);
   assert.equal(kv.puts.filter((k) => k === LIBRARY_INDEX_KEY).length, 2);
   assert.equal(after.views, 8, "Views still refresh exactly");
+});
+
+test("run_worker_first serves the feed before a static asset can", () => {
+  const toml = readFileSync(new URL("../wrangler.toml", import.meta.url), "utf8");
+  const match = toml.match(/run_worker_first = (\[[\s\S]*?\])/);
+  assert.ok(match, "run_worker_first");
+  const paths = JSON.parse(match[1]);
+  for (const path of ["/rss.xml", "/rss", "/feed"]) assert.ok(paths.includes(path), path);
 });
 
 test("cron runs every 30 min and at most one walk per tick, rotating through every walk", () => {

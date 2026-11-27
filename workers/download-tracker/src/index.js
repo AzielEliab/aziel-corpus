@@ -803,7 +803,29 @@ async function handleFetch(request, env, ctx) {
       });
     }
     if (isReadMethod(request.method) && crawlPath === RSS_PATH) {
-      const feed = await rssDocument(env);
+      let feed;
+      try {
+        feed = await rssDocument(env);
+      } catch (e) {
+        if (isQuotaError(e) || isTransientOverload(e)) throw e;
+        if (e && e.code === "RSS_GATE_UNAVAILABLE") {
+          return new Response(JSON.stringify({
+            ok: false,
+            error: "temporarily unavailable: upload feed shelf check failed",
+            code: "RSS_GATE_UNAVAILABLE",
+            author: "Aziel Eliab",
+          }, null, 2), {
+            status: 503,
+            headers: {
+              "Content-Type": "application/json; charset=utf-8",
+              "Retry-After": "30",
+              "Cache-Control": "no-store",
+              ...corsHeaders(),
+            },
+          });
+        }
+        throw e;
+      }
       const headers = {
         "Cache-Control": SEO_CACHE_CONTROL,
         ...corsHeaders(),
