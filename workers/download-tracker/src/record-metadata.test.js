@@ -341,6 +341,7 @@ test("OpenAPI documents metadata routes; sitemap and robots allow them", async (
   assert.ok(spec.paths["/v1/metadata-backfill"]);
   assert.ok(spec.paths["/v1/content-hash-repair"]);
   assert.ok(spec.paths["/sitemap-records.xml"]);
+  assert.ok(spec.paths["/rss.xml"]);
   const env = metadataEnv([{ record_id: FIXTURE_ID, created_utc: "2026-09-04T00:00:00Z", library: "aziel" }]);
   const recordsXml = await sitemapRecordsXml(env);
   assert.match(recordsXml, /\/record\/AZDOC-META1\/metadata\.json/);

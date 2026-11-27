@@ -279,7 +279,7 @@ export function siteFooterHtml() {
   return "<footer class=\"ecosystem\" id=\"corpus-site-footer\" aria-label=\"" + esc(ECOSYSTEM_HEADING) + "\">"
     + "<p class=\"eco-head\"><a href=\"" + DOORS_PATH + "\">" + esc(ECOSYSTEM_HEADING) + "</a></p>"
     + "<nav class=\"ecosystem-nav\" aria-label=\"Ecosystem doors\"><ul class=\"ecosystem-list\">" + items + "</ul></nav>"
-    + "<p class=\"crawl-links\"><a href=\"" + DOORS_PATH + "\">doors</a> · <a href=\"/cite.json\">cite.json</a> · <a href=\"/llms.txt\">llms.txt</a> · <a href=\"/ai.txt\">ai.txt</a> · <a href=\"/sitemap.xml\">sitemap</a> · <a href=\"/person.jsonld\">person</a></p>"
+    + "<p class=\"crawl-links\"><a href=\"" + DOORS_PATH + "\">doors</a> · <a href=\"/cite.json\">cite.json</a> · <a href=\"/llms.txt\">llms.txt</a> · <a href=\"/ai.txt\">ai.txt</a> · <a href=\"/rss.xml\">rss</a> · <a href=\"/sitemap.xml\">sitemap</a> · <a href=\"/person.jsonld\">person</a></p>"
     + "<p class=\"paths\">Paths: " + paths + ".</p>"
     + "<p class=\"honesty\">" + esc(honesty) + "</p>"
     + "</footer>";
@@ -842,6 +842,7 @@ export function headMeta(opts) {
     linkRel("alternate", "/runtime/v1/mesh", " type=" + Q + "application/json" + Q + " title=" + Q + "Runtime mesh" + Q),
     linkRel("alternate", "/runtime/llms.txt", " type=" + Q + "text/plain" + Q + " title=" + Q + "Runtime llms.txt" + Q),
     linkRel("alternate", "/runtime/cite.json", " type=" + Q + "application/json" + Q + " title=" + Q + "Runtime cite.json" + Q),
+    linkRel("alternate", CANON_HOST + "/rss.xml", " type=" + Q + "application/rss+xml" + Q + " title=" + Q + "Aziel Digital Library uploads" + Q),
     linkRel("sitemap", "/sitemap.xml"),
     linkRel("sitemap", "/sitemap-index.xml"),
     linkRel("service", "/runtime/v1/fraggate", " title=" + Q + "FragGate" + Q),

@@ -13,6 +13,7 @@ After a successful upload the record is immediately findable at:
   LLM text      https://www.azielcorpuslibrary.net/record/{AZDOC-…}/llms.txt
   Cite JSON     https://www.azielcorpuslibrary.net/record/{AZDOC-…}/cite.json
   File          https://www.azielcorpuslibrary.net/file/{AZDOC-…}
+  Feed          https://www.azielcorpuslibrary.net/rss.xml (one item per /aziellibrary/… or /azielcorpus/usersubmitted/… permalink; pubDate is the stored upload time)
 
 Those machine surfaces are built from the live metadata and packed index. A new upload
 is live from metadata immediately.

@@ -138,6 +138,7 @@ const SEO_PATHS = new Set([
   "/sitemap.xml",
   "/sitemap-index.xml",
   "/sitemap-records.xml",
+  "/rss.xml",
   "/sigil.png",
   "/humans.txt",
   "/cite.json",

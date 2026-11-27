@@ -65,7 +65,7 @@ import { peacelockCiteFields, peacelockLlmsBlock } from "./peacelock.js";
 import { tradesRuntimeCiteFields, tradesRuntimeLlmsBlock, tradesRuntimeMcpDiscovery } from "./trades-runtime.js";
 import { redlineCiteFields } from "./redline-cite.js";
 import { readPackedIndex, SHELF_INDEX_LIMIT } from "./library-index.js";
-import { stampPermalinks } from "./paper-ux.js";
+import { conceptFromRow, filedLabel, shelfOfPaper, stampPermalinks } from "./paper-ux.js";
 import { isQuotaError, isTransientOverload, rethrowIfQuota } from "./quota.js";
 import {
   IDENTITY_ROUTES,
@@ -142,8 +142,12 @@ const RECORD_SITEMAP_CAP = SHELF_INDEX_LIMIT;
 export const MIME = {
   plain: "text/plain; charset=utf-8",
   xml: "application/xml; charset=utf-8",
+  rss: "application/rss+xml; charset=utf-8",
   json: "application/json; charset=utf-8",
 };
+
+/** One item per upload permalink. pubDate is the stored upload time. */
+export const RSS_PATH = "/rss.xml";
 
 export const AI_BOTS = [
   "Googlebot",
@@ -247,12 +251,33 @@ function isoDay(value, fallback) {
   return fallback || SITE_LASTMOD;
 }
 
+/**
+ * Stored created_utc as a UTC instant.
+ * Date-only and zone-less stamps are UTC: the field is created_utc, and the paper
+ * page prints that clock without shifting it. Null when the page would say Undated.
+ */
+function uploadInstant(value) {
+  const raw = String(value || "").trim();
+  if (!raw || Number.isNaN(Date.parse(raw))) return null;
+  const m = raw.match(/^(\d{4}-\d{2}-\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(Z|[+-]\d{2}:\d{2})?)?$/);
+  if (!m) return null;
+  const day = m[1];
+  const hh = m[2] || "00";
+  const mm = m[3] || "00";
+  const ss = m[4] || "00";
+  const zone = m[5] || "Z";
+  const ms = Date.parse(day + "T" + hh + ":" + mm + ":" + ss + zone);
+  if (!Number.isFinite(ms)) return null;
+  const when = new Date(ms);
+  return { ms, rfc: when.toUTCString(), utcDay: when.toISOString().slice(0, 10) };
+}
+
 /** Real per-path lastmod from source-file git dates (ISO day). Fallback SITE_LASTMOD. */
 const PATH_LASTMOD = Object.freeze({
-  "/": "2026-11-20",
-  "/aziel": "2026-11-20",
-  "/software": "2026-11-20",
-  "/doors": "2026-11-20",
+  "/": "2026-11-27",
+  "/aziel": "2026-11-27",
+  "/software": "2026-11-27",
+  "/doors": "2026-11-27",
   "/AzielEliab": "2026-11-06",
   "/who": "2026-11-06",
   "/who-is": "2026-11-06",
@@ -263,13 +288,13 @@ const PATH_LASTMOD = Object.freeze({
   "/.well-known/aziel.json": "2026-11-06",
   "/.well-known/person.jsonld": "2026-11-06",
   "/donate": "2026-09-10",
-  "/help.txt": "2026-09-29",
-  "/addendum.txt": "2026-09-29",
-  "/help/how-to-read-scores.txt": "2026-09-29",
-  "/help/how-to-cite.txt": "2026-09-29",
-  "/help/uploads.txt": "2026-09-29",
-  "/runtime": "2026-11-20",
-  "/how-its-scored": "2026-11-20",
+  "/help.txt": "2026-11-27",
+  "/addendum.txt": "2026-11-27",
+  "/help/how-to-read-scores.txt": "2026-11-27",
+  "/help/how-to-cite.txt": "2026-11-27",
+  "/help/uploads.txt": "2026-11-27",
+  "/runtime": "2026-11-27",
+  "/how-its-scored": "2026-11-27",
 });
 
 /**
@@ -457,6 +482,7 @@ export function robotsTxt() {
     "Allow: /runtime/v1/mesh",
     "Allow: /sitemap-index.xml",
     "Allow: /sitemap-records.xml",
+    "Allow: " + RSS_PATH,
     "Allow: /record",
     "Allow: /record/",
     "Allow: /mcp.json",
@@ -508,6 +534,7 @@ const STATIC_SITEMAP = [
   "/sitemap-index.xml",
   "/sitemap-records.xml",
   "/sitemap.xml",
+  RSS_PATH,
   INDEXNOW_KEY_PATH,
   INDEXNOW_WELL_KNOWN_PATH,
   "/mcp.json",
@@ -695,12 +722,27 @@ function rememberSitemapRecord(byId, row) {
   const permalink = slugPermalink(row.permalink);
   const prev = byId.get(id);
   if (!prev) {
-    byId.set(id, { record_id: id, created_utc: created, library, permalink });
+    const card = { record_id: id, created_utc: created, library, permalink };
+    copyRssFields(card, row);
+    byId.set(id, card);
     return;
   }
   if (!prev.created_utc && created) prev.created_utc = created;
   if (!prev.library && library) prev.library = library;
   if (!prev.permalink && permalink) prev.permalink = permalink;
+  copyRssFields(prev, row);
+}
+
+function rssPlain(value) {
+  return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function copyRssFields(card, row) {
+  if (!card.title) card.title = rssPlain(row.title);
+  if (!card.author) card.author = rssPlain(row.author);
+  if (!card.subjects) card.subjects = rssPlain(row.subjects);
+  if (!card.domain) card.domain = rssPlain(row.domain);
+  if (!card.keywords) card.keywords = rssPlain(row.keywords);
 }
 
 /**
@@ -786,6 +828,90 @@ export async function sitemapRecordsXml(env) {
   return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n"
     + rows.map((u) => sitemapUrl(u.loc, u.lastmod)).join("\n")
     + "\n</urlset>\n";
+}
+
+function xmlText(value) {
+  return String(value || "")
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function newestUploadDay(recs) {
+  let day = "";
+  for (const rec of recs || []) {
+    if (!slugPermalink(rec.permalink)) continue;
+    const instant = uploadInstant(rec.created_utc);
+    if (instant && instant.utcDay > day) day = instant.utcDay;
+  }
+  return day;
+}
+
+function rssDescription(rec) {
+  const shelf = shelfOfPaper(rec) === "aziel" ? "Aziel Library" : "Corpus";
+  const parts = [shelf + " upload"];
+  if (rec.author) parts.push("Author " + rec.author);
+  const concept = conceptFromRow(rec);
+  if (concept) parts.push(concept);
+  const filed = filedLabel(rec);
+  if (!filed.undated) parts.push(filed.text);
+  return parts.join(". ") + ".";
+}
+
+function rssItems(recs) {
+  const items = [];
+  const seen = new Set();
+  for (const rec of recs || []) {
+    const path = slugPermalink(rec.permalink);
+    if (!path || seen.has(path)) continue;
+    const instant = uploadInstant(rec.created_utc);
+    if (!instant) continue;
+    seen.add(path);
+    items.push({ path, instant, title: rec.title || rec.record_id, rec });
+  }
+  items.sort((a, b) => b.instant.ms - a.instant.ms || a.path.localeCompare(b.path));
+  return items;
+}
+
+function renderRss(items) {
+  const lines = [
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
+    "<rss version=\"2.0\" xmlns:atom=\"http://www.w3.org/2005/Atom\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\">",
+    "<channel>",
+    "<title>Aziel Digital Library</title>",
+    "<link>" + HOST + "/</link>",
+    "<description>Uploads on the Aziel Digital Library. One item per Aziel Library or Corpus permalink. pubDate is the stored upload time.</description>",
+    "<language>en</language>",
+    "<atom:link href=\"" + HOST + RSS_PATH + "\" rel=\"self\" type=\"application/rss+xml\"/>",
+  ];
+  if (items.length) lines.push("<lastBuildDate>" + items[0].instant.rfc + "</lastBuildDate>");
+  for (const item of items) {
+    const url = HOST + item.path;
+    const shelf = shelfOfPaper(item.rec) === "aziel" ? "Aziel Library" : "Corpus";
+    lines.push("<item>");
+    lines.push("<title>" + xmlText(item.title) + "</title>");
+    lines.push("<link>" + xmlText(url) + "</link>");
+    lines.push("<guid isPermaLink=\"true\">" + xmlText(url) + "</guid>");
+    lines.push("<pubDate>" + item.instant.rfc + "</pubDate>");
+    lines.push("<category>" + xmlText(shelf) + "</category>");
+    if (item.rec.author) lines.push("<dc:creator>" + xmlText(item.rec.author) + "</dc:creator>");
+    lines.push("<description>" + xmlText(rssDescription(item.rec)) + "</description>");
+    lines.push("</item>");
+  }
+  lines.push("</channel>", "</rss>", "");
+  return lines.join("\n");
+}
+
+/** RSS 2.0. One item per permalink the slug route serves. No item without a real upload time. */
+export async function rssDocument(env) {
+  const items = rssItems(await collectSitemapRecords(env));
+  return { body: renderRss(items), lastModified: items.length ? items[0].instant.rfc : "" };
+}
+
+export async function rssXml(env) {
+  return (await rssDocument(env)).body;
 }
 
 export function indexNowKeyBody() {
@@ -940,13 +1066,20 @@ export async function sitemapXml(env) {
     seen.add(sister.loc);
     rows.push(sister);
   }
+  let newestRssDay = "";
   try {
     const recs = await collectSitemapRecords(env);
+    newestRssDay = newestUploadDay(recs);
     for (const r of recs) pushRecordLocs(rows, r);
   } catch (e) {
     // A quota-starved sitemap with no records would tell crawlers every record is gone. 503 instead.
     rethrowIfQuota(e, "sitemap.xml");
     /* sitemap still lists static routes */
+  }
+  if (newestRssDay) {
+    for (const row of rows) {
+      if (row.loc === HOST + RSS_PATH) row.lastmod = newestRssDay;
+    }
   }
   return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n"
     + rows.map((u) => sitemapUrl(u.loc, u.lastmod, u.hints)).join("\n")
@@ -1153,6 +1286,7 @@ export function citeDoc(survival, outletCite, stamp, corpusTip) {
     dual_surface_upload_download: true,
     sitemap_index: HOST + "/sitemap-index.xml",
     sitemap_records: HOST + "/sitemap-records.xml",
+    rss: HOST + RSS_PATH,
     record_metadata: HOST + "/record/{record_id}/metadata.json",
     record_metadata_alias: HOST + "/record/{record_id}.json",
     record_llms: HOST + "/record/{record_id}/llms.txt",
@@ -1283,6 +1417,7 @@ export function llmsDoc(limitation, survival, stamp, sot, corpusTip) {
     + "Record discovery metadata (public JSON, no auth): " + HOST + "/record/{record_id}/metadata.json  alias " + HOST + "/record/{record_id}.json\n"
     + "Per-record LLM access: " + HOST + "/record/{record_id}/llms.txt  ·  " + HOST + "/record/{record_id}/cite.json\n"
     + "Record metadata sitemap: " + HOST + "/sitemap-records.xml\n"
+    + "Upload feed (one item per permalink; pubDate is the stored upload time): " + HOST + RSS_PATH + "\n"
     + "Metadata backfill (idempotent): " + HOST + "/v1/metadata-backfill\n"
     + "Content SHA-256 repair (file-bytes hash): " + HOST + "/v1/content-hash-repair\n"
     + "Software hub mirrors the live aziel-runtime catalog per request (GET " + CATALOG + "/v1/software, fallback " + CATALOG + "/v1/fraggate/list; same-origin " + HOST + "/v1/software). No fixed product cap.\n"
@@ -1550,6 +1685,7 @@ export function llmsDoc(limitation, survival, stamp, sot, corpusTip) {
     + "- GET " + HOST + "/record/{record_id}/llms.txt  (per-record LLM access point)\n"
     + "- GET " + HOST + "/record/{record_id}/cite.json  (per-record structured cite)\n"
     + "- GET " + HOST + "/sitemap-records.xml\n"
+    + "- GET " + HOST + RSS_PATH + "  (RSS 2.0; one item per upload permalink; pubDate is the stored upload time)\n"
     + "- GET " + HOST + "/v1/metadata-backfill  (idempotent; writes package + .Json sidecars)\n"
     + "- GET " + HOST + "/receipt/{id}  (AZDOC-, JSONAZDOC-, or AZRUN-)\n"
     + "- GET " + HOST + "/ledger/{id}\n"
@@ -1673,6 +1809,7 @@ export function aiTxt(limitation, survival, stamp, sot) {
     "Allow: /runtime/v1/mesh",
     "Allow: /sitemap-index.xml",
     "Allow: /sitemap-records.xml",
+    "Allow: " + RSS_PATH,
     "Allow: /record",
     "Allow: /record/",
     "Allow: /mcp.json",
@@ -1700,7 +1837,8 @@ export function aiTxt(limitation, survival, stamp, sot) {
   return policy.join("\n")
     + "Sitemap: " + HOST + "/sitemap.xml\n"
     + "Sitemap: " + HOST + "/sitemap-index.xml\n"
-    + "Sitemap: " + HOST + "/sitemap-records.xml\n\n"
+    + "Sitemap: " + HOST + "/sitemap-records.xml\n"
+    + "# Upload feed: " + HOST + RSS_PATH + "\n\n"
     + fleetSeoPlainBlock() + "\n"
     + "## Priority pages (index first)\n\n"
     + "- Homepage: " + HOST + "/\n"

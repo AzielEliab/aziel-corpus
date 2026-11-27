@@ -41,6 +41,7 @@ test("browse, search, records, and SEO docs are never content-rationed", () => {
   assert.equal(isRateExemptPath("/record/AZDOC-1"), true);
   assert.equal(isRateExemptPath("/robots.txt"), true);
   assert.equal(isRateExemptPath("/sitemap.xml"), true);
+  assert.equal(isRateExemptPath("/rss.xml"), true);
   assert.equal(isRateExemptPath("/llms.txt"), true);
   assert.equal(isRateExemptPath("/help.txt"), true);
   assert.equal(isRateExemptPath("/addendum.txt"), true);

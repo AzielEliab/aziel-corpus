@@ -115,6 +115,8 @@ test("sitemap-records answers 503 (not an empty sitemap) when D1 is over quota a
   assert.ok(res.headers.get("Retry-After"));
   const sm = await get(env, "/sitemap.xml");
   assert.equal(sm.status, 503);
+  const rss = await get(env, "/rss.xml");
+  assert.equal(rss.status, 503);
 });
 
 test("sitemap-records still lists packed ids when only D1 is over quota", async () => {
@@ -125,6 +127,13 @@ test("sitemap-records still lists packed ids when only D1 is over quota", async 
   const xml = await res.text();
   assert.match(xml, /AZDOC-Q0/);
   assert.match(xml, /AZDOC-Q2/);
+  const rss = await get(env, "/rss.xml");
+  assert.equal(rss.status, 200);
+  assert.match(rss.headers.get("content-type") || "", /application\/rss\+xml/);
+  const feed = await rss.text();
+  assert.match(feed, /\/aziellibrary\/q0/);
+  assert.match(feed, /<pubDate>[^<]*2026[^<]*<\/pubDate>/);
+  assert.equal((feed.match(/<item>/g) || []).length, 3);
 });
 
 test("/v1/search answers 503 when the shelf is empty because D1 is over quota", async () => {

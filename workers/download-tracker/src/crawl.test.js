@@ -10,6 +10,8 @@ import {
   sitemapIndexXml,
   sitemapRecordsXml,
   collectSitemapRecords,
+  rssXml,
+  RSS_PATH,
   mcpDiscovery,
   citeDoc,
   llmsDoc,
@@ -952,6 +954,65 @@ test("sitemap lists the slug URL for every record with a permalink; slugless D1 
     const ownSlash = locs.filter((u) => u.startsWith(H) && u.endsWith("/") && u !== H + "/");
     assert.equal(ownSlash.length, 0, "no trailing-slash twins");
   }
+});
+
+test("rss.xml is one item per upload permalink and pubDate is the stored upload time", async () => {
+  const packed = [
+    { record_id: "AZDOC-A53F8E3052E2", title: "The Cockroach Doctrine", library: "aziel", author: "Aziel Eliab", created_utc: "2026-09-01T13:02:00Z", permalink_locked: true, permalink_slug: "cockroachdoctrine" },
+    { record_id: "AZDOC-00000000AMP1", title: "Soil & <Roots>", library: "corpus", author: "Ada & Co", created_utc: "2026-08-02 04:15", subjects: "soil", permalink_locked: true, permalink_slug: "soil-roots" },
+    { record_id: "AZDOC-NODATE000001", title: "Undated", library: "corpus", created_utc: "" },
+    { record_id: "AZDOC-BADDATE0001", title: "Bad", library: "aziel", created_utc: "not-a-date", permalink_locked: true, permalink_slug: "bad-date" },
+    { record_id: "AZDOC-D1DATE00001", title: "Dated In D1", library: "corpus", permalink_locked: true, permalink_slug: "dated-in-d1" },
+  ];
+  const d1Rows = [
+    { record_id: "AZDOC-0000000D1000", created_utc: "2026-07-03T00:00:00Z", library: "aziel" },
+    { record_id: "AZDOC-D1DATE00001", created_utc: "2026-06-15T08:00:00Z", library: "corpus" },
+  ];
+  const env = {
+    DB: { prepare() { return { bind() { return this; }, async all() { return { results: d1Rows }; } }; } },
+    DOWNLOADS: {
+      async get() { return JSON.stringify({ key: LIBRARY_INDEX_KEY, version: 1, records: packed }); },
+      async put() {},
+      async list() { throw new Error("KV.list is not allowed"); },
+    },
+  };
+  const H = "https://www.azielcorpuslibrary.net";
+  const cockDate = new Date("2026-09-01T13:02:00Z").toUTCString();
+  const soilDate = new Date("2026-08-02T04:15:00Z").toUTCString();
+  const d1Date = new Date("2026-06-15T08:00:00Z").toUTCString();
+  const xml = await rssXml(env);
+  assert.match(xml, /<\?xml version="1.0" encoding="UTF-8"\?>/);
+  assert.match(xml, /<rss version="2.0"/);
+  assert.match(xml, new RegExp("<atom:link href=\"" + H + RSS_PATH + "\" rel=\"self\" type=\"application/rss\\+xml\"/>"));
+  assert.match(xml, /<lastBuildDate>/);
+  assert.match(xml, new RegExp("<lastBuildDate>" + cockDate + "</lastBuildDate>"));
+  assert.match(xml, new RegExp("<link>" + H + "/aziellibrary/cockroachdoctrine</link>"));
+  assert.match(xml, new RegExp("<guid isPermaLink=\"true\">" + H + "/aziellibrary/cockroachdoctrine</guid>"));
+  assert.match(xml, new RegExp("<pubDate>" + cockDate + "</pubDate>"));
+  assert.match(xml, /<title>The Cockroach Doctrine<\/title>/);
+  assert.match(xml, /<dc:creator>Aziel Eliab<\/dc:creator>/);
+  assert.match(xml, /Filed 2026-09-01 13:02/);
+  assert.match(xml, new RegExp("<link>" + H + "/azielcorpus/usersubmitted/soil-roots</link>"));
+  assert.match(xml, new RegExp("<pubDate>" + soilDate + "</pubDate>"));
+  assert.match(xml, /<title>Soil &amp; &lt;Roots&gt;<\/title>/);
+  assert.match(xml, /<dc:creator>Ada &amp; Co<\/dc:creator>/);
+  assert.match(xml, /Filed 2026-08-02 04:15/);
+  assert.match(xml, new RegExp("<link>" + H + "/azielcorpus/usersubmitted/dated-in-d1</link>"));
+  assert.match(xml, new RegExp("<pubDate>" + d1Date + "</pubDate>"));
+  const cock = xml.indexOf("/aziellibrary/cockroachdoctrine");
+  const soil = xml.indexOf("/azielcorpus/usersubmitted/soil-roots");
+  const dated = xml.indexOf("/azielcorpus/usersubmitted/dated-in-d1");
+  assert.ok(cock > 0 && cock < soil && soil < dated, "newest upload first");
+  assert.equal((xml.match(/<item>/g) || []).length, 3);
+  assert.equal((xml.match(/<dc:creator>/g) || []).length, 2);
+  assert.doesNotMatch(xml, /undated|bad-date|AZDOC-NODATE|AZDOC-0000000D1000|\/record\/AZDOC/);
+  const sm = await sitemapXml(env);
+  assert.match(sm, new RegExp("<loc>" + H + RSS_PATH + "</loc><lastmod>2026-09-01</lastmod>"));
+  assert.match(robotsTxt(), new RegExp("Allow: " + RSS_PATH));
+  const { headMeta } = await import("./seo.js");
+  assert.match(headMeta({ title: "Home", path: "/" }), /rel="alternate" href="https:\/\/www\.azielcorpuslibrary\.net\/rss\.xml" type="application\/rss\+xml" title="Aziel Digital Library uploads"/);
+  assert.equal(citeDoc().rss, H + RSS_PATH);
+  assert.match(llmsDoc("limit"), new RegExp(H.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + RSS_PATH.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 });
 
 test("cite and llms prefer a live software stamp and ignore the retired bake", () => {
