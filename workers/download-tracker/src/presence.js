@@ -57,6 +57,8 @@ const MACHINE_EXACT = Object.freeze([
   "/sitemap-index.xml",
   "/sitemap-records.xml",
   "/rss.xml",
+  "/rss",
+  "/feed",
   "/llms.txt",
   "/ai.txt",
   "/humans.txt",

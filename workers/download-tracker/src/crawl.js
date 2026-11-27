@@ -256,19 +256,42 @@ function isoDay(value, fallback) {
  * Date-only and zone-less stamps are UTC: the field is created_utc, and the paper
  * page prints that clock without shifting it. Null when the page would say Undated.
  */
+/** Null when the calendar day does not exist. Date.UTC would otherwise roll 2026-02-30 forward. */
+function calendarDayParts(day) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(day || ""));
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  const check = new Date(Date.UTC(y, mo - 1, d));
+  if (check.getUTCFullYear() !== y || check.getUTCMonth() !== mo - 1 || check.getUTCDate() !== d) return null;
+  return { y, mo, d };
+}
+
 function uploadInstant(value) {
   const raw = String(value || "").trim();
   if (!raw || Number.isNaN(Date.parse(raw))) return null;
   const m = raw.match(/^(\d{4}-\d{2}-\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(Z|[+-]\d{2}:\d{2})?)?$/);
   if (!m) return null;
   const day = m[1];
+  const parts = calendarDayParts(day);
+  if (!parts) return null;
   const hh = m[2] || "00";
   const mm = m[3] || "00";
   const ss = m[4] || "00";
+  const hours = Number(hh);
+  const minutes = Number(mm);
+  const seconds = Number(ss);
+  if (hours > 23 || minutes > 59 || seconds > 59) return null;
   const zone = m[5] || "Z";
   const ms = Date.parse(day + "T" + hh + ":" + mm + ":" + ss + zone);
   if (!Number.isFinite(ms)) return null;
   const when = new Date(ms);
+  if (zone === "Z") {
+    if (when.getUTCFullYear() !== parts.y || when.getUTCMonth() !== parts.mo - 1 || when.getUTCDate() !== parts.d) return null;
+    if (when.getUTCHours() !== hours || when.getUTCMinutes() !== minutes || when.getUTCSeconds() !== seconds) return null;
+  }
   return { ms, rfc: when.toUTCString(), utcDay: when.toISOString().slice(0, 10) };
 }
 
@@ -724,6 +747,8 @@ function rememberSitemapRecord(byId, row) {
   if (!prev) {
     const card = { record_id: id, created_utc: created, library, permalink };
     copyRssFields(card, row);
+    noteUploadUtc(card, row);
+    noteFeedGate(card, row);
     byId.set(id, card);
     return;
   }
@@ -731,6 +756,42 @@ function rememberSitemapRecord(byId, row) {
   if (!prev.library && library) prev.library = library;
   if (!prev.permalink && permalink) prev.permalink = permalink;
   copyRssFields(prev, row);
+  noteUploadUtc(prev, row);
+  noteFeedGate(prev, row);
+}
+
+/** Feed date is created_utc only. updated and ts stay off the item. */
+function statedCreatedUtc(row) {
+  if (!row || row.created_utc == null) return "";
+  return String(row.created_utc).trim();
+}
+
+function noteUploadUtc(card, row) {
+  const stated = statedCreatedUtc(row);
+  if (stated && !card.rss_created_utc) card.rss_created_utc = stated;
+}
+
+function hiddenShelf(row) {
+  const v = row && row.shelf_hidden;
+  return v === true || v === 1 || v === "1" || String(v).toLowerCase() === "true";
+}
+
+function quarantined(row) {
+  const q = String((row && row.quarantine_status) || "").toUpperCase();
+  return q === "POISON_SUSPECT" || q === "QUARANTINE";
+}
+
+/** A hidden or quarantined reading from any source sticks. CLEAR does not reopen it. */
+function noteFeedGate(card, row) {
+  if (!row) return;
+  if (hiddenShelf(row)) card.shelf_hidden = 1;
+  else if (card.shelf_hidden == null && row.shelf_hidden != null) card.shelf_hidden = row.shelf_hidden;
+  if (quarantined(row)) card.quarantine_status = String(row.quarantine_status).trim().toUpperCase();
+  else if (!quarantined(card) && row.quarantine_status) card.quarantine_status = String(row.quarantine_status).trim();
+}
+
+function feedRowBlocked(row) {
+  return hiddenShelf(row) || quarantined(row);
 }
 
 function rssPlain(value) {
@@ -842,11 +903,30 @@ function xmlText(value) {
 function newestUploadDay(recs) {
   let day = "";
   for (const rec of recs || []) {
-    if (!slugPermalink(rec.permalink)) continue;
-    const instant = uploadInstant(rec.created_utc);
+    if (feedRowBlocked(rec) || !slugPermalink(rec.permalink)) continue;
+    const instant = uploadInstant(rec.rss_created_utc);
     if (instant && instant.utcDay > day) day = instant.utcDay;
   }
   return day;
+}
+
+/** Hidden and quarantined ids still in a stale packed card. Quota or a missing column leaves the row-level gate. */
+async function feedBlockedIds(env) {
+  if (!env || !env.DB || typeof env.DB.prepare !== "function") return new Set();
+  try {
+    const rows = (await env.DB.prepare(
+      "SELECT record_id, shelf_hidden, quarantine_status FROM records WHERE IFNULL(shelf_hidden,0) != 0 OR UPPER(IFNULL(quarantine_status,'CLEAR')) IN ('POISON_SUSPECT','QUARANTINE')"
+    ).all()).results || [];
+    const blocked = new Set();
+    for (const row of rows) {
+      const id = String((row && row.record_id) || "").trim();
+      if (id && feedRowBlocked(row)) blocked.add(id);
+    }
+    return blocked;
+  } catch (e) {
+    if (isQuotaError(e) || isTransientOverload(e)) return new Set();
+    return new Set();
+  }
 }
 
 /** Item author is Aziel Eliab or absent. Other stored names are not the feed author. */
@@ -867,13 +947,15 @@ function rssDescription(rec) {
   return parts.join(". ") + ".";
 }
 
-function rssItems(recs) {
+function rssItems(recs, blocked) {
   const items = [];
   const seen = new Set();
+  const deny = blocked || new Set();
   for (const rec of recs || []) {
+    if (feedRowBlocked(rec) || deny.has(String(rec.record_id || ""))) continue;
     const path = slugPermalink(rec.permalink);
     if (!path || seen.has(path)) continue;
-    const instant = uploadInstant(rec.created_utc);
+    const instant = uploadInstant(rec.rss_created_utc);
     if (!instant) continue;
     seen.add(path);
     items.push({ path, instant, title: rec.title || rec.record_id, rec });
@@ -914,7 +996,7 @@ function renderRss(items) {
 
 /** RSS 2.0. One item per permalink the slug route serves. No item without a real upload time. */
 export async function rssDocument(env) {
-  const items = rssItems(await collectSitemapRecords(env));
+  const items = rssItems(await collectSitemapRecords(env), await feedBlockedIds(env));
   return { body: renderRss(items), lastModified: items.length ? items[0].instant.rfc : "" };
 }
 

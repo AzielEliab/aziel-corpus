@@ -792,6 +792,16 @@ async function handleFetch(request, env, ctx) {
     if (isReadMethod(request.method) && crawlPath === "/robots.txt") {
       return crawlResponse(request, robotsTxt(), MIME.plain, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
     }
+    if (isReadMethod(request.method) && (crawlPath === "/rss" || crawlPath === "/feed")) {
+      return new Response(null, {
+        status: 308,
+        headers: {
+          Location: "https://www.azielcorpuslibrary.net" + RSS_PATH,
+          "Cache-Control": "public, s-maxage=86400",
+          ...corsHeaders(),
+        },
+      });
+    }
     if (isReadMethod(request.method) && crawlPath === RSS_PATH) {
       const feed = await rssDocument(env);
       const headers = {
