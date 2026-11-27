@@ -11,7 +11,7 @@ import { page, homeBody, homeSearchActive, streamLcpHtml } from "./ui.js";
 import { filmTheaterHtml, libraryHubRedirect, LIBRARY_HUB_PATH } from "./film.js";
 import { peekMeshDualCounts } from "./mesh.js";
 import { handleHosted } from "./hosted.js";
-import { robotsTxt, sitemapXml, sitemapIndexXml, sitemapRecordsXml, citeDoc, llmsDoc, aiTxt, humansTxt, mcpDiscovery, isReadMethod, crawlResponse, MIME, isIndexNowKeyPath, indexNowKeyBody } from "./crawl.js";
+import { robotsTxt, sitemapXml, sitemapIndexXml, sitemapRecordsXml, rssDocument, RSS_PATH, citeDoc, llmsDoc, aiTxt, humansTxt, mcpDiscovery, isReadMethod, crawlResponse, MIME, isIndexNowKeyPath, indexNowKeyBody } from "./crawl.js";
 import { resolveRuntimeCiteStamp } from "./runtime-cite-stamp.js";
 import { buildStamp } from "./build-stamp.js";
 import { applyHtmlSecurity } from "./html-security.js";
@@ -791,6 +791,48 @@ async function handleFetch(request, env, ctx) {
     }
     if (isReadMethod(request.method) && crawlPath === "/robots.txt") {
       return crawlResponse(request, robotsTxt(), MIME.plain, { "Cache-Control": SEO_CACHE_CONTROL, ...corsHeaders() });
+    }
+    if (isReadMethod(request.method) && (crawlPath === "/rss" || crawlPath === "/feed")) {
+      return new Response(null, {
+        status: 308,
+        headers: {
+          Location: "https://www.azielcorpuslibrary.net" + RSS_PATH,
+          "Cache-Control": "public, s-maxage=86400",
+          ...corsHeaders(),
+        },
+      });
+    }
+    if (isReadMethod(request.method) && crawlPath === RSS_PATH) {
+      let feed;
+      try {
+        feed = await rssDocument(env);
+      } catch (e) {
+        if (isQuotaError(e) || isTransientOverload(e)) throw e;
+        if (e && e.code === "RSS_GATE_UNAVAILABLE") {
+          return new Response(JSON.stringify({
+            ok: false,
+            error: "temporarily unavailable: upload feed shelf check failed",
+            code: "RSS_GATE_UNAVAILABLE",
+            author: "Aziel Eliab",
+          }, null, 2), {
+            status: 503,
+            headers: {
+              "Content-Type": "application/json; charset=utf-8",
+              "Retry-After": "30",
+              "Cache-Control": "no-store",
+              ...corsHeaders(),
+            },
+          });
+        }
+        throw e;
+      }
+      const headers = {
+        "Cache-Control": SEO_CACHE_CONTROL,
+        ...corsHeaders(),
+        Link: "<https://www.azielcorpuslibrary.net" + RSS_PATH + ">; rel=\"self\"; type=\"application/rss+xml\"",
+      };
+      if (feed.lastModified) headers["Last-Modified"] = feed.lastModified;
+      return crawlResponse(request, feed.body, MIME.rss, headers);
     }
     if (isReadMethod(request.method) && crawlPath === "/sitemap.xml") {
       const xml = await sitemapXml(env);

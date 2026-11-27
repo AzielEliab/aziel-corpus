@@ -10,6 +10,8 @@ import {
   sitemapIndexXml,
   sitemapRecordsXml,
   collectSitemapRecords,
+  rssXml,
+  RSS_PATH,
   mcpDiscovery,
   citeDoc,
   llmsDoc,
@@ -951,6 +953,160 @@ test("sitemap lists the slug URL for every record with a permalink; slugless D1 
     assert.equal(new Set(locs).size, locs.length, "no duplicate locs");
     const ownSlash = locs.filter((u) => u.startsWith(H) && u.endsWith("/") && u !== H + "/");
     assert.equal(ownSlash.length, 0, "no trailing-slash twins");
+  }
+});
+
+test("rss.xml is one item per upload permalink and pubDate is the stored upload time", async () => {
+  const packed = [
+    { record_id: "AZDOC-A53F8E3052E2", title: "The Cockroach Doctrine", library: "aziel", author: "Aziel Eliab", created_utc: "2026-09-01T13:02:00Z", permalink_locked: true, permalink_slug: "cockroachdoctrine" },
+    { record_id: "AZDOC-00000000AMP1", title: "Soil & <Roots>", library: "corpus", author: "Ada & Co", created_utc: "2026-08-02 04:15", subjects: "soil", permalink_locked: true, permalink_slug: "soil-roots" },
+    { record_id: "AZDOC-NODATE000001", title: "Undated", library: "corpus", created_utc: "" },
+    { record_id: "AZDOC-BADDATE0001", title: "Bad", library: "aziel", created_utc: "not-a-date", permalink_locked: true, permalink_slug: "bad-date" },
+    { record_id: "AZDOC-D1DATE00001", title: "Dated In D1", library: "corpus", permalink_locked: true, permalink_slug: "dated-in-d1" },
+  ];
+  const d1Rows = [
+    { record_id: "AZDOC-0000000D1000", created_utc: "2026-07-03T00:00:00Z", library: "aziel" },
+    { record_id: "AZDOC-D1DATE00001", created_utc: "2026-06-15T08:00:00Z", library: "corpus" },
+  ];
+  const env = {
+    DB: { prepare() { return { bind() { return this; }, async all() { return { success: true, results: d1Rows }; } }; } },
+    DOWNLOADS: {
+      async get() { return JSON.stringify({ key: LIBRARY_INDEX_KEY, version: 1, records: packed }); },
+      async put() {},
+      async list() { throw new Error("KV.list is not allowed"); },
+    },
+  };
+  const H = "https://www.azielcorpuslibrary.net";
+  const cockDate = new Date("2026-09-01T13:02:00Z").toUTCString();
+  const soilDate = new Date("2026-08-02T04:15:00Z").toUTCString();
+  const d1Date = new Date("2026-06-15T08:00:00Z").toUTCString();
+  const xml = await rssXml(env);
+  assert.match(xml, /<\?xml version="1.0" encoding="UTF-8"\?>/);
+  assert.match(xml, /<rss version="2.0"/);
+  assert.match(xml, new RegExp("<atom:link href=\"" + H + RSS_PATH + "\" rel=\"self\" type=\"application/rss\\+xml\"/>"));
+  assert.match(xml, /<lastBuildDate>/);
+  assert.match(xml, new RegExp("<lastBuildDate>" + cockDate + "</lastBuildDate>"));
+  assert.match(xml, new RegExp("<link>" + H + "/aziellibrary/cockroachdoctrine</link>"));
+  assert.match(xml, new RegExp("<guid isPermaLink=\"true\">" + H + "/aziellibrary/cockroachdoctrine</guid>"));
+  assert.match(xml, new RegExp("<pubDate>" + cockDate + "</pubDate>"));
+  assert.match(xml, /<title>The Cockroach Doctrine<\/title>/);
+  assert.match(xml, /<dc:creator>Aziel Eliab<\/dc:creator>/);
+  assert.match(xml, /Filed 2026-09-01 13:02/);
+  assert.match(xml, new RegExp("<link>" + H + "/azielcorpus/usersubmitted/soil-roots</link>"));
+  assert.match(xml, new RegExp("<pubDate>" + soilDate + "</pubDate>"));
+  assert.match(xml, /<title>Soil &amp; &lt;Roots&gt;<\/title>/);
+  assert.doesNotMatch(xml, /Ada/);
+  assert.match(xml, /Filed 2026-08-02 04:15/);
+  assert.match(xml, new RegExp("<link>" + H + "/azielcorpus/usersubmitted/dated-in-d1</link>"));
+  assert.match(xml, new RegExp("<pubDate>" + d1Date + "</pubDate>"));
+  const cock = xml.indexOf("/aziellibrary/cockroachdoctrine");
+  const soil = xml.indexOf("/azielcorpus/usersubmitted/soil-roots");
+  const dated = xml.indexOf("/azielcorpus/usersubmitted/dated-in-d1");
+  assert.ok(cock > 0 && cock < soil && soil < dated, "newest upload first");
+  assert.equal((xml.match(/<item>/g) || []).length, 3);
+  const creators = [...xml.matchAll(/<dc:creator>([^<]*)<\/dc:creator>/g)].map((m) => m[1]);
+  assert.deepEqual(creators, ["Aziel Eliab"]);
+  assert.doesNotMatch(xml, /<author>/);
+  assert.doesNotMatch(xml, /undated|bad-date|AZDOC-NODATE|AZDOC-0000000D1000|\/record\/AZDOC/);
+  const sm = await sitemapXml(env);
+  assert.match(sm, new RegExp("<loc>" + H + RSS_PATH + "</loc><lastmod>2026-09-01</lastmod>"));
+  assert.match(robotsTxt(), new RegExp("Allow: " + RSS_PATH));
+  const { headMeta } = await import("./seo.js");
+  assert.match(headMeta({ title: "Home", path: "/" }), /rel="alternate" href="https:\/\/www\.azielcorpuslibrary\.net\/rss\.xml" type="application\/rss\+xml" title="Aziel Digital Library uploads"/);
+  assert.equal(citeDoc().rss, H + RSS_PATH);
+  assert.match(llmsDoc("limit"), new RegExp(H.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + RSS_PATH.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+});
+
+test("rss feed link stays in the head and out of the visible footer and body", async () => {
+  const { headMeta, siteFooterHtml } = await import("./seo.js");
+  const { page } = await import("./ui.js");
+  const { filmTheaterHtml } = await import("./film.js");
+  const footer = siteFooterHtml();
+  assert.doesNotMatch(footer, /rss\.xml/i);
+  assert.doesNotMatch(footer, />\s*rss\s*</i);
+  const pages = [
+    page("Corpus", "<p>Shelf</p>", { path: "/corpus", kind: "corpus" }),
+    page("Search", "<p>Search</p>", { path: "/", kind: "search" }),
+    page("Library", "<p>Shelf</p>", { path: "/aziel-library", kind: "aziel-library" }),
+  ];
+  for (const html of pages) {
+    const split = html.toLowerCase().indexOf("</head>");
+    assert.ok(split > 0, "page has a head");
+    const head = html.slice(0, split);
+    const body = html.slice(split);
+    assert.match(head, /rel="alternate" href="https:\/\/www\.azielcorpuslibrary\.net\/rss\.xml" type="application\/rss\+xml"/);
+    assert.doesNotMatch(body, /rss\.xml/i);
+    assert.doesNotMatch(body, /href="[^"]*\/rss(?:\.xml)?"/i);
+  }
+  const film = filmTheaterHtml();
+  const filmSplit = film.toLowerCase().indexOf("</head>");
+  const filmHead = film.slice(0, filmSplit);
+  const filmBody = film.slice(filmSplit);
+  assert.match(filmHead, /rel="alternate" type="application\/rss\+xml" title="Aziel Digital Library uploads" href="https:\/\/www\.azielcorpuslibrary\.net\/rss\.xml"/);
+  assert.doesNotMatch(filmBody, /rss\.xml/i);
+  assert.doesNotMatch(filmBody, /href="[^"]*\/rss(?:\.xml)?"/i);
+  assert.match(headMeta({ title: "Home", path: "/" }), /rel="alternate" href="https:\/\/www\.azielcorpuslibrary\.net\/rss\.xml"/);
+});
+
+function rssEnv(packed, d1Rows, { hiddenSql } = {}) {
+  return {
+    DB: {
+      prepare(sql) {
+        return {
+          bind() { return this; },
+          async all() {
+            const text = String(sql || "");
+            if (hiddenSql && /POISON_SUSPECT/.test(text)) return { success: true, results: hiddenSql };
+            return { success: true, results: d1Rows || [] };
+          },
+        };
+      },
+    },
+    DOWNLOADS: {
+      async get() { return JSON.stringify({ key: LIBRARY_INDEX_KEY, version: 1, records: packed }); },
+      async put() {},
+      async list() { throw new Error("KV.list is not allowed"); },
+    },
+  };
+}
+
+test("rss omits impossible calendar days, empty created_utc, and hidden or quarantined rows", async () => {
+  const packed = [
+    { record_id: "AZDOC-FEB2800001", title: "Real February", library: "aziel", author: "Aziel Eliab", created_utc: "2026-02-28T00:00:00Z", permalink_locked: true, permalink_slug: "feb-twenty-eight" },
+    { record_id: "AZDOC-FEB3000001", title: "February Thirty", library: "aziel", author: "Aziel Eliab", created_utc: "2026-02-30T12:00:00Z", permalink_locked: true, permalink_slug: "feb-thirty" },
+    { record_id: "AZDOC-NOV3100001", title: "November Thirty One", library: "corpus", author: "Aziel Eliab", created_utc: "2026-11-31", permalink_locked: true, permalink_slug: "nov-thirty-one" },
+    { record_id: "AZDOC-UPDATED001", title: "Updated Only", library: "aziel", author: "Aziel Eliab", created_utc: "", updated: "2026-03-01T00:00:00Z", ts: "2026-03-02T00:00:00Z", permalink_locked: true, permalink_slug: "updated-only" },
+    { record_id: "AZDOC-TSONLY0001", title: "Timestamp Only", library: "corpus", author: "Aziel Eliab", updated: "2026-03-03T00:00:00Z", ts: "2026-03-04T00:00:00Z", permalink_locked: true, permalink_slug: "ts-only" },
+    { record_id: "AZDOC-HIDDEN0001", title: "Hidden Paper", library: "aziel", author: "Aziel Eliab", created_utc: "2026-04-02T00:00:00Z", permalink_locked: true, permalink_slug: "hidden-paper" },
+    { record_id: "AZDOC-QUAR000001", title: "Quarantine Paper", library: "corpus", author: "Aziel Eliab", created_utc: "2026-04-04T00:00:00Z", permalink_locked: true, permalink_slug: "quarantine-paper" },
+    { record_id: "AZDOC-PACKPOISON", title: "Packed Poison", library: "corpus", author: "Aziel Eliab", created_utc: "2026-04-01T00:00:00Z", quarantine_status: "POISON_SUSPECT", permalink_locked: true, permalink_slug: "packed-poison" },
+    { record_id: "AZDOC-SHELFHIDE1", title: "Shelf Hidden Flag", library: "aziel", author: "Aziel Eliab", created_utc: "2026-04-05T00:00:00Z", shelf_hidden: 1, permalink_locked: true, permalink_slug: "shelf-hidden-flag" },
+    { record_id: "AZDOC-CLEAR00001", title: "Clear Paper", library: "corpus", author: "Aziel Eliab", created_utc: "2026-04-03T00:00:00Z", shelf_hidden: 0, quarantine_status: "CLEAR", permalink_locked: true, permalink_slug: "clear-paper" },
+  ];
+  const hiddenSql = [
+    { record_id: "AZDOC-HIDDEN0001", shelf_hidden: 1, quarantine_status: "CLEAR" },
+    { record_id: "AZDOC-QUAR000001", shelf_hidden: 0, quarantine_status: "QUARANTINE" },
+  ];
+  const xml = await rssXml(rssEnv(packed, [], { hiddenSql }));
+  assert.match(xml, /\/aziellibrary\/feb-twenty-eight/);
+  assert.match(xml, /\/azielcorpus\/usersubmitted\/clear-paper/);
+  assert.match(xml, /<pubDate>Sat, 28 Feb 2026 00:00:00 GMT<\/pubDate>/);
+  for (const slug of ["feb-thirty", "nov-thirty-one", "updated-only", "ts-only", "hidden-paper", "quarantine-paper", "packed-poison", "shelf-hidden-flag"]) {
+    assert.doesNotMatch(xml, new RegExp(slug), slug);
+  }
+  assert.equal((xml.match(/<item>/g) || []).length, 2);
+});
+
+test("/rss and /feed permanently redirect to the canonical feed", async () => {
+  const worker = (await import("./index.js")).default;
+  const canonical = "https://www.azielcorpuslibrary.net/rss.xml";
+  for (const path of ["/rss", "/feed", "/rss/", "/feed/"]) {
+    for (const method of ["GET", "HEAD"]) {
+      const res = await worker.fetch(new Request("https://www.azielcorpuslibrary.net" + path, { method }), {}, {});
+      assert.ok(res.status === 308 || res.status === 301, path + " " + method + " " + res.status);
+      const loc = res.headers.get("Location") || "";
+      assert.ok(loc === "/rss.xml" || loc === canonical, path + " Location " + loc);
+    }
   }
 });
 

@@ -842,6 +842,7 @@ export function headMeta(opts) {
     linkRel("alternate", "/runtime/v1/mesh", " type=" + Q + "application/json" + Q + " title=" + Q + "Runtime mesh" + Q),
     linkRel("alternate", "/runtime/llms.txt", " type=" + Q + "text/plain" + Q + " title=" + Q + "Runtime llms.txt" + Q),
     linkRel("alternate", "/runtime/cite.json", " type=" + Q + "application/json" + Q + " title=" + Q + "Runtime cite.json" + Q),
+    linkRel("alternate", CANON_HOST + "/rss.xml", " type=" + Q + "application/rss+xml" + Q + " title=" + Q + "Aziel Digital Library uploads" + Q),
     linkRel("sitemap", "/sitemap.xml"),
     linkRel("sitemap", "/sitemap-index.xml"),
     linkRel("service", "/runtime/v1/fraggate", " title=" + Q + "FragGate" + Q),

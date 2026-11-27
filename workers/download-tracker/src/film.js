@@ -198,6 +198,7 @@ ${theaterHashScript()}
 <meta name="theme-color" content="#07090f">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="canonical" href="${esc(canonical)}">
+<link rel="alternate" type="application/rss+xml" title="Aziel Digital Library uploads" href="${esc(CANON_HOST + "/rss.xml")}">
 <link rel="icon" href="/sigil.png" type="image/png">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="${esc(FILM_TITLE)}">

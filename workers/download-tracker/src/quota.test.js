@@ -115,6 +115,8 @@ test("sitemap-records answers 503 (not an empty sitemap) when D1 is over quota a
   assert.ok(res.headers.get("Retry-After"));
   const sm = await get(env, "/sitemap.xml");
   assert.equal(sm.status, 503);
+  const rss = await get(env, "/rss.xml");
+  assert.equal(rss.status, 503);
 });
 
 test("sitemap-records still lists packed ids when only D1 is over quota", async () => {
@@ -125,6 +127,60 @@ test("sitemap-records still lists packed ids when only D1 is over quota", async 
   const xml = await res.text();
   assert.match(xml, /AZDOC-Q0/);
   assert.match(xml, /AZDOC-Q2/);
+  const rss = await get(env, "/rss.xml");
+  assert.equal(rss.status, 503);
+  assert.ok(Number(rss.headers.get("Retry-After")) >= 60);
+  assert.match(rss.headers.get("Cache-Control") || "", /no-store/);
+  const feed = await rss.text();
+  assert.doesNotMatch(feed, /<item>/);
+  assert.doesNotMatch(feed, /aziellibrary\/q0/);
+});
+
+test("/rss.xml answers 503 + Retry-After and is not cached when the shelf re-filter errors", async () => {
+  const packed = packedWith(2);
+  const env = {
+    DOWNLOADS: memoryKv({ [LIBRARY_INDEX_KEY]: JSON.stringify(packed) }),
+    DB: d1({ error: "D1_ERROR: no such column: shelf_hidden" }),
+  };
+  const rss = await get(env, "/rss.xml");
+  assert.equal(rss.status, 503);
+  assert.equal(rss.headers.get("Retry-After"), "30");
+  assert.match(rss.headers.get("Cache-Control") || "", /no-store/);
+  const body = await rss.json();
+  assert.equal(body.code, "RSS_GATE_UNAVAILABLE");
+  assert.equal(body.ok, false);
+});
+
+test("/rss.xml 503s instead of publishing when the shelf re-filter result is not a successful array", async () => {
+  const packed = packedWith(2);
+  const cases = [
+    ["results null", async () => ({ success: true, results: null })],
+    ["results missing", async () => ({ success: true })],
+    ["success false", async () => ({ success: false, results: [] })],
+  ];
+  async function expectClosed(env, label) {
+    for (const method of ["GET", "HEAD"]) {
+      const res = await worker.fetch(new Request(HOST + "/rss.xml", { method, headers: { "User-Agent": "Mozilla/5.0" } }), env, {});
+      assert.equal(res.status, 503, label + " " + method);
+      assert.equal(res.headers.get("Retry-After"), "30", label + " " + method);
+      assert.match(res.headers.get("Cache-Control") || "", /no-store/, label + " " + method);
+      const text = await res.text();
+      assert.doesNotMatch(text, /<item>|AZDOC-Q|aziellibrary\/q/, label + " " + method);
+      const body = JSON.parse(text);
+      assert.equal(body.ok, false, label);
+      assert.equal(body.code, "RSS_GATE_UNAVAILABLE", label);
+      assert.equal(typeof body.error, "string", label);
+    }
+  }
+  for (const [name, all] of cases) {
+    await expectClosed({
+      DOWNLOADS: memoryKv({ [LIBRARY_INDEX_KEY]: JSON.stringify(packed) }),
+      DB: { prepare() { return { bind() { return this; }, all }; } },
+    }, name);
+  }
+  await expectClosed({
+    DOWNLOADS: memoryKv({ [LIBRARY_INDEX_KEY]: JSON.stringify(packed) }),
+  }, "missing DB binding");
 });
 
 test("/v1/search answers 503 when the shelf is empty because D1 is over quota", async () => {
@@ -181,6 +237,14 @@ test("refresh skips the KV put when nothing changed", async () => {
   const after = await refreshPackedIndex(env);
   assert.equal(kv.puts.filter((k) => k === LIBRARY_INDEX_KEY).length, 2);
   assert.equal(after.views, 8, "Views still refresh exactly");
+});
+
+test("run_worker_first serves the feed before a static asset can", () => {
+  const toml = readFileSync(new URL("../wrangler.toml", import.meta.url), "utf8");
+  const match = toml.match(/run_worker_first = (\[[\s\S]*?\])/);
+  assert.ok(match, "run_worker_first");
+  const paths = JSON.parse(match[1]);
+  for (const path of ["/rss.xml", "/rss", "/feed"]) assert.ok(paths.includes(path), path);
 });
 
 test("cron runs every 30 min and at most one walk per tick, rotating through every walk", () => {

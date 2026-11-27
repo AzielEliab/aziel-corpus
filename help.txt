@@ -23,6 +23,7 @@ Open a record by id: https://www.azielcorpuslibrary.net/record/{AZDOC-…}
 Packed machine index: https://www.azielcorpuslibrary.net/v1/library-index
 Search API: https://www.azielcorpuslibrary.net/v1/search?q=
 Record sitemap: https://www.azielcorpuslibrary.net/sitemap-records.xml
+Upload feed: https://www.azielcorpuslibrary.net/rss.xml (one item per permalink; the date is the upload time)
 
 Each public record has a canonical HTML page, a download at /file/{AZDOC-…},
 and Schema.org metadata at /record/{AZDOC-…}/metadata.json.
