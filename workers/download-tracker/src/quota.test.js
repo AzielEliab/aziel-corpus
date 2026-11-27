@@ -151,6 +151,38 @@ test("/rss.xml answers 503 + Retry-After and is not cached when the shelf re-fil
   assert.equal(body.ok, false);
 });
 
+test("/rss.xml 503s instead of publishing when the shelf re-filter result is not a successful array", async () => {
+  const packed = packedWith(2);
+  const cases = [
+    ["results null", async () => ({ success: true, results: null })],
+    ["results missing", async () => ({ success: true })],
+    ["success false", async () => ({ success: false, results: [] })],
+  ];
+  async function expectClosed(env, label) {
+    for (const method of ["GET", "HEAD"]) {
+      const res = await worker.fetch(new Request(HOST + "/rss.xml", { method, headers: { "User-Agent": "Mozilla/5.0" } }), env, {});
+      assert.equal(res.status, 503, label + " " + method);
+      assert.equal(res.headers.get("Retry-After"), "30", label + " " + method);
+      assert.match(res.headers.get("Cache-Control") || "", /no-store/, label + " " + method);
+      const text = await res.text();
+      assert.doesNotMatch(text, /<item>|AZDOC-Q|aziellibrary\/q/, label + " " + method);
+      const body = JSON.parse(text);
+      assert.equal(body.ok, false, label);
+      assert.equal(body.code, "RSS_GATE_UNAVAILABLE", label);
+      assert.equal(typeof body.error, "string", label);
+    }
+  }
+  for (const [name, all] of cases) {
+    await expectClosed({
+      DOWNLOADS: memoryKv({ [LIBRARY_INDEX_KEY]: JSON.stringify(packed) }),
+      DB: { prepare() { return { bind() { return this; }, all }; } },
+    }, name);
+  }
+  await expectClosed({
+    DOWNLOADS: memoryKv({ [LIBRARY_INDEX_KEY]: JSON.stringify(packed) }),
+  }, "missing DB binding");
+});
+
 test("/v1/search answers 503 when the shelf is empty because D1 is over quota", async () => {
   const env = { DOWNLOADS: memoryKv(), DB: d1({ error: D1_LIMIT }) };
   const res = await get(env, "/v1/search?q=x");

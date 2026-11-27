@@ -969,7 +969,7 @@ test("rss.xml is one item per upload permalink and pubDate is the stored upload 
     { record_id: "AZDOC-D1DATE00001", created_utc: "2026-06-15T08:00:00Z", library: "corpus" },
   ];
   const env = {
-    DB: { prepare() { return { bind() { return this; }, async all() { return { results: d1Rows }; } }; } },
+    DB: { prepare() { return { bind() { return this; }, async all() { return { success: true, results: d1Rows }; } }; } },
     DOWNLOADS: {
       async get() { return JSON.stringify({ key: LIBRARY_INDEX_KEY, version: 1, records: packed }); },
       async put() {},
@@ -1056,8 +1056,8 @@ function rssEnv(packed, d1Rows, { hiddenSql } = {}) {
           bind() { return this; },
           async all() {
             const text = String(sql || "");
-            if (hiddenSql && /POISON_SUSPECT/.test(text)) return { results: hiddenSql };
-            return { results: d1Rows || [] };
+            if (hiddenSql && /POISON_SUSPECT/.test(text)) return { success: true, results: hiddenSql };
+            return { success: true, results: d1Rows || [] };
           },
         };
       },

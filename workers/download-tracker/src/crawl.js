@@ -925,9 +925,11 @@ function rssGateUnavailable(cause) {
 async function feedBlockedIds(env) {
   if (!env || !env.DB || typeof env.DB.prepare !== "function") throw rssGateUnavailable();
   try {
-    const rows = (await env.DB.prepare(
+    const res = await env.DB.prepare(
       "SELECT record_id, shelf_hidden, quarantine_status FROM records WHERE IFNULL(shelf_hidden,0) != 0 OR UPPER(IFNULL(quarantine_status,'CLEAR')) IN ('POISON_SUSPECT','QUARANTINE')"
-    ).all()).results || [];
+    ).all();
+    if (!res || res.success !== true || !Array.isArray(res.results)) throw rssGateUnavailable();
+    const rows = res.results;
     const blocked = new Set();
     for (const row of rows) {
       const id = String((row && row.record_id) || "").trim();
@@ -935,6 +937,7 @@ async function feedBlockedIds(env) {
     }
     return blocked;
   } catch (e) {
+    if (e && e.code === "RSS_GATE_UNAVAILABLE") throw e;
     rethrowIfQuota(e, "rss-shelf");
     throw rssGateUnavailable(e);
   }
