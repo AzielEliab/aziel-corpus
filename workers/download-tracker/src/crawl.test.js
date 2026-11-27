@@ -145,11 +145,11 @@ test("sitemap.xml lists key routes and uses XML mime helper", async () => {
   };
   const xml = await sitemapXml(env);
   assert.match(xml, /<\?xml version="1.0"/);
-  for (const path of ["/", "/AzielEliab", "/software", "/donate", "/v1/software", "/v1/download", "/v1/library-index", "/v1/stats", "/v1/update/check", "/sitemap-index.xml", "/sitemap-records.xml", "/mcp.json", "/.well-known/mcp.json", "/mcp", "/bridge.json", "/v1/products", "/v1/design-pack", "/v1/design-pack/azcorpus", "/v1/design-pack/azlibrary", "/runtime", "/survival", "/v1/survival", "/runtime/survival", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/help.txt", "/addendum.txt", "/help/how-to-read-scores.txt", "/help/how-to-cite.txt", "/help/uploads.txt", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/forensics", "/aziel-library", "/corpus", "/cite.json", "/lockset.json", "/shelves", "/cold-copy", "/receipts", "/receipts/verify", "/v1/receipts", "/v1/receipts/verify", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/.well-known/aziel.json", "/.well-known/person.jsonld", "/llms.txt", "/ai.txt"]) {
+  for (const path of ["/", "/AzielEliab", "/software", "/donate", "/v1/software", "/v1/download", "/v1/library-index", "/v1/stats", "/v1/update/check", "/sitemap-index.xml", "/sitemap-records.xml", "/mcp.json", "/.well-known/mcp.json", "/mcp", "/bridge.json", "/v1/products", "/v1/design-pack", "/v1/design-pack/azcorpus", "/v1/design-pack/azlibrary", "/runtime", "/survival", "/v1/survival", "/runtime/survival", "/runtime/mcp", "/runtime/llms.txt", "/runtime/cite.json", "/runtime/robots.txt", "/how-its-scored", "/help.txt", "/addendum.txt", "/help/how-to-read-scores.txt", "/help/how-to-cite.txt", "/help/uploads.txt", "/pattern", "/map", "/tree", "/gazetteer", "/historical", "/forensics", "/aziel-library", "/corpus", "/cite.json", "/lockset.json", "/shelves", "/cold-copy", "/receipts", "/receipts/verify", "/v1/receipts", "/v1/receipts/verify", "/person.jsonld", "/identity.jsonld", "/graph.jsonld", "/who-is-aziel-eliab.txt", "/who-is", "/who", "/.well-known/aziel.json", "/.well-known/person.jsonld", "/llms.txt", "/ai.txt", "/.well-known/ai.txt", "/doors"]) {
     assert.match(xml, new RegExp("<loc>https://www\\.azielcorpuslibrary\\.net" + path.replace("/", "\\/") + "</loc>"));
   }
-  for (const dropped of ["/search", "/login", "/signup", "/upload"]) {
-    assert.doesNotMatch(xml, new RegExp("<loc>https://www\\.azielcorpuslibrary\\.net" + dropped.replace("/", "\\/") + "</loc>"));
+  for (const dropped of ["/search", "/login", "/signup", "/upload", "/v1/search"]) {
+    assert.doesNotMatch(xml, new RegExp("<loc>https://www\\.azielcorpuslibrary\\.net" + dropped.replace(/\//g, "\\/") + "</loc>"));
   }
   assert.doesNotMatch(xml, /azielcorpuslibrary\.net\/about</);
   assert.match(xml, /\/record\/AZDOC-AZIEL1/);
@@ -620,7 +620,7 @@ test("cite.json, llms.txt, ai.txt, and humans.txt carry identity and hubs", () =
   assert.match(index, /aziel-runtime\.vibelock\.workers\.dev\/sitemap-index\.xml/);
   assert.match(index, /www\.hedidntjump\.com\/sitemap\.xml/);
   assert.match(index, /www\.azieleliab\.com\/sitemap\.xml/);
-  assert.match(index, /spectrallock-download-tracker\.vibelock\.workers\.dev\/sitemap\.xml/);
+  assert.doesNotMatch(index, /download-tracker/);
   const mcp = mcpDiscovery();
   assert.equal(mcp.author, "Aziel Eliab");
   assert.match(mcp.url, /\/runtime\/mcp$/);
@@ -751,8 +751,8 @@ const OTHER_HOST_INDEXNOW_KEYS = [
   "4241818f-5799-488c-9457-da724a30831c",
 ];
 const HOST_SITEMAP_LASTMOD = "2026-10-04";
-const SEO_PASS_LASTMOD = "2026-10-22";
-const FOREIGN_SITEMAP_LASTMOD = "2026-09-20";
+const SEO_PASS_LASTMOD = "2026-11-20";
+const FOREIGN_SITEMAP_LASTMOD = "2026-11-20";
 
 function sitemapLocs(xml) {
   return [...xml.matchAll(/<loc>([^<]+)<\/loc><lastmod>([^<]+)<\/lastmod>/g)].map((m) => ({
@@ -802,7 +802,7 @@ test("IndexNow key file equals the key, robots allow it, and host sitemap lastmo
   const xml = await sitemapXml({});
   const hostPages = sitemapLocs(xml).filter((row) => row.loc.startsWith("https://www.azielcorpuslibrary.net"));
   assert.ok(hostPages.length > 10);
-  for (const dropped of ["/search", "/login", "/signup", "/upload"]) {
+  for (const dropped of ["/search", "/login", "/signup", "/upload", "/v1/search"]) {
     assert.equal(hostPages.some((row) => row.loc === "https://www.azielcorpuslibrary.net" + dropped), false, dropped);
   }
   const lastmods = new Set();
@@ -853,7 +853,6 @@ test("IndexNow key file equals the key, robots allow it, and host sitemap lastmo
     "https://www.azieleliab.com/sitemap.xml",
     "https://aziel-runtime.vibelock.workers.dev/sitemap.xml",
     "https://aziel-runtime.vibelock.workers.dev/sitemap-index.xml",
-    "https://spectrallock-download-tracker.vibelock.workers.dev/sitemap.xml",
     "https://www.furnaceisntfree.com/sitemap.xml",
     "https://www.timetounsealthebook.net/sitemap.xml",
   ]) {
